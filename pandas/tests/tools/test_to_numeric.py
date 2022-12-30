@@ -813,7 +813,7 @@ def test_to_numeric_large_float_not_downcast_to_float_32(val):
     "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
 )
 def test_to_numeric_use_nullable_dtypes(val, dtype):
-    # GH#
+    # GH#50505
     ser = Series([val], dtype=object)
     result = to_numeric(ser, use_nullable_dtypes=True)
     expected = Series([val], dtype=dtype)
@@ -824,7 +824,7 @@ def test_to_numeric_use_nullable_dtypes(val, dtype):
     "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
 )
 def test_to_numeric_use_nullable_dtypes_na(val, dtype):
-    # GH#
+    # GH#50505
     ser = Series([val, None], dtype=object)
     result = to_numeric(ser, use_nullable_dtypes=True)
     expected = Series([val, pd.NA], dtype=dtype)
@@ -836,7 +836,7 @@ def test_to_numeric_use_nullable_dtypes_na(val, dtype):
     [(1, "Int8", "integer"), (1.5, "Float32", "float"), (1, "Int8", "signed")],
 )
 def test_to_numeric_use_nullable_dtypes_downcasting(val, dtype, downcast):
-    # GH#
+    # GH#50505
     ser = Series([val, None], dtype=object)
     result = to_numeric(ser, use_nullable_dtypes=True, downcast=downcast)
     expected = Series([val, pd.NA], dtype=dtype)
@@ -844,7 +844,7 @@ def test_to_numeric_use_nullable_dtypes_downcasting(val, dtype, downcast):
 
 
 def test_to_numeric_use_nullable_dtypes_downcasting_uint():
-    # GH#
+    # GH#50505
     ser = Series([1, pd.NA], dtype="UInt64")
     result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
     expected = Series([1, pd.NA], dtype="UInt8")
