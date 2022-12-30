@@ -63,7 +63,7 @@ of operating inplace to begin with, such as:
 - ``ser.diff()``;
 - ``pd.concat([ser, other])``;
 - ``ser.mean()``;
-- ``df.loc[0, 'col1'] = 2.5``.
+- ``df.loc[0, 'col1'] = 2.5`` (if ``df`` is not a single block).
 
 These would keep being allowed to change Series' dtypes. Note that setting element of a column of a
 ``DataFrame`` would not raise, as that sets the elements in a new block manager (rather than in the
