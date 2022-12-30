@@ -13,7 +13,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [[ "$COVERAGE" == "true" ]]; then
-    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=setup.cfg"
 else
     COVERAGE="" # We need to reset this for COVERAGE="false" case
 fi
@@ -43,7 +43,7 @@ sh -c "$PYTEST_CMD"
 if [[ "$PANDAS_DATA_MANAGER" != "array" && "$PYTEST_TARGET" == "pandas" ]]; then
     # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
     # If we're targeting specific files, e.g. test_downstream.py, don't run.
-    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS --dist=loadfile --import-mode=importlib $TEST_ARGS $COVERAGE pandas"
 
     if [[ "$PATTERN" ]]; then
       PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"$PATTERN and arraymanager\""
