@@ -3833,13 +3833,14 @@ OpenDocument Spreadsheets
 The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
 using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
-``engine='odf'``. ``pip install odfpy`` may be required, if is not already installed.
+``engine='odf'``.
 
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
 
    # Returns a DataFrame
+   # package 'odfpy' is required
    pd.read_excel("path_to_file.ods", engine="odf")
 
 .. versionadded:: 1.1.0
