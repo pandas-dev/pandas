@@ -42,6 +42,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
+* :func:`to_numeric`
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
