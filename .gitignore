@@ -73,6 +73,8 @@ coverage_html_report
 __pycache__
 # pytest-monkeytype
 monkeytype.sqlite3
+# meson editable install folder
+.mesonpy
 
 
 # OS generated files #
