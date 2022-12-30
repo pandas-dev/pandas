@@ -1715,7 +1715,7 @@ def test_s3_parser_consistency():
 
 @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
-    # GH#
+    # GH#50500
     data = """<?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
 <row>
