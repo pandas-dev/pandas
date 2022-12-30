@@ -438,6 +438,19 @@ class BaseMethodsTests(BaseExtensionTests):
         sorter = np.array([1, 2, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
+        # arr containing na value
+        if arr._can_hold_na and arr.dtype.na_value is pd.NA:
+            arr_with_na = pd.array([a, b, pd.NA], dtype=arr.dtype)
+            if as_series:
+                arr_with_na = pd.Series(arr_with_na)
+            err_msg = (
+                "searchsorted requires array to be sorted, "
+                "which is impossible with NAs present."
+            )
+            with pytest.raises(ValueError, match=err_msg):
+                print(arr_with_na.dtype)
+                arr_with_na.searchsorted(a)
+
     def test_where_series(self, data, na_value, as_frame):
         assert data[0] != data[1]
         cls = type(data)
