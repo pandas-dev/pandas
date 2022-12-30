@@ -367,6 +367,12 @@ def concat(
     0   1   2
     1   3   4
     """
+    if copy is None:
+        if _using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
     op = _Concatenator(
         objs,
         axis=axis,
