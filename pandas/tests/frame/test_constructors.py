@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -2541,6 +2542,7 @@ class TestDataFrameConstructors:
             or is_complex_dtype(df.dtypes[0])
             or is_object_dtype(df.dtypes[0])
             or is_datetime64_dtype(df.dtypes[0])  # TODO this one should warn
+            or is_timedelta64_dtype(df.dtypes[0])  # TODO this one should warn
         ):
             warn = None
         else:
