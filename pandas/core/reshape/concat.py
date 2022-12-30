@@ -17,12 +17,8 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import (
-    config,
-    get_option,
-)
+from pandas._config import get_option
 
-from pandas._libs import lib
 from pandas._typing import (
     Axis,
     AxisInt,
@@ -163,7 +159,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort: bool = False,
-    copy: bool = lib.NoDefault,
+    copy: bool | None = None,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -371,12 +367,6 @@ def concat(
     0   1   2
     1   3   4
     """
-    if copy is lib.NoDefault:
-        if config.get_option("mode.copy_on_write"):
-            copy = None
-        else:
-            copy = True
-
     op = _Concatenator(
         objs,
         axis=axis,
