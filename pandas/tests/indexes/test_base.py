@@ -891,7 +891,6 @@ class TestIndex(Base):
         "index",
         [
             Index(["qux", "baz", "foo", "bar"]),
-            # float64 Index overrides isin, so must be checked separately
             NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )

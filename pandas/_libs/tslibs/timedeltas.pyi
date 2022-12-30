@@ -76,6 +76,12 @@ def delta_to_nanoseconds(
     reso: int = ...,  # NPY_DATETIMEUNIT
     round_ok: bool = ...,
 ) -> int: ...
+def floordiv_object_array(
+    left: np.ndarray, right: npt.NDArray[np.object_]
+) -> np.ndarray: ...
+def truediv_object_array(
+    left: np.ndarray, right: npt.NDArray[np.object_]
+) -> np.ndarray: ...
 
 class Timedelta(timedelta):
     _creso: int
