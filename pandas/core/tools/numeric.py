@@ -198,7 +198,7 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
@@ -250,6 +250,7 @@ def to_numeric(
     if mask is not None or new_mask is not None:
         if mask is None:
             mask = new_mask
+        assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
@@ -259,6 +260,7 @@ def to_numeric(
             IntegerArray,
         )
 
+        klass: type[IntegerArray] | type[BooleanArray] | type[FloatingArray]
         if is_integer_dtype(data.dtype):
             klass = IntegerArray
         elif is_bool_dtype(data.dtype):
