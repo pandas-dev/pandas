@@ -205,6 +205,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -643,6 +644,8 @@ class DataFrame(NDFrame, OpsMixin):
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
                 # GH#33357 fastpath
+                if _using_copy_on_write():
+                    data = data.copy(deep=False)
                 NDFrame.__init__(self, data)
                 return
 

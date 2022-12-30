@@ -878,6 +878,10 @@ Indexing
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
 -
 
+Copy on write
+^^^^^^^^^^^^^
+- Bug in :class:`DataFrame` constructor not tracking reference if called with another :class:`DataFrame` (:issue:``)
+
 Missing
 ^^^^^^^
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
