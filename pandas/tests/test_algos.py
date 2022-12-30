@@ -66,7 +66,10 @@ class TestFactorize:
         constructor = Index
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
-        expected_uniques = constructor(obj.unique())
+        expected_arr = obj.unique()
+        if expected_arr.dtype == np.float16:
+            expected_arr = expected_arr.astype(np.float32)
+        expected_uniques = constructor(expected_arr)
         if (
             isinstance(obj, Index)
             and expected_uniques.dtype == bool
