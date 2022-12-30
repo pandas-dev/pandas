@@ -351,6 +351,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_use_nullable_dtypes_pandas_backend():
+    # GH#50503
     df = pd.DataFrame(
         {
             "string": list("abc"),
