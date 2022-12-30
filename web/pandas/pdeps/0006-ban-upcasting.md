@@ -51,17 +51,24 @@ In [11]: ser[2] = '2000-01-04x'  # almost certainly a typo - but pandas doesn't 
 ```
 
 The scope of this PDEP is limited to setitem-like operations which would operate inplace, such as:
-- ``ser[0] == 2``;
-- ``ser.fillna(0, inplace=True)``;
-- ``ser.where(ser.isna(), 0, inplace=True)``
+- ``ser[0] = 2.5``;
+- ``ser.fillna('foo', inplace=True)``;
+- ``ser.where(ser.isna(), 'foo', inplace=True)``
+- ``ser.iloc[0] = 2.5``
+- ``ser.loc[0] = 2.5``
+- ``ser[:] = 2.5``
 
 There may be more. What is explicitly excluded from this PDEP is any operation would have no change
 of operating inplace to begin with, such as:
 - ``ser.diff()``;
 - ``pd.concat([ser, other])``;
-- ``ser.mean()``.
+- ``ser.mean()``;
+- ``df.loc[0, 'col1'] = 2.5``.
 
-These would keep being allowed to change Series' dtypes.
+These would keep being allowed to change Series' dtypes. Note that setting element of a column of a
+``DataFrame`` would not raise, as that sets the elements in a new block manager (rather than in the
+original one),
+see https://github.com/pandas-dev/pandas/blob/4e4be0bfa8f74b9d453aa4163d95660c04ffea0c/pandas/core/internals/managers.py#L1361-L1362.
 
 ## Detailed description
 
@@ -84,7 +91,7 @@ For a start, this would involve:
   else:
   ```
 
-2. making a similar change in ``Block.where``, ``EABlock.setitem``, ``EABlock.where``, and probably more places.
+2. making a similar change in ``Block.where``, ``Block.putmask``, and likewise for ``EABlock`` (and possibly in more places).
 
 The above would already require several hundreds of tests to be adjusted.
 
