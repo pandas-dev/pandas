@@ -748,12 +748,12 @@ class TestDataFrameSetItem:
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         rhs = DataFrame([[11], [13]], dtype="Int64")
 
-        df.isetitem(0, rhs)
+        df.isetitem(2, rhs)
         expected = DataFrame(
             {
-                0: Series([11, 13], dtype="Int64"),
+                0: [1, 4],
                 1: [2, 5],
-                2: [3, 6],
+                2: Series([11, 13], dtype="Int64"),
             }
         )
         tm.assert_frame_equal(df, expected)
