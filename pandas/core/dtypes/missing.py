@@ -284,7 +284,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
-        if inf_as_na and is_categorical_dtype(dtype):
+        if inf_as_na or is_categorical_dtype(dtype):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             # error: Incompatible types in assignment (expression has type
