@@ -14,6 +14,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
+import re
 
 import numpy as np
 import pytz
@@ -43,13 +44,16 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.util cimport (
     is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
+
 from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
@@ -60,15 +64,33 @@ cdef bint format_is_iso(f: str):
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    excluded_formats = ["%Y%m"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                iso_fmt = f"%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}"
-                if iso_fmt.startswith(f) and f not in excluded_formats:
-                    return True
-    return False
+    iso_regex = re.compile(
+        r"""
+        ^                      # start of string
+        (?:                    # group for alternative date formats
+        %Y[ -/\\.]%m[ -/\\.]%d # 4-digit year, 2-digit month, 2-digit day
+        | %Y%m%d               # OR no separators
+        | %Y[ -/\\.]%m         # OR year & month separated by [ /, \, -]
+        | %Y%m                 # OR 4-digit year, 2-digit month, no separators
+        | %Y                   # OR 4-digit year
+        )
+        (?:                    # group for optional time and timezone
+        [ T]%H:%M:%S           # time format THH:MM:SS, T is space of T
+        (?:                    # group for optional fraction second & timezone
+        %z                     # timezone in the format +HHMM or -HHMM
+        | .%f(?:%z|Z)?         # OR format .%f%z or .%fZ
+        )?                     # make the group optional
+        )?                     # making the time and timezone grp optional
+        $                      # end of string
+        """,
+        re.VERBOSE,
+    )
+    excluded_formats = [
+        r"^%Y%m$",
+    ]
+    if any(re.match(pattern, f) for pattern in excluded_formats):
+        return False
+    return bool(re.match(iso_regex, f))
 
 
 def _test_format_is_iso(f: str) -> bool:
