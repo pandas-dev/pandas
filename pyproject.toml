@@ -300,6 +300,7 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
+  "error:_pytest.warning_types.PytestUnknownMarkWarning
   "error:Sparse:FutureWarning",
   "error:The SparseArray:FutureWarning",
   # Deprecation gives warning on import during pytest collection
