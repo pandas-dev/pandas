@@ -856,7 +856,7 @@ class ArrayManager(BaseArrayManager):
         return
 
     def column_setitem(
-        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace_only: bool = False
     ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
@@ -868,7 +868,7 @@ class ArrayManager(BaseArrayManager):
             raise TypeError("The column index should be an integer")
         arr = self.arrays[loc]
         mgr = SingleArrayManager([arr], [self._axes[0]])
-        if inplace:
+        if inplace_only:
             mgr.setitem_inplace(idx, value)
         else:
             new_mgr = mgr.setitem((idx,), value)

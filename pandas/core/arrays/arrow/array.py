@@ -12,6 +12,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     FillnaOptions,
     Iterator,
@@ -24,6 +25,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under6p0,
     pa_version_under7p0,
+    pa_version_under9p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -204,17 +206,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
-        is_cls = isinstance(scalars, cls)
-        if is_cls or isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            if is_cls:
-                scalars = scalars._data
-            if pa_dtype:
-                scalars = scalars.cast(pa_dtype)
-            return cls(scalars)
-        else:
-            return cls(
-                pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
-            )
+        if isinstance(scalars, cls):
+            scalars = scalars._data
+        elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            try:
+                scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
+            except pa.ArrowInvalid:
+                # GH50430: let pyarrow infer type, then cast
+                scalars = pa.array(scalars, from_pandas=True)
+        if pa_dtype:
+            scalars = scalars.cast(pa_dtype)
+        return cls(scalars)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -659,6 +661,32 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             f"as backed by a 1D pyarrow.ChunkedArray."
         )
 
+    def round(
+        self: ArrowExtensionArrayT, decimals: int = 0, *args, **kwargs
+    ) -> ArrowExtensionArrayT:
+        """
+        Round each value in the array a to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect.
+
+        Returns
+        -------
+        ArrowExtensionArray
+            Rounded values of the ArrowExtensionArray.
+
+        See Also
+        --------
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        return type(self)(pc.round(self._data, ndigits=decimals))
+
     def take(
         self,
         indices: TakeIndexer,
@@ -851,6 +879,45 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         arr = pa.chunked_array(chunks)
         return cls(arr)
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ArrowExtensionArray | ExtensionArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        pyarrow_name = {
+            "cumsum": "cumulative_sum_checked",
+        }.get(name, name)
+        pyarrow_meth = getattr(pc, pyarrow_name, None)
+        if pyarrow_meth is None:
+            return super()._accumulate(name, skipna=skipna, **kwargs)
+        result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+        return type(self)(result)
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
@@ -1006,7 +1073,72 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
-    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if pa_version_under9p0 or axis != 0:
+            ranked = super()._rank(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+            # keep dtypes consistent with the implementation below
+            if method == "average" or pct:
+                pa_type = pa.float64()
+            else:
+                pa_type = pa.uint64()
+            result = pa.array(ranked, type=pa_type, from_pandas=True)
+            return type(self)(result)
+
+        data = self._data.combine_chunks()
+        sort_keys = "ascending" if ascending else "descending"
+        null_placement = "at_start" if na_option == "top" else "at_end"
+        tiebreaker = "min" if method == "average" else method
+
+        result = pc.rank(
+            data,
+            sort_keys=sort_keys,
+            null_placement=null_placement,
+            tiebreaker=tiebreaker,
+        )
+
+        if na_option == "keep":
+            mask = pc.is_null(self._data)
+            null = pa.scalar(None, type=result.type)
+            result = pc.if_else(mask, null, result)
+
+        if method == "average":
+            result_max = pc.rank(
+                data,
+                sort_keys=sort_keys,
+                null_placement=null_placement,
+                tiebreaker="max",
+            )
+            result_max = result_max.cast(pa.float64())
+            result_min = result.cast(pa.float64())
+            result = pc.divide(pc.add(result_min, result_max), 2)
+
+        if pct:
+            if not pa.types.is_floating(result.type):
+                result = result.cast(pa.float64())
+            if method == "dense":
+                divisor = pc.max(result)
+            else:
+                divisor = pc.count(result)
+            result = pc.divide(result, divisor)
+
+        return type(self)(result)
 
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str

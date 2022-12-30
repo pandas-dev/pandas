@@ -424,11 +424,7 @@ def test_transform_nuisance_raises(df):
 
 
 def test_transform_function_aliases(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform("mean")
     result = df.groupby("A").transform("mean", numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform(np.mean)
     expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
@@ -506,8 +502,6 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
         )
@@ -552,8 +546,6 @@ def test_groupby_transform_with_int():
     tm.assert_frame_equal(result, expected)
 
     # int doesn't get downcasted
-    with pytest.raises(TypeError, match="unsupported operand type"):
-        df.groupby("A").transform(lambda x: x * 2 / 2)
     result = df.groupby("A")[["B", "C"]].transform(lambda x: x * 2 / 2)
     expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
@@ -746,14 +738,8 @@ def test_cython_transform_frame(op, args, targop):
 
             expected = expected.sort_index(axis=1)
 
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    gb.transform(op, *args).sort_index(axis=1)
             result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    getattr(gb, op)(*args).sort_index(axis=1)
             result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
             # individual columns

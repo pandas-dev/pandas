@@ -1,4 +1,5 @@
 import collections
+import warnings
 
 cimport cython
 from cpython.object cimport (
@@ -1947,9 +1948,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = self.asm8 // other
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = self.asm8 // other
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
@@ -1987,9 +1992,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = other // self.asm8
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = other // self.asm8
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
@@ -2019,6 +2028,64 @@ class Timedelta(_Timedelta):
         # Naive implementation, room for optimization
         div = other // self
         return div, other - div * self
+
+
+def truediv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 / obj
+        else:
+            td = Timedelta(td64)
+            res_value = td / obj
+
+        result[i] = res_value
+
+    return result
+
+
+def floordiv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 // obj
+        else:
+            td = Timedelta(td64)
+            res_value = td // obj
+
+        result[i] = res_value
+
+    return result
 
 
 cdef bint is_any_td_scalar(object obj):
