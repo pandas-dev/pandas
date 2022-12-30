@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -458,3 +459,13 @@ class TestDataFrameToDict:
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
         result = df.to_dict(orient=orient, index=False)
         tm.assert_dict_equal(result, expected)
+
+    def test_to_dict_masked_native_python(self):
+        # GH#34665
+        df = DataFrame({"a": Series([1, 2], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int
+
+        df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int

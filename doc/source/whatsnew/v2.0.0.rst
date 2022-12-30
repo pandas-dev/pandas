@@ -913,6 +913,7 @@ I/O
 - Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :meth:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Bug in :meth:`DataFrame.to_string` ignoring float formatter for extension arrays (:issue:`39336`)
+- Bug in :meth:`DataFrame.to_dict` not converting elements to native Python types for masked arrays (:issue:`34665`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
