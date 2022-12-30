@@ -818,38 +818,6 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
-def format_is_iso(f: str) -> bool:
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_regex = re.compile(
-        r"""
-        ^                       # start of string
-        \d{4}                   # match a 4-digit year
-        ([ -/\\.]\d{2}|\d{2})?  # optionally match a 2-digit month
-        ([ -/\\.]\d{2}|\d{2})?  # optionally match a 2-digit day
-        ([ T]\d{2}:\d{2}:\d{2}  # match time in the format "THH:MM:SS"
-        (\.\d+)?                # match a decimal and fractional seconds
-        ([+-]\d{2}:\d{2}|Z)?)?  # match timezone in the format "+HH:MM" or "Z"
-        $                       # end of string
-        """,
-        re.VERBOSE,
-    )
-
-    excluded_formats = [
-        r"^\d{4}\d{2}\d{2}$",  # %Y%m%d
-        r"^\d{4}\d{2}$",       # %Y%m
-        r"^\d{4}$",            # %Y
-    ]
-
-    if any(re.match(pattern, f) for pattern in excluded_formats):
-        return False
-
-    return bool(re.match(iso_regex, f))
-
-
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
