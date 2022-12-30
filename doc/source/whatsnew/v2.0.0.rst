@@ -39,6 +39,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
+* :func:`read_xml`
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
@@ -49,6 +50,7 @@ to select the nullable dtypes implementation.
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
 * :func:`read_excel`
 * :func:`read_html`
+* :func:`read_xml`
 * :func:`read_parquet`
 * :func:`read_orc`
 
