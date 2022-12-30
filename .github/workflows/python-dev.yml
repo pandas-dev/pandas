@@ -97,7 +97,7 @@ jobs:
       run: |
         call micromamba activate test
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        python -m pip install . --no-build-isolation -v
+        python -m pip install -ve . --no-build-isolation
       shell: cmd /C call {0}
 
     - name: Build Version
