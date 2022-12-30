@@ -1257,6 +1257,19 @@ The bad line will be a list of strings that was split by the ``sep``:
 Note that the callable function will handle only a line with too many fields.
 Bad lines caused by other errors will be silently skipped.
 
+For example:
+
+.. code-block:: ipython
+
+   def bad_lines_func(line):
+      print(line)
+
+   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+   data
+   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
+
+The line was not processed in this case, as a "bad line" here is caused by an escape character.
+
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
