@@ -2118,10 +2118,7 @@ def objects_to_datetime64ns(
     yearfirst,
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
-    require_iso8601: bool = False,
     allow_object: bool = False,
-    format: str | None = None,
-    exact: bool = True,
 ):
     """
     Convert data to array of timestamps.
@@ -2134,7 +2131,6 @@ def objects_to_datetime64ns(
     utc : bool, default False
         Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
-    require_iso8601 : bool, default False
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
@@ -2165,9 +2161,6 @@ def objects_to_datetime64ns(
             utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
-            require_iso8601=require_iso8601,
-            format=format,
-            exact=exact,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:
