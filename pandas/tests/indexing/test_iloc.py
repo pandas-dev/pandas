@@ -76,7 +76,9 @@ class TestiLocBaseIndependent:
         ],
     )
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(self, indexer, key, using_array_manager):
+    def test_iloc_setitem_fullcol_categorical(
+        self, indexer, key, using_array_manager, using_copy_on_write
+    ):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
@@ -90,7 +92,7 @@ class TestiLocBaseIndependent:
         indexer(df)[key, 0] = cat
 
         expected = DataFrame({0: cat}).astype(object)
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             assert np.shares_memory(df[0].values, orig_vals)
 
         tm.assert_frame_equal(df, expected)
