@@ -325,6 +325,9 @@ def main():
         ),
     )
     argparser.add_argument(
+        "--python-path", type=str, default=os.path.dirname(DOC_PATH), help="path"
+    )
+    argparser.add_argument(
         "-v",
         action="count",
         dest="verbosity",
@@ -350,6 +353,8 @@ def main():
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
     # the import within the module, injecting it into the global namespace
+    os.environ["PYTHONPATH"] = args.python_path
+    sys.path.insert(0, args.python_path)
     globals()["pandas"] = importlib.import_module("pandas")
 
     # Set the matplotlib backend to the non-interactive Agg backend for all

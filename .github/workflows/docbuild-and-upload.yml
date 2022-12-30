@@ -49,10 +49,10 @@ jobs:
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
-      run: python doc/make.py --warnings-are-errors
+      run: doc/make.py --warnings-are-errors
 
     - name: Build documentation zip
-      run: python doc/make.py zip_html
+      run: doc/make.py zip_html
 
     - name: Install ssh key
       run: |

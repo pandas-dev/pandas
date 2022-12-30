@@ -70,7 +70,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
-      run: cd ci && ./code_checks.sh code
+      run: ci/code_checks.sh code
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run doctests
@@ -99,7 +99,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
-      run: pytest scripts --import-mode=append
+      run: pytest scripts
       if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:

@@ -787,11 +787,6 @@ options or subtle interactions to test (or think of!) all of them.
 Running the test suite
 ----------------------
 
-.. note::
-   If you have built pandas with meson, you'll need to add the
-   ``--import-mode=importlib`` flag to each pytest invocation, or pandas
-   will fail to import in the tests.
-
 The tests can then be run directly inside your Git clone (without having to
 install pandas) by typing::
 

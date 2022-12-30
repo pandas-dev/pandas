@@ -85,11 +85,11 @@ jobs:
 
       # Sigh, someone (numpy?) is depending on mingw, which pandas doesn't compile with.
       # Also, meson doesn't detect visual c++ unless cl.exe is in path.
-      # TODO: File a bug with meson about this.
+      # TODO: File a bug with meson-python about this.
     - name: Build Pandas
       if : ${{ runner.os != 'Windows' }}
       run: |
-        python3 -m pip install . --no-build-isolation -v
+        python3 -m pip install -ve . --no-build-isolation
       shell: bash -el {0}
 
     - name: Build Pandas (Windows)
@@ -102,8 +102,7 @@ jobs:
 
     - name: Build Version
       run: |
-        # Can't import pandas from the source directory
-        cd .. && python -c "import pandas; pandas.show_versions();"
+        python -c "import pandas; pandas.show_versions();"
 
     - name: Test
       uses: ./.github/actions/run-tests

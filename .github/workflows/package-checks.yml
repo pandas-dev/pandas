@@ -52,5 +52,5 @@ jobs:
 
       - name: Pip install with extra
         run: |
-          python -m pip install .[${{ matrix.extra }}] -v
+          python -m pip install .[${{ matrix.extra }}] -v --no-build-isolation
         shell: bash -el {0}
