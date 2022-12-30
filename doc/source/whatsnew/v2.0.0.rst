@@ -880,7 +880,7 @@ Indexing
 
 Copy on write
 ^^^^^^^^^^^^^
-- Bug in :class:`DataFrame` constructor not tracking reference if called with another :class:`DataFrame` (:issue:``)
+- Bug in :class:`DataFrame` constructor not tracking reference if called with another :class:`DataFrame` (:issue:`50499`)
 
 Missing
 ^^^^^^^
