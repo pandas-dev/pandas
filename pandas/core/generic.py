@@ -700,7 +700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
     ) -> NDFrameT:
         """
         Assign desired index to given axis.
@@ -734,7 +734,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._set_axis_nocheck(labels, axis, inplace=False, copy=copy)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t, copy: bool_t):
+    def _set_axis_nocheck(
+        self, labels, axis: Axis, inplace: bool_t, copy: bool_t | None
+    ):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -1758,9 +1760,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if `key` matches neither a label nor a level
         ValueError
             if `key` matches multiple labels
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
         """
         axis = self._get_axis_number(axis)
         other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
@@ -4221,7 +4220,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         other,
         method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         limit=None,
         tolerance=None,
     ) -> NDFrameT:
@@ -5257,7 +5256,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         reindexers,
         fill_value=None,
-        copy: bool_t = False,
+        copy: bool_t | None = False,
         allow_dups: bool_t = False,
     ) -> NDFrameT:
         """allow_dups indicates an internal call here"""
@@ -5286,8 +5285,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # If we've made a copy once, no need to make another one
             copy = False
 
-        if copy and new_data is self._mgr:
-            new_data = new_data.copy()
+        if (copy or copy is None) and new_data is self._mgr:
+            new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -6035,11 +6034,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        .. deprecated:: 1.3.0
+        .. versionchanged:: 2.0.0
 
             Using ``astype`` to convert from timezone-naive dtype to
-            timezone-aware dtype is deprecated and will raise in a
-            future version.  Use :meth:`Series.dt.tz_localize` instead.
+            timezone-aware dtype will raise an exception.
+            Use :meth:`Series.dt.tz_localize` instead.
 
         Examples
         --------
@@ -6435,9 +6434,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. versionadded:: 2.0
             The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
             numpy-backed nullable dtypes or
-            ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
             pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         Examples
@@ -6580,6 +6579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def fillna(
         self: NDFrameT,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool_t = False,
@@ -9060,7 +9060,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -9253,7 +9253,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         fill_value=None,
         method=None,
         limit=None,
@@ -9317,7 +9317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         fill_value=None,
         method=None,
         limit=None,
@@ -9346,7 +9346,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
             elif lidx is None or join_index is None:
-                left = self.copy() if copy else self
+                left = self.copy(deep=copy) if copy or copy is None else self
             else:
                 left = self._constructor(
                     self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
@@ -9375,7 +9375,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = self._constructor(fdata)
 
             if ridx is None:
-                right = other
+                right = other.copy(deep=copy) if copy or copy is None else other
             else:
                 right = other.reindex(join_index, level=level)
 
@@ -11643,7 +11643,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how=how)
+        idxpos = find_valid_index(self._values, how=how, is_valid=~isna(self._values))
         if idxpos is None:
             return None
         return self.index[idxpos]

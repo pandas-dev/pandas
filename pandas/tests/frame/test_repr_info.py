@@ -3,7 +3,6 @@ from datetime import (
     timedelta,
 )
 from io import StringIO
-import warnings
 
 import numpy as np
 import pytest
@@ -206,9 +205,6 @@ NaT   4"""
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
 
-        warn_filters = warnings.filters
-        warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
-
         unsortable = DataFrame(
             {
                 "foo": [1] * 50,
@@ -230,8 +226,6 @@ NaT   4"""
         repr(float_frame)
 
         tm.reset_display_options()
-
-        warnings.filters = warn_filters
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
@@ -364,4 +358,18 @@ NaT   4"""
         expected = repr(df)
         df = df.iloc[:, :5]
         result = repr(df)
+        assert result == expected
+
+    def test_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = """      a     b
+0  0.12  1.00
+1  1.12  2.00"""
         assert result == expected

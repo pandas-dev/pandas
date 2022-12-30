@@ -23,7 +23,7 @@ def _does_string_look_like_datetime(py_string: str) -> bool: ...
 def quarter_to_myear(year: int, quarter: int, freq: str) -> tuple[int, int]: ...
 def try_parse_dates(
     values: npt.NDArray[np.object_],  # object[:]
-    parser=...,
+    parser,
     dayfirst: bool = ...,
     default: datetime | None = ...,
 ) -> npt.NDArray[np.object_]: ...
@@ -40,7 +40,6 @@ def try_parse_datetime_components(
     minutes: npt.NDArray[np.object_],  # object[:]
     seconds: npt.NDArray[np.object_],  # object[:]
 ) -> npt.NDArray[np.object_]: ...
-def format_is_iso(f: str) -> bool: ...
 def guess_datetime_format(
     dt_str,
     dayfirst: bool | None = ...,
