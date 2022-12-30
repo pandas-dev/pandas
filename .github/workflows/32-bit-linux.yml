@@ -43,7 +43,7 @@ jobs:
           pip install "git+https://github.com/mesonbuild/meson-python.git@main" && \
           python -m pip install versioneer[toml] && \
           export PANDAS_CI=1 && \
-          python -m pip install --no-build-isolation -ev . && \
+          python -m pip install --no-build-isolation -ve . && \
           python -m pip list && \
           pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
 
