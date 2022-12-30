@@ -448,6 +448,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
         df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
@@ -808,6 +809,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
         df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
