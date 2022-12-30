@@ -50,25 +50,28 @@ In [10]: ser[2] = '2000-01-04'  # works, is converted to datetime64
 In [11]: ser[2] = '2000-01-04x'  # almost certainly a typo - but pandas doesn't error, it upcasts to object
 ```
 
-The scope of this PDEP is limited to setitem-like operations which would operate inplace, such as:
-- ``ser[0] = 2.5``;
+The scope of this PDEP is limited to setitem-like operations on Series.
+For example, starting with
+```python
+df = DataFrame({'a': [1, 2, np.nan], 'b': [4, 5, 6]})
+ser = df['a'].copy()
+```
+then the following would all raise:
+- ``ser[0] = 'foo'``;
 - ``ser.fillna('foo', inplace=True)``;
 - ``ser.where(ser.isna(), 'foo', inplace=True)``
-- ``ser.iloc[0] = 2.5``
-- ``ser.loc[0] = 2.5``
-- ``ser[:] = 2.5``
+- ``ser.iloc[0] = 'foo'``
+- ``ser.loc[0] = 'foo'``
+- ``df.loc[0, 'a'] = 'foo'``
 
-There may be more. What is explicitly excluded from this PDEP is any operation would have no change
-of operating inplace to begin with, such as:
+Examples of operations which would not raise are:
 - ``ser.diff()``;
-- ``pd.concat([ser, other])``;
+- ``pd.concat([ser, ser.astype(object)])``;
 - ``ser.mean()``;
-- ``df.loc[0, 'col1'] = 2.5`` (if ``df`` is not a single block).
+- ``df.loc[:, 'a'] = 'foo'`` (debatable, as is the one below)
+- ``ser[:] = 'foo'``
 
-These would keep being allowed to change Series' dtypes. Note that setting element of a column of a
-``DataFrame`` would not raise, as that sets the elements in a new block manager (rather than in the
-original one),
-see https://github.com/pandas-dev/pandas/blob/4e4be0bfa8f74b9d453aa4163d95660c04ffea0c/pandas/core/internals/managers.py#L1361-L1362.
+These would keep being allowed to change Series' dtypes.
 
 ## Detailed description
 
@@ -91,7 +94,7 @@ For a start, this would involve:
   else:
   ```
 
-2. making a similar change in ``Block.where``, ``Block.putmask``, and likewise for ``EABlock`` (and possibly in more places).
+2. making a similar change in ``Block.where``, ``Block.putmask``, ``EABackedBlock.where``, and ``EABackedBlock.putmask``.
 
 The above would already require several hundreds of tests to be adjusted.
 
