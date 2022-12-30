@@ -159,6 +159,7 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
+from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -5285,7 +5286,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # If we've made a copy once, no need to make another one
             copy = False
 
-        if (copy or copy is None) and new_data is self._mgr:
+        if (
+            (copy or copy is None)
+            and new_data is self._mgr
+            or not copy
+            and _using_copy_on_write()
+        ):
             new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)

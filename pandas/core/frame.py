@@ -638,14 +638,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy and _using_copy_on_write():
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
                 # GH#33357 fastpath
-                if _using_copy_on_write():
-                    data = data.copy(deep=False)
                 NDFrame.__init__(self, data)
                 return
 

@@ -7,12 +7,11 @@ from pandas.tests.copy_view.util import get_array
 
 
 @pytest.mark.parametrize("columns", [None, ["a"]])
-@pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
-def test_dataframe_constructor_mgr(using_copy_on_write, func, columns):
+def test_dataframe_constructor_mgr(using_copy_on_write, columns):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
-    new_df = DataFrame(func(df))
+    new_df = DataFrame(df)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
     new_df.iloc[0] = 100
