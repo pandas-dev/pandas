@@ -493,7 +493,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, ser, axis="index", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -508,7 +509,8 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        return_value = result.where(mask, ser, axis="columns", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -559,11 +561,13 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        return_value = result.where(mask, d1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, d1, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        return_value = result.where(mask, d1, inplace=True, axis="index")
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, d1, inplace=True, axis="index")
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
