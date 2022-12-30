@@ -306,16 +306,6 @@ def test_orc_writer_dtypes_not_supported(df_not_supported):
         df_not_supported.to_orc()
 
 
-def test_orc_use_nullable_dtypes_pandas_backend_not_supported(dirpath):
-    input_file = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
-    with pytest.raises(
-        NotImplementedError,
-        match="mode.dtype_backend set to pandas is not implemented.",
-    ):
-        with pd.option_context("mode.dtype_backend", "pandas"):
-            read_orc(input_file, use_nullable_dtypes=True)
-
-
 @td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_use_nullable_dtypes_pyarrow_backend():
     df = pd.DataFrame(
