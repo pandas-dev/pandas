@@ -663,6 +663,7 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
+        uniques: ArrayLike
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
@@ -707,11 +708,7 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            # error: Incompatible types in assignment (expression has type "Union
-            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
-            uniques = (
-                self.grouping_vector.result_index._values  # type: ignore[assignment]
-            )
+            uniques = self.grouping_vector.result_index._values
         elif self._uniques is not None:
             # GH#50486 Code grouping_vector using _uniques; allows
             # including uniques that are not present in grouping_vector.

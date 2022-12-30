@@ -1216,7 +1216,9 @@ class BinGrouper(BaseGrouper):
         lev = self.binlabels
         codes = self.group_info[0]
         labels = lev.take(codes)
-        ping = grouper.Grouping(labels, labels, in_axis=False, level=None, uniques=lev)
+        ping = grouper.Grouping(
+            labels, labels, in_axis=False, level=None, uniques=lev.values
+        )
         return [ping]
 
     def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
