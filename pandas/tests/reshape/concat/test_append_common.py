@@ -55,21 +55,6 @@ class TestConcatAppendCommon:
 
     item2 = item
 
-    def _check_expected_dtype(self, obj, label):
-        """
-        Check whether obj has expected dtype depending on label
-        considering not-supported dtypes
-        """
-        if isinstance(obj, Index):
-            assert obj.dtype == label
-        elif isinstance(obj, Series):
-            if label.startswith("period"):
-                assert obj.dtype == "Period[M]"
-            else:
-                assert obj.dtype == label
-        else:
-            raise ValueError
-
     def test_dtypes(self, item, index_or_series):
         # to confirm test case covers intended dtypes
         typ, vals = item
