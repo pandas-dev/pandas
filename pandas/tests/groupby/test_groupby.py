@@ -2830,7 +2830,7 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("n", [1, 10, 100, 1000])
+@pytest.mark.parametrize("n", [1, 10, 32, 100, 1000])
 def test_sum_of_booleans(n):
     # GH 50347
     df = DataFrame({"groupby_col": 1, "bool": [True] * n})
