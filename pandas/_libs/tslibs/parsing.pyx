@@ -263,7 +263,7 @@ def parse_datetime_string(
         datetime dt
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
@@ -297,7 +297,7 @@ def parse_datetime_string(
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     return dt
 
@@ -373,7 +373,7 @@ cdef parse_datetime_string_with_reso(
         int out_tzoffset
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
@@ -816,26 +816,6 @@ class _timelex:
 
 
 _DATEUTIL_LEXER_SPLIT = _timelex.split
-
-
-def format_is_iso(f: str) -> bint:
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_template = "%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}".format
-    excluded_formats = ["%Y%m%d", "%Y%m", "%Y"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                if (iso_template(date_sep=date_sep,
-                                 time_sep=time_sep,
-                                 micro_or_tz=micro_or_tz,
-                                 ).startswith(f) and f not in excluded_formats):
-                    return True
-    return False
 
 
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:

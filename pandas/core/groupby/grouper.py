@@ -922,7 +922,7 @@ def get_grouper(
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.add(gpr.key)
-            in_axis = False
+            in_axis = True
         else:
             in_axis = False
 

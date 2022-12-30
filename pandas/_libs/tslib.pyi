@@ -23,9 +23,6 @@ def array_to_datetime(
     dayfirst: bool = ...,
     yearfirst: bool = ...,
     utc: bool = ...,
-    require_iso8601: bool = ...,
-    format: str | None = ...,
-    exact: bool = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
 
 # returned ndarray may be object dtype or datetime64[ns]
