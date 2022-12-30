@@ -415,7 +415,7 @@ class TestClipboard:
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
     ):
-        # GH#
+        # GH#50502
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
 
