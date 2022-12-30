@@ -1253,6 +1253,27 @@ def utc_fixture(request):
 utc_fixture2 = utc_fixture
 
 
+@pytest.fixture(params=[True, False], ids=["numexpr", "python"])
+def use_numexpr(request):
+    """
+    If True always use numexpr for evaluations, else never.
+    """
+    from pandas.core.computation import expressions as expr
+
+    if request.param and not expr.NUMEXPR_INSTALLED:
+        pytest.skip("numexpr not installed")
+
+    use_numexpr = expr.USE_NUMEXPR
+    _min_elements = expr._MIN_ELEMENTS
+
+    expr.USE_NUMEXPR = request.param
+    expr._MIN_ELEMENTS = 0 if request.param else 1_000_000
+    yield request.param
+
+    expr.USE_NUMEXPR = use_numexpr
+    expr._MIN_ELEMENTS = _min_elements
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
