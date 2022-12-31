@@ -895,7 +895,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.take.__doc__)
     @deprecate_nonkeyword_arguments(
-        verison="3.0", allowed_args=["self", "axis", "indices"]
+        version="3.0", allowed_args=["self", "axis", "indices"]
     )
     def take(
         self,
@@ -908,7 +908,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.skew.__doc__)
     @deprecate_nonkeyword_arguments(
-        verison="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
+        version="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
     )
     def skew(
         self,
@@ -2276,7 +2276,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(DataFrame.take.__doc__)
     @deprecate_nonkeyword_arguments(
-        verison="3.0", allowed_args=["self", "indices", "axis"]
+        version="3.0", allowed_args=["self", "indices", "axis"]
     )
     def take(self, indices: TakeIndexer, axis: Axis | None = 0, **kwargs) -> DataFrame:
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
@@ -2284,7 +2284,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(DataFrame.skew.__doc__)
     @deprecate_nonkeyword_arguments(
-        verison="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
+        version="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
     )
     def skew(
         self,

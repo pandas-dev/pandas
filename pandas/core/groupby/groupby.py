@@ -3412,7 +3412,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    @deprecate_nonkeyword_arguments(verison="3.0", allowed_args=["self", "axis"])
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self", "axis"])
     def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
@@ -3431,7 +3431,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    @deprecate_nonkeyword_arguments(verison="3.0", allowed_args=["self", "axis"])
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self", "axis"])
     def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
