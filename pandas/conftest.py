@@ -1266,11 +1266,11 @@ def use_numexpr(request):
     use_numexpr = expr.USE_NUMEXPR
     _min_elements = expr._MIN_ELEMENTS
 
-    expr.USE_NUMEXPR = request.param
+    expr.set_use_numexpr(request.param)
     expr._MIN_ELEMENTS = 0 if request.param else 1_000_000
     yield request.param
 
-    expr.USE_NUMEXPR = use_numexpr
+    expr.set_use_numexpr(use_numexpr)
     expr._MIN_ELEMENTS = _min_elements
 
 
