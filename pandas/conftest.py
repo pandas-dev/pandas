@@ -1267,7 +1267,8 @@ def use_numexpr(request):
     _min_elements = expr._MIN_ELEMENTS
 
     expr.set_use_numexpr(request.param)
-    expr._MIN_ELEMENTS = 0 if request.param else 1_000_000
+    if request.param:
+        expr._MIN_ELEMENTS = 0
     yield request.param
 
     expr.set_use_numexpr(use_numexpr)
