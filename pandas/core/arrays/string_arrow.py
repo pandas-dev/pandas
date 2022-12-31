@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: PDF001
+from collections import abc
 import re
 from typing import Union
 
@@ -302,7 +302,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     def _str_replace(
         self,
         pat: str | re.Pattern,
-        repl: str | Callable,
+        repl: str | abc.Callable,
         n: int = -1,
         case: bool = True,
         flags: int = 0,

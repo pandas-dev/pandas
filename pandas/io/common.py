@@ -478,7 +478,7 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_extension_to_compression = {
+extension_to_compression = {
     ".tar": "tar",
     ".tar.gz": "tar",
     ".tar.bz2": "tar",
@@ -489,7 +489,7 @@ _extension_to_compression = {
     ".xz": "xz",
     ".zst": "zstd",
 }
-_supported_compressions = set(_extension_to_compression.values())
+_supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
@@ -565,7 +565,7 @@ def infer_compression(
             return None
 
         # Infer compression from the filename/URL extension
-        for extension, compression in _extension_to_compression.items():
+        for extension, compression in extension_to_compression.items():
             if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable  # noqa: PDF001
+import collections
 import re
 from typing import (
     TYPE_CHECKING,
@@ -69,7 +69,7 @@ class BaseStringArrayMethods(abc.ABC):
     def _str_replace(
         self,
         pat: str | re.Pattern,
-        repl: str | Callable,
+        repl: str | collections.abc.Callable,
         n: int = -1,
         case: bool = True,
         flags: int = 0,

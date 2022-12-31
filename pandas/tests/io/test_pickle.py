@@ -255,7 +255,7 @@ def get_random_path():
 
 class TestCompression:
 
-    _extension_to_compression = icom._extension_to_compression
+    _extension_to_compression = icom.extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:

@@ -181,15 +181,10 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-    -   id: frame-or-series-union
-        name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
-        language: pygrep
-        types: [python]
-        exclude: ^pandas/_typing\.py$
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
+        exclude: ^pandas/core/interchange/
         language: python
         types: [python]
     -   id: no-os-remove
@@ -200,9 +195,7 @@ repos:
         files: ^pandas/tests/
         exclude: |
             (?x)^
-            pandas/tests/io/excel/test_writers\.py
-            |pandas/tests/io/pytables/common\.py
-            |pandas/tests/io/pytables/test_store\.py$
+            pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
@@ -216,12 +209,8 @@ repos:
             |\.__class__
 
             # np.bool/np.object instead of np.bool_/np.object_
-            |np\.bool[^_8]
-            |np\.object[^_8]
-
-            # imports from pandas.core.common instead of `import pandas.core.common as com`
-            |from\ pandas\.core\.common\ import
-            |from\ pandas\.core\ import\ common
+            |np\.bool[^_8`]
+            |np\.object[^_8`]
 
             # imports from collections.abc instead of `from collections import abc`
             |from\ collections\.abc\ import
@@ -331,7 +320,10 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
+        exclude: |
+            (?x)
+            ^(asv_bench|pandas/tests|doc)/
+            |scripts/validate_min_versions_in_sync\.py$
     -   id: unwanted-patterns-strings-to-concatenate
         name: Check for use of not concatenated strings
         language: python

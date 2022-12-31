@@ -357,7 +357,7 @@ def test_timeseries_preepoch(setup_path):
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
         if is_platform_windows():
-            pytest.xfail("known failure on some windows platforms")
+            pytest.mark.xfail("known failure on some windows platforms")
         else:
             raise
 
