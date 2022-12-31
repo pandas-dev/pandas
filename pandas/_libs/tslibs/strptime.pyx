@@ -74,13 +74,9 @@ cdef bint format_is_iso(f: str):
         | %Y[ ]%m[ ]%d         # OR separated by space
         | %Y[\\]%m[\\]%d       # OR separated by backslash
         | %Y%m%d               # OR no separators
-        | %Y[-]%m              # OR year & month separated by hyphene
-        | %Y[/]%m              # OR year & month separated by forward slash
-        | %Y[.]%m              # OR year & month separated by period
-        | %Y[ ]%m              # OR year & month separated by space
-        | %Y[\\]%m             # OR year & month separated by backslash
-        | %Y%m                 # OR 4-digit year, 2-digit month, no separators
-        | %Y                   # OR 4-digit year
+        | %Y[ /.\\-]%m         # OR year & month separated by [ /.\\-]
+        | %Y%m                 # OR year & month no separators
+        | %Y                   # OR just year
         )
        (?:                    # group for optional time and timezone
         [ T]%H:%M:%S           # time format THH:MM:SS, T is space of T
