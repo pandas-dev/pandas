@@ -69,8 +69,8 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
-    doc,
     deprecate_nonkeyword_arguments,
+    doc,
 )
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
