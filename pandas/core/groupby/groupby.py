@@ -3212,8 +3212,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
-        If a group would be excluded (due to null keys) then that
-        group is labeled as np.nan. See examples below.
+        Groups with missing keys (where `pd.isna()` is True) will be labeled with `NaN`
+        and will be skipped from the count.
 
         Parameters
         ----------
@@ -3231,42 +3231,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame()
-        >>> df["A"] = ["a", "a",  "a", "b", "b", "a"]
-        >>> df["B"] = ["a", None, "a", "b", "b", "a"]
+        >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-        A     B
-        0  a     a
-        1  a  None
-        2  a     a
-        3  b     b
-        4  b     b
-        5  a     a
-        >>> df.groupby('A').ngroup()
-        0    0
-        1    0
-        2    0
-        3    1
-        4    1
-        5    0
-        dtype: int64
-        >>> df.groupby('A').ngroup(ascending=False)
-        0    1
-        1    1
-        2    1
-        3    0
-        4    0
-        5    1
-        dtype: int64
-        >>> df.groupby(["A", [1,1,2,3,2,1]]).ngroup()
-        0    0
-        1    0
-        2    1
-        3    3
-        4    2
-        5    0
-        dtype: int64
-        >>> df.groupby("B").ngroup()
+           color
+        0    red
+        1   None
+        2    red
+        3   blue
+        4   blue
+        5    red
+        >>> df.groupby("color").ngroup()
         0    0.0
         1    NaN
         2    0.0
@@ -3274,7 +3248,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4    1.0
         5    0.0
         dtype: float64
-        >>> df.groupby("B", dropna=False).ngroup()
+        >>> df.groupby("color", dropna=False).ngroup()
         0    0
         1    2
         2    0
