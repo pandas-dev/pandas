@@ -92,28 +92,6 @@ Option 1: using mamba (recommended)
    mamba env create --file environment.yml
    mamba activate pandas-dev
 
-   # Build and install pandas
-   python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
-
-   # Alternatively, if you would like to try out our new build system
-   # based on meson
-   pip install . --no-build-isolation --config-settings="builddir=builddir"
-
-At this point you should be able to import pandas from your locally built version::
-
-   $ python
-   >>> import pandas
-   >>> print(pandas.__version__)  # note: the exact output may differ
-   1.5.0.dev0+1355.ge65a30e3eb.dirty
-
-This will create the new environment, and not touch any of your existing environments,
-nor any existing Python installation.
-
-To return to your root environment::
-
-      mamba deactivate
-
 Option 2: using pip
 ~~~~~~~~~~~~~~~~~~~
 
@@ -135,15 +113,6 @@ You also need to have ``setuptools`` 51.0.0 or later to build pandas.
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
 
-   # Build and install pandas
-   python setup.py build_ext -j 4
-   python setup.py develop
-
-   # Alternatively, if you would like to try out our new build system
-   # based on meson
-   pip install . --no-build-isolation --config-settings="builddir=builddir"
-
-
 **Unix**/**macOS with pyenv**
 
 Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
@@ -162,14 +131,6 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
    # Now install the build dependencies in the cloned pandas repo
    python -m pip install -r requirements-dev.txt
-
-   # Build and install pandas
-   python setup.py build_ext -j 4
-   python setup.py develop
-
-   # Alternatively, if you would like to try out our new build system
-   # based on meson
-   pip install . --no-build-isolation --config-settings="builddir=builddir"
 
 **Windows**
 
@@ -193,16 +154,8 @@ should already exist.
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
 
-   # Build and install pandas
-   python setup.py build_ext -j 4
-   python setup.py develop
-
-   # Alternatively, if you would like to try out our new build system
-   # based on meson
-   pip install . --no-build-isolation --config-settings="builddir=builddir"
-
-Option 2: creating an environment using Docker
-----------------------------------------------
+Option 3: using Docker
+~~~~~~~~~~~~~~~~~~~~~~
 
 pandas provides a ``DockerFile`` in the root directory to build a Docker image
 with a full pandas development environment.
@@ -238,11 +191,51 @@ See https://www.jetbrains.com/help/pycharm/docker.html for details.
 Step 3: build and install pandas
 --------------------------------
 
-You can now run::
+There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py).
+Historically, pandas has only supported using setuptools to build pandas. However, this method
+requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel
+due to limitations in setuptools.
+
+The newer build system, invokes the meson backend through pip (via a `PEP 517 <https://peps.python.org/pep-0517/>`_ build).
+It automatically uses all available cores on your CPU, and also avoids the need for manual rebuilds by
+rebuilding automatically whenever pandas is imported(with an editable install).
+
+For these reasons, you should compile pandas with meson.
+Because the meson build system is newer, you may find bugs/minor issues as it matures. You can report these bugs
+`here <https://github.com/pandas-dev/pandas/issues/49683>`_.
+
+To compile pandas with meson, run::
 
    # Build and install pandas
-   python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   python -m pip install -ve . --no-build-isolation
+
+** Build options **
+
+It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
+install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
+
+You can pass a build directory to pandas by appending ``--config-settings builddir="your builddir here"`` to your pip command.
+This option allows you to configure where meson stores your built C extensions, and allows for fast rebuilds.
+
+Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
+Appending ``--config-settings setup-args="-Ddebug=true"`` will do the trick.
+
+With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
+and building with debug symbols would look like
+``--config-settings builddir="your builddir here" --config-settings setup-args="-Ddebug=true"``.
+
+**Compiling pandas with setup.py**
+
+.. note::
+   This method of compiling pandas will be deprecated and removed very soon, as the meson backend matures.
+
+To compile pandas with setuptools, run::
+
+   python setup.py develop
+
+.. note::
+   You will also need to repeat this step each time the C extensions change,
+   for example if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -251,9 +244,7 @@ At this point you should be able to import pandas from your locally built versio
    >>> print(pandas.__version__)  # note: the exact output may differ
    2.0.0.dev0+880.g2b9e661fbb.dirty
 
-This will create the new environment, and not touch any of your existing environments,
-nor any existing Python installation.
-
-.. note::
-   You will need to repeat this step each time the C extensions change, for example
-   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
+.. tip::
+   If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
+   you can check the value of ``pandas._built_with_meson``, which will be true if meson was used
+   to compile pandas.
