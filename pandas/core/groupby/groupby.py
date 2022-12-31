@@ -70,6 +70,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
     doc,
+    deprecate_nonkeyword_arguments,
 )
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
@@ -3411,7 +3412,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis: Axis = 0) -> NDFrameT:
+    @deprecate_nonkeyword_arguments(verison="3.0", allowed_args=["self", "axis"])
+    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3419,21 +3421,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumprod", (), {}, ["numeric_only", "skipna"])
+        nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            f = lambda x: x.cumprod(
-                axis=axis,
-            )
+            f = lambda x: x.cumprod(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform(
-            "cumprod",
-        )
+        return self._cython_transform("cumprod", **kwargs)
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis: Axis = 0) -> NDFrameT:
+    @deprecate_nonkeyword_arguments(verison="3.0", allowed_args=["self", "axis"])
+    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3441,12 +3440,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumsum", (), {}, ["numeric_only", "skipna"])
+        nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            f = lambda x: x.cumsum(axis=axis)
+            f = lambda x: x.cumsum(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform("cumsum")
+        return self._cython_transform("cumsum", **kwargs)
 
     @final
     @Substitution(name="groupby")

@@ -99,6 +99,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
+from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
@@ -893,30 +894,31 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.take.__doc__)
+    @deprecate_nonkeyword_arguments(
+        verison="3.0", allowed_args=["self", "axis", "indices"]
+    )
     def take(
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
+        **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take",
-            indices=indices,
-            axis=axis,
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
+    @deprecate_nonkeyword_arguments(
+        verison="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
+    )
     def skew(
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
+        **kwargs,
     ) -> Series:
         result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
+            "skew", axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
         return result
 
@@ -2273,30 +2275,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return result
 
     @doc(DataFrame.take.__doc__)
-    def take(
-        self,
-        indices: TakeIndexer,
-        axis: Axis | None = 0,
-    ) -> DataFrame:
-        result = self._op_via_apply(
-            "take",
-            indices=indices,
-            axis=axis,
-        )
+    @deprecate_nonkeyword_arguments(
+        verison="3.0", allowed_args=["self", "indices", "axis"]
+    )
+    def take(self, indices: TakeIndexer, axis: Axis | None = 0, **kwargs) -> DataFrame:
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
+    @deprecate_nonkeyword_arguments(
+        verison="3.0", allowed_args=["self", "axis", "skipna", "numeric_only"]
+    )
     def skew(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
+        **kwargs,
     ) -> DataFrame:
         result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
+            "skew", axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
         return result
 
