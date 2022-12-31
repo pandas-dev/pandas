@@ -48,6 +48,7 @@ from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -99,7 +100,6 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
