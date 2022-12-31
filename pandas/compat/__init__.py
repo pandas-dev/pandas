@@ -14,10 +14,7 @@ import platform
 import sys
 
 from pandas._typing import F
-from pandas.compat._compressors import (
-    LZMAFile,
-    has_lzma,
-)
+import pandas.compat
 from pandas.compat._constants import (
     IS64,
     PY39,
@@ -134,7 +131,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[LZMAFile]:
+def get_lzma_file() -> type[pandas.compat._compressors.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -148,13 +145,13 @@ def get_lzma_file() -> type[LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if not has_lzma:
+    if not pandas.compat._compressors.has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return LZMAFile
+    return pandas.compat._compressors.LZMAFile
 
 
 __all__ = [
