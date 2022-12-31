@@ -87,6 +87,8 @@ cdef bint format_is_iso(f: str):
     )
     excluded_formats = [
         r"^%Y%m$",
+        r"^%Y[/.\\ -]%m[ |T]%H:%M.*$",
+        r"^%Y%m[ |T]%H:%M.*$",
     ]
     if any(re.match(pattern, f) for pattern in excluded_formats):
         return False
