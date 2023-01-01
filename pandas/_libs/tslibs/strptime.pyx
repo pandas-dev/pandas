@@ -44,9 +44,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
-
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.util cimport (
     is_datetime64_object,
@@ -69,7 +67,7 @@ cdef bint format_is_iso(f: str):
         ^                     # start of string
         %Y                    # Year
         (?:([-/ \\.]?)%m      # month with or without separators
-        (?:\1%d               # day with or without separators
+        (?: \1%d              # day with same separator as for year-month
         (?:[ |T]%H            # hour with separator
         (?:\:%M               # minute with separator
         (?:\:%S               # second with separator
@@ -79,12 +77,8 @@ cdef bint format_is_iso(f: str):
         """,
         re.VERBOSE,
     )
-    excluded_formats = [
-        r"^%Y%m$",
-    ]
-    if any(re.match(pattern, f) for pattern in excluded_formats):
-        return False
-    return bool(re.match(iso_regex, f))
+    excluded_formats = ["%Y%m"]
+    return re.match(iso_regex, f) is not None and f not in excluded_formats
 
 
 def _test_format_is_iso(f: str) -> bool:
