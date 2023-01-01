@@ -54,6 +54,7 @@ flask
 asv>=0.5.1
 black==22.10.0
 cpplint
+flake8==6.0.0
 isort>=5.2.1
 mypy==0.991
 pre-commit>=2.15.0
