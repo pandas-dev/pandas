@@ -1961,7 +1961,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return index with requested level(s) removed.
 
         If resulting index has only 1 level left, the result will be
-        of Index type, not MultiIndex.
+        of Index type, not MultiIndex. The original index is not modified inplace.
 
         Parameters
         ----------
