@@ -332,3 +332,16 @@ def test_guess_datetime_format_f(input):
     result = parsing.guess_datetime_format(input)
     expected = "%Y-%m-%dT%H:%M:%S.%f"
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        "20110519 010101",
+        "20120617 020211",
+    ],
+)
+def test_guess_datetime_format_iso_new(input):
+    result = parsing.guess_datetime_format(input)
+    expected = "%Y%m%d %H%M%S"
+    assert result == expected
