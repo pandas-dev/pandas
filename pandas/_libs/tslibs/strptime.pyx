@@ -66,29 +66,21 @@ cdef bint format_is_iso(f: str):
     """
     iso_regex = re.compile(
         r"""
-        ^                      # start of string
-        (?:                    # group for alternative date formats
-        %Y([-/.\\ ])%m\1%d     # year month & date separated by either [-/.\\ ]
-        | %Y%m%d               # OR no separators
-        | %Y[ /.\\-]%m         # OR year & month separated by [ /.\\-]
-        | %Y%m                 # OR year & month no separators
-        | %Y                   # OR just year
-        )
-        (?:                    # group for optional time and timezone
-        [ T]%H:%M:%S           # time format THH:MM:SS, T is space of T
-        (?:                    # group for optional fraction second & timezone
-        %z                     # timezone in the format +HHMM or -HHMM
-        | .%f(?:%z|Z)?         # OR format .%f%z or .%fZ
-        )?                     # make the group optional
-        )?                     # making the time and timezone grp optional
-        $                      # end of string
+        ^                     # start of string
+        %Y                    # Year
+        (?:([-/ \\.]?)%m      # month with or without separators
+        (?:\1%d               # day with or without separators
+        (?:[ |T]%H            # hour with separator
+        (?:\:%M               # minute with separator
+        (?:\:%S               # second with separator
+        (?:%z|.%f(?:%z|Z)?    # timezone or fractional second
+        )?)?)?)?)?)?          # optional
+        $                     # end of string
         """,
         re.VERBOSE,
     )
     excluded_formats = [
         r"^%Y%m$",
-        r"^%Y[/.\\ -]%m[ |T]%H:%M.*$",
-        r"^%Y%m[ |T]%H:%M.*$",
     ]
     if any(re.match(pattern, f) for pattern in excluded_formats):
         return False
