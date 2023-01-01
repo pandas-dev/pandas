@@ -15,6 +15,7 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: read
@@ -44,6 +45,12 @@ jobs:
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
+
+    - name: Set up maintainers cache
+      uses: actions/cache@v3
+      with:
+        path: maintainers.json
+        key: maintainers
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
