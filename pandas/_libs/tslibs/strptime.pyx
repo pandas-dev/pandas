@@ -71,7 +71,7 @@ cdef bint format_is_iso(f: str):
         (?:[ |T]%H            # hour with separator
         (?:\:%M               # minute with separator
         (?:\:%S               # second with separator
-        (?:%z|.%f(?:%z|Z)?    # timezone or fractional second
+        (?:%z|\.%f(?:%z|Z)?   # timezone or fractional second
         )?)?)?)?)?)?          # optional
         $                     # end of string
         """,
