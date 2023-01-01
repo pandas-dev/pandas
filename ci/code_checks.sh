@@ -8,16 +8,14 @@
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
-#   $ ./ci/code_checks.sh lint          # run linting only
-#   $ ./ci/code_checks.sh patterns      # check for patterns that should not exist
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 #   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
+[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -38,71 +36,6 @@ function invgrep {
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     INVGREP_PREPEND="##[error]"
-fi
-
-### LINTING ###
-if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
-
-    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
-    # it doesn't make a difference, but we want to be internally consistent.
-    # Note: this grep pattern is (intended to be) equivalent to the python
-    # regex r'(?<![ ->])> '
-    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # readability/casting: Warnings about C casting instead of C++ casting
-    # runtime/int: Warnings about using C number types instead of C++ ones
-    # build/include_subdir: Warnings about prefacing included header files with directory
-
-fi
-
-### PATTERNS ###
-if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
-
-    MSG='Check for use of exec' ; echo $MSG
-    invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest warns' ; echo $MSG
-    invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest raises without context' ; echo $MSG
-    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of builtin filter function' ; echo $MSG
-    invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check for the following code in testing: `np.testing` and `np.array_equal`
-    MSG='Check for invalid testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-    MSG='Check for invalid EA testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for deprecated messages without sphinx directive' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
-    invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
-    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
-    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} '!r}' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    echo $MSG "DONE"
 fi
 
 ### CODE ###

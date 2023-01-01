@@ -227,6 +227,15 @@ repos:
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
+
+            # {foo!r} instead of {repr(foo)}
+            |!r}
+
+            # builtin filter function
+            |(?<!def)[\(\s]filter\(
+
+            # exec
+            |[^a-zA-Z0-9_]exec\(
         types_or: [python, cython, rst]
         exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: cython-casting
@@ -280,8 +289,37 @@ repos:
 
             # pd.api.types instead of from pandas.api.types import ...
             |(pd|pandas)\.api\.types\.
+
+            # np.testing, np.array_equal
+            |(numpy|np)(\.testing|\.array_equal)
+
+            # unittest.mock (use pytest builtin monkeypatch fixture instead)
+            |(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)
+
+            # pytest raises without context
+            |\s\ pytest.raises
+
+            # pytest.warns (use tm.assert_produces_warning instead)
+            |pytest\.warns
         files: ^pandas/tests/
         types_or: [python, cython, rst]
+    -   id: unwanted-patterns-in-ea-tests
+        name: Unwanted patterns in EA tests
+        language: pygrep
+        entry: |
+            (?x)
+            tm.assert_(series|frame)_equal
+        files: ^pandas/tests/extension/base/
+        exclude: ^pandas/tests/extension/base/base\.py$
+        types_or: [python, cython, rst]
+    -   id: unwanted-patterns-in-cython
+        name: Unwanted patterns in Cython code
+        language: pygrep
+        entry: |
+            (?x)
+            # `<type>obj` as opposed to `<type> obj`
+            [a-zA-Z0-9*]>
+        types: [cython]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         language: python
