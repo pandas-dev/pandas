@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections import abc
 import functools
 import re
 import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 import unicodedata
@@ -153,7 +153,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_replace(
         self,
         pat: str | re.Pattern,
-        repl: str | abc.Callable,
+        repl: str | Callable,
         n: int = -1,
         case: bool = True,
         flags: int = 0,
