@@ -55,8 +55,8 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat import get_lzma_file
-from pandas.compat._compressors import BZ2File as _BZ2File
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.compressors import BZ2File as _BZ2File
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 

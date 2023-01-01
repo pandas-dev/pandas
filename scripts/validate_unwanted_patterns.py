@@ -218,7 +218,7 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
     tree = ast.parse(contents)
 
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)):
+        if not isinstance(node, (ast.Import, ast.ImportFrom)):
             continue
 
         for module in node.names:

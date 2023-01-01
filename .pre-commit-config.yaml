@@ -329,8 +329,8 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
         types_or: [python, cython]
-    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
-        name: Check for strings with wrong placed spaces
+    -   id: unwanted-patterns-strings-with-misplaced-whitespace
+        name: Check for strings with misplaced spaces
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
         types_or: [python, cython]

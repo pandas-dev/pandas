@@ -37,8 +37,8 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
-from pandas.compat._compressors import flatten_buffer
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.compressors import flatten_buffer
 import pandas.util._test_decorators as td
 
 import pandas as pd
