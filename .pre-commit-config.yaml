@@ -318,7 +318,7 @@ repos:
         entry: |
             (?x)
             # `<type>obj` as opposed to `<type> obj`
-            [a-zA-Z0-9*]>\s
+            [a-zA-Z0-9*]>[ ]
         types: [cython]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
