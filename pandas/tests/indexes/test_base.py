@@ -891,7 +891,6 @@ class TestIndex(Base):
         "index",
         [
             Index(["qux", "baz", "foo", "bar"]),
-            # float64 Index overrides isin, so must be checked separately
             NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
@@ -1214,10 +1213,16 @@ class TestIndex(Base):
         expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("dt_conv", [pd.to_datetime, pd.to_timedelta])
-    def test_dt_conversion_preserves_name(self, dt_conv):
+    @pytest.mark.parametrize(
+        "dt_conv, arg",
+        [
+            (pd.to_datetime, ["2000-01-01", "2000-01-02"]),
+            (pd.to_timedelta, ["01:02:03", "01:02:04"]),
+        ],
+    )
+    def test_dt_conversion_preserves_name(self, dt_conv, arg):
         # GH 10875
-        index = Index(["01:02:03", "01:02:04"], name="label")
+        index = Index(arg, name="label")
         assert index.name == dt_conv(index).name
 
     def test_cached_properties_not_settable(self):

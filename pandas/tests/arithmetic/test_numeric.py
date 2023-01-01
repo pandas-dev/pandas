@@ -7,7 +7,6 @@ from collections import abc
 from datetime import timedelta
 from decimal import Decimal
 import operator
-from typing import Any
 
 import numpy as np
 import pytest
@@ -72,15 +71,10 @@ def compare_op(series, other, op):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: list[Any] = [Series, Index]
-lefts: list[Any] = [RangeIndex(10, 40, 10)]
-lefts.extend(
-    [
-        cls([10, 20, 30], dtype=dtype)
-        for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
-        for cls in ser_or_index
-    ]
-)
+_ldtypes = ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
+lefts: list[Index | Series] = [RangeIndex(10, 40, 10)]
+lefts.extend([Series([10, 20, 30], dtype=dtype) for dtype in _ldtypes])
+lefts.extend([Index([10, 20, 30], dtype=dtype) for dtype in _ldtypes if dtype != "f2"])
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -183,10 +177,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = "Cannot divide"
+        # (true_) needed for min-versions build 2022-12-26
+        msg = "ufunc '(true_)?divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left / right
 
+        msg = "ufunc 'floor_divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left // right
 
@@ -320,6 +316,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
                 "can only perform ops with numeric values",
                 "cannot subtract DatetimeArray from ndarray",
+                # pd.Timedelta(1) + Index([0, 1, 2])
+                "Cannot add or subtract Timedelta from integers",
             ]
         )
         assert_invalid_addsub_type(left, other, msg)

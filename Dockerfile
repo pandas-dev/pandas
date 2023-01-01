@@ -8,6 +8,6 @@ RUN apt-get install -y build-essential
 RUN apt-get install -y libhdf5-dev
 
 RUN python -m pip install --upgrade pip
-RUN python -m pip install --use-deprecated=legacy-resolver \
+RUN python -m pip install \
     -r https://raw.githubusercontent.com/pandas-dev/pandas/main/requirements-dev.txt
 CMD ["/bin/bash"]

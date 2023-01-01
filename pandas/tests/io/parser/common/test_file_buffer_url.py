@@ -30,7 +30,7 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 @pytest.mark.network
 @tm.network(
     url=(
-        "https://raw.github.com/pandas-dev/pandas/main/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     ),
     check_before_test=True,
@@ -40,7 +40,7 @@ def test_url(all_parsers, csv_dir_path):
     kwargs = {"sep": "\t"}
 
     url = (
-        "https://raw.github.com/pandas-dev/pandas/main/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
     url_result = parser.read_csv(url, **kwargs)

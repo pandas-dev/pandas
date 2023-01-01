@@ -48,7 +48,7 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
-documentation = 'https://pandas.pydata.org/pandas-docs/stable'
+documentation = 'https://pandas.pydata.org/docs/'
 repository = 'https://github.com/pandas-dev/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
@@ -291,6 +291,7 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
+  "undefined-loop-variable",
   "unexpected-keyword-arg",
   "ungrouped-imports",
   "unsubscriptable-object",
@@ -350,7 +351,6 @@ disable = [
   "signature-differs",
   "super-init-not-called",
   "try-except-raise",
-  "undefined-loop-variable",
   "unnecessary-lambda",
   "unspecified-encoding",
   "unused-argument",
@@ -371,11 +371,6 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
-  "error:Sparse:FutureWarning",
-  "error:The SparseArray:FutureWarning",
-  # Deprecation gives warning on import during pytest collection
-  "ignore:pandas.core.index is deprecated:FutureWarning:importlib",
-  "ignore:pandas.util.testing is deprecated:FutureWarning:importlib",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
 ]

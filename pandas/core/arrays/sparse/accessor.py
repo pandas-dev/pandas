@@ -316,7 +316,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Returns
         -------
-        coo_matrix : scipy.sparse.spmatrix
+        scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
