@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import abc
-import collections
 import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 
@@ -69,7 +69,7 @@ class BaseStringArrayMethods(abc.ABC):
     def _str_replace(
         self,
         pat: str | re.Pattern,
-        repl: str | collections.abc.Callable,
+        repl: str | Callable,
         n: int = -1,
         case: bool = True,
         flags: int = 0,
