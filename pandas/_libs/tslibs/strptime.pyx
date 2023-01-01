@@ -68,7 +68,7 @@ cdef bint format_is_iso(f: str):
         %Y                    # Year
         (?:([-/ \\.]?)%m      # month with or without separators
         (?: \1%d              # day with same separator as for year-month
-        (?:[ |T]%H            # hour with separator
+        (?:[ T]%H             # hour with separator
         (?:\:%M               # minute with separator
         (?:\:%S               # second with separator
         (?:%z|\.%f(?:%z|Z)?   # timezone or fractional second
