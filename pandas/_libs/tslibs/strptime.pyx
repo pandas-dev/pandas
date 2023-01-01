@@ -24,6 +24,11 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from _strptime import (
+    TimeRE as _TimeRE,
+    _getlang,
+)
+from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 
@@ -499,13 +504,6 @@ def array_strptime(
             return values, []
 
     return result, result_timezone.base
-
-
-from _strptime import (
-    TimeRE as _TimeRE,
-    _getlang,
-)
-from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):
