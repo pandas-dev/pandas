@@ -406,9 +406,7 @@ class TestReadHtml:
             )
 
     def _bank_data(self, path, *args, **kwargs):
-        return self.read_html(
-            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
-        )
+        return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
     def test_multiindex_header(self, banklist_data):

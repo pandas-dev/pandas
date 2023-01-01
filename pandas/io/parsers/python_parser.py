@@ -998,12 +998,12 @@ class PythonParser(ParserBase):
             content_len = len(content)
             content = []
 
-            for (i, l) in iter_content:
-                actual_len = len(l)
+            for (i, _content) in iter_content:
+                actual_len = len(_content)
 
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
-                        new_l = self.on_bad_lines(l)
+                        new_l = self.on_bad_lines(_content)
                         if new_l is not None:
                             content.append(new_l)
                     elif self.on_bad_lines in (
@@ -1016,7 +1016,7 @@ class PythonParser(ParserBase):
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
-                    content.append(l)
+                    content.append(_content)
 
             for row_num, actual_len in bad_lines:
                 msg = (
