@@ -17,7 +17,8 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats.style import Styler
+# TODO: Can't import Styler without impacting registered matplotlib converters
+# from pandas.io.formats.style import Styler
 from pandas.io.json._json import JsonReader
 from pandas.io.stata import (
     StataReader,
@@ -34,7 +35,8 @@ __all__ = [
     "SeriesGroupBy",
     "StataWriter",
     "StataReader",
-    "Styler",
+    # See TODO above
+    # "Styler",
     "TimeGrouper",
     "Window",
 ]
