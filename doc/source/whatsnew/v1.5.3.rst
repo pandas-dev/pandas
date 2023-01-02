@@ -30,7 +30,7 @@ Bug fixes
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
-- Fixed bug in :class:`BusinessHour` that could cause creation of `DatetimeIndex` to fail (:issue:`#49835`)
+- Fixed bug in :class:`BusinessHour` that could cause creation of ``DatetimeIndex`` to fail (:issue:`#49835`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.other:
