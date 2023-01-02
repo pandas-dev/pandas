@@ -337,8 +337,8 @@ def test_guess_datetime_format_f(input):
 @pytest.mark.parametrize(
     "input",
     [
-        "20110519 010101",
-        "20120617 020211",
+        "20110519 010000",
+        "20120617 020000",
     ],
 )
 def test_guess_datetime_format_iso_new(input):
