@@ -103,6 +103,8 @@ class TestGroupBy:
                     "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
             )
+            # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
+            expected = expected.astype({"Buyer": object})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"

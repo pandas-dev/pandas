@@ -16,7 +16,8 @@ class TestSeriesReplace:
         expected = pd.Series([0, 0, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        df = pd.DataFrame(np.zeros((3, 3)))
+        # Cast column 2 to object to avoid implicit cast when setting entry to ""
+        df = pd.DataFrame(np.zeros((3, 3))).astype({2: object})
         df.iloc[2, 2] = ""
         result = df.replace("", None)
         expected = pd.DataFrame(
