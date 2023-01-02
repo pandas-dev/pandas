@@ -1849,7 +1849,7 @@ cdef class BusinessHour(BusinessMixin):
 
         if self.n == 0:
             is_same_sign = sign > 0
-        else: 
+        else:
             is_same_sign = self.n * sign >= 0
 
         if not self.next_bday.is_on_offset(other):
