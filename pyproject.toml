@@ -250,11 +250,6 @@ exclude = [
 ]
 
 [tool.ruff.per-file-ignores]
-# ignoring multiline is not yet supported (https://github.com/charliermarsh/ruff/issues/1052)
-"pandas/util/__init__.py" = ["F401"]
-"pandas/tests/extension/base/__init__.py" = ["F401"]
-# undefined name with global (https://github.com/charliermarsh/ruff/issues/960)
-"pandas/io/clipboard/__init__.py" = ["F821"]
 # undefined name with Literal (https://github.com/charliermarsh/ruff/issues/733 but should be fixed?)
 "pandas/core/reshape/merge.py" = ["F821"]
 
