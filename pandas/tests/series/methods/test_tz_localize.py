@@ -64,6 +64,7 @@ class TestTZLocalize:
         "method, exp",
         [
             ["shift_forward", "2015-03-29 03:00:00"],
+            ["shift_backward", "2015-03-29 01:59:59.999999999"],
             ["NaT", NaT],
             ["raise", None],
             ["foo", "invalid"],
