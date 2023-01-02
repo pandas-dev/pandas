@@ -249,10 +249,6 @@ exclude = [
   "env",
 ]
 
-[tool.ruff.per-file-ignores]
-# undefined name with Literal (https://github.com/charliermarsh/ruff/issues/733 but should be fixed?)
-"pandas/core/reshape/merge.py" = ["F821"]
-
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
