@@ -1,9 +1,11 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+    timezone,
+)
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
@@ -303,6 +305,25 @@ class TestSeriesArithmetic:
         other = Series(date_range("20130101", periods=5), index=index)
         result = ser - other
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+    def test_masked_and_non_masked_propagate_na(self):
+        # GH#45810
+        ser1 = Series([0, np.nan], dtype="float")
+        ser2 = Series([0, 1], dtype="Int64")
+        result = ser1 * ser2
+        expected = Series([0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_mask_div_propagate_na_for_non_na_dtype(self):
+        # GH#42630
+        ser1 = Series([15, pd.NA, 5, 4], dtype="Int64")
+        ser2 = Series([15, 5, np.nan, 4])
+        result = ser1 / ser2
+        expected = Series([1.0, pd.NA, pd.NA, 1.0], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+        result = ser2 / ser1
         tm.assert_series_equal(result, expected)
 
 
@@ -622,10 +643,19 @@ class TestSeriesComparison:
     )
     def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        # GH 50083 to clarify that index and columns must be identically labeled
         if frame_or_series is not Series:
+            msg = (
+                rf"Can only compare identically-labeled \(both index and columns\) "
+                f"{frame_or_series.__name__} objects"
+            )
             left = left.to_frame()
             right = right.to_frame()
+        else:
+            msg = (
+                f"Can only compare identically-labeled {frame_or_series.__name__} "
+                f"objects"
+            )
 
         with pytest.raises(ValueError, match=msg):
             left == right
@@ -676,7 +706,7 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
-        assert result.index.tz == pytz.UTC
+        assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
@@ -729,7 +759,6 @@ class TestNamePreservation:
 
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
-        is_rlogical = is_logical and name.startswith("r")
 
         right = box(right)
         if flex:
@@ -739,16 +768,7 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            warn = FutureWarning if is_rlogical and box is Index else None
-            msg = "operating as a set operation is deprecated"
-            with tm.assert_produces_warning(warn, match=msg):
-                # stacklevel is correct for Index op, not reversed op
-                result = op(left, right)
-
-        if box is Index and is_rlogical:
-            # Index treats these as set operators, so does not defer
-            assert isinstance(result, Index)
-            return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

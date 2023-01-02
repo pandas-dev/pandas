@@ -4,13 +4,17 @@ Tests for DatetimeArray
 from datetime import timedelta
 import operator
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
+from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
+    tz_compare,
 )
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -28,15 +32,6 @@ class TestNonNano:
     def unit(self, request):
         """Fixture returning parametrized time units"""
         return request.param
-
-    @pytest.fixture
-    def reso(self, unit):
-        """Fixture returning datetime resolution for a given time unit"""
-        return {
-            "s": NpyDatetimeUnit.NPY_FR_s.value,
-            "ms": NpyDatetimeUnit.NPY_FR_ms.value,
-            "us": NpyDatetimeUnit.NPY_FR_us.value,
-        }[unit]
 
     @pytest.fixture
     def dtype(self, unit, tz_naive_fixture):
@@ -66,22 +61,22 @@ class TestNonNano:
         dta, dti = dta_dti
         return dta
 
-    def test_non_nano(self, unit, reso, dtype):
+    def test_non_nano(self, unit, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
         assert dta.dtype == dtype
-        assert dta[0]._creso == reso
+        assert dta[0].unit == unit
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
-    def test_fields(self, unit, reso, field, dtype, dta_dti):
+    def test_fields(self, unit, field, dtype, dta_dti):
         dta, dti = dta_dti
 
-        # FIXME: assert (dti == dta).all()
+        assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)
@@ -161,7 +156,7 @@ class TestNonNano:
         expected = getattr(dti, meth)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_format_native_types(self, unit, reso, dtype, dta_dti):
+    def test_format_native_types(self, unit, dtype, dta_dti):
         # In this case we should get the same formatted values with our nano
         #  version dti._data as we do with the non-nano dta
         dta, dti = dta_dti
@@ -215,12 +210,12 @@ class TestNonNano:
         # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
         td = pd.Timedelta(microseconds=1)
         dti = pd.date_range("2016-01-01", periods=3) - td
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        res = dta + td._as_unit("us")
+        res = dta + td.as_unit("us")
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
-        assert res._unit == "us"
+        assert res.unit == "us"
 
     @pytest.mark.parametrize(
         "scalar",
@@ -240,32 +235,32 @@ class TestNonNano:
         exp_reso = max(dta._creso, td._creso)
         exp_unit = npy_unit_to_abbrev(exp_reso)
 
-        expected = (dti + td)._data._as_unit(exp_unit)
+        expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
         tm.assert_extension_array_equal(result, expected)
 
         result = scalar + dta
         tm.assert_extension_array_equal(result, expected)
 
-        expected = (dti - td)._data._as_unit(exp_unit)
+        expected = (dti - td)._data.as_unit(exp_unit)
         result = dta - scalar
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetimelike_scalar_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        ts = dta[0]._as_unit("s")
+        ts = dta[0].as_unit("s")
 
         result = dta - ts
-        expected = (dti - dti[0])._data._as_unit("us")
+        expected = (dti - dti[0])._data.as_unit("us")
         assert result.dtype == "m8[us]"
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetime64_reso_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        left = dti._data._as_unit("s")
-        right = left._as_unit("ms")
+        left = dti._data.as_unit("s")
+        right = left.as_unit("ms")
 
         result = left - right
         exp_values = np.array([0, 0, 0], dtype="m8[ms]")
@@ -368,7 +363,7 @@ class TestDatetimeArray:
 
         if err:
             if dtype == "datetime64[ns]":
-                msg = "Use ser.dt.tz_localize instead"
+                msg = "Use obj.tz_localize instead or series.dt.tz_localize instead"
             else:
                 msg = "from timezone-aware dtype to timezone-naive dtype"
             with pytest.raises(TypeError, match=msg):
@@ -397,6 +392,15 @@ class TestDatetimeArray:
 
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_astype_to_sparse_dt64(self):
+        # GH#50082
+        dti = pd.date_range("2016-01-01", periods=4)
+        dta = dti._data
+        result = dta.astype("Sparse[datetime64[ns]]")
+
+        assert result.dtype == "Sparse[datetime64[ns]]"
+        assert (result == dta).all()
 
     def test_tz_setter_raises(self):
         arr = DatetimeArray._from_sequence(
@@ -654,7 +658,7 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray(np.roll(dta._data, 1))
+        expected = DatetimeArray(np.roll(dta._ndarray, 1))
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
@@ -706,3 +710,40 @@ class TestDatetimeArray:
 
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
+
+    easts = ["US/Eastern", "dateutil/US/Eastern"]
+    if ZoneInfo is not None:
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
+
+    @pytest.mark.parametrize("tz", easts)
+    def test_iter_zoneinfo_fold(self, tz):
+        # GH#49684
+        utc_vals = np.array(
+            [1320552000, 1320555600, 1320559200, 1320562800], dtype=np.int64
+        )
+        utc_vals *= 1_000_000_000
+
+        dta = DatetimeArray(utc_vals).tz_localize("UTC").tz_convert(tz)
+
+        left = dta[2]
+        right = list(dta)[2]
+        assert str(left) == str(right)
+        # previously there was a bug where with non-pytz right would be
+        #  Timestamp('2011-11-06 01:00:00-0400', tz='US/Eastern')
+        # while left would be
+        #  Timestamp('2011-11-06 01:00:00-0500', tz='US/Eastern')
+        # The .value's would match (so they would compare as equal),
+        #  but the folds would not
+        assert left.utcoffset() == right.utcoffset()
+
+        # The same bug in ints_to_pydatetime affected .astype, so we test
+        #  that here.
+        right2 = dta.astype(object)[2]
+        assert str(left) == str(right2)
+        assert left.utcoffset() == right2.utcoffset()

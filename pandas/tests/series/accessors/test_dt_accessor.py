@@ -632,12 +632,6 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
-
-        from datetime import (
-            date,
-            time,
-        )
-
         # GH 8689
         ser = Series(date_range("20130101", periods=5, freq="D"))
         ser.iloc[2] = pd.NaT
@@ -731,7 +725,6 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(

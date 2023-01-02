@@ -16,7 +16,8 @@ class TestSeriesReplace:
         expected = pd.Series([0, 0, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        df = pd.DataFrame(np.zeros((3, 3)))
+        # Cast column 2 to object to avoid implicit cast when setting entry to ""
+        df = pd.DataFrame(np.zeros((3, 3))).astype({2: object})
         df.iloc[2, 2] = ""
         result = df.replace("", None)
         expected = pd.DataFrame(
@@ -661,7 +662,7 @@ class TestSeriesReplace:
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
         maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
-        map_dict = {old: new for (old, new) in zip(maps.values, maps.index)}
+        map_dict = dict(zip(maps.values, maps.index))
 
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})

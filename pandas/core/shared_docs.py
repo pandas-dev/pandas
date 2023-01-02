@@ -119,6 +119,12 @@ sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
+
+    .. versionchanged:: 2.0.0
+
+        Specifying ``sort=False`` with an ordered categorical grouper will no
+        longer sort the values.
+
 group_keys : bool, optional
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
@@ -544,9 +550,6 @@ _shared_docs[
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
-
-        .. versionchanged:: 0.23.0
-            Added to DataFrame.
 
     Returns
     -------

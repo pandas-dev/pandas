@@ -162,10 +162,10 @@ class TestMultiIndexBasic:
                     [1, 2],
                 ],
                 [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [1, 2],
-                    [1, 1],
+                    [[81, 82.0, np.nan], Series([np.nan, np.nan, np.nan])],
+                    [[81, 82.0, np.nan], Series([np.nan, np.nan, np.nan])],
+                    [1, np.nan, 2],
+                    [np.nan, 2, 1],
                 ],
             ),
             (
@@ -176,8 +176,8 @@ class TestMultiIndexBasic:
                     [1, 2],
                 ],
                 [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [[81.0, np.nan], Series([np.nan, np.nan])],
+                    [[81.0, np.nan], Series([np.nan, np.nan])],
                     [1, 2],
                     [2, 1],
                 ],
@@ -188,28 +188,17 @@ class TestMultiIndexBasic:
         self, data_result, data_expected
     ):
         # GH 38439
+        # TODO: Refactor. This is impossible to understand GH#49443
         a_index_result = MultiIndex.from_tuples(data_result[0])
         b_index_result = MultiIndex.from_tuples(data_result[1])
         a_series_result = Series(data_result[2], index=a_index_result)
         b_series_result = Series(data_result[3], index=b_index_result)
         result = a_series_result.align(b_series_result)
 
-        a_index_expected = MultiIndex.from_tuples(data_expected[0])
-        b_index_expected = MultiIndex.from_tuples(data_expected[1])
+        a_index_expected = MultiIndex.from_arrays(data_expected[0])
+        b_index_expected = MultiIndex.from_arrays(data_expected[1])
         a_series_expected = Series(data_expected[2], index=a_index_expected)
         b_series_expected = Series(data_expected[3], index=b_index_expected)
-        a_series_expected.index = a_series_expected.index.set_levels(
-            [
-                a_series_expected.index.levels[0].astype("float"),
-                a_series_expected.index.levels[1].astype("float"),
-            ]
-        )
-        b_series_expected.index = b_series_expected.index.set_levels(
-            [
-                b_series_expected.index.levels[0].astype("float"),
-                b_series_expected.index.levels[1].astype("float"),
-            ]
-        )
 
         tm.assert_series_equal(result[0], a_series_expected)
         tm.assert_series_equal(result[1], b_series_expected)
@@ -227,3 +216,15 @@ class TestMultiIndexBasic:
             ],
             Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
         )
+
+    def test_multiindex_with_na_missing_key(self):
+        # GH46173
+        df = DataFrame.from_dict(
+            {
+                ("foo",): [1, 2, 3],
+                ("bar",): [5, 6, 7],
+                (None,): [8, 9, 0],
+            }
+        )
+        with pytest.raises(KeyError, match="missing_key"):
+            df[[("missing_key",)]]

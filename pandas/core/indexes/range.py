@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
-from pandas.core.algorithms import resolve_na_sentinel
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -329,17 +328,15 @@ class RangeIndex(NumericIndex):
     # Indexing Methods
 
     @doc(Int64Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if method is None and tolerance is None:
-            if is_integer(key) or (is_float(key) and key.is_integer()):
-                new_key = int(key)
-                try:
-                    return self._range.index(new_key)
-                except ValueError as err:
-                    raise KeyError(key) from err
-            self._check_indexing_error(key)
-            raise KeyError(key)
-        return super().get_loc(key, method=method, tolerance=tolerance)
+    def get_loc(self, key):
+        if is_integer(key) or (is_float(key) and key.is_integer()):
+            new_key = int(key)
+            try:
+                return self._range.index(new_key)
+            except ValueError as err:
+                raise KeyError(key) from err
+        self._check_indexing_error(key)
+        raise KeyError(key)
 
     def _get_indexer(
         self,
@@ -457,11 +454,8 @@ class RangeIndex(NumericIndex):
     def factorize(
         self,
         sort: bool = False,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
-        # resolve to emit warning if appropriate
-        resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -610,8 +604,6 @@ class RangeIndex(NumericIndex):
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
             an unsorted ``Int64Index``
-
-            .. versionadded:: 0.25.0
 
         Returns
         -------

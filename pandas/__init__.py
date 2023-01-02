@@ -9,10 +9,10 @@ _missing_dependencies = []
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
-    except ImportError as _e:
+    except ImportError as _e:  # pragma: no cover
         _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if _missing_dependencies:
+if _missing_dependencies:  # pragma: no cover
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
@@ -182,38 +182,6 @@ v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
-
-# GH 27101
-__deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
-
-
-def __dir__() -> list[str]:
-    # GH43028
-    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
-    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
-    return list(globals().keys()) + __deprecated_num_index_names
-
-
-def __getattr__(name):
-    import warnings
-
-    if name in __deprecated_num_index_names:
-        warnings.warn(
-            f"pandas.{name} is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.Index with the appropriate dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.api import Float64Index, Int64Index, UInt64Index
-
-        return {
-            "Float64Index": Float64Index,
-            "Int64Index": Int64Index,
-            "UInt64Index": UInt64Index,
-        }[name]
-
-    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
 # module level doc-string

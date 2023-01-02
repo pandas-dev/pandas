@@ -16,10 +16,7 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
+from pandas.core.api import NumericIndex
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -99,12 +96,9 @@ class TestSetitemCoercion(CoercionBase):
     ):
         """test index's coercion triggered by assign key"""
         temp = original_series.copy()
-        warn = None
-        if isinstance(loc_key, int) and temp.index.dtype == np.float64:
-            # GH#33469
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn):
-            temp[loc_key] = 5
+        # GH#33469 pre-2.0 with int loc_key and temp.index.dtype == np.float64
+        #  `temp[loc_key] = 5` treated loc_key as positional
+        temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
@@ -144,23 +138,12 @@ class TestSetitemCoercion(CoercionBase):
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(5, IndexError), (5.1, np.float64), ("x", object)]
+        "val,exp_dtype", [(5, np.float64), (5.1, np.float64), ("x", object)]
     )
     def test_setitem_index_float64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
         assert obj.index.dtype == np.float64
 
-        if exp_dtype is IndexError:
-            # float + int -> int
-            temp = obj.copy()
-            msg = "index 5 is out of bounds for axis 0 with size 4"
-            with pytest.raises(exp_dtype, match=msg):
-                # GH#33469
-                depr_msg = "Treating integers as positional"
-                with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                    temp[5] = 5
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
-            request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
@@ -231,7 +214,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = Int64Index([1, 2, 3, 4])
+        obj = NumericIndex([1, 2, 3, 4], dtype=np.int64)
         assert obj.dtype == np.int64
 
         exp = pd.Index([1, coerced_val, 2, 3, 4])
@@ -247,7 +230,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = Float64Index([1.0, 2.0, 3.0, 4.0])
+        obj = NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
         assert obj.dtype == np.float64
 
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])

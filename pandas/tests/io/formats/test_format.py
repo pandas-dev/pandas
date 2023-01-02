@@ -5,12 +5,12 @@ from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 import itertools
 import locale
 from operator import methodcaller
-import os
 from pathlib import Path
 import re
 from shutil import get_terminal_size
@@ -105,11 +105,6 @@ def assert_filepath_or_buffer_equals(
     return _assert_filepath_or_buffer_equals
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 def has_info_repr(df):
     r = repr(df)
     c1 = r.split("\n")[0].startswith("<class")
@@ -170,7 +165,6 @@ def has_expanded_repr(df):
     return False
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
     def test_eng_float_formatter(self, float_frame):
         df = float_frame
@@ -994,12 +988,10 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1250,8 +1242,6 @@ class TestDataFrameFormatting:
             dtype="int64",
         )
 
-        import re
-
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
         assert nmatches == 1
@@ -1414,25 +1404,25 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
-        # GH 13998, GH 22505
+        # GH 13998, GH 22505, # GH 49230
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n 1  \\\n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n11  \\\n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x   \n 11  \\\n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1685,6 +1675,20 @@ c  10  11  12  13  14\
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
         assert max(len(line) for line in s.split("\n")) == 80
+
+    def test_to_string_header_false(self):
+        # GH 49230
+        df = DataFrame([1, 2])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a   \n0  1\n1  2"
+        assert s == expected
+
+        df = DataFrame([[1, 2], [3, 4]])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a      \n0  1  2\n1  3  4"
+        assert s == expected
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -2445,12 +2449,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))

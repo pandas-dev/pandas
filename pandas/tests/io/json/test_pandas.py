@@ -207,12 +207,15 @@ class TestPandasContainer:
         empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes)
-        expected = empty_frame.copy()
-
-        # TODO: both conditions below are probably bugs
-        if convert_axes:
-            expected.index = expected.index.astype(float)
-            expected.columns = expected.columns.astype(float)
+        if orient == "split":
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(index=idx, columns=idx)
+        elif orient in ["index", "columns"]:
+            # TODO: this condition is probably a bug
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(columns=idx)
+        else:
+            expected = empty_frame.copy()
 
         tm.assert_frame_equal(result, expected)
 
@@ -970,7 +973,9 @@ class TestPandasContainer:
         ts = Timestamp("20130101")
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
-        expected = DataFrame({"a": [pd.Timedelta(td)._as_unit("ns").value, ts.value]})
+        expected = DataFrame(
+            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+        )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 

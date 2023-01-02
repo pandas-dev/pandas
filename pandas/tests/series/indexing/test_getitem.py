@@ -332,8 +332,7 @@ class TestSeriesGetitemSlices:
     def test_getitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = ser[:4]
+        result = ser[:4]
         expected = Series(ser.values[:4], index=[2, 4, 6, 8])
         tm.assert_series_equal(result, expected)
 
@@ -471,7 +470,7 @@ class TestGetitemBooleanMask:
         ser = Series(dti._data)
 
         res = ser[key]
-        assert res._values._data.base is None
+        assert res._values._ndarray.base is None
 
         # compare with numeric case for reference
         ser2 = Series(range(4))
@@ -635,7 +634,7 @@ def test_getitem_with_integer_labels():
 def test_getitem_missing(datetime_series):
     # missing
     d = datetime_series.index[0] - BDay()
-    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    msg = r"Timestamp\('1999-12-31 00:00:00'\)"
     with pytest.raises(KeyError, match=msg):
         datetime_series[d]
 
@@ -691,14 +690,14 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1

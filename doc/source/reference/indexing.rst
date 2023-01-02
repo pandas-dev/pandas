@@ -166,9 +166,6 @@ Numeric Index
    :template: autosummary/class_without_autosummary.rst
 
    RangeIndex
-   Int64Index
-   UInt64Index
-   Float64Index
 
 .. We need this autosummary so that the methods are generated.
 .. Separate block, since they aren't classes.
@@ -301,6 +298,7 @@ MultiIndex components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.drop
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~

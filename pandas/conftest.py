@@ -62,6 +62,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -79,7 +80,7 @@ else:
     has_pyarrow = True
 
 zoneinfo = None
-if pd.compat.PY39:
+if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 
@@ -150,9 +151,6 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        # Deprecations where the docstring will emit a warning
-        ("DataFrame.append", "The frame.append method is deprecated"),
-        ("Series.append", "The series.append method is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
@@ -593,24 +591,21 @@ indices_dict = {
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
     "timedelta": tm.makeTimedeltaIndex(100),
-    "int": tm.makeIntIndex(100),
-    "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
-    "float": tm.makeFloatIndex(100),
-    "complex64": tm.makeFloatIndex(100).astype("complex64"),
-    "complex128": tm.makeFloatIndex(100).astype("complex128"),
-    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
-    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
-    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
-    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
-    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
-    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
-    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
-    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
-    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
-    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
+    "int8": tm.makeIntIndex(100, dtype="int8"),
+    "int16": tm.makeIntIndex(100, dtype="int16"),
+    "int32": tm.makeIntIndex(100, dtype="int32"),
+    "int64": tm.makeIntIndex(100, dtype="int64"),
+    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
+    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
+    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
+    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
+    "float32": tm.makeFloatIndex(100, dtype="float32"),
+    "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
+    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
+    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -670,8 +665,10 @@ index_flat2 = index_flat
         key
         for key, value in indices_dict.items()
         if not (
-            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
-            or key.startswith("num_")
+            key.startswith("int")
+            or key.startswith("uint")
+            or key.startswith("float")
+            or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
     ]
@@ -1037,6 +1034,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1047,6 +1045,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 
@@ -1124,6 +1123,17 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
@@ -1163,8 +1173,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
                 raise ValueError(
                     f"Could not find file {path} and --strict-data-files is set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -1262,9 +1271,7 @@ def string_dtype(request):
 @pytest.fixture(
     params=[
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1280,7 +1287,7 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1323,9 +1330,7 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1899,3 +1904,16 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request):
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param

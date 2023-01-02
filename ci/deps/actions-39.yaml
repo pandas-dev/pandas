@@ -4,8 +4,11 @@ channels:
 dependencies:
   - python=3.9
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -15,7 +18,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<1.24
   - pytz
 
   # optional dependencies
@@ -30,7 +33,7 @@ dependencies:
   - gcsfs
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba
   - numexpr
   - openpyxl

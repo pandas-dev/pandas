@@ -215,15 +215,16 @@ class BinOp(ops.BinOp):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
-            v = Timestamp(v)
+            v = Timestamp(v).as_unit("ns")
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
         elif kind in ("timedelta64", "timedelta"):
             if isinstance(v, str):
-                v = Timedelta(v).value
+                v = Timedelta(v)
             else:
-                v = Timedelta(v, unit="s").value
+                v = Timedelta(v, unit="s")
+            v = v.as_unit("ns").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
@@ -650,7 +651,7 @@ def maybe_expression(s) -> bool:
     """loose checking if s is a pytables-acceptable expression"""
     if not isinstance(s, str):
         return False
-    ops = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
+    operations = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
 
     # make sure we have an op at least
-    return any(op in s for op in ops)
+    return any(op in s for op in operations)

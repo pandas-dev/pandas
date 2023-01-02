@@ -538,28 +538,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     # --------------------------------------------------------------------
 
-    def _time_shift(self, periods: int, freq=None) -> PeriodArray:
-        """
-        Shift each value by `periods`.
-
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or str
-            Frequency increment to shift by.
-        """
-        if freq is not None:
-            raise TypeError(
-                "`freq` argument is not supported for "
-                f"{type(self).__name__}._time_shift"
-            )
-        return self + periods
-
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
@@ -692,32 +670,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
+        npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
-        # Cast to M8 to get datetime-like NaT placement
+        # Cast to M8 to get datetime-like NaT placement,
+        #  similar to dtl._period_dispatch
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing
+            # view as dt64 so we get treated as timelike in core.missing,
+            #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
             result = dta.fillna(value=value, method=method, limit=limit)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
-
-    def _quantile(
-        self: PeriodArray,
-        qs: npt.NDArray[np.float64],
-        interpolation: str,
-    ) -> PeriodArray:
-        # dispatch to DatetimeArray implementation
-        dtres = self.view("M8[ns]")._quantile(qs, interpolation)
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "PeriodArray")
-        return dtres.view(self.dtype)  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -726,8 +695,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
     ) -> PeriodArray:
         """
-        Add or subtract array of integers; equivalent to applying
-        `_time_shift` pointwise.
+        Add or subtract array of integers.
 
         Parameters
         ----------
@@ -1167,7 +1135,7 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
         if isinstance(x, (list, np.ndarray, ABCSeries)):
             if length is not None and len(x) != length:
                 raise ValueError("Mismatched Period array lengths")
-            elif length is None:
+            if length is None:
                 length = len(x)
 
     # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected

@@ -114,14 +114,14 @@ def test_apply_with_reduce_empty():
     result = empty_frame.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_frame)
     result = empty_frame.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     empty_with_cols = DataFrame(columns=["a", "b", "c"])
     result = empty_with_cols.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_with_cols)
     result = empty_with_cols.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     # Ensure that x.append hasn't been called
@@ -147,7 +147,7 @@ def test_nunique_empty():
     tm.assert_series_equal(result, expected)
 
     result = df.T.nunique()
-    expected = Series([], index=pd.Index([]), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 
@@ -461,7 +461,7 @@ def test_apply_convert_objects():
         }
     )
 
-    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -836,7 +836,8 @@ def test_with_dictlike_columns_with_datetime():
     df["author"] = ["X", "Y", "Z"]
     df["publisher"] = ["BBC", "NBC", "N24"]
     df["date"] = pd.to_datetime(
-        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"]
+        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"],
+        dayfirst=True,
     )
     result = df.apply(lambda x: {}, axis=1)
     expected = Series([{}, {}, {}])
@@ -1181,8 +1182,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1283,13 +1283,15 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        result = df.agg("sum")
+    msg = "does not support reduction"
+    with pytest.raises(TypeError, match=msg):
+        df.agg("sum")
+
+    result = df[["A", "B", "C"]].agg("sum")
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 
@@ -1428,13 +1430,14 @@ def test_apply_datetime_tz_issue():
 
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
-def test_consistency_of_aggregates_of_columns_with_missing_values(df, method):
+def test_mixed_column_raises(df, method):
     # GH 16832
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        none_in_first_column_result = getattr(df[["A", "B"]], method)()
-        none_in_second_column_result = getattr(df[["B", "A"]], method)()
-
-    tm.assert_series_equal(none_in_first_column_result, none_in_second_column_result)
+    if method == "sum":
+        msg = r'can only concatenate str \(not "int"\) to str'
+    else:
+        msg = "not supported between instances of 'str' and 'float'"
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, method)()
 
 
 @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])

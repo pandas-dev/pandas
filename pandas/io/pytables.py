@@ -370,7 +370,7 @@ def read_hdf(
 
     Returns
     -------
-    item : object
+    object
         The selected object. Return type depends on the object stored.
 
     See Also
@@ -4040,16 +4040,14 @@ class Table(Fixed):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
+            mgr = cast(BlockManager, mgr)
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
-            # attribute "blocks"
-            blocks = list(mgr.blocks)  # type: ignore[union-attr]
+            blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
-                # no attribute "blocks"
-                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
+                mgr = cast(BlockManager, mgr)
+                blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
@@ -4370,7 +4368,7 @@ class AppendableTable(Table):
         bvalues = []
         for i, v in enumerate(values):
             new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
-            bvalues.append(values[i].reshape(new_shape))
+            bvalues.append(v.reshape(new_shape))
 
         # write the chunks
         if chunksize is None:
@@ -4964,14 +4962,14 @@ def _maybe_convert_for_string_atom(
 
     if inferred_type == "date":
         raise TypeError("[date] is not implemented as a table column")
-    elif inferred_type == "datetime":
+    if inferred_type == "datetime":
         # after GH#8260
         # this only would be hit for a multi-timezone dtype which is an error
         raise TypeError(
             "too many timezones in this block, create separate data columns"
         )
 
-    elif not (inferred_type == "string" or dtype_name == "object"):
+    if not (inferred_type == "string" or dtype_name == "object"):
         return bvalues
 
     mask = isna(bvalues)

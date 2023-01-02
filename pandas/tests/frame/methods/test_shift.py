@@ -364,23 +364,17 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(df, rs)
 
-    def test_shift_duplicate_columns(self, using_array_manager):
+    def test_shift_duplicate_columns(self):
         # GH#9092; verify that position-based shifting works
         # in the presence of duplicate columns
         column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
         data = np.random.randn(20, 5)
 
-        warn = None
-        if using_array_manager:
-            warn = FutureWarning
-
         shifted = []
         for columns in column_lists:
             df = DataFrame(data.copy(), columns=columns)
             for s in range(5):
-                msg = "will attempt to set the values inplace"
-                with tm.assert_produces_warning(warn, match=msg):
-                    df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
             df.columns = range(5)
             shifted.append(df)
 
@@ -500,7 +494,6 @@ class TestDataFrameShift:
         with pytest.raises(ValueError, match=msg):
             no_freq.shift(freq="infer")
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
@@ -516,17 +509,15 @@ class TestDataFrameShift:
         df2 = DataFrame({"A": ser, "B": ser})
         df2._consolidate_inplace()
 
-        with pytest.raises(TypeError, match="value should be a"):
-            df2.shift(1, axis=1, fill_value=0)
+        result = df2.shift(1, axis=1, fill_value=0)
+        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
 
-        # same thing but not consolidated
-        # This isn't great that we get different behavior, but
-        #  that will go away when the deprecation is enforced
+        # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
         assert len(df3._mgr.arrays) == 2
         result = df3.shift(1, axis=1, fill_value=0)
-        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -564,8 +555,6 @@ class TestDataFrameShift:
         ],
         ids=lambda x: str(x.dtype),
     )
-    # TODO(2.0): remove filtering
-    @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
     def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
         # GH#44564
         ser = Series(vals)

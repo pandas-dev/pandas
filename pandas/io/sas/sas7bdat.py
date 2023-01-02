@@ -668,9 +668,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         if nrows > 0 and self._current_row_in_file_index >= self.row_count:
             return DataFrame()
 
-        m = self.row_count - self._current_row_in_file_index
-        if nrows > m:
-            nrows = m
+        nrows = min(nrows, self.row_count - self._current_row_in_file_index)
 
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")

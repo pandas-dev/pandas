@@ -22,13 +22,9 @@ from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
-    def test_stack_unstack(self, float_frame, using_array_manager):
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
+    def test_stack_unstack(self, float_frame):
         df = float_frame.copy()
-        with tm.assert_produces_warning(warn, match=msg):
-            df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
+        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
         stacked_df = DataFrame({"foo": stacked, "bar": stacked})
@@ -1251,7 +1247,8 @@ def test_stack_timezone_aware_values():
 @pytest.mark.parametrize("dropna", [True, False])
 def test_stack_empty_frame(dropna):
     # GH 36113
-    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
+    expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
     result = DataFrame(dtype=np.float64).stack(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
@@ -1789,10 +1786,9 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            down = unst.resample("W-THU").mean()
-
+        with pytest.raises(TypeError, match="Could not convert"):
+            unst.resample("W-THU").mean()
+        down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID")
         xp = unst.loc[:, ["VAR1"]].resample("W-THU").mean().stack("ID")
         xp.columns.name = "Params"

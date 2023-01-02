@@ -388,9 +388,7 @@ $1$,$2$
         # see gh-19589
         obj = frame_or_series(pd.Series([1], ind, name="data"))
 
-        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
-            # GH#9568 standardize on lineterminator matching stdlib
-            result = obj.to_csv(line_terminator="\n", header=True)
+        result = obj.to_csv(lineterminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):
