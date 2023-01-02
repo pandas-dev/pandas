@@ -3241,20 +3241,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4   blue
         5    red
         >>> df.groupby("color").ngroup()
-        0    0.0
+        0    1.0
         1    NaN
-        2    0.0
-        3    1.0
-        4    1.0
-        5    0.0
+        2    1.0
+        3    0.0
+        4    0.0
+        5    1.0
         dtype: float64
         >>> df.groupby("color", dropna=False).ngroup()
-        0    0
+        0    1
         1    2
-        2    0
-        3    1
-        4    1
-        5    0
+        2    1
+        3    0
+        4    0
+        5    1
         dtype: int64
         """
         with self._group_selection_context():
