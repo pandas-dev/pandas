@@ -231,8 +231,9 @@ class TestBusinessHour:
         assert offset8 + dt == datetime(2014, 7, 1, 11)
         assert offset9 + dt == datetime(2014, 7, 1, 22)
         assert offset10 + dt == datetime(2014, 7, 1, 1)
+        assert dt + 0 * offset1 == dt
 
-    def test_sub(self, dt, offset2, _offset):
+    def test_sub(self, dt, offset1, offset2, _offset):
         off = offset2
         msg = "Cannot subtract datetime from offset"
         with pytest.raises(TypeError, match=msg):
@@ -240,6 +241,8 @@ class TestBusinessHour:
         assert 2 * off - off == off
 
         assert dt - offset2 == dt + _offset(-3)
+
+        assert dt - 0 * offset1 == dt
 
     def testRollback1(
         self,
