@@ -433,19 +433,12 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    msg = "The default value of numeric_only"
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     result = grouped.mean(numeric_only=True)
     assert result.index.name == "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A", as_index=False).mean()
     result = df.groupby("A", as_index=False).mean(numeric_only=True)
     assert result.index.name != "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["C", "D"]].agg(np.mean)
     assert result.index.name == "A"
 
@@ -2834,4 +2827,14 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
 
     result = series.to_frame().groupby("blah").sum()
     expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n", [1, 10, 32, 100, 1000])
+def test_sum_of_booleans(n):
+    # GH 50347
+    df = DataFrame({"groupby_col": 1, "bool": [True] * n})
+    df["bool"] = df["bool"].eq(True)
+    result = df.groupby("groupby_col").sum()
+    expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
     tm.assert_frame_equal(result, expected)

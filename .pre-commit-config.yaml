@@ -63,7 +63,8 @@ repos:
             '--extensions=c,h',
             '--headers=h',
             --recursive,
-            '--filter=-readability/casting,-runtime/int,-build/include_subdir'
+            --linelength=88,
+            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
@@ -333,3 +334,12 @@ repos:
         additional_dependencies:
         - autotyping==22.9.0
         - libcst==0.4.7
+    -   id: check-test-naming
+        name: check that test names start with 'test'
+        entry: python -m scripts.check_test_naming
+        types: [python]
+        files: ^pandas/tests
+        language: python
+        exclude: |
+            (?x)
+            ^pandas/tests/generic/test_generic.py  # GH50380
