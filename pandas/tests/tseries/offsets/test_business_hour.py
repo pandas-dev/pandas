@@ -975,6 +975,10 @@ class TestBusinessHour:
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
+        idx4 = date_range(start="2014-07-01 10:00", freq="BH", periods=1)
+        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="BH")
+        tm.assert_index_equal(idx4, expected4)
+
     def test_bday_ignores_timedeltas(self):
         idx = date_range("2010/02/01", "2010/02/10", freq="12H")
         t1 = idx + BDay(offset=Timedelta(3, unit="H"))
