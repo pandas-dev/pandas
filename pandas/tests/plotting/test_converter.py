@@ -48,6 +48,7 @@ def test_registry_mpl_resets():
     code = (
         "import matplotlib.units as units; "
         "import matplotlib.dates as mdates; "
+        "import matplotlib.pyplot as plt; "
         "n_conv = len(units.registry); "
         "import pandas as pd; "
         "pd.plotting.register_matplotlib_converters(); "
