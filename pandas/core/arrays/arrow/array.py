@@ -407,6 +407,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             )
 
         if result.null_count > 0:
+            # GH50524: avoid conversion to object for better perf
             values = pc.fill_null(result, False).to_numpy()
             mask = result.is_null().to_numpy()
         else:
