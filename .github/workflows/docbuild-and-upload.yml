@@ -15,6 +15,7 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: read
@@ -22,7 +23,7 @@ permissions:
 jobs:
   web_and_docs:
     name: Doc Build and Upload
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -44,6 +45,12 @@ jobs:
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
+
+    - name: Set up maintainers cache
+      uses: actions/cache@v3
+      with:
+        path: maintainers.json
+        key: maintainers
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build

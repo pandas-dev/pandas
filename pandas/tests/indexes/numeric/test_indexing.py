@@ -20,98 +20,26 @@ def index_large():
 
 
 class TestGetLoc:
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    def test_get_loc(self, method):
+    def test_get_loc(self):
         index = Index([0, 1, 2])
-        warn = None if method is None else FutureWarning
+        assert index.get_loc(1) == 1
 
-        with tm.assert_produces_warning(warn, match="deprecated"):
-            assert index.get_loc(1, method=method) == 1
-
-        if method:
-            with tm.assert_produces_warning(warn, match="deprecated"):
-                assert index.get_loc(1, method=method, tolerance=0) == 1
-
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_raises_bad_label(self, method):
+    def test_get_loc_raises_bad_label(self):
         index = Index([0, 1, 2])
-        if method:
-            msg = "not supported between"
-            err = TypeError
-        else:
-            msg = r"\[1, 2\]"
-            err = InvalidIndexError
+        with pytest.raises(InvalidIndexError, match=r"\[1, 2\]"):
+            index.get_loc([1, 2])
 
-        with pytest.raises(err, match=msg):
-            index.get_loc([1, 2], method=method)
-
-    @pytest.mark.parametrize(
-        "method,loc", [("pad", 1), ("backfill", 2), ("nearest", 1)]
-    )
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_tolerance(self, method, loc):
-        index = Index([0, 1, 2])
-        assert index.get_loc(1.1, method) == loc
-        assert index.get_loc(1.1, method, tolerance=1) == loc
-
-    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
-    def test_get_loc_outside_tolerance_raises(self, method):
-        index = Index([0, 1, 2])
-        with pytest.raises(KeyError, match="1.1"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc(1.1, method, tolerance=0.05)
-
-    def test_get_loc_bad_tolerance_raises(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="must be numeric"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc(1.1, "nearest", tolerance="invalid")
-
-    def test_get_loc_tolerance_no_method_raises(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="tolerance .* valid if"):
-            index.get_loc(1.1, tolerance=1)
-
-    def test_get_loc_raises_missized_tolerance(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="tolerance size must match"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc(1.1, "nearest", tolerance=[1, 1])
-
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_float64(self):
         idx = Index([0.0, 1.0, 2.0], dtype=np.float64)
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(1, method) == 1
-            if method is not None:
-                assert idx.get_loc(1, method, tolerance=0) == 1
-
-        for method, loc in [("pad", 1), ("backfill", 2), ("nearest", 1)]:
-            assert idx.get_loc(1.1, method) == loc
-            assert idx.get_loc(1.1, method, tolerance=0.9) == loc
 
         with pytest.raises(KeyError, match="^'foo'$"):
             idx.get_loc("foo")
         with pytest.raises(KeyError, match=r"^1\.5$"):
             idx.get_loc(1.5)
-        with pytest.raises(KeyError, match=r"^1\.5$"):
-            idx.get_loc(1.5, method="pad", tolerance=0.1)
         with pytest.raises(KeyError, match="^True$"):
             idx.get_loc(True)
         with pytest.raises(KeyError, match="^False$"):
             idx.get_loc(False)
-
-        with pytest.raises(ValueError, match="must be numeric"):
-            idx.get_loc(1.4, method="nearest", tolerance="foo")
-
-        with pytest.raises(ValueError, match="must contain numeric elements"):
-            idx.get_loc(1.4, method="nearest", tolerance=np.array(["foo"]))
-
-        with pytest.raises(
-            ValueError, match="tolerance size must match target index size"
-        ):
-            idx.get_loc(1.4, method="nearest", tolerance=np.array([1, 2]))
 
     def test_get_loc_na(self):
         idx = Index([np.nan, 1, 2], dtype=np.float64)
@@ -145,13 +73,11 @@ class TestGetLoc:
             idx.get_loc([np.nan])
 
     @pytest.mark.parametrize("vals", [[1], [1.0], [Timestamp("2019-12-31")], ["test"]])
-    @pytest.mark.parametrize("method", ["nearest", "pad", "backfill"])
-    def test_get_loc_float_index_nan_with_method(self, vals, method):
+    def test_get_loc_float_index_nan_with_method(self, vals):
         # GH#39382
         idx = Index(vals)
         with pytest.raises(KeyError, match="nan"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                idx.get_loc(np.nan, method=method)
+            idx.get_loc(np.nan)
 
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_get_loc_numericindex_none_raises(self, dtype):

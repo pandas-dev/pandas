@@ -133,6 +133,7 @@ class ExtensionArray:
     tolist
     unique
     view
+    _accumulate
     _concat_same_type
     _formatter
     _from_factorized
@@ -182,8 +183,9 @@ class ExtensionArray:
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
-    One can implement methods to handle array reductions.
+    One can implement methods to handle array accumulations or reductions.
 
+    * _accumulate
     * _reduce
 
     One can implement methods to handle parsing from strings that will be used
@@ -1368,6 +1370,38 @@ class ExtensionArray:
     def _can_hold_na(self) -> bool:
         return self.dtype._can_hold_na
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ExtensionArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
@@ -1542,8 +1576,6 @@ class ExtensionArray:
         if axis != 0:
             raise NotImplementedError
 
-        # TODO: we only have tests that get here with dt64 and td64
-        # TODO: all tests that get here use the defaults for all the kwds
         return rank(
             self,
             axis=axis,
@@ -1646,13 +1678,11 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
-        # error: Missing return statement
-        pass
+    def any(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
-        # error: Missing return statement
-        pass
+    def all(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
 
 
 class ExtensionOpsMixin:

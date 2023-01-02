@@ -89,7 +89,6 @@ from pandas.core.construction import (
     extract_array,
 )
 from pandas.core.indexers import check_array_indexer
-from pandas.core.indexes.base import ensure_index
 from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
@@ -281,6 +280,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = dtype.closed
 
         closed = closed or "right"
+
+        from pandas.core.indexes.base import ensure_index
+
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
 
@@ -810,6 +812,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         if ascending and kind == "quicksort" and na_position == "last":
+            # TODO: in an IntervalIndex we can re-use the cached
+            #  IntervalTree.left_sorter
             return np.lexsort((self.right, self.left))
 
         # TODO: other cases we can use lexsort for?  much more performant.
@@ -1366,7 +1370,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Returns
         -------
-        new_index : %(klass)s
+        %(klass)s
 
         %(examples)s\
         """
@@ -1595,8 +1599,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Return a boolean mask whether the value is contained in the Intervals
         of the %(klass)s.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------

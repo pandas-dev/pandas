@@ -44,7 +44,6 @@ from pandas.core.dtypes.cast import (
     find_result_type,
     maybe_downcast_to_dtype,
     np_can_hold_element,
-    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -326,6 +325,7 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
+    @final
     def reduce(self, func) -> list[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
@@ -429,9 +429,7 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
-                [blk.convert(datetime=True, numeric=False) for blk in blocks]
-            )
+            return extend_blocks([blk.convert() for blk in blocks])
 
         if downcast is None:
             return blocks
@@ -451,10 +449,8 @@ class Block(PandasObject):
 
     def convert(
         self,
+        *,
         copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
@@ -570,7 +566,7 @@ class Block(PandasObject):
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(numeric=False, copy=False)
+                blocks = blk.convert(copy=False)
             else:
                 blocks = [blk]
             return blocks
@@ -642,7 +638,7 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return block.convert(numeric=False, copy=False)
+        return block.convert(copy=False)
 
     @final
     def replace_list(
@@ -712,9 +708,7 @@ class Block(PandasObject):
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks(
-                        [b.convert(numeric=False, copy=True) for b in result]
-                    )
+                    result = extend_blocks([b.convert(copy=True) for b in result])
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -1134,7 +1128,6 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
-    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1599,6 +1592,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     values: ExtensionArray
 
+    def fillna(
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+        if is_interval_dtype(self.dtype):
+            # Block.fillna handles coercion (test_fillna_interval)
+            return super().fillna(
+                value=value, limit=limit, inplace=inplace, downcast=downcast
+            )
+        new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values)
+        return nb._maybe_downcast([nb], downcast)
+
     @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
@@ -1953,44 +1958,36 @@ class ObjectBlock(NumpyBlock):
     __slots__ = ()
     is_object = True
 
-    def reduce(self, func) -> list[Block]:
-        """
-        For object-dtype, we operate column-wise.
-        """
-        assert self.ndim == 2
-
-        res = func(self.values)
-
-        assert isinstance(res, np.ndarray)
-        assert res.ndim == 1
-        res = res.reshape(-1, 1)
-        return [self.make_block_same_class(res)]
-
     @maybe_split
     def convert(
         self,
+        *,
         copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        if self.dtype != _dtype_obj:
+            # GH#50067 this should be impossible in ObjectBlock, but until
+            #  that is fixed, we short-circuit here.
+            return [self]
+
         values = self.values
         if values.ndim == 2:
             # maybe_split ensures we only get here with values.shape[0] == 1,
             # avoid doing .ravel as that might make a copy
             values = values[0]
 
-        res_values = soft_convert_objects(
+        res_values = lib.maybe_convert_objects(
             values,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
-            copy=copy,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
+            convert_interval=True,
         )
+        if copy and res_values is values:
+            res_values = values.copy()
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
 
@@ -2291,6 +2288,6 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._data
+        return values._ndarray
     else:
         return values

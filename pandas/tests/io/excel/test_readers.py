@@ -536,7 +536,11 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    def test_use_nullable_dtypes(self, read_ext):
+    @pytest.mark.parametrize(
+        "dtype_backend",
+        ["pandas", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
+    )
+    def test_use_nullable_dtypes(self, read_ext, dtype_backend):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -557,10 +561,30 @@ class TestReaders:
         )
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
-            result = pd.read_excel(
-                file_path, sheet_name="test", use_nullable_dtypes=True
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = pd.read_excel(
+                    file_path, sheet_name="test", use_nullable_dtypes=True
+                )
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                    for col in df.columns
+                }
             )
-        tm.assert_frame_equal(result, df)
+            # pyarrow by default infers timestamp resolution as us, not ns
+            expected["i"] = ArrowExtensionArray(
+                expected["i"].array._data.cast(pa.timestamp(unit="us"))
+            )
+            # pyarrow supports a null type, so don't have to default to Int64
+            expected["j"] = ArrowExtensionArray(pa.array([None, None]))
+        else:
+            expected = df
+        tm.assert_frame_equal(result, expected)
 
     def test_use_nullabla_dtypes_and_dtype(self, read_ext):
         # GH#36712
@@ -576,15 +600,14 @@ class TestReaders:
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullable_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         import pyarrow as pa
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
 
             df = DataFrame(
                 {
@@ -598,7 +621,7 @@ class TestReaders:
                     file_path, sheet_name="test", use_nullable_dtypes=True
                 )
 
-            if storage == "python":
+            if string_storage == "python":
                 expected = DataFrame(
                     {
                         "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -1622,7 +1645,7 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 

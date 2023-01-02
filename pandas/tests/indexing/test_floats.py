@@ -8,10 +8,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
+from pandas.core.api import NumericIndex
 
 
 def gen_obj(klass, index):
@@ -264,9 +261,9 @@ class TestFloatIndexers:
         # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [
-            (Int64Index(range(5)), False),
+            (NumericIndex(np.arange(5, dtype=np.int64)), False),
             (RangeIndex(5), False),
-            (Int64Index(range(5)) + 10, True),
+            (NumericIndex(np.arange(5, dtype=np.int64) + 10), True),
         ]:
 
             # s is an in-range index
@@ -340,8 +337,7 @@ class TestFloatIndexers:
         """
         s = Series(range(2, 6), index=range(2, 6))
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = s[2:4]
+        result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 
@@ -496,7 +492,7 @@ class TestFloatIndexers:
 
         # fancy floats/integers create the correct entry (as nan)
         # fancy tests
-        expected = Series([2, 0], index=Float64Index([5.0, 0.0]))
+        expected = Series([2, 0], index=Index([5.0, 0.0], dtype=np.float64))
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 

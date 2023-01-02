@@ -6,8 +6,8 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import warnings
 
+import warnings
 cimport cython
 
 import numpy as np
@@ -111,7 +111,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
     treat_tz_as_pytz,
-    utc_pytz as UTC,
+    utc_stdlib as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
@@ -126,7 +126,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline _Timestamp create_timestamp_from_ts(
+cdef _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
     tzinfo tz,
@@ -361,7 +361,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: copied from Timedelta; try to de-duplicate
-    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+    cdef bint _compare_mismatched_resos(self, _Timestamp other, int op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self
@@ -434,7 +434,7 @@ cdef class _Timestamp(ABCTimestamp):
             raise integer_op_not_supported(self)
 
         elif is_array(other):
-            if other.dtype.kind in ['i', 'u']:
+            if other.dtype.kind in ["i", "u"]:
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -448,6 +448,7 @@ cdef class _Timestamp(ABCTimestamp):
             # cython semantics, args have been switched and this is __radd__
             # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -465,7 +466,7 @@ cdef class _Timestamp(ABCTimestamp):
             return self + neg_other
 
         elif is_array(other):
-            if other.dtype.kind in ['i', 'u']:
+            if other.dtype.kind in ["i", "u"]:
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -563,7 +564,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         if freq:
             kwds = freq.kwds
-            month_kw = kwds.get('startingMonth', kwds.get('month', 12))
+            month_kw = kwds.get("startingMonth", kwds.get("month", 12))
             freqstr = freq.freqstr
         else:
             month_kw = 12
@@ -929,15 +930,15 @@ cdef class _Timestamp(ABCTimestamp):
         zone = None
 
         try:
-            stamp += self.strftime('%z')
+            stamp += self.strftime("%z")
         except ValueError:
             year2000 = self.replace(year=2000)
-            stamp += year2000.strftime('%z')
+            stamp += year2000.strftime("%z")
 
         if self.tzinfo:
             zone = get_timezone(self.tzinfo)
         try:
-            stamp += zone.strftime(' %%Z')
+            stamp += zone.strftime(" %%Z")
         except AttributeError:
             # e.g. tzlocal has no `strftime`
             pass
@@ -954,16 +955,16 @@ cdef class _Timestamp(ABCTimestamp):
     def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900 and is slower
-        return f'{self.year}-{self.month:02d}-{self.day:02d}'
+        return f"{self.year}-{self.month:02d}-{self.day:02d}"
 
     @property
     def _time_repr(self) -> str:
-        result = f'{self.hour:02d}:{self.minute:02d}:{self.second:02d}'
+        result = f"{self.hour:02d}:{self.minute:02d}:{self.second:02d}"
 
         if self.nanosecond != 0:
-            result += f'.{self.nanosecond + 1000 * self.microsecond:09d}'
+            result += f".{self.nanosecond + 1000 * self.microsecond:09d}"
         elif self.microsecond != 0:
-            result += f'.{self.microsecond:06d}'
+            result += f".{self.microsecond:06d}"
 
         return result
 
@@ -1089,8 +1090,6 @@ cdef class _Timestamp(ABCTimestamp):
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
-
-        .. versionadded:: 0.25.0
 
         This is an alias method for `Timestamp.to_datetime64()`. The dtype and
         copy parameters are available here only for compatibility. Their values
@@ -1451,7 +1450,7 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
-                raise ValueError('Can provide at most one of tz, tzinfo')
+                raise ValueError("Can provide at most one of tz, tzinfo")
 
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
@@ -1465,7 +1464,7 @@ class Timestamp(_Timestamp):
 
             if (ts_input is not _no_input and not (
                     PyDateTime_Check(ts_input) and
-                    getattr(ts_input, 'tzinfo', None) is None)):
+                    getattr(ts_input, "tzinfo", None) is None)):
                 raise ValueError(
                     "Cannot pass fold with possibly unambiguous input: int, "
                     "float, numpy.datetime64, str, or timezone-aware "
@@ -1479,7 +1478,7 @@ class Timestamp(_Timestamp):
                     "timezones."
                 )
 
-            if hasattr(ts_input, 'fold'):
+            if hasattr(ts_input, "fold"):
                 ts_input = ts_input.replace(fold=fold)
 
         # GH 30543 if pd.Timestamp already passed, return it
@@ -1536,7 +1535,7 @@ class Timestamp(_Timestamp):
                 #  passed positionally see test_constructor_nanosecond
                 nanosecond = microsecond
 
-        if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
+        if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
@@ -1558,12 +1557,21 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
-    def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
+    def _round(self, freq, mode, ambiguous="raise", nonexistent="raise"):
         cdef:
             int64_t nanos
 
-        to_offset(freq).nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
+
+            # e.g. self.unit == "s" and sub-second freq
+            return self
+
+        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1581,7 +1589,7 @@ class Timestamp(_Timestamp):
             )
         return result
 
-    def round(self, freq, ambiguous='raise', nonexistent='raise'):
+    def round(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Round the Timestamp to the specified resolution.
 
@@ -1676,7 +1684,7 @@ timedelta}, default 'raise'
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
         )
 
-    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
+    def floor(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp floored to this resolution.
 
@@ -1765,7 +1773,7 @@ timedelta}, default 'raise'
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
+    def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
 
@@ -1875,7 +1883,7 @@ timedelta}, default 'raise'
             "Use tz_localize() or tz_convert() as appropriate"
         )
 
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
         Localize the Timestamp to a timezone.
 
@@ -1946,10 +1954,13 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if ambiguous == 'infer':
-            raise ValueError('Cannot infer offset with only one time.')
+        if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
+            raise ValueError(
+                        "'ambiguous' parameter must be one of: "
+                        "True, False, 'NaT', 'raise' (default)"
+                    )
 
-        nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
+        nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
@@ -2122,21 +2133,21 @@ default 'raise'
             return v
 
         if year is not None:
-            dts.year = validate('year', year)
+            dts.year = validate("year", year)
         if month is not None:
-            dts.month = validate('month', month)
+            dts.month = validate("month", month)
         if day is not None:
-            dts.day = validate('day', day)
+            dts.day = validate("day", day)
         if hour is not None:
-            dts.hour = validate('hour', hour)
+            dts.hour = validate("hour", hour)
         if minute is not None:
-            dts.min = validate('minute', minute)
+            dts.min = validate("minute", minute)
         if second is not None:
-            dts.sec = validate('second', second)
+            dts.sec = validate("second", second)
         if microsecond is not None:
-            dts.us = validate('microsecond', microsecond)
+            dts.us = validate("microsecond", microsecond)
         if nanosecond is not None:
-            dts.ps = validate('nanosecond', nanosecond) * 1000
+            dts.ps = validate("nanosecond", nanosecond) * 1000
         if tzinfo is not object:
             tzobj = tzinfo
 
@@ -2150,10 +2161,10 @@ default 'raise'
                                       is_dst=not bool(fold))
             tzobj = ts_input.tzinfo
         else:
-            kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
-                      'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': tzobj,
-                      'fold': fold}
+            kwargs = {"year": dts.year, "month": dts.month, "day": dts.day,
+                      "hour": dts.hour, "minute": dts.min, "second": dts.sec,
+                      "microsecond": dts.us, "tzinfo": tzobj,
+                      "fold": fold}
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(
@@ -2226,7 +2237,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

@@ -137,9 +137,6 @@ class TestNumericOnly:
         )
         return df
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
@@ -169,8 +166,6 @@ class TestNumericOnly:
             ],
         )
 
-        with pytest.raises(TypeError, match="[Cc]ould not convert"):
-            getattr(gb, method)()
         result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -217,9 +212,6 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
 
@@ -233,9 +225,6 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
 
@@ -325,21 +314,6 @@ class TestGroupByNonCythonPaths:
     def gni(self, df):
         gni = df.groupby("A", as_index=False)
         return gni
-
-    # TODO: non-unique columns, as_index=False
-    def test_idxmax_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmax()
-
-    def test_idxmin_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
@@ -496,7 +470,6 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False])
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
     df = DataFrame(
@@ -707,7 +680,8 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(StringIO(raw), parse_dates=[0])
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()
@@ -1610,7 +1584,6 @@ def test_corrwith_with_1_axis():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.* is deprecated:FutureWarning")
 def test_multiindex_group_all_columns_when_empty(groupby_func):
     # GH 32464
     df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])

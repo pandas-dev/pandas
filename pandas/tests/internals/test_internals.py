@@ -469,7 +469,7 @@ class TestBlockManager:
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values._data.base is blk.values._data.base
+                assert cp_blk.values._ndarray.base is blk.values._ndarray.base
 
         # copy(deep=True) consolidates, so the block-wise assertions will
         #  fail is mgr is not consolidated
@@ -591,7 +591,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
+        new_mgr = mgr.convert(copy=True)
         _compare(mgr, new_mgr)
 
         # convert
@@ -599,9 +599,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
@@ -612,9 +612,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
@@ -1323,10 +1323,6 @@ class TestCanHoldElement:
         elem = element(dti)
         self.check_series_setitem(elem, pi, False)
 
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
-
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1349,23 +1345,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:
