@@ -405,7 +405,7 @@ class TestReadHtml:
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, path, *args, **kwargs):
+    def _bank_data(self, path, **kwargs):
         return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
