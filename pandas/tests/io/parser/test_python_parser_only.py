@@ -489,3 +489,48 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
     )
     expected = DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_no_thousand_convert_for_non_numeric_cols(python_parser_only):
+    # GH#50270
+    parser = python_parser_only
+    data = """a;b;c
+0000,7995;16,000.1;0
+3,03,001,00514;0;4,001
+4923,600,041;23,000;131
+"""
+
+    result = parser.read_csv(
+        StringIO(data), sep=";", dtype={"a": str, "b": float, "c": int}, thousands=","
+    )
+    expected = DataFrame(
+        {
+            "a": ["0000,7995", "3,03,001,00514", "4923,600,041"],
+            "b": [16000.1, 0, 23000],
+            "c": [0, 4001, 131],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result2 = parser.read_csv(
+        StringIO(data), sep=";", dtype={"a": str, "b": str, "c": str}, thousands=","
+    )
+    expected2 = DataFrame(
+        {
+            "a": ["0000,7995", "3,03,001,00514", "4923,600,041"],
+            "b": ["16,000.1", "0", "23,000"],
+            "c": ["0", "4,001", "131"],
+        }
+    )
+    tm.assert_frame_equal(result2, expected2)
+
+    result3 = parser.read_csv(StringIO(data), sep=";", dtype=float, thousands=",")
+    expected3 = DataFrame(
+        {
+            "a": [7995, 30300100514, 4923600041],
+            "b": [16000.1, 0, 23000],
+            "c": [0, 4001, 131],
+        },
+        dtype=float,
+    )
+    tm.assert_frame_equal(result3, expected3)
