@@ -97,6 +97,53 @@ class OpsMixin:
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
+        """
+        Get addition of DataFrame and other, column-wise.
+
+        This is equivalent to df.add(other, axis=1).
+
+        Parameters
+        ----------
+        other : array-like
+            Object to be added to the DataFrame.
+
+        Returns
+        -------
+        DataFrame
+            The result of adding ``other`` to DataFrame.
+
+        See Also
+        --------
+        DataFrame.add : Add a DataFrame and another object, with option for index-
+            or column-oriented addition.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [2, 0]}, index=["AA", "BB"])
+        >>> df[["A", "B"]] + 1.5
+            A   B
+        AA  2.5 3.5
+        BB  3.5 1.5
+
+        When `other` is a :class:`Series`, the index of `other` is aligned with the
+        columns of the DataFrame:
+
+        >>> s = pd.Series([1.5, 2.5], index=['A', 'B'])
+        >>> df[["A", "B"]] + s
+            A   B
+        AA  2.5 4.5
+        BB  3.5 2.5
+
+        Even when the index of `other` is the same as the index of the DataFrame,
+        the :class:`Series` will not be reoriented. If index-wise alignment is desired,
+        :meth:`DataFrame.add` should be used.
+
+        >>> s = pd.Series([1.5, 2.5], index=['AA', 'BB'])
+        >>> df[["A", "B"]] + s
+            A   AA  B   BB
+        AA  NaN NaN NaN NaN
+        BB  NaN NaN NaN NaN
+        """
         return self._arith_method(other, operator.add)
 
     @unpack_zerodim_and_defer("__radd__")
