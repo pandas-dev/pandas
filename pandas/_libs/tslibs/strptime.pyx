@@ -14,6 +14,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
+import re
 
 import numpy as np
 import pytz
@@ -50,6 +51,7 @@ from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
 )
+
 from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
@@ -60,15 +62,23 @@ cdef bint format_is_iso(f: str):
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
+    iso_regex = re.compile(
+        r"""
+        ^                     # start of string
+        %Y                    # Year
+        (?:([-/ \\.]?)%m      # month with or without separators
+        (?: \1%d              # day with same separator as for year-month
+        (?:[ T]%H             # hour with separator
+        (?:\:%M               # minute with separator
+        (?:\:%S               # second with separator
+        (?:%z|\.%f(?:%z)?     # timezone or fractional second
+        )?)?)?)?)?)?          # optional
+        $                     # end of string
+        """,
+        re.VERBOSE,
+    )
     excluded_formats = ["%Y%m"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                iso_fmt = f"%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}"
-                if iso_fmt.startswith(f) and f not in excluded_formats:
-                    return True
-    return False
+    return re.match(iso_regex, f) is not None and f not in excluded_formats
 
 
 def _test_format_is_iso(f: str) -> bool:
