@@ -38,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
+from pandas._libs.tslibs.strptime cimport parse_today_now
 from pandas._libs.util cimport (
     is_datetime64_object,
     is_float_object,
@@ -443,9 +444,6 @@ cpdef array_to_datetime(
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
-    bint require_iso8601=False,
-    format: str | None=None,
-    bint exact=True,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -472,8 +470,6 @@ cpdef array_to_datetime(
          yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
          indicator whether the dates should be UTC
-    require_iso8601 : bool, default False
-         indicator whether the datetime string should be iso8601
 
     Returns
     -------
@@ -539,16 +535,6 @@ cpdef array_to_datetime(
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
-                    if require_iso8601:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        elif is_raise:
-                            raise ValueError(
-                                f"time data \"{val}\" doesn't "
-                                f"match format \"{format}\", at position {i}"
-                            )
-                        return values, tz_out
                     # these must be ns unit by-definition
 
                     if val != val or val == NPY_NAT:
@@ -578,25 +564,13 @@ cpdef array_to_datetime(
 
                     string_to_dts_failed = string_to_dts(
                         val, &dts, &out_bestunit, &out_local,
-                        &out_tzoffset, False, format, exact
+                        &out_tzoffset, False, None, False
                     )
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
                         # specifically _not_ OutOfBoundsDatetime
-                        if _parse_today_now(val, &iresult[i], utc):
+                        if parse_today_now(val, &iresult[i], utc):
                             continue
-                        elif require_iso8601:
-                            # if requiring iso8601 strings, skip trying
-                            # other formats
-                            if is_coerce:
-                                iresult[i] = NPY_NAT
-                                continue
-                            elif is_raise:
-                                raise ValueError(
-                                    f"time data \"{val}\" doesn't "
-                                    f"match format \"{format}\", at position {i}"
-                                )
-                            return values, tz_out
 
                         try:
                             py_dt = parse_datetime_string(val,
@@ -659,18 +633,6 @@ cpdef array_to_datetime(
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                elif require_iso8601 and isinstance(val, str):
-                    # GH#19382 for just-barely-OutOfBounds falling back to
-                    # dateutil parser will return incorrect result because
-                    # it will ignore nanoseconds
-                    if is_raise:
-
-                        # Still raise OutOfBoundsDatetime,
-                        # as error message is informative.
-                        raise
-
-                    assert is_ignore
-                    return values, tz_out
                 raise
 
     except OutOfBoundsDatetime:
@@ -816,26 +778,6 @@ cdef _array_to_datetime_object(
                 raise
             return values, None
     return oresult, None
-
-
-cdef bint _parse_today_now(str val, int64_t* iresult, bint utc):
-    # We delay this check for as long as possible
-    # because it catches relatively rare cases
-
-    # Multiply by 1000 to convert to nanos, since these methods naturally have
-    #  microsecond resolution
-    if val == "now":
-        if utc:
-            iresult[0] = Timestamp.utcnow().value * 1000
-        else:
-            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
-            # Note using Timestamp.now() is faster than Timestamp("now")
-            iresult[0] = Timestamp.now().value * 1000
-        return True
-    elif val == "today":
-        iresult[0] = Timestamp.today().value * 1000
-        return True
-    return False
 
 
 def array_to_datetime_with_tz(ndarray values, tzinfo tz):

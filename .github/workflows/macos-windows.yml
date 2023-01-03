@@ -16,7 +16,7 @@ env:
   PANDAS_CI: 1
   PYTEST_TARGET: pandas
   PATTERN: "not slow and not db and not network and not single_cpu"
-  TEST_ARGS: "-W error:::pandas"
+  ERROR_ON_WARNINGS: "1"
 
 
 permissions:
