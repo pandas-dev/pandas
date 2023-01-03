@@ -530,7 +530,7 @@ class Index(IndexOpsMixin, PandasObject):
             data = data.copy()
         return data
 
-    # @final (temporary off until merge NumericIndex into Index
+    @final
     @classmethod
     def _dtype_to_subclass(cls, dtype: DtypeObj):
         # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
