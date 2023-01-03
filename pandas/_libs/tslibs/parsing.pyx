@@ -53,6 +53,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
@@ -298,6 +299,12 @@ def parse_datetime_string(
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{date_string}" to datetime overflows'
+            ) from err
 
     return dt
 
