@@ -64,6 +64,7 @@ class TestTZLocalize:
         "method, exp",
         [
             ["shift_forward", "2015-03-29 03:00:00"],
+            ["shift_backward", "2015-03-29 01:59:59.999999999"],
             ["NaT", NaT],
             ["raise", None],
             ["foo", "invalid"],
@@ -98,15 +99,6 @@ class TestTZLocalize:
                 ser.tz_localize(tz, nonexistent=method)
             with pytest.raises(ValueError, match=msg):
                 df.tz_localize(tz, nonexistent=method)
-
-        elif method == "shift_forward" and type(tz).__name__ == "ZoneInfo":
-            msg = "nonexistent shifting is not implemented with ZoneInfo tzinfos"
-            with pytest.raises(NotImplementedError, match=msg):
-                ser.tz_localize(tz, nonexistent=method)
-            with pytest.raises(NotImplementedError, match=msg):
-                df.tz_localize(tz, nonexistent=method)
-            with pytest.raises(NotImplementedError, match=msg):
-                dti.tz_localize(tz, nonexistent=method)
 
         else:
             result = ser.tz_localize(tz, nonexistent=method)
