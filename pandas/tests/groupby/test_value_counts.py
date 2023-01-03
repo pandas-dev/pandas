@@ -54,6 +54,8 @@ def seed_df(seed_nans, n, m):
             "3rd": np.random.randint(1, m + 1, n),
         }
     )
+    # Explicitly cast to float to avoid implicit cast when setting nan
+    frame["3rd"] = frame["3rd"].astype("float")
 
     if seed_nans:
         frame.loc[1::11, "1st"] = np.nan
