@@ -77,6 +77,13 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
+Copy on write improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* The :class:`Series` constructor will now create a lazy copy (deferring the copy until
+  a modification to the data happens) when constructing a Series from an existing
+  Series with the default of ``copy=False`` (:issue:`50471`)
+
 .. _whatsnew_200.enhancements.other:
 
 Other enhancements
