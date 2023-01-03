@@ -819,6 +819,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was throwing ``ValueError`` when parsing dates with ISO8601 format where some values were not zero-padded (:issue:`21422`)
 - Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
+- Bug in :class:`RelativeDeltaOffset` which caused inconsistent behavior upon multiplying a :class:`DateOffset` (:issue:`47953`)
 -
 
 Timedelta
