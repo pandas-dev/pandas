@@ -77,6 +77,14 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
+Copy on write improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Accessing a single column of a DataFrame as a Series (e.g. ``df["col"]``) now always
+  returns a new object every time it is constructed (not returning multiple times an
+  identical, cached Series object). This ensures that those Series objects correctly
+  follow the Copy-on-Write rules (:issue:`49450`)
+
 .. _whatsnew_200.enhancements.other:
 
 Other enhancements
