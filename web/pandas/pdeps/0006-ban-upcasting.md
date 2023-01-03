@@ -60,18 +60,20 @@ then the following would all raise:
 - ``ser[0] = 'foo'``;
 - ``ser.fillna('foo', inplace=True)``;
 - ``ser.where(ser.isna(), 'foo', inplace=True)``
+- ``ser.fillna('foo', inplace=False)``;
+- ``ser.where(ser.isna(), 'foo', inplace=False)``
 - ``ser.iloc[0] = 'foo'``
 - ``ser.loc[0] = 'foo'``
 - ``df.loc[0, 'a'] = 'foo'``
+- ``df.loc[:, 'a'] = 'foo'`` (debatable, as is the one below)
+- ``ser[:] = 'foo'``
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
 - ``pd.concat([ser, ser.astype(object)])``;
 - ``ser.mean()``;
-- ``df.loc[:, 'a'] = 'foo'`` (debatable, as is the one below)
-- ``ser[:] = 'foo'``
-
-These would keep being allowed to change Series' dtypes.
+- ``ser[0] = 3.``;
+- ``ser[0] = 3``.
 
 ## Detailed description
 
@@ -94,7 +96,13 @@ For a start, this would involve:
   else:
   ```
 
-2. making a similar change in ``Block.where``, ``Block.putmask``, ``EABackedBlock.where``, and ``EABackedBlock.putmask``.
+2. making a similar change in:
+   - ``Block.where``;
+   - ``Block.putmask``;
+   - ``EABackedBlock.setitem``;
+   - ``EABackedBlock.where``;
+   - ``EABackedBlock.putmask``;
+   - ``_iLocIndexer._setitem_single_column``;
 
 The above would already require several hundreds of tests to be adjusted.
 
