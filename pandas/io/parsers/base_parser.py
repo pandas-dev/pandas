@@ -712,7 +712,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("mode.nullable_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -770,7 +770,7 @@ class ParserBase:
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and nullable_backend == "pyarrow":
+        if use_nullable_dtypes and dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
@@ -1121,19 +1121,13 @@ def _make_date_converter(
         if date_parser is None:
             strs = parsing.concat_date_cols(date_cols)
 
-            try:
-                return tools.to_datetime(
-                    ensure_object(strs),
-                    utc=False,
-                    dayfirst=dayfirst,
-                    errors="ignore",
-                    cache=cache_dates,
-                ).to_numpy()
-
-            except ValueError:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(strs, dayfirst=dayfirst), cache=cache_dates
-                )
+            return tools.to_datetime(
+                ensure_object(strs),
+                utc=False,
+                dayfirst=dayfirst,
+                errors="ignore",
+                cache=cache_dates,
+            ).to_numpy()
         else:
             try:
                 result = tools.to_datetime(

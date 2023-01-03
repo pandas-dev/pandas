@@ -99,13 +99,14 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_add_timestamp_overflow(self):
+        ts = Timestamp("1700-01-01").as_unit("ns")
         msg = "Cannot cast 259987 from D to 'ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
+            ts + Timedelta(13 * 19999, unit="D")
 
         msg = "Cannot cast 259987 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timestamp("1700-01-01") + timedelta(days=13 * 19999)
+            ts + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_td(self, op):
