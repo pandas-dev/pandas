@@ -406,8 +406,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"{op.__name__} not implemented for {type(other)}"
             )
 
-        result = result.to_numpy()
-        return BooleanArray._from_sequence(result)
+        if result.null_count > 0:
+            # GH50524: avoid conversion to object for better perf
+            values = pc.fill_null(result, False).to_numpy()
+            mask = result.is_null().to_numpy()
+        else:
+            values = result.to_numpy()
+            mask = np.zeros(len(values), dtype=np.bool_)
+        return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
         pc_func = arrow_funcs[op.__name__]
