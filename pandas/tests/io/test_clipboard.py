@@ -455,8 +455,6 @@ y,2,5.0,,,,,False,"""
             }
         )
         if dtype_backend == "pyarrow":
-            import pyarrow as pa
-
             from pandas.arrays import ArrowExtensionArray
 
             expected = DataFrame(
