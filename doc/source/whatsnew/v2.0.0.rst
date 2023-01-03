@@ -103,7 +103,20 @@ was added to the following methods:
 - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
 
 These methods return views when copy on write is enabled, which provides a significant
-performance improvement compared to the regular execution (:issue:`49473`).
+performance improvement compared to the regular execution (:issue:`49473`). Copy on write
+can be enabled through
+
+.. code-block:: python
+
+    pd.set_option("mode.copy_on_write", True)
+    pd.options.mode.copy_on_write = True
+
+Alternatively, copy on write can be enabled locally through:
+
+.. code-block:: python
+
+    with pd.option_context("mode.copy_on_write", True):
+        ...
 
 .. _whatsnew_200.enhancements.other:
 
