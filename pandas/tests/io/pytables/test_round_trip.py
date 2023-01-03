@@ -349,7 +349,7 @@ def test_index_types(setup_path):
         _check_roundtrip(ser, func, path=setup_path)
 
 
-def test_timeseries_preepoch(setup_path):
+def test_timeseries_preepoch(setup_path, request):
 
     dr = bdate_range("1/1/1940", "1/1/1960")
     ts = Series(np.random.randn(len(dr)), index=dr)
@@ -357,7 +357,9 @@ def test_timeseries_preepoch(setup_path):
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
         if is_platform_windows():
-            pytest.mark.xfail("known failure on some windows platforms")
+            request.node.add_marker(
+                pytest.mark.xfail("known failure on some windows platforms")
+            )
         else:
             raise
 
