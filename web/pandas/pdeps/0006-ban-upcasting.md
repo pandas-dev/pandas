@@ -65,8 +65,8 @@ then the following would all raise:
 - ``ser.iloc[0] = 'foo'``
 - ``ser.loc[0] = 'foo'``
 - ``df.loc[0, 'a'] = 'foo'``
-- ``df.loc[:, 'a'] = 'foo'`` (debatable, as is the one below)
-- ``ser[:] = 'foo'``
+- ``df.loc[:, 'a'] = 'foo'``
+- ``ser[:] = 'foo'``.
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
@@ -119,7 +119,7 @@ In [2]: ser[0] = 1.5
 This isn't necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
 numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer.
 
-Possibly options could be:
+Possible options could be:
 1. just raise, forcing users to be explicit;
 2. convert the float value to ``int`` before setting it;
 3. limit "banning upcasting" to when the upcasted dtype is ``object``.
@@ -143,8 +143,7 @@ There are several downsides to option ``3``:
 - it would be hard to teach, as instead of being able to teach a simple rule,
   there would be a rule with exceptions;
 - there would be a risk of loss of precision;
-- it opens the door to other exceptions, such as not upcasting to ``'int16'``
-  when trying to set an element of a ``'int8'`` ``Series`` to ``128``.
+- it opens the door to other exceptions, such as not upcasting ``'int8'`` to ``'int16'``.
 
 Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
 consistent with the current behaviour of nullable dtypes, and in being simple to teach.
