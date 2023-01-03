@@ -359,9 +359,8 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
-   :okwarning:
 
-   df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
 
 *Previous behavior*:
 
@@ -918,9 +917,8 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 **New way**
 
 .. ipython:: python
-   :okwarning:
 
-   df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
+   df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 0, 1, 2])})
    df.dtypes
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).

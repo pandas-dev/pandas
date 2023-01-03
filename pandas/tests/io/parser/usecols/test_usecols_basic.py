@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import ParserError
+
 from pandas import (
     DataFrame,
     Index,
@@ -239,7 +241,7 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
 
 def test_empty_usecols(all_parsers):
     data = "a,b,c\n1,2,3\n4,5,6"
-    expected = DataFrame()
+    expected = DataFrame(columns=Index([]))
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), usecols=set())
@@ -274,7 +276,7 @@ def test_np_array_usecols(all_parsers):
                 }
             ),
         ),
-        (lambda x: False, DataFrame()),
+        (lambda x: False, DataFrame(columns=Index([]))),
     ],
 )
 def test_callable_usecols(all_parsers, usecols, expected):
@@ -402,20 +404,14 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
 
 @pytest.mark.parametrize("names", [None, ["a", "b"]])
 def test_usecols_indices_out_of_bounds(all_parsers, names):
-    # GH#25623
+    # GH#25623 & GH 41130; enforced in 2.0
     parser = all_parsers
     data = """
 a,b
 1,2
     """
-    with tm.assert_produces_warning(
-        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
-        result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
-    expected = DataFrame({"a": [1], "b": [None]})
-    if names is None and parser.engine == "python":
-        expected = DataFrame({"a": [1]})
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ParserError, match="Defining usecols without of bounds"):
+        parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
 
 
 def test_usecols_additional_columns(all_parsers):

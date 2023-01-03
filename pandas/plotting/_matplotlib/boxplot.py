@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
+    Collection,
     Literal,
     NamedTuple,
 )
@@ -11,6 +11,7 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas._typing import MatplotlibColor
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -52,12 +53,12 @@ class BoxPlot(LinePlot):
         lines: dict[str, list[Line2D]]
 
     def __init__(self, data, return_type: str = "axes", **kwargs) -> None:
-        # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
         self.return_type = return_type
-        MPLPlot.__init__(self, data, **kwargs)
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
     def _args_adjust(self) -> None:
         if self.subplots:
@@ -68,8 +69,11 @@ class BoxPlot(LinePlot):
             else:
                 self.sharey = False
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(cls, ax, y, column_num=None, return_type="axes", **kwds):
+    def _plot(  # type: ignore[override]
+        cls, ax, y, column_num=None, return_type: str = "axes", **kwds
+    ):
         if y.ndim == 2:
             y = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -93,7 +97,7 @@ class BoxPlot(LinePlot):
                 warnings.warn(
                     "'color' and 'colormap' cannot be used "
                     "simultaneously. Using 'color'",
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             self.color = self.kwds.pop("color")
 
@@ -118,7 +122,14 @@ class BoxPlot(LinePlot):
         self._medians_c = colors[2]
         self._caps_c = colors[0]
 
-    def _get_colors(self, num_colors=None, color_kwds="color") -> None:
+    def _get_colors(
+        self,
+        num_colors=None,
+        color_kwds: dict[str, MatplotlibColor]
+        | MatplotlibColor
+        | Collection[MatplotlibColor]
+        | None = "color",
+    ) -> None:
         pass
 
     def maybe_color_bp(self, bp) -> None:
@@ -234,8 +245,8 @@ def _grouped_plot_by_column(
     data,
     columns=None,
     by=None,
-    numeric_only=True,
-    grid=False,
+    numeric_only: bool = True,
+    grid: bool = False,
     figsize=None,
     ax=None,
     layout=None,

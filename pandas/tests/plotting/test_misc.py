@@ -11,14 +11,13 @@ from pandas import (
     Series,
     Timestamp,
     interval_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
 
 
 @td.skip_if_mpl

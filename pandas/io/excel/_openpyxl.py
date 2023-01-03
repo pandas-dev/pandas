@@ -131,8 +131,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         style_kwargs: dict[str, Serialisable] = {}
         for k, v in style_dict.items():
-            if k in _style_key_map:
-                k = _style_key_map[k]
+            k = _style_key_map.get(k, k)
             _conv_to_x = getattr(cls, f"_convert_to_{k}", lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
@@ -210,8 +209,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         font_kwargs = {}
         for k, v in font_dict.items():
-            if k in _font_key_map:
-                k = _font_key_map[k]
+            k = _font_key_map.get(k, k)
             if k == "color":
                 v = cls._convert_to_color(v)
             font_kwargs[k] = v
@@ -280,11 +278,8 @@ class OpenpyxlWriter(ExcelWriter):
         pfill_kwargs = {}
         gfill_kwargs = {}
         for k, v in fill_dict.items():
-            pk = gk = None
-            if k in _pattern_fill_key_map:
-                pk = _pattern_fill_key_map[k]
-            if k in _gradient_fill_key_map:
-                gk = _gradient_fill_key_map[k]
+            pk = _pattern_fill_key_map.get(k)
+            gk = _gradient_fill_key_map.get(k)
             if pk in ["start_color", "end_color"]:
                 v = cls._convert_to_color(v)
             if gk == "stop":
@@ -328,8 +323,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         side_kwargs = {}
         for k, v in side_spec.items():
-            if k in _side_key_map:
-                k = _side_key_map[k]
+            k = _side_key_map.get(k, k)
             if k == "color":
                 v = cls._convert_to_color(v)
             side_kwargs[k] = v
@@ -367,8 +361,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         border_kwargs = {}
         for k, v in border_dict.items():
-            if k in _border_key_map:
-                k = _border_key_map[k]
+            k = _border_key_map.get(k, k)
             if k == "color":
                 v = cls._convert_to_color(v)
             if k in ["left", "right", "top", "bottom", "diagonal"]:
@@ -573,7 +566,7 @@ class OpenpyxlReader(BaseExcelReader):
         self.raise_if_bad_sheet_by_index(index)
         return self.book.worksheets[index]
 
-    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+    def _convert_cell(self, cell) -> Scalar:
 
         from openpyxl.cell.cell import (
             TYPE_ERROR,
@@ -585,18 +578,15 @@ class OpenpyxlReader(BaseExcelReader):
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_NUMERIC:
-            # GH5394, GH46988
-            if convert_float:
-                val = int(cell.value)
-                if val == cell.value:
-                    return val
-            else:
-                return float(cell.value)
+            val = int(cell.value)
+            if val == cell.value:
+                return val
+            return float(cell.value)
 
         return cell.value
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
 
         if self.book.read_only:
@@ -605,7 +595,7 @@ class OpenpyxlReader(BaseExcelReader):
         data: list[list[Scalar]] = []
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            converted_row = [self._convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()

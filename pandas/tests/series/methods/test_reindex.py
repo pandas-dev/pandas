@@ -55,7 +55,7 @@ def test_reindex(datetime_series, string_series):
 
     # return a copy the same index here
     result = datetime_series.reindex()
-    assert not (result is datetime_series)
+    assert result is not datetime_series
 
 
 def test_reindex_nan():
@@ -97,7 +97,7 @@ def test_reindex_with_datetimes():
 
 def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    empty = Series(dtype=object)
+    empty = Series(index=[])
     empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series

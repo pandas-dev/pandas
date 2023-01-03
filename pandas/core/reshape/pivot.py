@@ -20,11 +20,11 @@ from pandas._typing import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
 )
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
@@ -64,7 +64,7 @@ def pivot_table(
     fill_value=None,
     margins: bool = False,
     dropna: bool = True,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     observed: bool = False,
     sort: bool = True,
 ) -> DataFrame:
@@ -119,7 +119,7 @@ def __internal_pivot_table(
     fill_value,
     margins: bool,
     dropna: bool,
-    margins_name: str,
+    margins_name: Hashable,
     observed: bool,
     sort: bool,
 ) -> DataFrame:
@@ -165,6 +165,7 @@ def __internal_pivot_table(
 
     grouped = data.groupby(keys, observed=observed, sort=sort)
     agged = grouped.agg(aggfunc)
+
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
@@ -262,7 +263,7 @@ def _add_margins(
     cols,
     aggfunc,
     observed=None,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -319,11 +320,15 @@ def _add_margins(
 
     from pandas import DataFrame
 
-    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
+        if is_extension_array_dtype(dtype):
+            # Can hold NA already
+            continue
+
         cols = result.select_dtypes([dtype]).columns
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
@@ -334,7 +339,9 @@ def _add_margins(
     return result
 
 
-def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = "All"):
+def _compute_grand_margin(
+    data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
+):
 
     if values:
         grand_margin = {}
@@ -357,7 +364,7 @@ def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = 
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table, data, values, rows, cols, aggfunc, observed, margins_name: Hashable = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -405,7 +412,11 @@ def _generate_marginal_results(
                 table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
-        result = concat(table_pieces, axis=cat_axis)
+        if not table_pieces:
+            # GH 49240
+            return table
+        else:
+            result = concat(table_pieces, axis=cat_axis)
 
         if len(rows) == 0:
             return result
@@ -427,7 +438,13 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table: DataFrame, data, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table: DataFrame,
+    data,
+    rows,
+    cols,
+    aggfunc,
+    observed,
+    margins_name: Hashable = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -480,9 +497,9 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
+    *,
     index: IndexLabel | lib.NoDefault = lib.NoDefault,
     columns: IndexLabel | lib.NoDefault = lib.NoDefault,
     values: IndexLabel | lib.NoDefault = lib.NoDefault,
@@ -555,9 +572,9 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins: bool = False,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize=False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.
@@ -695,6 +712,8 @@ def crosstab(
         df["__dummy__"] = values
         kwargs = {"aggfunc": aggfunc}
 
+    # error: Argument 7 to "pivot_table" of "DataFrame" has incompatible type
+    # "**Dict[str, object]"; expected "Union[...]"
     table = df.pivot_table(
         "__dummy__",
         index=unique_rownames,
@@ -702,7 +721,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process
@@ -718,7 +737,7 @@ def crosstab(
 
 
 def _normalize(
-    table: DataFrame, normalize, margins: bool, margins_name="All"
+    table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
 ) -> DataFrame:
 
     if not isinstance(normalize, (bool, str)):

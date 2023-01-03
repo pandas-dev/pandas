@@ -26,6 +26,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -106,6 +107,11 @@ class TestDtype(base.BaseDtypeTests):
         assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
 
+    def test_is_not_string_type(self, dtype):
+        # Different from BaseDtypeTests.test_is_not_string_type
+        # because StringDtype is a string type
+        assert is_string_dtype(dtype)
+
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
@@ -119,6 +125,13 @@ class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data):
         # base test uses string representation of dtype
         pass
+
+    def test_constructor_from_list(self):
+        # GH 27673
+        pytest.importorskip("pyarrow", minversion="1.0.0")
+        result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+        assert isinstance(result.dtype, StringDtype)
+        assert result.dtype.storage == "pyarrow"
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -154,6 +167,22 @@ class TestMissing(base.BaseMissingTests):
             result = data_missing.dropna()
         expected = data_missing[[1]]
         self.assert_extension_array_equal(result, expected)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data_missing.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestNoReduce(base.BaseNoReduceTests):
@@ -362,7 +391,7 @@ class TestGroupBy(base.BaseGroupbyTests):
             _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:

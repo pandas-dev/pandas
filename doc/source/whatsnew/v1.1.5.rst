@@ -28,7 +28,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.fillna` not filling ``NaN`` after other operations such as :meth:`DataFrame.pivot` (:issue:`36495`).
 - Fixed performance regression in ``df.groupby(..).rolling(..)`` (:issue:`38038`)
 - Fixed regression in :meth:`MultiIndex.intersection` returning duplicates when at least one of the indexes had duplicates (:issue:`36915`)
-- Fixed regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` where ``None`` was considered a non-NA value (:issue:`38286`)
+- Fixed regression in :meth:`.DataFrameGroupBy.first`, :meth:`.SeriesGroupBy.first`, :meth:`.DataFrameGroupBy.last`, and :meth:`.SeriesGroupBy.last` where ``None`` was considered a non-NA value (:issue:`38286`)
 
 .. ---------------------------------------------------------------------------
 

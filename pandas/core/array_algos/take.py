@@ -15,6 +15,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     npt,
 )
 
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
 def take_nd(
     arr: np.ndarray,
     indexer,
-    axis: int = ...,
+    axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> np.ndarray:
@@ -47,7 +48,7 @@ def take_nd(
 def take_nd(
     arr: ExtensionArray,
     indexer,
-    axis: int = ...,
+    axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> ArrayLike:
@@ -57,7 +58,7 @@ def take_nd(
 def take_nd(
     arr: ArrayLike,
     indexer,
-    axis: int = 0,
+    axis: AxisInt = 0,
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ) -> ArrayLike:
@@ -120,7 +121,7 @@ def take_nd(
 def _take_nd_ndarray(
     arr: np.ndarray,
     indexer: npt.NDArray[np.intp] | None,
-    axis: int,
+    axis: AxisInt,
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
@@ -287,7 +288,7 @@ def take_2d_multi(
 
 @functools.lru_cache(maxsize=128)
 def _get_take_nd_function_cached(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: AxisInt
 ):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
@@ -324,7 +325,11 @@ def _get_take_nd_function_cached(
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
+    ndim: int,
+    arr_dtype: np.dtype,
+    out_dtype: np.dtype,
+    axis: AxisInt = 0,
+    mask_info=None,
 ):
     """
     Get the appropriate "take" implementation for the given dimension, axis
@@ -355,7 +360,14 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if out_dtype is not None:
             out = out.view(out_dtype)
         if fill_wrap is not None:
+            # FIXME: if we get here with dt64/td64 we need to be sure we have
+            #  matching resos
+            if fill_value.dtype.kind == "m":
+                fill_value = fill_value.astype("m8[ns]")
+            else:
+                fill_value = fill_value.astype("M8[ns]")
             fill_value = fill_wrap(fill_value)
+
         f(arr, indexer, out, fill_value=fill_value)
 
     return wrapper
@@ -503,7 +515,7 @@ def _take_nd_object(
     arr: np.ndarray,
     indexer: npt.NDArray[np.intp],
     out: np.ndarray,
-    axis: int,
+    axis: AxisInt,
     fill_value,
     mask_info,
 ) -> None:
@@ -544,13 +556,9 @@ def _take_2d_multi_object(
             out[row_mask, :] = fill_value
         if col_needs:
             out[:, col_mask] = fill_value
-    for i in range(len(row_idx)):
-        u_ = row_idx[i]
-
+    for i, u_ in enumerate(row_idx):
         if u_ != -1:
-            for j in range(len(col_idx)):
-                v = col_idx[j]
-
+            for j, v in enumerate(col_idx):
                 if v != -1:
                     out[i, j] = arr[u_, v]
 

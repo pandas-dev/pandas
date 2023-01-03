@@ -59,8 +59,10 @@ class HistPlot(LinePlot):
     ) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
+        self.xlabel = kwargs.get("xlabel")
+        self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
     def _args_adjust(self) -> None:
         # calculate bin number separately in different subplots
@@ -78,7 +80,7 @@ class HistPlot(LinePlot):
 
     def _calculate_bins(self, data: DataFrame) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data._convert(datetime=True)._get_numeric_data()
+        nd_values = data.infer_objects()._get_numeric_data()
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
@@ -87,16 +89,18 @@ class HistPlot(LinePlot):
         )
         return bins
 
+    # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
         ax,
         y,
         style=None,
-        bins=None,
-        bottom=0,
-        column_num=0,
+        bottom: int | np.ndarray = 0,
+        column_num: int = 0,
         stacking_id=None,
+        *,
+        bins,
         **kwds,
     ):
         if column_num == 0:
@@ -168,9 +172,11 @@ class HistPlot(LinePlot):
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
-            ax.set_xlabel("Frequency")
+            ax.set_xlabel("Frequency" if self.xlabel is None else self.xlabel)
+            ax.set_ylabel(self.ylabel)
         else:
-            ax.set_ylabel("Frequency")
+            ax.set_xlabel(self.xlabel)
+            ax.set_ylabel("Frequency" if self.ylabel is None else self.ylabel)
 
     @property
     def orientation(self) -> PlottingOrientation:
@@ -190,7 +196,8 @@ class KdePlot(HistPlot):
         return "vertical"
 
     def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
-        MPLPlot.__init__(self, data, **kwargs)
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
 
@@ -252,12 +259,12 @@ def _grouped_plot(
     data,
     column=None,
     by=None,
-    numeric_only=True,
+    numeric_only: bool = True,
     figsize=None,
-    sharex=True,
-    sharey=True,
+    sharex: bool = True,
+    sharey: bool = True,
     layout=None,
-    rot=0,
+    rot: float = 0,
     ax=None,
     **kwargs,
 ):
@@ -295,18 +302,18 @@ def _grouped_hist(
     column=None,
     by=None,
     ax=None,
-    bins=50,
+    bins: int = 50,
     figsize=None,
     layout=None,
-    sharex=False,
-    sharey=False,
-    rot=90,
-    grid=True,
+    sharex: bool = False,
+    sharey: bool = False,
+    rot: float = 90,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
-    legend=False,
+    legend: bool = False,
     **kwargs,
 ):
     """

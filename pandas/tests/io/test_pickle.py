@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from array import array
 import bz2
 import datetime
 import functools
@@ -25,7 +26,6 @@ import tarfile
 import uuid
 from warnings import (
     catch_warnings,
-    filterwarnings,
     simplefilter,
 )
 import zipfile
@@ -37,6 +37,7 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
+from pandas.compat._compressors import flatten_buffer
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -54,10 +55,6 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
 
 @pytest.fixture(scope="module")
 def current_pickle_data():
@@ -65,10 +62,6 @@ def current_pickle_data():
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
     with catch_warnings():
-        filterwarnings(
-            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
-        )
-
         return create_pickle_data()
 
 
@@ -87,7 +80,6 @@ def compare_element(result, expected, typ):
             assert result is pd.NaT
         else:
             assert result == expected
-            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
@@ -105,6 +97,37 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"123",
+        b"123456",
+        bytearray(b"123"),
+        memoryview(b"123"),
+        pickle.PickleBuffer(b"123"),
+        array("I", [1, 2, 3]),
+        memoryview(b"123456").cast("B", (3, 2)),
+        memoryview(b"123456").cast("B", (3, 2))[::2],
+        np.arange(12).reshape((3, 4), order="C"),
+        np.arange(12).reshape((3, 4), order="F"),
+        np.arange(12).reshape((3, 4), order="C")[:, ::2],
+    ],
+)
+def test_flatten_buffer(data):
+    result = flatten_buffer(data)
+    expected = memoryview(data).tobytes("A")
+    assert result == expected
+    if isinstance(data, (bytes, bytearray)):
+        assert result is data
+    elif isinstance(result, memoryview):
+        assert result.ndim == 1
+        assert result.format == "B"
+        assert result.contiguous
+        assert result.shape == (result.nbytes,)
+
+
 def test_pickles(legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
@@ -182,7 +205,6 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -219,28 +241,6 @@ def test_pickle_path_localpath():
     df = tm.makeDataFrame()
     result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
     tm.assert_frame_equal(df, result)
-
-
-@pytest.mark.parametrize("typ", ["sparseseries", "sparseframe"])
-def test_legacy_sparse_warning(datapath, typ):
-    """
-
-    Generated with
-
-    >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
-    >>> df.to_pickle("pandas/tests/io/data/pickle/sparseframe-0.20.3.pickle.gz",
-    ...              compression="gzip")
-
-    >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
-    ...             compression="gzip")
-    """
-    with tm.assert_produces_warning(FutureWarning):
-        simplefilter("ignore", DeprecationWarning)  # from boto
-        pd.read_pickle(
-            datapath("io", "data", "pickle", f"{typ}-0.20.3.pickle.gz"),
-            compression="gzip",
-        )
 
 
 # ---------------------
@@ -283,8 +283,9 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh, f:
-                f.write(fh.read())
+            with open(src_path, "rb") as fh:
+                with f:
+                    f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -352,7 +353,6 @@ class TestCompression:
 
             # read compressed file
             df2 = pd.read_pickle(p2, compression=compression)
-
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -372,7 +372,6 @@ class TestCompression:
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
@@ -596,5 +595,5 @@ def test_pickle_frame_v124_unpickle_130():
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

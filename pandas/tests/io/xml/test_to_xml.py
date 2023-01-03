@@ -22,41 +22,39 @@ from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
-"""
-CHECKLIST
+# CHECKLIST
 
-[x] - ValueError: "Values for parser can only be lxml or etree."
+# [x] - ValueError: "Values for parser can only be lxml or etree."
 
-etree
-[x] - ImportError: "lxml not found, please install or use the etree parser."
-[X] - TypeError: "...is not a valid type for attr_cols"
-[X] - TypeError: "...is not a valid type for elem_cols"
-[X] - LookupError: "unknown encoding"
-[X] - KeyError: "...is not included in namespaces"
-[X] - KeyError: "no valid column"
-[X] - ValueError: "To use stylesheet, you need lxml installed..."
-[]  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
-[X] - FileNotFoundError: "No such file or directory"
-[X] - PermissionError: "Forbidden"
+# etree
+# [x] - ImportError: "lxml not found, please install or use the etree parser."
+# [X] - TypeError: "...is not a valid type for attr_cols"
+# [X] - TypeError: "...is not a valid type for elem_cols"
+# [X] - LookupError: "unknown encoding"
+# [X] - KeyError: "...is not included in namespaces"
+# [X] - KeyError: "no valid column"
+# [X] - ValueError: "To use stylesheet, you need lxml installed..."
+# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# [X] - FileNotFoundError: "No such file or directory"
+# [X] - PermissionError: "Forbidden"
 
-lxml
-[X] - TypeError: "...is not a valid type for attr_cols"
-[X] - TypeError: "...is not a valid type for elem_cols"
-[X] - LookupError: "unknown encoding"
-[]  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
-[X] - FileNotFoundError: "No such file or directory"
-[X] - KeyError: "...is not included in namespaces"
-[X] - KeyError: "no valid column"
-[X] - ValueError: "stylesheet is not a url, file, or xml string."
-[]  - LookupError: (NEED WRONG ENCODING FOR FILE OUTPUT)
-[]  - URLError: (USUALLY DUE TO NETWORKING)
-[]  - HTTPError: (NEED AN ONLINE STYLESHEET)
-[X] - OSError: "failed to load external entity"
-[X] - XMLSyntaxError: "Opening and ending tag mismatch"
-[X] - XSLTApplyError: "Cannot resolve URI"
-[X] - XSLTParseError: "failed to compile"
-[X] - PermissionError: "Forbidden"
-"""
+# lxml
+# [X] - TypeError: "...is not a valid type for attr_cols"
+# [X] - TypeError: "...is not a valid type for elem_cols"
+# [X] - LookupError: "unknown encoding"
+# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# [X] - FileNotFoundError: "No such file or directory"
+# [X] - KeyError: "...is not included in namespaces"
+# [X] - KeyError: "no valid column"
+# [X] - ValueError: "stylesheet is not a url, file, or xml string."
+# []  - LookupError: (NEED WRONG ENCODING FOR FILE OUTPUT)
+# []  - URLError: (USUALLY DUE TO NETWORKING)
+# []  - HTTPError: (NEED AN ONLINE STYLESHEET)
+# [X] - OSError: "failed to load external entity"
+# [X] - XMLSyntaxError: "Opening and ending tag mismatch"
+# [X] - XSLTApplyError: "Cannot resolve URI"
+# [X] - XSLTParseError: "failed to compile"
+# [X] - PermissionError: "Forbidden"
 
 geom_df = DataFrame(
     {
@@ -1037,9 +1035,16 @@ def test_stylesheet_wrong_path():
 def test_empty_string_stylesheet(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(
-        XMLSyntaxError, match=("Document is empty|Start tag expected, '<' not found")
-    ):
+    msg = "|".join(
+        [
+            "Document is empty",
+            "Start tag expected, '<' not found",
+            # Seen on Mac with lxml 4.9.1
+            r"None \(line 0\)",
+        ]
+    )
+
+    with pytest.raises(XMLSyntaxError, match=msg):
         geom_df.to_xml(stylesheet=val)
 
 

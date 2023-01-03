@@ -17,7 +17,9 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     Series,
@@ -27,6 +29,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -101,7 +107,6 @@ def test_same_ordering(datapath):
         pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
-    scope="class",
 )
 class TestReadHtml:
     @pytest.fixture
@@ -112,7 +117,7 @@ class TestReadHtml:
     def banklist_data(self, datapath):
         return datapath("io", "data", "html", "banklist.html")
 
-    @pytest.fixture(autouse=True, scope="function")
+    @pytest.fixture(autouse=True)
     def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
         yield
@@ -126,38 +131,70 @@ class TestReadHtml:
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{:.3f}".format)
-            .astype(float)
+            # pylint: disable-next=consider-using-f-string
+            .applymap("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://www.fdic.gov/resources/resolutions/"
-            "bank-failures/failed-bank-list/index.html"
-        ),
-        check_before_test=True,
-    )
-    def test_banklist_url_positional_match(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
-        # Passing match argument as positional should cause a FutureWarning.
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(
-                # lxml cannot find attrs leave out for now
-                url,
-                "First Federal Bank of Florida",  # attrs={"class": "dataTable"}
-            )
-        with tm.assert_produces_warning(FutureWarning):
-            # lxml cannot find attrs leave out for now
-            df2 = self.read_html(
-                url,
-                "Metcalf Bank",
-            )  # attrs={"class": "dataTable"})
+    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+    @pytest.mark.parametrize("storage", ["python", "pyarrow"])
+    def test_use_nullable_dtypes(self, storage, dtype_backend):
+        # GH#50286
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
 
-        assert_framelist_equal(df1, df2)
+        if storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.string_storage", storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = self.read_html(out, use_nullable_dtypes=True)[0]
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
     @tm.network(
@@ -654,7 +691,7 @@ class TestReadHtml:
         ]
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew._convert(datetime=True, numeric=True)
+        converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
@@ -1140,6 +1177,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
+
         self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
@@ -1278,9 +1316,14 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
+            # GH 49036 pylint checks for presence of __next__ for iterators
+            def __next__(self):
+                ...
+
             def __iter__(self) -> Iterator:
-                # to fool `is_file_like`, should never end up here
-                assert False
+                # `is_file_like` depends on the presence of
+                # the __iter__ attribute.
+                return self
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")

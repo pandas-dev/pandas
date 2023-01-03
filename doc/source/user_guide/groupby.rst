@@ -629,10 +629,8 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 Named aggregation
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.25.0
-
 To support column-specific aggregation *with control over the output column names*, pandas
-accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation", where
+accepts the special syntax in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg`, known as "named aggregation", where
 
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
@@ -776,12 +774,11 @@ as the one being grouped. The transform function must:
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
@@ -1007,7 +1004,7 @@ functions:
 .. ipython:: python
    :okwarning:
 
-   grouped = df.groupby("A")
+   grouped = df.groupby("A")[["C", "D"]]
    grouped.agg(lambda x: x.std())
 
 But, it's rather verbose and can be untidy if you need to pass additional
@@ -1354,9 +1351,14 @@ This shows the first or last n rows from each group.
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use
-:meth:`~pd.core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and
-will return a single row (or no row) per group if you pass an int for n:
+To select the nth item from each group, use :meth:`.DataFrameGroupBy.nth` or
+:meth:`.SeriesGroupBy.nth`. Arguments supplied can be any integer, lists of integers,
+slices, or lists of slices; see below for examples. When the nth element of a group
+does not exist an error is *not* raised; instead no corresponding rows are returned.
+
+In general this operation acts as a filtration. In certain cases it will also return
+one row per group, making it also a reduction. However because in general it can
+return zero or multiple rows per group, pandas treats it as a filtration in all cases.
 
 .. ipython:: python
 
@@ -1367,6 +1369,14 @@ will return a single row (or no row) per group if you pass an int for n:
    g.nth(-1)
    g.nth(1)
 
+If the nth element of a group does not exist, then no corresponding row is included
+in the result. In particular, if the specified ``n`` is larger than any group, the
+result will be an empty DataFrame.
+
+.. ipython:: python
+
+   g.nth(5)
+
 If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:
 
 .. ipython:: python
@@ -1376,20 +1386,10 @@ If you want to select the nth not-null item, use the ``dropna`` kwarg. For a Dat
    g.first()
 
    # nth(-1) is the same as g.last()
-   g.nth(-1, dropna="any")  # NaNs denote group exhausted when using dropna
+   g.nth(-1, dropna="any")
    g.last()
 
    g.B.nth(0, dropna="all")
-
-As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
-
-.. ipython:: python
-
-   df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
-   g = df.groupby("A", as_index=False)
-
-   g.nth(0)
-   g.nth(-1)
 
 You can also select multiple rows from each group by specifying multiple nth values as a list of ints.
 
@@ -1399,6 +1399,13 @@ You can also select multiple rows from each group by specifying multiple nth val
    df = pd.DataFrame(1, index=business_dates, columns=["a", "b"])
    # get the first, 4th, and last date index for each month
    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
+
+You may also use a slices or lists of slices.
+
+.. ipython:: python
+
+   df.groupby([df.index.year, df.index.month]).nth[1:]
+   df.groupby([df.index.year, df.index.month]).nth[1:, :-1]
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

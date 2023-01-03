@@ -22,7 +22,7 @@ pytestmark = pytest.mark.skipif(
     is_ci_environment() and (is_platform_windows() or is_platform_mac()),
     reason="On GHA CI, Windows can fail with "
     "'Windows fatal exception: stack overflow' "
-    "and MacOS can timeout",
+    "and macOS can timeout",
 )
 
 
