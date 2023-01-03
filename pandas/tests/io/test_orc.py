@@ -327,15 +327,18 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
             ],
         }
     )
+
     bytes_data = df.copy().to_orc()
     with pd.option_context("mode.dtype_backend", "pyarrow"):
         result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+
     expected = pd.DataFrame(
         {
             col: pd.arrays.ArrowExtensionArray(pa.array(df[col], from_pandas=True))
             for col in df.columns
         }
     )
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -356,9 +359,11 @@ def test_orc_use_nullable_dtypes_pandas_backend():
             "bool_with_na": [True, False, None],
         }
     )
+
     bytes_data = df.copy().to_orc()
     with pd.option_context("mode.dtype_backend", "pandas"):
         result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+
     expected = pd.DataFrame(
         {
             "string": StringArray(np.array(["a", "b", "c"], dtype=np.object_)),
@@ -377,4 +382,5 @@ def test_orc_use_nullable_dtypes_pandas_backend():
             "bool_with_na": pd.Series([True, False, pd.NA], dtype="boolean"),
         }
     )
+
     tm.assert_frame_equal(result, expected)
