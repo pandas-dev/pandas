@@ -397,6 +397,7 @@ cdef parse_datetime_string_with_reso(
             )
         # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
         # The new resolution will just be nano
+        # GH 50417
         if out_bestunit in {NPY_DATETIMEUNIT.NPY_FR_ps,
                             NPY_DATETIMEUNIT.NPY_FR_fs,
                             NPY_DATETIMEUNIT.NPY_FR_as}:
