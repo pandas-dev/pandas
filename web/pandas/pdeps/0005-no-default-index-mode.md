@@ -200,7 +200,7 @@ TypeError: Cannot join NoRowIndex of different lengths
 
 ### Columns cannot be NoRowIndex
 
-This proposal deals exclusively with allowing users to not have to think about
+This proposal deals exclusively with allowing users to not need to think about
 row labels. There's no suggestion to remove the column labels.
 
 In particular, calling ``transpose`` on a ``NoRowIndex`` ``DataFrame``
