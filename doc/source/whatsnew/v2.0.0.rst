@@ -505,6 +505,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
+- Deprecate unused argument ``**kwargs`` from :meth:`cummax`, :meth:`cummin`, :meth:`cumsum`, :meth:`cumprod`, :meth:`take` and :meth:`skew` (:issue:`50483`)
 
 .. ---------------------------------------------------------------------------
 
@@ -735,7 +736,6 @@ Removal of prior version deprecations/changes
 - Removed the deprecated argument ``line_terminator`` from :meth:`DataFrame.to_csv` (:issue:`45302`)
 - Removed the deprecated argument ``label`` from :func:`lreshape` (:issue:`30219`)
 - Arguments after ``expr`` in :meth:`DataFrame.eval` and :meth:`DataFrame.query` are keyword-only (:issue:`47587`)
-- Deprecate argument ``**kwargs`` from :meth:`cummax`, :meth:`cummin`, :meth:`cumsum`, :meth:`cumprod`, :meth:`take` and :meth:`skew` (:issue:`50483`)
 -
 
 .. ---------------------------------------------------------------------------
