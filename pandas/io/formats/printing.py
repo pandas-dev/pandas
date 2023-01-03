@@ -263,9 +263,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
 
             class TableSchemaFormatter(BaseFormatter):
                 print_method = ObjectName("_repr_data_resource_")
-                # expression has type "Tuple[Type[Dict[Any, Any]], Type[str]]",
-                # base class "BaseFormatter" defined the type as "Type[str]"
-                _return_type = (dict,)  # type: ignore[assignment]
+                _return_type = (dict,)
 
             # register it:
             formatters[mimetype] = TableSchemaFormatter()
