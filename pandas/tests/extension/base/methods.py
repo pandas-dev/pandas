@@ -448,7 +448,6 @@ class BaseMethodsTests(BaseExtensionTests):
                 "which is impossible with NAs present."
             )
             with pytest.raises(ValueError, match=err_msg):
-                print(arr_with_na.dtype)
                 arr_with_na.searchsorted(a)
 
     def test_where_series(self, data, na_value, as_frame):
