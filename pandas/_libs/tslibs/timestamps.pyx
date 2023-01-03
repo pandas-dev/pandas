@@ -1525,15 +1525,10 @@ class Timestamp(_Timestamp):
         elif is_integer_object(year):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, nanosecond[, tzinfo]]]]]])
+            # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
-
-            if nanosecond is None:
-                # nanosecond was not passed as a keyword, but may have been
-                #  passed positionally see test_constructor_nanosecond
-                nanosecond = microsecond
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
