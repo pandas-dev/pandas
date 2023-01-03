@@ -856,7 +856,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # coercion
     __float__ = _coerce_method(float)
-    __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
@@ -4071,7 +4070,9 @@ Keep all original rows and also all original values
         dtype: object"""
         ),
     )
-    def swaplevel(self, i: Level = -2, j: Level = -1, copy: bool = True) -> Series:
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | None = None
+    ) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
 
@@ -4091,10 +4092,9 @@ Keep all original rows and also all original values
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        new_index = self.index.swaplevel(i, j)
-        return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self, method="swaplevel"
-        )
+        result = self.copy(deep=copy)
+        result.index = self.index.swaplevel(i, j)
+        return result
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
         """
