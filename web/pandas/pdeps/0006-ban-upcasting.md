@@ -43,18 +43,20 @@ in what looks like it should be an inplace operation.
 
 An example of it hiding a bug is:
 ```python
-In [9]: ser = pd.Series(pd.date_range('2000', periods=3))
+In[9]: ser = pd.Series(pd.date_range("2000", periods=3))
 
-In [10]: ser[2] = '2000-01-04'  # works, is converted to datetime64
+In[10]: ser[2] = "2000-01-04"  # works, is converted to datetime64
 
-In [11]: ser[2] = '2000-01-04x'  # almost certainly a typo - but pandas doesn't error, it upcasts to object
+In[11]: ser[
+    2
+] = "2000-01-04x"  # almost certainly a typo - but pandas doesn't error, it upcasts to object
 ```
 
 The scope of this PDEP is limited to setitem-like operations on Series.
 For example, starting with
 ```python
-df = DataFrame({'a': [1, 2, np.nan], 'b': [4, 5, 6]})
-ser = df['a'].copy()
+df = DataFrame({"a": [1, 2, np.nan], "b": [4, 5, 6]})
+ser = df["a"].copy()
 ```
 then the following would all raise:
 - ``ser[0] = 'foo'``;
@@ -66,7 +68,9 @@ then the following would all raise:
 - ``ser.loc[0] = 'foo'``
 - ``df.loc[0, 'a'] = 'foo'``
 - ``df.loc[:, 'a'] = 'foo'``
-- ``ser[:] = 'foo'``.
+- ``ser[:] = 'foo'``;
+- ``df.loc[[True, False, True], 'a'] = 'foo'``
+- ``ser[[True, False, True]] = 'foo'``.
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
@@ -111,9 +115,9 @@ The above would already require several hundreds of tests to be adjusted.
 The trickiest part of this proposal concerns what to do when setting a float in an integer column:
 
 ```python
-In [1]: ser = pd.Series([1, 2, 3])
+In[1]: ser = pd.Series([1, 2, 3])
 
-In [2]: ser[0] = 1.5
+In[2]: ser[0] = 1.5
 ```
 
 This isn't necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
