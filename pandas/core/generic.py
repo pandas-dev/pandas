@@ -159,6 +159,7 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
+from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -10098,7 +10099,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis), ax.truncate(before, after))
 
-        if copy or copy is None:
+        if copy or (copy is None and not _using_copy_on_write()):
             result = result.copy(deep=copy)
 
         return result
