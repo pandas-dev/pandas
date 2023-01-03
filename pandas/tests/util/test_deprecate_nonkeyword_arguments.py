@@ -21,7 +21,6 @@ from pandas.core.groupby.groupby import (
 )
 
 
-
 @deprecate_nonkeyword_arguments(
     version="1.1", allowed_args=["a", "b"], name="f_add_inputs"
 )
