@@ -856,7 +856,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("day_of_week",), "%a", 0),
         (("day_of_week",), "%A", 0),
         (("meridiem",), "%p", 0),
-        (("year", "month", "day", "hour", "minute", "second"), "%Y%m%d %H%M%S", 0),
+        (("year", "month", "day"), ("hour", "minute", "second"), "%Y%m%d %H%M%S", 0),
     ]
 
     if dayfirst:
