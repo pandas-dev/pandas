@@ -170,7 +170,7 @@ def test_class():
 
 
 def test_deprecated_keywords():
-    msg=(
+    msg = (
         "In the future version of pandas the arguments args"
         "and kwargs will be deprecated for these functions"
     )
