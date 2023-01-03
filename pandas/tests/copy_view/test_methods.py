@@ -500,7 +500,6 @@ def test_series_set_axis(using_copy_on_write):
     tm.assert_series_equal(ser, ser_orig)
 
 
-
 def test_set_flags(using_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
