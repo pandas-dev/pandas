@@ -8,7 +8,6 @@ import warnings
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 import pandas._testing as tm
-
 from pandas.core.groupby.generic import (
     skew,
     take,
