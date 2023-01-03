@@ -167,8 +167,13 @@ class RangeIndex(NumericIndex):
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
+    #  error: Argument 1 of "_simple_new" is incompatible with supertype "Index";
+    #  supertype defines the argument type as
+    #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
-    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
+    def _simple_new(  # type: ignore[override]
+        cls, values: range, name: Hashable = None
+    ) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
