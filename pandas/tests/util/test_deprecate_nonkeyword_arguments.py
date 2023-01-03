@@ -5,6 +5,10 @@ Tests for the `deprecate_nonkeyword_arguments` decorator
 import inspect
 import warnings
 
+from pandas.util._decorators import deprecate_nonkeyword_arguments
+
+import pandas._testing as tm
+
 from pandas.core.groupby.generic import (
     skew,
     take,
@@ -15,9 +19,7 @@ from pandas.core.groupby.groupby import (
     cumprod,
     cumsum,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
-import pandas._testing as tm
 
 
 @deprecate_nonkeyword_arguments(
@@ -168,8 +170,10 @@ def test_class():
 
 
 def test_deprecated_keywords():
-    msg=("In the future version of pandas the arguments args"
-         "and kwargs will be deprecated for these functions")
+    msg=(
+        "In the future version of pandas the arguments args"
+        "and kwargs will be deprecated for these functions"
+    )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         assert cummax
         assert cummin
