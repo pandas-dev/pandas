@@ -416,7 +416,7 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, None, nanosecond=1),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, pytz.UTC, nanosecond=1),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=pytz.UTC, nanosecond=1),
         ],
     )
     def test_constructor_nanosecond(self, result):
