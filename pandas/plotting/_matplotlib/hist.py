@@ -146,14 +146,23 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            y = reformat_hist_y_given_by(y, self.by)
-
             # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
             # and each sub-array (10,) will be called in each iteration. If users only
             # provide 1D array, we assume the same weights is used for all iterations
             weights = kwds.get("weights", None)
-            if weights is not None and np.ndim(weights) != 1:
-                kwds["weights"] = weights[:, i]
+            if weights is not None:
+                if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
+                    try:
+                        weights = weights[:, i]
+                    except IndexError as err:
+                        raise ValueError(
+                            "weights must have the same shape as data, "
+                            "or be a single column"
+                        ) from err
+                weights = weights[~isna(y)]
+                kwds["weights"] = weights
+
+            y = reformat_hist_y_given_by(y, self.by)
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 

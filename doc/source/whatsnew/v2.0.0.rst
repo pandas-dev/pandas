@@ -926,6 +926,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.plot.hist`, not dropping elements of ``weights`` corresponding to ``NaN`` values in ``data`` (:issue:`48884`)
 - ``ax.set_xlim`` was sometimes raising ``UserWarning`` which users couldn't address due to ``set_xlim`` not accepting parsing arguments - the converter now uses :func:`Timestamp` instead (:issue:`49148`)
 -
 
