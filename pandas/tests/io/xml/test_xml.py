@@ -1771,8 +1771,6 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     )
 
     if dtype_backend == "pyarrow":
-        import pyarrow as pa
-
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(
