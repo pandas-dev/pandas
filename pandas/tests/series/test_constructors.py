@@ -719,6 +719,18 @@ class TestSeriesConstructors:
         # we make 1 copy; this is just a smoke test here
         assert s._mgr.blocks[0].values is not index
 
+    def test_constructor_shallow_copy(self):
+        # constructing a Series from Series with copy=False should still
+        # give a "shallow" copy (share data, not attributes)
+        # https://github.com/pandas-dev/pandas/issues/49523
+        s = Series([1, 2, 3])
+        s_orig = s.copy()
+        s2 = Series(s)
+        assert s2._mgr is not s._mgr
+        # Overwriting index of s2 doesn't change s
+        s2.index = ["a", "b", "c"]
+        tm.assert_series_equal(s, s_orig)
+
     def test_constructor_pass_none(self):
         s = Series(None, index=range(5))
         assert s.dtype == np.float64
