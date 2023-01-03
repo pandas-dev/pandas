@@ -10,10 +10,6 @@ from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
-filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
-
-
-@filter_sparse
 @pytest.mark.single_cpu
 class TestFeather:
     def check_error_on_write(self, df, exc, err_msg):
@@ -117,10 +113,11 @@ class TestFeather:
         columns = ["col1", "col3"]
         self.check_round_trip(df, expected=df[columns], columns=columns)
 
-    def read_columns_different_order(self):
+    def test_read_columns_different_order(self):
         # GH 33878
         df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [True, False]})
-        self.check_round_trip(df, columns=["B", "A"])
+        expected = df[["B", "A"]]
+        self.check_round_trip(df, expected, columns=["B", "A"])
 
     def test_unsupported_other(self):
 

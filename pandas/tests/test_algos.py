@@ -66,7 +66,10 @@ class TestFactorize:
         constructor = Index
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
-        expected_uniques = constructor(obj.unique())
+        expected_arr = obj.unique()
+        if expected_arr.dtype == np.float16:
+            expected_arr = expected_arr.astype(np.float32)
+        expected_uniques = constructor(expected_arr)
         if (
             isinstance(obj, Index)
             and expected_uniques.dtype == bool
@@ -1218,7 +1221,8 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424
-        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 

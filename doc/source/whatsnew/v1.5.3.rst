@@ -19,6 +19,7 @@ Fixed regressions
 - Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
 - Fixed regression in :meth:`SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
 - Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
+- Fixed regression in :func:`to_datetime` raising ``ValueError`` when parsing array of ``float`` containing ``np.nan`` (:issue:`50237`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -27,6 +28,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
+- Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -34,7 +37,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
 -
 
 .. ---------------------------------------------------------------------------

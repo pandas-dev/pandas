@@ -145,7 +145,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Reductions
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -186,7 +185,6 @@ class TestDataFrameAnalytics:
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -283,9 +281,6 @@ class TestDataFrameAnalytics:
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
-    # TODO: Ensure warning isn't emitted in the first place
-    # ignore mean of empty slice and all-NaN
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
@@ -454,10 +449,14 @@ class TestDataFrameAnalytics:
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        # Cast to object to avoid implicit cast when setting entry to "100" below
+        df1 = df1.astype({"foo": object})
         # set one entry to a number in str format
         df1.loc[0, "foo"] = "100"
 
         df2 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        # Cast to object to avoid implicit cast when setting entry to "a" below
+        df2 = df2.astype({"foo": object})
         # set one entry to a non-number str
         df2.loc[0, "foo"] = "a"
 
