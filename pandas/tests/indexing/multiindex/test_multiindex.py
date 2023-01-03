@@ -151,7 +151,7 @@ class TestMultiIndexBasic:
         expected = DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
 
-    def test_series_align_multiindex_containing_nan(self):
+    def test_series_align_multiindex_with_nan_overlap_only(self):
         # GH 38439
         mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
         mi2 = MultiIndex.from_arrays([[np.nan, 82.0], [np.nan, np.nan]])
@@ -166,6 +166,8 @@ class TestMultiIndexBasic:
         tm.assert_series_equal(result1, expected1)
         tm.assert_series_equal(result2, expected2)
 
+    def test_series_align_multiindex_with_nan(self):
+        # GH 38439
         mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
         mi2 = MultiIndex.from_arrays([[np.nan, 81.0], [np.nan, np.nan]])
         ser1 = Series([1, 2], index=mi1)
