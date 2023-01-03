@@ -1005,7 +1005,8 @@ cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
             )
         if (day_index < month_index) and not dayfirst:
             warnings.warn(
-                f"Parsing dates in {format} format when dayfirst=False was specified. "
+                f"Parsing dates in {format} format when dayfirst=False (the default) "
+                "was specified. "
                 "Pass `dayfirst=True` or specify a format to silence this warning.",
                 UserWarning,
                 stacklevel=find_stack_level(),
