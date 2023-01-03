@@ -948,6 +948,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.nunique` would incorrectly raise when the grouper was an empty categorical and ``observed=True`` (:issue:`21334`)
 - Bug in :meth:`.SeriesGroupBy.nth` would raise when grouper contained NA values after subsetting from a :class:`DataFrameGroupBy` (:issue:`26454`)
 - Bug in :meth:`DataFrame.groupby` would not include a :class:`.Grouper` specified by ``key`` in the result when ``as_index=False`` (:issue:`50413`)
+- Bug in :meth:`.DataFrameGrouBy.value_counts` would raise when used with a :class:`.TimeGrouper` (:issue:`50486`)
 -
 
 Reshaping
