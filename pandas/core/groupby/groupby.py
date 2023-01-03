@@ -3450,6 +3450,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "axis", "numeric_only"]
+    )
     def cummin(
         self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
     ) -> NDFrameT:
@@ -3475,6 +3478,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "axis", "numeric_only"]
+    )
     def cummax(
         self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
     ) -> NDFrameT:
