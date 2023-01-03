@@ -17,9 +17,9 @@ step towards enabling users who do not want to think about indices to not need t
 The Index can be a source of confusion and frustration for pandas users. For example, let's consider the inputs
 
 ```python
-In [37]: ser1 = pd.Series([10, 15, 20, 25], index=[1, 2, 3, 5])
+In[37]: ser1 = pd.Series([10, 15, 20, 25], index=[1, 2, 3, 5])
 
-In [38]: ser2 = pd.Series([10, 15, 20, 25], index=[1, 2, 3, 4])
+In[38]: ser2 = pd.Series([10, 15, 20, 25], index=[1, 2, 3, 4])
 ```
 
 Then:
@@ -200,7 +200,7 @@ TypeError: Cannot join NoRowIndex of different lengths
 
 ### Columns cannot be NoRowIndex
 
-This proposal deals exclusively with letting users not have to think about
+This proposal deals exclusively with allowing users to not have to think about
 row labels. There's no suggestion to remove the column labels.
 
 In particular, calling ``transpose`` on a ``NoRowIndex`` ``DataFrame``
@@ -241,13 +241,13 @@ function to return a ``NoRowIndex`` rather than a ``RangeIndex``.
 Then, if a user opted in to this mode with
 
 ```python
-pd.set_option('mode.no_row_index', True)
+pd.set_option("mode.no_row_index", True)
 ```
 
 then the following would all create a ``DataFrame`` with a ``NoRowIndex`` (as they
 all call ``default_index``):
 
-- ``df.reset_index(drop=True)``;
+- ``df.reset_index()``;
 - ``pd.concat([df1, df2], ignore_index=True)``
 - ``df1.merge(df2, on=col)``;
 - ``df = pd.DataFrame({'col_1': [1, 2, 3]})``
@@ -270,10 +270,10 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
 
 **A**: ``RangeIndex`` is not preserved under slicing and appending, e.g.:
   ```python
-  In [1]: ser = pd.Series([1,2,3])
+  In[1]: ser = pd.Series([1, 2, 3])
 
-  In [2]: ser[ser!=2].index
-  Out[2]: Int64Index([0, 2], dtype='int64')
+  In[2]: ser[ser != 2].index
+  Out[2]: Int64Index([0, 2], dtype="int64")
   ```
   If someone does not want to think about row labels and starts off
   with a ``RangeIndex``, they'll very quickly lose it.
@@ -281,8 +281,8 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
 **Q: Are indices not really powerful?**
 
 **A:** Yes! And they're also confusing to many users, even experienced developers.
-  It's fairly common to see pandas code with ``.reset_index`` scattered around every
-  other line. Such users would benefit from being able to not think about indices
+  Often users are using ``.reset_index`` to avoid issues with indices and alignment.
+  Such users would benefit from being able to not think about indices
   and alignment. Indices would be here to stay, and ``NoRowIndex`` would not be the
   default.
 
@@ -331,7 +331,7 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
 **Q: Would ``.loc`` stop working?**
 
 **A:** No. It would only raise if used for label-based selection. Other uses
-  of ``.loc``, such as ``df.loc[:, col_1]`` or ``df.loc[mask, col_1]``, would
+  of ``.loc``, such as ``df.loc[:, col_1]`` or ``df.loc[boolean_mask, col_1]``, would
   continue working.
 
 **Q: What's unintuitive about ``Series`` aligning indices when summing?**
@@ -339,8 +339,8 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
 **A:** Not sure, but I once asked a group of experienced developers what the
   output of
   ```python
-  ser1 = pd.Series([1,1,1], index=[1,2,3])
-  ser2 = pd.Series([1,1,1], index=[3,4,5])
+  ser1 = pd.Series([1, 1, 1], index=[1, 2, 3])
+  ser2 = pd.Series([1, 1, 1], index=[3, 4, 5])
   print(ser1 + ser2)
   ```
   would be, and _nobody_ got it right.
