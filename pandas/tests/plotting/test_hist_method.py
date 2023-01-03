@@ -583,6 +583,13 @@ class TestDataFramePlots(TestPlotBase):
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
         assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
 
+        idxerror_weights = np.array([[0.3, 0.25], [0.45, 0.45]])
+
+        msg = "weights must have the same shape as data, or be a single column"
+        with pytest.raises(ValueError, match=msg):
+            _, ax2 = self.plt.subplots()
+            no_nan_df.plot.hist(ax=ax2, weights=idxerror_weights)
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
