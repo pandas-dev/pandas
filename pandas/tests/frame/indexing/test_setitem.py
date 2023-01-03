@@ -260,9 +260,7 @@ class TestDataFrameSetItem:
             # property would require instantiation
             if not isinstance(dtype.name, property)
         ]
-        # mypy doesn't allow adding lists of different types
-        # https://github.com/python/mypy/issues/5492
-        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
+        + ["datetime64[ns, UTC]", "period[D]"],
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386
@@ -279,11 +277,11 @@ class TestDataFrameSetItem:
         expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        # OutOfBoundsDatetime error shouldn't occur
+        # OutOfBoundsDatetime error shouldn't occur; as of 2.0 we preserve "M8[s]"
         data_s = np.array([1, "nat"], dtype="datetime64[s]")
         result["new"] = data_s
-        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_numpy_array_equal(result["new"].to_numpy(), data_s)
 
     @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
     def test_frame_setitem_datetime64_col_other_units(self, unit):
@@ -293,12 +291,17 @@ class TestDataFrameSetItem:
 
         dtype = np.dtype(f"M8[{unit}]")
         vals = np.arange(n, dtype=np.int64).view(dtype)
-        ex_vals = vals.astype("datetime64[ns]")
+        if unit in ["s", "ms"]:
+            # supported unit
+            ex_vals = vals
+        else:
+            # we get the nearest supported units, i.e. "s"
+            ex_vals = vals.astype("datetime64[s]")
 
         df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
         df[unit] = vals
 
-        assert df[unit].dtype == np.dtype("M8[ns]")
+        assert df[unit].dtype == ex_vals.dtype
         assert (df[unit].values == ex_vals).all()
 
     @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
@@ -337,8 +340,8 @@ class TestDataFrameSetItem:
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
-        v1base = v1._data.base
-        v2base = v2._data.base
+        v1base = v1._ndarray.base
+        v2base = v2._ndarray.base
         assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan
@@ -406,16 +409,12 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager):
+    def test_setitem_frame_duplicate_columns(self):
         # GH#15695
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[:, "B"] = (1, 4)
+        df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -426,19 +425,10 @@ class TestDataFrameSetItem:
             dtype="object",
         )
 
-        if using_array_manager:
-            # setitem replaces column so changes dtype
-
-            expected.columns = cols
-            expected["C"] = expected["C"].astype("int64")
-            # TODO(ArrayManager) .loc still overwrites
-            expected["B"] = expected["B"].astype("int64")
-
-        else:
-            # set these with unique columns to be extra-unambiguous
-            expected[2] = expected[2].astype(np.int64)
-            expected[5] = expected[5].astype(np.int64)
-            expected.columns = cols
+        # set these with unique columns to be extra-unambiguous
+        expected[2] = expected[2].astype(np.int64)
+        expected[5] = expected[5].astype(np.int64)
+        expected.columns = cols
 
         tm.assert_frame_equal(df, expected)
 
@@ -750,6 +740,14 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_midx_columns(self):
+        # GH#49121
+        df = DataFrame({("a", "b"): [10]})
+        expected = df.copy()
+        col_name = ("a", "b")
+        df[col_name] = df[[col_name]]
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -768,11 +766,7 @@ class TestSetitemTZAwareValues:
         # convert to utc
         df = DataFrame(np.random.randn(2, 1), columns=["A"])
         df["B"] = idx
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
-        msg = "do 'idx.tz_convert(None)' before calling"
-        assert msg in str(m[0].message)
+        df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
         result = df["B"]
         comp = Series(idx.tz_convert("UTC").tz_localize(None), name="B")
@@ -1069,12 +1063,7 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # issue #37643 inplace kwarg deprecated
-            return_value = exp_fancy["cats"].cat.set_categories(
-                ["a", "b", "c"], inplace=True
-            )
-        assert return_value is None
+        exp_fancy["cats"] = exp_fancy["cats"].cat.set_categories(["a", "b", "c"])
 
         mask = df["cats"] == "c"
         df[mask] = ["b", 2]
@@ -1123,6 +1112,19 @@ class TestDataFrameSetItemBooleanMask:
         df.loc[indexer, ["b"]] = DataFrame({"b": [5, 6]}, index=[0, 1])
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_ea_boolean_mask(self):
+        # GH#47125
+        df = DataFrame([[-1, 2], [3, -4]])
+        expected = DataFrame([[0, 2], [3, 0]])
+        boolean_indexer = DataFrame(
+            {
+                0: Series([True, False], dtype="boolean"),
+                1: Series([pd.NA, True], dtype="boolean"),
+            }
+        )
+        df[boolean_indexer] = 0
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetitemCopyViewSemantics:
     def test_setitem_always_copy(self, float_frame):
@@ -1130,7 +1132,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         s = float_frame["A"].copy()
         float_frame["E"] = s
 
-        float_frame["E"][5:10] = np.nan
+        float_frame.iloc[5:10, float_frame.columns.get_loc("E")] = np.nan
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])

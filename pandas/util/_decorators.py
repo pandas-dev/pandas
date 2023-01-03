@@ -77,7 +77,7 @@ def deprecate(
     if alternative.__doc__:
         if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
-        empty1, summary, empty2, doc = alternative.__doc__.split("\n", 3)
+        empty1, summary, empty2, doc_string = alternative.__doc__.split("\n", 3)
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
@@ -87,7 +87,7 @@ def deprecate(
         .. deprecated:: {version}
             {msg}
 
-        {dedent(doc)}"""
+        {dedent(doc_string)}"""
         )
     # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
     # Callable[...,Any]]", expected "Callable[[F], F]")
@@ -206,8 +206,7 @@ def deprecate_kwarg(
                         f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
-                else:
-                    kwargs[new_arg_name] = new_arg_value
+                kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
         return cast(F, wrapper)
@@ -215,7 +214,7 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
-def _format_argument_list(allow_args: list[str]):
+def _format_argument_list(allow_args: list[str]) -> str:
     """
     Convert the allow_args argument (either string or integer) of
     `deprecate_nonkeyword_arguments` function to a string describing
@@ -290,14 +289,29 @@ def deprecate_nonkeyword_arguments(
     """
 
     def decorate(func):
+        old_sig = inspect.signature(func)
+
         if allowed_args is not None:
             allow_args = allowed_args
         else:
-            spec = inspect.getfullargspec(func)
+            allow_args = [
+                p.name
+                for p in old_sig.parameters.values()
+                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.default is p.empty
+            ]
 
-            # We must have some defaults if we are deprecating default-less
-            assert spec.defaults is not None  # for mypy
-            allow_args = spec.args[: -len(spec.defaults)]
+        new_params = [
+            p.replace(kind=p.KEYWORD_ONLY)
+            if (
+                p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.name not in allow_args
+            )
+            else p
+            for p in old_sig.parameters.values()
+        ]
+        new_params.sort(key=lambda p: p.kind)
+        new_sig = old_sig.replace(parameters=new_params)
 
         num_allow_args = len(allow_args)
         msg = (
@@ -307,15 +321,17 @@ def deprecate_nonkeyword_arguments(
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            arguments = _format_argument_list(allow_args)
             if len(args) > num_allow_args:
                 warnings.warn(
-                    msg.format(arguments=arguments),
+                    msg.format(arguments=_format_argument_list(allow_args)),
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             return func(*args, **kwargs)
 
+        # error: "Callable[[VarArg(Any), KwArg(Any)], Any]" has no
+        # attribute "__signature__"
+        wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
     return decorate
@@ -351,7 +367,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
+def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -364,7 +380,7 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
 
     Parameters
     ----------
-    *docstrings : str or callable
+    *docstrings : None, str, or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under callable.
     **params
@@ -378,24 +394,28 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
             docstring_components.append(dedent(decorated.__doc__))
 
         for docstring in docstrings:
+            if docstring is None:
+                continue
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
-                # "_docstring_components"
-                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore[union-attr]
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues] # noqa: E501
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 
-        # formatting templates and concatenating docstring
+        params_applied = [
+            component.format(**params)
+            if isinstance(component, str) and len(params) > 0
+            else component
+            for component in docstring_components
+        ]
+
         decorated.__doc__ = "".join(
             [
-                component.format(**params)
+                component
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
-                for component in docstring_components
+                for component in params_applied
             ]
         )
 

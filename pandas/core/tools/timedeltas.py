@@ -97,9 +97,9 @@ def to_timedelta(
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
 
-        .. deprecated:: 1.2
+        .. versionchanged:: 2.0
             Strings with units 'M', 'Y' and 'y' do not represent
-            unambiguous timedelta values and will be removed in a future version
+            unambiguous timedelta values and will raise an exception.
 
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
@@ -211,7 +211,9 @@ def to_timedelta(
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
 
 
-def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
+def _coerce_scalar_to_timedelta_type(
+    r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
+):
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
 
@@ -220,7 +222,7 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     except ValueError:
         if errors == "raise":
             raise
-        elif errors == "ignore":
+        if errors == "ignore":
             return r
 
         # coerce
@@ -229,7 +231,9 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     return result
 
 
-def _convert_listlike(arg, unit=None, errors="raise", name=None):
+def _convert_listlike(
+    arg, unit=None, errors: DateTimeErrorChoices = "raise", name=None
+):
     """Convert a list of objects to a timedelta index object."""
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up

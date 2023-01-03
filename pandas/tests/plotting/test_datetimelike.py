@@ -260,6 +260,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_uhf(self):
         import pandas.plotting._matplotlib.converter as conv
 
@@ -1209,6 +1210,7 @@ class TestTSPlot(TestPlotBase):
         # TODO: color cycle problems
         assert len(colors) == 4
 
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_format_date_axis(self):
         rng = date_range("1/1/2012", periods=12, freq="M")
         df = DataFrame(np.random.randn(len(rng), 3), rng)

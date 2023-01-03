@@ -4,7 +4,6 @@ import abc
 from collections import defaultdict
 from functools import partial
 import inspect
-import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,7 +17,6 @@ from typing import (
     Sequence,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -31,15 +29,12 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
+    AxisInt,
     NDFrameT,
     npt,
 )
-from pandas.errors import (
-    DataError,
-    SpecificationError,
-)
+from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -57,10 +52,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    ensure_wrapped_if_datetimelike,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from pandas import (
@@ -104,7 +96,7 @@ def frame_apply(
 
 
 class Apply(metaclass=abc.ABCMeta):
-    axis: int
+    axis: AxisInt
 
     def __init__(
         self,
@@ -265,34 +257,9 @@ class Apply(metaclass=abc.ABCMeta):
         func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: dict[Hashable, DataFrame | Series] = {}
-        failed_names = []
-        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
-            try:
-                results[name] = colg.transform(how, 0, *args, **kwargs)
-            except Exception as err:
-                if str(err) in {
-                    "Function did not transform",
-                    "No transform functions were provided",
-                }:
-                    raise err
-                else:
-                    if not isinstance(err, TypeError):
-                        all_type_errors = False
-                    failed_names.append(name)
-        # combine results
-        if not results:
-            klass = TypeError if all_type_errors else ValueError
-            raise klass("Transform function failed")
-        if len(failed_names) > 0:
-            warnings.warn(
-                f"{failed_names} did not transform successfully. If any error is "
-                f"raised, this will raise in a future version of pandas. "
-                f"Drop these columns/ops to avoid this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
+            results[name] = colg.transform(how, 0, *args, **kwargs)
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> DataFrame | Series:
@@ -344,87 +311,27 @@ class Apply(metaclass=abc.ABCMeta):
 
         results = []
         keys = []
-        failed_names = []
-
-        depr_nuisance_columns_msg = (
-            "{} did not aggregate successfully. If any error is "
-            "raised this will raise in a future version of pandas. "
-            "Drop these columns/ops to avoid this warning."
-        )
 
         # degenerate case
         if selected_obj.ndim == 1:
             for a in arg:
                 colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                try:
-                    new_res = colg.aggregate(a)
+                new_res = colg.aggregate(a)
+                results.append(new_res)
 
-                except TypeError:
-                    failed_names.append(com.get_callable_name(a) or a)
-                else:
-                    results.append(new_res)
-
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
+                # make sure we find a good name
+                name = com.get_callable_name(a) or a
+                keys.append(name)
 
         # multiples
         else:
             indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                try:
-                    # Capture and suppress any warnings emitted by us in the call
-                    # to agg below, but pass through any warnings that were
-                    # generated otherwise.
-                    # This is necessary because of https://bugs.python.org/issue29672
-                    # See GH #43741 for more details
-                    with warnings.catch_warnings(record=True) as record:
-                        new_res = colg.aggregate(arg)
-                    if len(record) > 0:
-                        match = re.compile(depr_nuisance_columns_msg.format(".*"))
-                        for warning in record:
-                            if re.match(match, str(warning.message)):
-                                failed_names.append(col)
-                            else:
-                                warnings.warn_explicit(
-                                    message=warning.message,
-                                    category=warning.category,
-                                    filename=warning.filename,
-                                    lineno=warning.lineno,
-                                )
-
-                except (TypeError, DataError):
-                    failed_names.append(col)
-                except ValueError as err:
-                    # cannot aggregate
-                    if "Must produce aggregated value" in str(err):
-                        # raised directly in _aggregate_named
-                        failed_names.append(col)
-                    elif "no results" in str(err):
-                        # reached in test_frame_apply.test_nuiscance_columns
-                        #  where the colg.aggregate(arg) ends up going through
-                        #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
-                        #  on a datetime64[ns] column
-                        failed_names.append(col)
-                    else:
-                        raise
-                else:
-                    results.append(new_res)
-                    indices.append(index)
-
+                new_res = colg.aggregate(arg)
+                results.append(new_res)
+                indices.append(index)
             keys = selected_obj.columns.take(indices)
-
-        # if we are empty
-        if not len(results):
-            raise ValueError("no results")
-
-        if len(failed_names) > 0:
-            warnings.warn(
-                depr_nuisance_columns_msg.format(failed_names),
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
@@ -505,9 +412,11 @@ class Apply(metaclass=abc.ABCMeta):
                 ktu._set_names(selected_obj.columns.names)
                 keys_to_use = ktu
 
-            axis = 0 if isinstance(obj, ABCSeries) else 1
+            axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
-                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+                {k: results[k] for k in keys_to_use},
+                axis=axis,
+                keys=keys_to_use,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
@@ -550,10 +459,13 @@ class Apply(metaclass=abc.ABCMeta):
         func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
-                self.kwargs["axis"] = self.axis
-            elif self.axis != 0:
+            arg_names = (*sig.args, *sig.kwonlyargs)
+            if self.axis != 0 and (
+                "axis" not in arg_names or f in ("corrwith", "skew")
+            ):
                 raise ValueError(f"Operation {f} does not support axis=1")
+            if "axis" in arg_names:
+                self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -751,12 +663,6 @@ class FrameApply(NDFrameApply):
         result = None
         try:
             result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
         finally:
             self.obj = obj
             self.axis = axis
@@ -850,7 +756,7 @@ class FrameApply(NDFrameApply):
             # must be a scalar or 1d
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
-            elif ares == 1:
+            if ares == 1:
 
                 # must match return dim
                 if result_compare != len(res):
@@ -898,14 +804,12 @@ class FrameApply(NDFrameApply):
 
         # dict of scalars
 
-        # the default dtype of an empty Series will be `object`, but this
+        # the default dtype of an empty Series is `object`, but this
         # code can be hit by df.mean() where the result should have dtype
         # float64 even if it's an empty Series.
         constructor_sliced = self.obj._constructor_sliced
-        if constructor_sliced is Series:
-            result = create_series_with_explicit_dtype(
-                results, dtype_if_empty=np.float64
-            )
+        if len(results) == 0 and constructor_sliced is Series:
+            result = constructor_sliced(results, dtype=np.float64)
         else:
             result = constructor_sliced(results)
         result.index = res_index
@@ -924,10 +828,7 @@ class FrameApply(NDFrameApply):
 
 
 class FrameRowApply(FrameApply):
-    axis = 0
-
-    def apply_broadcast(self, target: DataFrame) -> DataFrame:
-        return super().apply_broadcast(target)
+    axis: AxisInt = 0
 
     @property
     def series_generator(self):
@@ -984,7 +885,7 @@ class FrameRowApply(FrameApply):
 
 
 class FrameColumnApply(FrameApply):
-    axis = 1
+    axis: AxisInt = 1
 
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         result = super().apply_broadcast(target.T)
@@ -1061,7 +962,7 @@ class FrameColumnApply(FrameApply):
 
 class SeriesApply(NDFrameApply):
     obj: Series
-    axis = 0
+    axis: AxisInt = 0
 
     def __init__(
         self,
@@ -1191,7 +1092,7 @@ class GroupByApply(Apply):
 
 
 class ResamplerWindowApply(Apply):
-    axis = 0
+    axis: AxisInt = 0
     obj: Resampler | BaseWindow
 
     def __init__(
@@ -1269,7 +1170,7 @@ def reconstruct_func(
                 "Function names must be unique if there is no new column names "
                 "assigned"
             )
-        elif func is None:
+        if func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
@@ -1377,9 +1278,7 @@ def _make_unique_kwarg_list(
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
     return [
-        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
-        if seq.count(pair) > 1
-        else pair
+        (pair[0], f"{pair[1]}_{seq[:i].count(pair)}") if seq.count(pair) > 1 else pair
         for i, pair in enumerate(seq)
     ]
 

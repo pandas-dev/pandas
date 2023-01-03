@@ -3,17 +3,13 @@
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from numbers import Number
 import re
 from typing import Pattern
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike
-from pandas.util._exceptions import find_stack_level
 
 is_bool = lib.is_bool
 
@@ -47,7 +43,7 @@ def is_number(obj) -> bool:
 
     Returns
     -------
-    is_number : bool
+    bool
         Whether `obj` is a number or not.
 
     See Also
@@ -117,7 +113,7 @@ def is_file_like(obj) -> bool:
 
     Returns
     -------
-    is_file_like : bool
+    bool
         Whether `obj` has file-like properties.
 
     Examples
@@ -145,7 +141,7 @@ def is_re(obj) -> bool:
 
     Returns
     -------
-    is_regex : bool
+    bool
         Whether `obj` is a regex pattern.
 
     Examples
@@ -168,7 +164,7 @@ def is_re_compilable(obj) -> bool:
 
     Returns
     -------
-    is_regex_compilable : bool
+    bool
         Whether `obj` can be compiled as a regex pattern.
 
     Examples
@@ -274,7 +270,7 @@ def is_dict_like(obj) -> bool:
 
     Returns
     -------
-    is_dict_like : bool
+    bool
         Whether `obj` has dict-like properties.
 
     Examples
@@ -306,7 +302,7 @@ def is_named_tuple(obj) -> bool:
 
     Returns
     -------
-    is_named_tuple : bool
+    bool
         Whether `obj` is a named tuple.
 
     Examples
@@ -421,47 +417,8 @@ def is_dataclass(item):
 
     """
     try:
-        from dataclasses import is_dataclass
+        import dataclasses
 
-        return is_dataclass(item) and not isinstance(item, type)
+        return dataclasses.is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False
-
-
-def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
-    """
-    Check if this is a ndarray[bool] or an ndarray[object] of bool objects.
-
-    Parameters
-    ----------
-    arr : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    bool
-
-    Notes
-    -----
-    This does not include the special treatment is_bool_dtype uses for
-    Categorical.
-    """
-    if not isinstance(arr, np.ndarray):
-        return False
-
-    dtype = arr.dtype
-    if dtype == np.dtype(bool):
-        return True
-    elif dtype == np.dtype("object"):
-        result = lib.is_bool_array(arr)
-        if result:
-            # GH#46188
-            warnings.warn(
-                "In a future version, object-dtype columns with all-bool values "
-                "will not be included in reductions with bool_only=True. "
-                "Explicitly cast to bool dtype instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        return result
-
-    return False

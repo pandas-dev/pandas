@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -163,14 +164,14 @@ def test_string():
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
 
-    assert col.size == 6
+    assert col.size() == 6
     assert col.null_count == 1
     assert col.dtype[0] == DtypeKind.STRING
     assert col.describe_null == (ColumnNullType.USE_BYTEMASK, 0)
 
     df_sliced = df[1:]
     col = df_sliced.__dataframe__().get_column_by_name("A")
-    assert col.size == 5
+    assert col.size() == 5
     assert col.null_count == 1
     assert col.dtype[0] == DtypeKind.STRING
     assert col.describe_null == (ColumnNullType.USE_BYTEMASK, 0)
@@ -187,9 +188,19 @@ def test_datetime():
     df = pd.DataFrame({"A": [pd.Timestamp("2022-01-01"), pd.NaT]})
     col = df.__dataframe__().get_column_by_name("A")
 
-    assert col.size == 2
+    assert col.size() == 2
     assert col.null_count == 1
     assert col.dtype[0] == DtypeKind.DATETIME
     assert col.describe_null == (ColumnNullType.USE_SENTINEL, iNaT)
 
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+
+
+@td.skip_if_np_lt("1.23")
+def test_categorical_to_numpy_dlpack():
+    # https://github.com/pandas-dev/pandas/issues/48393
+    df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
+    col = df.__dataframe__().get_column_by_name("A")
+    result = np.from_dlpack(col.get_buffers()["data"][0])
+    expected = np.array([0, 1, 0], dtype="int8")
+    tm.assert_numpy_array_equal(result, expected)

@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import iNaT
+from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -23,7 +24,6 @@ from pandas.core.interchange.dataframe_protocol import (
 from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
-    NoBufferPresent,
     dtype_to_arrow_c_fmt,
 )
 
@@ -81,11 +81,11 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    @property
-    def size(self) -> int:
+    def size(self) -> int:  # type: ignore[override]
         """
         Size of the column, in elements.
         """
+        # error: Signature of "size" incompatible with supertype "Column"  [override]
         return self._col.size
 
     @property
@@ -270,7 +270,7 @@ class PandasColumn(Column):
             buffer = PandasBuffer(self._col.to_numpy(), allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
-            codes = self._col.values.codes
+            codes = self._col.values._codes
             buffer = PandasBuffer(codes, allow_copy=self._allow_copy)
             dtype = self._dtype_from_pandasdtype(codes.dtype)
         elif self.dtype[0] == DtypeKind.STRING:
@@ -316,7 +316,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 
@@ -330,7 +330,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

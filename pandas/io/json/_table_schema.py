@@ -1,11 +1,10 @@
 """
 Table Schema builders
 
-https://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/table-schema/
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,7 +12,8 @@ from typing import (
 )
 import warnings
 
-import pandas._libs.json as json
+from pandas._libs.json import loads
+from pandas._libs.tslibs import timezones
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,
@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
-loads = json.loads
 
 TABLE_SCHEMA_VERSION = "1.4.0"
 
@@ -104,12 +103,12 @@ def set_default_names(data):
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn(
                 "Index name of 'index' is not round-trippable.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return data
 
@@ -142,7 +141,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
     elif is_period_dtype(dtype):
         field["freq"] = dtype.freq.freqstr
     elif is_datetime64tz_dtype(dtype):
-        field["tz"] = dtype.tz.zone
+        if timezones.is_utc(dtype.tz):
+            # timezone.utc has no "zone" attr
+            field["tz"] = "UTC"
+        else:
+            field["tz"] = dtype.tz.zone
     elif is_extension_array_dtype(dtype):
         field["extDtype"] = dtype.name
     return field
@@ -193,11 +196,11 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     if typ == "string":
         return "object"
     elif typ == "integer":
-        return "int64"
+        return field.get("extDtype", "int64")
     elif typ == "number":
-        return "float64"
+        return field.get("extDtype", "float64")
     elif typ == "boolean":
-        return "bool"
+        return field.get("extDtype", "bool")
     elif typ == "duration":
         return "timedelta64"
     elif typ == "datetime":
@@ -246,7 +249,7 @@ def build_table_schema(
 
     Returns
     -------
-    schema : dict
+    dict
 
     Notes
     -----

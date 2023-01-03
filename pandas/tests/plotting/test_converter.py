@@ -10,8 +10,6 @@ import pytest
 
 import pandas._config.config as cf
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Index,
     Period,
@@ -76,7 +74,6 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -111,7 +108,6 @@ class TestRegistration:
                 assert Timestamp not in units.registry
             assert Timestamp in units.registry
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -161,8 +157,8 @@ class TestDateTimeConverter:
         return converter.DatetimeConverter()
 
     def test_convert_accepts_unicode(self, dtc):
-        r1 = dtc.convert("12:22", None, None)
-        r2 = dtc.convert("12:22", None, None)
+        r1 = dtc.convert("2000-01-01 12:22", None, None)
+        r2 = dtc.convert("2000-01-01 12:22", None, None)
         assert r1 == r2, "DatetimeConverter.convert should accept unicode"
 
     def test_conversion(self, dtc):
@@ -215,7 +211,7 @@ class TestDateTimeConverter:
         rtol = 0.5 * 10**-9
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
@@ -230,18 +226,18 @@ class TestDateTimeConverter:
         # 2579
         values = [date(1677, 1, 1), date(1677, 1, 2)]
         rs = dtc.convert(values, None, None)
-        xp = converter.dates.date2num(values)
+        xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = converter.dates.date2num(values[0])
+        xp = converter.mdates.date2num(values[0])
         assert rs == xp
 
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         rs = dtc.convert(values, None, None)
-        xp = converter.dates.date2num(values)
+        xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = converter.dates.date2num(values[0])
+        xp = converter.mdates.date2num(values[0])
         assert rs == xp
 
     @pytest.mark.parametrize(
@@ -264,7 +260,7 @@ class TestDateTimeConverter:
         rtol = 10**-9
         dateindex = tm.makeDateIndex(k=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
-        xp = converter.dates.date2num(dateindex._mpl_repr())
+        xp = converter.mdates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
@@ -287,66 +283,70 @@ class TestDateTimeConverter:
 
 
 class TestPeriodConverter:
-    def setup_method(self):
-        self.pc = converter.PeriodConverter()
+    @pytest.fixture
+    def pc(self):
+        return converter.PeriodConverter()
 
+    @pytest.fixture
+    def axis(self):
         class Axis:
             pass
 
-        self.axis = Axis()
-        self.axis.freq = "D"
+        axis = Axis()
+        axis.freq = "D"
+        return axis
 
-    def test_convert_accepts_unicode(self):
-        r1 = self.pc.convert("2012-1-1", None, self.axis)
-        r2 = self.pc.convert("2012-1-1", None, self.axis)
+    def test_convert_accepts_unicode(self, pc, axis):
+        r1 = pc.convert("2012-1-1", None, axis)
+        r2 = pc.convert("2012-1-1", None, axis)
         assert r1 == r2
 
-    def test_conversion(self):
-        rs = self.pc.convert(["2012-1-1"], None, self.axis)[0]
+    def test_conversion(self, pc, axis):
+        rs = pc.convert(["2012-1-1"], None, axis)[0]
         xp = Period("2012-1-1").ordinal
         assert rs == xp
 
-        rs = self.pc.convert("2012-1-1", None, self.axis)
+        rs = pc.convert("2012-1-1", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert([date(2012, 1, 1)], None, self.axis)[0]
+        rs = pc.convert([date(2012, 1, 1)], None, axis)[0]
         assert rs == xp
 
-        rs = self.pc.convert(date(2012, 1, 1), None, self.axis)
+        rs = pc.convert(date(2012, 1, 1), None, axis)
         assert rs == xp
 
-        rs = self.pc.convert([Timestamp("2012-1-1")], None, self.axis)[0]
+        rs = pc.convert([Timestamp("2012-1-1")], None, axis)[0]
         assert rs == xp
 
-        rs = self.pc.convert(Timestamp("2012-1-1"), None, self.axis)
+        rs = pc.convert(Timestamp("2012-1-1"), None, axis)
         assert rs == xp
 
-        rs = self.pc.convert("2012-01-01", None, self.axis)
+        rs = pc.convert("2012-01-01", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert("2012-01-01 00:00:00+0000", None, self.axis)
+        rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert(
+        rs = pc.convert(
             np.array(
                 ["2012-01-01 00:00:00", "2012-01-02 00:00:00"],
                 dtype="datetime64[ns]",
             ),
             None,
-            self.axis,
+            axis,
         )
         assert rs[0] == xp
 
-    def test_integer_passthrough(self):
+    def test_integer_passthrough(self, pc, axis):
         # GH9012
-        rs = self.pc.convert([0, 1], None, self.axis)
+        rs = pc.convert([0, 1], None, axis)
         xp = [0, 1]
         assert rs == xp
 
-    def test_convert_nested(self):
+    def test_convert_nested(self, pc, axis):
         data = ["2012-1-1", "2012-1-2"]
-        r1 = self.pc.convert([data, data], None, self.axis)
-        r2 = [self.pc.convert(data, None, self.axis) for _ in range(2)]
+        r1 = pc.convert([data, data], None, axis)
+        r2 = [pc.convert(data, None, axis) for _ in range(2)]
         assert r1 == r2
 
 

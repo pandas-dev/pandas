@@ -27,6 +27,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import json
 import operator
 import os
 import pathlib
@@ -42,6 +43,12 @@ import markdown
 import requests
 import yaml
 
+api_token = os.environ.get("GITHUB_TOKEN")
+if api_token is not None:
+    GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
+else:
+    GITHUB_API_HEADERS = {}
+
 
 class Preprocessors:
     """
@@ -53,6 +60,15 @@ class Preprocessors:
     The original context is obtained by parsing ``config.yml``, and
     anything else needed just be added with context preprocessors.
     """
+
+    @staticmethod
+    def current_year(context):
+        """
+        Add the current year to the context, so it can be used for the copyright
+        note, or other places where it is needed.
+        """
+        context["current_year"] = datetime.datetime.now().year
+        return context
 
     @staticmethod
     def navbar_add_info(context):
@@ -148,6 +164,18 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
+        timestamp = time.time()
+
+        cache_file = pathlib.Path("maintainers.json")
+        if cache_file.is_file():
+            with open(cache_file) as f:
+                context["maintainers"] = json.load(f)
+            # refresh cache after 1 hour
+            if (timestamp - context["maintainers"]["timestamp"]) < 3_600:
+                return context
+
+        context["maintainers"]["timestamp"] = timestamp
+
         repeated = set(context["maintainers"]["active"]) & set(
             context["maintainers"]["inactive"]
         )
@@ -157,11 +185,17 @@ class Preprocessors:
         for kind in ("active", "inactive"):
             context["maintainers"][f"{kind}_with_github_info"] = []
             for user in context["maintainers"][kind]:
-                resp = requests.get(f"https://api.github.com/users/{user}")
+                resp = requests.get(
+                    f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+                )
                 if context["ignore_io_errors"] and resp.status_code == 403:
                     return context
                 resp.raise_for_status()
                 context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
+
+        with open(cache_file, "w") as f:
+            json.dump(context["maintainers"], f)
+
         return context
 
     @staticmethod
@@ -169,7 +203,10 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        resp = requests.get(
+            f"https://api.github.com/repos/{github_repo_url}/releases",
+            headers=GITHUB_API_HEADERS,
+        )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
@@ -236,7 +273,8 @@ class Preprocessors:
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
+            headers=GITHUB_API_HEADERS,
         )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
@@ -329,7 +367,7 @@ def main(
     Copy every file in the source directory to the target directory.
 
     For ``.md`` and ``.html`` files, render them with the context
-    before copyings them. ``.md`` files are transformed to HTML.
+    before copying them. ``.md`` files are transformed to HTML.
     """
     config_fname = os.path.join(source_path, "config.yml")
 
@@ -386,7 +424,7 @@ if __name__ == "__main__":
         action="store_true",
         help="do not fail if errors happen when fetching "
         "data from http sources, and those fail "
-        "(mostly useful to allow github quota errors "
+        "(mostly useful to allow GitHub quota errors "
         "when running the script locally)",
     )
     args = parser.parse_args()

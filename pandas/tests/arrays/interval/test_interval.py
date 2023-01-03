@@ -256,9 +256,9 @@ def test_arrow_extension_type():
 
     assert p1.closed == "left"
     assert p1 == p2
-    assert not p1 == p3
+    assert p1 != p3
     assert hash(p1) == hash(p2)
-    assert not hash(p1) == hash(p3)
+    assert hash(p1) != hash(p3)
 
 
 @pyarrow_skip
@@ -287,7 +287,7 @@ def test_arrow_array():
     with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
         pa.array(intervals, type="float64")
 
-    with pytest.raises(TypeError, match="different 'subtype'"):
+    with pytest.raises(TypeError, match="different 'subtype'|to convert IntervalArray"):
         pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
 
 

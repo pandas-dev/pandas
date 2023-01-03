@@ -13,16 +13,13 @@ if TYPE_CHECKING:
         CategoricalIndex,
         DataFrame,
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
         IntervalIndex,
         MultiIndex,
         PeriodIndex,
         RangeIndex,
         Series,
         TimedeltaIndex,
-        UInt64Index,
     )
     from pandas.core.arrays import (
         DatetimeArray,
@@ -32,12 +29,17 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
     from pandas.core.generic import NDFrame
+    from pandas.core.indexes.api import (
+        Float64Index,
+        Int64Index,
+        UInt64Index,
+    )
 
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
 def create_pandas_abc_type(name, attr, comp):
-    def _check(inst):
+    def _check(inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
     # https://github.com/python/mypy/issues/1006

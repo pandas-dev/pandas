@@ -22,6 +22,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
     F,
     npt,
 )
@@ -169,7 +170,9 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: str) -> int | None:
+def find_valid_index(
+    values, *, how: str, is_valid: npt.NDArray[np.bool_]
+) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -178,6 +181,8 @@ def find_valid_index(values, *, how: str) -> int | None:
     values : ndarray or ExtensionArray
     how : {'first', 'last'}
         Use this parameter to change between the first or last valid index.
+    is_valid: np.ndarray
+        Mask to find na_values.
 
     Returns
     -------
@@ -187,8 +192,6 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if len(values) == 0:  # early stop
         return None
-
-    is_valid = ~isna(values)
 
     if values.ndim == 2:
         is_valid = is_valid.any(axis=1)  # reduce axis 1
@@ -203,13 +206,15 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if not chk_notna:
         return None
-    return idxpos
+    # Incompatible return value type (got "signedinteger[Any]",
+    # expected "Optional[int]")
+    return idxpos  # type: ignore[return-value]
 
 
 def interpolate_array_2d(
     data: np.ndarray,
     method: str = "pad",
-    axis: int = 0,
+    axis: AxisInt = 0,
     index: Index | None = None,
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -257,13 +262,12 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return
 
 
 def _interpolate_2d_with_fill(
     data: np.ndarray,  # floating dtype
     index: Index,
-    axis: int,
+    axis: AxisInt,
     method: str = "linear",
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -340,7 +344,6 @@ def _interpolate_2d_with_fill(
     # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
     # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
     np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
-    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -376,7 +379,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     **kwargs,
-):
+) -> None:
     """
     Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.
@@ -401,12 +404,12 @@ def _interpolate_1d(
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
 
-    first_valid_index = find_valid_index(yvalues, how="first")
+    first_valid_index = find_valid_index(yvalues, how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
     start_nans = set(range(first_valid_index))
 
-    last_valid_index = find_valid_index(yvalues, how="last")
+    last_valid_index = find_valid_index(yvalues, how="last", is_valid=valid)
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
     end_nans = set(range(1 + last_valid_index, len(valid)))
@@ -417,7 +420,7 @@ def _interpolate_1d(
 
     # For example if limit_direction='forward' then preserve_nans will
     # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
+    # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
     preserve_nans: list | set
@@ -466,7 +469,14 @@ def _interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
+    x,
+    y,
+    new_x,
+    method,
+    fill_value=None,
+    bounds_error: bool = False,
+    order=None,
+    **kwargs,
 ):
     """
     Passed off to scipy.interpolate.interp1d. method is scipy's kind.
@@ -535,7 +545,9 @@ def _interpolate_scipy_wrapper(
     return new_y
 
 
-def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+def _from_derivatives(
+    xi, yi, x, order=None, der: int | list[int] | None = 0, extrapolate: bool = False
+):
     """
     Convenience function for interpolate.BPoly.from_derivatives.
 
@@ -578,7 +590,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     return m(x)
 
 
-def _akima_interpolate(xi, yi, x, der=0, axis=0):
+def _akima_interpolate(xi, yi, x, der: int | list[int] | None = 0, axis: AxisInt = 0):
     """
     Convenience function for akima interpolation.
     xi and yi are arrays of values used to approximate some function f,
@@ -621,7 +633,14 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     return P(x, nu=der)
 
 
-def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+def _cubicspline_interpolate(
+    xi,
+    yi,
+    x,
+    axis: AxisInt = 0,
+    bc_type: str | tuple[Any, Any] = "not-a-knot",
+    extrapolate=None,
+):
     """
     Convenience function for cubic spline data interpolator.
 
@@ -723,12 +742,13 @@ def _interpolate_with_limit_area(
     """
 
     invalid = isna(values)
+    is_valid = ~invalid
 
     if not invalid.all():
-        first = find_valid_index(values, how="first")
+        first = find_valid_index(values, how="first", is_valid=is_valid)
         if first is None:
             first = 0
-        last = find_valid_index(values, how="last")
+        last = find_valid_index(values, how="last", is_valid=is_valid)
         if last is None:
             last = len(values)
 
@@ -744,8 +764,6 @@ def _interpolate_with_limit_area(
             invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
-
-    return
 
 
 def interpolate_2d(

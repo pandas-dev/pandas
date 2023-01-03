@@ -1,0 +1,49 @@
+.. _whatsnew_153:
+
+What's new in 1.5.3 (December ??, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.5.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed performance regression in :meth:`Series.isin` when ``values`` is empty (:issue:`49839`)
+- Fixed regression in :meth:`DataFrame.memory_usage` showing unnecessary ``FutureWarning`` when :class:`DataFrame` is empty (:issue:`50066`)
+- Fixed regression in :meth:`DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
+- Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
+- Fixed regression in :meth:`SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
+- Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
+- Fixed regression in :func:`to_datetime` raising ``ValueError`` when parsing array of ``float`` containing ``np.nan`` (:issue:`50237`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
+- Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.other:
+
+Other
+~~~~~
+- Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.2..v1.5.3|HEAD

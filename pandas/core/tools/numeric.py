@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import npt
+from pandas._typing import (
+    DateTimeErrorChoices,
+    npt,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -25,7 +30,11 @@ import pandas as pd
 from pandas.core.arrays.numeric import NumericArray
 
 
-def to_numeric(arg, errors="raise", downcast=None):
+def to_numeric(
+    arg,
+    errors: DateTimeErrorChoices = "raise",
+    downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
+):
     """
     Convert argument to a numeric type.
 
@@ -149,7 +158,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
-            values = arg.asi8
+            values = arg.view("i8")
         else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):

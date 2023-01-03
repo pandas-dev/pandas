@@ -44,6 +44,10 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
+    from pandas.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -65,9 +69,19 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
 
+    ScalarLike_co = Union[
+        int,
+        float,
+        complex,
+        str,
+        bytes,
+        np.generic,
+    ]
+
     # numpy compatible types
-    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
-    NumpySorter = Optional[npt._ArrayLikeInt_co]
+    NumpyValueArrayLike = Union[ScalarLike_co, npt.ArrayLike]
+    # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
 else:
     npt: Any = None
@@ -78,6 +92,7 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # scalars
 
@@ -106,7 +121,8 @@ NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
-Axis = Union[str, int]
+AxisInt = int
+Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = Tuple[int, ...]
@@ -177,18 +193,14 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-AnyStr_cov = TypeVar("AnyStr_cov", str, bytes, covariant=True)
-AnyStr_con = TypeVar("AnyStr_con", str, bytes, contravariant=True)
+AnyStr_co = TypeVar("AnyStr_co", str, bytes, covariant=True)
+AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
     @property
     def mode(self) -> str:
         # for _get_filepath_or_buffer
-        ...
-
-    def fileno(self) -> int:
-        # for _MMapWrapper
         ...
 
     def seek(self, __offset: int, __whence: int = ...) -> int:
@@ -205,14 +217,14 @@ class BaseBuffer(Protocol):
         ...
 
 
-class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
-    def read(self, __n: int | None = ...) -> AnyStr_cov:
+class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
+    def read(self, __n: int = ...) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
-class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
-    def write(self, __b: AnyStr_con) -> Any:
+class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
+    def write(self, __b: AnyStr_contra) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -222,7 +234,7 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> AnyStr_cov:
+    def readline(self) -> bytes:
         ...
 
 
@@ -231,12 +243,16 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
         ...
 
 
-class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
-    def __iter__(self) -> Iterator[AnyStr_cov]:
+class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
+    def __iter__(self) -> Iterator[AnyStr_co]:
         # for engine=python
         ...
 
-    def readline(self) -> AnyStr_cov:
+    def fileno(self) -> int:
+        # for _MMapWrapper
+        ...
+
+    def readline(self) -> AnyStr_co:
         # for engine=python
         ...
 
@@ -331,3 +347,23 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+
+# join
+JoinHow = Literal["left", "right", "inner", "outer"]
+
+MatplotlibColor = Union[str, Sequence[float]]
+TimeGrouperOrigin = Union[
+    "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
+]
+TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
+TimeNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
+]
+DropKeep = Literal["first", "last", False]
+CorrelationMethod = Union[
+    Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
+]
+AlignJoin = Literal["outer", "inner", "left", "right"]

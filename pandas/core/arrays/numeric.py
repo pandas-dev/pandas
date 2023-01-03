@@ -172,9 +172,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     inferred_type = None
     if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            pass
-        elif inferred_type == "boolean":
+        if inferred_type == "boolean" and dtype is None:
             name = dtype_cls.__name__.strip("_")
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
@@ -189,7 +187,11 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         raise TypeError("values must be a 1D list-like")
 
     if mask is None:
-        mask = libmissing.is_numeric_na(values)
+        if is_integer_dtype(values):
+            # fastpath
+            mask = np.zeros(len(values), dtype=np.bool_)
+        else:
+            mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
