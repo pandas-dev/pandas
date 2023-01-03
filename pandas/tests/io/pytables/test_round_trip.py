@@ -360,8 +360,7 @@ def test_timeseries_preepoch(setup_path, request):
             request.node.add_marker(
                 pytest.mark.xfail("known failure on some windows platforms")
             )
-        else:
-            raise
+        raise
 
 
 @pytest.mark.parametrize(
