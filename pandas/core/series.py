@@ -420,10 +420,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
+                data = data._mgr.copy(deep=False)
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
-            data = data._mgr
+                data = data._mgr
         elif is_dict_like(data):
             data, index = self._init_dict(data, index, dtype)
             dtype = None

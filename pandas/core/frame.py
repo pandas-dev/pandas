@@ -637,6 +637,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy:
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
