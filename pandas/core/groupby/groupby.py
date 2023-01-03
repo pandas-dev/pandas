@@ -3256,6 +3256,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4    0
         5    1
         dtype: int64
+        >>> df.groupby("color", dropna=False).ngroup(ascending=False)
+        0    1
+        1    0
+        2    1
+        3    2
+        4    2
+        5    1
+        dtype: int64
         """
         with self._group_selection_context():
             index = self._selected_obj.index
