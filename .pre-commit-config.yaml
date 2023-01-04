@@ -34,7 +34,7 @@ repos:
         types_or: [python, rst, markdown]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.9.1
+    rev: v0.10.1
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -63,7 +63,8 @@ repos:
             '--extensions=c,h',
             '--headers=h',
             --recursive,
-            '--filter=-readability/casting,-runtime/int,-build/include_subdir'
+            --linelength=88,
+            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
@@ -76,12 +77,12 @@ repos:
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.6
+    rev: v2.15.9
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.6
+    rev: v2.15.9
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -94,15 +95,14 @@ repos:
             |^pandas/util/_test_decorators\.py  # keep excluded
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
-            |^pandas/core/generic\.py
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.11.4
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.2
+    rev: v3.3.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
