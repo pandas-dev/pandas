@@ -1806,8 +1806,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             libgroupby.group_any_all,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
-            needs_mask=True,
-            needs_nullable=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
             val_test=val_test,
@@ -2084,13 +2082,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"{type(self).__name__}.std called with "
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
+
+            def _postprocessing(
+                vals, inference, nullable: bool = False, mask=None
+            ) -> ArrayLike:
+                if nullable:
+                    if mask.ndim == 2:
+                        mask = mask[:, 0]
+                    return FloatingArray(np.sqrt(vals), mask.view(np.bool_))
+                return np.sqrt(vals)
+
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
-                post_processing=lambda vals, inference: np.sqrt(vals),
+                post_processing=_postprocessing,
                 ddof=ddof,
+                how="std",
             )
             return result
 
@@ -3498,10 +3507,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         cython_dtype: np.dtype,
         numeric_only: bool = False,
         needs_counts: bool = False,
-        needs_nullable: bool = False,
-        needs_mask: bool = False,
         pre_processing=None,
         post_processing=None,
+        how: str = "any_all",
         **kwargs,
     ):
         """
@@ -3516,12 +3524,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Whether only numeric datatypes should be computed
         needs_counts : bool, default False
             Whether the counts should be a part of the Cython call
-        needs_mask : bool, default False
-            Whether boolean mask needs to be part of the Cython call
-            signature
-        needs_nullable : bool, default False
-            Whether a bool specifying if the input is nullable is part
-            of the Cython call signature
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -3536,6 +3538,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        how : str, default any_all
+            Determines if any/all cython interface or std interface is used.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -3579,15 +3583,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 vals = vals.reshape((-1, 1))
             func = partial(func, values=vals)
 
-            if needs_mask:
+            if how != "std" or isinstance(values, BaseMaskedArray):
                 mask = isna(values).view(np.uint8)
                 if mask.ndim == 1:
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
-            if needs_nullable:
+            if how != "std":
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
+
+            else:
+                result_mask = np.zeros(result.shape, dtype=np.bool_)
+                func = partial(func, result_mask=result_mask)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -3596,9 +3604,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result[:, 0]
 
             if post_processing:
-                pp_kwargs = {}
-                if needs_nullable:
-                    pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                pp_kwargs: dict[str, bool | np.ndarray] = {}
+                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                if how == "std":
+                    pp_kwargs["mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
 
