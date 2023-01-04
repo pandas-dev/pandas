@@ -876,7 +876,7 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` raising ``IndexError`` when indexer is a :class:`Series` with numeric extension array dtype (:issue:`49521`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
--
+- Bug in :class:`BusinessHour` would cause creation of ``DatetimeIndex`` to fail when no opening hour was included in the index (:issue:`#49835`)
 
 Missing
 ^^^^^^^
