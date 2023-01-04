@@ -462,7 +462,7 @@ to each element individually, e.g. ::
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`)
+- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`, :issue:`32526`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
@@ -821,7 +821,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was throwing ``ValueError`` when parsing dates with ISO8601 format where some values were not zero-padded (:issue:`21422`)
 - Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
--
+- Bug in :func:`Timestamp.utctimetuple` raising a ``TypeError`` (:issue:`32174`)
 
 Timedelta
 ^^^^^^^^^
