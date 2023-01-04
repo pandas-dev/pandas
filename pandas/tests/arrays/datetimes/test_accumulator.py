@@ -1,3 +1,5 @@
+import pytest
+
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
@@ -29,3 +31,16 @@ class TestAccumulator:
             freq=None,
         )
         tm.assert_datetime_array_equal(result, expected)
+
+    @pytest.mark.parametrize("func", ["cumsum", "cumprod"])
+    def test_accumulators_disallowed(self, func):
+        # GH#50297
+        arr = DatetimeArray._from_sequence_not_strict(
+            [
+                "2000-01-01",
+                "2000-01-02",
+            ],
+            freq="D",
+        )
+        with pytest.raises(TypeError, match=f"Accumulation {func}"):
+            arr._accumulate(func)

@@ -24,7 +24,7 @@ def _cum_func(
 
     Parameters
     ----------
-    func : np.cumsum, np.cumprod, np.maximum.accumulate, np.minimum.accumulate
+    func : np.cumsum, np.maximum.accumulate, np.minimum.accumulate
     values : np.ndarray
         Numpy array with the values (can be of any dtype that support the
         operation). Values is changed is modified inplace.
