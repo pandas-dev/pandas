@@ -259,9 +259,10 @@ def enable_data_resource_formatter(enable: bool) -> None:
         if mimetype not in formatters:
             # define tableschema formatter
             from IPython.core.formatters import BaseFormatter
+            from traitlets import ObjectName
 
             class TableSchemaFormatter(BaseFormatter):
-                print_method = "_repr_data_resource_"
+                print_method = ObjectName("_repr_data_resource_")
                 _return_type = (dict,)
 
             # register it:
