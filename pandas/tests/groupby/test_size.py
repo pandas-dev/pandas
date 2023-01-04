@@ -37,7 +37,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     if sort:
         expected = expected.sort_index()
     if tm.is_integer_dtype(expected.index) and not any(x is None for x in by):
-        expected.index = expected.index.astype(np.int_)
+        expected.index = expected.index.astype(np.intp)
 
     grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()

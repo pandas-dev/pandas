@@ -99,7 +99,6 @@ def test_flex_binary_frame(method, frame):
     exp = DataFrame(
         {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
     )
-    exp.columns = exp.columns.astype(np.int_)
     tm.assert_frame_equal(res3, exp)
 
 

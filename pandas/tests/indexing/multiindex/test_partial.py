@@ -156,7 +156,7 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert mi.levels[0].dtype == np.int_
+            assert mi.levels[0].dtype == np.intpq
         else:
             assert mi.levels[0].dtype == np.float64
 
