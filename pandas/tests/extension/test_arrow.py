@@ -37,7 +37,10 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_numeric_dtype,
+)
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
@@ -1444,6 +1447,19 @@ def test_is_bool_dtype():
     result = s[data]
     expected = s[np.asarray(data)]
     tm.assert_series_equal(result, expected)
+
+
+def test_is_numeric_dtype(data):
+    # GH 50563
+    pa_type = data.dtype.pyarrow_dtype
+    if (
+        pa.types.is_floating(pa_type)
+        or pa.types.is_integer(pa_type)
+        or pa.types.is_decimal(pa_type)
+    ):
+        assert is_numeric_dtype(data)
+    else:
+        assert not is_numeric_dtype(data)
 
 
 def test_pickle_roundtrip(data):
