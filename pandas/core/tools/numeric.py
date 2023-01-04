@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
 )
@@ -247,7 +248,7 @@ def to_numeric(
 
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array
-    if mask is not None or new_mask is not None:
+    if (mask is not None or new_mask is not None) and not is_object_dtype(values.dtype):
         if mask is None:
             mask = new_mask
         assert isinstance(mask, np.ndarray)

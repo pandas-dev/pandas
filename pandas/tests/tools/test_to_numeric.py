@@ -849,3 +849,21 @@ def test_to_numeric_use_nullable_dtypes_downcasting_uint():
     result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
     expected = Series([1, pd.NA], dtype="UInt8")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
+)
+def test_to_numeric_use_nullable_dtypes_error(use_nullable_dtypes, dtype):
+    # GH#50505
+    ser = Series(["a", "b", ""])
+    expected = ser.copy()
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes)
+
+    result = to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes, errors="ignore")
+    tm.assert_series_equal(result, expected)
+
+    result = to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes, errors="coerce")
+    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+    tm.assert_series_equal(result, expected)
