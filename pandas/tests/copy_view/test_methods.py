@@ -255,6 +255,24 @@ def test_to_frame(using_copy_on_write):
         tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize("ax", ["index", "columns"])
+def test_swapaxes_noop(using_copy_on_write, ax):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    df2 = df.swapaxes(ax, ax)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column/block
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 @pytest.mark.parametrize(
     "method, idx",
     [
