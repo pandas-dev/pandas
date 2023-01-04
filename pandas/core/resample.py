@@ -989,6 +989,12 @@ class Resampler(BaseGroupBy, PandasObject):
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
+
+        # If the result is a non-empty DataFrame we stack to get a Series
+        # GH 46826
+        if isinstance(result, ABCDataFrame) and not result.empty:
+            result = result.stack()
+
         if not len(self.ax):
             from pandas import Series
 
