@@ -141,7 +141,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
                 return guessed_format
             warnings.warn(
                 "Could not infer format, so each element will be parsed "
-                "individually by `dateutil`. To ensure parsing is "
+                "individually, falling back to `dateutil`. To ensure parsing is "
                 "consistent and as-expected, please specify a format.",
                 UserWarning,
                 stacklevel=find_stack_level(),
