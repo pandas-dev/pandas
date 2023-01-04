@@ -13,7 +13,7 @@ def astype_overflowsafe(
     dtype: np.dtype,
     copy: bool = ...,
     round_ok: bool = ...,
-    coerce: bool = ...,
+    is_coerce: bool = ...,
 ) -> np.ndarray: ...
 def is_unitless(dtype: np.dtype) -> bool: ...
 def compare_mismatched_resolutions(

@@ -308,7 +308,7 @@ cpdef ndarray astype_overflowsafe(
     cnp.dtype dtype,
     bint copy=True,
     bint round_ok=True,
-    bint coerce=False,
+    bint is_coerce=False,
 ):
     """
     Convert an ndarray with datetime64[X] to datetime64[Y]
@@ -386,7 +386,7 @@ cpdef ndarray astype_overflowsafe(
             try:
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
-                if coerce:
+                if is_coerce:
                     new_value = NPY_DATETIME_NAT
                 elif is_td:
                     from_abbrev = np.datetime_data(values.dtype)[0]

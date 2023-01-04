@@ -1025,14 +1025,10 @@ class TestToDatetime:
     @pytest.mark.parametrize(
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
-    def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        # We cast to the nearest supported reso, i.e. "s"
-        ts = to_datetime(dt, errors="raise", cache=cache)
-        assert isinstance(ts, Timestamp)
-        assert ts.unit == "s"
-        assert ts.asm8 == dt
-
-        ts = to_datetime(dt, errors="coerce", cache=cache)
+    @pytest.mark.parametrize("errors", ["raise", "ignore", "coerce"])
+    def test_to_datetime_dt64s_out_of_ns_bounds(self, cache, dt, errors):
+        # GH#50369 We cast to the nearest supported reso, i.e. "s"
+        ts = to_datetime(dt, errors=errors, cache=cache)
         assert isinstance(ts, Timestamp)
         assert ts.unit == "s"
         assert ts.asm8 == dt

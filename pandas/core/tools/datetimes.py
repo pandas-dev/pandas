@@ -407,7 +407,7 @@ def _convert_listlike_datetimes(
                 # TODO: looks like we incorrectly raise with errors=="ignore"
                 np.asarray(arg),
                 np.dtype("M8[s]"),
-                coerce=errors == "coerce",
+                is_coerce=errors == "coerce",
             )
 
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
