@@ -768,7 +768,15 @@ def test_nsmallest():
 
 @pytest.mark.parametrize(
     "data, groups",
-    [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
+    [
+        ([0, 1, 2, 3], [0, 0, 1, 1]),
+        ([0], [0]),
+        *[
+            (np.array(data, dtype=dtyp), np.array(groups, dtype=dtyp))
+            for data, groups in [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])]
+            for dtyp in tm.ALL_INT_NUMPY_DTYPES
+        ],
+    ],
 )
 @pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
 def test_nlargest_and_smallest_noop(data, groups, method):
@@ -778,8 +786,9 @@ def test_nlargest_and_smallest_noop(data, groups, method):
     if method == "nlargest":
         data = list(reversed(data))
     ser = Series(data, name="a")
-    result = getattr(ser.groupby(np.array(groups, dtype=np.int64)), method)(n=2)
-    expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
+    result = getattr(ser.groupby(groups), method)(n=2)
+    expidx = np.array(groups, dtype=np.intp) if isinstance(groups, list) else groups
+    expected = Series(data, index=MultiIndex.from_arrays([expidx, ser.index]), name="a")
     tm.assert_series_equal(result, expected)
 
 
