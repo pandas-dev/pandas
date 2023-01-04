@@ -3822,6 +3822,15 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where `frame.columns` is unique, this is equivalent to
         `frame[frame.columns[i]] = value`.
         """
+        if isinstance(value, DataFrame):
+            if is_scalar(loc):
+                loc = [loc]
+
+            for i, idx in enumerate(loc):
+                arraylike = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False)
+            return
+
         arraylike = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
