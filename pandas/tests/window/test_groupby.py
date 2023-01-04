@@ -919,10 +919,7 @@ class TestRolling:
             arr,
             name="adl2",
             index=MultiIndex.from_arrays(
-                [
-                    Index([0] * 999 + [1], dtype=np.int_, name="index"),
-                    Index([0] * 999 + [1], dtype=np.int_, name="index"),
-                ],
+                [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
             ),
         )
         tm.assert_series_equal(result, expected)
