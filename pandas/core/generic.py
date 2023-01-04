@@ -5771,7 +5771,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
         """
-        return common.pipe(self, func, *args, **kwargs)
+        result = common.pipe(self, func, *args, **kwargs)
+        if _using_copy_on_write():
+            return result.copy(deep=None)
+        return result
 
     # ----------------------------------------------------------------------
     # Attribute access
