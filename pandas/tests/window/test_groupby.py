@@ -897,10 +897,11 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_nan_and_zero_endpoints(self):
+    def test_nan_and_zero_endpoints(self, any_int_numpy_dtype):
         # https://github.com/twosigma/pandas/issues/53
+        dtype = np.dtype(any_int_numpy_dtype).type
         size = 1000
-        idx = np.repeat(0, size)
+        idx = np.repeat(dtype(0), size)
         idx[-1] = 1
 
         val = 5e25
@@ -919,7 +920,10 @@ class TestRolling:
             arr,
             name="adl2",
             index=MultiIndex.from_arrays(
-                [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
+                [
+                    Index([0] * 999 + [1], dtype=dtype, name="index"),
+                    Index([0] * 999 + [1], dtype=dtype, name="index"),
+                ],
             ),
         )
         tm.assert_series_equal(result, expected)
