@@ -319,10 +319,7 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
     result = {}
     seen = {}
 
-    if ignore_functions is None:
-        ignore_functions = {}
-    else:
-        ignore_functions = set(ignore_functions)
+    ignore_functions = set(ignore_functions or [])
 
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
@@ -332,9 +329,9 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
             api_items += list(get_api_items(f))
 
     for func_name, _, section, subsection in api_items:
-        if (
-            prefix and not func_name.startswith(prefix)
-        ) or func_name in ignore_functions:
+        if func_name in ignore_functions:
+            continue
+        if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
         if ignore_deprecated and doc_info["deprecated"]:
@@ -482,7 +479,7 @@ if __name__ == "__main__":
         "--ignore_functions",
         default=None,
         help="function or method to not validate "
-        "(e.g. Pandas.DataFrame.head). "
+        "(e.g. pandas.DataFrame.head). "
         "Inverse of the `function` argument.",
     )
 
