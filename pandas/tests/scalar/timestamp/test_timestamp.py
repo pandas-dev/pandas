@@ -7,6 +7,7 @@ from datetime import (
     timezone,
 )
 import locale
+import time
 import unicodedata
 
 from dateutil.tz import tzutc
@@ -1094,4 +1095,12 @@ def test_delimited_date():
     with tm.assert_produces_warning(None):
         result = Timestamp("13-01-2000")
     expected = Timestamp(2000, 1, 13)
+    assert result == expected
+
+
+def test_utctimetuple():
+    # GH 32174
+    ts = Timestamp("2000-01-01", tz="UTC")
+    result = ts.utctimetuple()
+    expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
     assert result == expected
