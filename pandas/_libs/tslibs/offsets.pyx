@@ -1847,15 +1847,20 @@ cdef class BusinessHour(BusinessMixin):
         earliest_start = self.start[0]
         latest_start = self.start[-1]
 
+        if self.n == 0:
+            is_same_sign = sign > 0
+        else:
+            is_same_sign = self.n * sign >= 0
+
         if not self.next_bday.is_on_offset(other):
             # today is not business day
             other = other + sign * self.next_bday
-            if self.n * sign >= 0:
+            if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
                 hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0:
+            if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
                     other = other + sign * self.next_bday
