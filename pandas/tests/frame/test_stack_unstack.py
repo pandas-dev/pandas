@@ -857,6 +857,8 @@ class TestDataFrameReshape:
     def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -874,6 +876,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[2, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -886,6 +890,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
