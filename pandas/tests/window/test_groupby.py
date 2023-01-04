@@ -1125,11 +1125,10 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            expected = df.groupby("A", group_keys=True).apply(
-                lambda x: getattr(x.ewm(com=1.0), method)()
-            )
+        # GH#42738
+        expected = df.groupby("A", group_keys=True).apply(
+            lambda x: getattr(x.ewm(com=1.0), method)()
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1160,13 +1159,9 @@ class TestEWM:
     def test_times(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = (
-                times_frame.groupby("A")
-                .ewm(halflife=halflife, times=times_frame["C"])
-                .mean()
-            )
+        # GH#42738
+        times = times_frame.pop("C")
+        result = times_frame.groupby("A").ewm(halflife=halflife, times=times).mean()
         expected = DataFrame(
             {
                 "B": [
@@ -1200,29 +1195,13 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_times_vs_apply(self, times_frame):
-        # GH 40951
-        halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = (
-                times_frame.groupby("A")
-                .ewm(halflife=halflife, times=times_frame["C"])
-                .mean()
-            )
-            expected = times_frame.groupby("A", group_keys=True).apply(
-                lambda x: x.ewm(halflife=halflife, times=x["C"]).mean()
-            )
-        tm.assert_frame_equal(result, expected)
-
     def test_times_array(self, times_frame):
         # GH 40951
         halflife = "23 days"
+        times = times_frame.pop("C")
         gb = times_frame.groupby("A")
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = gb.ewm(halflife=halflife, times=times_frame["C"]).mean()
-            expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
+        result = gb.ewm(halflife=halflife, times=times).mean()
+        expected = gb.ewm(halflife=halflife, times=times.values).mean()
         tm.assert_frame_equal(result, expected)
 
     def test_dont_mutate_obj_after_slicing(self):

@@ -18,7 +18,6 @@ from typing import (
     Sized,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -37,7 +36,6 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -484,13 +482,10 @@ class BaseWindow(SelectionMixin):
         res_values = []
         for i, arr in enumerate(obj._iter_column_arrays()):
             # GH#42736 operate column-wise instead of block-wise
-            try:
-                res = hfunc(arr)
-            except (TypeError, NotImplementedError):
-                pass
-            else:
-                res_values.append(res)
-                taker.append(i)
+            # As of 2.0, hfunc will raise for nuisance columns
+            res = hfunc(arr)
+            res_values.append(res)
+            taker.append(i)
 
         index = self._slice_axis_for_step(
             obj.index, res_values[0] if len(res_values) > 0 else None
@@ -504,18 +499,6 @@ class BaseWindow(SelectionMixin):
 
         if self.axis == 1:
             df = df.T
-
-        if 0 != len(res_values) != len(obj.columns):
-            # GH#42738 ignore_failures dropped nuisance columns
-            dropped = obj.columns.difference(obj.columns.take(taker))
-            warnings.warn(
-                "Dropping of nuisance columns in rolling operations "
-                "is deprecated; in a future version this will raise TypeError. "
-                "Select only valid columns before calling the operation. "
-                f"Dropped columns were {dropped}",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         return self._resolve_output(df, obj)
 
