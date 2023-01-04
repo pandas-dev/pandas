@@ -115,8 +115,14 @@ def fixture_lhs(request):
     return opts[request.param]
 
 
-rhs = lhs
-midhs = lhs
+@pytest.fixture(name="rhs")
+def fixture_rhs(lhs):
+    yield lhs
+
+
+@pytest.fixture(name="midhs")
+def fixture_midhs(lhs):
+    yield lhs
 
 
 class TestEval:
@@ -1054,7 +1060,7 @@ class TestOperations:
     def test_simple_bool_ops(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
 
-        if parser == "python" and op in ["and", "or"]:
+        if fixture_parser == "python" and op in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 self.eval(ex)
@@ -1070,7 +1076,7 @@ class TestOperations:
     def test_bool_ops_with_constants(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
 
-        if parser == "python" and op in ["and", "or"]:
+        if fixture_parser == "python" and op in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 self.eval(ex)

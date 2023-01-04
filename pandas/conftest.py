@@ -268,7 +268,9 @@ def fixture_axis(request):
     return request.param
 
 
-axis_frame = axis
+@pytest.fixture(name="axis_frame")
+def fixture_axis_frame(axis):
+    yield axis
 
 
 @pytest.fixture(name="axis_1", params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
@@ -410,7 +412,10 @@ def fixture_nulls_fixture(request):
     return request.param
 
 
-nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
+@pytest.fixture(name="nulls_fixture2")
+def fixture_nulls_fixture2(nulls_fixture):
+    # Generate cartesian product of nulls_fixture
+    yield nulls_fixture
 
 
 @pytest.fixture(name="unique_nulls_fixture", params=[None, np.nan, pd.NaT])
@@ -421,8 +426,10 @@ def fixture_unique_nulls_fixture(request):
     return request.param
 
 
-# Generate cartesian product of unique_nulls_fixture:
-unique_nulls_fixture2 = unique_nulls_fixture
+@pytest.fixture(name="unique_nulls_fixture2")
+def fixture_unique_nulls_fixture2(unique_nulls_fixture):
+    # Generate cartesian product of unique_nulls_fixture
+    yield unique_nulls_fixture
 
 
 @pytest.fixture(
@@ -435,8 +442,10 @@ def fixture_np_nat_fixture(request):
     return request.param
 
 
-# Generate cartesian product of np_nat_fixture:
-np_nat_fixture2 = np_nat_fixture
+@pytest.fixture(name="np_nat_fixture2")
+def fixture_np_nat_fixture2(np_nat_fixture):
+    # Generate cartesian product of np_nat_fixture
+    yield np_nat_fixture
 
 
 # ----------------------------------------------------------------
@@ -465,8 +474,10 @@ def fixture_index_or_series(request):
     return request.param
 
 
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
+@pytest.fixture(name="index_or_series2")
+def fixture_index_or_series2(index_or_series):
+    # Generate cartesian product of index_or_series
+    yield index_or_series
 
 
 @pytest.fixture(
@@ -494,7 +505,10 @@ def fixture_box_with_array(request):
     return request.param
 
 
-box_with_array2 = box_with_array
+@pytest.fixture(name="box_with_array2")
+def fixture_box_with_array2(box_with_array):
+    # Generate cartesian product of box_with_array
+    yield box_with_array
 
 
 @pytest.fixture(name="dict_subclass")
@@ -658,7 +672,10 @@ def fixture_index(request):
 
 
 # Needed to generate cartesian product of indices
-index_fixture2 = index
+@pytest.fixture(name="index_fixture2")
+def fixture_index_fixture2(index):
+    # Generate cartesian product of index
+    yield index
 
 
 @pytest.fixture(
@@ -675,8 +692,10 @@ def fixture_index_flat(request):
     return indices_dict[key].copy()
 
 
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
+@pytest.fixture(name="index_flat2")
+def fixture_index_flat2(index_flat):
+    # Alias so we can test with cartesian product of index_flat
+    yield index_flat
 
 
 @pytest.fixture(
@@ -1260,8 +1279,10 @@ def fixture_tz_aware_fixture(request):
     return request.param
 
 
-# Generate cartesian product of tz_aware_fixture:
-tz_aware_fixture2 = tz_aware_fixture
+@pytest.fixture(name="tz_aware_fixture2")
+def fixture_tz_aware_fixture2(tz_aware_fixture):
+    # Generate cartesian product of tz_aware_fixture:
+    yield tz_aware_fixture
 
 
 _UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
@@ -1277,7 +1298,10 @@ def fixture_utc_fixture(request):
     return request.param
 
 
-utc_fixture2 = utc_fixture
+@pytest.fixture(name="utc_fixture2")
+def fixture_utc_fixture2(utc_fixture):
+    # Generate cartesian product of utc_fixture
+    yield utc_fixture
 
 
 # ----------------------------------------------------------------
@@ -1330,7 +1354,10 @@ def fixture_string_storage(request):
 
 
 # Alias so we can test with cartesian product of string_storage
-string_storage2 = string_storage
+@pytest.fixture(name="string_storage2")
+def fixture_string_storage2(string_storage):
+    # Generate cartesian product of string_storage:
+    yield string_storage
 
 
 @pytest.fixture(name="bytes_dtype", params=tm.BYTES_DTYPES)

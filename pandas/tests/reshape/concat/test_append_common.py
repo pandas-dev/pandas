@@ -53,7 +53,9 @@ class TestConcatAppendCommon:
         key = request.param
         return key, data_dict[key]
 
-    item2 = item
+    @pytest.fixture(name="item2")
+    def fixture_item2(self, item):
+        yield item
 
     def test_dtypes(self, item, index_or_series):
         # to confirm test case covers intended dtypes
