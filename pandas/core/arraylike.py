@@ -119,30 +119,31 @@ class OpsMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2], "B": [2, 0]}, index=["AA", "BB"])
-        >>> df[["A", "B"]] + 1.5
-            A   B
-        AA  2.5 3.5
-        BB  3.5 1.5
+        >>> df = pd.DataFrame({'height': [1.5, 2.6], 'weight': [500, 800]},
+        ...                   index=['elk', 'moose'])
+        >>> df[['height', 'weight']] + 1.5
+               height  weight
+        elk       3.0   501.5
+        moose     4.1   801.5
 
         When `other` is a :class:`Series`, the index of `other` is aligned with the
         columns of the DataFrame:
 
-        >>> s = pd.Series([1.5, 2.5], index=['A', 'B'])
-        >>> df[["A", "B"]] + s
-            A   B
-        AA  2.5 4.5
-        BB  3.5 2.5
+        >>> s = pd.Series([0.5, 1.5], index=['height', 'weight'])
+        >>> df[['height', 'weight']] + s
+                height  weight
+        elk        2.0   501.5
+        moose      3.1   801.5
 
         Even when the index of `other` is the same as the index of the DataFrame,
         the :class:`Series` will not be reoriented. If index-wise alignment is desired,
         :meth:`DataFrame.add` should be used.
 
-        >>> s = pd.Series([1.5, 2.5], index=['AA', 'BB'])
-        >>> df[["A", "B"]] + s
-            A   AA  B   BB
-        AA  NaN NaN NaN NaN
-        BB  NaN NaN NaN NaN
+        >>> s = pd.Series([0.5, 1.5], index=['elk', 'moose'])
+        >>> df[['height', 'weight']] + s
+                elk  height  moose  weight
+        elk     NaN     NaN    NaN     NaN
+        moose   NaN     NaN    NaN     NaN
         """
         return self._arith_method(other, operator.add)
 
