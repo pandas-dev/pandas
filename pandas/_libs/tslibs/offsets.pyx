@@ -366,6 +366,21 @@ class ApplyTypeError(TypeError):
 cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
+
+    normalize : bool
+        Whether the frequency can align with midnight.
+
+    Examples
+    --------
+    >>> pd.offsets.Hour(5).n
+    5
+    >>> pd.offsets.Hour(5).normalize
+    False
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -384,23 +399,7 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        """
-        Number of multiples of the frequency.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).n
-        5
-        """
         self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).normalize
-        False
-        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
