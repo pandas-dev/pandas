@@ -671,7 +671,7 @@ cpdef array_to_datetime(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+cdef ndarray ignore_errors_out_of_bounds_fallback(ndarray values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
     and errors == "ignore"
