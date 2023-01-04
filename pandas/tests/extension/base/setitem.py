@@ -418,3 +418,11 @@ class BaseSetitemTests(BaseExtensionTests):
 
         with pytest.raises((ValueError, TypeError), match=msg):
             data[:] = invalid_scalar
+
+    def test_setitem_2d_values(self, data):
+        # GH50085
+        original = data.copy()
+        df = pd.DataFrame({"a": data, "b": data})
+        df.loc[[0, 1], :] = df.loc[[1, 0], :].values
+        assert (df.loc[0, :] == original[1]).all()
+        assert (df.loc[1, :] == original[0]).all()
