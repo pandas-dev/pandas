@@ -983,7 +983,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return self.dtype.na_value
         return result.as_py()
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -1004,6 +1004,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
+        # GH50085: unwrap 1D indexers
+        if isinstance(key, tuple) and len(key) == 1:
+            key = key[0]
+
         key = check_array_indexer(self, key)
         value = self._maybe_convert_setitem_value(value)
 
@@ -1029,7 +1033,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 return
 
         indices = self._indexing_key_to_indices(key)
-
         argsort = np.argsort(indices)
         indices = indices[argsort]
 
