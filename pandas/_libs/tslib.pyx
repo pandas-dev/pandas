@@ -704,10 +704,10 @@ cdef ndarray ignore_errors_out_of_bounds_fallback(ndarray values):
             if isinstance(val, float):
                 oresult[i] = np.nan
             else:
-                oresult[i] = NaT
+                oresult[i] = <object>NaT
         elif is_datetime64_object(val):
             if get_datetime64_value(val) == NPY_NAT:
-                oresult[i] = NaT
+                oresult[i] = <object>NaT
             else:
                 oresult[i] = val.item()
         else:
