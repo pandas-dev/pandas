@@ -1849,7 +1849,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmax(
         self,
-        axis: Axis = 0,
+        axis: Axis = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -1860,9 +1860,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-            The axis argument is ignored, instead we use the grouper's axis.
+            If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
 
@@ -1921,7 +1921,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        axis = self.axis
+        if axis is None:
+            axis = self.axis
 
         def func(df):
             res = df._reduce(
@@ -1944,7 +1945,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmin(
         self,
-        axis: Axis = 0,
+        axis: Axis = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -1955,9 +1956,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-            The axis argument is ignored, instead we use the grouper's axis.
+            If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
 
@@ -2016,7 +2017,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        axis = self.axis
+        if axis is None:
+            axis = self.axis
 
         def func(df):
             res = df._reduce(
