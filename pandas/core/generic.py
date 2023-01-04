@@ -142,7 +142,6 @@ from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
-from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -160,6 +159,7 @@ from pandas.core.internals import (
 )
 from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.internals.managers import using_copy_on_write
+from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,

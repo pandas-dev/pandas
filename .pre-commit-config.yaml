@@ -92,7 +92,6 @@ repos:
             |^pandas/util/_test_decorators\.py  # keep excluded
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
-            |^pandas/core/generic\.py
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
