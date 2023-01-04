@@ -1,6 +1,10 @@
-""" test with the TimeGrouper / grouping with datetimes """
-
-from datetime import datetime
+"""
+test with the TimeGrouper / grouping with datetimes
+"""
+from datetime import (
+    datetime,
+    timedelta as dttd,
+)
 from io import StringIO
 
 import numpy as np
@@ -763,8 +767,6 @@ class TestGroupBy:
         # GH 10295
         # Verify that NaT is not in the result of max, min, first and last on
         # Dataframe with datetime or timedelta values.
-        from datetime import timedelta as td
-
         df_test = DataFrame(
             {
                 "dt": [
@@ -774,7 +776,7 @@ class TestGroupBy:
                     "2015-07-23 12:12",
                     np.nan,
                 ],
-                "td": [np.nan, td(days=1), td(days=2), td(days=3), np.nan],
+                "td": [np.nan, dttd(days=1), dttd(days=2), dttd(days=3), np.nan],
             }
         )
         df_test.dt = pd.to_datetime(df_test.dt)

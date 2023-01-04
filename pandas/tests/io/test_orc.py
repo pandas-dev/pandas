@@ -1,5 +1,8 @@
-""" test orc compat """
+"""
+test orc compat
+"""
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 
@@ -97,8 +100,6 @@ def test_orc_reader_basic(dirpath):
 
 
 def test_orc_reader_decimal(dirpath):
-    from decimal import Decimal
-
     # Only testing the first 10 rows of data
     data = {
         "_col0": np.array(
