@@ -53,6 +53,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
@@ -298,6 +299,12 @@ def parse_datetime_string(
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{date_string}" to datetime overflows'
+            ) from err
 
     return dt
 
@@ -818,26 +825,6 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
-def format_is_iso(f: str) -> bint:
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_template = "%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}".format
-    excluded_formats = ["%Y%m%d", "%Y%m", "%Y"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                if (iso_template(date_sep=date_sep,
-                                 time_sep=time_sep,
-                                 micro_or_tz=micro_or_tz,
-                                 ).startswith(f) and f not in excluded_formats):
-                    return True
-    return False
-
-
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
@@ -1025,7 +1012,8 @@ cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
             )
         if (day_index < month_index) and not dayfirst:
             warnings.warn(
-                f"Parsing dates in {format} format when dayfirst=False was specified. "
+                f"Parsing dates in {format} format when dayfirst=False (the default) "
+                "was specified. "
                 "Pass `dayfirst=True` or specify a format to silence this warning.",
                 UserWarning,
                 stacklevel=find_stack_level(),
