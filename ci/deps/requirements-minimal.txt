@@ -3,6 +3,7 @@ hypothesis==6.52.1
 numpy
 pytest>=6.2.5
 pytest-asyncio>=0.17
+pytest-xdist
 python-dateutil
 pytz
 versioneer[toml]
