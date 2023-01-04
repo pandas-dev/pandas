@@ -103,9 +103,7 @@ def read_orc(
         else:
             from pandas.io._util import _arrow_dtype_mapping
 
-            pa = import_optional_dependency("pyarrow")
-            mapping = _arrow_dtype_mapping(pa)
-
+            mapping = _arrow_dtype_mapping()
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:

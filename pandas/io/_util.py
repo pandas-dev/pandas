@@ -1,20 +1,23 @@
 from __future__ import annotations
 
+from pandas.compat._optional import import_optional_dependency
+
 import pandas as pd
 
 
-def _arrow_dtype_mapping(api) -> dict:
+def _arrow_dtype_mapping() -> dict:
+    pa = import_optional_dependency("pyarrow")
     return {
-        api.int8(): pd.Int8Dtype(),
-        api.int16(): pd.Int16Dtype(),
-        api.int32(): pd.Int32Dtype(),
-        api.int64(): pd.Int64Dtype(),
-        api.uint8(): pd.UInt8Dtype(),
-        api.uint16(): pd.UInt16Dtype(),
-        api.uint32(): pd.UInt32Dtype(),
-        api.uint64(): pd.UInt64Dtype(),
-        api.bool_(): pd.BooleanDtype(),
-        api.string(): pd.StringDtype(),
-        api.float32(): pd.Float32Dtype(),
-        api.float64(): pd.Float64Dtype(),
+        pa.int8(): pd.Int8Dtype(),
+        pa.int16(): pd.Int16Dtype(),
+        pa.int32(): pd.Int32Dtype(),
+        pa.int64(): pd.Int64Dtype(),
+        pa.uint8(): pd.UInt8Dtype(),
+        pa.uint16(): pd.UInt16Dtype(),
+        pa.uint32(): pd.UInt32Dtype(),
+        pa.uint64(): pd.UInt64Dtype(),
+        pa.bool_(): pd.BooleanDtype(),
+        pa.string(): pd.StringDtype(),
+        pa.float32(): pd.Float32Dtype(),
+        pa.float64(): pd.Float64Dtype(),
     }

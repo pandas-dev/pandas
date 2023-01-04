@@ -229,7 +229,7 @@ class PyArrowImpl(BaseImpl):
             if dtype_backend == "pandas":
                 from pandas.io._util import _arrow_dtype_mapping
 
-                mapping = _arrow_dtype_mapping(self.api)
+                mapping = _arrow_dtype_mapping()
                 to_pandas_kwargs["types_mapper"] = mapping.get
 
         manager = get_option("mode.data_manager")
