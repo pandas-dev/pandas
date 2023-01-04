@@ -439,7 +439,7 @@ def first_non_null(values: ndarray) -> int:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef array_to_datetime(
-    ndarray[object] values,
+    ndarray values,  # object dtype, arbitrary ndim
     str errors="raise",
     bint dayfirst=False,
     bint yearfirst=False,
@@ -478,7 +478,7 @@ cpdef array_to_datetime(
     tzinfo or None
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val, tz
         ndarray[int64_t] iresult
         npy_datetimestruct dts
@@ -498,16 +498,19 @@ cpdef array_to_datetime(
         datetime py_dt
         tzinfo tz_out = None
         bint found_tz = False, found_naive = False
+        cnp.broadcast mi
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
-    result = np.empty(n, dtype="M8[ns]")
-    iresult = result.view("i8")
+    result = np.empty((<object>values).shape, dtype="M8[ns]")
+    mi = cnp.PyArray_MultiIterNew2(result, values)
+    iresult = result.view("i8").ravel()
 
     try:
         for i in range(n):
-            val = values[i]
+            # Analogous to `val = values[i]`
+            val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
             try:
                 if checknull_with_nat_and_na(val):
@@ -525,7 +528,7 @@ cpdef array_to_datetime(
                         found_tz,
                         utc_convert,
                     )
-                    result[i] = parse_pydatetime(val, &dts, utc_convert)
+                    iresult[i] = parse_pydatetime(val, &dts, utc_convert)
 
                 elif PyDate_Check(val):
                     iresult[i] = pydate_to_dt64(val, &dts)
@@ -560,6 +563,7 @@ cpdef array_to_datetime(
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
+                        cnp.PyArray_MultiIter_NEXT(mi)
                         continue
 
                     string_to_dts_failed = string_to_dts(
@@ -570,6 +574,7 @@ cpdef array_to_datetime(
                         # An error at this point is a _parsing_ error
                         # specifically _not_ OutOfBoundsDatetime
                         if parse_today_now(val, &iresult[i], utc):
+                            cnp.PyArray_MultiIter_NEXT(mi)
                             continue
 
                         try:
@@ -583,6 +588,7 @@ cpdef array_to_datetime(
                         except (ValueError, OverflowError):
                             if is_coerce:
                                 iresult[i] = NPY_NAT
+                                cnp.PyArray_MultiIter_NEXT(mi)
                                 continue
                             raise TypeError(
                                 f"invalid string coercion to datetime "
@@ -632,8 +638,11 @@ cpdef array_to_datetime(
                 ex.args = (f"{ex}, at position {i}",)
                 if is_coerce:
                     iresult[i] = NPY_NAT
+                    cnp.PyArray_MultiIter_NEXT(mi)
                     continue
                 raise
+
+            cnp.PyArray_MultiIter_NEXT(mi)
 
     except OutOfBoundsDatetime:
         if is_raise:
@@ -676,13 +685,19 @@ cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values
     ndarray[object]
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val
+        cnp.broadcast mi
+        ndarray[object] oresult
+        ndarray oresult_nd
 
-    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+    oresult_nd = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+    mi = cnp.PyArray_MultiIterNew2(oresult_nd, values)
+    oresult = oresult_nd.ravel()
 
     for i in range(n):
-        val = values[i]
+        # Analogous to `val = values[i]`
+        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         # set as nan except if its a NaT
         if checknull_with_nat_and_na(val):
@@ -697,6 +712,9 @@ cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values
                 oresult[i] = val.item()
         else:
             oresult[i] = val
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
     return oresult
 
 
@@ -731,24 +749,30 @@ cdef _array_to_datetime_object(
     Literal[None]
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val
         bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
+        ndarray oresult_nd
         ndarray[object] oresult
         npy_datetimestruct dts
+        cnp.broadcast mi
 
     assert is_raise or is_ignore or is_coerce
 
-    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+    oresult_nd = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+    mi = cnp.PyArray_MultiIterNew2(oresult_nd, values)
+    oresult = oresult_nd.ravel()
 
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
     # 3) special strings - "now" & "today"
     for i in range(n):
-        val = values[i]
+        # Analogous to: val = values[i]
+        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
             # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
@@ -759,6 +783,7 @@ cdef _array_to_datetime_object(
 
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = "NaT"
+                cnp.PyArray_MultiIter_NEXT(mi)
                 continue
             try:
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
@@ -769,6 +794,7 @@ cdef _array_to_datetime_object(
                 ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
+                    cnp.PyArray_MultiIter_NEXT(mi)
                     continue
                 if is_raise:
                     raise
@@ -777,7 +803,10 @@ cdef _array_to_datetime_object(
             if is_raise:
                 raise
             return values, None
-    return oresult, None
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return oresult_nd, None
 
 
 def array_to_datetime_with_tz(ndarray values, tzinfo tz):
