@@ -784,6 +784,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
 - Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
+- Performance improvement in :meth:`.SeriesGroupBy.value_count` with categorical dtype (:issue:`46202`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -949,6 +950,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.nth` would raise when grouper contained NA values after subsetting from a :class:`DataFrameGroupBy` (:issue:`26454`)
 - Bug in :meth:`DataFrame.groupby` would not include a :class:`.Grouper` specified by ``key`` in the result when ``as_index=False`` (:issue:`50413`)
 - Bug in :meth:`.DataFrameGrouBy.value_counts` would raise when used with a :class:`.TimeGrouper` (:issue:`50486`)
+- Bug in :meth:`.SeriesGroupBy.value_counts` did not respect ``sort=False`` (:issue:`50482`)
 -
 
 Reshaping
