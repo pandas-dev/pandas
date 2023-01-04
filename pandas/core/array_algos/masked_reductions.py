@@ -169,3 +169,19 @@ def var(
     return _reductions(
         np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
     )
+
+
+def std(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    return _reductions(
+        np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+    )

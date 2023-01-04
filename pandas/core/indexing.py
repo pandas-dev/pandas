@@ -9,7 +9,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -23,9 +22,9 @@ from pandas.errors import (
     AbstractMethodError,
     IndexingError,
     InvalidIndexError,
+    LossySetitemError,
 )
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -793,6 +792,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
+        orig_key = key
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
@@ -808,6 +808,23 @@ class _LocationIndexer(NDFrameIndexerBase):
         ):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
+            diff = Index(key).difference(self.obj.columns, sort=False)
+
+            if len(diff) and com.is_null_slice(orig_key[0]):
+                # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
+                #  is a new column, add the new columns with dtype=np.void
+                #  so that later when we go through setitem_single_column
+                #  we will use isetitem. Without this, the reindex_axis
+                #  below would create float64 columns in this example, which
+                #  would successfully hold 7, so we would end up with the wrong
+                #  dtype.
+                indexer = np.arange(len(keys), dtype=np.intp)
+                indexer[len(self.obj.columns) :] = -1
+                new_mgr = self.obj._mgr.reindex_indexer(
+                    keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
+                )
+                self.obj._mgr = new_mgr
+                return
 
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
@@ -1984,72 +2001,25 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
-        orig_values = self.obj._get_column_array(loc)
+        is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        # perform the equivalent of a setitem on the info axis
-        # as we have a null slice or a slice with full bounds
-        # which means essentially reassign to the columns of a
-        # multi-dim object
-        # GH#6149 (null slice), GH#10408 (full bounds)
-        if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
-            pass
-        elif (
-            is_array_like(value)
-            and len(value.shape) > 0
-            and self.obj.shape[0] == value.shape[0]
-            and not is_empty_indexer(pi)
-        ):
-            if is_list_like(pi) and not is_bool_dtype(pi):
-                value = value[np.argsort(pi)]
-            else:
-                # in case of slice
-                value = value[pi]
+        if is_full_setter:
+
+            try:
+                self.obj._mgr.column_setitem(
+                    loc, plane_indexer, value, inplace_only=True
+                )
+            except (ValueError, TypeError, LossySetitemError):
+                # If we're setting an entire column and we can't do it inplace,
+                #  then we can use value's dtype (or inferred dtype)
+                #  instead of object
+                self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
-            self.obj._clear_item_cache()
-            return
 
-        self.obj._iset_item(loc, value)
-
-        # We will not operate in-place, but will attempt to in the future.
-        #  To determine whether we need to issue a FutureWarning, see if the
-        #  setting in-place would work, i.e. behavior will change.
-
-        new_values = self.obj._get_column_array(loc)
-
-        if can_hold_element(orig_values, new_values) and not len(new_values) == 0:
-            # Don't issue the warning yet, as we can still trim a few cases where
-            #  behavior will not change.
-
-            if (
-                isinstance(new_values, np.ndarray)
-                and isinstance(orig_values, np.ndarray)
-                and (
-                    np.shares_memory(new_values, orig_values)
-                    or new_values.shape != orig_values.shape
-                )
-            ):
-                # TODO: get something like tm.shares_memory working?
-                # The values were set inplace after all, no need to warn,
-                #  e.g. test_rename_nocopy
-                # In case of enlarging we can not set inplace, so need to
-                # warn either
-                pass
-            else:
-                warnings.warn(
-                    "In a future version, `df.iloc[:, i] = newvals` will attempt "
-                    "to set the values inplace instead of always setting a new "
-                    "array. To retain the old behavior, use either "
-                    "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
-                    "`df.isetitem(i, newvals)`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # TODO: how to get future behavior?
-                # TODO: what if we got here indirectly via loc?
-        return
+        self.obj._clear_item_cache()
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
@@ -2073,8 +2043,6 @@ class _iLocIndexer(_LocationIndexer):
                 if len(item_labels.get_indexer_for([col])) == 1:
                     # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
-                    # Go through _setitem_single_column to get
-                    #  FutureWarning if relevant.
                     self._setitem_single_column(loc, value, indexer[0])
                     return
 
