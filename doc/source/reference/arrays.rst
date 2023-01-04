@@ -69,7 +69,7 @@ PyArrow type                                    pandas extension type      NumPy
 :external+pyarrow:py:func:`pyarrow.bool_`       :class:`BooleanDtype`      ``np.bool_``
 :external+pyarrow:py:func:`pyarrow.int8`        :class:`Int8Dtype`         ``np.int8``
 :external+pyarrow:py:func:`pyarrow.int16`       :class:`Int16Dtype`        ``np.int16``
-:external+pyarrow:py:func:`pyarrow.int32``      :class:`Int32Dtype`        ``np.int32``
+:external+pyarrow:py:func:`pyarrow.int32`       :class:`Int32Dtype`        ``np.int32``
 :external+pyarrow:py:func:`pyarrow.int64`       :class:`Int64Dtype`        ``np.int64``
 :external+pyarrow:py:func:`pyarrow.uint8`       :class:`UInt8Dtype`        ``np.uint8``
 :external+pyarrow:py:func:`pyarrow.uint16`      :class:`UInt16Dtype`       ``np.uint16``
