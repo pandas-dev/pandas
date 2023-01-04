@@ -5,8 +5,8 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-@pytest.fixture
-def df1():
+@pytest.fixture(name="df1")
+def fixture_df1():
     return DataFrame(
         {
             "outer": [1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
@@ -16,8 +16,8 @@ def df1():
     )
 
 
-@pytest.fixture
-def df2():
+@pytest.fixture(name="df2")
+def fixture_df2():
     return DataFrame(
         {
             "outer": [1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
@@ -27,8 +27,8 @@ def df2():
     )
 
 
-@pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
-def left_df(request, df1):
+@pytest.fixture(name="left_df", params=[[], ["outer"], ["outer", "inner"]])
+def fixture_left_df(request, df1):
     """Construct left test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v1')
     """
@@ -39,8 +39,8 @@ def left_df(request, df1):
     return df1
 
 
-@pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
-def right_df(request, df2):
+@pytest.fixture(name="right_df", params=[[], ["outer"], ["outer", "inner"]])
+def fixture_right_df(request, df2):
     """Construct right test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v2')
     """

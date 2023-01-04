@@ -26,8 +26,8 @@ from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
 
-@pytest.fixture(params=[None, "foo"])
-def name(request):
+@pytest.fixture(name="name", params=[None, "foo"])
+def fixture_name(request):
     return request.param
 
 
@@ -207,8 +207,8 @@ class ConstructorTests:
 class TestFromArrays(ConstructorTests):
     """Tests specific to IntervalIndex.from_arrays"""
 
-    @pytest.fixture
-    def constructor(self):
+    @pytest.fixture(name="constructor")
+    def fixture_constructor(self):
         return IntervalIndex.from_arrays
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -256,8 +256,8 @@ class TestFromArrays(ConstructorTests):
 class TestFromBreaks(ConstructorTests):
     """Tests specific to IntervalIndex.from_breaks"""
 
-    @pytest.fixture
-    def constructor(self):
+    @pytest.fixture(name="constructor")
+    def fixture_constructor(self):
         return IntervalIndex.from_breaks
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -294,8 +294,8 @@ class TestFromBreaks(ConstructorTests):
 class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
-    @pytest.fixture
-    def constructor(self):
+    @pytest.fixture(name="constructor")
+    def fixture_constructor(self):
         return IntervalIndex.from_tuples
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -342,15 +342,16 @@ class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
     @pytest.fixture(
+        name="klass",
         params=[IntervalIndex, partial(Index, dtype="interval")],
         ids=["IntervalIndex", "Index"],
     )
-    def klass(self, request):
+    def fixture_klass(self, request):
         # We use a separate fixture here to include Index.__new__ with dtype kwarg
         return request.param
 
-    @pytest.fixture
-    def constructor(self):
+    @pytest.fixture(name="constructor")
+    def fixture_constructor(self):
         return IntervalIndex
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):

@@ -36,8 +36,8 @@ from pandas.io.stata import (
 )
 
 
-@pytest.fixture
-def mixed_frame():
+@pytest.fixture(name="mixed_frame")
+def fixture_mixed_frame():
     return DataFrame(
         {
             "a": [1, 2, 3, 4],
@@ -47,8 +47,8 @@ def mixed_frame():
     )
 
 
-@pytest.fixture
-def parsed_114(datapath):
+@pytest.fixture(name="parsed_114")
+def fixture_parsed_114(datapath):
     dta14_114 = datapath("io", "data", "stata", "stata5_114.dta")
     parsed_114 = read_stata(dta14_114, convert_dates=True)
     parsed_114.index.name = "index"

@@ -13,8 +13,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
-def gpd_style_subclass_df():
+@pytest.fixture(name="gpd_style_subclass_df")
+def fixture_gpd_style_subclass_df():
     class SubclassedDataFrame(DataFrame):
         @property
         def _constructor(self):

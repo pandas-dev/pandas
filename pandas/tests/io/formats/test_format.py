@@ -58,16 +58,16 @@ def get_local_am_pm():
     return am_local, pm_local
 
 
-@pytest.fixture(params=["string", "pathlike", "buffer"])
-def filepath_or_buffer_id(request):
+@pytest.fixture(name="filepath_or_buffer_id", params=["string", "pathlike", "buffer"])
+def fixture_filepath_or_buffer_id(request):
     """
     A fixture yielding test ids for filepath_or_buffer testing.
     """
     return request.param
 
 
-@pytest.fixture
-def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
+@pytest.fixture(name="filepath_or_buffer")
+def fixture_filepath_or_buffer(filepath_or_buffer_id, tmp_path):
     """
     A fixture yielding a string representing a filepath, a path-like object
     and a StringIO buffer. Also checks that buffer is not closed.
@@ -84,8 +84,8 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
             yield str(tmp_path / "foo")
 
 
-@pytest.fixture
-def assert_filepath_or_buffer_equals(
+@pytest.fixture(name="assert_filepath_or_buffer_equals")
+def fixture_assert_filepath_or_buffer_equals(
     filepath_or_buffer, filepath_or_buffer_id, encoding
 ):
     """

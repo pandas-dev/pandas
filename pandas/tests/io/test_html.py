@@ -40,14 +40,15 @@ from pandas.io.html import read_html
 
 
 @pytest.fixture(
+    name="html_encoding_file",
     params=[
         "chinese_utf-16.html",
         "chinese_utf-32.html",
         "chinese_utf-8.html",
         "letz_latin1.html",
-    ]
+    ],
 )
-def html_encoding_file(request, datapath):
+def fixture_html_encoding_file(request, datapath):
     """Parametrized fixture for HTML encoding test filenames."""
     return datapath("io", "data", "html_encoding", request.param)
 
@@ -109,12 +110,12 @@ def test_same_ordering(datapath):
     ],
 )
 class TestReadHtml:
-    @pytest.fixture
-    def spam_data(self, datapath):
+    @pytest.fixture(name="spam_data")
+    def fixture_spam_data(self, datapath):
         return datapath("io", "data", "html", "spam.html")
 
-    @pytest.fixture
-    def banklist_data(self, datapath):
+    @pytest.fixture(name="banklist_data")
+    def fixture_banklist_data(self, datapath):
         return datapath("io", "data", "html", "banklist.html")
 
     @pytest.fixture(autouse=True)

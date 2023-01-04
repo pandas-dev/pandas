@@ -46,8 +46,8 @@ from pandas.tests.indexes.common import Base
 class TestIndex(Base):
     _index_cls = Index
 
-    @pytest.fixture
-    def simple_index(self) -> Index:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> Index:
         return self._index_cls(list("abcde"))
 
     def test_can_hold_identifiers(self, simple_index):
@@ -1286,12 +1286,12 @@ class TestMixedIntIndex(Base):
     # (GH 13514)
     _index_cls = Index
 
-    @pytest.fixture
-    def simple_index(self) -> Index:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> Index:
         return self._index_cls([0, "a", 1, "b", 2, "c"])
 
-    @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
-    def index(self, request):
+    @pytest.fixture(name="index", params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
+    def fixture_index(self, request):
         return Index(request.param)
 
     def test_argsort(self, simple_index):

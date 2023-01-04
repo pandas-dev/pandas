@@ -15,8 +15,8 @@ import pandas._testing as tm
 
 @td.skip_if_no("xarray")
 class TestDataFrameToXArray:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         return DataFrame(
             {
                 "a": list("abc"),

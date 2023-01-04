@@ -21,8 +21,8 @@ class CustomBlock(ExtensionBlock):
         return False
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     df1 = pd.DataFrame({"a": [1, 2, 3]})
     blocks = df1._mgr.blocks
     values = np.arange(3, dtype="int64")

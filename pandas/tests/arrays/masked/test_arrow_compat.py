@@ -13,8 +13,8 @@ arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA
 arrays += [pd.array([True, False, True, None], dtype="boolean")]
 
 
-@pytest.fixture(params=arrays, ids=[a.dtype.name for a in arrays])
-def data(request):
+@pytest.fixture(name="data", params=arrays, ids=[a.dtype.name for a in arrays])
+def fixture_data(request):
     """
     Fixture returning parametrized array from given dtype, including integer,
     float and boolean
@@ -103,8 +103,8 @@ def test_arrow_sliced(data):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def np_dtype_to_arrays(any_real_numpy_dtype):
+@pytest.fixture(name="np_dtype_to_arrays")
+def fixture_np_dtype_to_arrays(any_real_numpy_dtype):
     """
     Fixture returning actual and expected dtype, pandas and numpy arrays and
     mask from a given numpy dtype

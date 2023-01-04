@@ -14,8 +14,8 @@ from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
 
 
-@pytest.fixture
-def left():
+@pytest.fixture(name="left")
+def fixture_left():
     """left dataframe (not multi-indexed) for multi-index join tests"""
     # a little relevant example with NAs
     key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
@@ -25,8 +25,8 @@ def left():
     return DataFrame({"key1": key1, "key2": key2, "data": data})
 
 
-@pytest.fixture
-def right(multiindex_dataframe_random_data):
+@pytest.fixture(name="right")
+def fixture_right(multiindex_dataframe_random_data):
     """right dataframe (multi-indexed) for multi-index join tests"""
     df = multiindex_dataframe_random_data
     df.index.names = ["key1", "key2"]
@@ -35,8 +35,8 @@ def right(multiindex_dataframe_random_data):
     return df
 
 
-@pytest.fixture
-def left_multi():
+@pytest.fixture(name="left_multi")
+def fixture_left_multi():
     return DataFrame(
         {
             "Origin": ["A", "A", "B", "B", "C"],
@@ -49,8 +49,8 @@ def left_multi():
     ).set_index(["Origin", "Destination", "Period", "TripPurp"])
 
 
-@pytest.fixture
-def right_multi():
+@pytest.fixture(name="right_multi")
+def fixture_right_multi():
     return DataFrame(
         {
             "Origin": ["A", "A", "B", "B", "C", "C", "E"],
@@ -63,13 +63,13 @@ def right_multi():
     ).set_index(["Origin", "Destination", "Period", "LinkType"])
 
 
-@pytest.fixture
-def on_cols_multi():
+@pytest.fixture(name="on_cols_multi")
+def fixture_on_cols_multi():
     return ["Origin", "Destination", "Period"]
 
 
-@pytest.fixture
-def idx_cols_multi():
+@pytest.fixture(name="idx_cols_multi")
+def fixture_idx_cols_multi():
     return ["Origin", "Destination", "Period", "TripPurp", "LinkType"]
 
 
@@ -500,8 +500,8 @@ class TestMergeMulti:
         tm.assert_frame_equal(results_merge, expected)
         tm.assert_frame_equal(results_join, expected)
 
-    @pytest.fixture
-    def household(self):
+    @pytest.fixture(name="household")
+    def fixture_household(self):
         household = DataFrame(
             {
                 "household_id": [1, 2, 3],
@@ -512,8 +512,8 @@ class TestMergeMulti:
         ).set_index("household_id")
         return household
 
-    @pytest.fixture
-    def portfolio(self):
+    @pytest.fixture(name="portfolio")
+    def fixture_portfolio(self):
         portfolio = DataFrame(
             {
                 "household_id": [1, 2, 2, 3, 3, 3, 4],
@@ -541,8 +541,8 @@ class TestMergeMulti:
         ).set_index(["household_id", "asset_id"])
         return portfolio
 
-    @pytest.fixture
-    def expected(self):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self):
         expected = (
             DataFrame(
                 {

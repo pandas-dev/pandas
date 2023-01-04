@@ -28,18 +28,18 @@ def make_data():
     return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return BooleanDtype()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return pd.array(make_data(), dtype=dtype)
 
 
-@pytest.fixture
-def data_for_twos(dtype):
+@pytest.fixture(name="data_for_twos")
+def fixture_data_for_twos(dtype):
     return pd.array(np.ones(100), dtype=dtype)
 
 
@@ -48,13 +48,13 @@ def data_missing(dtype):
     return pd.array([np.nan, True], dtype=dtype)
 
 
-@pytest.fixture
-def data_for_sorting(dtype):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(dtype):
     return pd.array([True, True, False], dtype=dtype)
 
 
-@pytest.fixture
-def data_missing_for_sorting(dtype):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(dtype):
     return pd.array([True, np.nan, False], dtype=dtype)
 
 
@@ -69,8 +69,8 @@ def na_value():
     return pd.NA
 
 
-@pytest.fixture
-def data_for_grouping(dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype):
     b = True
     a = False
     na = np.nan

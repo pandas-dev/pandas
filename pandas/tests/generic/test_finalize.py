@@ -445,8 +445,8 @@ def idfn(x):
         return str(x)
 
 
-@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))
-def ndframe_method(request):
+@pytest.fixture(name="ndframe_method", params=_all_methods, ids=lambda x: idfn(x[-1]))
+def fixture_ndframe_method(request):
     """
     An NDFrame method returning an NDFrame.
     """

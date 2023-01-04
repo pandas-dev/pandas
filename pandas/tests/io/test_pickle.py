@@ -56,8 +56,8 @@ from pandas.tseries.offsets import (
 )
 
 
-@pytest.fixture(scope="module")
-def current_pickle_data():
+@pytest.fixture(name="current_pickle_data", scope="module")
+def fixture_current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
@@ -89,8 +89,8 @@ legacy_dirname = os.path.join(os.path.dirname(__file__), "data", "legacy_pickle"
 files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
 
-@pytest.fixture(params=files)
-def legacy_pickle(request, datapath):
+@pytest.fixture(name="legacy_pickle", params=files)
+def fixture_legacy_pickle(request, datapath):
     return datapath(request.param)
 
 
@@ -248,8 +248,8 @@ def test_pickle_path_localpath():
 # ---------------------
 
 
-@pytest.fixture
-def get_random_path():
+@pytest.fixture(name="get_random_path")
+def fixture_get_random_path():
     return f"__{uuid.uuid4()}__.pickle"
 
 

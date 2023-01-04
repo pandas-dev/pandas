@@ -25,8 +25,8 @@ from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 
 
-@pytest.fixture
-def frame_for_truncated_bingrouper():
+@pytest.fixture(name="frame_for_truncated_bingrouper")
+def fixture_frame_for_truncated_bingrouper():
     """
     DataFrame used by groupby_with_truncated_bingrouper, made into
     a separate fixture for easier re-use in
@@ -48,8 +48,8 @@ def frame_for_truncated_bingrouper():
     return df
 
 
-@pytest.fixture
-def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
+@pytest.fixture(name="groupby_with_truncated_bingrouper")
+def fixture_groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     """
     GroupBy object such that gb.grouper is a BinGrouper and
     len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)

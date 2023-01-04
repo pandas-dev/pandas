@@ -15,18 +15,18 @@ from pandas.core.api import (
 from pandas.core.computation import expressions as expr
 
 
-@pytest.fixture
-def _frame():
+@pytest.fixture(name="_frame")
+def fixture__frame():
     return DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
 
 
-@pytest.fixture
-def _frame2():
+@pytest.fixture(name="_frame2")
+def fixture__frame2():
     return DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
 
 
-@pytest.fixture
-def _mixed(_frame):
+@pytest.fixture(name="_mixed")
+def fixture__mixed(_frame):
     return DataFrame(
         {
             "A": _frame["A"].copy(),
@@ -37,8 +37,8 @@ def _mixed(_frame):
     )
 
 
-@pytest.fixture
-def _mixed2(_frame2):
+@pytest.fixture(name="_mixed2")
+def fixture__mixed2(_frame2):
     return DataFrame(
         {
             "A": _frame2["A"].copy(),
@@ -49,8 +49,8 @@ def _mixed2(_frame2):
     )
 
 
-@pytest.fixture
-def _integer():
+@pytest.fixture(name="_integer")
+def fixture__integer():
     return DataFrame(
         np.random.randint(1, 100, size=(10001, 4)), columns=list("ABCD"), dtype="int64"
     )

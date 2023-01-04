@@ -396,8 +396,8 @@ def test_array_unboxes(index_or_series):
     tm.assert_equal(result, expected)
 
 
-@pytest.fixture
-def registry_without_decimal():
+@pytest.fixture(name="registry_without_decimal")
+def fixture_registry_without_decimal():
     """Fixture yielding 'registry' with no DecimalDtype entries"""
     idx = registry.dtypes.index(DecimalDtype)
     registry.dtypes.pop(idx)

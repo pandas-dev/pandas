@@ -25,8 +25,8 @@ from pandas import (
 )
 
 
-@pytest.fixture(params=[True, False])
-def pandas_dtype(request):
+@pytest.fixture(name="pandas_dtype", params=[True, False])
+def fixture_pandas_dtype(request):
     return request.param
 
 

@@ -35,8 +35,8 @@ AGG_FUNCTIONS = [
 AGG_FUNCTIONS_WITH_SKIPNA = ["skew"]
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
@@ -47,8 +47,8 @@ def df():
     )
 
 
-@pytest.fixture
-def df_letters():
+@pytest.fixture(name="df_letters")
+def fixture_df_letters():
     letters = np.array(list(ascii_lowercase))
     N = 10
     random_letters = letters.take(np.random.randint(0, 26, N))
@@ -61,8 +61,8 @@ def df_letters():
     return df
 
 
-@pytest.fixture
-def raw_frame():
+@pytest.fixture(name="raw_frame")
+def fixture_raw_frame():
     return DataFrame([0])
 
 

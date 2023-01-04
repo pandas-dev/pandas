@@ -115,24 +115,24 @@ class TestTableSchemaType:
 
 
 class TestTableOrient:
-    @pytest.fixture
-    def da(self):
+    @pytest.fixture(name="da")
+    def fixture_da(self):
         return DateArray([dt.date(2021, 10, 10)])
 
-    @pytest.fixture
-    def dc(self):
+    @pytest.fixture(name="dc")
+    def fixture_dc(self):
         return DecimalArray([decimal.Decimal(10)])
 
-    @pytest.fixture
-    def sa(self):
+    @pytest.fixture(name="sa")
+    def fixture_sa(self):
         return array(["pandas"], dtype="string")
 
-    @pytest.fixture
-    def ia(self):
+    @pytest.fixture(name="ia")
+    def fixture_ia(self):
         return array([10], dtype="Int64")
 
-    @pytest.fixture
-    def df(self, da, dc, sa, ia):
+    @pytest.fixture(name="df")
+    def fixture_df(self, da, dc, sa, ia):
         return DataFrame(
             {
                 "A": da,

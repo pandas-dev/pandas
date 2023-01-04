@@ -67,9 +67,11 @@ _rolling_aggregations = _get_rolling_aggregations()
 
 
 @pytest.fixture(
-    params=_rolling_aggregations["params"], ids=_rolling_aggregations["ids"]
+    name="rolling_aggregation",
+    params=_rolling_aggregations["params"],
+    ids=_rolling_aggregations["ids"],
 )
-def rolling_aggregation(request):
+def fixture_rolling_aggregation(request):
     """Make a rolling aggregation function as fixture."""
     return request.param
 

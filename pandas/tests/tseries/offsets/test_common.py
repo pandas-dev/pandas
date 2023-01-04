@@ -74,6 +74,7 @@ def _get_offset(klass, value=1, normalize=False):
 
 
 @pytest.fixture(
+    name="_offset",
     params=[
         BDay,
         BusinessHour,
@@ -100,14 +101,14 @@ def _get_offset(klass, value=1, normalize=False):
         FY5253,
         FY5253Quarter,
         DateOffset,
-    ]
+    ],
 )
-def _offset(request):
+def fixture__offset(request):
     return request.param
 
 
-@pytest.fixture
-def dt(_offset):
+@pytest.fixture(name="dt")
+def fixture_dt(_offset):
     if _offset in (CBMonthBegin, CBMonthEnd, BDay):
         return Timestamp(2008, 1, 1)
     elif _offset is (CustomBusinessHour, BusinessHour):

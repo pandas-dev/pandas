@@ -50,18 +50,18 @@ def split_array(arr):
     return _split_array(arr)
 
 
-@pytest.fixture(params=[True, False])
-def chunked(request):
+@pytest.fixture(name="chunked", params=[True, False])
+def fixture_chunked(request):
     return request.param
 
 
-@pytest.fixture
-def dtype(string_storage):
+@pytest.fixture(name="dtype")
+def fixture_dtype(string_storage):
     return StringDtype(storage=string_storage)
 
 
-@pytest.fixture
-def data(dtype, chunked):
+@pytest.fixture(name="data")
+def fixture_data(dtype, chunked):
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
@@ -70,32 +70,32 @@ def data(dtype, chunked):
     return split_array(arr) if chunked else arr
 
 
-@pytest.fixture
-def data_missing(dtype, chunked):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype, chunked):
     """Length 2 array with [NA, Valid]"""
     arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"])
     return split_array(arr) if chunked else arr
 
 
-@pytest.fixture
-def data_for_sorting(dtype, chunked):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"])
     return split_array(arr) if chunked else arr
 
 
-@pytest.fixture
-def data_missing_for_sorting(dtype, chunked):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
     return split_array(arr) if chunked else arr
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return pd.NA
 
 
-@pytest.fixture
-def data_for_grouping(dtype, chunked):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
     )

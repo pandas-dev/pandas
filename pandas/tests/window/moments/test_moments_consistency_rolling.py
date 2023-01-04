@@ -13,8 +13,8 @@ def all_na(x):
     return x.isnull().all().all()
 
 
-@pytest.fixture(params=[(1, 0), (5, 1)])
-def rolling_consistency_cases(request):
+@pytest.fixture(name="rolling_consistency_cases", params=[(1, 0), (5, 1)])
+def fixture_rolling_consistency_cases(request):
     """window, min_periods"""
     return request.param
 

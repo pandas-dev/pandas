@@ -25,8 +25,10 @@ from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
 
-@pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
-def python_engine(request):
+@pytest.fixture(
+    name="python_engine", params=["python", "python-fwf"], ids=lambda val: val
+)
+def fixture_python_engine(request):
     return request.param
 
 

@@ -28,63 +28,63 @@ from pandas import (
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     return datetime(2014, 7, 1, 10, 00)
 
 
-@pytest.fixture
-def _offset():
+@pytest.fixture(name="_offset")
+def fixture__offset():
     return BusinessHour
 
 
-@pytest.fixture
-def offset1():
+@pytest.fixture(name="offset1")
+def fixture_offset1():
     return BusinessHour()
 
 
-@pytest.fixture
-def offset2():
+@pytest.fixture(name="offset2")
+def fixture_offset2():
     return BusinessHour(n=3)
 
 
-@pytest.fixture
-def offset3():
+@pytest.fixture(name="offset3")
+def fixture_offset3():
     return BusinessHour(n=-1)
 
 
-@pytest.fixture
-def offset4():
+@pytest.fixture(name="offset4")
+def fixture_offset4():
     return BusinessHour(n=-4)
 
 
-@pytest.fixture
-def offset5():
+@pytest.fixture(name="offset5")
+def fixture_offset5():
     return BusinessHour(start=dt_time(11, 0), end=dt_time(14, 30))
 
 
-@pytest.fixture
-def offset6():
+@pytest.fixture(name="offset6")
+def fixture_offset6():
     return BusinessHour(start="20:00", end="05:00")
 
 
-@pytest.fixture
-def offset7():
+@pytest.fixture(name="offset7")
+def fixture_offset7():
     return BusinessHour(n=-2, start=dt_time(21, 30), end=dt_time(6, 30))
 
 
-@pytest.fixture
-def offset8():
+@pytest.fixture(name="offset8")
+def fixture_offset8():
     return BusinessHour(start=["09:00", "13:00"], end=["12:00", "17:00"])
 
 
-@pytest.fixture
-def offset9():
+@pytest.fixture(name="offset9")
+def fixture_offset9():
     return BusinessHour(n=3, start=["09:00", "22:00"], end=["13:00", "03:00"])
 
 
-@pytest.fixture
-def offset10():
+@pytest.fixture(name="offset10")
+def fixture_offset10():
     return BusinessHour(n=-1, start=["23:00", "13:00"], end=["02:00", "17:00"])
 
 

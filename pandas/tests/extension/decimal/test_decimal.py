@@ -16,13 +16,13 @@ from pandas.tests.extension.decimal.array import (
 )
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return DecimalDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     return DecimalArray(make_data())
 
 
@@ -31,8 +31,8 @@ def data_for_twos():
     return DecimalArray([decimal.Decimal(2) for _ in range(100)])
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     return DecimalArray([decimal.Decimal("NaN"), decimal.Decimal(1)])
 
 

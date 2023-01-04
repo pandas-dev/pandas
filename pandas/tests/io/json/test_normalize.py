@@ -14,8 +14,8 @@ import pandas._testing as tm
 from pandas.io.json._normalize import nested_to_record
 
 
-@pytest.fixture
-def deep_nested():
+@pytest.fixture(name="deep_nested")
+def fixture_deep_nested():
     # deeply nested data
     return [
         {
@@ -53,8 +53,8 @@ def deep_nested():
     ]
 
 
-@pytest.fixture
-def state_data():
+@pytest.fixture(name="state_data")
+def fixture_state_data():
     return [
         {
             "counties": [
@@ -78,8 +78,8 @@ def state_data():
     ]
 
 
-@pytest.fixture
-def author_missing_data():
+@pytest.fixture(name="author_missing_data")
+def fixture_author_missing_data():
     return [
         {"info": None},
         {
@@ -89,8 +89,8 @@ def author_missing_data():
     ]
 
 
-@pytest.fixture
-def missing_metadata():
+@pytest.fixture(name="missing_metadata")
+def fixture_missing_metadata():
     return [
         {
             "name": "Alice",
@@ -120,8 +120,8 @@ def missing_metadata():
     ]
 
 
-@pytest.fixture
-def max_level_test_input_data():
+@pytest.fixture(name="max_level_test_input_data")
+def fixture_max_level_test_input_data():
     """
     input data to test json_normalize with max_level param
     """

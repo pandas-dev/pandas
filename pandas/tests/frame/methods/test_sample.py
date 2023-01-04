@@ -11,8 +11,8 @@ import pandas.core.common as com
 
 
 class TestSample:
-    @pytest.fixture
-    def obj(self, frame_or_series):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, frame_or_series):
         if frame_or_series is Series:
             arr = np.random.randn(10)
         else:

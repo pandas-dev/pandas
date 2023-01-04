@@ -51,8 +51,8 @@ class TestDatetimeIndexOps:
 
 @pytest.mark.parametrize("freq", ["B", "C"])
 class TestBusinessDatetimeIndex:
-    @pytest.fixture
-    def rng(self, freq):
+    @pytest.fixture(name="rng")
+    def fixture_rng(self, freq):
         return bdate_range(START, END, freq=freq)
 
     def test_comparison(self, rng):

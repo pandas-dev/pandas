@@ -13,12 +13,12 @@ from pandas.core.arrays import (
 
 
 class TestNonNano:
-    @pytest.fixture(params=["s", "ms", "us"])
-    def unit(self, request):
+    @pytest.fixture(name="unit", params=["s", "ms", "us"])
+    def fixture_unit(self, request):
         return request.param
 
-    @pytest.fixture
-    def tda(self, unit):
+    @pytest.fixture(name="tda")
+    def fixture_tda(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         return TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 

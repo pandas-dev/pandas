@@ -16,16 +16,16 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def single_level_multiindex():
+@pytest.fixture(name="single_level_multiindex")
+def fixture_single_level_multiindex():
     """single level MultiIndex"""
     return MultiIndex(
         levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
     )
 
 
-@pytest.fixture
-def frame_random_data_integer_multi_index():
+@pytest.fixture(name="frame_random_data_integer_multi_index")
+def fixture_frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
     index = MultiIndex(levels=levels, codes=codes)

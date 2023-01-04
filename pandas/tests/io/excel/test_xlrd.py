@@ -13,8 +13,8 @@ xlrd = pytest.importorskip("xlrd")
 exts = [".xls"]
 
 
-@pytest.fixture(params=exts)
-def read_ext_xlrd(request):
+@pytest.fixture(name="read_ext_xlrd", params=exts)
+def fixture_read_ext_xlrd(request):
     """
     Valid extensions for reading Excel files with xlrd.
 

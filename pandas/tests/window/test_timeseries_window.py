@@ -15,15 +15,15 @@ import pandas._testing as tm
 from pandas.tseries import offsets
 
 
-@pytest.fixture
-def regular():
+@pytest.fixture(name="regular")
+def fixture_regular():
     return DataFrame(
         {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
     ).set_index("A")
 
 
-@pytest.fixture
-def ragged():
+@pytest.fixture(name="ragged")
+def fixture_ragged():
     df = DataFrame({"B": range(5)})
     df.index = [
         Timestamp("20130101 09:00:00"),

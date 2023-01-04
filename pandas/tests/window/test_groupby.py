@@ -15,8 +15,8 @@ from pandas.api.indexers import BaseIndexer
 from pandas.core.groupby.groupby import get_groupby
 
 
-@pytest.fixture
-def times_frame():
+@pytest.fixture(name="times_frame")
+def fixture_times_frame():
     """Frame for testing times argument in EWM groupby."""
     return DataFrame(
         {
@@ -40,8 +40,8 @@ def times_frame():
     )
 
 
-@pytest.fixture
-def roll_frame():
+@pytest.fixture(name="roll_frame")
+def fixture_roll_frame():
     return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
 
@@ -1003,8 +1003,8 @@ class TestRolling:
 
 
 class TestExpanding:
-    @pytest.fixture
-    def frame(self):
+    @pytest.fixture(name="frame")
+    def fixture_frame(self):
         return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     @pytest.mark.parametrize(

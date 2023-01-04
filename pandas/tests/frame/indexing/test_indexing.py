@@ -1576,16 +1576,16 @@ msg2 = "Cannot set a Categorical with another, without identical categories"
 
 
 class TestLocILocDataFrameCategorical:
-    @pytest.fixture
-    def orig(self):
+    @pytest.fixture(name="orig")
+    def fixture_orig(self):
         cats = Categorical(["a", "a", "a", "a", "a", "a", "a"], categories=["a", "b"])
         idx = Index(["h", "i", "j", "k", "l", "m", "n"])
         values = [1, 1, 1, 1, 1, 1, 1]
         orig = DataFrame({"cats": cats, "values": values}, index=idx)
         return orig
 
-    @pytest.fixture
-    def exp_single_row(self):
+    @pytest.fixture(name="exp_single_row")
+    def fixture_exp_single_row(self):
         # The expected values if we change a single row
         cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
         idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
@@ -1593,8 +1593,8 @@ class TestLocILocDataFrameCategorical:
         exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
         return exp_single_row
 
-    @pytest.fixture
-    def exp_multi_row(self):
+    @pytest.fixture(name="exp_multi_row")
+    def fixture_exp_multi_row(self):
         # assign multiple rows (mixed values) (-> array) -> exp_multi_row
         # changed multiple rows
         cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
@@ -1603,8 +1603,8 @@ class TestLocILocDataFrameCategorical:
         exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
         return exp_multi_row
 
-    @pytest.fixture
-    def exp_parts_cats_col(self):
+    @pytest.fixture(name="exp_parts_cats_col")
+    def fixture_exp_parts_cats_col(self):
         # changed part of the cats column
         cats3 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
         idx3 = Index(["h", "i", "j", "k", "l", "m", "n"])
@@ -1612,8 +1612,8 @@ class TestLocILocDataFrameCategorical:
         exp_parts_cats_col = DataFrame({"cats": cats3, "values": values3}, index=idx3)
         return exp_parts_cats_col
 
-    @pytest.fixture
-    def exp_single_cats_value(self):
+    @pytest.fixture(name="exp_single_cats_value")
+    def fixture_exp_single_cats_value(self):
         # changed single value in cats col
         cats4 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
         idx4 = Index(["h", "i", "j", "k", "l", "m", "n"])

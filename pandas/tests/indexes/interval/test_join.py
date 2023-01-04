@@ -8,13 +8,13 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def range_index():
+@pytest.fixture(name="range_index")
+def fixture_range_index():
     return RangeIndex(3, name="range_index")
 
 
-@pytest.fixture
-def interval_index():
+@pytest.fixture(name="interval_index")
+def fixture_interval_index():
     return IntervalIndex.from_tuples(
         [(0.0, 1.0), (1.0, 2.0), (1.5, 2.5)], name="interval_index"
     )

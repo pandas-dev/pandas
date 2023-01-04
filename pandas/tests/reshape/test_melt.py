@@ -13,16 +13,16 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     res = tm.makeTimeDataFrame()[:10]
     res["id1"] = (res["A"] > 0).astype(np.int64)
     res["id2"] = (res["B"] > 0).astype(np.int64)
     return res
 
 
-@pytest.fixture
-def df1():
+@pytest.fixture(name="df1")
+def fixture_df1():
     res = DataFrame(
         [
             [1.067683, -1.110463, 0.20867],
@@ -35,13 +35,13 @@ def df1():
     return res
 
 
-@pytest.fixture
-def var_name():
+@pytest.fixture(name="var_name")
+def fixture_var_name():
     return "var"
 
 
-@pytest.fixture
-def value_name():
+@pytest.fixture(name="value_name")
+def fixture_value_name():
     return "val"
 
 

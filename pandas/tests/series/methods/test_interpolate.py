@@ -15,6 +15,7 @@ import pandas._testing as tm
 
 
 @pytest.fixture(
+    name="nontemporal_method",
     params=[
         "linear",
         "index",
@@ -33,9 +34,9 @@ import pandas._testing as tm
         "pchip",
         "akima",
         "cubicspline",
-    ]
+    ],
 )
-def nontemporal_method(request):
+def fixture_nontemporal_method(request):
     """Fixture that returns an (method name, required kwargs) pair.
 
     This fixture does not include method 'time' as a parameterization; that
@@ -48,6 +49,7 @@ def nontemporal_method(request):
 
 
 @pytest.fixture(
+    name="interp_methods_ind",
     params=[
         "linear",
         "slinear",
@@ -63,9 +65,9 @@ def nontemporal_method(request):
         "pchip",
         "akima",
         "cubicspline",
-    ]
+    ],
 )
-def interp_methods_ind(request):
+def fixture_interp_methods_ind(request):
     """Fixture that returns a (method name, required kwargs) pair to
     be tested for various Index types.
 

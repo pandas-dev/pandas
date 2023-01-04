@@ -4,8 +4,8 @@ import pytest
 import pandas as pd
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Fixture returning boolean array, with valid and missing values."""
     return pd.array(
         [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],

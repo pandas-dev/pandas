@@ -11,8 +11,8 @@ import pandas._testing as tm
 import pandas.core.common as com
 
 
-@pytest.fixture
-def interval():
+@pytest.fixture(name="interval")
+def fixture_interval():
     return Interval(0, 1)
 
 

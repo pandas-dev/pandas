@@ -3,8 +3,8 @@ import pytest
 from pandas.core.frame import DataFrame
 
 
-@pytest.fixture
-def dataframe():
+@pytest.fixture(name="dataframe")
+def fixture_dataframe():
     return DataFrame({"a": [1, 2], "b": [3, 4]})
 
 

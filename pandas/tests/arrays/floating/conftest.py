@@ -8,14 +8,14 @@ from pandas.core.arrays.floating import (
 )
 
 
-@pytest.fixture(params=[Float32Dtype, Float64Dtype])
-def dtype(request):
+@pytest.fixture(name="dtype", params=[Float32Dtype, Float64Dtype])
+def fixture_dtype(request):
     """Parametrized fixture returning a float 'dtype'"""
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     """Fixture returning 'data' array according to parametrized float 'dtype'"""
     return pd.array(
         list(np.arange(0.1, 0.9, 0.1))
@@ -27,8 +27,8 @@ def data(dtype):
     )
 
 
-@pytest.fixture
-def data_missing(dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype):
     """
     Fixture returning array with missing data according to parametrized float
     'dtype'.

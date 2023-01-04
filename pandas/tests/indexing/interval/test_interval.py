@@ -11,8 +11,8 @@ import pandas._testing as tm
 
 
 class TestIntervalIndex:
-    @pytest.fixture
-    def series_with_interval_index(self):
+    @pytest.fixture(name="series_with_interval_index")
+    def fixture_series_with_interval_index(self):
         return Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
     def test_getitem_with_scalar(self, series_with_interval_index, indexer_sl):

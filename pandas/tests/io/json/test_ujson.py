@@ -46,9 +46,10 @@ def _clean_dict(d):
 
 
 @pytest.fixture(
-    params=[None, "split", "records", "values", "index"]  # Column indexed by default.
+    name="orient",
+    params=[None, "split", "records", "values", "index"],  # Column indexed by default.
 )
-def orient(request):
+def fixture_orient(request):
     return request.param
 
 

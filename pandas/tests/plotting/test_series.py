@@ -21,18 +21,18 @@ from pandas.tests.plotting.common import (
 )
 
 
-@pytest.fixture
-def ts():
+@pytest.fixture(name="ts")
+def fixture_ts():
     return tm.makeTimeSeries(name="ts")
 
 
-@pytest.fixture
-def series():
+@pytest.fixture(name="series")
+def fixture_series():
     return tm.makeStringSeries(name="series")
 
 
-@pytest.fixture
-def iseries():
+@pytest.fixture(name="iseries")
+def fixture_iseries():
     return tm.makePeriodSeries(name="iseries")
 
 

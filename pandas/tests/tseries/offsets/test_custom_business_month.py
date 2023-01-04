@@ -35,8 +35,8 @@ from pandas.tseries import offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     return datetime(2008, 1, 1)
 
 
@@ -67,16 +67,16 @@ class TestCommonCBM:
 
 
 class TestCustomBusinessMonthBegin:
-    @pytest.fixture
-    def _offset(self):
+    @pytest.fixture(name="_offset")
+    def fixture__offset(self):
         return CBMonthBegin
 
-    @pytest.fixture
-    def offset(self):
+    @pytest.fixture(name="offset")
+    def fixture_offset(self):
         return CBMonthBegin()
 
-    @pytest.fixture
-    def offset2(self):
+    @pytest.fixture(name="offset2")
+    def fixture_offset2(self):
         return CBMonthBegin(2)
 
     def test_different_normalize_equals(self, _offset):
@@ -265,16 +265,16 @@ class TestCustomBusinessMonthBegin:
 
 
 class TestCustomBusinessMonthEnd:
-    @pytest.fixture
-    def _offset(self):
+    @pytest.fixture(name="_offset")
+    def fixture__offset(self):
         return CBMonthEnd
 
-    @pytest.fixture
-    def offset(self):
+    @pytest.fixture(name="offset")
+    def fixture_offset(self):
         return CBMonthEnd()
 
-    @pytest.fixture
-    def offset2(self):
+    @pytest.fixture(name="offset2")
+    def fixture_offset2(self):
         return CBMonthEnd(2)
 
     def test_different_normalize_equals(self, _offset):

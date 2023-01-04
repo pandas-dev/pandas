@@ -20,8 +20,8 @@ test_series = Series(np.random.rand(len(dti)), dti)
 _test_frame = DataFrame({"A": test_series, "B": test_series, "C": np.arange(len(dti))})
 
 
-@pytest.fixture
-def test_frame():
+@pytest.fixture(name="test_frame")
+def fixture_test_frame():
     return _test_frame.copy()
 
 

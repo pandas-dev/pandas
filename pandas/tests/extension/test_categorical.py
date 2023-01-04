@@ -40,13 +40,13 @@ def make_data():
     return values
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return CategoricalDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 array for this type.
 
     * data[0] and data[1] should both be non missing
@@ -55,8 +55,8 @@ def data():
     return Categorical(make_data())
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     """Length 2 array with [NA, Valid]"""
     return Categorical([np.nan, "A"])
 

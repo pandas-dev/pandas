@@ -69,32 +69,32 @@ def simple_period_range_series():
     return _simple_period_range_series
 
 
-@pytest.fixture
-def _index_start():
+@pytest.fixture(name="_index_start")
+def fixture__index_start():
     """Fixture for parametrization of index, series and frame."""
     return datetime(2005, 1, 1)
 
 
-@pytest.fixture
-def _index_end():
+@pytest.fixture(name="_index_end")
+def fixture__index_end():
     """Fixture for parametrization of index, series and frame."""
     return datetime(2005, 1, 10)
 
 
-@pytest.fixture
-def _index_freq():
+@pytest.fixture(name="_index_freq")
+def fixture__index_freq():
     """Fixture for parametrization of index, series and frame."""
     return "D"
 
 
-@pytest.fixture
-def _index_name():
+@pytest.fixture(name="_index_name")
+def fixture__index_name():
     """Fixture for parametrization of index, series and frame."""
     return None
 
 
-@pytest.fixture
-def index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
+@pytest.fixture(name="index")
+def fixture_index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
     """
     Fixture for parametrization of date_range, period_range and
     timedelta_range indexes
@@ -102,8 +102,8 @@ def index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
     return _index_factory(_index_start, _index_end, freq=_index_freq, name=_index_name)
 
 
-@pytest.fixture
-def _static_values(index):
+@pytest.fixture(name="_static_values")
+def fixture__static_values(index):
     """
     Fixture for parametrization of values used in parametrization of
     Series and DataFrames with date_range, period_range and
@@ -112,8 +112,8 @@ def _static_values(index):
     return np.arange(len(index))
 
 
-@pytest.fixture
-def _series_name():
+@pytest.fixture(name="_series_name")
+def fixture__series_name():
     """
     Fixture for parametrization of Series name for Series used with
     date_range, period_range and timedelta_range indexes
@@ -121,8 +121,8 @@ def _series_name():
     return None
 
 
-@pytest.fixture
-def series(index, _series_name, _static_values):
+@pytest.fixture(name="series")
+def fixture_series(index, _series_name, _static_values):
     """
     Fixture for parametrization of Series with date_range, period_range and
     timedelta_range indexes
@@ -139,8 +139,8 @@ def empty_series_dti(series):
     return series[:0]
 
 
-@pytest.fixture
-def frame(index, _series_name, _static_values):
+@pytest.fixture(name="frame")
+def fixture_frame(index, _series_name, _static_values):
     """
     Fixture for parametrization of DataFrame with date_range, period_range
     and timedelta_range indexes

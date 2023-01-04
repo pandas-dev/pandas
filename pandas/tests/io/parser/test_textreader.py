@@ -24,8 +24,8 @@ from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
-    @pytest.fixture
-    def csv_path(self, datapath):
+    @pytest.fixture(name="csv_path")
+    def fixture_csv_path(self, datapath):
         return datapath("io", "data", "csv", "test1.csv")
 
     def test_file_handle(self, csv_path):

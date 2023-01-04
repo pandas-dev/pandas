@@ -48,8 +48,8 @@ class TestConcatAppendCommon:
     Test common dtype coercion rules between concat and append.
     """
 
-    @pytest.fixture(params=sorted(data_dict.keys()))
-    def item(self, request):
+    @pytest.fixture(name="item", params=sorted(data_dict.keys()))
+    def fixture_item(self, request):
         key = request.param
         return key, data_dict[key]
 

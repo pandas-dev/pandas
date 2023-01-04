@@ -17,8 +17,8 @@ import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 
 
-@pytest.fixture
-def frame_with_period_index():
+@pytest.fixture(name="frame_with_period_index")
+def fixture_frame_with_period_index():
     return DataFrame(
         data=np.arange(20).reshape(4, 5),
         columns=list("abcde"),
@@ -26,26 +26,26 @@ def frame_with_period_index():
     )
 
 
-@pytest.fixture
-def left():
+@pytest.fixture(name="left")
+def fixture_left():
     return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
 
 
-@pytest.fixture
-def right():
+@pytest.fixture(name="right")
+def fixture_right():
     return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
 
 
-@pytest.fixture
-def left_no_dup():
+@pytest.fixture(name="left_no_dup")
+def fixture_left_no_dup():
     return DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
         index=range(4),
     )
 
 
-@pytest.fixture
-def right_no_dup():
+@pytest.fixture(name="right_no_dup")
+def fixture_right_no_dup():
     return DataFrame(
         {
             "a": ["a", "b", "c", "d", "e"],
@@ -55,15 +55,15 @@ def right_no_dup():
     ).set_index("a")
 
 
-@pytest.fixture
-def left_w_dups(left_no_dup):
+@pytest.fixture(name="left_w_dups")
+def fixture_left_w_dups(left_no_dup):
     return concat(
         [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
     )
 
 
-@pytest.fixture
-def right_w_dups(right_no_dup):
+@pytest.fixture(name="right_w_dups")
+def fixture_right_w_dups(right_no_dup):
     return concat(
         [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
     ).set_index("a")

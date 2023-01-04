@@ -556,8 +556,8 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
 
-    @pytest.fixture
-    def frame_for_consistency(self):
+    @pytest.fixture(name="frame_for_consistency")
+    def fixture_frame_for_consistency(self):
         return DataFrame(
             {
                 "date": date_range("2000-01-01", "2000-01-5"),
@@ -1635,13 +1635,13 @@ class TestLocBaseIndependent:
 
 
 class TestLocWithEllipsis:
-    @pytest.fixture(params=[tm.loc, tm.iloc])
-    def indexer(self, request):
+    @pytest.fixture(name="indexer", params=[tm.loc, tm.iloc])
+    def fixture_indexer(self, request):
         # Test iloc while we're here
         return request.param
 
-    @pytest.fixture
-    def obj(self, series_with_simple_index, frame_or_series):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, series_with_simple_index, frame_or_series):
         obj = series_with_simple_index
         if frame_or_series is not Series:
             obj = obj.to_frame()

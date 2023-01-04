@@ -12,8 +12,10 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=["quicksort", "mergesort", "heapsort", "stable"])
-def sort_kind(request):
+@pytest.fixture(
+    name="sort_kind", params=["quicksort", "mergesort", "heapsort", "stable"]
+)
+def fixture_sort_kind(request):
     return request.param
 
 

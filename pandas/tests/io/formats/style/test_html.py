@@ -19,24 +19,24 @@ loader = jinja2.PackageLoader("pandas", "io/formats/templates")
 env = jinja2.Environment(loader=loader, trim_blocks=True)
 
 
-@pytest.fixture
-def styler():
+@pytest.fixture(name="styler")
+def fixture_styler():
     return Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
 
 
-@pytest.fixture
-def styler_mi():
+@pytest.fixture(name="styler_mi")
+def fixture_styler_mi():
     midx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
     return Styler(DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=midx))
 
 
-@pytest.fixture
-def tpl_style():
+@pytest.fixture(name="tpl_style")
+def fixture_tpl_style():
     return env.get_template("html_style.tpl")
 
 
-@pytest.fixture
-def tpl_table():
+@pytest.fixture(name="tpl_table")
+def fixture_tpl_table():
     return env.get_template("html_table.tpl")
 
 

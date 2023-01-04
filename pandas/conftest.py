@@ -531,8 +531,8 @@ def multiindex_year_month_day_dataframe_random_data():
     return ymd
 
 
-@pytest.fixture
-def lexsorted_two_level_string_multiindex() -> MultiIndex:
+@pytest.fixture(name="lexsorted_two_level_string_multiindex")
+def fixture_lexsorted_two_level_string_multiindex() -> MultiIndex:
     """
     2-level MultiIndex, lexsorted, with string names.
     """
@@ -624,8 +624,8 @@ if has_pyarrow:
     indices_dict["string-pyarrow"] = idx
 
 
-@pytest.fixture(params=indices_dict.keys())
-def index(request):
+@pytest.fixture(name="index", params=indices_dict.keys())
+def fixture_index(request):
     """
     Fixture for many "simple" kinds of indices.
 
@@ -1137,16 +1137,16 @@ def all_numeric_accumulations(request):
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
-@pytest.fixture
-def strict_data_files(pytestconfig):
+@pytest.fixture(name="strict_data_files")
+def fixture_strict_data_files(pytestconfig):
     """
     Returns the configuration for the test setting `--strict-data-files`.
     """
     return pytestconfig.getoption("--strict-data-files")
 
 
-@pytest.fixture
-def datapath(strict_data_files: str) -> Callable[..., str]:
+@pytest.fixture(name="datapath")
+def fixture_datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
 

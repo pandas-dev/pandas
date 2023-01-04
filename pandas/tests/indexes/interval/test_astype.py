@@ -85,8 +85,8 @@ class TestIntSubtype(AstypeTests):
         IntervalIndex.from_breaks(np.arange(100, dtype="uint64"), closed="left"),
     ]
 
-    @pytest.fixture(params=indexes)
-    def index(self, request):
+    @pytest.fixture(name="index", params=indexes)
+    def fixture_index(self, request):
         return request.param
 
     @pytest.mark.parametrize(
@@ -139,8 +139,8 @@ class TestFloatSubtype(AstypeTests):
         ),
     ]
 
-    @pytest.fixture(params=indexes)
-    def index(self, request):
+    @pytest.fixture(name="index", params=indexes)
+    def fixture_index(self, request):
         return request.param
 
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
@@ -198,8 +198,8 @@ class TestDatetimelikeSubtype(AstypeTests):
         interval_range(Timedelta("0 days"), periods=10).insert(2, NaT),
     ]
 
-    @pytest.fixture(params=indexes)
-    def index(self, request):
+    @pytest.fixture(name="index", params=indexes)
+    def fixture_index(self, request):
         return request.param
 
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])

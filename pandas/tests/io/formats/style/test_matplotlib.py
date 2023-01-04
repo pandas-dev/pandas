@@ -15,23 +15,23 @@ import matplotlib as mpl
 from pandas.io.formats.style import Styler
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
 
 
-@pytest.fixture
-def styler(df):
+@pytest.fixture(name="styler")
+def fixture_styler(df):
     return Styler(df, uuid_len=0)
 
 
-@pytest.fixture
-def df_blank():
+@pytest.fixture(name="df_blank")
+def fixture_df_blank():
     return DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
 
 
-@pytest.fixture
-def styler_blank(df_blank):
+@pytest.fixture(name="styler_blank")
+def fixture_styler_blank(df_blank):
     return Styler(df_blank, uuid_len=0)
 
 

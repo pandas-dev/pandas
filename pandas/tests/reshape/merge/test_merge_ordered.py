@@ -9,13 +9,13 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def left():
+@pytest.fixture(name="left")
+def fixture_left():
     return DataFrame({"key": ["a", "c", "e"], "lvalue": [1, 2.0, 3]})
 
 
-@pytest.fixture
-def right():
+@pytest.fixture(name="right")
+def fixture_right():
     return DataFrame({"key": ["b", "c", "d", "f"], "rvalue": [1, 2, 3.0, 4]})
 
 

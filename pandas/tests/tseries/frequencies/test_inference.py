@@ -36,6 +36,7 @@ from pandas.tseries import (
 
 
 @pytest.fixture(
+    name="base_delta_code_pair",
     params=[
         (timedelta(1), "D"),
         (timedelta(hours=1), "H"),
@@ -44,9 +45,9 @@ from pandas.tseries import (
         (np.timedelta64(1, "ns"), "N"),
         (timedelta(microseconds=1), "U"),
         (timedelta(microseconds=1000), "L"),
-    ]
+    ],
 )
-def base_delta_code_pair(request):
+def fixture_base_delta_code_pair(request):
     return request.param
 
 

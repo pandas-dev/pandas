@@ -23,8 +23,8 @@ OI = Index
 class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
 
-    @pytest.fixture
-    def dtype(self):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self):
         return np.int64
 
     @pytest.fixture(
@@ -33,18 +33,19 @@ class TestRangeIndex(NumericBase):
     def invalid_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def simple_index(self) -> Index:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> Index:
         return self._index_cls(start=0, stop=20, step=2)
 
     @pytest.fixture(
+        name="index",
         params=[
             RangeIndex(start=0, stop=20, step=2, name="foo"),
             RangeIndex(start=18, stop=-1, step=-2, name="bar"),
         ],
         ids=["index_inc", "index_dec"],
     )
-    def index(self, request):
+    def fixture_index(self, request):
         return request.param
 
     def test_constructor_unwraps_index(self, dtype):
@@ -520,6 +521,7 @@ class TestRangeIndex(NumericBase):
         assert len(index) == 0
 
     @pytest.fixture(
+        name="appends",
         params=[
             ([RI(1, 12, 5)], RI(1, 12, 5)),
             ([RI(0, 6, 4)], RI(0, 6, 4)),
@@ -540,9 +542,9 @@ class TestRangeIndex(NumericBase):
             ([RI(3), F64([-1, 3.1, 15.0])], F64([0, 1, 2, -1, 3.1, 15.0])),
             ([RI(3), OI(["a", None, 14])], OI([0, 1, 2, "a", None, 14])),
             ([RI(3, 1), OI(["a", None, 14])], OI(["a", None, 14])),
-        ]
+        ],
     )
-    def appends(self, request):
+    def fixture_appends(self, request):
         """Inputs and expected outputs for RangeIndex.append test"""
         return request.param
 

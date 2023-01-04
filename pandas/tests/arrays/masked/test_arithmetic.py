@@ -19,8 +19,10 @@ arrays += [pd.array([True, False, True, None], dtype="boolean")]
 scalars += [False]
 
 
-@pytest.fixture(params=zip(arrays, scalars), ids=[a.dtype.name for a in arrays])
-def data(request):
+@pytest.fixture(
+    name="data", params=zip(arrays, scalars), ids=[a.dtype.name for a in arrays]
+)
+def fixture_data(request):
     """Fixture returning parametrized (array, scalar) tuple.
 
     Used to test equivalence of scalars, numpy arrays with array ops, and the

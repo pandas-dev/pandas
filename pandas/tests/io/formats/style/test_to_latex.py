@@ -20,20 +20,20 @@ from pandas.io.formats.style_render import (
 )
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame({"A": [0, 1], "B": [-0.61, -1.22], "C": ["ab", "cd"]})
 
 
-@pytest.fixture
-def df_ext():
+@pytest.fixture(name="df_ext")
+def fixture_df_ext():
     return DataFrame(
         {"A": [0, 1, 2], "B": [-0.61, -1.22, -2.22], "C": ["ab", "cd", "de"]}
     )
 
 
-@pytest.fixture
-def styler(df):
+@pytest.fixture(name="styler")
+def fixture_styler(df):
     return Styler(df, uuid_len=0, precision=2)
 
 

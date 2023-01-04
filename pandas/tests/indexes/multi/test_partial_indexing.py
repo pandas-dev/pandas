@@ -10,8 +10,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     #                        c1
     # 2016-01-01 00:00:00 a   0
     #                     b   1

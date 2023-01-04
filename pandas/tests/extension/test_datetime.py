@@ -23,13 +23,13 @@ from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["US/Central"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["US/Central"])
+def fixture_dtype(request):
     return DatetimeTZDtype(unit="ns", tz=request.param)
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
     return data
 

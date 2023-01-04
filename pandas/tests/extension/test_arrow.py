@@ -51,13 +51,13 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
-def dtype(request):
+@pytest.fixture(name="dtype", params=tm.ALL_PYARROW_DTYPES, ids=str)
+def fixture_dtype(request):
     return ArrowDtype(pyarrow_dtype=request.param)
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     pa_dtype = dtype.pyarrow_dtype
     if pa.types.is_boolean(pa_dtype):
         data = [True, False] * 4 + [None] + [True, False] * 44 + [None] + [True, False]
@@ -108,14 +108,14 @@ def data(dtype):
     return pd.array(data, dtype=dtype)
 
 
-@pytest.fixture
-def data_missing(data):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(data):
     """Length-2 array with [NA, Valid]"""
     return type(data)._from_sequence([None, data[0]])
 
 
-@pytest.fixture(params=["data", "data_missing"])
-def all_data(request, data, data_missing):
+@pytest.fixture(name="all_data", params=["data", "data_missing"])
+def fixture_all_data(request, data, data_missing):
     """Parametrized fixture returning 'data' or 'data_missing' integer arrays.
 
     Used to test dtype conversion with and without missing values.
@@ -126,8 +126,8 @@ def all_data(request, data, data_missing):
         return data_missing
 
 
-@pytest.fixture
-def data_for_grouping(dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype):
     """
     Data for factorization, grouping, and unique tests.
 
@@ -181,8 +181,8 @@ def data_for_grouping(dtype):
     return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
 
 
-@pytest.fixture
-def data_for_sorting(data_for_grouping):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(data_for_grouping):
     """
     Length-3 array with a known sort order.
 
@@ -194,8 +194,8 @@ def data_for_sorting(data_for_grouping):
     )
 
 
-@pytest.fixture
-def data_missing_for_sorting(data_for_grouping):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(data_for_grouping):
     """
     Length-3 array with a known sort order.
 
@@ -217,8 +217,8 @@ def data_for_twos(data):
     return data
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     """The scalar missing value for this type. Default 'None'"""
     return pd.NA
 

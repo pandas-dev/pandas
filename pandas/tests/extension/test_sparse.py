@@ -38,13 +38,13 @@ def make_data(fill_value):
     return data
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return SparseDtype()
 
 
-@pytest.fixture(params=[0, np.nan])
-def data(request):
+@pytest.fixture(name="data", params=[0, np.nan])
+def fixture_data(request):
     """Length-100 PeriodArray for semantics test."""
     res = SparseArray(make_data(request.param), fill_value=request.param)
     return res
@@ -55,14 +55,14 @@ def data_for_twos():
     return SparseArray(np.ones(100) * 2)
 
 
-@pytest.fixture(params=[0, np.nan])
-def data_missing(request):
+@pytest.fixture(name="data_missing", params=[0, np.nan])
+def fixture_data_missing(request):
     """Length 2 array with [NA, Valid]"""
     return SparseArray([np.nan, 1], fill_value=request.param)
 
 
-@pytest.fixture(params=[0, np.nan])
-def data_repeated(request):
+@pytest.fixture(name="data_repeated", params=[0, np.nan])
+def fixture_data_repeated(request):
     """Return different versions of data for count times"""
 
     def gen(count):
@@ -72,8 +72,8 @@ def data_repeated(request):
     yield gen
 
 
-@pytest.fixture(params=[0, np.nan])
-def data_for_sorting(request):
+@pytest.fixture(name="data_for_sorting", params=[0, np.nan])
+def fixture_data_for_sorting(request):
     return SparseArray([2, 3, 1], fill_value=request.param)
 
 
@@ -82,8 +82,8 @@ def data_missing_for_sorting(request):
     return SparseArray([2, np.nan, 1], fill_value=request.param)
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return np.nan
 
 
@@ -97,8 +97,8 @@ def data_for_grouping(request):
     return SparseArray([1, 1, np.nan, np.nan, 2, 2, 1, 3], fill_value=request.param)
 
 
-@pytest.fixture(params=[0, np.nan])
-def data_for_compare(request):
+@pytest.fixture(name="data_for_compare", params=[0, np.nan])
+def fixture_data_for_compare(request):
     return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
 
 

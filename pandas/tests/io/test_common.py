@@ -396,8 +396,8 @@ Look,a snake,🐍"""
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def mmap_file(datapath):
+@pytest.fixture(name="mmap_file")
+def fixture_mmap_file(datapath):
     return datapath("io", "data", "csv", "test_mmap.csv")
 
 

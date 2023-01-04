@@ -15,6 +15,7 @@ from pandas.core.arrays.integer import (
 
 
 @pytest.fixture(
+    name="dtype",
     params=[
         Int8Dtype,
         Int16Dtype,
@@ -24,15 +25,15 @@ from pandas.core.arrays.integer import (
         UInt16Dtype,
         UInt32Dtype,
         UInt64Dtype,
-    ]
+    ],
 )
-def dtype(request):
+def fixture_dtype(request):
     """Parametrized fixture returning integer 'dtype'"""
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     """
     Fixture returning 'data' array with valid and missing values according to
     parametrized integer 'dtype'.
@@ -45,8 +46,8 @@ def data(dtype):
     )
 
 
-@pytest.fixture
-def data_missing(dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype):
     """
     Fixture returning array with exactly one NaN and one valid integer,
     according to parametrized integer 'dtype'.

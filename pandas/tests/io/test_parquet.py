@@ -57,6 +57,7 @@ except ImportError:
 
 # setup engines & skips
 @pytest.fixture(
+    name="engine",
     params=[
         pytest.param(
             "fastparquet",
@@ -71,21 +72,21 @@ except ImportError:
                 not _HAVE_PYARROW, reason="pyarrow is not installed"
             ),
         ),
-    ]
+    ],
 )
-def engine(request):
+def fixture_engine(request):
     return request.param
 
 
-@pytest.fixture
-def pa():
+@pytest.fixture(name="pa")
+def fixture_pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
     return "pyarrow"
 
 
-@pytest.fixture
-def fp():
+@pytest.fixture(name="fp")
+def fixture_fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
     elif get_option("mode.data_manager") == "array":
@@ -93,13 +94,13 @@ def fp():
     return "fastparquet"
 
 
-@pytest.fixture
-def df_compat():
+@pytest.fixture(name="df_compat")
+def fixture_df_compat():
     return pd.DataFrame({"A": [1, 2, 3], "B": "foo"})
 
 
-@pytest.fixture
-def df_cross_compat():
+@pytest.fixture(name="df_cross_compat")
+def fixture_df_cross_compat():
     df = pd.DataFrame(
         {
             "a": list("abc"),
@@ -116,8 +117,8 @@ def df_cross_compat():
     return df
 
 
-@pytest.fixture
-def df_full():
+@pytest.fixture(name="df_full")
+def fixture_df_full():
     return pd.DataFrame(
         {
             "string": list("abc"),
@@ -141,6 +142,7 @@ def df_full():
 
 
 @pytest.fixture(
+    name="timezone_aware_date_list",
     params=[
         datetime.datetime.now(datetime.timezone.utc),
         datetime.datetime.now(datetime.timezone.min),
@@ -149,9 +151,9 @@ def df_full():
         datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24-0215", "%Y-%m-%dT%H:%M:%S%z"),
-    ]
+    ],
 )
-def timezone_aware_date_list(request):
+def fixture_timezone_aware_date_list(request):
     return request.param
 
 

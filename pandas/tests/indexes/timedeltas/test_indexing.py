@@ -274,12 +274,12 @@ class TestTake:
 
 
 class TestMaybeCastSliceBound:
-    @pytest.fixture(params=["increasing", "decreasing", None])
-    def monotonic(self, request):
+    @pytest.fixture(name="monotonic", params=["increasing", "decreasing", None])
+    def fixture_monotonic(self, request):
         return request.param
 
-    @pytest.fixture
-    def tdi(self, monotonic):
+    @pytest.fixture(name="tdi")
+    def fixture_tdi(self, monotonic):
         tdi = timedelta_range("1 Day", periods=10)
         if monotonic == "decreasing":
             tdi = tdi[::-1]

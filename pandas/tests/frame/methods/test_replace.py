@@ -17,13 +17,13 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def mix_ab() -> dict[str, list[int | str]]:
+@pytest.fixture(name="mix_ab")
+def fixture_mix_ab() -> dict[str, list[int | str]]:
     return {"a": list(range(4)), "b": list("ab..")}
 
 
-@pytest.fixture
-def mix_abc() -> dict[str, list[float | str]]:
+@pytest.fixture(name="mix_abc")
+def fixture_mix_abc() -> dict[str, list[float | str]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 

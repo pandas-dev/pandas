@@ -72,8 +72,8 @@ def test_url_encoding_csv():
     assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"
 
 
-@pytest.fixture
-def tips_df(datapath):
+@pytest.fixture(name="tips_df")
+def fixture_tips_df(datapath):
     """DataFrame with the tips dataset."""
     return read_csv(datapath("io", "data", "csv", "tips.csv"))
 

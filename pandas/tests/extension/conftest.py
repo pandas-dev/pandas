@@ -11,8 +11,8 @@ def dtype():
     raise NotImplementedError
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """
     Length-100 array for this type.
 
@@ -28,8 +28,8 @@ def data_for_twos():
     raise NotImplementedError
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     """Length-2 array with [NA, Valid]"""
     raise NotImplementedError
 

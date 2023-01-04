@@ -646,22 +646,22 @@ def test_dt_subclass_add_timedelta(lh, rh):
 
 
 class TestNonNano:
-    @pytest.fixture(params=["s", "ms", "us"])
-    def reso(self, request):
+    @pytest.fixture(name="reso", params=["s", "ms", "us"])
+    def fixture_reso(self, request):
         return request.param
 
-    @pytest.fixture
-    def dt64(self, reso):
+    @pytest.fixture(name="dt64")
+    def fixture_dt64(self, reso):
         # cases that are in-bounds for nanosecond, so we can compare against
         #  the existing implementation.
         return np.datetime64("2016-01-01", reso)
 
-    @pytest.fixture
-    def ts(self, dt64):
+    @pytest.fixture(name="ts")
+    def fixture_ts(self, dt64):
         return Timestamp._from_dt64(dt64)
 
-    @pytest.fixture
-    def ts_tz(self, ts, tz_aware_fixture):
+    @pytest.fixture(name="ts_tz")
+    def fixture_ts_tz(self, ts, tz_aware_fixture):
         tz = maybe_get_tz(tz_aware_fixture)
         return Timestamp._from_value_and_reso(ts.value, ts._creso, tz)
 

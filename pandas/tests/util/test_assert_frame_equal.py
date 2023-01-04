@@ -5,13 +5,13 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def by_blocks_fixture(request):
+@pytest.fixture(name="by_blocks_fixture", params=[True, False])
+def fixture_by_blocks_fixture(request):
     return request.param
 
 
-@pytest.fixture(params=["DataFrame", "Series"])
-def obj_fixture(request):
+@pytest.fixture(name="obj_fixture", params=["DataFrame", "Series"])
+def fixture_obj_fixture(request):
     return request.param
 
 

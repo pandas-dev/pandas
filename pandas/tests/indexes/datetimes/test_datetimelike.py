@@ -12,8 +12,8 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 class TestDatetimeIndex(DatetimeLike):
     _index_cls = DatetimeIndex
 
-    @pytest.fixture
-    def simple_index(self) -> DatetimeIndex:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> DatetimeIndex:
         return date_range("20130101", periods=5)
 
     @pytest.fixture(

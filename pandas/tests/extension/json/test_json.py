@@ -14,13 +14,13 @@ from pandas.tests.extension.json.array import (
 )
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return JSONDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 PeriodArray for semantics test."""
     data = make_data()
 
@@ -42,18 +42,18 @@ def data_missing():
     return JSONArray([{}, {"a": 10}])
 
 
-@pytest.fixture
-def data_for_sorting():
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting():
     return JSONArray([{"b": 1}, {"c": 4}, {"a": 2, "c": 3}])
 
 
-@pytest.fixture
-def data_missing_for_sorting():
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting():
     return JSONArray([{"b": 1}, {}, {"a": 4}])
 
 
-@pytest.fixture
-def na_value(dtype):
+@pytest.fixture(name="na_value")
+def fixture_na_value(dtype):
     return dtype.na_value
 
 
@@ -62,8 +62,8 @@ def na_cmp():
     return operator.eq
 
 
-@pytest.fixture
-def data_for_grouping():
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping():
     return JSONArray(
         [
             {"b": 1},

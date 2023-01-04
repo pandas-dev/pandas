@@ -237,13 +237,15 @@ df_kml = DataFrame(
 )
 
 
-@pytest.fixture(params=["rb", "r"])
-def mode(request):
+@pytest.fixture(name="mode", params=["rb", "r"])
+def fixture_mode(request):
     return request.param
 
 
-@pytest.fixture(params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"])
-def parser(request):
+@pytest.fixture(
+    name="parser", params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"]
+)
+def fixture_parser(request):
     return request.param
 
 

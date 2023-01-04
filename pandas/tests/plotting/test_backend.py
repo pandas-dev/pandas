@@ -11,8 +11,8 @@ dummy_backend = types.ModuleType("pandas_dummy_backend")
 setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
 
 
-@pytest.fixture
-def restore_backend():
+@pytest.fixture(name="restore_backend")
+def fixture_restore_backend():
     """Restore the plotting backend to matplotlib"""
     with pandas.option_context("plotting.backend", "matplotlib"):
         yield

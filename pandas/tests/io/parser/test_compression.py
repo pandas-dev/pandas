@@ -17,13 +17,13 @@ from pandas.tests.io.test_compression import _compression_to_extension
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@pytest.fixture(params=[True, False])
-def buffer(request):
+@pytest.fixture(name="buffer", params=[True, False])
+def fixture_buffer(request):
     return request.param
 
 
-@pytest.fixture
-def parser_and_data(all_parsers, csv1):
+@pytest.fixture(name="parser_and_data")
+def fixture_parser_and_data(all_parsers, csv1):
     parser = all_parsers
 
     with open(csv1, "rb") as f:

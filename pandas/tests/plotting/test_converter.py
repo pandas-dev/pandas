@@ -152,8 +152,8 @@ class TestRegistration:
 
 
 class TestDateTimeConverter:
-    @pytest.fixture
-    def dtc(self):
+    @pytest.fixture(name="dtc")
+    def fixture_dtc(self):
         return converter.DatetimeConverter()
 
     def test_convert_accepts_unicode(self, dtc):
@@ -283,12 +283,12 @@ class TestDateTimeConverter:
 
 
 class TestPeriodConverter:
-    @pytest.fixture
-    def pc(self):
+    @pytest.fixture(name="pc")
+    def fixture_pc(self):
         return converter.PeriodConverter()
 
-    @pytest.fixture
-    def axis(self):
+    @pytest.fixture(name="axis")
+    def fixture_axis(self):
         class Axis:
             pass
 

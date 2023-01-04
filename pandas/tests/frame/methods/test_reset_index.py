@@ -27,8 +27,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
-def multiindex_df():
+@pytest.fixture(name="multiindex_df")
+def fixture_multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
 

@@ -47,16 +47,16 @@ from pandas.core.internals.blocks import (
 pytestmark = td.skip_array_manager_invalid_test
 
 
-@pytest.fixture(params=[new_block, make_block])
-def block_maker(request):
+@pytest.fixture(name="block_maker", params=[new_block, make_block])
+def fixture_block_maker(request):
     """
     Fixture to test both the internal new_block and pseudo-public make_block.
     """
     return request.param
 
 
-@pytest.fixture
-def mgr():
+@pytest.fixture(name="mgr")
+def fixture_mgr():
     return create_mgr(
         "a: f8; b: object; c: f8; d: object; e: f8;"
         "f: bool; g: i8; h: complex; i: datetime-1; j: datetime-2;"
@@ -243,8 +243,8 @@ def create_mgr(descr, item_shape=None):
     )
 
 
-@pytest.fixture
-def fblock():
+@pytest.fixture(name="fblock")
+def fixture_fblock():
     return create_block("float", [0, 2, 4])
 
 
@@ -1218,6 +1218,7 @@ class TestBlockPlacement:
 
 class TestCanHoldElement:
     @pytest.fixture(
+        name="element",
         params=[
             lambda x: x,
             lambda x: x.to_series(),
@@ -1227,9 +1228,9 @@ class TestCanHoldElement:
             lambda x: np.asarray(x),
             lambda x: x[0],
             lambda x: x[:0],
-        ]
+        ],
     )
-    def element(self, request):
+    def fixture_element(self, request):
         """
         Functions that take an Index and return an element that should have
         blk._can_hold_element(element) for a Block with this index's dtype.

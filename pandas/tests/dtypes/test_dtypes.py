@@ -80,8 +80,8 @@ class Base:
 
 
 class TestCategoricalDtype(Base):
-    @pytest.fixture
-    def dtype(self):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self):
         """
         Class level fixture of dtype for TestCategoricalDtype
         """
@@ -223,8 +223,8 @@ class TestCategoricalDtype(Base):
 
 
 class TestDatetimeTZDtype(Base):
-    @pytest.fixture
-    def dtype(self):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self):
         """
         Class level fixture of dtype for TestDatetimeTZDtype
         """
@@ -383,8 +383,8 @@ class TestDatetimeTZDtype(Base):
 
 
 class TestPeriodDtype(Base):
-    @pytest.fixture
-    def dtype(self):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self):
         """
         Class level fixture of dtype for TestPeriodDtype
         """
@@ -532,8 +532,8 @@ class TestPeriodDtype(Base):
 
 
 class TestIntervalDtype(Base):
-    @pytest.fixture
-    def dtype(self):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self):
         """
         Class level fixture of dtype for TestIntervalDtype
         """

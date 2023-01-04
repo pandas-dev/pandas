@@ -45,6 +45,7 @@ def make_data():
 
 
 @pytest.fixture(
+    name="dtype",
     params=[
         Int8Dtype,
         Int16Dtype,
@@ -54,14 +55,14 @@ def make_data():
         UInt16Dtype,
         UInt32Dtype,
         UInt64Dtype,
-    ]
+    ],
 )
-def dtype(request):
+def fixture_dtype(request):
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return pd.array(make_data(), dtype=dtype)
 
 

@@ -51,8 +51,8 @@ def ts():
     return tm.makeTimeSeries()
 
 
-@pytest.fixture
-def tsd():
+@pytest.fixture(name="tsd")
+def fixture_tsd():
     return tm.getTimeSeriesData()
 
 
@@ -123,8 +123,8 @@ def three_group():
     )
 
 
-@pytest.fixture()
-def slice_test_df():
+@pytest.fixture(name="slice_test_df")
+def fixture_slice_test_df():
     data = [
         [0, "a", "a0_at_0"],
         [1, "b", "b0_at_1"],

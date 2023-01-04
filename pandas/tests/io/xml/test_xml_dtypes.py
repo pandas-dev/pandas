@@ -15,15 +15,18 @@ import pandas._testing as tm
 from pandas.io.xml import read_xml
 
 
-@pytest.fixture(params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"])
-def parser(request):
+@pytest.fixture(
+    name="parser", params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"]
+)
+def fixture_parser(request):
     return request.param
 
 
 @pytest.fixture(
-    params=[None, {"book": ["category", "title", "author", "year", "price"]}]
+    name="iterparse",
+    params=[None, {"book": ["category", "title", "author", "year", "price"]}],
 )
-def iterparse(request):
+def fixture_iterparse(request):
     return request.param
 
 

@@ -23,10 +23,11 @@ from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(
+    name="dtypes_for_minmax",
     params=[np.int32, np.int64, np.float32, np.float64, "Int64", "Float64"],
     ids=["np.int32", "np.int64", "np.float32", "np.float64", "Int64", "Float64"],
 )
-def dtypes_for_minmax(request):
+def fixture_dtypes_for_minmax(request):
     """
     Fixture of dtypes with min and max values used for testing
     cummin and cummax
@@ -107,8 +108,8 @@ def test_builtins_apply(keys, f):
 class TestNumericOnly:
     # make sure that we are passing thru kwargs to our agg functions
 
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         # GH3668
         # GH5724
         df = DataFrame(
@@ -297,21 +298,21 @@ class TestGroupByNonCythonPaths:
     # GH#5610 non-cython calls should not include the grouper
     # Tests for code not expected to go through cython paths.
 
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         df = DataFrame(
             [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
             columns=["A", "B", "C"],
         )
         return df
 
-    @pytest.fixture
-    def gb(self, df):
+    @pytest.fixture(name="gb")
+    def fixture_gb(self, df):
         gb = df.groupby("A")
         return gb
 
-    @pytest.fixture
-    def gni(self, df):
+    @pytest.fixture(name="gni")
+    def fixture_gni(self, df):
         gni = df.groupby("A", as_index=False)
         return gni
 

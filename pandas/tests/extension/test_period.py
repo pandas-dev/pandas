@@ -25,13 +25,13 @@ from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["D", "2D"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["D", "2D"])
+def fixture_dtype(request):
     return PeriodDtype(freq=request.param)
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
 
 

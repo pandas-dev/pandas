@@ -18,8 +18,8 @@ import pandas._testing as tm
 from pandas.tseries.offsets import BDay
 
 
-@pytest.fixture
-def four_level_index_dataframe():
+@pytest.fixture(name="four_level_index_dataframe")
+def fixture_four_level_index_dataframe():
     arr = np.array(
         [
             [-0.5109, -2.3358, -0.4645, 0.05076, 0.364],

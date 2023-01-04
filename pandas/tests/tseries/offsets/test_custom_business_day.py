@@ -20,13 +20,13 @@ from pandas.tests.tseries.offsets.common import assert_offset_equal
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-@pytest.fixture
-def offset():
+@pytest.fixture(name="offset")
+def fixture_offset():
     return CDay()
 
 
-@pytest.fixture
-def offset2():
+@pytest.fixture(name="offset2")
+def fixture_offset2():
     return CDay(2)
 
 

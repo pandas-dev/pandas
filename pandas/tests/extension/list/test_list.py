@@ -13,8 +13,8 @@ def dtype():
     return ListDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 ListArray for semantics test."""
     data = make_data()
 

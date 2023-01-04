@@ -2964,12 +2964,12 @@ def get1(obj):  # TODO: make a helper in tm?
 
 
 class TestFromScalar:
-    @pytest.fixture(params=[list, dict, None])
-    def box(self, request):
+    @pytest.fixture(name="box", params=[list, dict, None])
+    def fixture_box(self, request):
         return request.param
 
-    @pytest.fixture
-    def constructor(self, frame_or_series, box):
+    @pytest.fixture(name="constructor")
+    def fixture_constructor(self, frame_or_series, box):
 
         extra = {"index": range(2)}
         if frame_or_series is DataFrame:
@@ -3119,12 +3119,12 @@ class TestAllowNonNano:
     # Until 2.0, we do not preserve non-nano dt64/td64 when passed as ndarray,
     #  but do preserve it when passed as DTA/TDA
 
-    @pytest.fixture(params=[True, False])
-    def as_td(self, request):
+    @pytest.fixture(name="as_td", params=[True, False])
+    def fixture_as_td(self, request):
         return request.param
 
-    @pytest.fixture
-    def arr(self, as_td):
+    @pytest.fixture(name="arr")
+    def fixture_arr(self, as_td):
         values = np.arange(5).astype(np.int64).view("M8[s]")
         if as_td:
             values = values - values[0]

@@ -120,8 +120,8 @@ def test_doc_examples():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
-def multiindex_data():
+@pytest.fixture(name="multiindex_data")
+def fixture_multiindex_data():
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
@@ -272,8 +272,8 @@ def test_step(step):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
-def column_group_df():
+@pytest.fixture(name="column_group_df")
+def fixture_column_group_df():
     return pd.DataFrame(
         [[0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 0, 1, 0, 2]],
         columns=["A", "B", "C", "D", "E", "F", "G"],

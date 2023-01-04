@@ -38,14 +38,14 @@ def dtype():
     return IntervalDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 PeriodArray for semantics test."""
     return IntervalArray(make_data())
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     """Length 2 array with [NA, Valid]"""
     return IntervalArray.from_tuples([None, (0, 1)])
 

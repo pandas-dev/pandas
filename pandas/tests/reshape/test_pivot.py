@@ -27,20 +27,22 @@ from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
-@pytest.fixture(params=[True, False])
-def dropna(request):
+@pytest.fixture(name="dropna", params=[True, False])
+def fixture_dropna(request):
     return request.param
 
 
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
-def interval_values(request, closed):
+@pytest.fixture(
+    name="interval_values", params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))]
+)
+def fixture_interval_values(request, closed):
     left, right = request.param
     return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
 
 
 class TestPivotTable:
-    @pytest.fixture
-    def data(self):
+    @pytest.fixture(name="data")
+    def fixture_data(self):
         return DataFrame(
             {
                 "A": [

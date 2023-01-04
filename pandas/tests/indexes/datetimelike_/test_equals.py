@@ -50,8 +50,8 @@ class EqualsTests:
 
 
 class TestPeriodIndexEquals(EqualsTests):
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return period_range("2013-01-01", periods=5, freq="D")
 
     # TODO: de-duplicate with other test_equals2 methods
@@ -89,8 +89,8 @@ class TestPeriodIndexEquals(EqualsTests):
 
 
 class TestDatetimeIndexEquals(EqualsTests):
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return date_range("2013-01-01", periods=5)
 
     def test_equals2(self):
@@ -141,8 +141,8 @@ class TestDatetimeIndexEquals(EqualsTests):
 
 
 class TestTimedeltaIndexEquals(EqualsTests):
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return tm.makeTimedeltaIndex(10)
 
     def test_equals2(self):

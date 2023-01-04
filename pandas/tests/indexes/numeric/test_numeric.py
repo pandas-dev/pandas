@@ -16,20 +16,21 @@ from pandas.tests.indexes.common import NumericBase
 class TestFloatNumericIndex(NumericBase):
     _index_cls = NumericIndex
 
-    @pytest.fixture(params=[np.float64, np.float32])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=[np.float64, np.float32])
+    def fixture_dtype(self, request):
         return request.param
 
     @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def simple_index(self, dtype):
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self, dtype):
         values = np.arange(5, dtype=dtype)
         return self._index_cls(values)
 
     @pytest.fixture(
+        name="index",
         params=[
             [1.5, 2, 3, 4, 5],
             [0.0, 2.5, 5.0, 7.5, 10.0],
@@ -38,15 +39,15 @@ class TestFloatNumericIndex(NumericBase):
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def index(self, request, dtype):
+    def fixture_index(self, request, dtype):
         return self._index_cls(request.param, dtype=dtype)
 
-    @pytest.fixture
-    def mixed_index(self, dtype):
+    @pytest.fixture(name="mixed_index")
+    def fixture_mixed_index(self, dtype):
         return self._index_cls([1.5, 2, 3, 4, 5], dtype=dtype)
 
-    @pytest.fixture
-    def float_index(self, dtype):
+    @pytest.fixture(name="float_index")
+    def fixture_float_index(self, dtype):
         return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
@@ -349,22 +350,24 @@ class NumericInt(NumericBase):
 class TestIntNumericIndex(NumericInt):
     _index_cls = NumericIndex
 
-    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=[np.int64, np.int32, np.int16, np.int8])
+    def fixture_dtype(self, request):
         return request.param
 
     @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def simple_index(self, dtype):
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self, dtype):
         return self._index_cls(range(0, 20, 2), dtype=dtype)
 
     @pytest.fixture(
-        params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
+        name="index",
+        params=[range(0, 20, 2), range(19, -1, -1)],
+        ids=["index_inc", "index_dec"],
     )
-    def index(self, request, dtype):
+    def fixture_index(self, request, dtype):
         return self._index_cls(request.param, dtype=dtype)
 
     def test_constructor_from_list_no_dtype(self):
@@ -513,27 +516,28 @@ class TestUIntNumericIndex(NumericInt):
 
     _index_cls = NumericIndex
 
-    @pytest.fixture(params=[np.uint64])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=[np.uint64])
+    def fixture_dtype(self, request):
         return request.param
 
     @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def simple_index(self, dtype):
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self, dtype):
         # compat with shared Int64/Float64 tests
         return self._index_cls(np.arange(5, dtype=dtype))
 
     @pytest.fixture(
+        name="index",
         params=[
             [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
             [2**63 + 25, 2**63 + 20, 2**63 + 15, 2**63 + 10, 2**63],
         ],
         ids=["index_inc", "index_dec"],
     )
-    def index(self, request):
+    def fixture_index(self, request):
         return self._index_cls(request.param, dtype=np.uint64)
 
 

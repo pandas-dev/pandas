@@ -38,13 +38,13 @@ def make_data():
     )
 
 
-@pytest.fixture(params=[Float32Dtype, Float64Dtype])
-def dtype(request):
+@pytest.fixture(name="dtype", params=[Float32Dtype, Float64Dtype])
+def fixture_dtype(request):
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return pd.array(make_data(), dtype=dtype)
 
 

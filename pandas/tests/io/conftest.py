@@ -18,14 +18,14 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 
 
-@pytest.fixture
-def tips_file(datapath):
+@pytest.fixture(name="tips_file")
+def fixture_tips_file(datapath):
     """Path to the tips dataset"""
     return datapath("io", "data", "csv", "tips.csv")
 
 
-@pytest.fixture
-def jsonl_file(datapath):
+@pytest.fixture(name="jsonl_file")
+def fixture_jsonl_file(datapath):
     """Path to a JSONL dataset"""
     return datapath("io", "parser", "data", "items.jsonl")
 
@@ -36,8 +36,8 @@ def salaries_table(datapath):
     return read_csv(datapath("io", "parser", "data", "salaries.csv"), sep="\t")
 
 
-@pytest.fixture
-def feather_file(datapath):
+@pytest.fixture(name="feather_file")
+def fixture_feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
@@ -51,8 +51,8 @@ def s3so(worker_id):
     return {"client_kwargs": {"endpoint_url": url}}
 
 
-@pytest.fixture(scope="session")
-def s3_base(worker_id):
+@pytest.fixture(name="s3_base", scope="session")
+def fixture_s3_base(worker_id):
     """
     Fixture for mocking S3 interaction.
 
