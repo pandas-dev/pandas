@@ -27,6 +27,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import json
 import operator
 import os
 import pathlib
@@ -41,6 +42,12 @@ import jinja2
 import markdown
 import requests
 import yaml
+
+api_token = os.environ.get("GITHUB_TOKEN")
+if api_token is not None:
+    GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
+else:
+    GITHUB_API_HEADERS = {}
 
 
 class Preprocessors:
@@ -157,6 +164,18 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
+        timestamp = time.time()
+
+        cache_file = pathlib.Path("maintainers.json")
+        if cache_file.is_file():
+            with open(cache_file) as f:
+                context["maintainers"] = json.load(f)
+            # refresh cache after 1 hour
+            if (timestamp - context["maintainers"]["timestamp"]) < 3_600:
+                return context
+
+        context["maintainers"]["timestamp"] = timestamp
+
         repeated = set(context["maintainers"]["active"]) & set(
             context["maintainers"]["inactive"]
         )
@@ -166,11 +185,17 @@ class Preprocessors:
         for kind in ("active", "inactive"):
             context["maintainers"][f"{kind}_with_github_info"] = []
             for user in context["maintainers"][kind]:
-                resp = requests.get(f"https://api.github.com/users/{user}")
+                resp = requests.get(
+                    f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+                )
                 if context["ignore_io_errors"] and resp.status_code == 403:
                     return context
                 resp.raise_for_status()
                 context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
+
+        with open(cache_file, "w") as f:
+            json.dump(context["maintainers"], f)
+
         return context
 
     @staticmethod
@@ -178,7 +203,10 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        resp = requests.get(
+            f"https://api.github.com/repos/{github_repo_url}/releases",
+            headers=GITHUB_API_HEADERS,
+        )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
@@ -245,7 +273,8 @@ class Preprocessors:
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
+            headers=GITHUB_API_HEADERS,
         )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
