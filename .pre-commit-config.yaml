@@ -303,6 +303,12 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
+    -   id: rename-test-fixtures
+        name: Rename test fixtures
+        entry: python -m scripts.rename_test_fixtures
+        language: python
+        files: ^pandas/
+        types: [python]
     -   id: flake8-pyi
         name: flake8-pyi
         entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
