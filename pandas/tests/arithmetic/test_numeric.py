@@ -34,8 +34,8 @@ from pandas.tests.arithmetic.common import (
 )
 
 
-@pytest.fixture(params=[Index, Series, tm.to_array])
-def box_pandas_1d_array(request):
+@pytest.fixture(name="box_pandas_1d_array", params=[Index, Series, tm.to_array])
+def fixture_box_pandas_1d_array(request):
     """
     Fixture to test behavior for Index, Series and tm.to_array classes
     """

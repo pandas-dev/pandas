@@ -27,28 +27,28 @@ class TestAsOfMerge:
         x.time = to_datetime(x.time)
         return x
 
-    @pytest.fixture
-    def trades(self, datapath):
+    @pytest.fixture(name="trades")
+    def fixture_trades(self, datapath):
         return self.read_data(datapath, "trades.csv")
 
-    @pytest.fixture
-    def quotes(self, datapath):
+    @pytest.fixture(name="quotes")
+    def fixture_quotes(self, datapath):
         return self.read_data(datapath, "quotes.csv", dedupe=True)
 
-    @pytest.fixture
-    def asof(self, datapath):
+    @pytest.fixture(name="asof")
+    def fixture_asof(self, datapath):
         return self.read_data(datapath, "asof.csv")
 
-    @pytest.fixture
-    def tolerance(self, datapath):
+    @pytest.fixture(name="tolerance")
+    def fixture_tolerance(self, datapath):
         return self.read_data(datapath, "tolerance.csv")
 
-    @pytest.fixture
-    def allow_exact_matches(self, datapath):
+    @pytest.fixture(name="allow_exact_matches")
+    def fixture_allow_exact_matches(self, datapath):
         return self.read_data(datapath, "allow_exact_matches.csv")
 
-    @pytest.fixture
-    def allow_exact_matches_and_tolerance(self, datapath):
+    @pytest.fixture(name="allow_exact_matches_and_tolerance")
+    def fixture_allow_exact_matches_and_tolerance(self, datapath):
         return self.read_data(datapath, "allow_exact_matches_and_tolerance.csv")
 
     def test_examples1(self):

@@ -8,8 +8,8 @@ import pandas._testing as tm
 
 
 class TestAppend:
-    @pytest.fixture
-    def ci(self):
+    @pytest.fixture(name="ci")
+    def fixture_ci(self):
         categories = list("cab")
         return CategoricalIndex(list("aabbca"), categories=categories, ordered=False)
 

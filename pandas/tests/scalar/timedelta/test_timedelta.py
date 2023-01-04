@@ -100,18 +100,18 @@ class TestAsUnit:
 
 
 class TestNonNano:
-    @pytest.fixture(params=["s", "ms", "us"])
-    def unit_str(self, request):
+    @pytest.fixture(name="unit_str", params=["s", "ms", "us"])
+    def fixture_unit_str(self, request):
         return request.param
 
-    @pytest.fixture
-    def unit(self, unit_str):
+    @pytest.fixture(name="unit")
+    def fixture_unit(self, unit_str):
         # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
         attr = f"NPY_FR_{unit_str}"
         return getattr(NpyDatetimeUnit, attr).value
 
-    @pytest.fixture
-    def val(self, unit):
+    @pytest.fixture(name="val")
+    def fixture_val(self, unit):
         # microsecond that would be just out of bounds for nano
         us = 9223372800000000
         if unit == NpyDatetimeUnit.NPY_FR_us.value:
@@ -122,8 +122,8 @@ class TestNonNano:
             value = us // 1_000_000
         return value
 
-    @pytest.fixture
-    def td(self, unit, val):
+    @pytest.fixture(name="td")
+    def fixture_td(self, unit, val):
         return Timedelta._from_value_and_reso(val, unit)
 
     def test_from_value_and_reso(self, unit, val):

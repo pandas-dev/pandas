@@ -19,8 +19,8 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 
-@pytest.fixture
-def df1():
+@pytest.fixture(name="df1")
+def fixture_df1():
     return DataFrame(
         {
             "int": [1, 3],
@@ -31,8 +31,8 @@ def df1():
     )
 
 
-@pytest.fixture
-def cleared_fs():
+@pytest.fixture(name="cleared_fs")
+def fixture_cleared_fs():
     fsspec = pytest.importorskip("fsspec")
 
     memfs = fsspec.filesystem("memory")

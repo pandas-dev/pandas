@@ -31,8 +31,8 @@ from pandas.core.sorting import (
 )
 
 
-@pytest.fixture
-def left_right():
+@pytest.fixture(name="left_right")
+def fixture_left_right():
     low, high, n = -1 << 10, 1 << 10, 1 << 20
     left = DataFrame(np.random.randint(low, high, (n, 7)), columns=list("ABCDEFG"))
     left["left"] = left.sum(axis=1)

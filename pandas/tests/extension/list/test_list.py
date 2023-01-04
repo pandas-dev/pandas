@@ -8,13 +8,13 @@ from pandas.tests.extension.list.array import (
 )
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return ListDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 ListArray for semantics test."""
     data = make_data()
 

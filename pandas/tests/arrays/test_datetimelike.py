@@ -31,14 +31,14 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
-def freqstr(request):
+@pytest.fixture(name="freqstr", params=["D", "B", "W", "M", "Q", "Y"])
+def fixture_freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param
 
 
-@pytest.fixture
-def period_index(freqstr):
+@pytest.fixture(name="period_index")
+def fixture_period_index(freqstr):
     """
     A fixture to provide PeriodIndex objects with different frequencies.
 
@@ -51,8 +51,8 @@ def period_index(freqstr):
     return pi
 
 
-@pytest.fixture
-def datetime_index(freqstr):
+@pytest.fixture(name="datetime_index")
+def fixture_datetime_index(freqstr):
     """
     A fixture to provide DatetimeIndex objects with different frequencies.
 
@@ -65,8 +65,8 @@ def datetime_index(freqstr):
     return dti
 
 
-@pytest.fixture
-def timedelta_index():
+@pytest.fixture(name="timedelta_index")
+def fixture_timedelta_index():
     """
     A fixture to provide TimedeltaIndex objects with different frequencies.
      Most TimedeltaArray behavior is already tested in TimedeltaIndex tests,
@@ -80,8 +80,8 @@ def timedelta_index():
 class SharedTests:
     index_cls: type[DatetimeIndex | PeriodIndex | TimedeltaIndex]
 
-    @pytest.fixture
-    def arr1d(self):
+    @pytest.fixture(name="arr1d")
+    def fixture_arr1d(self):
         """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
@@ -602,8 +602,8 @@ class TestDatetimeArray(SharedTests):
     scalar_type = Timestamp
     example_dtype = "M8[ns]"
 
-    @pytest.fixture
-    def arr1d(self, tz_naive_fixture, freqstr):
+    @pytest.fixture(name="arr1d")
+    def fixture_arr1d(self, tz_naive_fixture, freqstr):
         """
         Fixture returning DatetimeArray with parametrized frequency and
         timezones
@@ -1009,8 +1009,8 @@ class TestPeriodArray(SharedTests):
     scalar_type = Period
     example_dtype = PeriodIndex([], freq="W").dtype
 
-    @pytest.fixture
-    def arr1d(self, period_index):
+    @pytest.fixture(name="arr1d")
+    def fixture_arr1d(self, period_index):
         """
         Fixture returning DatetimeArray from parametrized PeriodIndex objects
         """
@@ -1327,14 +1327,15 @@ def test_from_pandas_array(dtype):
 
 
 @pytest.fixture(
+    name="array_likes",
     params=[
         "memoryview",
         "array",
         pytest.param("dask", marks=td.skip_if_no("dask.array")),
         pytest.param("xarray", marks=td.skip_if_no("xarray")),
-    ]
+    ],
 )
-def array_likes(request):
+def fixture_array_likes(request):
     """
     Fixture giving a numpy array and a parametrized 'data' object, which can
     be a memoryview, array, dask or xarray object created from the numpy array.

@@ -12,8 +12,8 @@ arrays += [
 ]
 
 
-@pytest.fixture(params=arrays, ids=[a.dtype.name for a in arrays])
-def data(request):
+@pytest.fixture(name="data", params=arrays, ids=[a.dtype.name for a in arrays])
+def fixture_data(request):
     """
     Fixture returning parametrized 'data' array with different integer and
     floating point types
@@ -21,8 +21,8 @@ def data(request):
     return request.param
 
 
-@pytest.fixture()
-def numpy_dtype(data):
+@pytest.fixture(name="numpy_dtype")
+def fixture_numpy_dtype(data):
     """
     Fixture returning numpy dtype from 'data' input array.
     """

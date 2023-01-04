@@ -24,8 +24,8 @@ from pandas.io.json._table_schema import (
 )
 
 
-@pytest.fixture
-def df_schema():
+@pytest.fixture(name="df_schema")
+def fixture_df_schema():
     return DataFrame(
         {
             "A": [1, 2, 3, 4],
@@ -37,8 +37,8 @@ def df_schema():
     )
 
 
-@pytest.fixture
-def df_table():
+@pytest.fixture(name="df_table")
+def fixture_df_table():
     return DataFrame(
         {
             "A": [1, 2, 3, 4],

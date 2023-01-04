@@ -17,9 +17,11 @@ import pandas._testing as tm
 
 
 @pytest.fixture(
-    params=[["linear", "single"], ["nearest", "table"]], ids=lambda x: "-".join(x)
+    name="interp_method",
+    params=[["linear", "single"], ["nearest", "table"]],
+    ids=lambda x: "-".join(x),
 )
-def interp_method(request):
+def fixture_interp_method(request):
     """(interpolation, method) arguments for quantile"""
     return request.param
 
@@ -795,6 +797,7 @@ class TestQuantileExtensionDtype:
     # TODO: empty case?
 
     @pytest.fixture(
+        name="index",
         params=[
             pytest.param(
                 pd.IntervalIndex.from_breaks(range(10)),
@@ -808,14 +811,14 @@ class TestQuantileExtensionDtype:
         ],
         ids=lambda x: str(x.dtype),
     )
-    def index(self, request):
+    def fixture_index(self, request):
         # NB: not actually an Index object
         idx = request.param
         idx.name = "A"
         return idx
 
-    @pytest.fixture
-    def obj(self, index, frame_or_series):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, index, frame_or_series):
         # bc index is not always an Index (yet), we need to re-patch .name
         obj = frame_or_series(index).copy()
 

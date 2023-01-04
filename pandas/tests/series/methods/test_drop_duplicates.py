@@ -71,13 +71,21 @@ def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
 
 class TestSeriesDropDuplicates:
     @pytest.fixture(
-        params=["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"]
+        name="dtype",
+        params=[
+            "int_",
+            "uint",
+            "float_",
+            "unicode_",
+            "timedelta64[h]",
+            "datetime64[D]",
+        ],
     )
-    def dtype(self, request):
+    def fixture_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def cat_series_unused_category(self, dtype, ordered):
+    @pytest.fixture(name="cat_series_unused_category")
+    def fixture_cat_series_unused_category(self, dtype, ordered):
         # Test case 1
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
@@ -138,8 +146,8 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
-    @pytest.fixture
-    def cat_series(self, dtype, ordered):
+    @pytest.fixture(name="cat_series")
+    def fixture_cat_series(self, dtype, ordered):
         # no unused categories, unlike cat_series_unused_category
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 

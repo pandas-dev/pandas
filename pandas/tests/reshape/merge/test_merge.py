@@ -73,8 +73,8 @@ def get_series_na():
     ]
 
 
-@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
-def series_of_dtype(request):
+@pytest.fixture(name="series_of_dtype", params=get_series(), ids=lambda x: x.dtype.name)
+def fixture_series_of_dtype(request):
     """
     A parametrized fixture returning a variety of Series of different
     dtypes
@@ -82,8 +82,10 @@ def series_of_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
-def series_of_dtype2(request):
+@pytest.fixture(
+    name="series_of_dtype2", params=get_series(), ids=lambda x: x.dtype.name
+)
+def fixture_series_of_dtype2(request):
     """
     A duplicate of the series_of_dtype fixture, so that it can be used
     twice by a single function
@@ -91,8 +93,10 @@ def series_of_dtype2(request):
     return request.param
 
 
-@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
-def series_of_dtype_all_na(request):
+@pytest.fixture(
+    name="series_of_dtype_all_na", params=get_series_na(), ids=lambda x: x.dtype.name
+)
+def fixture_series_of_dtype_all_na(request):
     """
     A parametrized fixture returning a variety of Series with all NA
     values
@@ -100,8 +104,8 @@ def series_of_dtype_all_na(request):
     return request.param
 
 
-@pytest.fixture
-def dfs_for_indicator():
+@pytest.fixture(name="dfs_for_indicator")
+def fixture_dfs_for_indicator():
     df1 = DataFrame({"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]})
     df2 = DataFrame(
         {
@@ -114,8 +118,8 @@ def dfs_for_indicator():
 
 
 class TestMerge:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         df = DataFrame(
             {
                 "key1": get_test_data(),
@@ -129,8 +133,8 @@ class TestMerge:
         df = df[df["key2"] > 1]
         return df
 
-    @pytest.fixture
-    def df2(self):
+    @pytest.fixture(name="df2")
+    def fixture_df2(self):
         return DataFrame(
             {
                 "key1": get_test_data(n=10),
@@ -139,14 +143,14 @@ class TestMerge:
             }
         )
 
-    @pytest.fixture
-    def left(self):
+    @pytest.fixture(name="left")
+    def fixture_left(self):
         return DataFrame(
             {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
         )
 
-    @pytest.fixture
-    def right(self):
+    @pytest.fixture(name="right")
+    def fixture_right(self):
         return DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
 
     def test_merge_inner_join_empty(self):
@@ -1783,8 +1787,8 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def left():
+@pytest.fixture(name="left")
+def fixture_left():
     np.random.seed(1234)
     return DataFrame(
         {
@@ -1796,8 +1800,8 @@ def left():
     )
 
 
-@pytest.fixture
-def right():
+@pytest.fixture(name="right")
+def fixture_right():
     np.random.seed(1234)
     return DataFrame(
         {"X": Series(["foo", "bar"]).astype(CDT(["foo", "bar"])), "Z": [1, 2]}
@@ -2076,13 +2080,13 @@ class TestMergeCategorical:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def left_df():
+@pytest.fixture(name="left_df")
+def fixture_left_df():
     return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
 
 
-@pytest.fixture
-def right_df():
+@pytest.fixture(name="right_df")
+def fixture_right_df():
     return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
 
 

@@ -4,8 +4,8 @@ import pytest
 from pandas import DataFrame
 
 
-@pytest.fixture
-def int_frame_const_col():
+@pytest.fixture(name="int_frame_const_col")
+def fixture_int_frame_const_col():
     """
     Fixture for DataFrame of ints which are constant per column
 

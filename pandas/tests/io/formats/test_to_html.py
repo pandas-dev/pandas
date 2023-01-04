@@ -49,8 +49,8 @@ def expected_html(datapath, name):
     return html.rstrip()
 
 
-@pytest.fixture(params=["mixed", "empty"])
-def biggie_df_fixture(request):
+@pytest.fixture(name="biggie_df_fixture", params=["mixed", "empty"])
+def fixture_biggie_df_fixture(request):
     """Fixture for a big mixed Dataframe and an empty Dataframe"""
     if request.param == "mixed":
         df = DataFrame(
@@ -65,8 +65,8 @@ def biggie_df_fixture(request):
         return df
 
 
-@pytest.fixture(params=fmt._VALID_JUSTIFY_PARAMETERS)
-def justify(request):
+@pytest.fixture(name="justify", params=fmt._VALID_JUSTIFY_PARAMETERS)
+def fixture_justify(request):
     return request.param
 
 
@@ -453,8 +453,8 @@ def test_to_html_invalid_justify(justify):
 
 
 class TestHTMLIndex:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         index = ["foo", "bar", "baz"]
         df = DataFrame(
             {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
@@ -463,8 +463,8 @@ class TestHTMLIndex:
         )
         return df
 
-    @pytest.fixture
-    def expected_without_index(self, datapath):
+    @pytest.fixture(name="expected_without_index")
+    def fixture_expected_without_index(self, datapath):
         return expected_html(datapath, "index_2")
 
     def test_to_html_flat_index_without_name(

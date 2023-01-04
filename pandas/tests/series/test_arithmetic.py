@@ -32,8 +32,13 @@ from pandas.core import (
 from pandas.core.computation import expressions as expr
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
+@pytest.fixture(
+    name="switch_numexpr_min_elements",
+    autouse=True,
+    params=[0, 1000000],
+    ids=["numexpr", "python"],
+)
+def fixture_switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
     yield request.param

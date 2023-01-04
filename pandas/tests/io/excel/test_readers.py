@@ -87,6 +87,7 @@ def _transfer_marks(engine, read_ext):
 
 
 @pytest.fixture(
+    name="engine_and_read_ext",
     params=[
         _transfer_marks(eng, ext)
         for eng in engine_params
@@ -95,28 +96,28 @@ def _transfer_marks(engine, read_ext):
     ],
     ids=str,
 )
-def engine_and_read_ext(request):
+def fixture_engine_and_read_ext(request):
     """
     Fixture for Excel reader engine and read_ext, only including valid pairs.
     """
     return request.param
 
 
-@pytest.fixture
-def engine(engine_and_read_ext):
+@pytest.fixture(name="engine")
+def fixture_engine(engine_and_read_ext):
     engine, read_ext = engine_and_read_ext
     return engine
 
 
-@pytest.fixture
-def read_ext(engine_and_read_ext):
+@pytest.fixture(name="read_ext")
+def fixture_read_ext(engine_and_read_ext):
     engine, read_ext = engine_and_read_ext
     return read_ext
 
 
 class TestReaders:
-    @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch):
+    @pytest.fixture(name="cd_and_set_engine", autouse=True)
+    def fixture_cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for read_excel calls.
         """
@@ -1416,8 +1417,8 @@ class TestReaders:
 
 
 class TestExcelFileRead:
-    @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch):
+    @pytest.fixture(name="cd_and_set_engine", autouse=True)
+    def fixture_cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for ExcelFile objects.
         """

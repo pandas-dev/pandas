@@ -15,6 +15,7 @@ from pandas.api.indexers import BaseIndexer
 
 
 @pytest.fixture(
+    name="win_types",
     params=[
         "triang",
         "blackman",
@@ -24,14 +25,17 @@ from pandas.api.indexers import BaseIndexer
         "blackmanharris",
         "nuttall",
         "barthann",
-    ]
+    ],
 )
-def win_types(request):
+def fixture_win_types(request):
     return request.param
 
 
-@pytest.fixture(params=["kaiser", "gaussian", "general_gaussian", "exponential"])
-def win_types_special(request):
+@pytest.fixture(
+    name="win_types_special",
+    params=["kaiser", "gaussian", "general_gaussian", "exponential"],
+)
+def fixture_win_types_special(request):
     return request.param
 
 

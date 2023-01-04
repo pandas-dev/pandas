@@ -10,8 +10,8 @@ from pandas import (
 from pandas.io.formats.style import Styler
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame(
         data=[[0, -0.609], [1, -1.228]],
         columns=["A", "B"],
@@ -19,8 +19,8 @@ def df():
     )
 
 
-@pytest.fixture
-def styler(df):
+@pytest.fixture(name="styler")
+def fixture_styler(df):
     return Styler(df, uuid_len=0)
 
 

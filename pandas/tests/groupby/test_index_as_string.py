@@ -5,8 +5,8 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[["inner"], ["inner", "outer"]])
-def frame(request):
+@pytest.fixture(name="frame", params=[["inner"], ["inner", "outer"]])
+def fixture_frame(request):
     levels = request.param
     df = pd.DataFrame(
         {
@@ -22,8 +22,8 @@ def frame(request):
     return df
 
 
-@pytest.fixture()
-def series():
+@pytest.fixture(name="series")
+def fixture_series():
     df = pd.DataFrame(
         {
             "outer": ["a", "a", "a", "b", "b", "b"],

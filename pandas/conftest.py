@@ -235,8 +235,8 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
-def add_doctest_imports(doctest_namespace) -> None:
+@pytest.fixture(name="add_doctest_imports")
+def fixture_add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
     """
@@ -247,8 +247,8 @@ def add_doctest_imports(doctest_namespace) -> None:
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
-@pytest.fixture(autouse=True)
-def configure_tests() -> None:
+@pytest.fixture(name="configure_tests", autouse=True)
+def fixture_configure_tests() -> None:
     """
     Configure settings for all tests and test modules.
     """
@@ -258,8 +258,10 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis(request):
+@pytest.fixture(
+    name="axis", params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}"
+)
+def fixture_axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
     """
@@ -269,16 +271,16 @@ def axis(request):
 axis_frame = axis
 
 
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
+@pytest.fixture(name="axis_1", params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
+def fixture_axis_1(request):
     """
     Fixture for returning aliases of axis 1 of a DataFrame.
     """
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
-def observed(request):
+@pytest.fixture(name="observed", params=[True, False, None])
+def fixture_observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
@@ -290,16 +292,16 @@ def observed(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
-def ordered(request):
+@pytest.fixture(name="ordered", params=[True, False, None])
+def fixture_ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
     """
     return request.param
 
 
-@pytest.fixture(params=["first", "last", False])
-def keep(request):
+@pytest.fixture(name="keep", params=["first", "last", False])
+def fixture_keep(request):
     """
     Valid values for the 'keep' parameter used in
     .duplicated or .drop_duplicates
@@ -307,24 +309,26 @@ def keep(request):
     return request.param
 
 
-@pytest.fixture(params=["both", "neither", "left", "right"])
-def inclusive_endpoints_fixture(request):
+@pytest.fixture(
+    name="inclusive_endpoints_fixture", params=["both", "neither", "left", "right"]
+)
+def fixture_inclusive_endpoints_fixture(request):
     """
     Fixture for trying all interval 'inclusive' parameters.
     """
     return request.param
 
 
-@pytest.fixture(params=["left", "right", "both", "neither"])
-def closed(request):
+@pytest.fixture(name="closed", params=["left", "right", "both", "neither"])
+def fixture_closed(request):
     """
     Fixture for trying all interval closed parameters.
     """
     return request.param
 
 
-@pytest.fixture(params=["left", "right", "both", "neither"])
-def other_closed(request):
+@pytest.fixture(name="other_closed", params=["left", "right", "both", "neither"])
+def fixture_other_closed(request):
     """
     Secondary closed fixture to allow parametrizing over all pairs of closed.
     """
@@ -332,6 +336,7 @@ def other_closed(request):
 
 
 @pytest.fixture(
+    name="compression",
     params=[
         None,
         "gzip",
@@ -340,9 +345,9 @@ def other_closed(request):
         "xz",
         "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
-    ]
+    ],
 )
-def compression(request):
+def fixture_compression(request):
     """
     Fixture for trying common compression types in compression tests.
     """
@@ -350,6 +355,7 @@ def compression(request):
 
 
 @pytest.fixture(
+    name="compression_only",
     params=[
         "gzip",
         "bz2",
@@ -357,9 +363,9 @@ def compression(request):
         "xz",
         "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
-    ]
+    ],
 )
-def compression_only(request):
+def fixture_compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
     uncompressed case.
@@ -367,24 +373,24 @@ def compression_only(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def writable(request):
+@pytest.fixture(name="writable", params=[True, False])
+def fixture_writable(request):
     """
     Fixture that an array is writable.
     """
     return request.param
 
 
-@pytest.fixture(params=["inner", "outer", "left", "right"])
-def join_type(request):
+@pytest.fixture(name="join_type", params=["inner", "outer", "left", "right"])
+def fixture_join_type(request):
     """
     Fixture for trying all types of join operations.
     """
     return request.param
 
 
-@pytest.fixture(params=["nlargest", "nsmallest"])
-def nselect_method(request):
+@pytest.fixture(name="nselect_method", params=["nlargest", "nsmallest"])
+def fixture_nselect_method(request):
     """
     Fixture for trying all nselect methods.
     """
@@ -394,8 +400,10 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=tm.NULL_OBJECTS, ids=lambda x: type(x).__name__)
-def nulls_fixture(request):
+@pytest.fixture(
+    name="nulls_fixture", params=tm.NULL_OBJECTS, ids=lambda x: type(x).__name__
+)
+def fixture_nulls_fixture(request):
     """
     Fixture for each null type in pandas.
     """
@@ -405,8 +413,8 @@ def nulls_fixture(request):
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 
 
-@pytest.fixture(params=[None, np.nan, pd.NaT])
-def unique_nulls_fixture(request):
+@pytest.fixture(name="unique_nulls_fixture", params=[None, np.nan, pd.NaT])
+def fixture_unique_nulls_fixture(request):
     """
     Fixture for each null type in pandas, each null type exactly once.
     """
@@ -417,8 +425,10 @@ def unique_nulls_fixture(request):
 unique_nulls_fixture2 = unique_nulls_fixture
 
 
-@pytest.fixture(params=tm.NP_NAT_OBJECTS, ids=lambda x: type(x).__name__)
-def np_nat_fixture(request):
+@pytest.fixture(
+    name="np_nat_fixture", params=tm.NP_NAT_OBJECTS, ids=lambda x: type(x).__name__
+)
+def fixture_np_nat_fixture(request):
     """
     Fixture for each NaT type in numpy.
     """
@@ -434,16 +444,16 @@ np_nat_fixture2 = np_nat_fixture
 # ----------------------------------------------------------------
 
 
-@pytest.fixture(params=[DataFrame, Series])
-def frame_or_series(request):
+@pytest.fixture(name="frame_or_series", params=[DataFrame, Series])
+def fixture_frame_or_series(request):
     """
     Fixture to parametrize over DataFrame and Series.
     """
     return request.param
 
 
-@pytest.fixture(params=[Index, Series], ids=["index", "series"])
-def index_or_series(request):
+@pytest.fixture(name="index_or_series", params=[Index, Series], ids=["index", "series"])
+def fixture_index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
     bug, giving an error:
@@ -459,16 +469,24 @@ def index_or_series(request):
 index_or_series2 = index_or_series
 
 
-@pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
-def index_or_series_or_array(request):
+@pytest.fixture(
+    name="index_or_series_or_array",
+    params=[Index, Series, pd.array],
+    ids=["index", "series", "array"],
+)
+def fixture_index_or_series_or_array(request):
     """
     Fixture to parametrize over Index, Series, and ExtensionArray
     """
     return request.param
 
 
-@pytest.fixture(params=[Index, Series, DataFrame, pd.array], ids=lambda x: x.__name__)
-def box_with_array(request):
+@pytest.fixture(
+    name="box_with_array",
+    params=[Index, Series, DataFrame, pd.array],
+    ids=lambda x: x.__name__,
+)
+def fixture_box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
     classes
@@ -479,8 +497,8 @@ def box_with_array(request):
 box_with_array2 = box_with_array
 
 
-@pytest.fixture
-def dict_subclass():
+@pytest.fixture(name="dict_subclass")
+def fixture_dict_subclass():
     """
     Fixture for a dictionary subclass.
     """
@@ -492,8 +510,8 @@ def dict_subclass():
     return TestSubDict
 
 
-@pytest.fixture
-def non_dict_mapping_subclass():
+@pytest.fixture(name="non_dict_mapping_subclass")
+def fixture_non_dict_mapping_subclass():
     """
     Fixture for a non-mapping dictionary subclass.
     """
@@ -517,8 +535,8 @@ def non_dict_mapping_subclass():
 # ----------------------------------------------------------------
 # Indices
 # ----------------------------------------------------------------
-@pytest.fixture
-def multiindex_year_month_day_dataframe_random_data():
+@pytest.fixture(name="multiindex_year_month_day_dataframe_random_data")
+def fixture_multiindex_year_month_day_dataframe_random_data():
     """
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
@@ -531,8 +549,8 @@ def multiindex_year_month_day_dataframe_random_data():
     return ymd
 
 
-@pytest.fixture
-def lexsorted_two_level_string_multiindex() -> MultiIndex:
+@pytest.fixture(name="lexsorted_two_level_string_multiindex")
+def fixture_lexsorted_two_level_string_multiindex() -> MultiIndex:
     """
     2-level MultiIndex, lexsorted, with string names.
     """
@@ -543,8 +561,8 @@ def lexsorted_two_level_string_multiindex() -> MultiIndex:
     )
 
 
-@pytest.fixture
-def multiindex_dataframe_random_data(
+@pytest.fixture(name="multiindex_dataframe_random_data")
+def fixture_multiindex_dataframe_random_data(
     lexsorted_two_level_string_multiindex,
 ) -> DataFrame:
     """DataFrame with 2 level MultiIndex with random data"""
@@ -624,8 +642,8 @@ if has_pyarrow:
     indices_dict["string-pyarrow"] = idx
 
 
-@pytest.fixture(params=indices_dict.keys())
-def index(request):
+@pytest.fixture(name="index", params=indices_dict.keys())
+def fixture_index(request):
     """
     Fixture for many "simple" kinds of indices.
 
@@ -644,11 +662,12 @@ index_fixture2 = index
 
 
 @pytest.fixture(
+    name="index_flat",
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
-    ]
+    ],
 )
-def index_flat(request):
+def fixture_index_flat(request):
     """
     index fixture, but excluding MultiIndex cases.
     """
@@ -661,6 +680,7 @@ index_flat2 = index_flat
 
 
 @pytest.fixture(
+    name="index_with_missing",
     params=[
         key
         for key, value in indices_dict.items()
@@ -671,9 +691,9 @@ index_flat2 = index_flat
             or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
-    ]
+    ],
 )
-def index_with_missing(request):
+def fixture_index_with_missing(request):
     """
     Fixture for indices with missing values.
 
@@ -702,8 +722,8 @@ def index_with_missing(request):
 # ----------------------------------------------------------------
 # Series'
 # ----------------------------------------------------------------
-@pytest.fixture
-def string_series() -> Series:
+@pytest.fixture(name="string_series")
+def fixture_string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
@@ -712,8 +732,8 @@ def string_series() -> Series:
     return s
 
 
-@pytest.fixture
-def object_series() -> Series:
+@pytest.fixture(name="object_series")
+def fixture_object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
@@ -722,8 +742,8 @@ def object_series() -> Series:
     return s
 
 
-@pytest.fixture
-def datetime_series() -> Series:
+@pytest.fixture(name="datetime_series")
+def fixture_datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
@@ -745,16 +765,16 @@ _series = {
 }
 
 
-@pytest.fixture
-def series_with_simple_index(index) -> Series:
+@pytest.fixture(name="series_with_simple_index")
+def fixture_series_with_simple_index(index) -> Series:
     """
     Fixture for tests on series with changing types of indices.
     """
     return _create_series(index)
 
 
-@pytest.fixture
-def series_with_multilevel_index() -> Series:
+@pytest.fixture(name="series_with_multilevel_index")
+def fixture_series_with_multilevel_index() -> Series:
     """
     Fixture with a Series with a 2-level MultiIndex.
     """
@@ -779,8 +799,8 @@ _narrow_series = {
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
 
 
-@pytest.fixture(params=_index_or_series_objs.keys())
-def index_or_series_obj(request):
+@pytest.fixture(name="index_or_series_obj", params=_index_or_series_objs.keys())
+def fixture_index_or_series_obj(request):
     """
     Fixture for tests on indexes, series and series with a narrow dtype
     copy to avoid mutation, e.g. setting .name
@@ -791,8 +811,8 @@ def index_or_series_obj(request):
 # ----------------------------------------------------------------
 # DataFrames
 # ----------------------------------------------------------------
-@pytest.fixture
-def int_frame() -> DataFrame:
+@pytest.fixture(name="int_frame")
+def fixture_int_frame() -> DataFrame:
     """
     Fixture for DataFrame of ints with index of unique strings
 
@@ -820,8 +840,8 @@ def int_frame() -> DataFrame:
     return DataFrame(tm.getSeriesData()).astype("int64")
 
 
-@pytest.fixture
-def datetime_frame() -> DataFrame:
+@pytest.fixture(name="datetime_frame")
+def fixture_datetime_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with DatetimeIndex
 
@@ -849,8 +869,8 @@ def datetime_frame() -> DataFrame:
     return DataFrame(tm.getTimeSeriesData())
 
 
-@pytest.fixture
-def float_frame() -> DataFrame:
+@pytest.fixture(name="float_frame")
+def fixture_float_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with index of unique strings
 
@@ -878,8 +898,8 @@ def float_frame() -> DataFrame:
     return DataFrame(tm.getSeriesData())
 
 
-@pytest.fixture
-def mixed_type_frame() -> DataFrame:
+@pytest.fixture(name="mixed_type_frame")
+def fixture_mixed_type_frame() -> DataFrame:
     """
     Fixture for DataFrame of float/int/string columns with RangeIndex
     Columns are ['a', 'b', 'c', 'float32', 'int32'].
@@ -896,8 +916,8 @@ def mixed_type_frame() -> DataFrame:
     )
 
 
-@pytest.fixture
-def rand_series_with_duplicate_datetimeindex() -> Series:
+@pytest.fixture(name="rand_series_with_duplicate_datetimeindex")
+def fixture_rand_series_with_duplicate_datetimeindex() -> Series:
     """
     Fixture for Series with a DatetimeIndex that has duplicates.
     """
@@ -921,6 +941,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
 # Scalars
 # ----------------------------------------------------------------
 @pytest.fixture(
+    name="ea_scalar_and_dtype",
     params=[
         (Interval(left=0, right=5), IntervalDtype("int64", "right")),
         (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
@@ -931,9 +952,9 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
             DatetimeTZDtype(tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
-    ]
+    ],
 )
-def ea_scalar_and_dtype(request):
+def fixture_ea_scalar_and_dtype(request):
     return request.param
 
 
@@ -958,8 +979,8 @@ _all_arithmetic_operators = [
 ]
 
 
-@pytest.fixture(params=_all_arithmetic_operators)
-def all_arithmetic_operators(request):
+@pytest.fixture(name="all_arithmetic_operators", params=_all_arithmetic_operators)
+def fixture_all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
     """
@@ -967,6 +988,7 @@ def all_arithmetic_operators(request):
 
 
 @pytest.fixture(
+    name="all_binary_operators",
     params=[
         operator.add,
         ops.radd,
@@ -994,9 +1016,9 @@ def all_arithmetic_operators(request):
         ops.rxor,
         operator.or_,
         ops.ror_,
-    ]
+    ],
 )
-def all_binary_operators(request):
+def fixture_all_binary_operators(request):
     """
     Fixture for operator and roperator arithmetic, comparison, and logical ops.
     """
@@ -1004,6 +1026,7 @@ def all_binary_operators(request):
 
 
 @pytest.fixture(
+    name="all_arithmetic_functions",
     params=[
         operator.add,
         ops.radd,
@@ -1019,9 +1042,9 @@ def all_binary_operators(request):
         ops.rmod,
         operator.pow,
         ops.rpow,
-    ]
+    ],
 )
-def all_arithmetic_functions(request):
+def fixture_all_arithmetic_functions(request):
     """
     Fixture for operator and roperator arithmetic functions.
 
@@ -1049,8 +1072,8 @@ _all_numeric_reductions = [
 ]
 
 
-@pytest.fixture(params=_all_numeric_reductions)
-def all_numeric_reductions(request):
+@pytest.fixture(name="all_numeric_reductions", params=_all_numeric_reductions)
+def fixture_all_numeric_reductions(request):
     """
     Fixture for numeric reduction names.
     """
@@ -1060,8 +1083,8 @@ def all_numeric_reductions(request):
 _all_boolean_reductions = ["all", "any"]
 
 
-@pytest.fixture(params=_all_boolean_reductions)
-def all_boolean_reductions(request):
+@pytest.fixture(name="all_boolean_reductions", params=_all_boolean_reductions)
+def fixture_all_boolean_reductions(request):
     """
     Fixture for boolean reduction names.
     """
@@ -1071,8 +1094,8 @@ def all_boolean_reductions(request):
 _all_reductions = _all_numeric_reductions + _all_boolean_reductions
 
 
-@pytest.fixture(params=_all_reductions)
-def all_reductions(request):
+@pytest.fixture(name="all_reductions", params=_all_reductions)
+def fixture_all_reductions(request):
     """
     Fixture for all (boolean + numeric) reduction names.
     """
@@ -1080,6 +1103,7 @@ def all_reductions(request):
 
 
 @pytest.fixture(
+    name="comparison_op",
     params=[
         operator.eq,
         operator.ne,
@@ -1087,17 +1111,19 @@ def all_reductions(request):
         operator.ge,
         operator.lt,
         operator.le,
-    ]
+    ],
 )
-def comparison_op(request):
+def fixture_comparison_op(request):
     """
     Fixture for operator module comparison functions.
     """
     return request.param
 
 
-@pytest.fixture(params=["__le__", "__lt__", "__ge__", "__gt__"])
-def compare_operators_no_eq_ne(request):
+@pytest.fixture(
+    name="compare_operators_no_eq_ne", params=["__le__", "__lt__", "__ge__", "__gt__"]
+)
+def fixture_compare_operators_no_eq_ne(request):
     """
     Fixture for dunder names for compare operations except == and !=
 
@@ -1110,9 +1136,10 @@ def compare_operators_no_eq_ne(request):
 
 
 @pytest.fixture(
-    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"]
+    name="all_logical_operators",
+    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"],
 )
-def all_logical_operators(request):
+def fixture_all_logical_operators(request):
     """
     Fixture for dunder names for common logical operations
 
@@ -1126,8 +1153,8 @@ def all_logical_operators(request):
 _all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
 
 
-@pytest.fixture(params=_all_numeric_accumulations)
-def all_numeric_accumulations(request):
+@pytest.fixture(name="all_numeric_accumulations", params=_all_numeric_accumulations)
+def fixture_all_numeric_accumulations(request):
     """
     Fixture for numeric accumulation names
     """
@@ -1137,16 +1164,16 @@ def all_numeric_accumulations(request):
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
-@pytest.fixture
-def strict_data_files(pytestconfig):
+@pytest.fixture(name="strict_data_files")
+def fixture_strict_data_files(pytestconfig):
     """
     Returns the configuration for the test setting `--strict-data-files`.
     """
     return pytestconfig.getoption("--strict-data-files")
 
 
-@pytest.fixture
-def datapath(strict_data_files: str) -> Callable[..., str]:
+@pytest.fixture(name="datapath")
+def fixture_datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
 
@@ -1179,8 +1206,8 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     return deco
 
 
-@pytest.fixture
-def iris(datapath) -> DataFrame:
+@pytest.fixture(name="iris")
+def fixture_iris(datapath) -> DataFrame:
     """
     The iris dataset as a DataFrame.
     """
@@ -1216,8 +1243,8 @@ TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
-@pytest.fixture(params=TIMEZONES, ids=TIMEZONE_IDS)
-def tz_naive_fixture(request):
+@pytest.fixture(name="tz_naive_fixture", params=TIMEZONES, ids=TIMEZONE_IDS)
+def fixture_tz_naive_fixture(request):
     """
     Fixture for trying timezones including default (None): {0}
     """
@@ -1225,8 +1252,8 @@ def tz_naive_fixture(request):
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS[1:]))
-@pytest.fixture(params=TIMEZONES[1:], ids=TIMEZONE_IDS[1:])
-def tz_aware_fixture(request):
+@pytest.fixture(name="tz_aware_fixture", params=TIMEZONES[1:], ids=TIMEZONE_IDS[1:])
+def fixture_tz_aware_fixture(request):
     """
     Fixture for trying explicit timezones: {0}
     """
@@ -1242,8 +1269,8 @@ if zoneinfo is not None:
     _UTCS.append(zoneinfo.ZoneInfo("UTC"))
 
 
-@pytest.fixture(params=_UTCS)
-def utc_fixture(request):
+@pytest.fixture(name="utc_fixture", params=_UTCS)
+def fixture_utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
@@ -1256,8 +1283,8 @@ utc_fixture2 = utc_fixture
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
-@pytest.fixture(params=tm.STRING_DTYPES)
-def string_dtype(request):
+@pytest.fixture(name="string_dtype", params=tm.STRING_DTYPES)
+def fixture_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
 
@@ -1269,12 +1296,13 @@ def string_dtype(request):
 
 
 @pytest.fixture(
+    name="nullable_string_dtype",
     params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ]
+    ],
 )
-def nullable_string_dtype(request):
+def fixture_nullable_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
 
@@ -1285,12 +1313,13 @@ def nullable_string_dtype(request):
 
 
 @pytest.fixture(
+    name="string_storage",
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-    ]
+    ],
 )
-def string_storage(request):
+def fixture_string_storage(request):
     """
     Parametrized fixture for pd.options.mode.string_storage.
 
@@ -1304,8 +1333,8 @@ def string_storage(request):
 string_storage2 = string_storage
 
 
-@pytest.fixture(params=tm.BYTES_DTYPES)
-def bytes_dtype(request):
+@pytest.fixture(name="bytes_dtype", params=tm.BYTES_DTYPES)
+def fixture_bytes_dtype(request):
     """
     Parametrized fixture for bytes dtypes.
 
@@ -1315,8 +1344,8 @@ def bytes_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.OBJECT_DTYPES)
-def object_dtype(request):
+@pytest.fixture(name="object_dtype", params=tm.OBJECT_DTYPES)
+def fixture_object_dtype(request):
     """
     Parametrized fixture for object dtypes.
 
@@ -1327,13 +1356,14 @@ def object_dtype(request):
 
 
 @pytest.fixture(
+    name="any_string_dtype",
     params=[
         "object",
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ]
+    ],
 )
-def any_string_dtype(request):
+def fixture_any_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
@@ -1343,8 +1373,8 @@ def any_string_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.DATETIME64_DTYPES)
-def datetime64_dtype(request):
+@pytest.fixture(name="datetime64_dtype", params=tm.DATETIME64_DTYPES)
+def fixture_datetime64_dtype(request):
     """
     Parametrized fixture for datetime64 dtypes.
 
@@ -1354,8 +1384,8 @@ def datetime64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.TIMEDELTA64_DTYPES)
-def timedelta64_dtype(request):
+@pytest.fixture(name="timedelta64_dtype", params=tm.TIMEDELTA64_DTYPES)
+def fixture_timedelta64_dtype(request):
     """
     Parametrized fixture for timedelta64 dtypes.
 
@@ -1365,8 +1395,8 @@ def timedelta64_dtype(request):
     return request.param
 
 
-@pytest.fixture
-def fixed_now_ts() -> Timestamp:
+@pytest.fixture(name="fixed_now_ts")
+def fixture_fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
@@ -1375,8 +1405,8 @@ def fixed_now_ts() -> Timestamp:
     )
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
-def float_numpy_dtype(request):
+@pytest.fixture(name="float_numpy_dtype", params=tm.FLOAT_NUMPY_DTYPES)
+def fixture_float_numpy_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1387,8 +1417,8 @@ def float_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
-def float_ea_dtype(request):
+@pytest.fixture(name="float_ea_dtype", params=tm.FLOAT_EA_DTYPES)
+def fixture_float_ea_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1398,8 +1428,10 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_float_dtype(request):
+@pytest.fixture(
+    name="any_float_dtype", params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES
+)
+def fixture_any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1412,8 +1444,8 @@ def any_float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.COMPLEX_DTYPES)
-def complex_dtype(request):
+@pytest.fixture(name="complex_dtype", params=tm.COMPLEX_DTYPES)
+def fixture_complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
 
@@ -1424,8 +1456,8 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_INT_NUMPY_DTYPES)
-def any_signed_int_numpy_dtype(request):
+@pytest.fixture(name="any_signed_int_numpy_dtype", params=tm.SIGNED_INT_NUMPY_DTYPES)
+def fixture_any_signed_int_numpy_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
@@ -1438,8 +1470,10 @@ def any_signed_int_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.UNSIGNED_INT_NUMPY_DTYPES)
-def any_unsigned_int_numpy_dtype(request):
+@pytest.fixture(
+    name="any_unsigned_int_numpy_dtype", params=tm.UNSIGNED_INT_NUMPY_DTYPES
+)
+def fixture_any_unsigned_int_numpy_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
@@ -1451,8 +1485,8 @@ def any_unsigned_int_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES)
-def any_int_numpy_dtype(request):
+@pytest.fixture(name="any_int_numpy_dtype", params=tm.ALL_INT_NUMPY_DTYPES)
+def fixture_any_int_numpy_dtype(request):
     """
     Parameterized fixture for any integer dtype.
 
@@ -1469,8 +1503,8 @@ def any_int_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_EA_DTYPES)
-def any_int_ea_dtype(request):
+@pytest.fixture(name="any_int_ea_dtype", params=tm.ALL_INT_EA_DTYPES)
+def fixture_any_int_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1486,8 +1520,10 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
-def any_int_dtype(request):
+@pytest.fixture(
+    name="any_int_dtype", params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES
+)
+def fixture_any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1512,8 +1548,10 @@ def any_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_numeric_ea_dtype(request):
+@pytest.fixture(
+    name="any_numeric_ea_dtype", params=tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
+)
+def fixture_any_numeric_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1532,8 +1570,8 @@ def any_numeric_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_INT_EA_DTYPES)
-def any_signed_int_ea_dtype(request):
+@pytest.fixture(name="any_signed_int_ea_dtype", params=tm.SIGNED_INT_EA_DTYPES)
+def fixture_any_signed_int_ea_dtype(request):
     """
     Parameterized fixture for any signed nullable integer dtype.
 
@@ -1545,8 +1583,8 @@ def any_signed_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_REAL_NUMPY_DTYPES)
-def any_real_numpy_dtype(request):
+@pytest.fixture(name="any_real_numpy_dtype", params=tm.ALL_REAL_NUMPY_DTYPES)
+def fixture_any_real_numpy_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
 
@@ -1567,9 +1605,10 @@ def any_real_numpy_dtype(request):
 
 
 @pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
+    name="any_real_numeric_dtype",
+    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
 )
-def any_real_numeric_dtype(request):
+def fixture_any_real_numeric_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
 
@@ -1591,8 +1630,8 @@ def any_real_numeric_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_NUMPY_DTYPES)
-def any_numpy_dtype(request):
+@pytest.fixture(name="any_numpy_dtype", params=tm.ALL_NUMPY_DTYPES)
+def fixture_any_numpy_dtype(request):
     """
     Parameterized fixture for all numpy dtypes.
 
@@ -1629,12 +1668,13 @@ def any_numpy_dtype(request):
 
 
 @pytest.fixture(
+    name="any_numeric_dtype",
     params=tm.ALL_REAL_NUMPY_DTYPES
     + tm.COMPLEX_DTYPES
     + tm.ALL_INT_EA_DTYPES
-    + tm.FLOAT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES,
 )
-def any_numeric_dtype(request):
+def fixture_any_numeric_dtype(request):
     """
     Parameterized fixture for all numeric dtypes.
 
@@ -1698,8 +1738,10 @@ _any_skipna_inferred_dtype = [
 ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
 
-@pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
-def any_skipna_inferred_dtype(request):
+@pytest.fixture(
+    name="any_skipna_inferred_dtype", params=_any_skipna_inferred_dtype, ids=ids
+)
+def fixture_any_skipna_inferred_dtype(request):
     """
     Fixture for all inferred dtypes from _libs.lib.infer_dtype
 
@@ -1749,8 +1791,8 @@ def any_skipna_inferred_dtype(request):
 # ----------------------------------------------------------------
 # Misc
 # ----------------------------------------------------------------
-@pytest.fixture
-def ip():
+@pytest.fixture(name="ip")
+def fixture_ip():
     """
     Get an instance of IPython.InteractiveShell.
 
@@ -1768,8 +1810,10 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
+@pytest.fixture(
+    name="spmatrix", params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"]
+)
+def fixture_spmatrix(request):
     """
     Yields scipy sparse matrix classes.
     """
@@ -1779,21 +1823,22 @@ def spmatrix(request):
 
 
 @pytest.fixture(
+    name="tick_classes",
     params=[
         getattr(pd.offsets, o)
         for o in pd.offsets.__all__
         if issubclass(getattr(pd.offsets, o), pd.offsets.Tick) and o != "Tick"
-    ]
+    ],
 )
-def tick_classes(request):
+def fixture_tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param
 
 
-@pytest.fixture(params=[None, lambda x: x])
-def sort_by_key(request):
+@pytest.fixture(name="sort_by_key", params=[None, lambda x: x])
+def fixture_sort_by_key(request):
     """
     Simple fixture for testing keys in sorting methods.
     Tests None (no key) and the identity key.
@@ -1801,8 +1846,8 @@ def sort_by_key(request):
     return request.param
 
 
-@pytest.fixture()
-def fsspectest():
+@pytest.fixture(name="fsspectest")
+def fixture_fsspectest():
     pytest.importorskip("fsspec")
     from fsspec import register_implementation
     from fsspec.implementations.memory import MemoryFileSystem
@@ -1824,6 +1869,7 @@ def fsspectest():
 
 
 @pytest.fixture(
+    name="names",
     params=[
         ("foo", None, None),
         ("Egon", "Venkman", None),
@@ -1833,73 +1879,73 @@ def fsspectest():
         (np.nan, pd.NaT, None),
         (np.nan, pd.NA, None),
         (pd.NA, pd.NA, pd.NA),
-    ]
+    ],
 )
-def names(request):
+def fixture_names(request):
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.setitem, tm.loc, tm.iloc])
-def indexer_sli(request):
+@pytest.fixture(name="indexer_sli", params=[tm.setitem, tm.loc, tm.iloc])
+def fixture_indexer_sli(request):
     """
     Parametrize over __setitem__, loc.__setitem__, iloc.__setitem__
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.loc, tm.iloc])
-def indexer_li(request):
+@pytest.fixture(name="indexer_li", params=[tm.loc, tm.iloc])
+def fixture_indexer_li(request):
     """
     Parametrize over loc.__getitem__, iloc.__getitem__
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.setitem, tm.iloc])
-def indexer_si(request):
+@pytest.fixture(name="indexer_si", params=[tm.setitem, tm.iloc])
+def fixture_indexer_si(request):
     """
     Parametrize over __setitem__, iloc.__setitem__
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.setitem, tm.loc])
-def indexer_sl(request):
+@pytest.fixture(name="indexer_sl", params=[tm.setitem, tm.loc])
+def fixture_indexer_sl(request):
     """
     Parametrize over __setitem__, loc.__setitem__
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.at, tm.loc])
-def indexer_al(request):
+@pytest.fixture(name="indexer_al", params=[tm.at, tm.loc])
+def fixture_indexer_al(request):
     """
     Parametrize over at.__setitem__, loc.__setitem__
     """
     return request.param
 
 
-@pytest.fixture(params=[tm.iat, tm.iloc])
-def indexer_ial(request):
+@pytest.fixture(name="indexer_ial", params=[tm.iat, tm.iloc])
+def fixture_indexer_ial(request):
     """
     Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
 
 
-@pytest.fixture
-def using_array_manager():
+@pytest.fixture(name="using_array_manager")
+def fixture_using_array_manager():
     """
     Fixture to check if the array manager is being used.
     """
     return pd.options.mode.data_manager == "array"
 
 
-@pytest.fixture
-def using_copy_on_write() -> bool:
+@pytest.fixture(name="using_copy_on_write")
+def fixture_using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
@@ -1911,8 +1957,8 @@ if zoneinfo is not None:
     warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
 
 
-@pytest.fixture(params=warsaws)
-def warsaw(request):
+@pytest.fixture(name="warsaw", params=warsaws)
+def fixture_warsaw(request):
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """

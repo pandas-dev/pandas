@@ -36,18 +36,18 @@ from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
-@pytest.fixture()
-def _index_factory():
+@pytest.fixture(name="_index_factory")
+def fixture__index_factory():
     return date_range
 
 
-@pytest.fixture
-def _index_freq():
+@pytest.fixture(name="_index_freq")
+def fixture__index_freq():
     return "Min"
 
 
-@pytest.fixture
-def _static_values(index):
+@pytest.fixture(name="_static_values")
+def fixture__static_values(index):
     return np.random.rand(len(index))
 
 

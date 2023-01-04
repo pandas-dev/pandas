@@ -9,33 +9,33 @@ from pandas.core.groupby.base import (
 )
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
+@pytest.fixture(name="sort", params=[True, False])
+def fixture_sort(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def as_index(request):
+@pytest.fixture(name="as_index", params=[True, False])
+def fixture_as_index(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def dropna(request):
+@pytest.fixture(name="dropna", params=[True, False])
+def fixture_dropna(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def observed(request):
+@pytest.fixture(name="observed", params=[True, False])
+def fixture_observed(request):
     return request.param
 
 
-@pytest.fixture
-def mframe(multiindex_dataframe_random_data):
+@pytest.fixture(name="mframe")
+def fixture_mframe(multiindex_dataframe_random_data):
     return multiindex_dataframe_random_data
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
@@ -46,23 +46,23 @@ def df():
     )
 
 
-@pytest.fixture
-def ts():
+@pytest.fixture(name="ts")
+def fixture_ts():
     return tm.makeTimeSeries()
 
 
-@pytest.fixture
-def tsd():
+@pytest.fixture(name="tsd")
+def fixture_tsd():
     return tm.getTimeSeriesData()
 
 
-@pytest.fixture
-def tsframe(tsd):
+@pytest.fixture(name="tsframe")
+def fixture_tsframe(tsd):
     return DataFrame(tsd)
 
 
-@pytest.fixture
-def df_mixed_floats():
+@pytest.fixture(name="df_mixed_floats")
+def fixture_df_mixed_floats():
     return DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
@@ -73,8 +73,8 @@ def df_mixed_floats():
     )
 
 
-@pytest.fixture
-def three_group():
+@pytest.fixture(name="three_group")
+def fixture_three_group():
     return DataFrame(
         {
             "A": [
@@ -123,8 +123,8 @@ def three_group():
     )
 
 
-@pytest.fixture()
-def slice_test_df():
+@pytest.fixture(name="slice_test_df")
+def fixture_slice_test_df():
     data = [
         [0, "a", "a0_at_0"],
         [1, "b", "b0_at_1"],
@@ -139,33 +139,36 @@ def slice_test_df():
     return df.set_index("Index")
 
 
-@pytest.fixture()
-def slice_test_grouped(slice_test_df):
+@pytest.fixture(name="slice_test_grouped")
+def fixture_slice_test_grouped(slice_test_df):
     return slice_test_df.groupby("Group", as_index=False)
 
 
-@pytest.fixture(params=sorted(reduction_kernels))
-def reduction_func(request):
+@pytest.fixture(name="reduction_func", params=sorted(reduction_kernels))
+def fixture_reduction_func(request):
     """
     yields the string names of all groupby reduction functions, one at a time.
     """
     return request.param
 
 
-@pytest.fixture(params=sorted(transformation_kernels))
-def transformation_func(request):
+@pytest.fixture(name="transformation_func", params=sorted(transformation_kernels))
+def fixture_transformation_func(request):
     """yields the string names of all groupby transformation functions."""
     return request.param
 
 
-@pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
-def groupby_func(request):
+@pytest.fixture(
+    name="groupby_func",
+    params=sorted(reduction_kernels) + sorted(transformation_kernels),
+)
+def fixture_groupby_func(request):
     """yields both aggregation and transformation functions."""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def parallel(request):
+@pytest.fixture(name="parallel", params=[True, False])
+def fixture_parallel(request):
     """parallel keyword argument for numba.jit"""
     return request.param
 
@@ -174,19 +177,20 @@ def parallel(request):
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
-@pytest.fixture(params=[False])
-def nogil(request):
+@pytest.fixture(name="nogil", params=[False])
+def fixture_nogil(request):
     """nogil keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True])
-def nopython(request):
+@pytest.fixture(name="nopython", params=[True])
+def fixture_nopython(request):
     """nopython keyword argument for numba.jit"""
     return request.param
 
 
 @pytest.fixture(
+    name="numba_supported_reductions",
     params=[
         ("mean", {}),
         ("var", {"ddof": 1}),
@@ -199,6 +203,6 @@ def nopython(request):
     ],
     ids=["mean", "var_1", "var_0", "std_1", "std_0", "sum", "min", "max"],
 )
-def numba_supported_reductions(request):
+def fixture_numba_supported_reductions(request):
     """reductions supported with engine='numba'"""
     return request.param

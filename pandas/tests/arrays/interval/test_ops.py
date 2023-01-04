@@ -12,8 +12,8 @@ import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
 
-@pytest.fixture(params=[IntervalArray, IntervalIndex])
-def constructor(request):
+@pytest.fixture(name="constructor", params=[IntervalArray, IntervalIndex])
+def fixture_constructor(request):
     """
     Fixture for testing both interval container classes.
     """
@@ -21,6 +21,7 @@ def constructor(request):
 
 
 @pytest.fixture(
+    name="start_shift",
     params=[
         (Timedelta("0 days"), Timedelta("1 day")),
         (Timestamp("2018-01-01"), Timedelta("1 day")),
@@ -28,7 +29,7 @@ def constructor(request):
     ],
     ids=lambda x: type(x[0]).__name__,
 )
-def start_shift(request):
+def fixture_start_shift(request):
     """
     Fixture for generating intervals of different types from a start value
     and a shift value that can be added to start to generate an endpoint.

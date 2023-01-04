@@ -15,13 +15,13 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture
-def dirpath(datapath):
+@pytest.fixture(name="dirpath")
+def fixture_dirpath(datapath):
     return datapath("io", "sas", "data")
 
 
-@pytest.fixture(params=[(1, range(1, 16)), (2, [16])])
-def data_test_ix(request, dirpath):
+@pytest.fixture(name="data_test_ix", params=[(1, range(1, 16)), (2, [16])])
+def fixture_data_test_ix(request, dirpath):
     i, test_ix = request.param
     fname = os.path.join(dirpath, f"test_sas7bdat_{i}.csv")
     df = pd.read_csv(fname)

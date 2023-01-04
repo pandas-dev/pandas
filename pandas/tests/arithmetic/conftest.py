@@ -12,8 +12,13 @@ from pandas.core.api import (
 from pandas.core.computation import expressions as expr
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
+@pytest.fixture(
+    name="switch_numexpr_min_elements",
+    autouse=True,
+    params=[0, 1000000],
+    ids=["numexpr", "python"],
+)
+def fixture_switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
     yield request.param
@@ -25,8 +30,8 @@ def switch_numexpr_min_elements(request):
 # doctest with +SKIP for one fixture fails during setup with
 # 'DoctestItem' object has no attribute 'callspec'
 # due to switch_numexpr_min_elements fixture
-@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
-def one(request):
+@pytest.fixture(name="one", params=[1, np.array(1, dtype=np.int64)])
+def fixture_one(request):
     """
     Several variants of integer value 1. The zero-dim integer array
     behaves like an integer.
@@ -64,8 +69,8 @@ zeros.extend([0, 0.0, -0.0])
 # doctest with +SKIP for zero fixture fails during setup with
 # 'DoctestItem' object has no attribute 'callspec'
 # due to switch_numexpr_min_elements fixture
-@pytest.fixture(params=zeros)
-def zero(request):
+@pytest.fixture(name="zero", params=zeros)
+def fixture_zero(request):
     """
     Several types of scalar zeros and length 5 vectors of zeros.
 
@@ -89,6 +94,7 @@ def zero(request):
 
 
 @pytest.fixture(
+    name="numeric_idx",
     params=[
         Float64Index(np.arange(5, dtype="float64")),
         Int64Index(np.arange(5, dtype="int64")),
@@ -97,7 +103,7 @@ def zero(request):
     ],
     ids=lambda x: type(x).__name__,
 )
-def numeric_idx(request):
+def fixture_numeric_idx(request):
     """
     Several types of numeric-dtypes Index objects
     """
@@ -109,6 +115,7 @@ def numeric_idx(request):
 
 
 @pytest.fixture(
+    name="scalar_td",
     params=[
         pd.Timedelta("10m7s").to_pytimedelta(),
         pd.Timedelta("10m7s"),
@@ -116,7 +123,7 @@ def numeric_idx(request):
     ],
     ids=lambda x: type(x).__name__,
 )
-def scalar_td(request):
+def fixture_scalar_td(request):
     """
     Several variants of Timedelta scalars representing 10 minutes and 7 seconds.
     """
@@ -124,6 +131,7 @@ def scalar_td(request):
 
 
 @pytest.fixture(
+    name="three_days",
     params=[
         pd.offsets.Day(3),
         pd.offsets.Hour(72),
@@ -134,7 +142,7 @@ def scalar_td(request):
     ],
     ids=lambda x: type(x).__name__,
 )
-def three_days(request):
+def fixture_three_days(request):
     """
     Several timedelta-like and DateOffset objects that each represent
     a 3-day timedelta
@@ -143,6 +151,7 @@ def three_days(request):
 
 
 @pytest.fixture(
+    name="two_hours",
     params=[
         pd.offsets.Hour(2),
         pd.offsets.Minute(120),
@@ -153,7 +162,7 @@ def three_days(request):
     ],
     ids=lambda x: type(x).__name__,
 )
-def two_hours(request):
+def fixture_two_hours(request):
     """
     Several timedelta-like and DateOffset objects that each represent
     a 2-hour timedelta
@@ -169,14 +178,15 @@ _common_mismatch = [
 
 
 @pytest.fixture(
+    name="not_hourly",
     params=[
         pd.Timedelta(minutes=30).to_pytimedelta(),
         np.timedelta64(30, "s"),
         pd.Timedelta(seconds=30),
     ]
-    + _common_mismatch
+    + _common_mismatch,
 )
-def not_hourly(request):
+def fixture_not_hourly(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
     compatible with Hourly frequencies.
@@ -185,14 +195,15 @@ def not_hourly(request):
 
 
 @pytest.fixture(
+    name="not_daily",
     params=[
         np.timedelta64(4, "h"),
         pd.Timedelta(hours=23).to_pytimedelta(),
         pd.Timedelta("23:00:00"),
     ]
-    + _common_mismatch
+    + _common_mismatch,
 )
-def not_daily(request):
+def fixture_not_daily(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
     compatible with Daily frequencies.
@@ -201,14 +212,15 @@ def not_daily(request):
 
 
 @pytest.fixture(
+    name="mismatched_freq",
     params=[
         np.timedelta64(365, "D"),
         pd.Timedelta(days=365).to_pytimedelta(),
         pd.Timedelta(days=365),
     ]
-    + _common_mismatch
+    + _common_mismatch,
 )
-def mismatched_freq(request):
+def fixture_mismatched_freq(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
     compatible with Monthly or Annual frequencies.
@@ -220,9 +232,11 @@ def mismatched_freq(request):
 
 
 @pytest.fixture(
-    params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+    name="box_1d_array",
+    params=[pd.Index, pd.Series, tm.to_array, np.array, list],
+    ids=lambda x: x.__name__,
 )
-def box_1d_array(request):
+def fixture_box_1d_array(request):
     """
     Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes

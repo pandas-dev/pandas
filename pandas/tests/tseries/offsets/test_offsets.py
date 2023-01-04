@@ -109,13 +109,13 @@ def _create_offset(klass, value=1, normalize=False):
     return klass
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     return Timestamp(datetime(2008, 1, 2))
 
 
-@pytest.fixture
-def expecteds():
+@pytest.fixture(name="expecteds")
+def fixture_expecteds():
     # executed value created by _create_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward

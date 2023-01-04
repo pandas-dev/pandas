@@ -21,8 +21,12 @@ import pandas._testing as tm
 from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
-@pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
-def where_frame(request, float_string_frame, mixed_float_frame, mixed_int_frame):
+@pytest.fixture(
+    name="where_frame", params=["default", "float_string", "mixed_float", "mixed_int"]
+)
+def fixture_where_frame(
+    request, float_string_frame, mixed_float_frame, mixed_int_frame
+):
     if request.param == "default":
         return DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
     if request.param == "float_string":

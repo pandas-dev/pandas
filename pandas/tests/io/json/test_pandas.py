@@ -35,8 +35,8 @@ def assert_json_roundtrip_equal(result, expected, orient):
     "ignore:an integer is required (got type float)*:DeprecationWarning"
 )
 class TestPandasContainer:
-    @pytest.fixture
-    def categorical_frame(self):
+    @pytest.fixture(name="categorical_frame")
+    def fixture_categorical_frame(self):
         _seriesd = tm.getSeriesData()
 
         _cat_frame = DataFrame(_seriesd)
@@ -47,8 +47,8 @@ class TestPandasContainer:
         _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
         return _cat_frame
 
-    @pytest.fixture
-    def datetime_series(self):
+    @pytest.fixture(name="datetime_series")
+    def fixture_datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
         ser = tm.makeTimeSeries()
@@ -56,8 +56,8 @@ class TestPandasContainer:
         ser.index = ser.index._with_freq(None)
         return ser
 
-    @pytest.fixture
-    def datetime_frame(self):
+    @pytest.fixture(name="datetime_frame")
+    def fixture_datetime_frame(self):
         # Same as usual datetime_frame, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
         df = DataFrame(tm.getTimeSeriesData())

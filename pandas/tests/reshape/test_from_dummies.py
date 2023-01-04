@@ -10,8 +10,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def dummies_basic():
+@pytest.fixture(name="dummies_basic")
+def fixture_dummies_basic():
     return DataFrame(
         {
             "col1_a": [1, 0, 1],
@@ -23,8 +23,8 @@ def dummies_basic():
     )
 
 
-@pytest.fixture
-def dummies_with_unassigned():
+@pytest.fixture(name="dummies_with_unassigned")
+def fixture_dummies_with_unassigned():
     return DataFrame(
         {
             "col1_a": [1, 0, 0],

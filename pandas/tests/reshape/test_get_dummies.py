@@ -21,16 +21,16 @@ from pandas.core.arrays.sparse import (
 
 
 class TestGetDummies:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         return DataFrame({"A": ["a", "b", "a"], "B": ["b", "b", "c"], "C": [1, 2, 3]})
 
-    @pytest.fixture(params=["uint8", "i8", np.float64, bool, None])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=["uint8", "i8", np.float64, bool, None])
+    def fixture_dtype(self, request):
         return np.dtype(request.param)
 
-    @pytest.fixture(params=["dense", "sparse"])
-    def sparse(self, request):
+    @pytest.fixture(name="sparse", params=["dense", "sparse"])
+    def fixture_sparse(self, request):
         # params are strings to simplify reading test results,
         # e.g. TestGetDummies::test_basic[uint8-sparse] instead of [uint8-True]
         return request.param == "sparse"

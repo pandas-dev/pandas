@@ -9,11 +9,12 @@ from pandas.tseries import offsets
 
 
 @pytest.fixture(
+    name="offset_types",
     params=[
         getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
-    ]
+    ],
 )
-def offset_types(request):
+def fixture_offset_types(request):
     """
     Fixture for all the datetime offsets available for a time series.
     """
@@ -21,21 +22,22 @@ def offset_types(request):
 
 
 @pytest.fixture(
+    name="month_classes",
     params=[
         getattr(offsets, o)
         for o in offsets.__all__
         if issubclass(getattr(offsets, o), MonthOffset) and o != "MonthOffset"
-    ]
+    ],
 )
-def month_classes(request):
+def fixture_month_classes(request):
     """
     Fixture for month based datetime offsets available for a time series.
     """
     return request.param
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     """
     Fixture for common Timestamp.
     """

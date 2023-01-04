@@ -20,8 +20,8 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame(
         {
             "A": np.arange(6, dtype="int64"),
@@ -30,8 +30,8 @@ def df():
     )
 
 
-@pytest.fixture
-def df2():
+@pytest.fixture(name="df2")
+def fixture_df2():
     return DataFrame(
         {
             "A": np.arange(6, dtype="int64"),

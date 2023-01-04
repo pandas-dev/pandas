@@ -9,8 +9,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def float_frame_with_na():
+@pytest.fixture(name="float_frame_with_na")
+def fixture_float_frame_with_na():
     """
     Fixture for DataFrame of floats with index of unique strings
 
@@ -42,8 +42,8 @@ def float_frame_with_na():
     return df
 
 
-@pytest.fixture
-def bool_frame_with_na():
+@pytest.fixture(name="bool_frame_with_na")
+def fixture_bool_frame_with_na():
     """
     Fixture for DataFrame of booleans with index of unique strings
 
@@ -81,8 +81,8 @@ def bool_frame_with_na():
     return df
 
 
-@pytest.fixture
-def float_string_frame():
+@pytest.fixture(name="float_string_frame")
+def fixture_float_string_frame():
     """
     Fixture for DataFrame of floats and strings with index of unique strings
 
@@ -112,8 +112,8 @@ def float_string_frame():
     return df
 
 
-@pytest.fixture
-def mixed_float_frame():
+@pytest.fixture(name="mixed_float_frame")
+def fixture_mixed_float_frame():
     """
     Fixture for DataFrame of different float types with index of unique strings
 
@@ -146,8 +146,8 @@ def mixed_float_frame():
     return df
 
 
-@pytest.fixture
-def mixed_int_frame():
+@pytest.fixture(name="mixed_int_frame")
+def fixture_mixed_int_frame():
     """
     Fixture for DataFrame of different int types with index of unique strings
 
@@ -180,8 +180,8 @@ def mixed_int_frame():
     return df
 
 
-@pytest.fixture
-def timezone_frame():
+@pytest.fixture(name="timezone_frame")
+def fixture_timezone_frame():
     """
     Fixture for DataFrame of date_range Series with different time zones
 
@@ -204,8 +204,8 @@ def timezone_frame():
     return df
 
 
-@pytest.fixture
-def uint64_frame():
+@pytest.fixture(name="uint64_frame")
+def fixture_uint64_frame():
     """
     Fixture for DataFrame with uint64 values
 
@@ -216,8 +216,8 @@ def uint64_frame():
     )
 
 
-@pytest.fixture
-def simple_frame():
+@pytest.fixture(name="simple_frame")
+def fixture_simple_frame():
     """
     Fixture for simple 3x3 DataFrame
 
@@ -233,8 +233,8 @@ def simple_frame():
     return DataFrame(arr, columns=["one", "two", "three"], index=["a", "b", "c"])
 
 
-@pytest.fixture
-def frame_of_index_cols():
+@pytest.fixture(name="frame_of_index_cols")
+def fixture_frame_of_index_cols():
     """
     Fixture for DataFrame of columns that can be used for indexing
 

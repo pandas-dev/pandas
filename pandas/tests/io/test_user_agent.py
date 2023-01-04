@@ -206,8 +206,8 @@ def process_server(responder, port):
     server.server_close()
 
 
-@pytest.fixture
-def responder(request):
+@pytest.fixture(name="responder")
+def fixture_responder(request):
     """
     Fixture that starts a local http server in a separate process on localhost
     and returns the port.

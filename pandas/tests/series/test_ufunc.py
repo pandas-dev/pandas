@@ -14,8 +14,8 @@ SPARSE = [True, False]
 SPARSE_IDS = ["sparse", "dense"]
 
 
-@pytest.fixture
-def arrays_for_binary_ufunc():
+@pytest.fixture(name="arrays_for_binary_ufunc")
+def fixture_arrays_for_binary_ufunc():
     """
     A pair of random, length-100 integer-dtype arrays, that are mostly 0.
     """
@@ -248,6 +248,7 @@ def test_object_series_ok():
 
 
 @pytest.fixture(
+    name="values_for_np_reduce",
     params=[
         pd.array([1, 3, 2], dtype=np.int64),
         pd.array([1, 3, 2], dtype="Int64"),
@@ -261,7 +262,7 @@ def test_object_series_ok():
     ],
     ids=lambda x: str(x.dtype),
 )
-def values_for_np_reduce(request):
+def fixture_values_for_np_reduce(request):
     # min/max tests assume that these are monotonic increasing
     return request.param
 

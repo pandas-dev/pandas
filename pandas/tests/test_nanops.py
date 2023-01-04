@@ -21,118 +21,118 @@ from pandas.core.arrays import DatetimeArray
 use_bn = nanops._USE_BOTTLENECK
 
 
-@pytest.fixture(params=[True, False])
-def skipna(request):
+@pytest.fixture(name="skipna", params=[True, False])
+def fixture_skipna(request):
     """
     Fixture to pass skipna to nanops functions.
     """
     return request.param
 
 
-@pytest.fixture
-def disable_bottleneck(monkeypatch):
+@pytest.fixture(name="disable_bottleneck")
+def fixture_disable_bottleneck(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(nanops, "_USE_BOTTLENECK", False)
         yield
 
 
-@pytest.fixture
-def arr_shape():
+@pytest.fixture(name="arr_shape")
+def fixture_arr_shape():
     return 11, 7
 
 
-@pytest.fixture
-def arr_float(arr_shape):
+@pytest.fixture(name="arr_float")
+def fixture_arr_float(arr_shape):
     np.random.seed(11235)
     return np.random.randn(*arr_shape)
 
 
-@pytest.fixture
-def arr_complex(arr_float):
+@pytest.fixture(name="arr_complex")
+def fixture_arr_complex(arr_float):
     return arr_float + arr_float * 1j
 
 
-@pytest.fixture
-def arr_int(arr_shape):
+@pytest.fixture(name="arr_int")
+def fixture_arr_int(arr_shape):
     np.random.seed(11235)
     return np.random.randint(-10, 10, arr_shape)
 
 
-@pytest.fixture
-def arr_bool(arr_shape):
+@pytest.fixture(name="arr_bool")
+def fixture_arr_bool(arr_shape):
     np.random.seed(11235)
     return np.random.randint(0, 2, arr_shape) == 0
 
 
-@pytest.fixture
-def arr_str(arr_float):
+@pytest.fixture(name="arr_str")
+def fixture_arr_str(arr_float):
     return np.abs(arr_float).astype("S")
 
 
-@pytest.fixture
-def arr_utf(arr_float):
+@pytest.fixture(name="arr_utf")
+def fixture_arr_utf(arr_float):
     return np.abs(arr_float).astype("U")
 
 
-@pytest.fixture
-def arr_date(arr_shape):
+@pytest.fixture(name="arr_date")
+def fixture_arr_date(arr_shape):
     np.random.seed(11235)
     return np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
 
 
-@pytest.fixture
-def arr_tdelta(arr_shape):
+@pytest.fixture(name="arr_tdelta")
+def fixture_arr_tdelta(arr_shape):
     np.random.seed(11235)
     return np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
 
 
-@pytest.fixture
-def arr_nan(arr_shape):
+@pytest.fixture(name="arr_nan")
+def fixture_arr_nan(arr_shape):
     return np.tile(np.nan, arr_shape)
 
 
-@pytest.fixture
-def arr_float_nan(arr_float, arr_nan):
+@pytest.fixture(name="arr_float_nan")
+def fixture_arr_float_nan(arr_float, arr_nan):
     return np.vstack([arr_float, arr_nan])
 
 
-@pytest.fixture
-def arr_nan_float1(arr_nan, arr_float):
+@pytest.fixture(name="arr_nan_float1")
+def fixture_arr_nan_float1(arr_nan, arr_float):
     return np.vstack([arr_nan, arr_float])
 
 
-@pytest.fixture
-def arr_nan_nan(arr_nan):
+@pytest.fixture(name="arr_nan_nan")
+def fixture_arr_nan_nan(arr_nan):
     return np.vstack([arr_nan, arr_nan])
 
 
-@pytest.fixture
-def arr_inf(arr_float):
+@pytest.fixture(name="arr_inf")
+def fixture_arr_inf(arr_float):
     return arr_float * np.inf
 
 
-@pytest.fixture
-def arr_float_inf(arr_float, arr_inf):
+@pytest.fixture(name="arr_float_inf")
+def fixture_arr_float_inf(arr_float, arr_inf):
     return np.vstack([arr_float, arr_inf])
 
 
-@pytest.fixture
-def arr_nan_inf(arr_nan, arr_inf):
+@pytest.fixture(name="arr_nan_inf")
+def fixture_arr_nan_inf(arr_nan, arr_inf):
     return np.vstack([arr_nan, arr_inf])
 
 
-@pytest.fixture
-def arr_float_nan_inf(arr_float, arr_nan, arr_inf):
+@pytest.fixture(name="arr_float_nan_inf")
+def fixture_arr_float_nan_inf(arr_float, arr_nan, arr_inf):
     return np.vstack([arr_float, arr_nan, arr_inf])
 
 
-@pytest.fixture
-def arr_nan_nan_inf(arr_nan, arr_inf):
+@pytest.fixture(name="arr_nan_nan_inf")
+def fixture_arr_nan_nan_inf(arr_nan, arr_inf):
     return np.vstack([arr_nan, arr_nan, arr_inf])
 
 
-@pytest.fixture
-def arr_obj(
+@pytest.fixture(name="arr_obj")
+def fixture_arr_obj(
     arr_float, arr_int, arr_bool, arr_complex, arr_str, arr_utf, arr_date, arr_tdelta
 ):
     return np.vstack(
@@ -149,52 +149,52 @@ def arr_obj(
     )
 
 
-@pytest.fixture
-def arr_nan_nanj(arr_nan):
+@pytest.fixture(name="arr_nan_nanj")
+def fixture_arr_nan_nanj(arr_nan):
     with np.errstate(invalid="ignore"):
         return arr_nan + arr_nan * 1j
 
 
-@pytest.fixture
-def arr_complex_nan(arr_complex, arr_nan_nanj):
+@pytest.fixture(name="arr_complex_nan")
+def fixture_arr_complex_nan(arr_complex, arr_nan_nanj):
     with np.errstate(invalid="ignore"):
         return np.vstack([arr_complex, arr_nan_nanj])
 
 
-@pytest.fixture
-def arr_nan_infj(arr_inf):
+@pytest.fixture(name="arr_nan_infj")
+def fixture_arr_nan_infj(arr_inf):
     with np.errstate(invalid="ignore"):
         return arr_inf * 1j
 
 
-@pytest.fixture
-def arr_complex_nan_infj(arr_complex, arr_nan_infj):
+@pytest.fixture(name="arr_complex_nan_infj")
+def fixture_arr_complex_nan_infj(arr_complex, arr_nan_infj):
     with np.errstate(invalid="ignore"):
         return np.vstack([arr_complex, arr_nan_infj])
 
 
-@pytest.fixture
-def arr_float_1d(arr_float):
+@pytest.fixture(name="arr_float_1d")
+def fixture_arr_float_1d(arr_float):
     return arr_float[:, 0]
 
 
-@pytest.fixture
-def arr_nan_1d(arr_nan):
+@pytest.fixture(name="arr_nan_1d")
+def fixture_arr_nan_1d(arr_nan):
     return arr_nan[:, 0]
 
 
-@pytest.fixture
-def arr_float_nan_1d(arr_float_nan):
+@pytest.fixture(name="arr_float_nan_1d")
+def fixture_arr_float_nan_1d(arr_float_nan):
     return arr_float_nan[:, 0]
 
 
-@pytest.fixture
-def arr_float1_nan_1d(arr_float1_nan):
+@pytest.fixture(name="arr_float1_nan_1d")
+def fixture_arr_float1_nan_1d(arr_float1_nan):
     return arr_float1_nan[:, 0]
 
 
-@pytest.fixture
-def arr_nan_float1_1d(arr_nan_float1):
+@pytest.fixture(name="arr_nan_float1_1d")
+def fixture_arr_nan_float1_1d(arr_nan_float1):
     return arr_nan_float1[:, 0]
 
 
@@ -938,12 +938,12 @@ class TestNanvarFixedValues:
 
     # xref GH10242
     # Samples from a normal distribution.
-    @pytest.fixture
-    def variance(self):
+    @pytest.fixture(name="variance")
+    def fixture_variance(self):
         return 3.0
 
-    @pytest.fixture
-    def samples(self, variance):
+    @pytest.fixture(name="samples")
+    def fixture_samples(self, variance):
         return self.prng.normal(scale=variance**0.5, size=100000)
 
     def test_nanvar_all_finite(self, samples, variance):
@@ -1056,12 +1056,12 @@ class TestNanskewFixedValues:
 
     # xref GH 11974
     # Test data + skewness value (computed with scipy.stats.skew)
-    @pytest.fixture
-    def samples(self):
+    @pytest.fixture(name="samples")
+    def fixture_samples(self):
         return np.sin(np.linspace(0, 1, 200))
 
-    @pytest.fixture
-    def actual_skew(self):
+    @pytest.fixture(name="actual_skew")
+    def fixture_actual_skew(self):
         return -0.1875895205961754
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
@@ -1108,12 +1108,12 @@ class TestNankurtFixedValues:
 
     # xref GH 11974
     # Test data + kurtosis value (computed with scipy.stats.kurtosis)
-    @pytest.fixture
-    def samples(self):
+    @pytest.fixture(name="samples")
+    def fixture_samples(self):
         return np.sin(np.linspace(0, 1, 200))
 
-    @pytest.fixture
-    def actual_kurt(self):
+    @pytest.fixture(name="actual_kurt")
+    def fixture_actual_kurt(self):
         return -1.2058303433799713
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])

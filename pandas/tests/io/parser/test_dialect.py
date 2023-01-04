@@ -16,8 +16,8 @@ import pandas._testing as tm
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@pytest.fixture
-def custom_dialect():
+@pytest.fixture(name="custom_dialect")
+def fixture_custom_dialect():
     dialect_name = "weird"
     dialect_kwargs = {
         "doublequote": False,

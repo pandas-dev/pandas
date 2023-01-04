@@ -14,12 +14,12 @@ class TestBase(Base):
 
     _index_cls = IntervalIndex
 
-    @pytest.fixture
-    def simple_index(self) -> IntervalIndex:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> IntervalIndex:
         return self._index_cls.from_breaks(range(11), closed="right")
 
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return tm.makeIntervalIndex(10)
 
     def create_index(self, *, closed="right"):

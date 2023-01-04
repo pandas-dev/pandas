@@ -35,19 +35,19 @@ class NATests:
 
 
 class TestDatetimeIndexNA(NATests):
-    @pytest.fixture
-    def index_without_na(self, tz_naive_fixture):
+    @pytest.fixture(name="index_without_na")
+    def fixture_index_without_na(self, tz_naive_fixture):
         tz = tz_naive_fixture
         return DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
 
 
 class TestTimedeltaIndexNA(NATests):
-    @pytest.fixture
-    def index_without_na(self):
+    @pytest.fixture(name="index_without_na")
+    def fixture_index_without_na(self):
         return TimedeltaIndex(["1 days", "2 days"])
 
 
 class TestPeriodIndexNA(NATests):
-    @pytest.fixture
-    def index_without_na(self):
+    @pytest.fixture(name="index_without_na")
+    def fixture_index_without_na(self):
         return PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")

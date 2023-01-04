@@ -17,8 +17,8 @@ pytest.importorskip("pyarrow.orc")
 import pyarrow as pa
 
 
-@pytest.fixture
-def dirpath(datapath):
+@pytest.fixture(name="dirpath")
+def fixture_dirpath(datapath):
     return datapath("io", "data", "orc")
 
 

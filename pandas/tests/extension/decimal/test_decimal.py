@@ -16,52 +16,52 @@ from pandas.tests.extension.decimal.array import (
 )
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return DecimalDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     return DecimalArray(make_data())
 
 
-@pytest.fixture
-def data_for_twos():
+@pytest.fixture(name="data_for_twos")
+def fixture_data_for_twos():
     return DecimalArray([decimal.Decimal(2) for _ in range(100)])
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     return DecimalArray([decimal.Decimal("NaN"), decimal.Decimal(1)])
 
 
-@pytest.fixture
-def data_for_sorting():
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting():
     return DecimalArray(
         [decimal.Decimal("1"), decimal.Decimal("2"), decimal.Decimal("0")]
     )
 
 
-@pytest.fixture
-def data_missing_for_sorting():
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting():
     return DecimalArray(
         [decimal.Decimal("1"), decimal.Decimal("NaN"), decimal.Decimal("0")]
     )
 
 
-@pytest.fixture
-def na_cmp():
+@pytest.fixture(name="na_cmp")
+def fixture_na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return decimal.Decimal("NaN")
 
 
-@pytest.fixture
-def data_for_grouping():
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping():
     b = decimal.Decimal("1.0")
     a = decimal.Decimal("0.0")
     c = decimal.Decimal("2.0")

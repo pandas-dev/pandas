@@ -76,8 +76,8 @@ from pandas.core.arrays import (
 )
 
 
-@pytest.fixture(params=[True, False], ids=str)
-def coerce(request):
+@pytest.fixture(name="coerce", params=[True, False], ids=str)
+def fixture_coerce(request):
     return request.param
 
 
@@ -187,8 +187,8 @@ ll_params = [
 objs, expected, ids = zip(*ll_params)
 
 
-@pytest.fixture(params=zip(objs, expected), ids=ids)
-def maybe_list_like(request):
+@pytest.fixture(name="maybe_list_like", params=zip(objs, expected), ids=ids)
+def fixture_maybe_list_like(request):
     return request.param
 
 

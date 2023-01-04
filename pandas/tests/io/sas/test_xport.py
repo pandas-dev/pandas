@@ -21,29 +21,29 @@ def numeric_as_float(data):
 
 
 class TestXport:
-    @pytest.fixture(autouse=True)
-    def setup_method(self):
+    @pytest.fixture(name="setup_method", autouse=True)
+    def fixture_setup_method(self):
         with td.file_leak_context():
             yield
 
-    @pytest.fixture
-    def file01(self, datapath):
+    @pytest.fixture(name="file01")
+    def fixture_file01(self, datapath):
         return datapath("io", "sas", "data", "DEMO_G.xpt")
 
-    @pytest.fixture
-    def file02(self, datapath):
+    @pytest.fixture(name="file02")
+    def fixture_file02(self, datapath):
         return datapath("io", "sas", "data", "SSHSV1_A.xpt")
 
-    @pytest.fixture
-    def file03(self, datapath):
+    @pytest.fixture(name="file03")
+    def fixture_file03(self, datapath):
         return datapath("io", "sas", "data", "DRXFCD_G.xpt")
 
-    @pytest.fixture
-    def file04(self, datapath):
+    @pytest.fixture(name="file04")
+    def fixture_file04(self, datapath):
         return datapath("io", "sas", "data", "paxraw_d_short.xpt")
 
-    @pytest.fixture
-    def file05(self, datapath):
+    @pytest.fixture(name="file05")
+    def fixture_file05(self, datapath):
         return datapath("io", "sas", "data", "DEMO_PUF.cpt")
 
     @pytest.mark.slow

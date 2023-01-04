@@ -18,31 +18,31 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 
 
-@pytest.fixture
-def tips_file(datapath):
+@pytest.fixture(name="tips_file")
+def fixture_tips_file(datapath):
     """Path to the tips dataset"""
     return datapath("io", "data", "csv", "tips.csv")
 
 
-@pytest.fixture
-def jsonl_file(datapath):
+@pytest.fixture(name="jsonl_file")
+def fixture_jsonl_file(datapath):
     """Path to a JSONL dataset"""
     return datapath("io", "parser", "data", "items.jsonl")
 
 
-@pytest.fixture
-def salaries_table(datapath):
+@pytest.fixture(name="salaries_table")
+def fixture_salaries_table(datapath):
     """DataFrame with the salaries dataset"""
     return read_csv(datapath("io", "parser", "data", "salaries.csv"), sep="\t")
 
 
-@pytest.fixture
-def feather_file(datapath):
+@pytest.fixture(name="feather_file")
+def fixture_feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
-@pytest.fixture
-def s3so(worker_id):
+@pytest.fixture(name="s3so")
+def fixture_s3so(worker_id):
     if is_ci_environment():
         url = "http://localhost:5000/"
     else:
@@ -51,8 +51,8 @@ def s3so(worker_id):
     return {"client_kwargs": {"endpoint_url": url}}
 
 
-@pytest.fixture(scope="session")
-def s3_base(worker_id):
+@pytest.fixture(name="s3_base", scope="session")
+def fixture_s3_base(worker_id):
     """
     Fixture for mocking S3 interaction.
 
@@ -115,8 +115,8 @@ def s3_base(worker_id):
                 proc.terminate()
 
 
-@pytest.fixture
-def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
+@pytest.fixture(name="s3_resource")
+def fixture_s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents
 
@@ -204,11 +204,11 @@ _compression_formats_params = [
 ]
 
 
-@pytest.fixture(params=_compression_formats_params[1:])
-def compression_format(request):
+@pytest.fixture(name="compression_format", params=_compression_formats_params[1:])
+def fixture_compression_format(request):
     return request.param
 
 
-@pytest.fixture(params=_compression_formats_params)
-def compression_ext(request):
+@pytest.fixture(name="compression_ext", params=_compression_formats_params)
+def fixture_compression_ext(request):
     return request.param[0]

@@ -8,8 +8,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def hist_df():
+@pytest.fixture(name="hist_df")
+def fixture_hist_df():
     n = 100
     with tm.RNGContext(42):
         gender = np.random.choice(["Male", "Female"], size=n)

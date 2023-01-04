@@ -36,18 +36,18 @@ def bar_from_to(x, y, color="#d65f5f"):
     )
 
 
-@pytest.fixture
-def df_pos():
+@pytest.fixture(name="df_pos")
+def fixture_df_pos():
     return DataFrame([[1], [2], [3]])
 
 
-@pytest.fixture
-def df_neg():
+@pytest.fixture(name="df_neg")
+def fixture_df_neg():
     return DataFrame([[-1], [-2], [-3]])
 
 
-@pytest.fixture
-def df_mix():
+@pytest.fixture(name="df_mix")
+def fixture_df_mix():
     return DataFrame([[-3], [1], [2]])
 
 

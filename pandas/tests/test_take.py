@@ -11,6 +11,7 @@ import pandas.core.algorithms as algos
 
 
 @pytest.fixture(
+    name="dtype_fill_out_dtype",
     params=[
         (np.int8, np.int16(127), np.int8),
         (np.int8, np.int16(128), np.int16),
@@ -34,9 +35,9 @@ import pandas.core.algorithms as algos
         (np.bool_, 3.0 + 4.0j, np.object_),
         (np.bool_, True, np.bool_),
         (np.bool_, "", np.object_),
-    ]
+    ],
 )
-def dtype_fill_out_dtype(request):
+def fixture_dtype_fill_out_dtype(request):
     return request.param
 
 

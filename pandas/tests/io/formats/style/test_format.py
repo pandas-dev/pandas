@@ -16,8 +16,8 @@ from pandas.io.formats.style import Styler
 from pandas.io.formats.style_render import _str_escape
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame(
         data=[[0, -0.609], [1, -1.228]],
         columns=["A", "B"],
@@ -25,13 +25,13 @@ def df():
     )
 
 
-@pytest.fixture
-def styler(df):
+@pytest.fixture(name="styler")
+def fixture_styler(df):
     return Styler(df, uuid_len=0)
 
 
-@pytest.fixture
-def df_multi():
+@pytest.fixture(name="df_multi")
+def fixture_df_multi():
     return DataFrame(
         data=np.arange(16).reshape(4, 4),
         columns=MultiIndex.from_product([["A", "B"], ["a", "b"]]),
@@ -39,8 +39,8 @@ def df_multi():
     )
 
 
-@pytest.fixture
-def styler_multi(df_multi):
+@pytest.fixture(name="styler_multi")
+def fixture_styler_multi(df_multi):
     return Styler(df_multi, uuid_len=0)
 
 

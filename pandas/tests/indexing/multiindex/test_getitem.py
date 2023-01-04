@@ -315,8 +315,8 @@ def test_frame_getitem_nan_cols_multiindex(
 # ----------------------------------------------------------------------------
 
 
-@pytest.fixture
-def dataframe_with_duplicate_index():
+@pytest.fixture(name="dataframe_with_duplicate_index")
+def fixture_dataframe_with_duplicate_index():
     """Fixture for DataFrame used in tests for gh-4145 and gh-4146"""
     data = [["a", "d", "e", "c", "f", "b"], [1, 4, 5, 3, 6, 2], [1, 4, 5, 3, 6, 2]]
     index = ["h1", "h3", "h5"]

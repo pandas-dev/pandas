@@ -9,6 +9,7 @@ import pandas as pd
 
 
 @pytest.fixture(
+    name="numeric_indexing_engine_type_and_dtype",
     params=[
         (libindex.Int64Engine, np.int64),
         (libindex.Int32Engine, np.int32),
@@ -23,7 +24,7 @@ import pandas as pd
     ],
     ids=lambda x: x[0].__name__,
 )
-def numeric_indexing_engine_type_and_dtype(request):
+def fixture_numeric_indexing_engine_type_and_dtype(request):
     return request.param
 
 

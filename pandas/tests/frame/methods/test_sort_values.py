@@ -780,8 +780,8 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def df_none():
+@pytest.fixture(name="df_none")
+def fixture_df_none():
     return DataFrame(
         {
             "outer": ["a", "a", "a", "b", "b", "b"],
@@ -792,13 +792,14 @@ def df_none():
     )
 
 
-@pytest.fixture(params=[["outer"], ["outer", "inner"]])
-def df_idx(request, df_none):
+@pytest.fixture(name="df_idx", params=[["outer"], ["outer", "inner"]])
+def fixture_df_idx(request, df_none):
     levels = request.param
     return df_none.set_index(levels)
 
 
 @pytest.fixture(
+    name="sort_names",
     params=[
         "inner",  # index level
         ["outer"],  # list of index level
@@ -808,14 +809,14 @@ def df_idx(request, df_none):
         [("B", 5), "outer"],  # index level and column
         ["A", ("B", 5)],  # Two columns
         ["inner", "outer"],  # two index levels and column
-    ]
+    ],
 )
-def sort_names(request):
+def fixture_sort_names(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def ascending(request):
+@pytest.fixture(name="ascending", params=[True, False])
+def fixture_ascending(request):
     return request.param
 
 

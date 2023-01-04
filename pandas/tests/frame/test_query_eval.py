@@ -18,15 +18,17 @@ import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
-@pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
-def parser(request):
+@pytest.fixture(name="parser", params=["python", "pandas"], ids=lambda x: x)
+def fixture_parser(request):
     return request.param
 
 
 @pytest.fixture(
-    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)], ids=lambda x: x
+    name="engine",
+    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)],
+    ids=lambda x: x,
 )
-def engine(request):
+def fixture_engine(request):
     return request.param
 
 
@@ -36,16 +38,16 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         return DataFrame({"A": [1, 2, 3]})
 
-    @pytest.fixture
-    def expected1(self, df):
+    @pytest.fixture(name="expected1")
+    def fixture_expected1(self, df):
         return df[df.A > 0]
 
-    @pytest.fixture
-    def expected2(self, df):
+    @pytest.fixture(name="expected2")
+    def fixture_expected2(self, df):
         return df.A + 1
 
     def test_query_default(self, df, expected1, expected2):
@@ -1090,8 +1092,8 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    @pytest.fixture
-    def frame(self):
+    @pytest.fixture(name="frame")
+    def fixture_frame(self):
         return DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
     def test_simple_expr(self, frame, parser, engine):
@@ -1114,8 +1116,8 @@ class TestDataFrameEvalWithFrame:
 
 
 class TestDataFrameQueryBacktickQuoting:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         """
         Yields a dataframe with strings that may or may not need escaping
         by backticks. The last two columns cannot be escaped by backticks

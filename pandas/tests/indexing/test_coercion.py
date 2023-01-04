@@ -23,8 +23,8 @@ from pandas.core.api import NumericIndex
 ###############################################################
 
 
-@pytest.fixture(autouse=True, scope="class")
-def check_comprehensiveness(request):
+@pytest.fixture(name="check_comprehensiveness", autouse=True, scope="class")
+def fixture_check_comprehensiveness(request):
     # Iterate over combination of dtype, method and klass
     # and ensure that each are contained within a collected test
     cls = request.cls
@@ -767,11 +767,12 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     rep["timedelta64[ns]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
 
-    @pytest.fixture(params=["dict", "series"])
-    def how(self, request):
+    @pytest.fixture(name="how", params=["dict", "series"])
+    def fixture_how(self, request):
         return request.param
 
     @pytest.fixture(
+        name="from_key",
         params=[
             "object",
             "int64",
@@ -782,12 +783,13 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "datetime64[ns, UTC]",
             "datetime64[ns, US/Eastern]",
             "timedelta64[ns]",
-        ]
+        ],
     )
-    def from_key(self, request):
+    def fixture_from_key(self, request):
         return request.param
 
     @pytest.fixture(
+        name="to_key",
         params=[
             "object",
             "int64",
@@ -811,11 +813,11 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "timedelta64",
         ],
     )
-    def to_key(self, request):
+    def fixture_to_key(self, request):
         return request.param
 
-    @pytest.fixture
-    def replacer(self, how, from_key, to_key):
+    @pytest.fixture(name="replacer")
+    def fixture_replacer(self, how, from_key, to_key):
         """
         Object we will pass to `Series.replace`
         """

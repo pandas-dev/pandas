@@ -18,13 +18,13 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(params=["int64", "float64", "uint64"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["int64", "float64", "uint64"])
+def fixture_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[skipif_32bit(1), skipif_32bit(2), 10])
-def leaf_size(request):
+@pytest.fixture(name="leaf_size", params=[skipif_32bit(1), skipif_32bit(2), 10])
+def fixture_leaf_size(request):
     """
     Fixture to specify IntervalTree leaf_size parameter; to be used with the
     tree fixture.
@@ -33,14 +33,15 @@ def leaf_size(request):
 
 
 @pytest.fixture(
+    name="tree",
     params=[
         np.arange(5, dtype="int64"),
         np.arange(5, dtype="uint64"),
         np.arange(5, dtype="float64"),
         np.array([0, 1, 2, 3, 4, np.nan], dtype="float64"),
-    ]
+    ],
 )
-def tree(request, leaf_size):
+def fixture_tree(request, leaf_size):
     left = request.param
     return IntervalTree(left, left + 2, leaf_size=leaf_size)
 

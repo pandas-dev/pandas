@@ -280,14 +280,14 @@ def count_rows(conn, table_name: str):
     return result.fetchone()[0]
 
 
-@pytest.fixture
-def iris_path(datapath):
+@pytest.fixture(name="iris_path")
+def fixture_iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
     return Path(iris_path)
 
 
-@pytest.fixture
-def types_data():
+@pytest.fixture(name="types_data")
+def fixture_types_data():
     return [
         {
             "TextCol": "first",
@@ -316,8 +316,8 @@ def types_data():
     ]
 
 
-@pytest.fixture
-def types_data_frame(types_data):
+@pytest.fixture(name="types_data_frame")
+def fixture_types_data_frame(types_data):
     dtypes = {
         "TextCol": "str",
         "DateCol": "str",
@@ -333,8 +333,8 @@ def types_data_frame(types_data):
     return df[dtypes.keys()].astype(dtypes)
 
 
-@pytest.fixture
-def test_frame1():
+@pytest.fixture(name="test_frame1")
+def fixture_test_frame1():
     columns = ["index", "A", "B", "C", "D"]
     data = [
         (
@@ -369,8 +369,8 @@ def test_frame1():
     return DataFrame(data, columns=columns)
 
 
-@pytest.fixture
-def test_frame3():
+@pytest.fixture(name="test_frame3")
+def fixture_test_frame3():
     columns = ["index", "A", "B"]
     data = [
         ("2000-01-03 00:00:00", 2**31 - 1, -1.987670),
@@ -381,8 +381,8 @@ def test_frame3():
     return DataFrame(data, columns=columns)
 
 
-@pytest.fixture
-def mysql_pymysql_engine(iris_path, types_data):
+@pytest.fixture(name="mysql_pymysql_engine")
+def fixture_mysql_pymysql_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
@@ -404,13 +404,13 @@ def mysql_pymysql_engine(iris_path, types_data):
     engine.dispose()
 
 
-@pytest.fixture
-def mysql_pymysql_conn(mysql_pymysql_engine):
+@pytest.fixture(name="mysql_pymysql_conn")
+def fixture_mysql_pymysql_conn(mysql_pymysql_engine):
     yield mysql_pymysql_engine.connect()
 
 
-@pytest.fixture
-def postgresql_psycopg2_engine(iris_path, types_data):
+@pytest.fixture(name="postgresql_psycopg2_engine")
+def fixture_postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
@@ -429,44 +429,44 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     engine.dispose()
 
 
-@pytest.fixture
-def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
+@pytest.fixture(name="postgresql_psycopg2_conn")
+def fixture_postgresql_psycopg2_conn(postgresql_psycopg2_engine):
     yield postgresql_psycopg2_engine.connect()
 
 
-@pytest.fixture
-def sqlite_engine():
+@pytest.fixture(name="sqlite_engine")
+def fixture_sqlite_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine("sqlite://")
     yield engine
     engine.dispose()
 
 
-@pytest.fixture
-def sqlite_conn(sqlite_engine):
+@pytest.fixture(name="sqlite_conn")
+def fixture_sqlite_conn(sqlite_engine):
     yield sqlite_engine.connect()
 
 
-@pytest.fixture
-def sqlite_iris_engine(sqlite_engine, iris_path):
+@pytest.fixture(name="sqlite_iris_engine")
+def fixture_sqlite_iris_engine(sqlite_engine, iris_path):
     create_and_load_iris(sqlite_engine, iris_path, "sqlite")
     return sqlite_engine
 
 
-@pytest.fixture
-def sqlite_iris_conn(sqlite_iris_engine):
+@pytest.fixture(name="sqlite_iris_conn")
+def fixture_sqlite_iris_conn(sqlite_iris_engine):
     yield sqlite_iris_engine.connect()
 
 
-@pytest.fixture
-def sqlite_buildin():
+@pytest.fixture(name="sqlite_buildin")
+def fixture_sqlite_buildin():
     with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
         with closing_conn as conn:
             yield conn
 
 
-@pytest.fixture
-def sqlite_buildin_iris(sqlite_buildin, iris_path):
+@pytest.fixture(name="sqlite_buildin_iris")
+def fixture_sqlite_buildin_iris(sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     return sqlite_buildin
 
@@ -866,8 +866,8 @@ class _TestSQLApi(PandasSQLTest):
     flavor = "sqlite"
     mode: str
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, iris_path, types_data):
+    @pytest.fixture(name="setup_method", autouse=True)
+    def fixture_setup_method(self, iris_path, types_data):
         self.conn = self.connect()
         if not isinstance(self.conn, sqlite3.Connection):
             self.conn.begin()
@@ -1612,8 +1612,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         cls.setup_driver()
         cls.setup_engine()
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, iris_path, types_data):
+    @pytest.fixture(name="setup_method", autouse=True)
+    def fixture_setup_method(self, iris_path, types_data):
         try:
             self.conn = self.engine.connect()
             self.conn.begin()
@@ -2623,8 +2623,8 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
     flavor = "sqlite"
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, iris_path, types_data):
+    @pytest.fixture(name="setup_method", autouse=True)
+    def fixture_setup_method(self, iris_path, types_data):
         self.conn = self.connect()
         self.load_iris_data(iris_path)
         self.load_types_data(types_data)

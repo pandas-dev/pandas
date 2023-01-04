@@ -32,8 +32,8 @@ from pandas.io.excel import (
 from pandas.io.excel._util import _writers
 
 
-@pytest.fixture
-def path(ext):
+@pytest.fixture(name="path")
+def fixture_path(ext):
     """
     Fixture to open file for use in each test case.
     """
@@ -41,8 +41,8 @@ def path(ext):
         yield file_path
 
 
-@pytest.fixture
-def set_engine(engine, ext):
+@pytest.fixture(name="set_engine")
+def fixture_set_engine(engine, ext):
     """
     Fixture to set engine for use in each test case.
 

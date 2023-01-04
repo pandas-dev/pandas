@@ -55,6 +55,7 @@ from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 
 @pytest.fixture(
+    name="engine",
     params=(
         pytest.param(
             engine,
@@ -68,14 +69,14 @@ from pandas.core.computation.scope import DEFAULT_GLOBALS
             ],
         )
         for engine in ENGINES
-    )
+    ),
 )
-def engine(request):
+def fixture_engine(request):
     return request.param
 
 
-@pytest.fixture(params=expr.PARSERS)
-def parser(request):
+@pytest.fixture(name="parser", params=expr.PARSERS)
+def fixture_parser(request):
     return request.param
 
 
@@ -95,10 +96,11 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
 
 # TODO: using range(5) here is a kludge
 @pytest.fixture(
+    name="lhs",
     params=list(range(5)),
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
-def lhs(request):
+def fixture_lhs(request):
 
     nan_df1 = DataFrame(np.random.rand(10, 5))
     nan_df1[nan_df1 > 0.5] = np.nan

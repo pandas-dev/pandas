@@ -26,13 +26,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture(params=["single", "table"])
-def method(request):
+@pytest.fixture(name="method", params=["single", "table"])
+def fixture_method(request):
     """method keyword in rolling/expanding/ewm constructor"""
     return request.param
 
 
 @pytest.fixture(
+    name="arithmetic_numba_supported_operators",
     params=[
         ["sum", {}],
         ["mean", {}],
@@ -43,9 +44,9 @@ def method(request):
         ["var", {"ddof": 0}],
         ["std", {}],
         ["std", {"ddof": 0}],
-    ]
+    ],
 )
-def arithmetic_numba_supported_operators(request):
+def fixture_arithmetic_numba_supported_operators(request):
     return request.param
 
 

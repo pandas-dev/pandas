@@ -27,8 +27,8 @@ from pandas.io.formats.style_render import (
 )
 
 
-@pytest.fixture
-def mi_df():
+@pytest.fixture(name="mi_df")
+def fixture_mi_df():
     return DataFrame(
         [[1, 2], [3, 4]],
         index=MultiIndex.from_product([["i0"], ["i1_a", "i1_b"]]),
@@ -37,13 +37,13 @@ def mi_df():
     )
 
 
-@pytest.fixture
-def mi_styler(mi_df):
+@pytest.fixture(name="mi_styler")
+def fixture_mi_styler(mi_df):
     return Styler(mi_df, uuid_len=0)
 
 
-@pytest.fixture
-def mi_styler_comp(mi_styler):
+@pytest.fixture(name="mi_styler_comp")
+def fixture_mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
     mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
@@ -80,20 +80,20 @@ def mi_styler_comp(mi_styler):
     return mi_styler
 
 
-@pytest.fixture
-def blank_value():
+@pytest.fixture(name="blank_value")
+def fixture_blank_value():
     return "&nbsp;"
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     np.random.seed(24)
     df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
     return df
 
 
-@pytest.fixture
-def styler(df):
+@pytest.fixture(name="styler")
+def fixture_styler(df):
     np.random.seed(24)
     df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
     return Styler(df)

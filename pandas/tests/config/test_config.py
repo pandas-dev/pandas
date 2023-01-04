@@ -9,8 +9,8 @@ import pandas as pd
 
 
 class TestConfig:
-    @pytest.fixture(autouse=True)
-    def clean_config(self, monkeypatch):
+    @pytest.fixture(name="clean_config", autouse=True)
+    def fixture_clean_config(self, monkeypatch):
         with monkeypatch.context() as m:
             m.setattr(cf, "_global_config", {})
             m.setattr(cf, "options", cf.DictWrapper(cf._global_config))

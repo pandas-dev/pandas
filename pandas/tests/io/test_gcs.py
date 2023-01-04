@@ -19,8 +19,8 @@ from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
 
 
-@pytest.fixture
-def gcs_buffer(monkeypatch):
+@pytest.fixture(name="gcs_buffer")
+def fixture_gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
     from fsspec import (
         AbstractFileSystem,

@@ -76,16 +76,16 @@ class PyArrowParser(BaseParser):
     float_precision_choices = [None]
 
 
-@pytest.fixture
-def csv_dir_path(datapath):
+@pytest.fixture(name="csv_dir_path")
+def fixture_csv_dir_path(datapath):
     """
     The directory path to the data files needed for parser tests.
     """
     return datapath("io", "parser", "data")
 
 
-@pytest.fixture
-def csv1(datapath):
+@pytest.fixture(name="csv1")
+def fixture_csv1(datapath):
     """
     The path to the data file "test1.csv" needed for parser tests.
     """
@@ -110,8 +110,8 @@ _pyarrow_parsers_ids = ["pyarrow"]
 _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids]
 
 
-@pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
-def all_parsers(request):
+@pytest.fixture(name="all_parsers", params=_all_parsers, ids=_all_parser_ids)
+def fixture_all_parsers(request):
     """
     Fixture all of the CSV parsers.
     """
@@ -126,24 +126,26 @@ def all_parsers(request):
     return parser
 
 
-@pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
-def c_parser_only(request):
+@pytest.fixture(name="c_parser_only", params=_c_parsers_only, ids=_c_parser_ids)
+def fixture_c_parser_only(request):
     """
     Fixture all of the CSV parsers using the C engine.
     """
     return request.param()
 
 
-@pytest.fixture(params=_py_parsers_only, ids=_py_parser_ids)
-def python_parser_only(request):
+@pytest.fixture(name="python_parser_only", params=_py_parsers_only, ids=_py_parser_ids)
+def fixture_python_parser_only(request):
     """
     Fixture all of the CSV parsers using the Python engine.
     """
     return request.param()
 
 
-@pytest.fixture(params=_pyarrow_parsers_only, ids=_pyarrow_parsers_ids)
-def pyarrow_parser_only(request):
+@pytest.fixture(
+    name="pyarrow_parser_only", params=_pyarrow_parsers_only, ids=_pyarrow_parsers_ids
+)
+def fixture_pyarrow_parser_only(request):
     """
     Fixture all of the CSV parsers using the Pyarrow engine.
     """
@@ -172,10 +174,11 @@ def _get_all_parser_float_precision_combinations():
 
 
 @pytest.fixture(
+    name="all_parsers_all_precisions",
     params=_get_all_parser_float_precision_combinations()["params"],
     ids=_get_all_parser_float_precision_combinations()["ids"],
 )
-def all_parsers_all_precisions(request):
+def fixture_all_parsers_all_precisions(request):
     """
     Fixture for all allowable combinations of parser
     and float precision
@@ -193,16 +196,16 @@ _encoding_fmts = [
 ]
 
 
-@pytest.fixture(params=_utf_values)
-def utf_value(request):
+@pytest.fixture(name="utf_value", params=_utf_values)
+def fixture_utf_value(request):
     """
     Fixture for all possible integer values for a UTF encoding.
     """
     return request.param
 
 
-@pytest.fixture(params=_encoding_fmts)
-def encoding_fmt(request):
+@pytest.fixture(name="encoding_fmt", params=_encoding_fmts)
+def fixture_encoding_fmt(request):
     """
     Fixture for all possible string formats of a UTF encoding.
     """
@@ -210,6 +213,7 @@ def encoding_fmt(request):
 
 
 @pytest.fixture(
+    name="numeric_decimal",
     params=[
         ("-1,0", -1.0),
         ("-1,2e0", -1.2),
@@ -254,9 +258,9 @@ def encoding_fmt(request):
         ("1a_2,1", "1a_2,1"),
         ("1,2E-1", 0.12),
         ("1,2E1", 12.0),
-    ]
+    ],
 )
-def numeric_decimal(request):
+def fixture_numeric_decimal(request):
     """
     Fixture for all numeric formats which should get recognized. The first entry
     represents the value to read while the second represents the expected result.
@@ -264,8 +268,8 @@ def numeric_decimal(request):
     return request.param
 
 
-@pytest.fixture
-def pyarrow_xfail(request):
+@pytest.fixture(name="pyarrow_xfail")
+def fixture_pyarrow_xfail(request):
     """
     Fixture that xfails a test if the engine is pyarrow.
     """
@@ -281,8 +285,8 @@ def pyarrow_xfail(request):
         request.node.add_marker(mark)
 
 
-@pytest.fixture
-def pyarrow_skip(request):
+@pytest.fixture(name="pyarrow_skip")
+def fixture_pyarrow_skip(request):
     """
     Fixture that skips a test if the engine is pyarrow.
     """

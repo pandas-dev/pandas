@@ -20,18 +20,19 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 class TestPeriodIndex(DatetimeLike):
     _index_cls = PeriodIndex
 
-    @pytest.fixture
-    def simple_index(self) -> Index:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> Index:
         return period_range("20130101", periods=5, freq="D")
 
     @pytest.fixture(
+        name="index",
         params=[
             tm.makePeriodIndex(10),
             period_range("20130101", periods=10, freq="D")[::-1],
         ],
         ids=["index_inc", "index_dec"],
     )
-    def index(self, request):
+    def fixture_index(self, request):
         return request.param
 
     def test_where(self):

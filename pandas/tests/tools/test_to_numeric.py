@@ -16,39 +16,40 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[None, "ignore", "raise", "coerce"])
-def errors(request):
+@pytest.fixture(name="errors", params=[None, "ignore", "raise", "coerce"])
+def fixture_errors(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def signed(request):
+@pytest.fixture(name="signed", params=[True, False])
+def fixture_signed(request):
     return request.param
 
 
-@pytest.fixture(params=[lambda x: x, str], ids=["identity", "str"])
-def transform(request):
+@pytest.fixture(name="transform", params=[lambda x: x, str], ids=["identity", "str"])
+def fixture_transform(request):
     return request.param
 
 
-@pytest.fixture(params=[47393996303418497800, 100000000000000000000])
-def large_val(request):
+@pytest.fixture(name="large_val", params=[47393996303418497800, 100000000000000000000])
+def fixture_large_val(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def multiple_elts(request):
+@pytest.fixture(name="multiple_elts", params=[True, False])
+def fixture_multiple_elts(request):
     return request.param
 
 
 @pytest.fixture(
+    name="transform_assert_equal",
     params=[
         (lambda x: Index(x, name="idx"), tm.assert_index_equal),
         (lambda x: Series(x, name="ser"), tm.assert_series_equal),
         (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal),
-    ]
+    ],
 )
-def transform_assert_equal(request):
+def fixture_transform_assert_equal(request):
     return request.param
 
 

@@ -32,8 +32,8 @@ def _dedent(string):
     return dedent(string).lstrip()
 
 
-@pytest.fixture
-def df_short():
+@pytest.fixture(name="df_short")
+def fixture_df_short():
     """Short dataframe for testing table/tabular/longtable LaTeX env."""
     return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
@@ -432,28 +432,28 @@ class TestToLatexBold:
 
 
 class TestToLatexCaptionLabel:
-    @pytest.fixture
-    def caption_table(self):
+    @pytest.fixture(name="caption_table")
+    def fixture_caption_table(self):
         """Caption for table/tabular LaTeX environment."""
         return "a table in a \\texttt{table/tabular} environment"
 
-    @pytest.fixture
-    def short_caption(self):
+    @pytest.fixture(name="short_caption")
+    def fixture_short_caption(self):
         """Short caption for testing \\caption[short_caption]{full_caption}."""
         return "a table"
 
-    @pytest.fixture
-    def label_table(self):
+    @pytest.fixture(name="label_table")
+    def fixture_label_table(self):
         """Label for table/tabular LaTeX environment."""
         return "tab:table_tabular"
 
-    @pytest.fixture
-    def caption_longtable(self):
+    @pytest.fixture(name="caption_longtable")
+    def fixture_caption_longtable(self):
         """Caption for longtable LaTeX environment."""
         return "a table in a \\texttt{longtable} environment"
 
-    @pytest.fixture
-    def label_longtable(self):
+    @pytest.fixture(name="label_longtable")
+    def fixture_label_longtable(self):
         """Label for longtable LaTeX environment."""
         return "tab:longtable"
 
@@ -767,8 +767,8 @@ class TestToLatexCaptionLabel:
 
 
 class TestToLatexEscape:
-    @pytest.fixture
-    def df_with_symbols(self):
+    @pytest.fixture(name="df_with_symbols")
+    def fixture_df_with_symbols(self):
         """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
@@ -1021,8 +1021,8 @@ class TestToLatexFormatters:
 
 
 class TestToLatexMultiindex:
-    @pytest.fixture
-    def multiindex_frame(self):
+    @pytest.fixture(name="multiindex_frame")
+    def fixture_multiindex_frame(self):
         """Multiindex dataframe for testing multirow LaTeX macros."""
         yield DataFrame.from_dict(
             {
@@ -1034,8 +1034,8 @@ class TestToLatexMultiindex:
             }
         ).T
 
-    @pytest.fixture
-    def multicolumn_frame(self):
+    @pytest.fixture(name="multicolumn_frame")
+    def fixture_multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
         yield DataFrame(
             {
@@ -1436,12 +1436,12 @@ class TestToLatexMultiindex:
 
 
 class TestTableBuilder:
-    @pytest.fixture
-    def dataframe(self):
+    @pytest.fixture(name="dataframe")
+    def fixture_dataframe(self):
         return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
-    @pytest.fixture
-    def table_builder(self, dataframe):
+    @pytest.fixture(name="table_builder")
+    def fixture_table_builder(self, dataframe):
         return RegularTableBuilder(formatter=DataFrameFormatter(dataframe))
 
     def test_create_row_iterator(self, table_builder):

@@ -34,8 +34,8 @@ def import_module(name):
         pytest.skip(f"skipping as {name} not available")
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     return DataFrame({"A": [1, 2, 3]})
 
 

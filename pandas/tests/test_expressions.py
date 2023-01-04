@@ -15,18 +15,18 @@ from pandas.core.api import (
 from pandas.core.computation import expressions as expr
 
 
-@pytest.fixture
-def _frame():
+@pytest.fixture(name="_frame")
+def fixture__frame():
     return DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
 
 
-@pytest.fixture
-def _frame2():
+@pytest.fixture(name="_frame2")
+def fixture__frame2():
     return DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
 
 
-@pytest.fixture
-def _mixed(_frame):
+@pytest.fixture(name="_mixed")
+def fixture__mixed(_frame):
     return DataFrame(
         {
             "A": _frame["A"].copy(),
@@ -37,8 +37,8 @@ def _mixed(_frame):
     )
 
 
-@pytest.fixture
-def _mixed2(_frame2):
+@pytest.fixture(name="_mixed2")
+def fixture__mixed2(_frame2):
     return DataFrame(
         {
             "A": _frame2["A"].copy(),
@@ -49,50 +49,50 @@ def _mixed2(_frame2):
     )
 
 
-@pytest.fixture
-def _integer():
+@pytest.fixture(name="_integer")
+def fixture__integer():
     return DataFrame(
         np.random.randint(1, 100, size=(10001, 4)), columns=list("ABCD"), dtype="int64"
     )
 
 
-@pytest.fixture
-def _integer_randint(_integer):
+@pytest.fixture(name="_integer_randint")
+def fixture__integer_randint(_integer):
     # randint to get a case with zeros
     return _integer * np.random.randint(0, 2, size=np.shape(_integer))
 
 
-@pytest.fixture
-def _integer2():
+@pytest.fixture(name="_integer2")
+def fixture__integer2():
     return DataFrame(
         np.random.randint(1, 100, size=(101, 4)), columns=list("ABCD"), dtype="int64"
     )
 
 
-@pytest.fixture
-def _array(_frame):
+@pytest.fixture(name="_array")
+def fixture__array(_frame):
     return _frame["A"].values.copy()
 
 
-@pytest.fixture
-def _array2(_frame2):
+@pytest.fixture(name="_array2")
+def fixture__array2(_frame2):
     return _frame2["A"].values.copy()
 
 
-@pytest.fixture
-def _array_mixed(_mixed):
+@pytest.fixture(name="_array_mixed")
+def fixture__array_mixed(_mixed):
     return _mixed["D"].values.copy()
 
 
-@pytest.fixture
-def _array_mixed2(_mixed2):
+@pytest.fixture(name="_array_mixed2")
+def fixture__array_mixed2(_mixed2):
     return _mixed2["D"].values.copy()
 
 
 @pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
-    @pytest.fixture(autouse=True)
-    def save_min_elements(self):
+    @pytest.fixture(name="save_min_elements", autouse=True)
+    def fixture_save_min_elements(self):
         min_elements = expr._MIN_ELEMENTS
         yield
         expr._MIN_ELEMENTS = min_elements

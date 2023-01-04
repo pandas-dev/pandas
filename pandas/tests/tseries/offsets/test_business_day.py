@@ -31,23 +31,23 @@ from pandas.tests.tseries.offsets.common import (
 from pandas.tseries import offsets
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     return datetime(2008, 1, 1)
 
 
-@pytest.fixture
-def _offset():
+@pytest.fixture(name="_offset")
+def fixture__offset():
     return BDay
 
 
-@pytest.fixture
-def offset(_offset):
+@pytest.fixture(name="offset")
+def fixture_offset(_offset):
     return _offset()
 
 
-@pytest.fixture
-def offset2(_offset):
+@pytest.fixture(name="offset2")
+def fixture_offset2(_offset):
     return _offset(2)
 
 

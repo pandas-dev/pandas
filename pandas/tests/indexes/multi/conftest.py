@@ -9,8 +9,8 @@ from pandas import (
 
 
 # Note: identical the "multi" entry in the top-level "index" fixture
-@pytest.fixture
-def idx():
+@pytest.fixture(name="idx")
+def fixture_idx():
     # a MultiIndex used to test the general functionality of the
     # general functionality of this object
     major_axis = Index(["foo", "bar", "baz", "qux"])
@@ -28,8 +28,8 @@ def idx():
     return mi
 
 
-@pytest.fixture
-def idx_dup():
+@pytest.fixture(name="idx_dup")
+def fixture_idx_dup():
     # compare tests/indexes/multi/conftest.py
     major_axis = Index(["foo", "bar", "baz", "qux"])
     minor_axis = Index(["one", "two"])
@@ -46,15 +46,15 @@ def idx_dup():
     return mi
 
 
-@pytest.fixture
-def index_names():
+@pytest.fixture(name="index_names")
+def fixture_index_names():
     # names that match those in the idx fixture for testing equality of
     # names assigned to the idx
     return ["first", "second"]
 
 
-@pytest.fixture
-def narrow_multi_index():
+@pytest.fixture(name="narrow_multi_index")
+def fixture_narrow_multi_index():
     """
     Return a MultiIndex that is narrower than the display (<80 characters).
     """
@@ -64,8 +64,8 @@ def narrow_multi_index():
     return MultiIndex.from_arrays([ci, ci.codes + 9, dti], names=["a", "b", "dti"])
 
 
-@pytest.fixture
-def wide_multi_index():
+@pytest.fixture(name="wide_multi_index")
+def fixture_wide_multi_index():
     """
     Return a MultiIndex that is wider than the display (>80 characters).
     """

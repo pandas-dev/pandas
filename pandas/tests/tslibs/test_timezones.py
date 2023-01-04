@@ -75,12 +75,13 @@ def test_tz_compare_utc(utc_fixture, utc_fixture2):
 
 
 @pytest.fixture(
+    name="infer_setup",
     params=[
         (pytz.timezone("US/Eastern"), lambda tz, x: tz.localize(x)),
         (dateutil.tz.gettz("US/Eastern"), lambda tz, x: x.replace(tzinfo=tz)),
-    ]
+    ],
 )
-def infer_setup(request):
+def fixture_infer_setup(request):
     eastern, localize = request.param
 
     start_naive = datetime(2001, 1, 1)

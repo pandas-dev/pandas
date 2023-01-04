@@ -7,8 +7,8 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Fixture returning boolean array with valid and missing values."""
     return pd.array(
         [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
@@ -16,14 +16,14 @@ def data():
     )
 
 
-@pytest.fixture
-def left_array():
+@pytest.fixture(name="left_array")
+def fixture_left_array():
     """Fixture returning boolean array with valid and missing values."""
     return pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
 
 
-@pytest.fixture
-def right_array():
+@pytest.fixture(name="right_array")
+def fixture_right_array():
     """Fixture returning boolean array with valid and missing values."""
     return pd.array([True, False, None] * 3, dtype="boolean")
 

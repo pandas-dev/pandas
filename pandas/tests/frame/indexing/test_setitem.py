@@ -750,14 +750,14 @@ class TestDataFrameSetItem:
 
 
 class TestSetitemTZAwareValues:
-    @pytest.fixture
-    def idx(self):
+    @pytest.fixture(name="idx")
+    def fixture_idx(self):
         naive = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B")
         idx = naive.tz_localize("US/Pacific")
         return idx
 
-    @pytest.fixture
-    def expected(self, idx):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, idx):
         expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
         assert expected.dtype == idx.dtype
         return expected

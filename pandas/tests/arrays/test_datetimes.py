@@ -28,21 +28,21 @@ from pandas.core.arrays import (
 
 
 class TestNonNano:
-    @pytest.fixture(params=["s", "ms", "us"])
-    def unit(self, request):
+    @pytest.fixture(name="unit", params=["s", "ms", "us"])
+    def fixture_unit(self, request):
         """Fixture returning parametrized time units"""
         return request.param
 
-    @pytest.fixture
-    def dtype(self, unit, tz_naive_fixture):
+    @pytest.fixture(name="dtype")
+    def fixture_dtype(self, unit, tz_naive_fixture):
         tz = tz_naive_fixture
         if tz is None:
             return np.dtype(f"datetime64[{unit}]")
         else:
             return DatetimeTZDtype(unit=unit, tz=tz)
 
-    @pytest.fixture
-    def dta_dti(self, unit, dtype):
+    @pytest.fixture(name="dta_dti")
+    def fixture_dta_dti(self, unit, dtype):
         tz = getattr(dtype, "tz", None)
 
         dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
@@ -56,8 +56,8 @@ class TestNonNano:
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
         return dta, dti
 
-    @pytest.fixture
-    def dta(self, dta_dti):
+    @pytest.fixture(name="dta")
+    def fixture_dta(self, dta_dti):
         dta, dti = dta_dti
         return dta
 

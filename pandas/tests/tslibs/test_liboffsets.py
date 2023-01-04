@@ -15,8 +15,10 @@ from pandas._libs.tslibs.offsets import roll_qtrday
 from pandas import Timestamp
 
 
-@pytest.fixture(params=["start", "end", "business_start", "business_end"])
-def day_opt(request):
+@pytest.fixture(
+    name="day_opt", params=["start", "end", "business_start", "business_end"]
+)
+def fixture_day_opt(request):
     return request.param
 
 

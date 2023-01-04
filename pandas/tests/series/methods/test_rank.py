@@ -21,25 +21,27 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 
 
-@pytest.fixture
-def ser():
+@pytest.fixture(name="ser")
+def fixture_ser():
     return Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
 
 
 @pytest.fixture(
+    name="results",
     params=[
         ["average", np.array([1.5, 5.5, 7.0, 3.5, np.nan, 3.5, 1.5, 8.0, np.nan, 5.5])],
         ["min", np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5])],
         ["max", np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6])],
         ["first", np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6])],
         ["dense", np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])],
-    ]
+    ],
 )
-def results(request):
+def fixture_results(request):
     return request.param
 
 
 @pytest.fixture(
+    name="dtype",
     params=[
         "object",
         "float64",
@@ -48,9 +50,9 @@ def results(request):
         "Int64",
         pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
         pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ]
+    ],
 )
-def dtype(request):
+def fixture_dtype(request):
     return request.param
 
 

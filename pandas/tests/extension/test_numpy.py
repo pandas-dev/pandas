@@ -57,13 +57,13 @@ def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     orig_assert_attr_equal(attr, left, right, obj)
 
 
-@pytest.fixture(params=["float", "object"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["float", "object"])
+def fixture_dtype(request):
     return PandasDtype(np.dtype(request.param))
 
 
-@pytest.fixture
-def allow_in_pandas(monkeypatch):
+@pytest.fixture(name="allow_in_pandas")
+def fixture_allow_in_pandas(monkeypatch):
     """
     A monkeypatch to tells pandas to let us in.
 
@@ -86,35 +86,35 @@ def allow_in_pandas(monkeypatch):
         yield
 
 
-@pytest.fixture
-def data(allow_in_pandas, dtype):
+@pytest.fixture(name="data")
+def fixture_data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         return pd.Series([(i,) for i in range(100)]).array
     return PandasArray(np.arange(1, 101, dtype=dtype._dtype))
 
 
-@pytest.fixture
-def data_missing(allow_in_pandas, dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         return PandasArray(np.array([np.nan, (1,)], dtype=object))
     return PandasArray(np.array([np.nan, 1.0]))
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return np.nan
 
 
-@pytest.fixture
-def na_cmp():
+@pytest.fixture(name="na_cmp")
+def fixture_na_cmp():
     def cmp(a, b):
         return np.isnan(a) and np.isnan(b)
 
     return cmp
 
 
-@pytest.fixture
-def data_for_sorting(allow_in_pandas, dtype):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(allow_in_pandas, dtype):
     """Length-3 array with a known sort order.
 
     This should be three items [B, C, A] with
@@ -127,8 +127,8 @@ def data_for_sorting(allow_in_pandas, dtype):
     return PandasArray(np.array([1, 2, 0]))
 
 
-@pytest.fixture
-def data_missing_for_sorting(allow_in_pandas, dtype):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(allow_in_pandas, dtype):
     """Length-3 array with a known sort order.
 
     This should be three items [B, NA, A] with
@@ -139,8 +139,8 @@ def data_missing_for_sorting(allow_in_pandas, dtype):
     return PandasArray(np.array([1, np.nan, 0]))
 
 
-@pytest.fixture
-def data_for_grouping(allow_in_pandas, dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(allow_in_pandas, dtype):
     """Data for factorization, grouping, and unique tests.
 
     Expected to be like [B, B, NA, NA, A, A, B, C]
@@ -156,8 +156,8 @@ def data_for_grouping(allow_in_pandas, dtype):
     )
 
 
-@pytest.fixture
-def skip_numpy_object(dtype, request):
+@pytest.fixture(name="skip_numpy_object")
+def fixture_skip_numpy_object(dtype, request):
     """
     Tests for PandasArray with nested data. Users typically won't create
     these objects via `pd.array`, but they can show up through `.array`

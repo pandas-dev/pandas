@@ -31,6 +31,7 @@ rng = pd.Index(range(3))
 
 
 @pytest.fixture(
+    name="non_comparable_idx",
     params=[
         dti,
         dti.tz_localize("UTC"),
@@ -41,9 +42,9 @@ rng = pd.Index(range(3))
         pd.Index([2.0, 3.0, 4.0]),
         pd.Index([4, 5, 6], dtype="u8"),
         pd.IntervalIndex.from_breaks(dti4),
-    ]
+    ],
 )
-def non_comparable_idx(request):
+def fixture_non_comparable_idx(request):
     # All have length 3
     return request.param
 

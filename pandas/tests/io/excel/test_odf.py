@@ -9,8 +9,8 @@ import pandas._testing as tm
 pytest.importorskip("odf")
 
 
-@pytest.fixture(autouse=True)
-def cd_and_set_engine(monkeypatch, datapath):
+@pytest.fixture(name="cd_and_set_engine", autouse=True)
+def fixture_cd_and_set_engine(monkeypatch, datapath):
     func = functools.partial(pd.read_excel, engine="odf")
     monkeypatch.setattr(pd, "read_excel", func)
     monkeypatch.chdir(datapath("io", "data", "excel"))

@@ -344,8 +344,8 @@ class TestGetitemBooleanMask:
         expected = DataFrame(exdict).rename(columns={2: 0, 3: 1})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.fixture
-    def df_dup_cols(self):
+    @pytest.fixture(name="df_dup_cols")
+    def fixture_df_dup_cols(self):
         dups = ["A", "A", "C", "D"]
         df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
         return df

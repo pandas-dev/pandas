@@ -15,8 +15,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(name="df")
+def fixture_df():
     df = DataFrame(
         {
             "A": [

@@ -49,8 +49,8 @@ from pandas.core.tools.datetimes import start_caching_at
 from pandas.util.version import Version
 
 
-@pytest.fixture(params=[True, False])
-def cache(request):
+@pytest.fixture(name="cache", params=[True, False])
+def fixture_cache(request):
     """
     cache keyword to pass to to_datetime.
     """
@@ -1901,8 +1901,8 @@ class TestToDatetimeUnit:
 
 
 class TestToDatetimeDataFrame:
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         return DataFrame(
             {
                 "year": [2015, 2016],
@@ -3058,8 +3058,8 @@ class TestDatetimeParsingWrappers:
         assert dt_string_repr == repr(dt_time)
 
 
-@pytest.fixture(params=["D", "s", "ms", "us", "ns"])
-def units(request):
+@pytest.fixture(name="units", params=["D", "s", "ms", "us", "ns"])
+def fixture_units(request):
     """Day and some time units.
 
     * D
@@ -3071,19 +3071,21 @@ def units(request):
     return request.param
 
 
-@pytest.fixture
-def epoch_1960():
+@pytest.fixture(name="epoch_1960")
+def fixture_epoch_1960():
     """Timestamp at 1960-01-01."""
     return Timestamp("1960-01-01")
 
 
-@pytest.fixture
-def units_from_epochs():
+@pytest.fixture(name="units_from_epochs")
+def fixture_units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=["timestamp", "pydatetime", "datetime64", "str_1960"])
-def epochs(epoch_1960, request):
+@pytest.fixture(
+    name="epochs", params=["timestamp", "pydatetime", "datetime64", "str_1960"]
+)
+def fixture_epochs(epoch_1960, request):
     """Timestamp at 1960-01-01 in various forms.
 
     * Timestamp
@@ -3102,8 +3104,8 @@ def epochs(epoch_1960, request):
         return str(epoch_1960)
 
 
-@pytest.fixture
-def julian_dates():
+@pytest.fixture(name="julian_dates")
+def fixture_julian_dates():
     return date_range("2014-1-1", periods=10).to_julian_date().values
 
 

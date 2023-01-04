@@ -19,8 +19,8 @@ from pandas.tests.plotting.common import (
 )
 
 
-@pytest.fixture
-def ts():
+@pytest.fixture(name="ts")
+def fixture_ts():
     return tm.makeTimeSeries(name="ts")
 
 

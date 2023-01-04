@@ -9,19 +9,19 @@ import pandas._testing as tm
 
 
 class DotSharedTests:
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         raise NotImplementedError
 
-    @pytest.fixture
-    def other(self) -> DataFrame:
+    @pytest.fixture(name="other")
+    def fixture_other(self) -> DataFrame:
         """
         other is a DataFrame that is indexed so that obj.dot(other) is valid
         """
         raise NotImplementedError
 
-    @pytest.fixture
-    def expected(self, obj, other) -> DataFrame:
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, other) -> DataFrame:
         """
         The expected result of obj.dot(other)
         """
@@ -81,18 +81,18 @@ class DotSharedTests:
 
 
 class TestSeriesDot(DotSharedTests):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(np.random.randn(4), index=["p", "q", "r", "s"])
 
-    @pytest.fixture
-    def other(self):
+    @pytest.fixture(name="other")
+    def fixture_other(self):
         return DataFrame(
             np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
         ).T
 
-    @pytest.fixture
-    def expected(self, obj, other):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, other):
         return Series(np.dot(obj.values, other.values), index=other.columns)
 
     @classmethod
@@ -104,20 +104,20 @@ class TestSeriesDot(DotSharedTests):
 
 
 class TestDataFrameDot(DotSharedTests):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return DataFrame(
             np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
         )
 
-    @pytest.fixture
-    def other(self):
+    @pytest.fixture(name="other")
+    def fixture_other(self):
         return DataFrame(
             np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["1", "2"]
         )
 
-    @pytest.fixture
-    def expected(self, obj, other):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, other):
         return DataFrame(
             np.dot(obj.values, other.values), index=obj.index, columns=other.columns
         )

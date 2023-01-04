@@ -59,22 +59,22 @@ class DropDuplicates:
 
 
 class TestDropDuplicatesPeriodIndex(DropDuplicates):
-    @pytest.fixture(params=["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
-    def freq(self, request):
+    @pytest.fixture(name="freq", params=["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    def fixture_freq(self, request):
         return request.param
 
-    @pytest.fixture
-    def idx(self, freq):
+    @pytest.fixture(name="idx")
+    def fixture_idx(self, freq):
         return period_range("2011-01-01", periods=10, freq=freq, name="idx")
 
 
 class TestDropDuplicatesDatetimeIndex(DropDuplicates):
-    @pytest.fixture
-    def idx(self, freq_sample):
+    @pytest.fixture(name="idx")
+    def fixture_idx(self, freq_sample):
         return date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
 
 
 class TestDropDuplicatesTimedeltaIndex(DropDuplicates):
-    @pytest.fixture
-    def idx(self, freq_sample):
+    @pytest.fixture(name="idx")
+    def fixture_idx(self, freq_sample):
         return timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")

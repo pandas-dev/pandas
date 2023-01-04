@@ -1,26 +1,26 @@
 import pytest
 
 
-@pytest.fixture(params=[True, False])
-def check_dtype(request):
+@pytest.fixture(name="check_dtype", params=[True, False])
+def fixture_check_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def check_exact(request):
+@pytest.fixture(name="check_exact", params=[True, False])
+def fixture_check_exact(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def check_index_type(request):
+@pytest.fixture(name="check_index_type", params=[True, False])
+def fixture_check_index_type(request):
     return request.param
 
 
-@pytest.fixture(params=[0.5e-3, 0.5e-5])
-def rtol(request):
+@pytest.fixture(name="rtol", params=[0.5e-3, 0.5e-5])
+def fixture_rtol(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def check_categorical(request):
+@pytest.fixture(name="check_categorical", params=[True, False])
+def fixture_check_categorical(request):
     return request.param

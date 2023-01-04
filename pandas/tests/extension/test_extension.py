@@ -12,8 +12,8 @@ class MyEA(ExtensionArray):
         self._values = values
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     arr = np.arange(10)
     return MyEA(arr)
 

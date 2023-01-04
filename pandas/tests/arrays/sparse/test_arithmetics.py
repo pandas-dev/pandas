@@ -11,14 +11,14 @@ from pandas.core.arrays.sparse import (
 )
 
 
-@pytest.fixture(params=["integer", "block"])
-def kind(request):
+@pytest.fixture(name="kind", params=["integer", "block"])
+def fixture_kind(request):
     """kind kwarg to pass to SparseArray"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def mix(request):
+@pytest.fixture(name="mix", params=[True, False])
+def fixture_mix(request):
     """
     Fixture returning True or False, determining whether to operate
     op(sparse, dense) instead of op(sparse, sparse)

@@ -8,6 +8,7 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 class BaseSetitemTests(BaseExtensionTests):
     @pytest.fixture(
+        name="full_indexer",
         params=[
             lambda x: x.index,
             lambda x: list(x.index),
@@ -27,7 +28,7 @@ class BaseSetitemTests(BaseExtensionTests):
             "mask",
         ],
     )
-    def full_indexer(self, request):
+    def fixture_full_indexer(self, request):
         """
         Fixture for an indexer to pass to obj.loc to get/set the full length of the
         object.

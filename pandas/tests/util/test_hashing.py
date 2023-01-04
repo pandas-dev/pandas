@@ -17,6 +17,7 @@ from pandas.util import (
 
 
 @pytest.fixture(
+    name="series",
     params=[
         Series([1, 2, 3] * 3, dtype="int32"),
         Series([None, 2.5, 3.5] * 3, dtype="float32"),
@@ -26,14 +27,14 @@ from pandas.util import (
         Series(pd.date_range("20130101", periods=9)),
         Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
         Series(pd.timedelta_range("2000", periods=9)),
-    ]
+    ],
 )
-def series(request):
+def fixture_series(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def index(request):
+@pytest.fixture(name="index", params=[True, False])
+def fixture_index(request):
     return request.param
 
 

@@ -26,6 +26,7 @@ def get_dtype(dtype, coerce_int=None):
 
 
 @pytest.fixture(
+    name="dtypes",
     params=[
         "object",
         "category",
@@ -43,9 +44,9 @@ def get_dtype(dtype, coerce_int=None):
         "m8[ns]",
         "M8[ns]",
         "datetime64[ns, UTC]",
-    ]
+    ],
 )
-def dtypes(request):
+def fixture_dtypes(request):
     """Dtypes for window tests"""
     return request.param
 

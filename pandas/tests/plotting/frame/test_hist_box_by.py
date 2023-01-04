@@ -13,8 +13,8 @@ from pandas.tests.plotting.common import (
 )
 
 
-@pytest.fixture
-def hist_df():
+@pytest.fixture(name="hist_df")
+def fixture_hist_df():
     np.random.seed(0)
     df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
     df["C"] = np.random.choice(["a", "b", "c"], 30)

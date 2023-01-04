@@ -5,18 +5,18 @@ import pytest
 from pandas.core.indexes.frozen import FrozenList
 
 
-@pytest.fixture
-def lst():
+@pytest.fixture(name="lst")
+def fixture_lst():
     return [1, 2, 3, 4, 5]
 
 
-@pytest.fixture
-def container(lst):
+@pytest.fixture(name="container")
+def fixture_container(lst):
     return FrozenList(lst)
 
 
-@pytest.fixture
-def unicode_container():
+@pytest.fixture(name="unicode_container")
+def fixture_unicode_container():
     return FrozenList(["\u05d0", "\u05d1", "c"])
 
 

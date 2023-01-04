@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
+@pytest.fixture(name="sort", params=[True, False])
+def fixture_sort(request):
     """Boolean sort keyword for concat and DataFrame.append."""
     return request.param

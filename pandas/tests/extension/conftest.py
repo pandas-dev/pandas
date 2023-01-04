@@ -5,14 +5,14 @@ import pytest
 from pandas import Series
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     """A fixture providing the ExtensionDtype to validate."""
     raise NotImplementedError
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """
     Length-100 array for this type.
 
@@ -22,20 +22,20 @@ def data():
     raise NotImplementedError
 
 
-@pytest.fixture
-def data_for_twos():
+@pytest.fixture(name="data_for_twos")
+def fixture_data_for_twos():
     """Length-100 array in which all the elements are two."""
     raise NotImplementedError
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     """Length-2 array with [NA, Valid]"""
     raise NotImplementedError
 
 
-@pytest.fixture(params=["data", "data_missing"])
-def all_data(request, data, data_missing):
+@pytest.fixture(name="all_data", params=["data", "data_missing"])
+def fixture_all_data(request, data, data_missing):
     """Parametrized fixture giving 'data' and 'data_missing'"""
     if request.param == "data":
         return data
@@ -43,8 +43,8 @@ def all_data(request, data, data_missing):
         return data_missing
 
 
-@pytest.fixture
-def data_repeated(data):
+@pytest.fixture(name="data_repeated")
+def fixture_data_repeated(data):
     """
     Generate many datasets.
 
@@ -66,8 +66,8 @@ def data_repeated(data):
     return gen
 
 
-@pytest.fixture
-def data_for_sorting():
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting():
     """
     Length-3 array with a known sort order.
 
@@ -77,8 +77,8 @@ def data_for_sorting():
     raise NotImplementedError
 
 
-@pytest.fixture
-def data_missing_for_sorting():
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting():
     """
     Length-3 array with a known sort order.
 
@@ -88,8 +88,8 @@ def data_missing_for_sorting():
     raise NotImplementedError
 
 
-@pytest.fixture
-def na_cmp():
+@pytest.fixture(name="na_cmp")
+def fixture_na_cmp():
     """
     Binary operator for comparing NA values.
 
@@ -101,14 +101,14 @@ def na_cmp():
     return operator.is_
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     """The scalar missing value for this type. Default 'None'"""
     return None
 
 
-@pytest.fixture
-def data_for_grouping():
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping():
     """
     Data for factorization, grouping, and unique tests.
 
@@ -119,13 +119,14 @@ def data_for_grouping():
     raise NotImplementedError
 
 
-@pytest.fixture(params=[True, False])
-def box_in_series(request):
+@pytest.fixture(name="box_in_series", params=[True, False])
+def fixture_box_in_series(request):
     """Whether to box the data in a Series"""
     return request.param
 
 
 @pytest.fixture(
+    name="groupby_apply_op",
     params=[
         lambda x: 1,
         lambda x: [1] * len(x),
@@ -134,31 +135,31 @@ def box_in_series(request):
     ],
     ids=["scalar", "list", "series", "object"],
 )
-def groupby_apply_op(request):
+def fixture_groupby_apply_op(request):
     """
     Functions to test groupby.apply().
     """
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def as_frame(request):
+@pytest.fixture(name="as_frame", params=[True, False])
+def fixture_as_frame(request):
     """
     Boolean fixture to support Series and Series.to_frame() comparison testing.
     """
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def as_series(request):
+@pytest.fixture(name="as_series", params=[True, False])
+def fixture_as_series(request):
     """
     Boolean fixture to support arr and Series(arr) comparison testing.
     """
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def use_numpy(request):
+@pytest.fixture(name="use_numpy", params=[True, False])
+def fixture_use_numpy(request):
     """
     Boolean fixture to support comparison testing of ExtensionDtype array
     and numpy array.
@@ -166,8 +167,8 @@ def use_numpy(request):
     return request.param
 
 
-@pytest.fixture(params=["ffill", "bfill"])
-def fillna_method(request):
+@pytest.fixture(name="fillna_method", params=["ffill", "bfill"])
+def fixture_fillna_method(request):
     """
     Parametrized fixture giving method parameters 'ffill' and 'bfill' for
     Series.fillna(method=<method>) testing.
@@ -175,16 +176,16 @@ def fillna_method(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def as_array(request):
+@pytest.fixture(name="as_array", params=[True, False])
+def fixture_as_array(request):
     """
     Boolean fixture to support ExtensionDtype _from_sequence method testing.
     """
     return request.param
 
 
-@pytest.fixture
-def invalid_scalar(data):
+@pytest.fixture(name="invalid_scalar")
+def fixture_invalid_scalar(data):
     """
     A scalar that *cannot* be held by this ExtensionArray.
 

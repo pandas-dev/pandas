@@ -20,12 +20,12 @@ from pandas.tests.indexes.common import Base
 class TestCategoricalIndex(Base):
     _index_cls = CategoricalIndex
 
-    @pytest.fixture
-    def simple_index(self) -> CategoricalIndex:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> CategoricalIndex:
         return self._index_cls(list("aabbca"), categories=list("cab"), ordered=False)
 
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return tm.makeCategoricalIndex(100)
 
     def create_index(self, *, categories=None, ordered=False):

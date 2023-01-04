@@ -40,8 +40,10 @@ def check_freq_nonmonotonic(ordered, orig):
 
 
 class TestSortValues:
-    @pytest.fixture(params=[DatetimeIndex, TimedeltaIndex, PeriodIndex])
-    def non_monotonic_idx(self, request):
+    @pytest.fixture(
+        name="non_monotonic_idx", params=[DatetimeIndex, TimedeltaIndex, PeriodIndex]
+    )
+    def fixture_non_monotonic_idx(self, request):
         if request.param is DatetimeIndex:
             return DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
         elif request.param is PeriodIndex:

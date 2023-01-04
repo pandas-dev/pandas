@@ -33,40 +33,40 @@ def make_data():
     return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
-@pytest.fixture
-def dtype():
+@pytest.fixture(name="dtype")
+def fixture_dtype():
     return IntervalDtype()
 
 
-@pytest.fixture
-def data():
+@pytest.fixture(name="data")
+def fixture_data():
     """Length-100 PeriodArray for semantics test."""
     return IntervalArray(make_data())
 
 
-@pytest.fixture
-def data_missing():
+@pytest.fixture(name="data_missing")
+def fixture_data_missing():
     """Length 2 array with [NA, Valid]"""
     return IntervalArray.from_tuples([None, (0, 1)])
 
 
-@pytest.fixture
-def data_for_sorting():
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting():
     return IntervalArray.from_tuples([(1, 2), (2, 3), (0, 1)])
 
 
-@pytest.fixture
-def data_missing_for_sorting():
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting():
     return IntervalArray.from_tuples([(1, 2), None, (0, 1)])
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return np.nan
 
 
-@pytest.fixture
-def data_for_grouping():
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping():
     a = (0, 1)
     b = (1, 2)
     c = (2, 3)

@@ -15,20 +15,20 @@ from pandas.core.arrays.sparse import (
 )
 
 
-@pytest.fixture
-def arr_data():
+@pytest.fixture(name="arr_data")
+def fixture_arr_data():
     """Fixture returning numpy array with valid and missing entries"""
     return np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
 
 
-@pytest.fixture
-def arr(arr_data):
+@pytest.fixture(name="arr")
+def fixture_arr(arr_data):
     """Fixture returning SparseArray from 'arr_data'"""
     return SparseArray(arr_data)
 
 
-@pytest.fixture
-def zarr():
+@pytest.fixture(name="zarr")
+def fixture_zarr():
     """Fixture returning SparseArray with integer entries and 'fill_value=0'"""
     return SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 

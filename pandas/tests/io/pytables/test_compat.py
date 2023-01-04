@@ -6,8 +6,8 @@ import pandas._testing as tm
 tables = pytest.importorskip("tables")
 
 
-@pytest.fixture
-def pytables_hdf5_file(tmp_path):
+@pytest.fixture(name="pytables_hdf5_file")
+def fixture_pytables_hdf5_file(tmp_path):
     """
     Use PyTables to create a simple HDF5 file.
     """

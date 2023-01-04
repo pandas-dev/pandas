@@ -44,8 +44,8 @@ class Base:
 
     _index_cls: type[Index]
 
-    @pytest.fixture
-    def simple_index(self):
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self):
         raise NotImplementedError("Method not implemented")
 
     def create_index(self) -> Index:

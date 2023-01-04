@@ -28,8 +28,8 @@ def get_test_data(ngroups=8, n=50):
 
 class TestJoin:
     # aggregate multiple columns
-    @pytest.fixture
-    def df(self):
+    @pytest.fixture(name="df")
+    def fixture_df(self):
         df = DataFrame(
             {
                 "key1": get_test_data(),
@@ -43,8 +43,8 @@ class TestJoin:
         df = df[df["key2"] > 1]
         return df
 
-    @pytest.fixture
-    def df2(self):
+    @pytest.fixture(name="df2")
+    def fixture_df2(self):
         return DataFrame(
             {
                 "key1": get_test_data(n=10),
@@ -53,8 +53,8 @@ class TestJoin:
             }
         )
 
-    @pytest.fixture
-    def target_source(self):
+    @pytest.fixture(name="target_source")
+    def fixture_target_source(self):
         index, data = tm.getMixedTypeDict()
         target = DataFrame(data, index=index)
 

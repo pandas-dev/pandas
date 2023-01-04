@@ -36,23 +36,26 @@ def is_constant(x):
 
 
 @pytest.fixture(
+    name="consistent_data",
     params=(
         obj
         for obj in itertools.chain(create_series(), create_dataframes())
         if is_constant(obj)
     ),
 )
-def consistent_data(request):
+def fixture_consistent_data(request):
     return request.param
 
 
-@pytest.fixture(params=create_series())
-def series_data(request):
+@pytest.fixture(name="series_data", params=create_series())
+def fixture_series_data(request):
     return request.param
 
 
-@pytest.fixture(params=itertools.chain(create_series(), create_dataframes()))
-def all_data(request):
+@pytest.fixture(
+    name="all_data", params=itertools.chain(create_series(), create_dataframes())
+)
+def fixture_all_data(request):
     """
     Test:
         - Empty Series / DataFrame
@@ -67,6 +70,6 @@ def all_data(request):
     return request.param
 
 
-@pytest.fixture(params=[0, 2])
-def min_periods(request):
+@pytest.fixture(name="min_periods", params=[0, 2])
+def fixture_min_periods(request):
     return request.param

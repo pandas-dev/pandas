@@ -18,6 +18,7 @@ from pandas.core.arrays import IntervalArray
 
 
 @pytest.fixture(
+    name="left_right_dtypes",
     params=[
         (Index([0, 2, 4]), Index([1, 3, 5])),
         (Index([0.0, 1.0, 2.0]), Index([1.0, 2.0, 3.0])),
@@ -30,7 +31,7 @@ from pandas.core.arrays import IntervalArray
     ],
     ids=lambda x: str(x[0].dtype),
 )
-def left_right_dtypes(request):
+def fixture_left_right_dtypes(request):
     """
     Fixture for building an IntervalArray from various dtypes
     """

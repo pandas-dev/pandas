@@ -35,6 +35,7 @@ def build_kwargs(sep, excel):
 
 
 @pytest.fixture(
+    name="df",
     params=[
         "delims",
         "utf8",
@@ -46,9 +47,9 @@ def build_kwargs(sep, excel):
         "mixed",
         "float",
         "int",
-    ]
+    ],
 )
-def df(request):
+def fixture_df(request):
     data_type = request.param
 
     if data_type == "delims":
@@ -119,8 +120,8 @@ def df(request):
         raise ValueError
 
 
-@pytest.fixture
-def mock_ctypes(monkeypatch):
+@pytest.fixture(name="mock_ctypes")
+def fixture_mock_ctypes(monkeypatch):
     """
     Mocks WinError to help with testing the clipboard.
     """
@@ -194,8 +195,8 @@ def test_stringify_text(text):
             _stringifyText(text)
 
 
-@pytest.fixture
-def mock_clipboard(monkeypatch, request):
+@pytest.fixture(name="mock_clipboard")
+def fixture_mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
     This mocks pandas.io.clipboard.clipboard_get and

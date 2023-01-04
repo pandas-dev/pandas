@@ -23,8 +23,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def duplicate_columns_frame():
+@pytest.fixture(name="duplicate_columns_frame")
+def fixture_duplicate_columns_frame():
     """Dataframe with duplicate column names."""
     return DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
 

@@ -25,38 +25,38 @@ from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["D", "2D"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["D", "2D"])
+def fixture_dtype(request):
     return PeriodDtype(freq=request.param)
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
 
 
-@pytest.fixture
-def data_for_twos(dtype):
+@pytest.fixture(name="data_for_twos")
+def fixture_data_for_twos(dtype):
     return PeriodArray(np.ones(100) * 2, freq=dtype.freq)
 
 
-@pytest.fixture
-def data_for_sorting(dtype):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(dtype):
     return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
 
 
-@pytest.fixture
-def data_missing(dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype):
     return PeriodArray([iNaT, 2017], freq=dtype.freq)
 
 
-@pytest.fixture
-def data_missing_for_sorting(dtype):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(dtype):
     return PeriodArray([2018, iNaT, 2017], freq=dtype.freq)
 
 
-@pytest.fixture
-def data_for_grouping(dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype):
     B = 2018
     NA = iNaT
     A = 2017
@@ -64,8 +64,8 @@ def data_for_grouping(dtype):
     return PeriodArray([B, B, NA, NA, A, A, B, C], freq=dtype.freq)
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return pd.NaT
 
 

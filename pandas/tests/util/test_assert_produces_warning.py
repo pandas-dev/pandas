@@ -14,6 +14,7 @@ import pandas._testing as tm
 
 
 @pytest.fixture(
+    name="category",
     params=[
         RuntimeWarning,
         ResourceWarning,
@@ -24,7 +25,7 @@ import pandas._testing as tm
         DtypeWarning,
     ],
 )
-def category(request):
+def fixture_category(request):
     """
     Return unique warning.
 
@@ -34,6 +35,7 @@ def category(request):
 
 
 @pytest.fixture(
+    name="pair_different_warnings",
     params=[
         (RuntimeWarning, UserWarning),
         (UserWarning, FutureWarning),
@@ -46,7 +48,7 @@ def category(request):
     ],
     ids=lambda x: type(x).__name__,
 )
-def pair_different_warnings(request):
+def fixture_pair_different_warnings(request):
     """
     Return pair or different warnings.
 

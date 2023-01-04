@@ -7,8 +7,8 @@ from pandas import (
 )
 
 
-@pytest.fixture(params=[None, False])
-def sort(request):
+@pytest.fixture(name="sort", params=[None, False])
+def fixture_sort(request):
     """
     Valid values for the 'sort' parameter used in the Index
     setops methods (intersection, union, etc.)
@@ -24,8 +24,11 @@ def sort(request):
     return request.param
 
 
-@pytest.fixture(params=["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"])
-def freq_sample(request):
+@pytest.fixture(
+    name="freq_sample",
+    params=["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"],
+)
+def fixture_freq_sample(request):
     """
     Valid values for 'freq' parameter used to create date_range and
     timedelta_range..
@@ -33,8 +36,8 @@ def freq_sample(request):
     return request.param
 
 
-@pytest.fixture(params=[list, tuple, np.array, array, Series])
-def listlike_box(request):
+@pytest.fixture(name="listlike_box", params=[list, tuple, np.array, array, Series])
+def fixture_listlike_box(request):
     """
     Types that may be passed as the indexer to searchsorted.
     """

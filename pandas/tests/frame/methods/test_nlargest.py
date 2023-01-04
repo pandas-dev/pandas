@@ -11,16 +11,16 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture
-def df_duplicates():
+@pytest.fixture(name="df_duplicates")
+def fixture_df_duplicates():
     return pd.DataFrame(
         {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
         index=[0, 0, 1, 1, 1],
     )
 
 
-@pytest.fixture
-def df_strings():
+@pytest.fixture(name="df_strings")
+def fixture_df_strings():
     return pd.DataFrame(
         {
             "a": np.random.permutation(10),
@@ -30,8 +30,8 @@ def df_strings():
     )
 
 
-@pytest.fixture
-def df_main_dtypes():
+@pytest.fixture(name="df_main_dtypes")
+def fixture_df_main_dtypes():
     return pd.DataFrame(
         {
             "group": [1, 1, 2],

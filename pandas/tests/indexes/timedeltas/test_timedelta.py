@@ -23,16 +23,16 @@ randn = np.random.randn
 class TestTimedeltaIndex(DatetimeLike):
     _index_cls = TimedeltaIndex
 
-    @pytest.fixture
-    def simple_index(self) -> TimedeltaIndex:
+    @pytest.fixture(name="simple_index")
+    def fixture_simple_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
         assert index.freq == "D"
         ret = index + pd.offsets.Hour(1)
         assert ret.freq == "D"
         return ret
 
-    @pytest.fixture
-    def index(self):
+    @pytest.fixture(name="index")
+    def fixture_index(self):
         return tm.makeTimedeltaIndex(10)
 
     def test_numeric_compat(self):

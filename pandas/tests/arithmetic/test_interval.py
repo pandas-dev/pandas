@@ -28,6 +28,7 @@ from pandas.tests.arithmetic.common import get_upcast_box
 
 
 @pytest.fixture(
+    name="left_right_dtypes",
     params=[
         (Index([0, 2, 4, 4]), Index([1, 3, 5, 8])),
         (Index([0.0, 1.0, 2.0, np.nan]), Index([1.0, 2.0, 3.0, np.nan])),
@@ -46,15 +47,15 @@ from pandas.tests.arithmetic.common import get_upcast_box
     ],
     ids=lambda x: str(x[0].dtype),
 )
-def left_right_dtypes(request):
+def fixture_left_right_dtypes(request):
     """
     Fixture for building an IntervalArray from various dtypes
     """
     return request.param
 
 
-@pytest.fixture
-def interval_array(left_right_dtypes):
+@pytest.fixture(name="interval_array")
+def fixture_interval_array(left_right_dtypes):
     """
     Fixture to generate an IntervalArray of various dtypes containing NA if possible
     """
@@ -75,11 +76,12 @@ def create_series_categorical_intervals(left, right, closed="right"):
 
 
 class TestComparison:
-    @pytest.fixture(params=[operator.eq, operator.ne])
-    def op(self, request):
+    @pytest.fixture(name="op", params=[operator.eq, operator.ne])
+    def fixture_op(self, request):
         return request.param
 
     @pytest.fixture(
+        name="interval_constructor",
         params=[
             IntervalArray.from_arrays,
             IntervalIndex.from_arrays,
@@ -95,7 +97,7 @@ class TestComparison:
             "Series[Categorical[Interval]]",
         ],
     )
-    def interval_constructor(self, request):
+    def fixture_interval_constructor(self, request):
         """
         Fixture for all pandas native interval constructors.
         To be used as the LHS of IntervalArray comparisons.

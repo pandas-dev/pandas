@@ -671,8 +671,8 @@ class SetitemCastingEquivalents:
         - the setitem does not expand the obj
     """
 
-    @pytest.fixture
-    def is_inplace(self, obj, expected):
+    @pytest.fixture(name="is_inplace")
+    def fixture_is_inplace(self, obj, expected):
         """
         Whether we expect the setting to be in-place or not.
         """
@@ -862,8 +862,8 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN"), None, NA])
-    def val(self, request):
+    @pytest.fixture(name="val", params=[np.nan, np.float64("NaN"), None, NA])
+    def fixture_val(self, request):
         """
         NA values that should generally be valid_na for *all* dtypes.
 
@@ -877,65 +877,65 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
     # timedelta64 should not be treated as integers when setting into
     #  numeric Series
 
-    @pytest.fixture
-    def val(self):
+    @pytest.fixture(name="val")
+    def fixture_val(self):
         td = np.timedelta64(4, "ns")
         return td
         # TODO: could also try np.full((1,), td)
 
-    @pytest.fixture(params=[complex, int, float])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=[complex, int, float])
+    def fixture_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def obj(self, dtype):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, dtype):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         return ser
 
-    @pytest.fixture
-    def expected(self, dtype):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, dtype):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         ser = ser.astype(object)
         ser.values[0] = np.timedelta64(4, "ns")
         return ser
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
 
 class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
     # GH#39619 dont cast dt64 to int when doing this setitem
 
-    @pytest.fixture(params=["M8[ns]", "m8[ns]"])
-    def dtype(self, request):
+    @pytest.fixture(name="dtype", params=["M8[ns]", "m8[ns]"])
+    def fixture_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def scalar(self, dtype):
+    @pytest.fixture(name="scalar")
+    def fixture_scalar(self, dtype):
         val = np.datetime64("2021-01-18 13:25:00", "ns")
         if dtype == "m8[ns]":
             val = val - val
         return val
 
-    @pytest.fixture
-    def expected(self, scalar):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, scalar):
         expected = Series([scalar, scalar, 3], dtype=object)
         assert isinstance(expected[0], type(scalar))
         return expected
 
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1, 2, 3])
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return slice(None, -1)
 
-    @pytest.fixture(params=[None, list, np.array])
-    def val(self, scalar, request):
+    @pytest.fixture(name="val", params=[None, list, np.array])
+    def fixture_val(self, scalar, request):
         box = request.param
         if box is None:
             return scalar
@@ -945,23 +945,23 @@ class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
 class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     # Setting compatible NA values into Series with PeriodDtype
 
-    @pytest.fixture
-    def expected(self, key):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, key):
         exp = Series(period_range("2000-01-01", periods=10, freq="D"))
         exp._values.view("i8")[key] = NaT.value
         assert exp[key] is NaT or all(x is NaT for x in exp[key])
         return exp
 
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(period_range("2000-01-01", periods=10, freq="D"))
 
-    @pytest.fixture(params=[3, slice(3, 5)])
-    def key(self, request):
+    @pytest.fixture(name="key", params=[3, slice(3, 5)])
+    def fixture_key(self, request):
         return request.param
 
-    @pytest.fixture(params=[None, np.nan])
-    def val(self, request):
+    @pytest.fixture(name="val", params=[None, np.nan])
+    def fixture_val(self, request):
         return request.param
 
 
@@ -972,64 +972,71 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     # GH#18586 for td64 and boolean mask case
 
     @pytest.fixture(
-        params=["m8[ns]", "M8[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Central]"]
+        name="dtype",
+        params=[
+            "m8[ns]",
+            "M8[ns]",
+            "datetime64[ns, UTC]",
+            "datetime64[ns, US/Central]",
+        ],
     )
-    def dtype(self, request):
+    def fixture_dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def obj(self, dtype):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, dtype):
         i8vals = date_range("2016-01-01", periods=3).asi8
         idx = Index(i8vals, dtype=dtype)
         assert idx.dtype == dtype
         return Series(idx)
 
     @pytest.fixture(
+        name="val",
         params=[
             None,
             np.nan,
             NaT,
             np.timedelta64("NaT", "ns"),
             np.datetime64("NaT", "ns"),
-        ]
+        ],
     )
-    def val(self, request):
+    def fixture_val(self, request):
         return request.param
 
-    @pytest.fixture
-    def is_inplace(self, val, obj):
+    @pytest.fixture(name="is_inplace")
+    def fixture_is_inplace(self, val, obj):
         # td64   -> cast to object iff val is datetime64("NaT")
         # dt64   -> cast to object iff val is timedelta64("NaT")
         # dt64tz -> cast to object with anything _but_ NaT
         return val is NaT or val is None or val is np.nan or obj.dtype == val.dtype
 
-    @pytest.fixture
-    def expected(self, obj, val, is_inplace):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, val, is_inplace):
         dtype = obj.dtype if is_inplace else object
         expected = Series([val] + list(obj[1:]), dtype=dtype)
         return expected
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
 
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     # GH#24024
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(date_range("2000", periods=2, tz="US/Central"))
 
-    @pytest.fixture
-    def val(self):
+    @pytest.fixture(name="val")
+    def fixture_val(self):
         return Timestamp("2000", tz="US/Eastern")
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
-    @pytest.fixture
-    def expected(self, obj, val):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, val):
         # pre-2.0 this would cast to object, in 2.0 we cast the val to
         #  the target tz
         expected = Series(
@@ -1058,12 +1065,12 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     ],
 )
 class TestSeriesNoneCoercion(SetitemCastingEquivalents):
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
-    @pytest.fixture
-    def val(self):
+    @pytest.fixture(name="val")
+    def fixture_val(self):
         return None
 
 
@@ -1079,21 +1086,21 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
 
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         idx = IntervalIndex.from_breaks(range(4))
         return Series(idx)
 
-    @pytest.fixture
-    def val(self):
+    @pytest.fixture(name="val")
+    def fixture_val(self):
         return Interval(0.5, 1.5)
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
-    @pytest.fixture
-    def expected(self, obj, val):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, val):
         data = [val] + list(obj[1:])
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
@@ -1103,22 +1110,22 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     # GH#44261 Setting a range with sufficiently-small integers into
     #  small-itemsize integer dtypes should not need to upcast
 
-    @pytest.fixture
-    def obj(self, any_int_numpy_dtype):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self, any_int_numpy_dtype):
         dtype = np.dtype(any_int_numpy_dtype)
         ser = Series(range(5), dtype=dtype)
         return ser
 
-    @pytest.fixture
-    def val(self):
+    @pytest.fixture(name="val")
+    def fixture_val(self):
         return range(2, 4)
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return slice(0, 2)
 
-    @pytest.fixture
-    def expected(self, any_int_numpy_dtype):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, any_int_numpy_dtype):
         dtype = np.dtype(any_int_numpy_dtype)
         exp = Series([2, 3, 2, 3, 4], dtype=dtype)
         return exp
@@ -1133,16 +1140,16 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(range(5), dtype=np.int64)
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return slice(0, 2)
 
-    @pytest.fixture
-    def expected(self, val):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, val):
         if val[0] == 2:
             # NB: this condition is based on currently-hardcoded "val" cases
             dtype = np.int64
@@ -1155,32 +1162,32 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
 
 @pytest.mark.parametrize("val", [512, np.int16(512)])
 class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1, 2, 3], dtype=np.int8)
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 1
 
-    @pytest.fixture
-    def expected(self):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self):
         return Series([1, 512, 3], dtype=np.int16)
 
 
 @pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1, 2, 3], dtype="i4")
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 0
 
-    @pytest.fixture
-    def expected(self, val):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, val):
         if val % 1 != 0:
             dtype = "f8"
         else:
@@ -1191,12 +1198,12 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
 class CoercionTest(SetitemCastingEquivalents):
     # Tests ported from tests.indexing.test_coercion
 
-    @pytest.fixture
-    def key(self):
+    @pytest.fixture(name="key")
+    def fixture_key(self):
         return 1
 
-    @pytest.fixture
-    def expected(self, obj, key, val, exp_dtype):
+    @pytest.fixture(name="expected")
+    def fixture_expected(self, obj, key, val, exp_dtype):
         vals = list(obj)
         vals[key] = val
         return Series(vals, dtype=exp_dtype)
@@ -1207,8 +1214,8 @@ class CoercionTest(SetitemCastingEquivalents):
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1, 2, 3, 4], dtype=np.int8)
 
 
@@ -1216,8 +1223,8 @@ class TestCoercionInt8(CoercionTest):
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestCoercionObject(CoercionTest):
     # previously test_setitem_series_object in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(["a", "b", "c", "d"], dtype=object)
 
 
@@ -1227,8 +1234,8 @@ class TestCoercionObject(CoercionTest):
 )
 class TestCoercionComplex(CoercionTest):
     # previously test_setitem_series_complex128 in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
 
 
@@ -1245,8 +1252,8 @@ class TestCoercionComplex(CoercionTest):
 )
 class TestCoercionBool(CoercionTest):
     # previously test_setitem_series_bool in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([True, False, True, False], dtype=bool)
 
 
@@ -1256,8 +1263,8 @@ class TestCoercionBool(CoercionTest):
 )
 class TestCoercionInt64(CoercionTest):
     # previously test_setitem_series_int64 in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1, 2, 3, 4])
 
 
@@ -1267,8 +1274,8 @@ class TestCoercionInt64(CoercionTest):
 )
 class TestCoercionFloat64(CoercionTest):
     # previously test_setitem_series_float64 in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1.1, 2.2, 3.3, 4.4])
 
 
@@ -1297,8 +1304,8 @@ class TestCoercionFloat64(CoercionTest):
     ],
 )
 class TestCoercionFloat32(CoercionTest):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series([1.1, 2.2, 3.3, 4.4], dtype=np.float32)
 
     def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
@@ -1316,8 +1323,8 @@ class TestCoercionFloat32(CoercionTest):
 class TestCoercionDatetime64(CoercionTest):
     # previously test_setitem_series_datetime64 in tests.indexing.test_coercion
 
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(date_range("2011-01-01", freq="D", periods=4))
 
 
@@ -1333,8 +1340,8 @@ class TestCoercionDatetime64(CoercionTest):
 )
 class TestCoercionDatetime64TZ(CoercionTest):
     # previously test_setitem_series_datetime64tz in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         tz = "US/Eastern"
         return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
 
@@ -1345,8 +1352,8 @@ class TestCoercionDatetime64TZ(CoercionTest):
 )
 class TestCoercionTimedelta64(CoercionTest):
     # previously test_setitem_series_timedelta64 in tests.indexing.test_coercion
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         return Series(timedelta_range("1 day", periods=4))
 
 
@@ -1357,12 +1364,13 @@ class TestCoercionTimedelta64(CoercionTest):
 class TestPeriodIntervalCoercion(CoercionTest):
     # GH#45768
     @pytest.fixture(
+        name="obj",
         params=[
             period_range("2016-01-01", periods=3, freq="D"),
             interval_range(1, 5),
-        ]
+        ],
     )
-    def obj(self, request):
+    def fixture_obj(self, request):
         return Series(request.param)
 
 

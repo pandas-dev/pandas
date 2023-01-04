@@ -25,13 +25,13 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 holidays = ["2014-06-27", datetime(2014, 6, 30), np.datetime64("2014-07-02")]
 
 
-@pytest.fixture
-def dt():
+@pytest.fixture(name="dt")
+def fixture_dt():
     return datetime(2014, 7, 1, 10, 00)
 
 
-@pytest.fixture
-def _offset():
+@pytest.fixture(name="_offset")
+def fixture__offset():
     return CustomBusinessHour
 
 
@@ -40,13 +40,13 @@ def _offset():
 #  6/22  23  24  25  26  27  28
 #    29  30 7/1   2   3   4   5
 #     6   7   8   9  10  11  12
-@pytest.fixture
-def offset1():
+@pytest.fixture(name="offset1")
+def fixture_offset1():
     return CustomBusinessHour(weekmask="Tue Wed Thu Fri")
 
 
-@pytest.fixture
-def offset2():
+@pytest.fixture(name="offset2")
+def fixture_offset2():
     return CustomBusinessHour(holidays=holidays)
 
 

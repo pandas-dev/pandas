@@ -13,8 +13,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def education_df():
+@pytest.fixture(name="education_df")
+def fixture_education_df():
     return DataFrame(
         {
             "gender": ["male", "male", "female", "male", "female", "male"],
@@ -169,8 +169,8 @@ def test_compound(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def animals_df():
+@pytest.fixture(name="animals_df")
+def fixture_animals_df():
     return DataFrame(
         {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
         index=["falcon", "dog", "cat", "ant"],
@@ -209,8 +209,8 @@ def test_data_frame_value_counts(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.fixture
-def nulls_df():
+@pytest.fixture(name="nulls_df")
+def fixture_nulls_df():
     n = np.nan
     return DataFrame(
         {
@@ -249,8 +249,8 @@ def test_dropna_combinations(
     tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture
-def names_with_nulls_df(nulls_fixture):
+@pytest.fixture(name="names_with_nulls_df")
+def fixture_names_with_nulls_df(nulls_fixture):
     return DataFrame(
         {
             "key": [1, 1, 1, 1],

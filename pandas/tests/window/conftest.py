@@ -15,13 +15,14 @@ from pandas import (
 )
 
 
-@pytest.fixture(params=[True, False])
-def raw(request):
+@pytest.fixture(name="raw", params=[True, False])
+def fixture_raw(request):
     """raw keyword argument for rolling.apply"""
     return request.param
 
 
 @pytest.fixture(
+    name="arithmetic_win_operators",
     params=[
         "sum",
         "mean",
@@ -34,24 +35,24 @@ def raw(request):
         "skew",
         "count",
         "sem",
-    ]
+    ],
 )
-def arithmetic_win_operators(request):
+def fixture_arithmetic_win_operators(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def center(request):
+@pytest.fixture(name="center", params=[True, False])
+def fixture_center(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 1])
-def min_periods(request):
+@pytest.fixture(name="min_periods", params=[None, 1])
+def fixture_min_periods(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def parallel(request):
+@pytest.fixture(name="parallel", params=[True, False])
+def fixture_parallel(request):
     """parallel keyword argument for numba.jit"""
     return request.param
 
@@ -60,62 +61,69 @@ def parallel(request):
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
-@pytest.fixture(params=[False])
-def nogil(request):
+@pytest.fixture(name="nogil", params=[False])
+def fixture_nogil(request):
     """nogil keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True])
-def nopython(request):
+@pytest.fixture(name="nopython", params=[True])
+def fixture_nopython(request):
     """nopython keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def adjust(request):
+@pytest.fixture(name="adjust", params=[True, False])
+def fixture_adjust(request):
     """adjust keyword argument for ewm"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def ignore_na(request):
+@pytest.fixture(name="ignore_na", params=[True, False])
+def fixture_ignore_na(request):
     """ignore_na keyword argument for ewm"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def numeric_only(request):
+@pytest.fixture(name="numeric_only", params=[True, False])
+def fixture_numeric_only(request):
     """numeric_only keyword argument"""
     return request.param
 
 
-@pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
-def engine(request):
+@pytest.fixture(
+    name="engine",
+    params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"],
+)
+def fixture_engine(request):
     """engine keyword argument for rolling.apply"""
     return request.param
 
 
 @pytest.fixture(
+    name="engine_and_raw",
     params=[
         pytest.param(("numba", True), marks=td.skip_if_no("numba")),
         ("cython", True),
         ("cython", False),
-    ]
+    ],
 )
-def engine_and_raw(request):
+def fixture_engine_and_raw(request):
     """engine and raw keyword arguments for rolling.apply"""
     return request.param
 
 
-@pytest.fixture(params=["1 day", timedelta(days=1), np.timedelta64(1, "D")])
-def halflife_with_times(request):
+@pytest.fixture(
+    name="halflife_with_times",
+    params=["1 day", timedelta(days=1), np.timedelta64(1, "D")],
+)
+def fixture_halflife_with_times(request):
     """Halflife argument for EWM when times is specified."""
     return request.param
 
 
-@pytest.fixture
-def series():
+@pytest.fixture(name="series")
+def fixture_series():
     """Make mocked series as fixture."""
     arr = np.random.randn(100)
     locs = np.arange(20, 40)
@@ -124,8 +132,8 @@ def series():
     return series
 
 
-@pytest.fixture
-def frame():
+@pytest.fixture(name="frame")
+def fixture_frame():
     """Make mocked frame as fixture."""
     return DataFrame(
         np.random.randn(100, 10),
@@ -134,7 +142,7 @@ def frame():
     )
 
 
-@pytest.fixture(params=[None, 1, 2, 5, 10])
-def step(request):
+@pytest.fixture(name="step", params=[None, 1, 2, 5, 10])
+def fixture_step(request):
     """step keyword argument for rolling window operations."""
     return request.param

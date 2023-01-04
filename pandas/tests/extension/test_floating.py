@@ -38,49 +38,49 @@ def make_data():
     )
 
 
-@pytest.fixture(params=[Float32Dtype, Float64Dtype])
-def dtype(request):
+@pytest.fixture(name="dtype", params=[Float32Dtype, Float64Dtype])
+def fixture_dtype(request):
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     return pd.array(make_data(), dtype=dtype)
 
 
-@pytest.fixture
-def data_for_twos(dtype):
+@pytest.fixture(name="data_for_twos")
+def fixture_data_for_twos(dtype):
     return pd.array(np.ones(100) * 2, dtype=dtype)
 
 
-@pytest.fixture
-def data_missing(dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype):
     return pd.array([pd.NA, 0.1], dtype=dtype)
 
 
-@pytest.fixture
-def data_for_sorting(dtype):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(dtype):
     return pd.array([0.1, 0.2, 0.0], dtype=dtype)
 
 
-@pytest.fixture
-def data_missing_for_sorting(dtype):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(dtype):
     return pd.array([0.1, pd.NA, 0.0], dtype=dtype)
 
 
-@pytest.fixture
-def na_cmp():
+@pytest.fixture(name="na_cmp")
+def fixture_na_cmp():
     # we are pd.NA
     return lambda x, y: x is pd.NA and y is pd.NA
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return pd.NA
 
 
-@pytest.fixture
-def data_for_grouping(dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype):
     b = 0.1
     a = 0.0
     c = 0.2

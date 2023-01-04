@@ -357,8 +357,8 @@ def test_mask_with_boolean_na_treated_as_false(index):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture
-def non_coercible_categorical(monkeypatch):
+@pytest.fixture(name="non_coercible_categorical")
+def fixture_non_coercible_categorical(monkeypatch):
     """
     Monkeypatch Categorical.__array__ to ensure no implicit conversion.
 

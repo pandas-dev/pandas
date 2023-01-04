@@ -30,13 +30,13 @@ from pandas.core.resample import _get_period_range_edges
 from pandas.tseries import offsets
 
 
-@pytest.fixture()
-def _index_factory():
+@pytest.fixture(name="_index_factory")
+def fixture__index_factory():
     return period_range
 
 
-@pytest.fixture
-def _series_name():
+@pytest.fixture(name="_series_name")
+def fixture__series_name():
     return "pi"
 
 

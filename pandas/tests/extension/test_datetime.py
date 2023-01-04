@@ -23,41 +23,41 @@ from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["US/Central"])
-def dtype(request):
+@pytest.fixture(name="dtype", params=["US/Central"])
+def fixture_dtype(request):
     return DatetimeTZDtype(unit="ns", tz=request.param)
 
 
-@pytest.fixture
-def data(dtype):
+@pytest.fixture(name="data")
+def fixture_data(dtype):
     data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
     return data
 
 
-@pytest.fixture
-def data_missing(dtype):
+@pytest.fixture(name="data_missing")
+def fixture_data_missing(dtype):
     return DatetimeArray(
         np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
     )
 
 
-@pytest.fixture
-def data_for_sorting(dtype):
+@pytest.fixture(name="data_for_sorting")
+def fixture_data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
     return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
 
 
-@pytest.fixture
-def data_missing_for_sorting(dtype):
+@pytest.fixture(name="data_missing_for_sorting")
+def fixture_data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
 
 
-@pytest.fixture
-def data_for_grouping(dtype):
+@pytest.fixture(name="data_for_grouping")
+def fixture_data_for_grouping(dtype):
     """
     Expected to be like [B, B, NA, NA, A, A, B, C]
 
@@ -72,16 +72,16 @@ def data_for_grouping(dtype):
     )
 
 
-@pytest.fixture
-def na_cmp():
+@pytest.fixture(name="na_cmp")
+def fixture_na_cmp():
     def cmp(a, b):
         return a is pd.NaT and a is b
 
     return cmp
 
 
-@pytest.fixture
-def na_value():
+@pytest.fixture(name="na_value")
+def fixture_na_value():
     return pd.NaT
 
 

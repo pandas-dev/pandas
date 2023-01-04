@@ -12,8 +12,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def index_large():
+@pytest.fixture(name="index_large")
+def fixture_index_large():
     # large values used in Index[uint64] tests where no compat needed with Int64/Float64
     large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
     return Index(large, dtype=np.uint64)

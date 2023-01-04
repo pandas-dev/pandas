@@ -13,6 +13,7 @@ from pandas.arrays import PandasArray
 
 
 @pytest.fixture(
+    name="any_numpy_array",
     params=[
         np.array(["a", "b"], dtype=object),
         np.array([0, 1], dtype=float),
@@ -21,9 +22,9 @@ from pandas.arrays import PandasArray
         np.array([True, False], dtype=bool),
         np.array([0, 1], dtype="datetime64[ns]"),
         np.array([0, 1], dtype="timedelta64[ns]"),
-    ]
+    ],
 )
-def any_numpy_array(request):
+def fixture_any_numpy_array(request):
     """
     Parametrized fixture for NumPy arrays with different dtypes.
 

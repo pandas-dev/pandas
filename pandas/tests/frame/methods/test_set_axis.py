@@ -9,8 +9,8 @@ import pandas._testing as tm
 
 
 class SharedSetAxisTests:
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         raise NotImplementedError("Implemented by subclasses")
 
     def test_set_axis(self, obj):
@@ -127,8 +127,8 @@ class SharedSetAxisTests:
 
 
 class TestDataFrameSetAxis(SharedSetAxisTests):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         df = DataFrame(
             {"A": [1.1, 2.2, 3.3], "B": [5.0, 6.1, 7.2], "C": [4.4, 5.5, 6.6]},
             index=[2010, 2011, 2012],
@@ -137,7 +137,7 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):
-    @pytest.fixture
-    def obj(self):
+    @pytest.fixture(name="obj")
+    def fixture_obj(self):
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
         return ser

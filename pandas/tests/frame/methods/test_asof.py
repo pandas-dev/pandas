@@ -15,8 +15,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def date_range_frame():
+@pytest.fixture(name="date_range_frame")
+def fixture_date_range_frame():
     """
     Fixture for DataFrame of ints with date_range index
 

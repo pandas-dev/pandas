@@ -29,6 +29,7 @@ def series_via_frame_from_scalar(x, **kwargs):
 
 
 @pytest.fixture(
+    name="constructor",
     params=[
         Series,
         series_via_frame_from_dict,
@@ -37,7 +38,7 @@ def series_via_frame_from_scalar(x, **kwargs):
     ],
     ids=["Series", "DataFrame-dict", "DataFrame-array", "Index"],
 )
-def constructor(request):
+def fixture_constructor(request):
     return request.param
 
 
