@@ -262,7 +262,8 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
     # see gh-11142
     msg = (
-        f"Parsing dates in {fmt} format when dayfirst=False was specified. "
+        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
+        "was specified. "
         "Pass `dayfirst=True` or specify a format to silence this warning."
     )
     with tm.assert_produces_warning(warning, match=msg):
