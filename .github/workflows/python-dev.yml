@@ -75,7 +75,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         python -m pip install git+https://github.com/nedbat/coveragepy.git
-        python -m pip install -r ci/deps/requirements-minimal.txt pytest-cov pytest-xdist
+        python -m pip install -r ci/deps/requirements-minimal.txt pytest-cov
         python -m pip list
 
     # GH 47305: Parallel build can cause flaky ImportError from pandas/_libs/tslibs
