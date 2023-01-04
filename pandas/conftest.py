@@ -639,10 +639,6 @@ def fixture_index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
