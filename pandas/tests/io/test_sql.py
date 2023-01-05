@@ -1056,7 +1056,9 @@ class _TestSQLApi(PandasSQLTest):
     def test_custom_dateparsing_error(
         self, read_sql, query, mode, error, types_data_frame
     ):
-        query = self.text(query) if isinstance(query, str) else query
+        query = (
+            self.text(query) if isinstance(query, str) and query != "types" else query
+        )
         if self.mode in mode:
             expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
@@ -2425,6 +2427,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
 
     flavor = "sqlite"
+    text = lambda self, x: x
 
     @classmethod
     def setup_engine(cls):
