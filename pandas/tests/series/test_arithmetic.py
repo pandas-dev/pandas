@@ -307,6 +307,25 @@ class TestSeriesArithmetic:
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
         tm.assert_series_equal(result, expected)
 
+    def test_masked_and_non_masked_propagate_na(self):
+        # GH#45810
+        ser1 = Series([0, np.nan], dtype="float")
+        ser2 = Series([0, 1], dtype="Int64")
+        result = ser1 * ser2
+        expected = Series([0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_mask_div_propagate_na_for_non_na_dtype(self):
+        # GH#42630
+        ser1 = Series([15, pd.NA, 5, 4], dtype="Int64")
+        ser2 = Series([15, 5, np.nan, 4])
+        result = ser1 / ser2
+        expected = Series([1.0, pd.NA, pd.NA, 1.0], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+        result = ser2 / ser1
+        tm.assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -624,10 +643,19 @@ class TestSeriesComparison:
     )
     def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        # GH 50083 to clarify that index and columns must be identically labeled
         if frame_or_series is not Series:
+            msg = (
+                rf"Can only compare identically-labeled \(both index and columns\) "
+                f"{frame_or_series.__name__} objects"
+            )
             left = left.to_frame()
             right = right.to_frame()
+        else:
+            msg = (
+                f"Can only compare identically-labeled {frame_or_series.__name__} "
+                f"objects"
+            )
 
         with pytest.raises(ValueError, match=msg):
             left == right

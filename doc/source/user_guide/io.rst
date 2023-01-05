@@ -275,6 +275,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
+
+  .. deprecated:: 2.0.0
+   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
@@ -471,7 +474,9 @@ Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every co
    3,4.5,False,b,6,7.5,True,a,12-31-2019,
    """
 
-   pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df = pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df
+   df.dtypes
 
 .. _io.categorical:
 
@@ -914,12 +919,10 @@ an exception is raised, the next one is tried:
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
-1. Try to infer the format using ``infer_datetime_format=True`` (see section below).
-
-2. If you know the format, use ``pd.to_datetime()``:
+1. If you know the format, use ``pd.to_datetime()``:
    ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
 
-3. If you have a really non-standard format, use a custom ``date_parser`` function.
+2. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
@@ -1146,7 +1149,7 @@ To completely override the default values that are recognized as missing, specif
 .. _io.navaluesconst:
 
 The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
-'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
+'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', 'None', '']``.
 
 Let us consider some examples:
 
@@ -1252,6 +1255,21 @@ The bad line will be a list of strings that was split by the ``sep``:
 
     .. versionadded:: 1.4.0
 
+Note that the callable function will handle only a line with too many fields.
+Bad lines caused by other errors will be silently skipped.
+
+For example:
+
+.. code-block:: ipython
+
+   def bad_lines_func(line):
+      print(line)
+
+   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+   data
+   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
+
+The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
@@ -3830,7 +3848,7 @@ OpenDocument Spreadsheets
 The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
 using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
-``engine='odf'``.
+``engine='odf'``. The optional dependency 'odfpy' needs to be installed.
 
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
@@ -5789,21 +5807,6 @@ Specifying this will return an iterator through chunks of the query result:
 
     for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
-
-You can also run a plain query without creating a ``DataFrame`` with
-:func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
-such as INSERT. This is functionally equivalent to calling ``execute`` on the
-SQLAlchemy engine or db connection object. Again, you must use the SQL syntax
-variant appropriate for your database.
-
-.. code-block:: python
-
-   from pandas.io import sql
-
-   sql.execute("SELECT * FROM table_name", engine)
-   sql.execute(
-       "INSERT INTO table_name VALUES(?, ?, ?)", engine, params=[("id", 1, 12.2, True)]
-   )
 
 
 Engine connection examples

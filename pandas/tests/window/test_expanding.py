@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -13,7 +11,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.window import Expanding
 
 
 def test_doc_string():
@@ -40,23 +37,6 @@ def test_constructor_invalid(frame_or_series, w):
     msg = "min_periods must be an integer"
     with pytest.raises(ValueError, match=msg):
         c(min_periods=w)
-
-
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    e = Expanding(Series([2, 4, 6]))
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Expanding.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Expanding.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(

@@ -48,11 +48,10 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -713,7 +712,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("mode.nullable_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -771,7 +770,7 @@ class ParserBase:
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and nullable_backend == "pyarrow":
+        if use_nullable_dtypes and dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
@@ -799,17 +798,13 @@ class ParserBase:
         -------
         converted : ndarray or ExtensionArray
         """
-        if is_categorical_dtype(cast_type):
-            known_cats = (
-                isinstance(cast_type, CategoricalDtype)
-                and cast_type.categories is not None
-            )
+        if isinstance(cast_type, CategoricalDtype):
+            known_cats = cast_type.categories is not None
 
             if not is_object_dtype(values.dtype) and not known_cats:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-
                 values = lib.ensure_string_array(
                     values, skipna=False, convert_na_value=False
                 )
@@ -842,9 +837,16 @@ class ParserBase:
 
         elif isinstance(values, ExtensionArray):
             values = values.astype(cast_type, copy=False)
+        elif issubclass(cast_type.type, str):
+            # TODO: why skipna=True here and False above? some tests depend
+            #  on it here, but nothing fails if we change it above
+            #  (as no tests get there as of 2022-12-06)
+            values = lib.ensure_string_array(
+                values, skipna=True, convert_na_value=False
+            )
         else:
             try:
-                values = astype_nansafe(values, cast_type, copy=True, skipna=True)
+                values = astype_array(values, cast_type, copy=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
@@ -1119,19 +1121,13 @@ def _make_date_converter(
         if date_parser is None:
             strs = parsing.concat_date_cols(date_cols)
 
-            try:
-                return tools.to_datetime(
-                    ensure_object(strs),
-                    utc=False,
-                    dayfirst=dayfirst,
-                    errors="ignore",
-                    cache=cache_dates,
-                ).to_numpy()
-
-            except ValueError:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(strs, dayfirst=dayfirst), cache=cache_dates
-                )
+            return tools.to_datetime(
+                ensure_object(strs),
+                utc=False,
+                dayfirst=dayfirst,
+                errors="ignore",
+                cache=cache_dates,
+            ).to_numpy()
         else:
             try:
                 result = tools.to_datetime(

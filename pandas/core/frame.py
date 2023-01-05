@@ -96,7 +96,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -1958,147 +1957,9 @@ class DataFrame(NDFrame, OpsMixin):
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
-        if not self.columns.is_unique:
-            warnings.warn(
-                "DataFrame columns are not unique, some columns will be omitted.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-        # GH16122
-        into_c = com.standardize_mapping(into)
+        from pandas.core.methods.to_dict import to_dict
 
-        #  error: Incompatible types in assignment (expression has type "str",
-        # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-        # 'records', 'index']")
-        orient = orient.lower()  # type: ignore[assignment]
-
-        if not index and orient not in ["split", "tight"]:
-            raise ValueError(
-                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
-            )
-
-        if orient == "series":
-            # GH46470 Return quickly if orient series to avoid creating dtype objects
-            return into_c((k, v) for k, v in self.items())
-
-        object_dtype_indices = [
-            i
-            for i, col_dtype in enumerate(self.dtypes.values)
-            if is_object_dtype(col_dtype)
-        ]
-        are_all_object_dtype_cols = len(object_dtype_indices) == len(self.dtypes)
-
-        if orient == "dict":
-            return into_c((k, v.to_dict(into)) for k, v in self.items())
-
-        elif orient == "list":
-            object_dtype_indices_as_set = set(object_dtype_indices)
-            return into_c(
-                (
-                    k,
-                    list(map(maybe_box_native, v.tolist()))
-                    if i in object_dtype_indices_as_set
-                    else v.tolist(),
-                )
-                for i, (k, v) in enumerate(self.items())
-            )
-
-        elif orient == "split":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                )
-            )
-
-        elif orient == "tight":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
-                )
-                + ((("index_names", list(self.index.names)),) if index else ())
-                + (("column_names", list(self.columns.names)),)
-            )
-
-        elif orient == "records":
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                rows = (
-                    dict(zip(columns, row))
-                    for row in self.itertuples(index=False, name=None)
-                )
-                return [
-                    into_c((k, maybe_box_native(v)) for k, v in row.items())
-                    for row in rows
-                ]
-            else:
-                data = [
-                    into_c(zip(columns, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-                if object_dtype_indices:
-                    object_dtype_indices_as_set = set(object_dtype_indices)
-                    object_dtype_cols = {
-                        col
-                        for i, col in enumerate(self.columns)
-                        if i in object_dtype_indices_as_set
-                    }
-                    for row in data:
-                        for col in object_dtype_cols:
-                            row[col] = maybe_box_native(row[col])
-                return data
-
-        elif orient == "index":
-            if not self.index.is_unique:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                return into_c(
-                    (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
-                    for t in self.itertuples(name=None)
-                )
-            elif object_dtype_indices:
-                object_dtype_indices_as_set = set(object_dtype_indices)
-                is_object_dtype_by_index = [
-                    i in object_dtype_indices_as_set for i in range(len(self.columns))
-                ]
-                return into_c(
-                    (
-                        t[0],
-                        {
-                            columns[i]: maybe_box_native(v)
-                            if is_object_dtype_by_index[i]
-                            else v
-                            for i, v in enumerate(t[1:])
-                        },
-                    )
-                    for t in self.itertuples(name=None)
-                )
-            else:
-                return into_c(
-                    (t[0], dict(zip(self.columns, t[1:])))
-                    for t in self.itertuples(name=None)
-                )
-
-        else:
-            raise ValueError(f"orient '{orient}' not understood")
+        return to_dict(self, orient, into, index)
 
     def to_gbq(
         self,
@@ -3616,7 +3477,7 @@ class DataFrame(NDFrame, OpsMixin):
         0     1     3
         1     2     4
 
-        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed = df1.T  # or df1.transpose()
         >>> df1_transposed
               0  1
         col1  1  2
@@ -3646,7 +3507,7 @@ class DataFrame(NDFrame, OpsMixin):
         0  Alice    9.5     False     0
         1    Bob    8.0      True     0
 
-        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed = df2.T  # or df2.transpose()
         >>> df2_transposed
                       0     1
         name      Alice   Bob
@@ -3786,9 +3647,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(
-                key, kind="getitem", is_frame=True
-            )
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
             if isinstance(indexer, np.ndarray):
                 # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
@@ -3859,6 +3718,10 @@ class DataFrame(NDFrame, OpsMixin):
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
+
+        if key.all():
+            return self.copy(deep=None)
+
         indexer = key.nonzero()[0]
         return self._take_with_is_copy(indexer, axis=0)
 
@@ -3959,6 +3822,15 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where `frame.columns` is unique, this is equivalent to
         `frame[frame.columns[i]] = value`.
         """
+        if isinstance(value, DataFrame):
+            if is_scalar(loc):
+                loc = [loc]
+
+            for i, idx in enumerate(loc):
+                arraylike = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False)
+            return
+
         arraylike = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
@@ -3967,7 +3839,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # see if we can slice the rows
         if isinstance(key, slice):
-            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            slc = self.index._convert_slice_indexer(key, kind="getitem")
             return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
@@ -4087,7 +3959,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.size and not is_bool_dtype(key.values):
+        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -4217,7 +4089,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value, inplace=True)
+            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
             self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
@@ -4329,8 +4201,7 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4474,7 +4345,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4499,8 +4370,7 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4606,7 +4476,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -4883,7 +4753,7 @@ class DataFrame(NDFrame, OpsMixin):
         of the columns depends on another one defined within the same assign:
 
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
-        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+        ...           temp_k=lambda x: (x['temp_f'] + 459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
@@ -5022,7 +4892,7 @@ class DataFrame(NDFrame, OpsMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -5085,7 +4955,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -6122,8 +5992,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
         ...                                      ('species', 'type')])
         >>> df = pd.DataFrame([(389.0, 'fly'),
-        ...                    ( 24.0, 'fly'),
-        ...                    ( 80.5, 'run'),
+        ...                    (24.0, 'fly'),
+        ...                    (80.5, 'run'),
         ...                    (np.nan, 'jump')],
         ...                   index=index,
         ...                   columns=columns)
@@ -6561,7 +6431,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy()
+            return self.copy(deep=None)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
@@ -7393,7 +7263,7 @@ class DataFrame(NDFrame, OpsMixin):
         ),
     )
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy()
+        result = self.copy(deep=None)
 
         axis = self._get_axis_number(axis)
 
@@ -8112,10 +7982,10 @@ Keep all original rows and columns and also all original values
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas.core.computation import expressions
 
@@ -8153,9 +8023,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
-                self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -8403,14 +8271,14 @@ Parrot 2  Parrot       24.0
         4   2    1    1    5    4
         5   2    2    2    6    5
 
-        >>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+        >>> df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
         lev2    1         2
         lev3    1    2    1    2
         lev1
         1     0.0  1.0  2.0  NaN
         2     4.0  3.0  NaN  5.0
 
-        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"], values="values")
               lev3    1    2
         lev1  lev2
            1     1  0.0  1.0
@@ -8458,7 +8326,8 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
-        values : column to aggregate, optional
+        values : list-like or scalar, optional
+            Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
             If an array is passed, it must be the same length as the data. The
             list can contain any of the other types (except list).
@@ -8544,7 +8413,7 @@ Parrot 2  Parrot       24.0
         This first example aggregates values by taking the sum.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum)
+        ...                        columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
@@ -8556,7 +8425,7 @@ Parrot 2  Parrot       24.0
         We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
+        ...                        columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
         A   B
@@ -8568,8 +8437,7 @@ Parrot 2  Parrot       24.0
         The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': np.mean})
+        ...                        aggfunc={'D': np.mean, 'E': np.mean})
         >>> table
                         D         E
         A   C
@@ -8582,8 +8450,8 @@ Parrot 2  Parrot       24.0
         value column.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': [min, max, np.mean]})
+        ...                        aggfunc={'D': np.mean,
+        ...                                 'E': [min, max, np.mean]})
         >>> table
                           D   E
                        mean max      mean  min
@@ -11067,7 +10935,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with DatetimeIndex
+        DataFrame
+            The DataFrame has a DatetimeIndex.
         """
         new_obj = self.copy(deep=copy)
 
@@ -11101,7 +10970,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with PeriodIndex
+        DataFrame:
+            The DataFrame has a PeriodIndex.
 
         Examples
         --------

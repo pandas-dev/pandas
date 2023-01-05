@@ -19,7 +19,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<1.24
   - pytz
 
   # optional dependencies
@@ -40,7 +40,7 @@ dependencies:
   - openpyxl
   - odfpy
   - psycopg2
-  - pyarrow<10
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables
@@ -56,7 +56,6 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore
   - botocore
   - cftime
   - dask

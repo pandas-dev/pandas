@@ -75,8 +75,8 @@ class NumericIndex(Index):
     Notes
     -----
     An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
-    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
-    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
+    float64/32 dtype. In particular, ``NumericIndex`` *can not* hold numpy float16
+    dtype or Pandas numeric dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
     """
 
     _typ = "numericindex"
@@ -133,6 +133,10 @@ class NumericIndex(Index):
         Ensure we have a valid array to pass to _simple_new.
         """
         cls._validate_dtype(dtype)
+        if dtype == np.float16:
+
+            # float16 not supported (no indexing engine)
+            raise NotImplementedError("float16 indexes are not supported")
 
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
@@ -176,6 +180,10 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
+        if subarr.dtype == "float16":
+            # float16 not supported (no indexing engine)
+            raise NotImplementedError("float16 indexes are not implemented")
+
         return subarr
 
     @classmethod
@@ -202,6 +210,9 @@ class NumericIndex(Index):
         dtype = pandas_dtype(dtype)
         if not isinstance(dtype, np.dtype):
             raise TypeError(f"{dtype} not a numpy type")
+        elif dtype == np.float16:
+            # float16 not supported (no indexing engine)
+            raise NotImplementedError("float16 indexes are not supported")
 
         if cls._is_backward_compat_public_numeric_index:
             # dtype for NumericIndex
@@ -219,7 +230,7 @@ class NumericIndex(Index):
         return False
 
     @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         # TODO(2.0): once #45324 deprecation is enforced we should be able
         #  to simplify this.
         if is_float_dtype(self.dtype):
@@ -231,7 +242,7 @@ class NumericIndex(Index):
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
 
-        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
+        return super()._convert_slice_indexer(key, kind=kind)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
