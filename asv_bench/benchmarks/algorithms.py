@@ -1,9 +1,6 @@
 
 class Factorize:
 
-    params = [
-        [True, False],
-        [True, False],
         [
             "int",
             "uint",
