@@ -3,7 +3,7 @@ test with the TimeGrouper / grouping with datetimes
 """
 from datetime import (
     datetime,
-    timedelta as dttd,
+    timedelta,
 )
 from io import StringIO
 
@@ -776,7 +776,13 @@ class TestGroupBy:
                     "2015-07-23 12:12",
                     np.nan,
                 ],
-                "td": [np.nan, dttd(days=1), dttd(days=2), dttd(days=3), np.nan],
+                "td": [
+                    np.nan,
+                    timedelta(days=1),
+                    timedelta(days=2),
+                    timedelta(days=3),
+                    np.nan,
+                ],
             }
         )
         df_test.dt = pd.to_datetime(df_test.dt)

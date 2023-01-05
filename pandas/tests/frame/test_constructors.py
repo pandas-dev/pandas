@@ -3,8 +3,8 @@ from collections import (
     OrderedDict,
     abc,
     defaultdict,
+    namedtuple,
 )
-from collections import namedtuple  # GH11181
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -1542,6 +1542,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_namedtuples(self):
+        # GH11181
         named_tuple = namedtuple("Pandas", list("ab"))
         tuples = [named_tuple(1, 3), named_tuple(2, 4)]
         expected = DataFrame({"a": [1, 2], "b": [3, 4]})

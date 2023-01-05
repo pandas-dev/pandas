@@ -1,5 +1,4 @@
 import datetime as dt
-from datetime import datetime
 import hashlib
 import os
 import tempfile
@@ -128,8 +127,8 @@ def test_repr(setup_path):
         df["int2"] = 2
         df["timestamp1"] = Timestamp("20010102")
         df["timestamp2"] = Timestamp("20010103")
-        df["datetime1"] = datetime(2001, 1, 2, 0, 0)
-        df["datetime2"] = datetime(2001, 1, 3, 0, 0)
+        df["datetime1"] = dt.datetime(2001, 1, 2, 0, 0)
+        df["datetime2"] = dt.datetime(2001, 1, 3, 0, 0)
         df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()
 
@@ -443,8 +442,8 @@ def test_table_mixed_dtypes(setup_path):
     df["int2"] = 2
     df["timestamp1"] = Timestamp("20010102")
     df["timestamp2"] = Timestamp("20010103")
-    df["datetime1"] = datetime(2001, 1, 2, 0, 0)
-    df["datetime2"] = datetime(2001, 1, 3, 0, 0)
+    df["datetime1"] = dt.datetime(2001, 1, 2, 0, 0)
+    df["datetime2"] = dt.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
     df = df._consolidate()
 
@@ -460,14 +459,14 @@ def test_calendar_roundtrip_issue(setup_path):
     weekmask_egypt = "Sun Mon Tue Wed Thu"
     holidays = [
         "2012-05-01",
-        datetime(2013, 5, 1),
+        dt.datetime(2013, 5, 1),
         np.datetime64("2014-05-01"),
     ]
     bday_egypt = pd.offsets.CustomBusinessDay(
         holidays=holidays, weekmask=weekmask_egypt
     )
-    dt = datetime(2013, 4, 30)
-    dts = date_range(dt, periods=5, freq=bday_egypt)
+    mydt = dt.datetime(2013, 4, 30)
+    dts = date_range(mydt, periods=5, freq=bday_egypt)
 
     s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
