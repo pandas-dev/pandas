@@ -1600,20 +1600,21 @@ def test_prod_sum_min_count_mixed_object():
 
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
-def test_reduction_axis_none_deprecation(method):
-    # GH#21597 deprecate axis=None defaulting to axis=0 so that we can change it
-    #  to reducing over all axes.
+def test_reduction_axis_none_returns_scalar(method):
+    # GH#21597 As of 2.0, axis=None reduces over all axes.
 
     df = DataFrame(np.random.randn(4, 4))
-    meth = getattr(df, method)
 
-    msg = f"scalar {method} over the entire DataFrame"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = meth(axis=None)
-    with tm.assert_produces_warning(None):
-        expected = meth()
-    tm.assert_series_equal(res, expected)
-    tm.assert_series_equal(res, meth(axis=0))
+    result = getattr(df, method)(axis=None)
+    np_arr = df.to_numpy()
+    if method in {"skew", "kurt"}:
+        comp_mod = pytest.importorskip("scipy.stats")
+        if method == "kurt":
+            method = "kurtosis"
+        expected = getattr(comp_mod, method)(np_arr, bias=False, axis=None)
+    else:
+        expected = getattr(np, method)(np_arr, axis=None)
+    assert result == expected
 
 
 @pytest.mark.parametrize(
