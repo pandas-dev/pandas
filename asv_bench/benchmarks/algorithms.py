@@ -1,6 +1,3 @@
-            "int",
-            "uint",
-            "float",
             "object",
             "datetime64[ns]",
             "datetime64[ns, tz]",
