@@ -307,7 +307,7 @@ class Groupby:
             }
         )
         if isinstance(kwargs.get("window", None), str):
-            df.index = (pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),)
+            df.index = pd.date_range(start="1900-01-01", freq="1min", periods=N * 10)
         self.groupby_window = getattr(df.groupby("A"), window)(**kwargs)
 
     def time_method(self, method, window_kwargs):
