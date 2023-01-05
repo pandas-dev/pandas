@@ -1509,7 +1509,7 @@ class TestNuisanceColumns:
             getattr(df, method)()
 
         with pytest.raises(TypeError, match="is not ordered for operation"):
-            getattr(np, method)(df)
+            getattr(np, method)(df, axis=0)
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(object)
@@ -1517,7 +1517,7 @@ class TestNuisanceColumns:
             getattr(df, method)()
 
         with pytest.raises(TypeError, match="is not ordered for operation"):
-            getattr(np, method)(df)
+            getattr(np, method)(df, axis=0)
 
 
 def test_sum_timedelta64_skipna_false(using_array_manager, request):
