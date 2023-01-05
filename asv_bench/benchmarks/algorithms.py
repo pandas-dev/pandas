@@ -1,5 +1,3 @@
-            "object",
-            "datetime64[ns]",
             "datetime64[ns, tz]",
             "Int64",
             "boolean",
