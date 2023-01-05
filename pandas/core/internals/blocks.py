@@ -325,6 +325,7 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
+    @final
     def reduce(self, func) -> list[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
@@ -1127,7 +1128,6 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
-    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1592,6 +1592,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     values: ExtensionArray
 
+    def fillna(
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+        if is_interval_dtype(self.dtype):
+            # Block.fillna handles coercion (test_fillna_interval)
+            return super().fillna(
+                value=value, limit=limit, inplace=inplace, downcast=downcast
+            )
+        new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values)
+        return nb._maybe_downcast([nb], downcast)
+
     @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
@@ -1946,19 +1958,6 @@ class ObjectBlock(NumpyBlock):
     __slots__ = ()
     is_object = True
 
-    def reduce(self, func) -> list[Block]:
-        """
-        For object-dtype, we operate column-wise.
-        """
-        assert self.ndim == 2
-
-        res = func(self.values)
-
-        assert isinstance(res, np.ndarray)
-        assert res.ndim == 1
-        res = res.reshape(-1, 1)
-        return [self.make_block_same_class(res)]
-
     @maybe_split
     def convert(
         self,
@@ -1969,6 +1968,11 @@ class ObjectBlock(NumpyBlock):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        if self.dtype != _dtype_obj:
+            # GH#50067 this should be impossible in ObjectBlock, but until
+            #  that is fixed, we short-circuit here.
+            return [self]
+
         values = self.values
         if values.ndim == 2:
             # maybe_split ensures we only get here with values.shape[0] == 1,
@@ -1980,6 +1984,7 @@ class ObjectBlock(NumpyBlock):
             convert_datetime=True,
             convert_timedelta=True,
             convert_period=True,
+            convert_interval=True,
         )
         if copy and res_values is values:
             res_values = values.copy()
@@ -2283,6 +2288,6 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._data
+        return values._ndarray
     else:
         return values

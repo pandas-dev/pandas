@@ -32,7 +32,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -44,6 +43,7 @@ from pandas._libs import (
 )
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -372,7 +372,7 @@ kwargs : dict, optional
 
 Returns
 -------
-object : the return type of `func`.
+the return type of `func`.
 
 See Also
 --------
@@ -402,14 +402,21 @@ Parameters
 f : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    Accepted inputs are:
 
+    - String
+    - Python function
+    - Numba JIT function with ``engine='numba'`` specified.
+
+    Only passing a single function is supported with this engine.
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
+
+    If a string is chosen, then it needs to be the name
+    of the groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args
@@ -480,55 +487,14 @@ user defined function, and no alternative execution attempts will be tried.
 
 Examples
 --------
-
->>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-...                           'foo', 'bar'],
-...                    'B' : ['one', 'one', 'two', 'three',
-...                           'two', 'two'],
-...                    'C' : [1, 5, 5, 2, 5, 5],
-...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')[['C', 'D']]
->>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-          C         D
-0 -1.154701 -0.577350
-1  0.577350  0.000000
-2  0.577350  1.154701
-3 -1.154701 -1.000000
-4  0.577350 -0.577350
-5  0.577350  1.000000
-
-Broadcast result of the transformation
-
->>> grouped.transform(lambda x: x.max() - x.min())
-     C    D
-0  4.0  6.0
-1  3.0  8.0
-2  4.0  6.0
-3  3.0  8.0
-4  4.0  6.0
-5  3.0  8.0
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
->>> grouped.transform(lambda x: x.astype(int).max())
-   C  D
-0  5  8
-1  5  9
-2  5  8
-3  5  9
-4  5  8
-5  5  9
-"""
+%(example)s"""
 
 _agg_template = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list, dict or None
     Function to use for aggregating the data. If a function, must either
     work when passed a {klass} or when passed to {klass}.apply.
 
@@ -538,6 +504,10 @@ func : function, str, list or dict
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
@@ -568,7 +538,9 @@ engine_kwargs : dict, default None
 
     .. versionadded:: 1.1.0
 **kwargs
-    Keyword arguments to be passed into func.
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
 
 Returns
 -------
@@ -578,10 +550,10 @@ See Also
 --------
 {klass}.groupby.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Aggregate using one or more
-    operations over the specified axis.
-{klass}.aggregate : Transforms the Series on each group
+{klass}.groupby.transform : Transforms the Series on each group
     based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
 
 Notes
 -----
@@ -808,7 +780,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        group : same type as obj
+        same type as obj
         """
         if obj is None:
             obj = self._selected_obj
@@ -1041,14 +1013,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
-        if not (
-            grp.groupings is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
+        if (
+            grp.groupings is None
+            or self.obj.ndim == 1
+            or self._group_selection is not None
         ):
             return
 
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+        groupers = self.exclusions
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
@@ -1638,8 +1610,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func)
 
         res = self._wrap_agged_manager(new_mgr)
@@ -1836,8 +1806,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             libgroupby.group_any_all,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
-            needs_mask=True,
-            needs_nullable=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
             val_test=val_test,
@@ -2114,13 +2082,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"{type(self).__name__}.std called with "
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
+
+            def _postprocessing(
+                vals, inference, nullable: bool = False, mask=None
+            ) -> ArrayLike:
+                if nullable:
+                    if mask.ndim == 2:
+                        mask = mask[:, 0]
+                    return FloatingArray(np.sqrt(vals), mask.view(np.bool_))
+                return np.sqrt(vals)
+
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
-                post_processing=lambda vals, inference: np.sqrt(vals),
+                post_processing=_postprocessing,
                 ddof=ddof,
+                how="std",
             )
             return result
 
@@ -2229,13 +2208,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-            with warnings.catch_warnings():
-                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
-                #  this catching will be unnecessary
-                warnings.filterwarnings(
-                    "ignore", ".*will attempt to set the values inplace.*"
-                )
-                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+
+            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final
@@ -2963,7 +2937,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # (e.g. we have selected out
             # a column that is not in the current object)
             axis = self.grouper.axis
-            grouper = axis[axis.isin(dropped.index)]
+            grouper = self.grouper.codes_info[axis.isin(dropped.index)]
+            if self.grouper.has_dropped_na:
+                # Null groups need to still be encoded as -1 when passed to groupby
+                nulls = grouper == -1
+                # error: No overload variant of "where" matches argument types
+                #        "Any", "NAType", "Any"
+                values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
+                grouper = Index(values, dtype="Int64")
 
         else:
 
@@ -3202,6 +3183,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
+        Groups with missing keys (where `pd.isna()` is True) will be labeled with `NaN`
+        and will be skipped from the count.
+
         Parameters
         ----------
         ascending : bool, default True
@@ -3218,38 +3202,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": list("aaabba")})
+        >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-           A
-        0  a
-        1  a
-        2  a
-        3  b
-        4  b
-        5  a
-        >>> df.groupby('A').ngroup()
-        0    0
-        1    0
-        2    0
-        3    1
-        4    1
-        5    0
-        dtype: int64
-        >>> df.groupby('A').ngroup(ascending=False)
+           color
+        0    red
+        1   None
+        2    red
+        3   blue
+        4   blue
+        5    red
+        >>> df.groupby("color").ngroup()
+        0    1.0
+        1    NaN
+        2    1.0
+        3    0.0
+        4    0.0
+        5    1.0
+        dtype: float64
+        >>> df.groupby("color", dropna=False).ngroup()
         0    1
-        1    1
+        1    2
         2    1
         3    0
         4    0
         5    1
         dtype: int64
-        >>> df.groupby(["A", [1,1,2,3,2,1]]).ngroup()
-        0    0
+        >>> df.groupby("color", dropna=False).ngroup(ascending=False)
+        0    1
         1    0
         2    1
-        3    3
+        3    2
         4    2
-        5    0
+        5    1
         dtype: int64
         """
         with self._group_selection_context():
@@ -3523,10 +3507,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         cython_dtype: np.dtype,
         numeric_only: bool = False,
         needs_counts: bool = False,
-        needs_nullable: bool = False,
-        needs_mask: bool = False,
         pre_processing=None,
         post_processing=None,
+        how: str = "any_all",
         **kwargs,
     ):
         """
@@ -3541,12 +3524,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Whether only numeric datatypes should be computed
         needs_counts : bool, default False
             Whether the counts should be a part of the Cython call
-        needs_mask : bool, default False
-            Whether boolean mask needs to be part of the Cython call
-            signature
-        needs_nullable : bool, default False
-            Whether a bool specifying if the input is nullable is part
-            of the Cython call signature
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -3561,6 +3538,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        how : str, default any_all
+            Determines if any/all cython interface or std interface is used.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -3604,15 +3583,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 vals = vals.reshape((-1, 1))
             func = partial(func, values=vals)
 
-            if needs_mask:
+            if how != "std" or isinstance(values, BaseMaskedArray):
                 mask = isna(values).view(np.uint8)
                 if mask.ndim == 1:
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
-            if needs_nullable:
+            if how != "std":
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
+
+            else:
+                result_mask = np.zeros(result.shape, dtype=np.bool_)
+                func = partial(func, result_mask=result_mask)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -3621,9 +3604,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result[:, 0]
 
             if post_processing:
-                pp_kwargs = {}
-                if needs_nullable:
-                    pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                pp_kwargs: dict[str, bool | np.ndarray] = {}
+                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                if how == "std":
+                    pp_kwargs["mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
 

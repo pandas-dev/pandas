@@ -148,7 +148,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
         from pyarrow import csv
 
@@ -317,7 +317,7 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(  # pytables np.object usage
+    @pytest.mark.filterwarnings(  # pytables np.object_ usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
@@ -373,7 +373,7 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
-    @pytest.mark.filterwarnings(  # pytables np.object usage
+    @pytest.mark.filterwarnings(  # pytables np.object_ usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
     def test_write_fspath_hdf5(self):

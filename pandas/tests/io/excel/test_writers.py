@@ -29,6 +29,7 @@ from pandas.io.excel import (
     _XlsxWriter,
     register_writer,
 )
+from pandas.io.excel._util import _writers
 
 
 @pytest.fixture
@@ -1233,42 +1234,6 @@ class TestExcelWriter:
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
-    def test_deprecated_attr(self, engine, ext, attr):
-        # GH#45572
-        with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path) as writer:
-                msg = f"{attr} is not part of the public API"
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    getattr(writer, attr)
-                # Some engines raise if nothing is written
-                DataFrame().to_excel(writer)
-
-    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
-    @pytest.mark.parametrize(
-        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
-    )
-    def test_deprecated_method(self, engine, ext, attr, args):
-        # GH#45572
-        with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path) as writer:
-                msg = f"{attr} is not part of the public API"
-                # Some engines raise if nothing is written
-                DataFrame().to_excel(writer)
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    getattr(writer, attr)(*args)
-
-    def test_deprecated_book_setter(self, engine, ext):
-        # GH#48780
-        with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path) as writer:
-                msg = "Setting the `book` attribute is not part of the public API"
-                # Some engines raise if nothing is written
-                DataFrame().to_excel(writer)
-                book = writer.book
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    writer.book = book
-
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1351,3 +1316,11 @@ class TestFSPath:
         with tm.ensure_clean("foo.xlsx") as path:
             with ExcelWriter(path) as writer:
                 assert os.fspath(writer) == str(path)
+
+
+@pytest.mark.parametrize("klass", _writers.values())
+def test_subclass_attr(klass):
+    # testing that subclasses of ExcelWriter don't have public attributes (issue 49602)
+    attrs_base = {name for name in dir(ExcelWriter) if not name.startswith("_")}
+    attrs_klass = {name for name in dir(klass) if not name.startswith("_")}
+    assert not attrs_base.symmetric_difference(attrs_klass)

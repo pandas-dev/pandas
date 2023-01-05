@@ -210,6 +210,21 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+def test_std_masked_dtype(any_numeric_ea_dtype):
+    # GH#35516
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 1, 2, 2, 1],
+            "b": Series([pd.NA, 1, 2, 1, 1, 1, 2], dtype="Float64"),
+        }
+    )
+    result = df.groupby("a").std()
+    expected = DataFrame(
+        {"b": [0.57735, 0]}, index=Index([1, 2], name="a"), dtype="Float64"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -466,6 +481,16 @@ def test_groupby_agg_coercing_bools():
     result = gp["c"].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name="c")
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_agg_dict_with_getitem():
+    # issue 25471
+    dat = DataFrame({"A": ["A", "A", "B", "B", "B"], "B": [1, 2, 1, 1, 2]})
+    result = dat.groupby("A")[["B"]].agg({"B": "sum"})
+
+    expected = DataFrame({"B": [3, 4]}, index=["A", "B"]).rename_axis("A", axis=0)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1075,7 +1100,6 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
-    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b

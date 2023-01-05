@@ -259,10 +259,14 @@ def enable_data_resource_formatter(enable: bool) -> None:
         if mimetype not in formatters:
             # define tableschema formatter
             from IPython.core.formatters import BaseFormatter
+            from traitlets import ObjectName
 
             class TableSchemaFormatter(BaseFormatter):
-                print_method = "_repr_data_resource_"
-                _return_type = (dict,)
+                print_method = ObjectName("_repr_data_resource_")
+                # Incompatible types in assignment (expression has type
+                # "Tuple[Type[Dict[Any, Any]]]", base class "BaseFormatter"
+                # defined the type as "Type[str]")
+                _return_type = (dict,)  # type: ignore[assignment]
 
             # register it:
             formatters[mimetype] = TableSchemaFormatter()
@@ -417,9 +421,9 @@ def format_object_summary(
             for max_items in reversed(range(1, len(value) + 1)):
                 pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
                 if len(pprinted_seq) < max_space:
+                    head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
+                    tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
                     break
-            head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
-            tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
 
         summary = ""
         line = space2

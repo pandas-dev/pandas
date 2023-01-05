@@ -275,6 +275,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
+
+  .. deprecated:: 2.0.0
+   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
@@ -471,7 +474,9 @@ Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every co
    3,4.5,False,b,6,7.5,True,a,12-31-2019,
    """
 
-   pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df = pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df
+   df.dtypes
 
 .. _io.categorical:
 
@@ -914,12 +919,10 @@ an exception is raised, the next one is tried:
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
-1. Try to infer the format using ``infer_datetime_format=True`` (see section below).
-
-2. If you know the format, use ``pd.to_datetime()``:
+1. If you know the format, use ``pd.to_datetime()``:
    ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
 
-3. If you have a really non-standard format, use a custom ``date_parser`` function.
+2. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
@@ -968,17 +971,7 @@ To parse the mixed-timezone values as a datetime column, pass a partially-applie
 Inferring datetime format
 +++++++++++++++++++++++++
 
-If you have ``parse_dates`` enabled for some or all of your columns, and your
-datetime strings are all formatted the same way, you may get a large speed
-up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
-to guess the format of your datetime strings, and then use a faster means
-of parsing the strings.  5-10x parsing speeds have been observed.  pandas
-will fallback to the usual parsing if either the format cannot be guessed
-or the format that was guessed cannot properly parse the entire column
-of strings.  So in general, ``infer_datetime_format`` should not have any
-negative consequences if enabled.
-
-Here are some examples of datetime strings that can be guessed (All
+Here are some examples of datetime strings that can be guessed (all
 representing December 30th, 2011 at 00:00:00):
 
 * "20111230"
@@ -988,19 +981,34 @@ representing December 30th, 2011 at 00:00:00):
 * "30/Dec/2011 00:00:00"
 * "30/December/2011 00:00:00"
 
-Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
+Note that format inference is sensitive to ``dayfirst``.  With
 ``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
 ``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
 
+If you try to parse a column of date strings, pandas will attempt to guess the format
+from the first non-NaN element, and will then parse the rest of the column with that
+format. If pandas fails to guess the format (for example if your first string is
+``'01 December US/Pacific 2000'``), then a warning will be raised and each
+row will be parsed individually by ``dateutil.parser.parse``. The safest
+way to parse dates is to explicitly set ``format=``.
+
 .. ipython:: python
 
-   # Try to infer the format for the index column
    df = pd.read_csv(
        "foo.csv",
        index_col=0,
        parse_dates=True,
-       infer_datetime_format=True,
    )
+   df
+
+In the case that you have mixed datetime formats within the same column, you'll need to
+first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+
+.. ipython:: python
+
+   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   df = pd.read_csv(data)
+   df['date'] = df['date'].apply(pd.to_datetime)
    df
 
 .. ipython:: python
@@ -1141,7 +1149,7 @@ To completely override the default values that are recognized as missing, specif
 .. _io.navaluesconst:
 
 The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
-'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
+'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', 'None', '']``.
 
 Let us consider some examples:
 
@@ -1247,6 +1255,21 @@ The bad line will be a list of strings that was split by the ``sep``:
 
     .. versionadded:: 1.4.0
 
+Note that the callable function will handle only a line with too many fields.
+Bad lines caused by other errors will be silently skipped.
+
+For example:
+
+.. code-block:: ipython
+
+   def bad_lines_func(line):
+      print(line)
+
+   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+   data
+   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
+
+The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
@@ -3825,7 +3848,7 @@ OpenDocument Spreadsheets
 The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
 using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
-``engine='odf'``.
+``engine='odf'``. The optional dependency 'odfpy' needs to be installed.
 
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
@@ -5784,21 +5807,6 @@ Specifying this will return an iterator through chunks of the query result:
 
     for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
-
-You can also run a plain query without creating a ``DataFrame`` with
-:func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
-such as INSERT. This is functionally equivalent to calling ``execute`` on the
-SQLAlchemy engine or db connection object. Again, you must use the SQL syntax
-variant appropriate for your database.
-
-.. code-block:: python
-
-   from pandas.io import sql
-
-   sql.execute("SELECT * FROM table_name", engine)
-   sql.execute(
-       "INSERT INTO table_name VALUES(?, ?, ?)", engine, params=[("id", 1, 12.2, True)]
-   )
 
 
 Engine connection examples
