@@ -10886,7 +10886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = 0,
+        axis: Axis | None = None,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -10903,7 +10903,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sem(
         self,
-        axis: Axis | None = 0,
+        axis: Axis | None = None,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -10915,7 +10915,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def var(
         self,
-        axis: Axis | None = 0,
+        axis: Axis | None = None,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -10927,7 +10927,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def std(
         self,
-        axis: Axis | None = 0,
+        axis: Axis | None = None,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
