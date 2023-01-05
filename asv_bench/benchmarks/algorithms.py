@@ -1,13 +1,3 @@
-from importlib import import_module
-
-
-
-    try:
-        hashing = import_module(imp)
-        break
-    except (ImportError, TypeError, ValueError):
-        pass
-
 
 class Factorize:
 
