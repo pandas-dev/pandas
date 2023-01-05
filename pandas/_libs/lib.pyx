@@ -659,6 +659,7 @@ def array_equal_fast(
     """
     cdef:
         Py_ssize_t i, n = left.size
+        bint ret = True
 
     if left.size != right.size:
         return False
@@ -667,13 +668,10 @@ def array_equal_fast(
         for i in range(n):
 
             if left[i] != right[i]:
+                ret = False
                 break
-        else:
-            i = i + 1
 
-    if i != n:
-        return False
-    return True
+    return ret
 
 
 ctypedef fused ndarr_object:
