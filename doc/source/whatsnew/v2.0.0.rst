@@ -401,12 +401,13 @@ DataFrame to LaTeX has a new render engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The existing :meth:`DataFrame.to_latex` has been restructured to utilise the
-dual implementation previously available under :meth:`.Styler.to_latex`.
+extended implementation previously available under :meth:`.Styler.to_latex`.
 The arguments signature is similar, albeit ``col_space`` has been removed since
-it is ignored by LaTeX engines. This also requires ``jinja2`` as a dependency
-which needs to be installed.
-The pandas options below are no longer used. The dual, existing, options that
-effect the same functionality are indicated below:
+it is ignored by LaTeX engines. This render engine also requires ``jinja2`` as a
+dependency which needs to be installed, since rendering is based upon jinja2 templates.
+
+The pandas options below are no longer used and will be removed in future releases.
+The alternative options giving similar functionality are indicated below:
   - ``display.latex.escape``: replaced with ``styler.format.escape``,
   - ``display.latex.longtable``: replaced with ``styler.latex.environment``,
   - ``display.latex.multicolumn``, ``display.latex.multicolumn_format`` and
@@ -417,10 +418,11 @@ effect the same functionality are indicated below:
   - ``display.max_rows`` and ``display.max_columns``: replace with
     ``styler.render.max_rows``, ``styler.render.max_columns`` and
     ``styler.render.max_elements``.
-Note that the behaviour of ``_repr_latex_`` is also affected to display LaTeX
-within JupyterNotebooks in operations (not just on nbconvert) when using the
-replacement ``repr`` option.
-
+Note that the behaviour of ``_repr_latex_`` is also changed. Previously
+setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
+JupyterNotebook, and not when the user is running the notebook. Now the
+``styler.render.repr`` option allows control of the specific output
+within JupyterNotebooks for operations (not just on nbconvert). See :issue:`39911`.
 
 .. _whatsnew_200.api_breaking.deps:
 
