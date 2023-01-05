@@ -119,4 +119,4 @@ dependencies:
 
   - pip:
       - sphinx-toggleprompt
-      - python-calamite
+      - python-calamine
