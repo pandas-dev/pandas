@@ -1402,6 +1402,25 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_named_tuple_for_midx(self):
+        # GH#48188
+        df = DataFrame(
+            index=MultiIndex.from_product(
+                [["A", "B"], ["a", "b", "c"]], names=["first", "second"]
+            ),
+            columns=["one", "two", "three", "four"],
+        )
+        indexer_tuple = namedtuple("Indexer", df.index.names)
+        idxr = indexer_tuple(first=[1, 2], second=[2, 3])
+        result = df.iloc[idxr]
+        expected = DataFrame(
+            index=MultiIndex.from_tuples(
+                [("A", "b"), ("A", "c")], names=["first", "second"]
+            ),
+            columns=["three", "four"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):

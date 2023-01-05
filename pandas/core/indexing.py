@@ -1085,7 +1085,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     @final
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
-        if type(key) is tuple:
+        if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
