@@ -1,7 +1,3 @@
-
-class Factorize:
-
-        [
             "int",
             "uint",
             "float",
