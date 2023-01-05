@@ -730,7 +730,7 @@ class PandasSQLTest:
 
     """
 
-    text = lambda x, y: text(y)
+    text = lambda self, x: text(x)
 
     def load_iris_data(self, iris_path):
         self.drop_table("iris", self.conn)
@@ -1545,7 +1545,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     flavor = "sqlite"
     mode = "fallback"
-    text = lambda x, y: y
+    text = lambda self, x: x
 
     def connect(self, database=":memory:"):
         return sqlite3.connect(database)
@@ -2658,7 +2658,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
 
     flavor = "sqlite"
-    text = lambda x, y: y
+    text = lambda self, x: x
 
     @pytest.fixture(autouse=True)
     def setup_method(self, iris_path, types_data):
