@@ -1488,7 +1488,6 @@ class TestNuisanceColumns:
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
 
-    @pytest.mark.filterwarnings("ignore:.*will return a scalar.*:FutureWarning")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
         # GH#28949 DataFrame.min should behave like Series.min
@@ -1612,9 +1611,10 @@ def test_reduction_axis_none_returns_scalar(method):
         if method == "kurt":
             method = "kurtosis"
         expected = getattr(comp_mod, method)(np_arr, bias=False, axis=None)
+        tm.assert_almost_equal(result, expected)
     else:
         expected = getattr(np, method)(np_arr, axis=None)
-    assert result == expected
+        assert result == expected
 
 
 @pytest.mark.parametrize(
