@@ -774,7 +774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if not copy and copy is not None and not _using_copy_on_write():
+            if copy is False and not _using_copy_on_write():
                 return self
             return self.copy(deep=copy)
 
