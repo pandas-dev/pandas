@@ -10358,8 +10358,7 @@ Parrot 2  Parrot       24.0
         out_dtype = "bool" if filter_type == "bool" else None
 
         if axis is not None:
-            # Validate
-            self._get_axis_number(axis)
+            axis = self._get_axis_number(axis)
 
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
@@ -10410,7 +10409,7 @@ Parrot 2  Parrot       24.0
 
             return out
 
-        assert not numeric_only
+        assert not numeric_only and axis in (1, None)
 
         data = self
         values = data.values
