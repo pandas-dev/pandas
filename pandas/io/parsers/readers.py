@@ -1379,7 +1379,7 @@ class TextFileReader(abc.Iterator):
 
     Examples
     ---------
-    >>> with pandas.read_csv(..., iterator=True) as text_file_reader:
+    >>> with pd.read_csv(..., iterator=True) as text_file_reader:
     ...     for df in text_file_reader:
     ...         ...
     """
