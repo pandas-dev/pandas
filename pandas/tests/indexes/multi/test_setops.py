@@ -699,7 +699,7 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
 @pytest.mark.parametrize(
     "b",
     [
-        pd.Categorical(["a", "b"], categories=["b", "a"]),
+        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
         pd.Categorical(["a", "b"], categories=["b", "a"]),
     ],
 )
