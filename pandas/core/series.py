@@ -5642,10 +5642,10 @@ Keep all original rows and also all original values
         -------
         Series with DatetimeIndex
         """
-        new_obj = self.copy(deep=copy)
-
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
+
+        new_obj = self.copy(deep=copy)
         new_index = self.index.to_timestamp(freq=freq, how=how)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -5666,10 +5666,10 @@ Keep all original rows and also all original values
         Series
             Series with index converted to PeriodIndex.
         """
-        new_obj = self.copy(deep=copy)
-
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
+
+        new_obj = self.copy(deep=copy)
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
