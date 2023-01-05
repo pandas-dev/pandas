@@ -30,6 +30,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build_wheels:
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
