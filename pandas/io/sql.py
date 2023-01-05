@@ -902,7 +902,8 @@ class SQLTable(PandasObject):
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
-        self.table.create(bind=self.pd_sql.con)
+        with self.pd_sql.con.begin():
+            self.table.create(bind=self.pd_sql.con)
 
     def create(self) -> None:
         if self.exists():
