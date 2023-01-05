@@ -956,6 +956,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` would not include a :class:`.Grouper` specified by ``key`` in the result when ``as_index=False`` (:issue:`50413`)
 - Bug in :meth:`.DataFrameGrouBy.value_counts` would raise when used with a :class:`.TimeGrouper` (:issue:`50486`)
 - Bug in :meth:`Resampler.size` caused a wide :class:`DataFrame` to be returned instead of a :class:`Series` with :class:`MultiIndex` (:issue:`46826`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"idxmin"`` and ``"idxmax"`` arguments (:issue:`45986`)
 -
 
 Reshaping
