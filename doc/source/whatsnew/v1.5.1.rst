@@ -1,0 +1,122 @@
+.. _whatsnew_151:
+
+What's new in 1.5.1 (October 19, 2022)
+--------------------------------------
+
+These are the changes in pandas 1.5.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.groupby_categorical_regr:
+
+Behavior of ``groupby`` with categorical groupers (:issue:`48645`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In versions of pandas prior to 1.5, ``groupby`` with ``dropna=False`` would still drop
+NA values when the grouper was a categorical dtype. A fix for this was attempted in
+1.5, however it introduced a regression where passing ``observed=False`` and
+``dropna=False`` to ``groupby`` would result in only observed categories. It was found
+that the patch fixing the ``dropna=False`` bug is incompatible with ``observed=False``,
+and decided that the best resolution is to restore the correct ``observed=False``
+behavior at the cost of reintroducing the ``dropna=False`` bug.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "x": pd.Categorical([1, None], categories=[1, 2, 3]),
+           "y": [3, 4],
+       }
+   )
+   df
+
+*1.5.0 behavior*:
+
+.. code-block:: ipython
+
+   In [3]: # Correct behavior, NA values are not dropped
+           df.groupby("x", observed=True, dropna=False).sum()
+   Out[3]:
+        y
+   x
+   1    3
+   NaN  4
+
+
+   In [4]: # Incorrect behavior, only observed categories present
+           df.groupby("x", observed=False, dropna=False).sum()
+   Out[4]:
+        y
+   x
+   1    3
+   NaN  4
+
+
+*1.5.1 behavior*:
+
+.. ipython:: python
+
+   # Incorrect behavior, NA values are dropped
+   df.groupby("x", observed=True, dropna=False).sum()
+
+   # Correct behavior, unobserved categories present (NA values still dropped)
+   df.groupby("x", observed=False, dropna=False).sum()
+
+.. _whatsnew_151.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed Regression in :meth:`Series.__setitem__` casting ``None`` to ``NaN`` for object dtype (:issue:`48665`)
+- Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
+- Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+- Regression in :func:`to_datetime` when ``utc=True`` and ``arg`` contained timezone naive and aware arguments raised a ``ValueError`` (:issue:`48678`)
+- Fixed regression in :meth:`DataFrame.loc` raising ``FutureWarning`` when setting an empty :class:`DataFrame` (:issue:`48480`)
+- Fixed regression in :meth:`DataFrame.describe` raising ``TypeError`` when result contains ``NA`` (:issue:`48778`)
+- Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
+- Fixed regression in :meth:`MultiIndex.values`` resetting ``freq`` attribute of underlying :class:`Index` object (:issue:`49054`)
+- Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
+- Fixed regression causing an ``AttributeError`` during warning emitted if the provided table name in :meth:`DataFrame.to_sql` and the table name actually used in the database do not match (:issue:`48733`)
+- Fixed regression in :func:`to_datetime` when ``arg`` was a date string with nanosecond and ``format`` contained ``%f`` would raise a ``ValueError`` (:issue:`48767`)
+- Fixed regression in :func:`assert_frame_equal` raising for :class:`MultiIndex` with :class:`Categorical` and ``check_like=True`` (:issue:`48975`)
+- Fixed regression in :meth:`DataFrame.fillna` replacing wrong values for ``datetime64[ns]`` dtype and ``inplace=True`` (:issue:`48863`)
+- Fixed :meth:`.DataFrameGroupBy.size` not returning a Series when ``axis=1`` (:issue:`48738`)
+- Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
+- Fixed regression in :meth:`DataFrame.apply` when passing non-zero ``axis`` via keyword argument (:issue:`48656`)
+- Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` when the grouper is a nullable data type (e.g. :class:`Int64`) or a PyArrow-backed string array, contains null values, and ``dropna=False`` (:issue:`48794`)
+- Fixed performance regression in :meth:`Series.isin` with mismatching dtypes (:issue:`49162`)
+- Fixed regression in :meth:`DataFrame.to_parquet` raising when file name was specified as ``bytes`` (:issue:`48944`)
+- Fixed regression in :class:`ExcelWriter` where the ``book`` attribute could no longer be set; however setting this attribute is now deprecated and this ability will be removed in a future version of pandas (:issue:`48780`)
+- Fixed regression in :meth:`DataFrame.corrwith` when computing correlation on tied data with ``method="spearman"`` (:issue:`48826`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`Series.__getitem__` not falling back to positional for integer keys and boolean :class:`Index` (:issue:`48653`)
+- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+- Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
+- Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
+- Bug in :meth:`DataFrame.sort_values` emitting unnecessary ``FutureWarning`` when called on :class:`DataFrame` with boolean sparse columns (:issue:`48784`)
+- Bug in :class:`.arrays.ArrowExtensionArray` with a comparison operator to an invalid object would not raise a ``NotImplementedError`` (:issue:`48833`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.other:
+
+Other
+~~~~~
+- Avoid showing deprecated signatures when introspecting functions with warnings about arguments becoming keyword-only (:issue:`48692`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.0..v1.5.1

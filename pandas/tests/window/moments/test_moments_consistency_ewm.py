@@ -222,7 +222,7 @@ def test_ewm_consistency_series_cov_corr(
     # std(y))
     corr_x_y = series_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).corr(series_data, bias=bias)
+    ).corr(series_data)
     std_x = series_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).std(bias=bias)

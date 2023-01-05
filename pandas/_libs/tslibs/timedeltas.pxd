@@ -18,10 +18,12 @@ cdef class _Timedelta(timedelta):
         int64_t value      # nanoseconds
         bint _is_populated  # are my components populated
         int64_t _d, _h, _m, _s, _ms, _us, _ns
-        NPY_DATETIMEUNIT _reso
+        NPY_DATETIMEUNIT _creso
 
     cpdef timedelta to_pytimedelta(_Timedelta self)
     cdef bint _has_ns(self)
+    cdef bint _is_in_pytimedelta_bounds(self)
     cdef _ensure_components(_Timedelta self)
-    cdef inline bint _compare_mismatched_resos(self, _Timedelta other, op)
-    cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=*)
+    cdef bint _compare_mismatched_resos(self, _Timedelta other, op)
+    cdef _Timedelta _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=*)
+    cpdef _maybe_cast_to_matching_resos(self, _Timedelta other)

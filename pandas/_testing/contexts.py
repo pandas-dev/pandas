@@ -3,11 +3,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
-from shutil import rmtree
 import tempfile
+from types import TracebackType
 from typing import (
     IO,
     Any,
+    Generator,
 )
 import uuid
 
@@ -19,7 +20,7 @@ from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(path, compression):
+def decompress_file(path, compression) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -40,7 +41,7 @@ def decompress_file(path, compression):
 
 
 @contextmanager
-def set_timezone(tz: str):
+def set_timezone(tz: str) -> Generator[None, None, None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -61,10 +62,9 @@ def set_timezone(tz: str):
     ...
     'EST'
     """
-    import os
     import time
 
-    def setTZ(tz):
+    def setTZ(tz) -> None:
         if tz is None:
             try:
                 del os.environ["TZ"]
@@ -83,7 +83,9 @@ def set_timezone(tz: str):
 
 
 @contextmanager
-def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
+def ensure_clean(
+    filename=None, return_filelike: bool = False, **kwargs: Any
+) -> Generator[Any, None, None]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -126,26 +128,7 @@ def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
 
 
 @contextmanager
-def ensure_clean_dir():
-    """
-    Get a temporary directory path and agrees to remove on close.
-
-    Yields
-    ------
-    Temporary directory path
-    """
-    directory_name = tempfile.mkdtemp(suffix="")
-    try:
-        yield directory_name
-    finally:
-        try:
-            rmtree(directory_name)
-        except OSError:
-            pass
-
-
-@contextmanager
-def ensure_safe_environment_variables():
+def ensure_safe_environment_variables() -> Generator[None, None, None]:
     """
     Get a context manager to safely set environment variables
 
@@ -161,7 +144,7 @@ def ensure_safe_environment_variables():
 
 
 @contextmanager
-def with_csv_dialect(name, **kwargs):
+def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -195,7 +178,7 @@ def with_csv_dialect(name, **kwargs):
 
 
 @contextmanager
-def use_numexpr(use, min_elements=None):
+def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
     from pandas.core.computation import expressions as expr
 
     if min_elements is None:
@@ -231,11 +214,16 @@ class RNGContext:
     def __init__(self, seed) -> None:
         self.seed = seed
 
-    def __enter__(self):
+    def __enter__(self) -> None:
 
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
 
         np.random.set_state(self.start_state)

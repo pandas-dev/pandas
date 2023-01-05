@@ -220,27 +220,13 @@ class TestDataFrameMissingData:
         df.iloc[2, [0, 1, 2]] = np.nan
         df.iloc[0, 0] = np.nan
         df.iloc[1, 1] = np.nan
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 3] = np.nan
+        df.iloc[:, 3] = np.nan
         expected = df.dropna(subset=["A", "B", "C"], how="all")
         expected.columns = ["A", "A", "B", "C"]
 
         df.columns = ["A", "A", "B", "C"]
 
         result = df.dropna(subset=["A", "C"], how="all")
-        tm.assert_frame_equal(result, expected)
-
-    def test_dropna_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.dropna "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.dropna(1)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
     def test_set_single_column_subset(self):

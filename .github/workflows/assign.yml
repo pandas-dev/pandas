@@ -3,9 +3,15 @@ on:
   issue_comment:
     types: created
 
+permissions:
+  contents: read
+
 jobs:
   issue_assign:
-    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-22.04
     steps:
     - if: github.event.comment.body == 'take'
       run: |

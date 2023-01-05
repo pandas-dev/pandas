@@ -280,45 +280,39 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(
-                raises=AssertionError, reason=f"{op} is successful on any dtype"
-            )
+            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
-    expected = ser.transform(["shift"])
-    match = rf"\['{op}'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([op, "shift"])
-    tm.assert_equal(result, expected)
+    if op in ("fillna", "ngroup"):
+        error = ValueError
+        msg = "Transform function failed"
+    else:
+        error = TypeError
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
+        )
 
-    expected = ser.transform({"B": "shift"})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": op, "B": "shift"})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform([op, "shift"])
 
-    expected = ser.transform({"B": ["shift"]})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op], "B": ["shift"]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": op, "B": "shift"})
 
-    match = r"\['B'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        expected = ser.transform({"A": ["shift"], "B": [op]})
-    match = rf"\['{op}'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op, "shift"], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": [op], "B": ["shift"]})
+
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": [op, "shift"], "B": [op]})
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully"
-
     def noop(x):
         return x
 
@@ -326,26 +320,19 @@ def test_transform_partial_failure_valueerror():
         raise ValueError
 
     ser = Series(3 * [object])
+    msg = "Transform function failed"
 
-    expected = ser.transform([noop])
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([noop, raising_op])
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform([noop, raising_op])
 
-    expected = ser.transform({"B": noop})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": raising_op, "B": noop})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": raising_op, "B": noop})
 
-    expected = ser.transform({"B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [raising_op], "B": [noop]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": [raising_op], "B": [noop]})
 
-    expected = ser.transform({"A": [noop], "B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [noop, raising_op], "B": [noop]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": [noop, raising_op], "B": [noop]})
 
 
 def test_demo():
@@ -598,6 +585,64 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_na_key(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
+    result = s.map(default_map, na_action=na_action)
+    expected = Series({0: "a", 1: "b", 2: "c" if na_action is None else np.nan})
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_missing_key(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", 3: "c"})
+    result = s.map(default_map, na_action=na_action)
+    expected = Series({0: "a", 1: "b", 2: "missing" if na_action is None else np.nan})
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_unmutated(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
+    expected_default_map = default_map.copy()
+    s.map(default_map, na_action=na_action)
+    assert default_map == expected_default_map
+
+
+@pytest.mark.parametrize("arg_func", [dict, Series])
+def test_map_dict_ignore_na(arg_func):
+    # GH#47527
+    mapping = arg_func({1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping, na_action="ignore")
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_defaultdict_ignore_na():
+    # GH#47527
+    mapping = defaultdict(int, {1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping)
+    expected = Series([10, 42, 0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_categorical_na_ignore():
+    # GH#47527
+    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
+    ser = Series(values)
+    result = ser.map({1: 10, np.nan: 42})
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_dict_subclass_with_missing():
     """
     Test Series.map with a dictionary subclass that defines __missing__,
@@ -640,7 +685,7 @@ def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
     # https://github.com/pandas-dev/pandas/issues/29733
     # Check collections.abc.Mapping support as mapper for Series.map
     class NonDictMappingWithMissing(non_dict_mapping_subclass):
-        def __missing__(key):
+        def __missing__(self, key):
             return "missing"
 
     s = Series([1, 2, 3])
@@ -801,8 +846,7 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)
-    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
-        ser = Series(list_of_strings)
+    ser = Series(list_of_strings)
     b = ser.apply(pd.to_timedelta)
     tm.assert_series_equal(Series(a), b)
 

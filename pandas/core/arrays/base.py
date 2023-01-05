@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Iterator,
     Literal,
     Sequence,
@@ -27,12 +28,14 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     Dtype,
     FillnaOptions,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -43,7 +46,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -86,18 +88,10 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
 
-    class ExtensionArraySupportsAnyAll("ExtensionArray"):
-        def any(self, *, skipna: bool = True) -> bool:
-            pass
-
-        def all(self, *, skipna: bool = True) -> bool:
-            pass
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
     )
-
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -139,6 +133,7 @@ class ExtensionArray:
     tolist
     unique
     view
+    _accumulate
     _concat_same_type
     _formatter
     _from_factorized
@@ -188,8 +183,9 @@ class ExtensionArray:
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
-    One can implement methods to handle array reductions.
+    One can implement methods to handle array accumulations or reductions.
 
+    * _accumulate
     * _reduce
 
     One can implement methods to handle parsing from strings that will be used
@@ -242,7 +238,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -265,7 +261,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -352,7 +348,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set one or more values inplace.
 
@@ -517,7 +513,9 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "signedinteger[_64Bit]",
+        # expected "int")  [return-value]
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -643,13 +641,12 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
+        *,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
-        *args,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -680,7 +677,7 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting. In case of overriding this,
         #    it is recommended to also override argmax/argmin
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         values = self._values_for_argsort()
         return nargsort(
@@ -748,11 +745,11 @@ class ExtensionArray:
         return nargminmax(self, "argmax")
 
     def fillna(
-        self,
+        self: ExtensionArrayT,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-    ):
+    ) -> ExtensionArrayT:
         """
         Fill NA/NaN values using the specified method.
 
@@ -763,9 +760,11 @@ class ExtensionArray:
             Alternatively, an array-like 'value' can be given. It's expected
             that the array-like have the same length as 'self'.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * pad / ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use NEXT valid observation to fill gap.
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -962,7 +961,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Pointwise comparison for set containment in the given values.
 
@@ -992,7 +991,7 @@ class ExtensionArray:
         na_value : object
             The value in `values` to consider missing. This will be treated
             as NA in the factorization routines, so it will be coded as
-            `na_sentinel` and not included in `uniques`. By default,
+            `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
 
         Notes
@@ -1002,14 +1001,21 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        use_na_sentinel: bool = True,
+    ) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
         Parameters
         ----------
-        na_sentinel : int, default -1
-            Value to use in the `codes` array to indicate missing values.
+        use_na_sentinel : bool, default True
+            If True, the sentinel -1 will be used for NaN values. If False,
+            NaN values will be encoded as non-negative integers and will not drop the
+            NaN from the uniques of the values.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1044,7 +1050,7 @@ class ExtensionArray:
         arr, na_value = self._values_for_factorize()
 
         codes, uniques = factorize_array(
-            arr, na_sentinel=na_sentinel, na_value=na_value
+            arr, use_na_sentinel=use_na_sentinel, na_value=na_value
         )
 
         uniques_ea = self._from_factorized(uniques, self)
@@ -1096,7 +1102,9 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats: int | Sequence[int], axis: int | None = None):
+    def repeat(
+        self: ExtensionArrayT, repeats: int | Sequence[int], axis: AxisInt | None = None
+    ) -> ExtensionArrayT:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1362,6 +1370,38 @@ class ExtensionArray:
     def _can_hold_na(self) -> bool:
         return self.dtype._can_hold_na
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ExtensionArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
@@ -1397,7 +1437,7 @@ class ExtensionArray:
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
@@ -1520,12 +1560,11 @@ class ExtensionArray:
         func(npvalues, limit=limit, mask=mask.copy())
         new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
-        return
 
     def _rank(
         self,
         *,
-        axis: int = 0,
+        axis: AxisInt = 0,
         method: str = "average",
         na_option: str = "keep",
         ascending: bool = True,
@@ -1537,8 +1576,6 @@ class ExtensionArray:
         if axis != 0:
             raise NotImplementedError
 
-        # TODO: we only have tests that get here with dt64 and td64
-        # TODO: all tests that get here use the defaults for all the kwds
         return rank(
             self,
             axis=axis,
@@ -1640,6 +1677,14 @@ class ExtensionArray:
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
+class ExtensionArraySupportsAnyAll(ExtensionArray):
+    def any(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
+
+    def all(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
+
+
 class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
@@ -1656,7 +1701,7 @@ class ExtensionOpsMixin:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _add_arithmetic_ops(cls):
+    def _add_arithmetic_ops(cls) -> None:
         setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
         setattr(cls, "__radd__", cls._create_arithmetic_method(roperator.radd))
         setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
@@ -1681,7 +1726,7 @@ class ExtensionOpsMixin:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _add_comparison_ops(cls):
+    def _add_comparison_ops(cls) -> None:
         setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
         setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
         setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
@@ -1694,7 +1739,7 @@ class ExtensionOpsMixin:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _add_logical_ops(cls):
+    def _add_logical_ops(cls) -> None:
         setattr(cls, "__and__", cls._create_logical_method(operator.and_))
         setattr(cls, "__rand__", cls._create_logical_method(roperator.rand_))
         setattr(cls, "__or__", cls._create_logical_method(operator.or_))
@@ -1730,7 +1775,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
+    def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the

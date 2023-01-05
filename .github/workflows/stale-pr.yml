@@ -4,9 +4,14 @@ on:
   # * is a special character in YAML so you have to quote this string
   - cron: "0 0 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   stale:
-    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/stale@v4
       with:

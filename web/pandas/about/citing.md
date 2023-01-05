@@ -5,7 +5,7 @@
 If you use _pandas_ for a scientific publication, we would appreciate citations to the published software and the
 following paper:
 
-- [pandas on Zenodo](https://zenodo.org/record/3715232#.XoqFyC2ZOL8),
+- [pandas on Zenodo](https://zenodo.org/search?page=1&size=20&q=conceptrecid%3A%223509134%22&sort=-version&all_versions=True),
    Please find us on Zenodo and replace with the citation for the version you are using. You can replace the full author
    list from there with "The pandas development team" like in the example below.
 

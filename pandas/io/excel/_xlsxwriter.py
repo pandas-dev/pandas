@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
@@ -164,6 +164,10 @@ class _XlsxStyler:
                 "singleAccounting": 33,
                 "doubleAccounting": 34,
             }[props["underline"]]
+
+        # GH 30107 - xlsxwriter uses different name
+        if props.get("valign") == "center":
+            props["valign"] = "vcenter"
 
         return props
 

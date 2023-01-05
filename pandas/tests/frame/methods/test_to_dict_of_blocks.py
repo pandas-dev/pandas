@@ -27,7 +27,7 @@ class TestToDictOfBlocks:
         # make sure we did not change the original DataFrame
         assert not _df[column].equals(df[column])
 
-    def test_no_copy_blocks(self, float_frame):
+    def test_no_copy_blocks(self, float_frame, using_copy_on_write):
         # GH#9607
         df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
@@ -38,8 +38,11 @@ class TestToDictOfBlocks:
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
-        # make sure we did change the original DataFrame
-        assert _df[column].equals(df[column])
+        if not using_copy_on_write:
+            # make sure we did change the original DataFrame
+            assert _df[column].equals(df[column])
+        else:
+            assert not _df[column].equals(df[column])
 
 
 def test_to_dict_of_blocks_item_cache():

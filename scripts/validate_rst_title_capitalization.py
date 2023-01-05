@@ -67,8 +67,9 @@ CAPITALIZATION_EXCEPTIONS = {
     "IntervalIndex",
     "Categorical",
     "CategoricalIndex",
-    "Categorical",
     "GroupBy",
+    "DataFrameGroupBy",
+    "SeriesGroupBy",
     "SPSS",
     "ORC",
     "R",
@@ -143,13 +144,13 @@ CAPITALIZATION_EXCEPTIONS = {
     "False",
     "Styler",
     "os",
-    "UTC",
     "str",
     "msgpack",
     "ExtensionArray",
     "LZMA",
     "Numba",
     "Timestamp",
+    "PyArrow",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

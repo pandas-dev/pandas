@@ -1,9 +1,15 @@
 import contextlib
+import time
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    read_excel,
+)
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
@@ -70,6 +76,7 @@ shared_style_params = [
         ["alignment", "vertical"],
         {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
+    ("vertical-align: middle;", ["alignment", "vertical"], "center"),
     # Border widths
     ("border-left: 2pt solid red", ["border", "left", "style"], "medium"),
     ("border-left: 1pt dotted red", ["border", "left", "style"], "dotted"),
@@ -107,6 +114,12 @@ shared_style_params = [
         "border: 1pt solid #111222",
         ["border", "left", "color", "rgb"],
         {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    # Border styles
+    (
+        "border-left-style: hair; border-left-color: black",
+        ["border", "left", "style"],
+        "hair",
     ),
 ]
 
@@ -189,6 +202,62 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
             assert sc_cell == expected
 
 
+# From https://openpyxl.readthedocs.io/en/stable/api/openpyxl.styles.borders.html
+# Note: Leaving behavior of "width"-type styles undefined; user should use border-width
+# instead
+excel_border_styles = [
+    # "thin",
+    "dashed",
+    "mediumDashDot",
+    "dashDotDot",
+    "hair",
+    "dotted",
+    "mediumDashDotDot",
+    # "medium",
+    "double",
+    "dashDot",
+    "slantDashDot",
+    # "thick",
+    "mediumDashed",
+]
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["xlsxwriter", "openpyxl"],
+)
+@pytest.mark.parametrize("border_style", excel_border_styles)
+def test_styler_to_excel_border_style(engine, border_style):
+    css = f"border-left: {border_style} black thin"
+    attrs = ["border", "left", "style"]
+    expected = border_style
+
+    pytest.importorskip(engine)
+    df = DataFrame(np.random.randn(1, 1))
+    styler = df.style.applymap(lambda x: css)
+
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine=engine) as writer:
+            df.to_excel(writer, sheet_name="dataframe")
+            styler.to_excel(writer, sheet_name="styled")
+
+        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+
+            # test unstyled data cell does not have expected styles
+            # test styled cell has expected styles
+            u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
+        for attr in attrs:
+            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
+
+        if isinstance(expected, dict):
+            assert u_cell is None or u_cell != expected[engine]
+            assert s_cell == expected[engine]
+        else:
+            assert u_cell is None or u_cell != expected
+            assert s_cell == expected
+
+
 def test_styler_custom_converter():
     openpyxl = pytest.importorskip("openpyxl")
 
@@ -205,3 +274,27 @@ def test_styler_custom_converter():
 
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
             assert wb["custom"].cell(2, 2).font.color.value == "00111222"
+
+
+@pytest.mark.single_cpu
+@td.skip_if_not_us_locale
+def test_styler_to_s3(s3_resource, s3so):
+    # GH#46381
+
+    mock_bucket_name, target_file = "pandas-test", "test.xlsx"
+    df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
+    styler = df.style.set_sticky(axis="index")
+    styler.to_excel(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
+    timeout = 5
+    while True:
+        if target_file in (
+            obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
+        ):
+            break
+        time.sleep(0.1)
+        timeout -= 0.1
+        assert timeout > 0, "Timed out waiting for file to appear on moto"
+        result = read_excel(
+            f"s3://{mock_bucket_name}/{target_file}", index_col=0, storage_options=s3so
+        )
+        tm.assert_frame_equal(result, df)

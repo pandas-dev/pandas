@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -9,7 +11,13 @@ from pandas import (
     _testing as tm,
     concat,
 )
-from pandas.tests.strings.test_strings import assert_series_or_index_equal
+
+
+def assert_series_or_index_equal(left, right):
+    if isinstance(left, Series):
+        tm.assert_series_equal(left, right)
+    else:  # Index
+        tm.assert_index_equal(left, right)
 
 
 @pytest.mark.parametrize("other", [None, Series, Index])
@@ -376,3 +384,17 @@ def test_cat_different_classes(klass):
     result = s.str.cat(klass(["x", "y", "z"]))
     expected = Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
+
+
+def test_cat_on_series_dot_str():
+    # GH 28277
+    ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
+
+    message = re.escape(
+        "others must be Series, Index, DataFrame, np.ndarray "
+        "or list-like (either containing only strings or "
+        "containing only objects of type Series/Index/"
+        "np.ndarray[1-dim])"
+    )
+    with pytest.raises(TypeError, match=message):
+        ps.str.cat(others=ps.str)

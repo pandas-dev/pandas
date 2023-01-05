@@ -27,6 +27,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+
     from pandas import DataFrame
 
 
@@ -260,6 +262,7 @@ Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
 Parameters
 ----------
+%(data)s\
 column : str or list of str, optional
     Column name or list of names, or vector.
     Can be any valid input to :meth:`pandas.DataFrame.groupby`.
@@ -270,7 +273,7 @@ ax : object of class matplotlib.axes.Axes, optional
     The matplotlib axes to be used by boxplot.
 fontsize : float or str
     Tick label font size in points or as a string (e.g., `large`).
-rot : int or float, default 0
+rot : float, default 0
     The rotation angle of labels (in degrees)
     with respect to the screen coordinate system.
 grid : bool, default True
@@ -460,19 +463,19 @@ _bar_or_line_doc = """
 """
 
 
-@Substitution(backend="")
+@Substitution(data="data : DataFrame\n    The data to visualize.\n", backend="")
 @Appender(_boxplot_doc)
 def boxplot(
-    data,
-    column=None,
-    by=None,
-    ax=None,
-    fontsize=None,
-    rot=0,
-    grid=True,
-    figsize=None,
-    layout=None,
-    return_type=None,
+    data: DataFrame,
+    column: str | list[str] | None = None,
+    by: str | list[str] | None = None,
+    ax: Axes | None = None,
+    fontsize: float | str | None = None,
+    rot: int = 0,
+    grid: bool = True,
+    figsize: tuple[float, float] | None = None,
+    layout: tuple[int, int] | None = None,
+    return_type: str | None = None,
     **kwargs,
 ):
     plot_backend = _get_plot_backend("matplotlib")
@@ -491,7 +494,7 @@ def boxplot(
     )
 
 
-@Substitution(backend=_backend_doc)
+@Substitution(data="", backend=_backend_doc)
 @Appender(_boxplot_doc)
 def boxplot_frame(
     self,
@@ -499,8 +502,8 @@ def boxplot_frame(
     by=None,
     ax=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     figsize=None,
     layout=None,
     return_type=None,
@@ -525,16 +528,16 @@ def boxplot_frame(
 
 def boxplot_frame_groupby(
     grouped,
-    subplots=True,
+    subplots: bool = True,
     column=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     ax=None,
     figsize=None,
     layout=None,
-    sharex=False,
-    sharey=True,
+    sharex: bool = False,
+    sharey: bool = True,
     backend=None,
     **kwargs,
 ):
@@ -550,7 +553,7 @@ def boxplot_frame_groupby(
 
     column : column name or list of names, or vector
         Can be any valid input to groupby.
-    fontsize : int or str
+    fontsize : float or str
     rot : label rotation angle
     grid : Setting this to True will show the grid
     ax : Matplotlib axis object, default None
@@ -686,15 +689,12 @@ class PlotAccessor(PandasObject):
         The matplotlib line style per column.
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis.
-        .. versionchanged:: 0.25.0
 
     logy : bool or 'sym' default False
         Use log scaling or symlog scaling on y axis.
-        .. versionchanged:: 0.25.0
 
     loglog : bool or 'sym', default False
         Use log scaling or symlog scaling on both x and y axes.
-        .. versionchanged:: 0.25.0
 
     xticks : sequence
         Values to use for the xticks.
@@ -714,6 +714,10 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
+
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
@@ -724,10 +728,14 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
-    rot : int, default None
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
+
+    rot : float, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
-    fontsize : int, default None
+    fontsize : float, default None
         Font size for xticks and yticks.
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that
@@ -751,8 +759,6 @@ class PlotAccessor(PandasObject):
         Equivalent to yerr.
     stacked : bool, default False in line and bar plots, and True in area plot
         If True, create stacked plot.
-    sort_columns : bool, default False
-        Sort column names to determine plot ordering.
     secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis if a list/tuple, which
         columns to plot on secondary y-axis.
@@ -863,7 +869,6 @@ class PlotAccessor(PandasObject):
                 ("yerr", None),
                 ("xerr", None),
                 ("secondary_y", False),
-                ("sort_columns", False),
                 ("xlabel", None),
                 ("ylabel", None),
             ]
@@ -933,7 +938,7 @@ class PlotAccessor(PandasObject):
                     raise ValueError(
                         f"{kind} requires either y column or 'subplots=True'"
                     )
-                elif y is not None:
+                if y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
@@ -997,7 +1002,7 @@ class PlotAccessor(PandasObject):
 
             >>> s = pd.Series([1, 3, 2])
             >>> s.plot.line()
-            <AxesSubplot:ylabel='Density'>
+            <AxesSubplot: ylabel='Density'>
 
         .. plot::
             :context: close-figs
@@ -1041,7 +1046,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x=None, y=None, **kwargs):
+    def line(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1128,7 +1133,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs):
+    def bar(  # pylint: disable=disallowed-name
+        self, x=None, y=None, **kwargs
+    ) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1214,7 +1221,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x=None, y=None, **kwargs):
+    def barh(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1226,7 +1233,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by=None, **kwargs):
+    def box(self, by=None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1293,7 +1300,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by=None, bins=10, **kwargs):
+    def hist(self, by=None, bins: int = 10, **kwargs) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1355,7 +1362,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
-    def kde(self, bw_method=None, ind=None, **kwargs):
+    def kde(self, bw_method=None, ind=None, **kwargs) -> PlotAccessor:
         """
         Generate Kernel Density Estimate plot using Gaussian kernels.
 
@@ -1465,7 +1472,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, **kwargs):
+    def area(self, x=None, y=None, stacked: bool = True, **kwargs) -> PlotAccessor:
         """
         Draw a stacked area plot.
 
@@ -1536,9 +1543,9 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, **kwargs)
+        return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
-    def pie(self, **kwargs):
+    def pie(self, **kwargs) -> PlotAccessor:
         """
         Generate a pie plot.
 
@@ -1593,7 +1600,7 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, s=None, c=None, **kwargs):
+    def scatter(self, x, y, s=None, c=None, **kwargs) -> PlotAccessor:
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1625,11 +1632,6 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        size : str, scalar or array-like, optional
-            Alias for s.
-
-            .. versionadded:: 1.5.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1643,10 +1645,6 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-        color : str, int or array-like, optional
-            Alias for c.
-
-            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
@@ -1685,21 +1683,11 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        size = kwargs.pop("size", None)
-        if s is not None and size is not None:
-            raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
-            kwargs["s"] = s if s is not None else size
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
-            kwargs["c"] = c if c is not None else color
-
-        return self(kind="scatter", x=x, y=y, **kwargs)
-
-    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
+    def hexbin(
+        self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
+    ) -> PlotAccessor:
         """
         Generate a hexagonal binning plot.
 
@@ -1828,8 +1816,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
-        entry = eps.select(group=key)  # type: ignore[attr-defined]
+        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
         entry = eps.get(key, ())
     for entry_point in entry:

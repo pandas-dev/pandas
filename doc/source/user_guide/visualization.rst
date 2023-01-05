@@ -3,8 +3,13 @@
 {{ header }}
 
 *******************
-Chart Visualization
+Chart visualization
 *******************
+
+
+.. note::
+
+   The examples below assume that you're using `Jupyter <https://jupyter.org/>`_.
 
 This section demonstrates visualization through charting. For information on
 visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
@@ -620,6 +625,7 @@ To plot multiple column groups in a single axes, repeat ``plot`` method specifyi
 It is recommended to specify ``color`` and ``label`` keywords to distinguish each groups.
 
 .. ipython:: python
+   :okwarning:
 
    ax = df.plot.scatter(x="a", y="b", color="DarkBlue", label="Group 1")
    @savefig scatter_plot_repeated.png
@@ -1746,7 +1752,7 @@ Andrews curves charts:
 
    plt.close("all")
 
-Plotting directly with matplotlib
+Plotting directly with Matplotlib
 ---------------------------------
 
 In some situations it may still be preferable or necessary to prepare plots

@@ -1,14 +1,14 @@
-name: Windows-MacOS
+name: Windows-macOS
 
 on:
   push:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
   pull_request:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
     paths-ignore:
       - "doc/**"
 
@@ -16,14 +16,18 @@ env:
   PANDAS_CI: 1
   PYTEST_TARGET: pandas
   PATTERN: "not slow and not db and not network and not single_cpu"
+  ERROR_ON_WARNINGS: "1"
 
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 90
+    timeout-minutes: 180
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
@@ -49,7 +53,7 @@ jobs:
       uses: ./.github/actions/setup-conda
       with:
         environment-file: ci/deps/${{ matrix.env_file }}
-        pyarrow-version: ${{ matrix.os == 'macos-latest' && '6' || '' }}
+        pyarrow-version: ${{ matrix.os == 'macos-latest' && '9' || '' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas

@@ -55,7 +55,7 @@ class TablePlotter:
         vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         if not isinstance(left, list):
@@ -136,12 +136,12 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: float | None = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None) -> None:
         if df is None:
             ax.set_visible(False)
             return
 
-        import pandas.plotting as plotting
+        from pandas import plotting
 
         idx_nlevels = df.index.nlevels
         col_nlevels = df.columns.nlevels
@@ -167,7 +167,7 @@ class TablePlotter:
         ax.axis("off")
 
 
-if __name__ == "__main__":
+def main() -> None:
     import matplotlib.pyplot as plt
 
     p = TablePlotter()
@@ -188,8 +188,12 @@ if __name__ == "__main__":
     idx = pd.MultiIndex.from_tuples(
         [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")]
     )
-    col = pd.MultiIndex.from_tuples([(1, "A"), (1, "B")])
+    column = pd.MultiIndex.from_tuples([(1, "A"), (1, "B")])
     df3 = pd.DataFrame({"v1": [1, 2, 3, 4, 5, 6], "v2": [5, 6, 7, 8, 9, 10]}, index=idx)
-    df3.columns = col
+    df3.columns = column
     p.plot(df3, df3, labels=["df3"])
     plt.show()
+
+
+if __name__ == "__main__":
+    main()

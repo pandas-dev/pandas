@@ -15,7 +15,7 @@ class DataFrameAttributes:
         self.cur_index = self.df.index
 
     def time_get_index(self):
-        self.foo = self.df.index
+        self.df.index
 
     def time_set_index(self):
         self.df.index = self.cur_index

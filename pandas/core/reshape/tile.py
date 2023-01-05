@@ -43,8 +43,8 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import nanops
 import pandas.core.algorithms as algos
-import pandas.core.nanops as nanops
 
 
 def cut(
@@ -231,7 +231,7 @@ def cut(
     is to the left of the first bin (which is closed on the right), and 1.5
     falls between two bins.
 
-    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], inclusive="right")
+    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
@@ -263,7 +263,7 @@ def cut(
             raise ValueError(
                 "cannot specify integer `bins` when input data contains infinity"
             )
-        elif mn == mx:  # adjust end points before binning
+        if mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
             mx += 0.001 * abs(mx) if mx != 0 else 0.001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -421,8 +421,7 @@ def _bins_to_cuts(
                 f"Bin edges must be unique: {repr(bins)}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
-        else:
-            bins = unique_bins
+        bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
@@ -440,7 +439,7 @@ def _bins_to_cuts(
                 "list-like argument"
             )
 
-        elif labels is None:
+        if labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
@@ -561,7 +560,7 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """based on the dtype, return our labels"""
-    inclusive: IntervalLeftRight = "right" if right else "left"
+    closed: IntervalLeftRight = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
@@ -584,7 +583,7 @@ def _format_labels(
         # adjust lhs of first interval by precision to account for being right closed
         breaks[0] = adjust(breaks[0])
 
-    return IntervalIndex.from_breaks(breaks, inclusive=inclusive)
+    return IntervalIndex.from_breaks(breaks, closed=closed)
 
 
 def _preprocess_for_cut(x):

@@ -18,10 +18,9 @@ Development
     contributing_codebase
     maintaining
     internals
-    test_writing
     debugging_extensions
     extending
     developer
     policies
     roadmap
-    meeting
+    community

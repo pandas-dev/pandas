@@ -21,7 +21,7 @@ Fixed regressions
 - Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
 - Fixed regression in ``.groupby().agg()`` raising an ``AssertionError`` for some reductions like ``min`` on object-dtype columns (:issue:`31522`)
 - Fixed regression in ``.groupby()`` aggregations with categorical dtype using Cythonized reduction functions (e.g. ``first``) (:issue:`31450`)
-- Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
+- Fixed regression in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
 - Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
 - Fixed regression in :meth:`DataFrame.groupby` with an empty DataFrame grouping by a level of a MultiIndex (:issue:`31670`).
 - Fixed regression in :meth:`DataFrame.apply` with object dtype and non-reducing function (:issue:`31505`)

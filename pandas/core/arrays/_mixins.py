@@ -17,6 +17,7 @@ from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     F,
     PositionalIndexer2D,
@@ -69,6 +70,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+
+    from pandas import Series
 
 
 def ravel_compat(meth: F) -> F:
@@ -155,7 +158,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
             fill_value = self._validate_scalar(fill_value)
@@ -190,7 +193,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._ndarray, self._internal_fill_value
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
-    def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -198,7 +201,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
-    def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmax(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -214,7 +217,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _concat_same_type(
         cls: type[NDArrayBackedExtensionArrayT],
         to_concat: Sequence[NDArrayBackedExtensionArrayT],
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
@@ -231,35 +234,18 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        # TODO(2.0): use _validate_setitem_value once dt64tz mismatched-timezone
-        #  deprecation is enforced
-        npvalue = self._validate_searchsorted_value(value)
+        npvalue = self._validate_setitem_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(
-        self, value: NumpyValueArrayLike | ExtensionArray
-    ) -> NumpyValueArrayLike:
-        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and use _validate_setitem_value directly
-        if isinstance(value, ExtensionArray):
-            return value.to_numpy()
-        else:
-            return value
-
     @doc(ExtensionArray.shift)
-    def shift(self, periods=1, fill_value=None, axis=0):
+    def shift(self, periods: int = 1, fill_value=None, axis: AxisInt = 0):
 
-        fill_value = self._validate_shift_value(fill_value)
+        fill_value = self._validate_scalar(fill_value)
         new_values = shift(self._ndarray, periods, axis, fill_value)
 
         return self._from_backing_data(new_values)
 
-    def _validate_shift_value(self, fill_value):
-        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and use validate_fill_value directly
-        return self._validate_scalar(fill_value)
-
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
@@ -306,7 +292,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
-        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -349,7 +334,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: int | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)
@@ -433,7 +418,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of unique values.
 

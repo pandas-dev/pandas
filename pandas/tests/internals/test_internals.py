@@ -356,12 +356,6 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
-    def test_is_categorical_deprecated(self, fblock):
-        # GH#40571
-        blk = fblock
-        with tm.assert_produces_warning(DeprecationWarning):
-            blk.is_categorical
-
 
 class TestBlockManager:
     def test_attrs(self):
@@ -475,7 +469,7 @@ class TestBlockManager:
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values._data.base is blk.values._data.base
+                assert cp_blk.values._ndarray.base is blk.values._ndarray.base
 
         # copy(deep=True) consolidates, so the block-wise assertions will
         #  fail is mgr is not consolidated
@@ -597,7 +591,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
+        new_mgr = mgr.convert(copy=True)
         _compare(mgr, new_mgr)
 
         # convert
@@ -605,9 +599,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
@@ -618,9 +612,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
@@ -744,7 +738,7 @@ class TestBlockManager:
             mgr.iget(3).internal_values(), reindexed.iget(3).internal_values()
         )
 
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -765,10 +759,16 @@ class TestBlockManager:
             np.array([100.0, 200.0, 300.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
@@ -777,13 +777,18 @@ class TestBlockManager:
             np.array([1000.0, 2000.0, 3000.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
-    def test_get_bool_data(self):
-        msg = "object-dtype columns with all-bool values"
+    def test_get_bool_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -791,28 +796,38 @@ class TestBlockManager:
         )
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
+        bools = mgr.get_bool_data()
+        tm.assert_index_equal(bools.items, Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
         # Check sharing
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools2 = mgr.get_bool_data(copy=True)
+        bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
@@ -1271,7 +1286,7 @@ class TestCanHoldElement:
 
         # Careful: to get the expected Series-inplace behavior we need
         # `elem` to not have the same length as `arr`
-        ii2 = IntervalIndex.from_breaks(arr[:-1], inclusive="neither")
+        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
         self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
@@ -1308,10 +1323,6 @@ class TestCanHoldElement:
         elem = element(dti)
         self.check_series_setitem(elem, pi, False)
 
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
-
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1334,23 +1345,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:
@@ -1411,11 +1405,3 @@ def test_make_block_no_pandas_array(block_maker):
         )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
-
-
-def test_single_block_manager_fastpath_deprecated():
-    # GH#33092
-    ser = Series(range(3))
-    blk = ser._data.blocks[0]
-    with tm.assert_produces_warning(FutureWarning):
-        SingleBlockManager(blk, ser.index, fastpath=True)

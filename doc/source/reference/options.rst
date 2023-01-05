@@ -19,3 +19,10 @@ Working with options
    get_option
    set_option
    option_context
+
+Numeric formatting
+------------------
+.. autosummary::
+   :toctree: api/
+
+   set_eng_float_format

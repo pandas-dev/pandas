@@ -1,4 +1,6 @@
 """Any shareable docstring components for rolling/expanding/ewm"""
+from __future__ import annotations
+
 from textwrap import dedent
 
 from pandas.core.shared_docs import _shared_docs
@@ -8,7 +10,7 @@ _shared_docs = dict(**_shared_docs)
 
 def create_section_header(header: str) -> str:
     """Create numpydoc section header"""
-    return "\n".join((header, "-" * len(header))) + "\n"
+    return f"{header}\n{'-' * len(header)}\n"
 
 
 template_header = "\nCalculate the {window_method} {aggregation_description}.\n\n"
@@ -22,10 +24,10 @@ template_returns = dedent(
 
 template_see_also = dedent(
     """
-    pandas.Series.{window_method} : Calling {window_method} with Series data.
-    pandas.DataFrame.{window_method} : Calling {window_method} with DataFrames.
-    pandas.Series.{agg_method} : Aggregating {agg_method} for Series.
-    pandas.DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.\n
+    Series.{window_method} : Calling {window_method} with Series data.
+    DataFrame.{window_method} : Calling {window_method} with DataFrames.
+    Series.{agg_method} : Aggregating {agg_method} for Series.
+    DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.\n
     """
 ).replace("\n", "", 1)
 
@@ -35,20 +37,6 @@ kwargs_numeric_only = dedent(
         Include only float, int, boolean columns.
 
         .. versionadded:: 1.5.0\n
-    """
-).replace("\n", "", 1)
-
-args_compat = dedent(
-    """
-    *args
-        For NumPy compatibility and will not have an effect on the result.\n
-    """
-).replace("\n", "", 1)
-
-kwargs_compat = dedent(
-    """
-    **kwargs
-        For NumPy compatibility and will not have an effect on the result.\n
     """
 ).replace("\n", "", 1)
 

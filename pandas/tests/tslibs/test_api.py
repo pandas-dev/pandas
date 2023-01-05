@@ -54,6 +54,10 @@ def test_namespace():
         "astype_overflowsafe",
         "get_unit_from_dtype",
         "periods_per_day",
+        "periods_per_second",
+        "is_supported_unit",
+        "get_supported_reso",
+        "npy_unit_to_abbrev",
     ]
 
     expected = set(submodules + api)

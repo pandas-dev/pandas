@@ -5,6 +5,7 @@ import itertools
 import operator
 from typing import (
     Any,
+    Callable,
     cast,
 )
 import warnings
@@ -21,6 +22,8 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
+    CorrelationMethod,
     Dtype,
     DtypeObj,
     F,
@@ -119,7 +122,7 @@ class bottleneck_switch:
         def f(
             values: np.ndarray,
             *,
-            axis: int | None = None,
+            axis: AxisInt | None = None,
             skipna: bool = True,
             **kwds,
         ):
@@ -161,6 +164,10 @@ class bottleneck_switch:
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
     # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
     if not is_object_dtype(dtype) and not needs_i8_conversion(dtype):
+        # GH 42878
+        # Bottleneck uses naive summation leading to O(n) loss of precision
+        # unlike numpy which implements pairwise summation, which has O(log(n)) loss
+        # crossref: https://github.com/pydata/bottleneck/issues/379
 
         # GH 15507
         # bottleneck does not properly upcast during the sum
@@ -170,13 +177,13 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        return name not in ["nansum", "nanprod"]
+        return name not in ["nansum", "nanprod", "nanmean"]
     return False
 
 
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
-        if result.dtype == "f8" or result.dtype == "f4":
+        if result.dtype in ("f8", "f4"):
             # Note: outside of an nanops-specific test, we always have
             #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
@@ -399,7 +406,7 @@ def _datetimelike_compat(func: F) -> F:
     def new_func(
         values: np.ndarray,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
@@ -423,7 +430,7 @@ def _datetimelike_compat(func: F) -> F:
     return cast(F, new_func)
 
 
-def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarray:
+def _na_for_min_count(values: np.ndarray, axis: AxisInt | None) -> Scalar | np.ndarray:
     """
     Return the missing value for `values`.
 
@@ -462,7 +469,7 @@ def maybe_operate_rowwise(func: F) -> F:
     """
 
     @functools.wraps(func)
-    def newfunc(values: np.ndarray, *, axis: int | None = None, **kwargs):
+    def newfunc(values: np.ndarray, *, axis: AxisInt | None = None, **kwargs):
         if (
             axis == 1
             and values.ndim == 2
@@ -491,7 +498,7 @@ def maybe_operate_rowwise(func: F) -> F:
 def nanany(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> bool:
@@ -512,12 +519,12 @@ def nanany(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2])
     >>> nanops.nanany(s)
     True
 
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([np.nan])
     >>> nanops.nanany(s)
     False
@@ -537,7 +544,7 @@ def nanany(
 def nanall(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> bool:
@@ -558,12 +565,12 @@ def nanall(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanall(s)
     True
 
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 0])
     >>> nanops.nanall(s)
     False
@@ -586,7 +593,7 @@ def nanall(
 def nansum(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -609,7 +616,7 @@ def nansum(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nansum(s)
     3.0
@@ -631,7 +638,7 @@ def nansum(
 
 def _mask_datetimelike_result(
     result: np.ndarray | np.datetime64 | np.timedelta64,
-    axis: int | None,
+    axis: AxisInt | None,
     mask: npt.NDArray[np.bool_],
     orig_values: np.ndarray,
 ) -> np.ndarray | np.datetime64 | np.timedelta64 | NaTType:
@@ -654,7 +661,7 @@ def _mask_datetimelike_result(
 def nanmean(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> float:
@@ -677,7 +684,7 @@ def nanmean(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanmean(s)
     1.5
@@ -715,7 +722,7 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values, *, axis=None, skipna=True, mask=None):
+def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=None):
     """
     Parameters
     ----------
@@ -733,7 +740,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 2])
     >>> nanops.nanmedian(s)
     2.0
@@ -791,7 +798,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
 
 def get_empty_reduction_result(
     shape: tuple[int, ...],
-    axis: int,
+    axis: AxisInt,
     dtype: np.dtype | type[np.floating],
     fill_value: Any,
 ) -> np.ndarray:
@@ -819,10 +826,10 @@ def get_empty_reduction_result(
 def _get_counts_nanvar(
     values_shape: Shape,
     mask: npt.NDArray[np.bool_] | None,
-    axis: int | None,
+    axis: AxisInt | None,
     ddof: int,
     dtype: np.dtype = np.dtype(np.float64),
-) -> tuple[int | float | np.ndarray, int | float | np.ndarray]:
+) -> tuple[float | np.ndarray, float | np.ndarray]:
     """
     Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -864,7 +871,14 @@ def _get_counts_nanvar(
 
 
 @bottleneck_switch(ddof=1)
-def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
+def nanstd(
+    values,
+    *,
+    axis: AxisInt | None = None,
+    skipna: bool = True,
+    ddof: int = 1,
+    mask=None,
+):
     """
     Compute the standard deviation along given axis while ignoring NaNs
 
@@ -887,7 +901,7 @@ def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanstd(s)
     1.0
@@ -904,7 +918,14 @@ def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
 
 @disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
-def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
+def nanvar(
+    values,
+    *,
+    axis: AxisInt | None = None,
+    skipna: bool = True,
+    ddof: int = 1,
+    mask=None,
+):
     """
     Compute the variance along given axis while ignoring NaNs
 
@@ -927,7 +948,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanvar(s)
     1.0
@@ -975,7 +996,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
 def nansem(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     ddof: int = 1,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -1002,7 +1023,7 @@ def nansem(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nansem(s)
      0.5773502691896258
@@ -1022,12 +1043,12 @@ def nansem(
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch(name="nan" + meth)
+    @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
         values: np.ndarray,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
@@ -1059,7 +1080,7 @@ nanmax = _nanminmax("max", fill_value_typ="-inf")
 def nanargmax(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> int | np.ndarray:
@@ -1079,7 +1100,7 @@ def nanargmax(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(arr)
     4
@@ -1105,7 +1126,7 @@ def nanargmax(
 def nanargmin(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> int | np.ndarray:
@@ -1125,7 +1146,7 @@ def nanargmin(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(arr)
     0
@@ -1152,7 +1173,7 @@ def nanargmin(
 def nanskew(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> float:
@@ -1179,7 +1200,7 @@ def nanskew(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
@@ -1240,7 +1261,7 @@ def nanskew(
 def nankurt(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> float:
@@ -1267,7 +1288,7 @@ def nankurt(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
@@ -1337,7 +1358,7 @@ def nankurt(
 def nanprod(
     values: np.ndarray,
     *,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -1359,7 +1380,7 @@ def nanprod(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, 3, np.nan])
     >>> nanops.nanprod(s)
     6.0
@@ -1379,7 +1400,7 @@ def nanprod(
 
 def _maybe_arg_null_out(
     result: np.ndarray,
-    axis: int | None,
+    axis: AxisInt | None,
     mask: npt.NDArray[np.bool_] | None,
     skipna: bool,
 ) -> np.ndarray | int:
@@ -1407,9 +1428,9 @@ def _maybe_arg_null_out(
 def _get_counts(
     values_shape: Shape,
     mask: npt.NDArray[np.bool_] | None,
-    axis: int | None,
+    axis: AxisInt | None,
     dtype: np.dtype = np.dtype(np.float64),
-) -> int | float | np.ndarray:
+) -> float | np.ndarray:
     """
     Get the count of non-null values along an axis
 
@@ -1447,7 +1468,7 @@ def _get_counts(
 
 def _maybe_null_out(
     result: np.ndarray | float | NaTType,
-    axis: int | None,
+    axis: AxisInt | None,
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
@@ -1526,8 +1547,12 @@ def _zero_out_fperr(arg):
 
 @disallow("M8", "m8")
 def nancorr(
-    a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: int | None = None
-):
+    a: np.ndarray,
+    b: np.ndarray,
+    *,
+    method: CorrelationMethod = "pearson",
+    min_periods: int | None = None,
+) -> float:
     """
     a, b: ndarrays
     """
@@ -1549,7 +1574,9 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method):
+def get_corr_func(
+    method: CorrelationMethod,
+) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
         from scipy.stats import kendalltau
 
@@ -1586,7 +1613,7 @@ def nancov(
     *,
     min_periods: int | None = None,
     ddof: int | None = 1,
-):
+) -> float:
     if len(a) != len(b):
         raise AssertionError("Operands to nancov must have same size")
 

@@ -10,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -23,6 +24,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
@@ -62,7 +64,7 @@ def pivot_table(
     fill_value=None,
     margins: bool = False,
     dropna: bool = True,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     observed: bool = False,
     sort: bool = True,
 ) -> DataFrame:
@@ -117,7 +119,7 @@ def __internal_pivot_table(
     fill_value,
     margins: bool,
     dropna: bool,
-    margins_name: str,
+    margins_name: Hashable,
     observed: bool,
     sort: bool,
 ) -> DataFrame:
@@ -163,6 +165,7 @@ def __internal_pivot_table(
 
     grouped = data.groupby(keys, observed=observed, sort=sort)
     agged = grouped.agg(aggfunc)
+
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
@@ -178,7 +181,9 @@ def __internal_pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                if not isinstance(agged[v], ABCDataFrame):
+                if not isinstance(agged[v], ABCDataFrame) and isinstance(
+                    data[v].dtype, np.dtype
+                ):
                     # exclude DataFrame case bc maybe_downcast_to_dtype expects
                     #  ArrayLike
                     # e.g. test_pivot_table_multiindex_columns_doctest_case
@@ -258,7 +263,7 @@ def _add_margins(
     cols,
     aggfunc,
     observed=None,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -315,11 +320,15 @@ def _add_margins(
 
     from pandas import DataFrame
 
-    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
+        if is_extension_array_dtype(dtype):
+            # Can hold NA already
+            continue
+
         cols = result.select_dtypes([dtype]).columns
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
@@ -330,7 +339,9 @@ def _add_margins(
     return result
 
 
-def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = "All"):
+def _compute_grand_margin(
+    data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
+):
 
     if values:
         grand_margin = {}
@@ -353,7 +364,7 @@ def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = 
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table, data, values, rows, cols, aggfunc, observed, margins_name: Hashable = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -389,13 +400,23 @@ def _generate_marginal_results(
                 # GH31016 this is to calculate margin for each group, and assign
                 # corresponded key as index
                 transformed_piece = DataFrame(piece.apply(aggfunc)).T
-                transformed_piece.index = Index([all_key], name=piece.index.name)
+                if isinstance(piece.index, MultiIndex):
+                    # We are adding an empty level
+                    transformed_piece.index = MultiIndex.from_tuples(
+                        [all_key], names=piece.index.names + [None]
+                    )
+                else:
+                    transformed_piece.index = Index([all_key], name=piece.index.name)
 
                 # append piece for margin into table_piece
                 table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
-        result = concat(table_pieces, axis=cat_axis)
+        if not table_pieces:
+            # GH 49240
+            return table
+        else:
+            result = concat(table_pieces, axis=cat_axis)
 
         if len(rows) == 0:
             return result
@@ -417,7 +438,13 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table: DataFrame, data, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table: DataFrame,
+    data,
+    rows,
+    cols,
+    aggfunc,
+    observed,
+    margins_name: Hashable = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -472,29 +499,38 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: DataFrame,
-    index: IndexLabel | None = None,
-    columns: IndexLabel | None = None,
-    values: IndexLabel | None = None,
+    *,
+    index: IndexLabel | lib.NoDefault = lib.NoDefault,
+    columns: IndexLabel | lib.NoDefault = lib.NoDefault,
+    values: IndexLabel | lib.NoDefault = lib.NoDefault,
 ) -> DataFrame:
-    if columns is None:
+    if columns is lib.NoDefault:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
     columns_listlike = com.convert_to_list_like(columns)
 
-    if values is None:
-        if index is not None:
+    # If columns is None we will create a MultiIndex level with None as name
+    # which might cause duplicated names because None is the default for
+    # level names
+    data.index.names = [
+        name if name is not None else lib.NoDefault for name in data.index.names
+    ]
+
+    indexed: DataFrame | Series
+    if values is lib.NoDefault:
+        if index is not lib.NoDefault:
             cols = com.convert_to_list_like(index)
         else:
             cols = []
 
-        append = index is None
+        append = index is lib.NoDefault
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
-        if index is None:
+        if index is lib.NoDefault:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
                 index_list = [
@@ -517,7 +553,15 @@ def pivot(
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
-    return indexed.unstack(columns_listlike)
+    # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
+    # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
+    # "Hashable"
+    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    result.index.names = [
+        name if name is not lib.NoDefault else None for name in result.index.names
+    ]
+
+    return result
 
 
 def crosstab(
@@ -528,14 +572,15 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins: bool = False,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize=False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
-    Compute a simple cross tabulation of two (or more) factors. By default
-    computes a frequency table of the factors unless an array of values and an
-    aggregation function are passed.
+    Compute a simple cross tabulation of two (or more) factors.
+
+    By default, computes a frequency table of the factors unless an
+    array of values and an aggregation function are passed.
 
     Parameters
     ----------
@@ -667,6 +712,8 @@ def crosstab(
         df["__dummy__"] = values
         kwargs = {"aggfunc": aggfunc}
 
+    # error: Argument 7 to "pivot_table" of "DataFrame" has incompatible type
+    # "**Dict[str, object]"; expected "Union[...]"
     table = df.pivot_table(
         "__dummy__",
         index=unique_rownames,
@@ -674,7 +721,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process
@@ -690,7 +737,7 @@ def crosstab(
 
 
 def _normalize(
-    table: DataFrame, normalize, margins: bool, margins_name="All"
+    table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
 ) -> DataFrame:
 
     if not isinstance(normalize, (bool, str)):

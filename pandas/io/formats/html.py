@@ -6,6 +6,8 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import (
     Any,
+    Final,
+    Hashable,
     Iterable,
     Mapping,
     cast,
@@ -38,7 +40,7 @@ class HTMLFormatter:
     and this class responsible for only producing html markup.
     """
 
-    indent_delta = 2
+    indent_delta: Final = 2
 
     def __init__(
         self,
@@ -89,7 +91,7 @@ class HTMLFormatter:
         return self.elements
 
     @property
-    def should_show_dimensions(self):
+    def should_show_dimensions(self) -> bool:
         return self.fmt.should_show_dimensions
 
     @property
@@ -258,6 +260,7 @@ class HTMLFormatter:
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
+        row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
@@ -519,7 +522,7 @@ class HTMLFormatter:
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
-                for ix_col in range(len(fmt_values)):
+                for ix_col in fmt_values:
                     fmt_values[ix_col].insert(ins_row, "...")
                 nrows += 1
 

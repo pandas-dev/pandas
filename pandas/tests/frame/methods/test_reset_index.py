@@ -350,11 +350,6 @@ class TestResetIndex:
     )
     def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
-        warn = None
-        if isinstance(name, Timestamp) and name.tz is not None:
-            # _deprecate_mismatched_indexing
-            warn = FutureWarning
-
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
@@ -362,8 +357,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn):
-            result = df.reset_index()
+        result = df.reset_index()
 
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
@@ -458,8 +452,10 @@ class TestResetIndex:
             tm.assert_frame_equal(result, expected)
         else:
             if not flag and allow_duplicates:
-                msg = "Cannot specify 'allow_duplicates=True' when "
-                "'self.flags.allows_duplicate_labels' is False"
+                msg = (
+                    "Cannot specify 'allow_duplicates=True' when "
+                    "'self.flags.allows_duplicate_labels' is False"
+                )
             else:
                 msg = r"cannot insert \('A', ''\), already exists"
             with pytest.raises(ValueError, match=msg):
@@ -479,7 +475,6 @@ class TestResetIndex:
         with pytest.raises(ValueError, match="expected type bool"):
             multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
@@ -730,19 +725,6 @@ def test_reset_index_multiindex_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_drop_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
-    msg = (
-        r"In a future version of pandas all arguments of DataFrame\.reset_index "
-        r"except for the argument 'level' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.reset_index("a", False)
-    expected = DataFrame({"a": [1, 2, 3]})
-    tm.assert_frame_equal(result, expected)
-
-
 def test_reset_index_interval_columns_object_cast():
     # GH 19136
     df = DataFrame(
@@ -751,7 +733,7 @@ def test_reset_index_interval_columns_object_cast():
     result = df.reset_index()
     expected = DataFrame(
         [[1, 1.0, 0.0], [2, 0.0, 1.0]],
-        columns=Index(["Year", Interval(0, 1, "right"), Interval(1, 2, "right")]),
+        columns=Index(["Year", Interval(0, 1), Interval(1, 2)]),
     )
     tm.assert_frame_equal(result, expected)
 

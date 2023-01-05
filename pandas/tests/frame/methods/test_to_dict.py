@@ -80,11 +80,10 @@ class TestDataFrameToDict:
             df.to_dict(orient="xinvalid")
 
     @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
-    def test_to_dict_short_orient_warns(self, orient):
+    def test_to_dict_short_orient_raises(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        msg = "Using short name for 'orient' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="not understood"):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -380,6 +379,16 @@ class TestDataFrameToDict:
                     "b": [float, float, float],
                 },
             ),
+            (  # Make sure we have one df which is all object type cols
+                {
+                    "a": [1, "hello", 3],
+                    "b": [1.1, "world", 3.3],
+                },
+                {
+                    "a": [int, str, int],
+                    "b": [float, str, float],
+                },
+            ),
         ),
     )
     def test_to_dict_returns_native_types(self, orient, data, expected_types):
@@ -421,3 +430,31 @@ class TestDataFrameToDict:
         for i, key, value in assertion_iterator:
             assert value == data[key][i]
             assert type(value) is expected_types[key][i]
+
+    @pytest.mark.parametrize("orient", ["dict", "list", "series", "records", "index"])
+    def test_to_dict_index_false_error(self, orient):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        msg = "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient=orient, index=False)
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("split", {"columns": ["col1", "col2"], "data": [[1, 3], [2, 4]]}),
+            (
+                "tight",
+                {
+                    "columns": ["col1", "col2"],
+                    "data": [[1, 3], [2, 4]],
+                    "column_names": [None],
+                },
+            ),
+        ],
+    )
+    def test_to_dict_index_false(self, orient, expected):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        result = df.to_dict(orient=orient, index=False)
+        tm.assert_dict_equal(result, expected)

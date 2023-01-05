@@ -2,6 +2,8 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from __future__ import annotations
+
 import datetime
 from functools import partial
 import operator
@@ -45,7 +47,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import (
     missing,
@@ -95,8 +97,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
-        else:
-            ymask = notna(y)
+        ymask = notna(y)
 
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956

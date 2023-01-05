@@ -17,7 +17,11 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    Any,
+    TypeVar,
+    overload,
+)
 
 from numpy import ndarray
 
@@ -25,12 +29,18 @@ from pandas._libs.lib import (
     is_bool,
     is_integer,
 )
+from pandas._typing import (
+    Axis,
+    AxisInt,
+)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
     validate_args_and_kwargs,
     validate_kwargs,
 )
+
+AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 
 
 class CompatValidator:
@@ -84,7 +94,7 @@ validate_argmax = CompatValidator(
 )
 
 
-def process_skipna(skipna, args):
+def process_skipna(skipna: bool | ndarray | None, args) -> tuple[bool, Any]:
     if isinstance(skipna, ndarray) or skipna is None:
         args = (skipna,) + args
         skipna = True
@@ -92,7 +102,7 @@ def process_skipna(skipna, args):
     return skipna, args
 
 
-def validate_argmin_with_skipna(skipna, args, kwargs):
+def validate_argmin_with_skipna(skipna: bool | ndarray | None, args, kwargs) -> bool:
     """
     If 'Series.argmin' is called via the 'numpy' library, the third parameter
     in its signature is 'out', which takes either an ndarray or 'None', so
@@ -104,7 +114,7 @@ def validate_argmin_with_skipna(skipna, args, kwargs):
     return skipna
 
 
-def validate_argmax_with_skipna(skipna, args, kwargs):
+def validate_argmax_with_skipna(skipna: bool | ndarray | None, args, kwargs) -> bool:
     """
     If 'Series.argmax' is called via the 'numpy' library, the third parameter
     in its signature is 'out', which takes either an ndarray or 'None', so
@@ -137,7 +147,7 @@ validate_argsort_kind = CompatValidator(
 )
 
 
-def validate_argsort_with_ascending(ascending, args, kwargs):
+def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) -> bool:
     """
     If 'Categorical.argsort' is called via the 'numpy' library, the first
     parameter in its signature is 'axis', which takes either an integer or
@@ -149,7 +159,8 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    return ascending
+    # error: Incompatible return value type (got "int", expected "bool")
+    return ascending  # type: ignore[return-value]
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}
@@ -158,7 +169,19 @@ validate_clip = CompatValidator(
 )
 
 
-def validate_clip_with_axis(axis, args, kwargs):
+@overload
+def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None:
+    ...
+
+
+@overload
+def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT:
+    ...
+
+
+def validate_clip_with_axis(
+    axis: ndarray | AxisNoneT, args, kwargs
+) -> AxisNoneT | None:
     """
     If 'NDFrame.clip' is called via the numpy library, the third parameter in
     its signature is 'out', which can takes an ndarray, so check if the 'axis'
@@ -167,10 +190,14 @@ def validate_clip_with_axis(axis, args, kwargs):
     """
     if isinstance(axis, ndarray):
         args = (axis,) + args
-        axis = None
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "Union[ndarray[Any, Any], str, int]")
+        axis = None  # type: ignore[assignment]
 
     validate_clip(args, kwargs)
-    return axis
+    # error: Incompatible return value type (got "Union[ndarray[Any, Any],
+    # str, int]", expected "Union[str, int, None]")
+    return axis  # type: ignore[return-value]
 
 
 CUM_FUNC_DEFAULTS: dict[str, Any] = {}
@@ -184,7 +211,7 @@ validate_cumsum = CompatValidator(
 )
 
 
-def validate_cum_func_with_skipna(skipna, args, kwargs, name):
+def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
     """
     If this function is called via the 'numpy' library, the third parameter in
     its signature is 'dtype', which takes either a 'numpy' dtype or 'None', so
@@ -288,7 +315,7 @@ TAKE_DEFAULTS["mode"] = "raise"
 validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")
 
 
-def validate_take_with_convert(convert, args, kwargs):
+def validate_take_with_convert(convert: ndarray | bool | None, args, kwargs) -> bool:
     """
     If this function is called via the 'numpy' library, the third parameter in
     its signature is 'axis', which takes either an ndarray or 'None', so check
@@ -306,51 +333,6 @@ TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
 )
-
-
-def validate_window_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .{name}() directly instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_rolling_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .rolling(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_expanding_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .expanding(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
 
 
 def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
@@ -385,11 +367,10 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
                 "numpy operations are not valid with resample. "
                 f"Use .resample(...).{method}() instead"
             )
-        else:
-            raise TypeError("too many arguments passed in")
+        raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis: int | None, ndim: int = 1) -> None:
+def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is zero
     or None, as otherwise it will be incorrectly ignored.

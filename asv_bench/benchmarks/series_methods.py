@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
+    NA,
     Index,
     NaT,
     Series,
@@ -78,6 +79,49 @@ class Dropna:
         self.s.dropna()
 
 
+class Fillna:
+
+    params = [
+        [
+            "datetime64[ns]",
+            "float64",
+            "Float64",
+            "Int64",
+            "int64[pyarrow]",
+            "string",
+            "string[pyarrow]",
+        ],
+        [None, "pad", "backfill"],
+    ]
+    param_names = ["dtype", "method"]
+
+    def setup(self, dtype, method):
+        N = 10**6
+        if dtype == "datetime64[ns]":
+            data = date_range("2000-01-01", freq="S", periods=N)
+            na_value = NaT
+        elif dtype in ("float64", "Float64"):
+            data = np.random.randn(N)
+            na_value = np.nan
+        elif dtype in ("Int64", "int64[pyarrow]"):
+            data = np.arange(N)
+            na_value = NA
+        elif dtype in ("string", "string[pyarrow]"):
+            data = tm.rands_array(5, N)
+            na_value = NA
+        else:
+            raise NotImplementedError
+        fill_value = data[0]
+        ser = Series(data, dtype=dtype)
+        ser[::2] = na_value
+        self.ser = ser
+        self.fill_value = fill_value
+
+    def time_fillna(self, dtype, method):
+        value = self.fill_value if method is None else None
+        self.ser.fillna(value=value, method=method)
+
+
 class SearchSorted:
 
     goal_time = 0.2
@@ -144,6 +188,16 @@ class Clip:
         self.s.clip(0, 1)
 
 
+class ClipDt:
+    def setup(self):
+        dr = date_range("20220101", periods=100_000, freq="s", tz="UTC")
+        self.clipper_dt = dr[0:1_000].repeat(100)
+        self.s = Series(dr)
+
+    def time_clip(self):
+        self.s.clip(upper=self.clipper_dt)
+
+
 class ValueCounts:
 
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
@@ -154,6 +208,19 @@ class ValueCounts:
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class ValueCountsEA:
+
+    params = [[10**3, 10**4, 10**5], [True, False]]
+    param_names = ["N", "dropna"]
+
+    def setup(self, N, dropna):
+        self.s = Series(np.random.randint(0, N, size=10 * N), dtype="Int64")
+        self.s.loc[1] = NA
+
+    def time_value_counts(self, N, dropna):
+        self.s.value_counts(dropna=dropna)
 
 
 class ValueCountsObjectDropNAFalse:
@@ -280,6 +347,39 @@ class Rank:
 
     def time_rank(self, dtype):
         self.s.rank()
+
+
+class Iter:
+
+    param_names = ["dtype"]
+    params = [
+        "bool",
+        "boolean",
+        "int64",
+        "Int64",
+        "float64",
+        "Float64",
+        "datetime64[ns]",
+    ]
+
+    def setup(self, dtype):
+        N = 10**5
+        if dtype in ["bool", "boolean"]:
+            data = np.repeat([True, False], N // 2)
+        elif dtype in ["int64", "Int64"]:
+            data = np.arange(N)
+        elif dtype in ["float64", "Float64"]:
+            data = np.random.randn(N)
+        elif dtype == "datetime64[ns]":
+            data = date_range("2000-01-01", freq="s", periods=N)
+        else:
+            raise NotImplementedError
+
+        self.s = Series(data, dtype=dtype)
+
+    def time_iter(self, dtype):
+        for v in self.s:
+            pass
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

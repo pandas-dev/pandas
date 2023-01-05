@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -13,7 +11,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.window import Expanding
 
 
 def test_doc_string():
@@ -23,9 +20,6 @@ def test_doc_string():
     df.expanding(2).sum()
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The `center` argument on `expanding` will be removed in the future"
-)
 def test_constructor(frame_or_series):
     # GH 12669
 
@@ -33,14 +27,9 @@ def test_constructor(frame_or_series):
 
     # valid
     c(min_periods=1)
-    c(min_periods=1, center=True)
-    c(min_periods=1, center=False)
 
 
 @pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
-@pytest.mark.filterwarnings(
-    "ignore:The `center` argument on `expanding` will be removed in the future"
-)
 def test_constructor_invalid(frame_or_series, w):
     # not valid
 
@@ -48,23 +37,6 @@ def test_constructor_invalid(frame_or_series, w):
     msg = "min_periods must be an integer"
     with pytest.raises(ValueError, match=msg):
         c(min_periods=w)
-
-    msg = "center must be a boolean"
-    with pytest.raises(ValueError, match=msg):
-        c(min_periods=1, center=w)
-
-
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    e = Expanding(Series([2, 4, 6]))
-
-    msg = "numpy operations are not valid with window objects"
-
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(
@@ -237,17 +209,11 @@ def test_iter_expanding_series(ser, expected, min_periods):
         tm.assert_series_equal(actual, expected)
 
 
-def test_center_deprecate_warning():
+def test_center_invalid():
     # GH 20647
     df = DataFrame()
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match=".* got an unexpected keyword"):
         df.expanding(center=True)
-
-    with tm.assert_produces_warning(FutureWarning):
-        df.expanding(center=False)
-
-    with tm.assert_produces_warning(None):
-        df.expanding()
 
 
 def test_expanding_sem(frame_or_series):
@@ -467,9 +433,7 @@ def test_moment_functions_zero_length_pairwise(f):
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")
 
-    df1_expected = DataFrame(
-        index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
-    )
+    df1_expected = DataFrame(index=MultiIndex.from_product([df1.index, df1.columns]))
     df2_expected = DataFrame(
         index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
         columns=Index(["a"], name="foo"),

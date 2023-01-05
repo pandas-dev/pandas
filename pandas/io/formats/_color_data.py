@@ -3,6 +3,8 @@
 # This data has been copied here, instead of being imported from matplotlib,
 # not to have ``to_excel`` methods require matplotlib.
 # source: matplotlib._color_data (3.3.3)
+from __future__ import annotations
+
 CSS4_COLORS = {
     "aliceblue": "F0F8FF",
     "antiquewhite": "FAEBD7",

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -49,8 +50,7 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index)
             expected[result > 0] = 1 / len(values)
-
-        if isinstance(data.dtype, pd.core.dtypes.dtypes.BaseMaskedDtype):
+        if na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
 
@@ -211,21 +211,17 @@ class BaseMethodsTests(BaseExtensionTests):
         assert isinstance(result, type(data))
         assert result[0] == duplicated[0]
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel):
-        codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_codes = np.array(
-            [0, 0, na_sentinel, na_sentinel, 1, 1, 0, 2], dtype=np.intp
-        )
+    def test_factorize(self, data_for_grouping):
+        codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        codes_1, uniques_1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+    def test_factorize_equivalence(self, data_for_grouping):
+        codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)

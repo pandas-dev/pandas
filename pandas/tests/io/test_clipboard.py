@@ -1,7 +1,14 @@
+import os
 from textwrap import dedent
 
 import numpy as np
 import pytest
+
+from pandas.compat import is_platform_mac
+from pandas.errors import (
+    PyperclipException,
+    PyperclipWindowsException,
+)
 
 from pandas import (
     DataFrame,
@@ -11,6 +18,8 @@ from pandas import (
 import pandas._testing as tm
 
 from pandas.io.clipboard import (
+    CheckedCall,
+    _stringifyText,
     clipboard_get,
     clipboard_set,
 )
@@ -111,6 +120,81 @@ def df(request):
 
 
 @pytest.fixture
+def mock_ctypes(monkeypatch):
+    """
+    Mocks WinError to help with testing the clipboard.
+    """
+
+    def _mock_win_error():
+        return "Window Error"
+
+    # Set raising to False because WinError won't exist on non-windows platforms
+    with monkeypatch.context() as m:
+        m.setattr("ctypes.WinError", _mock_win_error, raising=False)
+        yield
+
+
+@pytest.mark.usefixtures("mock_ctypes")
+def test_checked_call_with_bad_call(monkeypatch):
+    """
+    Give CheckCall a function that returns a falsey value and
+    mock get_errno so it returns false so an exception is raised.
+    """
+
+    def _return_false():
+        return False
+
+    monkeypatch.setattr("pandas.io.clipboard.get_errno", lambda: True)
+    msg = f"Error calling {_return_false.__name__} \\(Window Error\\)"
+
+    with pytest.raises(PyperclipWindowsException, match=msg):
+        CheckedCall(_return_false)()
+
+
+@pytest.mark.usefixtures("mock_ctypes")
+def test_checked_call_with_valid_call(monkeypatch):
+    """
+    Give CheckCall a function that returns a truthy value and
+    mock get_errno so it returns true so an exception is not raised.
+    The function should return the results from _return_true.
+    """
+
+    def _return_true():
+        return True
+
+    monkeypatch.setattr("pandas.io.clipboard.get_errno", lambda: False)
+
+    # Give CheckedCall a callable that returns a truthy value s
+    checked_call = CheckedCall(_return_true)
+    assert checked_call() is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "String_test",
+        True,
+        1,
+        1.0,
+        1j,
+    ],
+)
+def test_stringify_text(text):
+    valid_types = (str, int, float, bool)
+
+    if isinstance(text, valid_types):
+        result = _stringifyText(text)
+        assert result == str(text)
+    else:
+        msg = (
+            "only str, int, float, and bool values "
+            f"can be copied to the clipboard, not {type(text).__name__}"
+        )
+        with pytest.raises(PyperclipException, match=msg):
+            _stringifyText(text)
+
+
+@pytest.fixture
 def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
@@ -176,7 +260,11 @@ class TestClipboard:
     # Two character separator is not supported in to_clipboard
     # Test that multi-character separators are not silently passed
     def test_excel_sep_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="to_clipboard in excel mode requires a single character separator.",
+            check_stacklevel=False,
+        ):
             df.to_clipboard(excel=True, sep=r"\t")
 
     # Separator is ignored when excel=False and should produce a warning
@@ -303,11 +391,12 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
+    @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        reason="Flaky test in multi-process CI environment: GH 44584",
-        raises=AssertionError,
-        strict=False,
+        os.environ.get("DISPLAY") is None and not is_platform_mac(),
+        reason="Cannot be runed if a headless system is not put in place with Xvfb",
+        strict=True,
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows

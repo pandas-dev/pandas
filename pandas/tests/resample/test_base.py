@@ -90,7 +90,7 @@ def test_raises_on_non_datetimelike_index():
     xp = DataFrame()
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
-        "but got an instance of 'Index'"
+        "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
         xp.resample("A").mean()
@@ -169,13 +169,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=object)
+        expected = Series([], dtype=np.int64)
 
     expected.index = _asfreq_compat(df.index, freq)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_almost_equal(result, expected, check_dtype=False)
+    tm.assert_almost_equal(result, expected)
 
     # test size for GH13212 (currently stays as df)
 

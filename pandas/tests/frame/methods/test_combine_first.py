@@ -3,10 +3,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    is_dtype_equal,
-)
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 from pandas import (
@@ -387,12 +388,28 @@ class TestDataFrameCombineFirst:
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         )
         df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
-        df.set_index(["a", "b"], inplace=True)
-        df2.set_index(["a", "b"], inplace=True)
-        result = df.combine_first(df2)
-        expected = DataFrame(
-            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
-        ).set_index(["a", "b"])
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
+        ):
+            df.set_index(["a", "b"], inplace=True)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
+        ):
+            df2.set_index(["a", "b"], inplace=True)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
+        ):
+            result = df.combine_first(df2)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
+        ):
+            expected = DataFrame(
+                {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
+            ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
 
@@ -402,7 +419,7 @@ class TestDataFrameCombineFirst:
         (datetime(2020, 1, 1), datetime(2020, 1, 2)),
         (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
         (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
-        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, inclusive="left")),
+        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, closed="left")),
     ],
 )
 def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
@@ -525,4 +542,18 @@ def test_combine_first_int64_not_cast_to_float64():
     df_2 = DataFrame({"A": [1, 20, 30], "B": [40, 50, 60], "C": [12, 34, 65]})
     result = df_1.combine_first(df_2)
     expected = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [12, 34, 65]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_midx_losing_dtype():
+    # GH#49830
+    midx = MultiIndex.from_arrays([[0, 0], [np.nan, np.nan]])
+    midx2 = MultiIndex.from_arrays([[1, 1], [np.nan, np.nan]])
+    df1 = DataFrame({"a": [None, 4]}, index=midx)
+    df2 = DataFrame({"a": [3, 3]}, index=midx2)
+    result = df1.combine_first(df2)
+    expected_midx = MultiIndex.from_arrays(
+        [[0, 0, 1, 1], [np.nan, np.nan, np.nan, np.nan]]
+    )
+    expected = DataFrame({"a": [np.nan, 4, 3, 3]}, index=expected_midx)
     tm.assert_frame_equal(result, expected)

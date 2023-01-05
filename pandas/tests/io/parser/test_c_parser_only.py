@@ -59,15 +59,17 @@ def test_buffer_rd_bytes(c_parser_only):
     )
     parser = c_parser_only
 
-    with tm.assert_produces_warning(RuntimeWarning):
-        # compression has no effect when passing a non-binary object as input
-        for _ in range(100):
-            try:
-                parser.read_csv(
-                    StringIO(data), compression="gzip", delim_whitespace=True
-                )
-            except Exception:
-                pass
+    for _ in range(100):
+        try:
+            parser.read_csv_check_warnings(
+                RuntimeWarning,
+                "compression has no effect when passing a non-binary object as input",
+                StringIO(data),
+                compression="gzip",
+                delim_whitespace=True,
+            )
+        except Exception:
+            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -174,6 +176,9 @@ def test_precise_conversion(c_parser_only):
     normal_errors = []
     precise_errors = []
 
+    def error(val: float, actual_val: Decimal) -> Decimal:
+        return abs(Decimal(f"{val:.100}") - actual_val)
+
     # test numbers between 1 and 2
     for num in np.linspace(1.0, 2.0, num=500):
         # 25 decimal digits of precision
@@ -190,11 +195,8 @@ def test_precise_conversion(c_parser_only):
         )
         actual_val = Decimal(text[2:])
 
-        def error(val):
-            return abs(Decimal(f"{val:.100}") - actual_val)
-
-        normal_errors.append(error(normal_val))
-        precise_errors.append(error(precise_val))
+        normal_errors.append(error(normal_val, actual_val))
+        precise_errors.append(error(precise_val, actual_val))
 
         # round-trip should match float()
         assert roundtrip_val == float(text[2:])

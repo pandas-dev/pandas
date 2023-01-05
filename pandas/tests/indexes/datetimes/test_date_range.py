@@ -34,7 +34,7 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays.datetimes import generate_range
+from pandas.core.arrays.datetimes import _generate_range as generate_range
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -431,6 +431,13 @@ class TestDateRanges:
         )
         rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="BH")
         tm.assert_index_equal(idx, rng)
+
+    def test_date_range_timedelta(self):
+        start = "2020-01-01"
+        end = "2020-01-11"
+        rng1 = date_range(start, end, freq="3D")
+        rng2 = date_range(start, end, freq=timedelta(days=3))
+        tm.assert_index_equal(rng1, rng2)
 
     def test_range_misspecified(self):
         # GH #1095
@@ -840,27 +847,51 @@ class TestDateRangeTZ:
 
 class TestGenRangeGeneration:
     def test_generate(self):
-        rng1 = list(generate_range(START, END, offset=BDay()))
-        rng2 = list(generate_range(START, END, offset="B"))
+        rng1 = list(generate_range(START, END, periods=None, offset=BDay(), unit="ns"))
+        rng2 = list(generate_range(START, END, periods=None, offset="B", unit="ns"))
         assert rng1 == rng2
 
     def test_generate_cday(self):
-        rng1 = list(generate_range(START, END, offset=CDay()))
-        rng2 = list(generate_range(START, END, offset="C"))
+        rng1 = list(generate_range(START, END, periods=None, offset=CDay(), unit="ns"))
+        rng2 = list(generate_range(START, END, periods=None, offset="C", unit="ns"))
         assert rng1 == rng2
 
     def test_1(self):
-        rng = list(generate_range(start=datetime(2009, 3, 25), periods=2))
+        rng = list(
+            generate_range(
+                start=datetime(2009, 3, 25),
+                end=None,
+                periods=2,
+                offset=BDay(),
+                unit="ns",
+            )
+        )
         expected = [datetime(2009, 3, 25), datetime(2009, 3, 26)]
         assert rng == expected
 
     def test_2(self):
-        rng = list(generate_range(start=datetime(2008, 1, 1), end=datetime(2008, 1, 3)))
+        rng = list(
+            generate_range(
+                start=datetime(2008, 1, 1),
+                end=datetime(2008, 1, 3),
+                periods=None,
+                offset=BDay(),
+                unit="ns",
+            )
+        )
         expected = [datetime(2008, 1, 1), datetime(2008, 1, 2), datetime(2008, 1, 3)]
         assert rng == expected
 
     def test_3(self):
-        rng = list(generate_range(start=datetime(2008, 1, 5), end=datetime(2008, 1, 6)))
+        rng = list(
+            generate_range(
+                start=datetime(2008, 1, 5),
+                end=datetime(2008, 1, 6),
+                periods=None,
+                offset=BDay(),
+                unit="ns",
+            )
+        )
         expected = []
         assert rng == expected
 
@@ -1126,6 +1157,24 @@ class TestCustomDateRange:
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "start,period,expected",
+        [
+            ("2022-07-23 00:00:00+02:00", 1, ["2022-07-25 00:00:00+02:00"]),
+            ("2022-07-22 00:00:00+02:00", 1, ["2022-07-22 00:00:00+02:00"]),
+            (
+                "2022-07-22 00:00:00+02:00",
+                2,
+                ["2022-07-22 00:00:00+02:00", "2022-07-25 00:00:00+02:00"],
+            ),
+        ],
+    )
+    def test_range_with_timezone_and_custombusinessday(self, start, period, expected):
+        # GH49441
+        result = date_range(start=start, periods=period, freq="C")
+        expected = DatetimeIndex(expected)
+        tm.assert_index_equal(result, expected)
+
 
 def test_date_range_with_custom_holidays():
     # GH 30593
@@ -1141,3 +1190,69 @@ def test_date_range_with_custom_holidays():
         freq=freq,
     )
     tm.assert_index_equal(result, expected)
+
+
+class TestDateRangeNonNano:
+    def test_date_range_reso_validation(self):
+        msg = "'unit' must be one of 's', 'ms', 'us', 'ns'"
+        with pytest.raises(ValueError, match=msg):
+            date_range("2016-01-01", "2016-03-04", periods=3, unit="h")
+
+    def test_date_range_freq_higher_than_reso(self):
+        # freq being higher-resolution than reso is a problem
+        msg = "Use a lower freq or a higher unit instead"
+        with pytest.raises(ValueError, match=msg):
+            #    # TODO give a more useful or informative message?
+            date_range("2016-01-01", "2016-01-02", freq="ns", unit="ms")
+
+    def test_date_range_freq_matches_reso(self):
+        # GH#49106 matching reso is OK
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="ms", unit="ms")
+        rng = np.arange(1_451_606_400_000, 1_451_606_401_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[ms]"), freq="ms")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="us", unit="us")
+        rng = np.arange(1_451_606_400_000_000, 1_451_606_401_000_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[us]"), freq="us")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:00.001", freq="ns", unit="ns")
+        rng = np.arange(
+            1_451_606_400_000_000_000, 1_451_606_400_001_000_001, dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[ns]"), freq="ns")
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_freq_lower_than_endpoints(self):
+        start = Timestamp("2022-10-19 11:50:44.719781")
+        end = Timestamp("2022-10-19 11:50:47.066458")
+
+        # start and end cannot be cast to "s" unit without lossy rounding,
+        #  so we do not allow this in date_range
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            date_range(start, end, periods=3, unit="s")
+
+        # but we can losslessly cast to "us"
+        dti = date_range(start, end, periods=2, unit="us")
+        rng = np.array(
+            [start.as_unit("us").value, end.as_unit("us").value], dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[us]"))
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_non_nano(self):
+        start = np.datetime64("1066-10-14")  # Battle of Hastings
+        end = np.datetime64("2305-07-13")  # Jean-Luc Picard's birthday
+
+        dti = date_range(start, end, freq="D", unit="s")
+        assert dti.freq == "D"
+        assert dti.dtype == "M8[s]"
+
+        exp = np.arange(
+            start.astype("M8[s]").view("i8"),
+            (end + 1).astype("M8[s]").view("i8"),
+            24 * 3600,
+        ).view("M8[s]")
+
+        tm.assert_numpy_array_equal(dti.to_numpy(), exp)

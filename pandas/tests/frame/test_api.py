@@ -322,7 +322,9 @@ class TestDataFrameMisc:
         assert result.attrs == {"version": 1}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
-    def test_set_flags(self, allows_duplicate_labels, frame_or_series):
+    def test_set_flags(
+        self, allows_duplicate_labels, frame_or_series, using_copy_on_write
+    ):
         obj = DataFrame({"A": [1, 2]})
         key = (0, 0)
         if frame_or_series is Series:
@@ -344,15 +346,25 @@ class TestDataFrameMisc:
         assert obj.flags.allows_duplicate_labels is True
 
         # But we didn't copy data
+        if frame_or_series is Series:
+            assert np.may_share_memory(obj.values, result.values)
+        else:
+            assert np.may_share_memory(obj["A"].values, result["A"].values)
+
         result.iloc[key] = 0
-        assert obj.iloc[key] == 0
+        if using_copy_on_write:
+            assert obj.iloc[key] == 1
+        else:
+            assert obj.iloc[key] == 0
+            # set back to 1 for test below
+            result.iloc[key] = 1
 
         # Now we do copy.
         result = obj.set_flags(
             copy=True, allows_duplicate_labels=allows_duplicate_labels
         )
         result.iloc[key] = 10
-        assert obj.iloc[key] == 0
+        assert obj.iloc[key] == 1
 
     def test_constructor_expanddim(self):
         # GH#33628 accessing _constructor_expanddim should not raise NotImplementedError
@@ -370,8 +382,3 @@ class TestDataFrameMisc:
         df = DataFrame()
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
-
-    def test_dataframe_iteritems_deprecated(self):
-        df = DataFrame([1])
-        with tm.assert_produces_warning(FutureWarning):
-            next(df.iteritems())

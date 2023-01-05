@@ -7,6 +7,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -18,10 +19,7 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -38,23 +36,29 @@ class ReaderBase(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def read(self, nrows=None):
+    def read(self, nrows: int | None = None) -> DataFrame:
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> ReaderBase:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -68,6 +72,7 @@ def read_sas(
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -78,12 +83,10 @@ def read_sas(
     ...
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
-)
-@doc(decompression_options=_shared_docs["decompression_options"])
+@doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = None,
     index: Hashable | None = None,
     encoding: str | None = None,

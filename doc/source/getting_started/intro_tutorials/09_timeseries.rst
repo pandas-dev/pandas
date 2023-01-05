@@ -55,8 +55,8 @@ Westminster* in respectively Paris, Antwerp and London.
     </ul>
     </div>
 
-How to handle time series data with ease?
------------------------------------------
+How to handle time series data with ease
+----------------------------------------
 
 .. _10min_tut_09_timeseries.properties:
 
@@ -144,7 +144,7 @@ I want to add a new column to the ``DataFrame`` containing only the month of the
 
 By using ``Timestamp`` objects for dates, a lot of time-related
 properties are provided by pandas. For example the ``month``, but also
-``year``, ``weekofyear``, ``quarter``,… All of these properties are
+``year``, ``quarter``,… All of these properties are
 accessible by the ``dt`` accessor.
 
 .. raw:: html

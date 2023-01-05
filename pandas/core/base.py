@@ -10,19 +10,20 @@ from typing import (
     Any,
     Generic,
     Hashable,
+    Iterator,
     Literal,
     TypeVar,
     cast,
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
-    ArrayLike,
+    Axis,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     NDFrameT,
@@ -36,7 +37,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -61,15 +61,9 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import (
-    duplicated,
-    unique1d,
-    value_counts,
-)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -77,11 +71,17 @@ from pandas.core.construction import (
 if TYPE_CHECKING:
 
     from pandas._typing import (
+        DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        Index,
+        Series,
+    )
 
 
 _shared_docs: dict[str, str] = {}
@@ -135,7 +135,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)
+            mem = memory_usage(deep=True)  # pylint: disable=not-callable
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -154,14 +154,14 @@ class NoNewAttributesMixin:
     `object.__setattr__(self, key, value)`.
     """
 
-    def _freeze(self):
+    def _freeze(self) -> None:
         """
         Prevents setting additional attributes.
         """
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key: str, value):
+    def __setattr__(self, key: str, value) -> None:
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -288,6 +288,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
+    @final
     def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
@@ -318,12 +319,13 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def ndim(self) -> int:
+    def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
         return 1
 
+    @final
     def item(self):
         """
         Return the first element of the underlying data as a Python scalar.
@@ -421,6 +423,7 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
+    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -536,11 +539,12 @@ class IndexOpsMixin(OpsMixin):
                 result[np.asanyarray(self.isna())] = na_value
         return result
 
+    @final
     @property
     def empty(self) -> bool:
         return not self.size
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -585,7 +589,9 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
-    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmax(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         """
         Return int position of the {value} value in the Series.
 
@@ -652,7 +658,7 @@ class IndexOpsMixin(OpsMixin):
                 delegate, skipna=skipna
             )
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -697,7 +703,9 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def argmin(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
@@ -735,7 +743,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Return an iterator of the values.
 
@@ -765,7 +773,7 @@ class IndexOpsMixin(OpsMixin):
         # has no attribute "any"
         return bool(isna(self).any())  # type: ignore[union-attr]
 
-    def isna(self):
+    def isna(self) -> npt.NDArray[np.bool_]:
         return isna(self._values)
 
     def _reduce(
@@ -773,8 +781,8 @@ class IndexOpsMixin(OpsMixin):
         op,
         name: str,
         *,
-        axis=0,
-        skipna=True,
+        axis: Axis = 0,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,
@@ -818,7 +826,9 @@ class IndexOpsMixin(OpsMixin):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
-                mapper = lambda x: dict_with_default[x]
+                mapper = lambda x: dict_with_default[
+                    np.nan if isinstance(x, float) and np.isnan(x) else x
+                ]
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
@@ -829,9 +839,12 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
-                mapper = create_series_with_explicit_dtype(
-                    mapper, dtype_if_empty=np.float64
-                )
+                from pandas import Series
+
+                if len(mapper) == 0:
+                    mapper = Series(mapper, dtype=np.float64)
+                else:
+                    mapper = Series(mapper)
 
         if isinstance(mapper, ABCSeries):
             if na_action not in (None, "ignore"):
@@ -840,6 +853,10 @@ class IndexOpsMixin(OpsMixin):
                     f"{na_action} was passed"
                 )
                 raise ValueError(msg)
+
+            if na_action == "ignore":
+                mapper = mapper[mapper.index.notna()]
+
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
@@ -883,6 +900,7 @@ class IndexOpsMixin(OpsMixin):
 
         return new_values
 
+    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -890,7 +908,7 @@ class IndexOpsMixin(OpsMixin):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ):
+    ) -> Series:
         """
         Return a Series containing counts of unique values.
 
@@ -969,7 +987,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        return value_counts(
+        return algorithms.value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -980,18 +998,14 @@ class IndexOpsMixin(OpsMixin):
 
     def unique(self):
         values = self._values
-
         if not isinstance(values, np.ndarray):
-            result: ArrayLike = values.unique()
-            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA, unpack for backward-compat
-                if getattr(self.dtype, "tz", None) is None:
-                    result = np.asarray(result)
+            # i.e. ExtensionArray
+            result = values.unique()
         else:
-            result = unique1d(values)
-
+            result = algorithms.unique1d(values)
         return result
 
+    @final
     def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
@@ -1043,28 +1057,9 @@ class IndexOpsMixin(OpsMixin):
         return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self) -> bool:
-        """
-        Return boolean if values in the object are
-        monotonic_increasing.
-
-        Returns
-        -------
-        bool
-        """
-        warnings.warn(
-            "is_monotonic is deprecated and will be removed in a future version. "
-            "Use is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.is_monotonic_increasing
-
-    @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1077,8 +1072,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_decreasing.
+        Return boolean if values in the object are monotonically decreasing.
 
         Returns
         -------
@@ -1088,6 +1082,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
+    @final
     def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
@@ -1113,9 +1108,9 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            # https://github.com/python/mypy/issues/1424
-            # error: "ExtensionArray" has no attribute "memory_usage"
-            return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
+            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+                deep=deep,
+            )
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
@@ -1136,8 +1131,26 @@ class IndexOpsMixin(OpsMixin):
             """
         ),
     )
-    def factorize(self, sort: bool = False, na_sentinel: int | None = -1):
-        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
+    def factorize(
+        self,
+        sort: bool = False,
+        use_na_sentinel: bool = True,
+    ) -> tuple[npt.NDArray[np.intp], Index]:
+
+        codes, uniques = algorithms.factorize(
+            self._values, sort=sort, use_na_sentinel=use_na_sentinel
+        )
+        if uniques.dtype == np.float16:
+            uniques = uniques.astype(np.float32)
+
+        if isinstance(self, ABCIndex):
+            # preserve e.g. NumericIndex, preserve MultiIndex
+            uniques = self._constructor(uniques)
+        else:
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
 
     _shared_docs[
         "searchsorted"
@@ -1249,7 +1262,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:
@@ -1284,16 +1297,14 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep="first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(
-        self, keep: Literal["first", "last", False] = "first"
-    ) -> npt.NDArray[np.bool_]:
-        return duplicated(self._values, keep=keep)
+    def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
+        return algorithms.duplicated(self._values, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

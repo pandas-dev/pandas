@@ -21,65 +21,72 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+import pandas as pd
+from pandas import (
+    NA,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
-"""
-CHECK LIST
+# CHECK LIST
 
-[x] - ValueError: "Values for parser can only be lxml or etree."
+# [x] - ValueError: "Values for parser can only be lxml or etree."
 
-etree
-[X] - ImportError: "lxml not found, please install or use the etree parser."
-[X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - ValueError: "xpath does not return any nodes..."
-[X] - SyntaxError: "You have used an incorrect or unsupported XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - ValueError: "To use stylesheet, you need lxml installed..."
-[]  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
-[X] - HTTPError: "HTTP Error 404: Not Found"
-[]  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
-[X] - FileNotFoundError: "No such file or directory"
-[]  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
+# etree
+# [X] - ImportError: "lxml not found, please install or use the etree parser."
+# [X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - ValueError: "xpath does not return any nodes..."
+# [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - ValueError: "To use stylesheet, you need lxml installed..."
+# []  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
+# [X] - HTTPError: "HTTP Error 404: Not Found"
+# []  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+# [X] - FileNotFoundError: "No such file or directory"
+# []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
-lxml
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - AttributeError: "__enter__"
-[X] - XSLTApplyError: "Cannot resolve URI"
-[X] - XSLTParseError: "document is not a stylesheet"
-[X] - ValueError: "xpath does not return any nodes."
-[X] - XPathEvalError: "Invalid expression"
-[]  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
-[X] - TypeError: "empty namespace prefix is not supported in XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - LookupError: "unknown encoding"
-[]  - URLError: (USUALLY DUE TO NETWORKING)
-[X  - HTTPError: "HTTP Error 404: Not Found"
-[X] - OSError: "failed to load external entity"
-[X] - XMLSyntaxError: "Start tag expected, '<' not found"
-[]  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
-[X] - ValueError: "Values for parser can only be lxml or etree."
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
-"""
+# lxml
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - AttributeError: "__enter__"
+# [X] - XSLTApplyError: "Cannot resolve URI"
+# [X] - XSLTParseError: "document is not a stylesheet"
+# [X] - ValueError: "xpath does not return any nodes."
+# [X] - XPathEvalError: "Invalid expression"
+# []  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
+# [X] - TypeError: "empty namespace prefix is not supported in XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - LookupError: "unknown encoding"
+# []  - URLError: (USUALLY DUE TO NETWORKING)
+# [X  - HTTPError: "HTTP Error 404: Not Found"
+# [X] - OSError: "failed to load external entity"
+# [X] - XMLSyntaxError: "Start tag expected, '<' not found"
+# []  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
+# [X] - ValueError: "Values for parser can only be lxml or etree."
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
 geom_df = DataFrame(
     {
@@ -423,6 +430,40 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
+def test_string_charset(parser):
+    txt = "<中文標籤><row><c1>1</c1><c2>2</c2></row></中文標籤>"
+
+    df_str = read_xml(txt, parser=parser)
+
+    df_expected = DataFrame({"c1": 1, "c2": 2}, index=[0])
+
+    tm.assert_frame_equal(df_str, df_expected)
+
+
+def test_file_charset(datapath, parser):
+    xml_file = datapath("io", "data", "xml", "doc_ch_utf.xml")
+
+    df_file = read_xml(datapath(xml_file), parser=parser)
+
+    df_expected = DataFrame(
+        {
+            "問": [
+                "問  若箇是邪而言破邪 何者是正而道(Sorry, this is Big5 only)申正",
+                "問 既破有得申無得 亦應但破性執申假名以不",
+                "問 既破性申假 亦應但破有申無 若有無兩洗 亦應性假雙破耶",
+            ],
+            "答": [
+                "答  邪既無量 正亦多途  大略為言不出二種 謂有得與無得 有得是邪須破 無得是正須申\n\t\t故",
+                None,
+                "答  不例  有無皆是性 所以須雙破 既分性假異 故有破不破",
+            ],
+            "a": [None, "答 性執是有得 假名是無得  今破有得申無得 即是破性執申假名也", None],
+        }
+    )
+
+    tm.assert_frame_equal(df_file, df_expected)
+
+
 def test_file_handle_close(datapath, parser):
     xml_file = datapath("io", "data", "xml", "books.xml")
 
@@ -437,7 +478,14 @@ def test_file_handle_close(datapath, parser):
 def test_empty_string_lxml(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(XMLSyntaxError, match="Document is empty"):
+    msg = "|".join(
+        [
+            "Document is empty",
+            # Seen on Mac with lxml 4.91
+            r"None \(line 0\)",
+        ]
+    )
+    with pytest.raises(XMLSyntaxError, match=msg):
         read_xml(val, parser="lxml")
 
 
@@ -726,6 +774,45 @@ def test_elem_and_attrs_only(datapath, parser):
         read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
 
 
+def test_empty_attrs_only(parser):
+    xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
+
+
+def test_empty_elems_only(parser):
+    xml = """
+      <data>
+        <row sides="4" shape="square" degrees="360"/>
+        <row sides="0" shape="circle" degrees="360"/>
+        <row sides="3" shape="triangle" degrees="180"/>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
+
+
 @td.skip_if_no("lxml")
 def test_attribute_centric_xml():
     xml = """\
@@ -817,6 +904,46 @@ def test_repeat_names(parser):
             "type_dim": ["2D", "3D"],
             "shape": ["circle", "sphere"],
             "type_edge": ["curved", "curved"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_repeat_values_new_names(parser):
+    xml = """\
+<shapes>
+  <shape>
+    <name>rectangle</name>
+    <family>rectangle</family>
+  </shape>
+  <shape>
+    <name>square</name>
+    <family>rectangle</family>
+  </shape>
+  <shape>
+    <name>ellipse</name>
+    <family>ellipse</family>
+  </shape>
+  <shape>
+    <name>circle</name>
+    <family>ellipse</family>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser, names=["name", "group"])
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["name", "family"]},
+        names=["name", "group"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["rectangle", "square", "ellipse", "circle"],
+            "group": ["rectangle", "rectangle", "ellipse", "ellipse"],
         }
     )
 
@@ -976,19 +1103,6 @@ def test_stylesheet_file(datapath):
     tm.assert_frame_equal(df_kml, df_iter)
 
 
-def test_read_xml_passing_as_positional_deprecated(datapath, parser):
-    # GH#45133
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
-    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
-        read_xml(
-            kml,
-            ".//k:Placemark",
-            namespaces={"k": "http://www.opengis.net/kml/2.2"},
-            parser=parser,
-        )
-
-
 @td.skip_if_no("lxml")
 def test_stylesheet_file_like(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
@@ -1044,6 +1158,35 @@ def test_stylesheet_buffered_reader(datapath, mode):
     )
 
     tm.assert_frame_equal(df_kml, df_style)
+
+
+@td.skip_if_no("lxml")
+def test_style_charset():
+    xml = "<中文標籤><row><c1>1</c1><c2>2</c2></row></中文標籤>"
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+ <xsl:output omit-xml-declaration="yes" indent="yes"/>
+ <xsl:strip-space elements="*"/>
+
+ <xsl:template match="node()|@*">
+     <xsl:copy>
+       <xsl:apply-templates select="node()|@*"/>
+     </xsl:copy>
+ </xsl:template>
+
+ <xsl:template match="中文標籤">
+     <根>
+       <xsl:apply-templates />
+     </根>
+ </xsl:template>
+
+</xsl:stylesheet>"""
+
+    df_orig = read_xml(xml)
+    df_style = read_xml(xml, stylesheet=xsl)
+
+    tm.assert_frame_equal(df_orig, df_style)
 
 
 @td.skip_if_no("lxml")
@@ -1271,7 +1414,7 @@ def test_wrong_dict_value(datapath, parser):
         read_xml(filename, parser=parser, iterparse={"book": "category"})
 
 
-def test_bad_xml(datapath, parser):
+def test_bad_xml(parser):
     bad_xml = """\
 <?xml version='1.0' encoding='utf-8'?>
   <row>
@@ -1310,6 +1453,113 @@ def test_bad_xml(datapath, parser):
                 parse_dates=["date"],
                 iterparse={"row": ["shape", "degrees", "sides", "date"]},
             )
+
+
+def test_comment(parser):
+    xml = """\
+<!-- comment before root -->
+<shapes>
+  <!-- comment within root -->
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+    <!-- comment within child -->
+  </shape>
+  <!-- comment within root -->
+</shapes>
+<!-- comment after root -->"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_dtd(parser):
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE non-profits [
+    <!ELEMENT shapes (shape*) >
+    <!ELEMENT shape ( name, type )>
+    <!ELEMENT name (#PCDATA)>
+]>
+<shapes>
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+  </shape>
+</shapes>"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_processing_instruction(parser):
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="style.xsl"?>
+<?display table-view?>
+<?sort alpha-ascending?>
+<?textinfo whitespace is allowed ?>
+<?elementnames <shape>, <name>, <type> ?>
+<shapes>
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+  </shape>
+</shapes>"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_no_result(datapath, parser):
@@ -1461,3 +1711,74 @@ def test_s3_parser_consistency():
     )
 
     tm.assert_frame_equal(df_lxml, df_etree)
+
+
+@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
+    # GH#50500
+    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+    data = """<?xml version='1.0' encoding='utf-8'?>
+<data xmlns="http://example.com">
+<row>
+  <a>x</a>
+  <b>1</b>
+  <c>4.0</c>
+  <d>x</d>
+  <e>2</e>
+  <f>4.0</f>
+  <g></g>
+  <h>True</h>
+  <i>False</i>
+</row>
+<row>
+  <a>y</a>
+  <b>2</b>
+  <c>5.0</c>
+  <d></d>
+  <e></e>
+  <f></f>
+  <g></g>
+  <h>False</h>
+  <i></i>
+</row>
+</data>"""
+
+    if string_storage == "python":
+        string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
+        string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
+
+    else:
+        string_array = ArrowStringArray(pa.array(["x", "y"]))
+        string_array_na = ArrowStringArray(pa.array(["x", None]))
+
+    with pd.option_context("mode.string_storage", string_storage):
+        with pd.option_context("mode.dtype_backend", dtype_backend):
+            result = read_xml(data, parser=parser, use_nullable_dtypes=True)
+
+    expected = DataFrame(
+        {
+            "a": string_array,
+            "b": Series([1, 2], dtype="Int64"),
+            "c": Series([4.0, 5.0], dtype="Float64"),
+            "d": string_array_na,
+            "e": Series([2, NA], dtype="Int64"),
+            "f": Series([4.0, NA], dtype="Float64"),
+            "g": Series([NA, NA], dtype="Int64"),
+            "h": Series([True, False], dtype="boolean"),
+            "i": Series([False, NA], dtype="boolean"),
+        }
+    )
+
+    if dtype_backend == "pyarrow":
+        from pandas.arrays import ArrowExtensionArray
+
+        expected = DataFrame(
+            {
+                col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                for col in expected.columns
+            }
+        )
+        expected["g"] = ArrowExtensionArray(pa.array([None, None]))
+
+    tm.assert_frame_equal(result, expected)

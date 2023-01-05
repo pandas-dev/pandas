@@ -58,6 +58,7 @@ import re
 from typing import (
     Any,
     Callable,
+    Generator,
     Generic,
     Iterable,
     NamedTuple,
@@ -69,6 +70,7 @@ from pandas._typing import (
     F,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 
 class DeprecatedOption(NamedTuple):
@@ -101,8 +103,9 @@ _reserved_keys: list[str] = ["all"]
 
 class OptionError(AttributeError, KeyError):
     """
-    Exception for pandas.options, backwards compatible with KeyError
-    checks.
+    Exception raised for pandas.options.
+
+    Backwards compatible with KeyError checks.
     """
 
 
@@ -435,13 +438,13 @@ class option_context(ContextDecorator):
 
         self.ops = list(zip(args[::2], args[1::2]))
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         if self.undo:
             for pat, val in self.undo:
                 _set_option(pat, val, silent=True)
@@ -655,7 +658,11 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            warnings.warn(d.msg, FutureWarning)
+            warnings.warn(
+                d.msg,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         else:
             msg = f"'{key}' is deprecated"
             if d.removal_ver:
@@ -665,7 +672,7 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         return True
     return False
 
@@ -694,7 +701,7 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
+def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
@@ -733,7 +740,7 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix):
+def config_prefix(prefix) -> Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 
@@ -760,7 +767,7 @@ def config_prefix(prefix):
     # Note: reset_option relies on set_option, and on key directly
     # it does not fit in to this monkey-patching scheme
 
-    global register_option, get_option, set_option, reset_option
+    global register_option, get_option, set_option
 
     def wrap(func: F) -> F:
         def inner(key: str, *args, **kwds):

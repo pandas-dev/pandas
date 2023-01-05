@@ -7,6 +7,17 @@ import pandas._testing as tm
 
 
 class TestSearchsorted:
+    def test_searchsorted_string(self, string_dtype):
+        arr = pd.array(["a", "b", "c"], dtype=string_dtype)
+
+        result = arr.searchsorted("a", side="left")
+        assert is_scalar(result)
+        assert result == 0
+
+        result = arr.searchsorted("a", side="right")
+        assert is_scalar(result)
+        assert result == 1
+
     def test_searchsorted_numeric_dtypes_scalar(self, any_real_numpy_dtype):
         arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted(30)

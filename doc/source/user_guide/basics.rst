@@ -556,7 +556,6 @@ optional ``level`` parameter which applies only if the object has a
     ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
-    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
@@ -828,20 +827,54 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import statsmodels.formula.api as sm
+   In [147]: import statsmodels.formula.api as sm
 
-   bb = pd.read_csv("data/baseball.csv", index_col="id")
+   In [148]: bb = pd.read_csv("data/baseball.csv", index_col="id")
 
-   (
-       bb.query("h > 0")
-       .assign(ln_h=lambda df: np.log(df.h))
-       .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
-       .fit()
-       .summary()
-   )
+   In [149]: (
+      .....:     bb.query("h > 0")
+      .....:     .assign(ln_h=lambda df: np.log(df.h))
+      .....:     .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
+      .....:     .fit()
+      .....:     .summary()
+      .....: )
+      .....:
+   Out[149]:
+   <class 'statsmodels.iolib.summary.Summary'>
+   """
+                              OLS Regression Results
+   ==============================================================================
+   Dep. Variable:                     hr   R-squared:                       0.685
+   Model:                            OLS   Adj. R-squared:                  0.665
+   Method:                 Least Squares   F-statistic:                     34.28
+   Date:                Tue, 22 Nov 2022   Prob (F-statistic):           3.48e-15
+   Time:                        05:34:17   Log-Likelihood:                -205.92
+   No. Observations:                  68   AIC:                             421.8
+   Df Residuals:                      63   BIC:                             432.9
+   Df Model:                           4
+   Covariance Type:            nonrobust
+   ===============================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+   -------------------------------------------------------------------------------
+   Intercept   -8484.7720   4664.146     -1.819      0.074   -1.78e+04     835.780
+   C(lg)[T.NL]    -2.2736      1.325     -1.716      0.091      -4.922       0.375
+   ln_h           -1.3542      0.875     -1.547      0.127      -3.103       0.395
+   year            4.2277      2.324      1.819      0.074      -0.417       8.872
+   g               0.1841      0.029      6.258      0.000       0.125       0.243
+   ==============================================================================
+   Omnibus:                       10.875   Durbin-Watson:                   1.999
+   Prob(Omnibus):                  0.004   Jarque-Bera (JB):               17.298
+   Skew:                           0.537   Prob(JB):                     0.000175
+   Kurtosis:                       5.225   Cond. No.                     1.49e+07
+   ==============================================================================
+
+   Notes:
+   [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+   [2] The condition number is large, 1.49e+07. This might indicate that there are
+   strong multicollinearity or other numerical problems.
+   """
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
@@ -1040,34 +1073,6 @@ not noted for a particular column will be ``NaN``:
 
    tsdf.agg({"A": ["mean", "min"], "B": "sum"})
 
-.. _basics.aggregation.mixed_string:
-
-Mixed dtypes
-++++++++++++
-
-.. deprecated:: 1.4.0
-   Attempting to determine which columns cannot be aggregated and silently dropping them from the results is deprecated and will be removed in a future version. If any porition of the columns or operations provided fail, the call to ``.agg`` will raise.
-
-When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similar to how ``.groupby.agg`` works.
-
-.. ipython:: python
-
-   mdf = pd.DataFrame(
-       {
-           "A": [1, 2, 3],
-           "B": [1.0, 2.0, 3.0],
-           "C": ["foo", "bar", "baz"],
-           "D": pd.date_range("20130101", periods=3),
-       }
-   )
-   mdf.dtypes
-
-.. ipython:: python
-   :okwarning:
-
-   mdf.agg(["min", "sum"])
-
 .. _basics.aggregation.custom_describe:
 
 Custom describe
@@ -1241,12 +1246,6 @@ With a DataFrame, you can simultaneously reindex the index and columns:
 
    df
    df.reindex(index=["c", "f", "b"], columns=["three", "two", "one"])
-
-You may also use ``reindex`` with an ``axis`` keyword:
-
-.. ipython:: python
-
-   df.reindex(["c", "f", "b"], axis="index")
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -2313,6 +2312,7 @@ useful if you are reading in data which is mostly of the desired dtype (e.g. num
 non-conforming elements intermixed that you want to represent as missing:
 
 .. ipython:: python
+   :okwarning:
 
     import datetime
 
@@ -2329,6 +2329,7 @@ The ``errors`` parameter has a third option of ``errors='ignore'``, which will s
 encounters any errors with the conversion to a desired data type:
 
 .. ipython:: python
+    :okwarning:
 
     import datetime
 

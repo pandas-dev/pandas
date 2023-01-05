@@ -400,10 +400,10 @@ class StorageExtensionDtype(ExtensionDtype):
     def __init__(self, storage=None) -> None:
         self.storage = storage
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def __eq__(self, other: Any) -> bool:

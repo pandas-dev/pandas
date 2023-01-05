@@ -21,7 +21,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -320,7 +319,7 @@ def test_select_with_many_inputs(setup_path):
         assert len(result) == 100
 
 
-def test_select_iterator(setup_path):
+def test_select_iterator(tmp_path, setup_path):
 
     # single table
     with ensure_clean_store(setup_path) as store:
@@ -344,29 +343,29 @@ def test_select_iterator(setup_path):
         result = concat(results)
         tm.assert_frame_equal(result, expected)
 
-    with ensure_clean_path(setup_path) as path:
+    path = tmp_path / setup_path
 
-        df = tm.makeTimeDataFrame(500)
-        df.to_hdf(path, "df_non_table")
+    df = tm.makeTimeDataFrame(500)
+    df.to_hdf(path, "df_non_table")
 
-        msg = "can only use an iterator or chunksize on a table"
-        with pytest.raises(TypeError, match=msg):
-            read_hdf(path, "df_non_table", chunksize=100)
+    msg = "can only use an iterator or chunksize on a table"
+    with pytest.raises(TypeError, match=msg):
+        read_hdf(path, "df_non_table", chunksize=100)
 
-        with pytest.raises(TypeError, match=msg):
-            read_hdf(path, "df_non_table", iterator=True)
+    with pytest.raises(TypeError, match=msg):
+        read_hdf(path, "df_non_table", iterator=True)
 
-    with ensure_clean_path(setup_path) as path:
+    path = tmp_path / setup_path
 
-        df = tm.makeTimeDataFrame(500)
-        df.to_hdf(path, "df", format="table")
+    df = tm.makeTimeDataFrame(500)
+    df.to_hdf(path, "df", format="table")
 
-        results = list(read_hdf(path, "df", chunksize=100))
-        result = concat(results)
+    results = list(read_hdf(path, "df", chunksize=100))
+    result = concat(results)
 
-        assert len(results) == 5
-        tm.assert_frame_equal(result, df)
-        tm.assert_frame_equal(result, read_hdf(path, "df"))
+    assert len(results) == 5
+    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, read_hdf(path, "df"))
 
     # multiple
 
@@ -659,56 +658,53 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2():
+def test_frame_select_complex2(tmp_path):
 
-    with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
+    pp = tmp_path / "params.hdf"
+    hh = tmp_path / "hist.hdf"
 
-        pp, hh = paths
+    # use non-trivial selection criteria
+    params = DataFrame({"A": [1, 1, 2, 2, 3]})
+    params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
 
-        # use non-trivial selection criteria
-        params = DataFrame({"A": [1, 1, 2, 2, 3]})
-        params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+    selection = read_hdf(pp, "df", where="A=[2,3]")
+    hist = DataFrame(
+        np.random.randn(25, 1),
+        columns=["data"],
+        index=MultiIndex.from_tuples(
+            [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
+        ),
+    )
 
-        selection = read_hdf(pp, "df", where="A=[2,3]")
-        hist = DataFrame(
-            np.random.randn(25, 1),
-            columns=["data"],
-            index=MultiIndex.from_tuples(
-                [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
-            ),
-        )
+    hist.to_hdf(hh, "df", mode="w", format="table")
 
-        hist.to_hdf(hh, "df", mode="w", format="table")
+    expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
-        expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
-
-        # scope with list like
-        l0 = selection.index.tolist()  # noqa:F841
-        store = HDFStore(hh)
+    # scope with list like
+    l0 = selection.index.tolist()  # noqa:F841
+    with HDFStore(hh) as store:
         result = store.select("df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
-        store.close()
 
-        result = read_hdf(hh, "df", where="l1=l0")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=l0")
+    tm.assert_frame_equal(result, expected)
 
-        # index
-        index = selection.index  # noqa:F841
-        result = read_hdf(hh, "df", where="l1=index")
-        tm.assert_frame_equal(result, expected)
+    # index
+    index = selection.index  # noqa:F841
+    result = read_hdf(hh, "df", where="l1=index")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=selection.index")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=selection.index")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=list(selection.index)")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=list(selection.index)")
+    tm.assert_frame_equal(result, expected)
 
-        # scope with index
-        store = HDFStore(hh)
-
+    # scope with index
+    with HDFStore(hh) as store:
         result = store.select("df", where="l1=index")
         tm.assert_frame_equal(result, expected)
 
@@ -720,8 +716,6 @@ def test_frame_select_complex2():
 
         result = store.select("df", where="l1=list(selection.index)")
         tm.assert_frame_equal(result, expected)
-
-        store.close()
 
 
 def test_invalid_filtering(setup_path):
@@ -965,12 +959,12 @@ def test_query_compare_column_type(setup_path):
 
 
 @pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
-def test_select_empty_where(where):
+def test_select_empty_where(tmp_path, where):
     # GH26610
 
     df = DataFrame([1, 2, 3])
-    with ensure_clean_path("empty_where.h5") as path:
-        with HDFStore(path) as store:
-            store.put("df", df, "t")
-            result = read_hdf(store, "df", where=where)
-            tm.assert_frame_equal(result, df)
+    path = tmp_path / "empty_where.h5"
+    with HDFStore(path) as store:
+        store.put("df", df, "t")
+        result = read_hdf(store, "df", where=where)
+        tm.assert_frame_equal(result, df)

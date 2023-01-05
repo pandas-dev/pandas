@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import (
     datetime,
     timedelta,
@@ -10,6 +11,7 @@ import pytest
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
+    PerformanceWarning,
     SettingWithCopyError,
 )
 import pandas.util._test_decorators as td
@@ -28,6 +30,7 @@ from pandas import (
     date_range,
     isna,
     notna,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -269,7 +272,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame):
+    def test_setitem(self, float_frame, using_copy_on_write):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -305,8 +308,12 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
+        if using_copy_on_write:
+            # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
+        else:
+            with pytest.raises(SettingWithCopyError, match=msg):
+                smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -536,22 +543,29 @@ class TestDataFrameIndexing:
             df2.loc[3:11] = 0
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
-    def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
+    def test_fancy_getitem_slice_mixed(
+        self, float_frame, float_string_frame, using_copy_on_write
+    ):
 
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
         # get view with single block
         # setting it triggers setting with copy
+        original = float_frame.copy()
         sliced = float_frame.iloc[:, -3:]
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            sliced.loc[:, "C"] = 4.0
+        sliced.loc[:, "C"] = 4.0
+        if not using_copy_on_write:
 
-        assert (float_frame["C"] == 4).all()
+            assert (float_frame["C"] == 4).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
+        else:
+            tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
@@ -773,10 +787,7 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            cp.loc[1.0:5.0] = 0
+        cp.loc[1.0:5.0] = 0
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
@@ -994,7 +1005,8 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_array_manager):
+    def test_iloc_row_slice_view(self, using_copy_on_write, request):
+
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
 
@@ -1004,14 +1016,14 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(df[2], subset[2])
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            subset.loc[:, 2] = 0.0
-
         exp_col = original[2].copy()
-        # TODO(ArrayManager) verify it is expected that the original didn't change
-        if not using_array_manager:
+        subset.loc[:, 2] = 0.0
+        if not using_copy_on_write:
+            subset.loc[:, 2] = 0.0
             exp_col._values[4:8] = 0.0
+
+            # With the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[2], subset[2])
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1036,24 +1048,25 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(self, using_array_manager):
+    def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             # verify slice is view
-
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
-            # and that we are setting a copy
-            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                subset.loc[:, 8] = 0.0
+            subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[8]._values, subset[8]._values)
         else:
-            # TODO(ArrayManager) verify this is the desired behaviour
+            if using_copy_on_write:
+                # verify slice is view
+                assert np.shares_memory(df[8]._values, subset[8]._values)
             subset[8] = 0.0
             # subset changed
             assert (subset[8] == 0).all()
@@ -1227,6 +1240,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1296,6 +1316,182 @@ class TestDataFrameIndexing:
             {"d": ["foo"]},
             index=MultiIndex.from_tuples([(1, 2, 3)], names=["a", "b", "c"]),
         )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", ["x", 1])
+    @pytest.mark.parametrize("idxr", ["a", ["a"]])
+    def test_loc_setitem_rhs_frame(self, idxr, val):
+        # GH#47578
+        df = DataFrame({"a": [1, 2]})
+        with tm.assert_produces_warning(None):
+            df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
+        expected = DataFrame({"a": [np.nan, val]})
+        tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_iloc_setitem_enlarge_no_warning(self):
+        # GH#47381
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        view = df[:]
+        with tm.assert_produces_warning(None):
+            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        tm.assert_frame_equal(view, expected)
+
+    def test_loc_internals_not_updated_correctly(self):
+        # GH#47867 all steps are necessary to reproduce the initial bug
+        df = DataFrame(
+            {"bool_col": True, "a": 1, "b": 2.5},
+            index=MultiIndex.from_arrays([[1, 2], [1, 2]], names=["idx1", "idx2"]),
+        )
+        idx = [(1, 1)]
+
+        df["c"] = 3
+        df.loc[idx, "c"] = 0
+
+        df.loc[idx, "c"]
+        df.loc[idx, ["a", "b"]]
+
+        df.loc[idx, "c"] = 15
+        result = df.loc[idx, "c"]
+        expected = df = Series(
+            15,
+            index=MultiIndex.from_arrays([[1], [1]], names=["idx1", "idx2"]),
+            name="c",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [None, [None], pd.NA, [pd.NA]])
+    def test_iloc_setitem_string_list_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[[0], :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", [None, pd.NA])
+    def test_iloc_setitem_string_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[0, :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("func", [list, Series, np.array])
+    def test_iloc_setitem_ea_null_slice_length_one_list(self, func):
+        # GH#48016
+        df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+        df.iloc[:, func([0])] = 5
+        expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_named_tuple_for_midx(self):
+        # GH#48124
+        df = DataFrame(
+            index=MultiIndex.from_product(
+                [["A", "B"], ["a", "b", "c"]], names=["first", "second"]
+            )
+        )
+        indexer_tuple = namedtuple("Indexer", df.index.names)
+        idxr = indexer_tuple(first="A", second=["a", "b"])
+        result = df.loc[idxr, :]
+        expected = DataFrame(
+            index=MultiIndex.from_tuples(
+                [("A", "a"), ("A", "b")], names=["first", "second"]
+            )
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", [["a"], "a"])
+    @pytest.mark.parametrize("col", [{}, {"b": 1}])
+    def test_set_2d_casting_date_to_int(self, col, indexer):
+        # GH#49159
+        df = DataFrame(
+            {"a": [Timestamp("2022-12-29"), Timestamp("2022-12-30")], **col},
+        )
+        df.loc[[1], indexer] = df["a"] + pd.Timedelta(days=1)
+        expected = DataFrame(
+            {"a": [Timestamp("2022-12-29"), Timestamp("2022-12-31")], **col},
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("col", [{}, {"name": "a"}])
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+        # GH#48701
+        n = 17
+        df = DataFrame({**col, "x": range(n), "y": range(n)})
+        expected = df.copy()
+        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_rhs_empty_warning(self):
+        # GH48480
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        rhs = DataFrame(columns=["a"])
+        with tm.assert_produces_warning(None):
+            df.loc[:, "a"] = rhs
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_ea_series_indexer(self):
+        # GH#49521
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+        indexer = Series([0, 1], dtype="Int64")
+        row_indexer = Series([1], dtype="Int64")
+        result = df.iloc[row_indexer, indexer]
+        expected = DataFrame([[5, 6]], index=[1])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[row_indexer.values, indexer.values]
+        tm.assert_frame_equal(result, expected)
+
+    def test_iloc_ea_series_indexer_with_na(self):
+        # GH#49521
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+        indexer = Series([0, pd.NA], dtype="Int64")
+        msg = "cannot convert"
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[:, indexer]
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[:, indexer.values]
+
+    @pytest.mark.parametrize("indexer", [True, (True,)])
+    @pytest.mark.parametrize("dtype", [bool, "boolean"])
+    def test_loc_bool_multiindex(self, dtype, indexer):
+        # GH#47687
+        midx = MultiIndex.from_arrays(
+            [
+                Series([True, True, False, False], dtype=dtype),
+                Series([True, False, True, False], dtype=dtype),
+            ],
+            names=["a", "b"],
+        )
+        df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
+        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+            result = df.loc[indexer]
+        expected = DataFrame(
+            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("utc", [False, True])
+    @pytest.mark.parametrize("indexer", ["date", ["date"]])
+    def test_loc_datetime_assignment_dtype_does_not_change(self, utc, indexer):
+        # GH#49837
+        df = DataFrame(
+            {
+                "date": to_datetime(
+                    [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
+                ),
+                "update": [True, False],
+            }
+        )
+        expected = df.copy(deep=True)
+
+        update_df = df[df["update"]]
+
+        df.loc[df["update"], indexer] = update_df["date"]
+
         tm.assert_frame_equal(df, expected)
 
 
@@ -1573,14 +1769,14 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(result, expected)
 
 
-class TestDepreactedIndexers:
+class TestDeprecatedIndexers:
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
@@ -1595,22 +1791,22 @@ class TestDepreactedIndexers:
         ],
     )
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1
 
     @pytest.mark.parametrize(
@@ -1624,12 +1820,12 @@ class TestDepreactedIndexers:
             ((1, 2), {"a": "a"}),
         ],
     )
-    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1

@@ -1,9 +1,10 @@
+import pickle
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under1p01
+from pandas.compat import pa_version_under6p0
 
 import pandas as pd
 import pandas._testing as tm
@@ -14,8 +15,8 @@ from pandas.core.arrays.string_ import (
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 skip_if_no_pyarrow = pytest.mark.skipif(
-    pa_version_under1p01,
-    reason="pyarrow>=1.0.0 is required for PyArrow backed StringArray",
+    pa_version_under6p0,
+    reason="pyarrow>=6.0.0 is required for PyArrow backed StringArray",
 )
 
 
@@ -118,11 +119,11 @@ def test_from_sequence_wrong_dtype_raises():
 
 
 @pytest.mark.skipif(
-    not pa_version_under1p01,
+    not pa_version_under6p0,
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=6.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
@@ -197,3 +198,20 @@ def test_setitem_invalid_indexer_raises():
 
     with pytest.raises(ValueError, match=None):
         arr[[0, 1]] = ["foo", "bar", "baz"]
+
+
+@skip_if_no_pyarrow
+def test_pickle_roundtrip():
+    # GH 42600
+    expected = pd.Series(range(10), dtype="string[pyarrow]")
+    expected_sliced = expected.head(2)
+    full_pickled = pickle.dumps(expected)
+    sliced_pickled = pickle.dumps(expected_sliced)
+
+    assert len(full_pickled) > len(sliced_pickled)
+
+    result = pickle.loads(full_pickled)
+    tm.assert_series_equal(result, expected)
+
+    result_sliced = pickle.loads(sliced_pickled)
+    tm.assert_series_equal(result_sliced, expected_sliced)

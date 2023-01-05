@@ -145,8 +145,9 @@ class TestRangeIndexSetOps:
         expected = Index(np.concatenate((other, index)))
         tm.assert_index_equal(result, expected)
 
-    @pytest.fixture(
-        params=[
+    @pytest.mark.parametrize(
+        "idx1, idx2, expected_sorted, expected_notsorted",
+        [
             (
                 RangeIndex(0, 10, 1),
                 RangeIndex(0, 10, 1),
@@ -157,13 +158,13 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 10, 1),
                 RangeIndex(5, 20, 1),
                 RangeIndex(0, 20, 1),
-                Int64Index(range(20)),
+                RangeIndex(0, 20, 1),
             ),
             (
                 RangeIndex(0, 10, 1),
                 RangeIndex(10, 20, 1),
                 RangeIndex(0, 20, 1),
-                Int64Index(range(20)),
+                RangeIndex(0, 20, 1),
             ),
             (
                 RangeIndex(0, -10, -1),
@@ -175,7 +176,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -10, -1),
                 RangeIndex(-10, -20, -1),
                 RangeIndex(-19, 1, 1),
-                Int64Index(range(0, -20, -1)),
+                RangeIndex(0, -20, -1),
             ),
             (
                 RangeIndex(0, 10, 2),
@@ -205,7 +206,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 100, 5),
                 RangeIndex(0, 100, 20),
                 RangeIndex(0, 100, 5),
-                Int64Index(range(0, 100, 5)),
+                RangeIndex(0, 100, 5),
             ),
             (
                 RangeIndex(0, -100, -5),
@@ -230,7 +231,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 100, 2),
                 RangeIndex(100, 150, 200),
                 RangeIndex(0, 102, 2),
-                Int64Index(range(0, 102, 2)),
+                RangeIndex(0, 102, 2),
             ),
             (
                 RangeIndex(0, -100, -2),
@@ -242,13 +243,13 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -100, -1),
                 RangeIndex(0, -50, -3),
                 RangeIndex(-99, 1, 1),
-                Int64Index(list(range(0, -100, -1))),
+                RangeIndex(0, -100, -1),
             ),
             (
                 RangeIndex(0, 1, 1),
                 RangeIndex(5, 6, 10),
                 RangeIndex(0, 6, 5),
-                Int64Index([0, 5]),
+                RangeIndex(0, 10, 5),
             ),
             (
                 RangeIndex(0, 10, 5),
@@ -274,16 +275,17 @@ class TestRangeIndexSetOps:
                 Int64Index([1, 5, 6]),
                 Int64Index([1, 5, 6]),
             ),
-        ]
+            # GH 43885
+            (
+                RangeIndex(0, 10),
+                RangeIndex(0, 5),
+                RangeIndex(0, 10),
+                RangeIndex(0, 10),
+            ),
+        ],
+        ids=lambda x: repr(x) if isinstance(x, RangeIndex) else x,
     )
-    def unions(self, request):
-        """Inputs and expected outputs for RangeIndex.union tests"""
-        return request.param
-
-    def test_union_sorted(self, unions):
-
-        idx1, idx2, expected_sorted, expected_notsorted = unions
-
+    def test_union_sorted(self, idx1, idx2, expected_sorted, expected_notsorted):
         res1 = idx1.union(idx2, sort=None)
         tm.assert_index_equal(res1, expected_sorted, exact=True)
 

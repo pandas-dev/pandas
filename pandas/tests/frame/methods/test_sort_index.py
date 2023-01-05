@@ -384,7 +384,7 @@ class TestDataFrameSortIndex:
 
         result = model.groupby(["X1", "X2"], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
-            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], inclusive="right"
+            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], closed="right"
         )
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
@@ -729,11 +729,7 @@ class TestDataFrameSortIndex:
         [
             pytest.param(["a", "b", "c"], id="str"),
             pytest.param(
-                [
-                    pd.Interval(0, 1, "right"),
-                    pd.Interval(1, 2, "right"),
-                    pd.Interval(2, 3, "right"),
-                ],
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
                 id="pd.Interval",
             ),
         ],
@@ -916,16 +912,4 @@ class TestDataFrameSortIndexKey:
 
         result = expected.sort_index(level=0)
 
-        tm.assert_frame_equal(result, expected)
-
-    def test_sort_index_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.sort_index "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.sort_index(1)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

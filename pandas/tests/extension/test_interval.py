@@ -30,9 +30,7 @@ def make_data():
     N = 100
     left_array = np.random.uniform(size=N).cumsum()
     right_array = left_array + np.random.uniform(size=N)
-    return [
-        Interval(left, right, "right") for left, right in zip(left_array, right_array)
-    ]
+    return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
 @pytest.fixture
@@ -43,7 +41,7 @@ def dtype():
 @pytest.fixture
 def data():
     """Length-100 PeriodArray for semantics test."""
-    return IntervalArray(make_data(), "right")
+    return IntervalArray(make_data())
 
 
 @pytest.fixture

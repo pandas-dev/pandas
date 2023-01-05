@@ -3,9 +3,12 @@ import string
 import numpy as np
 
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     RangeIndex,
+    Series,
+    array,
     date_range,
 )
 
@@ -174,6 +177,20 @@ class Sortlevel:
         self.mi.sortlevel(1)
 
 
+class SortValues:
+
+    params = ["int64", "Int64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        a = array(np.tile(np.arange(100), 1000), dtype=dtype)
+        b = array(np.tile(np.arange(1000), 100), dtype=dtype)
+        self.mi = MultiIndex.from_arrays([a, b])
+
+    def time_sort_values(self, dtype):
+        self.mi.sort_values()
+
+
 class Values:
     def setup_cache(self):
 
@@ -220,12 +237,13 @@ class SetOperations:
 
     params = [
         ("monotonic", "non_monotonic"),
-        ("datetime", "int", "string"),
+        ("datetime", "int", "string", "ea_int"),
         ("intersection", "union", "symmetric_difference"),
+        (False, None),
     ]
-    param_names = ["index_structure", "dtype", "method"]
+    param_names = ["index_structure", "dtype", "method", "sort"]
 
-    def setup(self, index_structure, dtype, method):
+    def setup(self, index_structure, dtype, method, sort):
         N = 10**5
         level1 = range(1000)
 
@@ -238,10 +256,14 @@ class SetOperations:
         level2 = tm.makeStringIndex(N // 1000).values
         str_left = MultiIndex.from_product([level1, level2])
 
+        level2 = range(N // 1000)
+        ea_int_left = MultiIndex.from_product([level1, Series(level2, dtype="Int64")])
+
         data = {
             "datetime": dates_left,
             "int": int_left,
             "string": str_left,
+            "ea_int": ea_int_left,
         }
 
         if index_structure == "non_monotonic":
@@ -251,8 +273,132 @@ class SetOperations:
         self.left = data[dtype]["left"]
         self.right = data[dtype]["right"]
 
-    def time_operation(self, index_structure, dtype, method):
-        getattr(self.left, method)(self.right)
+    def time_operation(self, index_structure, dtype, method, sort):
+        getattr(self.left, method)(self.right, sort=sort)
+
+
+class Difference:
+
+    params = [
+        ("datetime", "int", "string", "ea_int"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**4 * 2
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_left = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = Series(range(N // 1000), dtype="Int64")
+        level2[0] = NA
+        ea_int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_left = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_left,
+            "int": int_left,
+            "ea_int": ea_int_left,
+            "string": str_left,
+        }
+
+        data = {k: {"left": mi, "right": mi[:5]} for k, mi in data.items()}
+        self.left = data[dtype]["left"]
+        self.right = data[dtype]["right"]
+
+    def time_difference(self, dtype):
+        self.left.difference(self.right)
+
+
+class Unique:
+    params = [
+        (("Int64", NA), ("int64", 0)),
+    ]
+    param_names = ["dtype_val"]
+
+    def setup(self, dtype_val):
+        level = Series(
+            [1, 2, dtype_val[1], dtype_val[1]] + list(range(1_000_000)),
+            dtype=dtype_val[0],
+        )
+        self.midx = MultiIndex.from_arrays([level, level])
+
+        level_dups = Series(
+            [1, 2, dtype_val[1], dtype_val[1]] + list(range(500_000)) * 2,
+            dtype=dtype_val[0],
+        )
+
+        self.midx_dups = MultiIndex.from_arrays([level_dups, level_dups])
+
+    def time_unique(self, dtype_val):
+        self.midx.unique()
+
+    def time_unique_dups(self, dtype_val):
+        self.midx_dups.unique()
+
+
+class Isin:
+    params = [
+        ("string", "int", "datetime"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_midx = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_midx,
+            "int": int_midx,
+            "string": str_midx,
+        }
+
+        self.midx = data[dtype]
+        self.values_small = self.midx[:100]
+        self.values_large = self.midx[100:]
+
+    def time_isin_small(self, dtype):
+        self.midx.isin(self.values_small)
+
+    def time_isin_large(self, dtype):
+        self.midx.isin(self.values_large)
+
+
+class Putmask:
+    def setup(self):
+        N = 10**5
+        level1 = range(1_000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        self.midx = MultiIndex.from_product([level1, level2])
+
+        level1 = range(1_000, 2_000)
+        self.midx_values = MultiIndex.from_product([level1, level2])
+
+        level2 = date_range(start="1/1/2010", periods=N // 1000)
+        self.midx_values_different = MultiIndex.from_product([level1, level2])
+        self.mask = np.array([True, False] * (N // 2))
+
+    def time_putmask(self):
+        self.midx.putmask(self.mask, self.midx_values)
+
+    def time_putmask_all_different(self):
+        self.midx.putmask(self.mask, self.midx_values_different)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

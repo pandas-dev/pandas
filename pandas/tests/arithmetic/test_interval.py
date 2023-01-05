@@ -62,16 +62,16 @@ def interval_array(left_right_dtypes):
     return IntervalArray.from_arrays(left, right)
 
 
-def create_categorical_intervals(left, right, inclusive="right"):
-    return Categorical(IntervalIndex.from_arrays(left, right, inclusive))
+def create_categorical_intervals(left, right, closed="right"):
+    return Categorical(IntervalIndex.from_arrays(left, right, closed))
 
 
-def create_series_intervals(left, right, inclusive="right"):
-    return Series(IntervalArray.from_arrays(left, right, inclusive))
+def create_series_intervals(left, right, closed="right"):
+    return Series(IntervalArray.from_arrays(left, right, closed))
 
 
-def create_series_categorical_intervals(left, right, inclusive="right"):
-    return Series(Categorical(IntervalIndex.from_arrays(left, right, inclusive)))
+def create_series_categorical_intervals(left, right, closed="right"):
+    return Series(Categorical(IntervalIndex.from_arrays(left, right, closed)))
 
 
 class TestComparison:
@@ -126,27 +126,15 @@ class TestComparison:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_scalar_interval_mixed_closed(self, op, closed, other_closed):
-        interval_array = IntervalArray.from_arrays(
-            range(2), range(1, 3), inclusive=closed
-        )
-        other = Interval(0, 1, inclusive=other_closed)
+        interval_array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
+        other = Interval(0, 1, closed=other_closed)
 
         result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(
-        self, op, interval_array, nulls_fixture, box_with_array, request
-    ):
+    def test_compare_scalar_na(self, op, interval_array, nulls_fixture, box_with_array):
         box = box_with_array
-
-        if box is pd.DataFrame:
-            if interval_array.dtype.subtype.kind not in "iuf":
-                mark = pytest.mark.xfail(
-                    reason="raises on DataFrame.transpose (would be fixed by EA2D)"
-                )
-                request.node.add_marker(mark)
-
         obj = tm.box_expected(interval_array, box)
         result = op(obj, nulls_fixture)
 
@@ -209,10 +197,8 @@ class TestComparison:
     def test_compare_list_like_interval_mixed_closed(
         self, op, interval_constructor, closed, other_closed
     ):
-        interval_array = IntervalArray.from_arrays(
-            range(2), range(1, 3), inclusive=closed
-        )
-        other = interval_constructor(range(2), range(1, 3), inclusive=other_closed)
+        interval_array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
+        other = interval_constructor(range(2), range(1, 3), closed=other_closed)
 
         result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)

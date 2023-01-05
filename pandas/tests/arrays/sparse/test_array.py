@@ -1,5 +1,4 @@
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -138,12 +137,9 @@ class TestSparseArray:
 
     def test_generator_warnings(self):
         sp_arr = SparseArray([1, 2, 3])
-        with warnings.catch_warnings(record=True) as w:
-            warnings.filterwarnings(action="always", category=DeprecationWarning)
-            warnings.filterwarnings(action="always", category=PendingDeprecationWarning)
+        with tm.assert_produces_warning(None):
             for _ in sp_arr:
                 pass
-            assert len(w) == 0
 
     def test_where_retain_fill_value(self):
         # GH#45691 don't lose fill_value on _where
@@ -391,23 +387,36 @@ def test_setting_fill_value_updates():
 
 
 @pytest.mark.parametrize(
-    "arr, loc",
+    "arr,fill_value,loc",
     [
-        ([None, 1, 2], 0),
-        ([0, None, 2], 1),
-        ([0, 1, None], 2),
-        ([0, 1, 1, None, None], 3),
-        ([1, 1, 1, 2], -1),
-        ([], -1),
+        ([None, 1, 2], None, 0),
+        ([0, None, 2], None, 1),
+        ([0, 1, None], None, 2),
+        ([0, 1, 1, None, None], None, 3),
+        ([1, 1, 1, 2], None, -1),
+        ([], None, -1),
+        ([None, 1, 0, 0, None, 2], None, 0),
+        ([None, 1, 0, 0, None, 2], 1, 1),
+        ([None, 1, 0, 0, None, 2], 2, 5),
+        ([None, 1, 0, 0, None, 2], 3, -1),
+        ([None, 0, 0, 1, 2, 1], 0, 1),
+        ([None, 0, 0, 1, 2, 1], 1, 3),
     ],
 )
-def test_first_fill_value_loc(arr, loc):
-    result = SparseArray(arr)._first_fill_value_loc()
+def test_first_fill_value_loc(arr, fill_value, loc):
+    result = SparseArray(arr, fill_value=fill_value)._first_fill_value_loc()
     assert result == loc
 
 
 @pytest.mark.parametrize(
-    "arr", [[1, 2, np.nan, np.nan], [1, np.nan, 2, np.nan], [1, 2, np.nan]]
+    "arr",
+    [
+        [1, 2, np.nan, np.nan],
+        [1, np.nan, 2, np.nan],
+        [1, 2, np.nan],
+        [np.nan, 1, 0, 0, np.nan, 2],
+        [np.nan, 0, 0, 1, 2, 1],
+    ],
 )
 @pytest.mark.parametrize("fill_value", [np.nan, 0, 1])
 def test_unique_na_fill(arr, fill_value):

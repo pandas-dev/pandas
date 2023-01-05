@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 from pandas._typing import NumpyIndexT
@@ -5,7 +7,7 @@ from pandas._typing import NumpyIndexT
 from pandas.core.dtypes.common import is_list_like
 
 
-def cartesian_product(X):
+def cartesian_product(X) -> list[np.ndarray]:
     """
     Numpy version of itertools.product.
     Sometimes faster (for large inputs)...
@@ -53,7 +55,15 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+    # error: Argument of type "int_" cannot be assigned to parameter "num" of
+    # type "int" in function "tile_compat"
+    return [
+        tile_compat(
+            np.repeat(x, b[i]),
+            np.product(a[i]),  # pyright: ignore[reportGeneralTypeIssues]
+        )
+        for i, x in enumerate(X)
+    ]
 
 
 def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:

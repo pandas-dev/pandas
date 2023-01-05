@@ -171,16 +171,14 @@ class TestSeriesMisc:
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)
-        # TODO(2.0): Change to None once is_monotonic deprecation
-        # is enforced
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(None, check_stacklevel=False):
             inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
         # GH#9680
         tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
         ser = Series(np.random.normal(size=10), index=tdi)
-        assert "foo" not in ser.__dict__.keys()
+        assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
             ser.foo
@@ -205,7 +203,87 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    def test_series_iteritems_deprecated(self):
-        ser = Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            next(ser.iteritems())
+    @pytest.mark.parametrize(
+        "kernel, has_numeric_only",
+        [
+            ("skew", True),
+            ("var", True),
+            ("all", False),
+            ("prod", True),
+            ("any", False),
+            ("idxmin", False),
+            ("quantile", False),
+            ("idxmax", False),
+            ("min", True),
+            ("sem", True),
+            ("mean", True),
+            ("nunique", False),
+            ("max", True),
+            ("sum", True),
+            ("count", False),
+            ("median", True),
+            ("std", True),
+            ("backfill", False),
+            ("rank", True),
+            ("pct_change", False),
+            ("cummax", False),
+            ("shift", False),
+            ("diff", False),
+            ("cumsum", False),
+            ("cummin", False),
+            ("cumprod", False),
+            ("fillna", False),
+            ("ffill", False),
+            ("pad", False),
+            ("bfill", False),
+            ("sample", False),
+            ("tail", False),
+            ("take", False),
+            ("head", False),
+            ("cov", False),
+            ("corr", False),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [bool, int, float, object])
+    def test_numeric_only(self, kernel, has_numeric_only, dtype):
+        # GH#47500
+        ser = Series([0, 1, 1], dtype=dtype)
+        if kernel == "corrwith":
+            args = (ser,)
+        elif kernel == "corr":
+            args = (ser,)
+        elif kernel == "cov":
+            args = (ser,)
+        elif kernel == "nth":
+            args = (0,)
+        elif kernel == "fillna":
+            args = (True,)
+        elif kernel == "fillna":
+            args = ("ffill",)
+        elif kernel == "take":
+            args = ([0],)
+        elif kernel == "quantile":
+            args = (0.5,)
+        else:
+            args = ()
+        method = getattr(ser, kernel)
+        if not has_numeric_only:
+            msg = (
+                "(got an unexpected keyword argument 'numeric_only'"
+                "|too many arguments passed in)"
+            )
+            with pytest.raises(TypeError, match=msg):
+                method(*args, numeric_only=True)
+        elif dtype is object:
+            msg = f"Series.{kernel} does not allow numeric_only=True with non-numeric"
+            with pytest.raises(TypeError, match=msg):
+                method(*args, numeric_only=True)
+        else:
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+            if isinstance(expected, Series):
+                # transformer
+                tm.assert_series_equal(result, expected)
+            else:
+                # reducer
+                assert result == expected

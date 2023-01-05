@@ -745,7 +745,7 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             rng - tdarr
-        msg = r"cannot subtract period\[Q-DEC\]-dtype from TimedeltaArray"
+        msg = r"cannot subtract PeriodArray from TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
@@ -807,9 +807,13 @@ class TestPeriodIndexArithmetic:
 
         elif pi_freq == "D":
             # Tick, but non-compatible
-            msg = "Input has different freq=None from PeriodArray"
+            msg = (
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq."
+            )
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pi - td64obj
+
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pi[0] - td64obj
 
@@ -835,7 +839,7 @@ class TestPeriodIndexArithmetic:
                 pd.offsets.QuarterEnd(n=-2, startingMonth=12),
             ]
         )
-        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")])
+        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")]).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi + offs
@@ -868,6 +872,7 @@ class TestPeriodIndexArithmetic:
         )
 
         expected = PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
+        expected = expected.astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi - other
@@ -1107,7 +1112,15 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2014-05-01", "2014-05-15", freq="D")
         rng = tm.box_expected(rng, box_with_array)
 
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=D\\)"
+        msg = "|".join(
+            [
+                # non-timedelta-like DateOffset
+                "Input has different freq(=.+)? from Period.*?\\(freq=D\\)",
+                # timedelta/td64/Timedelta but not a multiple of 24H
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq.",
+            ]
+        )
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -1134,7 +1147,15 @@ class TestPeriodIndexArithmetic:
         other = not_hourly
         rng = period_range("2014-01-01 10:00", "2014-01-05 10:00", freq="H")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=H\\)"
+        msg = "|".join(
+            [
+                # non-timedelta-like DateOffset
+                "Input has different freq(=.+)? from Period.*?\\(freq=H\\)",
+                # timedelta/td64/Timedelta but not a multiple of 24H
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq.",
+            ]
+        )
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
@@ -1243,6 +1264,21 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - obj
 
+        # some but not *all* NaT
+        other = other.copy()
+        other[0] = np.timedelta64(0, "ns")
+        expected = PeriodIndex([pi[0]] + ["NaT"] * 8, freq="19D")
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            other - obj
+
     # ---------------------------------------------------------------
     # Unsorted
 
@@ -1266,13 +1302,13 @@ class TestPeriodIndexArithmetic:
 
         expected = PeriodIndex(
             ["2001-01-01", "2001-01-03", "2001-01-05"], freq="D"
-        ).array
+        )._data.astype(object)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = parr - other
 
-        expected = PeriodIndex(["2000-12-30"] * 3, freq="D").array
+        expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1493,17 +1529,17 @@ class TestPeriodIndexSeriesMethods:
         )
         ser = Series(idx)
 
-        # Series op is applied per Period instance, thus error is raised
-        # from Period
+        msg = (
+            "Cannot add/subtract timedelta-like from PeriodArray that is not "
+            "an integer multiple of the PeriodArray's freq"
+        )
         for obj in [idx, ser]:
-            msg = r"Input has different freq=2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj + pd.offsets.Hour(2)
 
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pd.offsets.Hour(2) + obj
 
-            msg = r"Input has different freq=-2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj - pd.offsets.Hour(2)
 

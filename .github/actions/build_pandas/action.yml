@@ -6,8 +6,8 @@ runs:
 
     - name: Environment Detail
       run: |
-        conda info
-        conda list
+        micromamba info
+        micromamba list
       shell: bash -el {0}
 
     - name: Build Pandas

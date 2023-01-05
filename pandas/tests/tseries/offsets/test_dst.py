@@ -30,7 +30,16 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
-from pandas.tests.tseries.offsets.test_offsets import get_utc_offset_hours
+from pandas.util.version import Version
+
+# error: Module has no attribute "__version__"
+pytz_version = Version(pytz.__version__)  # type: ignore[attr-defined]
+
+
+def get_utc_offset_hours(ts):
+    # take a Timestamp and compute total hours of utc offset
+    o = ts.utcoffset()
+    return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
 class TestDST:
@@ -186,9 +195,8 @@ class TestDST:
             MonthBegin(66),
             "Africa/Kinshasa",
             marks=pytest.mark.xfail(
-                # error: Module has no attribute "__version__"
-                float(pytz.__version__) <= 2020.1,  # type: ignore[attr-defined]
-                reason="GH#41906",
+                pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
+                reason="GH#41906: pytz utc transition dates changed",
             ),
         ),
         (

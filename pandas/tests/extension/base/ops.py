@@ -67,10 +67,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc: type[TypeError] | None = TypeError
-    frame_scalar_exc: type[TypeError] | None = TypeError
-    series_array_exc: type[TypeError] | None = TypeError
-    divmod_exc: type[TypeError] | None = TypeError
+    series_scalar_exc: type[Exception] | None = TypeError
+    frame_scalar_exc: type[Exception] | None = TypeError
+    series_array_exc: type[Exception] | None = TypeError
+    divmod_exc: type[Exception] | None = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
@@ -179,13 +179,13 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             result = data.__eq__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+            pytest.skip(f"{type(data).__name__} does not implement __eq__")
 
         if hasattr(data, "__ne__"):
             result = data.__ne__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
+            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -418,6 +420,24 @@ class TestMelt:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["Int8", "Int64"])
+    def test_melt_ea_dtype(self, dtype):
+        # GH#41570
+        df = DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="Int8"),
+                "b": pd.Series([3, 4], dtype=dtype),
+            }
+        )
+        result = df.melt()
+        expected = DataFrame(
+            {
+                "variable": ["a", "a", "b", "b"],
+                "value": pd.Series([1, 2, 3, 4], dtype=dtype),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
@@ -637,9 +657,6 @@ class TestLreshape:
         }
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
-
-        with tm.assert_produces_warning(FutureWarning):
-            lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
@@ -1073,16 +1090,37 @@ class TestWideToLong:
         result = wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
 
-    def test_warn_of_column_name_value(self):
-        # GH34731
-        # raise a warning if the resultant value column name matches
+    def test_raise_of_column_name_value(self):
+        # GH34731, enforced in 2.0
+        # raise a ValueError if the resultant value column name matches
         # a name in the dataframe already (default name is "value")
         df = DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
-        expected = DataFrame(
-            [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
-            columns=["value", "variable", "value"],
-        )
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.melt(id_vars="value")
-            tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            ValueError, match=re.escape("value_name (value) cannot match")
+        ):
+            df.melt(id_vars="value", value_name="value")
+
+    @pytest.mark.parametrize("dtype", ["O", "string"])
+    def test_missing_stubname(self, dtype):
+        # GH46044
+        df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
+        df = df.astype({"id": dtype})
+        result = wide_to_long(
+            df,
+            stubnames=["a", "b"],
+            i="id",
+            j="num",
+            sep="-",
+        )
+        index = pd.Index(
+            [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
+            name=("id", "num"),
+        )
+        expected = DataFrame(
+            {"a": [100, 200, 300, 400], "b": [np.nan] * 4},
+            index=index,
+        )
+        new_level = expected.index.levels[0].astype(dtype)
+        expected.index = expected.index.set_levels(new_level, level=0)
+        tm.assert_frame_equal(result, expected)

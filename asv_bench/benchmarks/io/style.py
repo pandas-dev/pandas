@@ -83,11 +83,11 @@ class Render:
     def _style_apply_format_hide(self):
         self.st = self.df.style.applymap(lambda v: "color: red;")
         self.st.format("{:.3f}")
-        self.st.hide_index(self.st.index[1:])
-        self.st.hide_columns(self.st.columns[1:])
+        self.st.hide(self.st.index[1:], axis=0)
+        self.st.hide(self.st.columns[1:], axis=1)
 
     def _style_tooltips(self):
         ttips = DataFrame("abc", index=self.df.index[::2], columns=self.df.columns[::2])
         self.st = self.df.style.set_tooltips(ttips)
-        self.st.hide_index(self.st.index[12:])
-        self.st.hide_columns(self.st.columns[12:])
+        self.st.hide(self.st.index[12:], axis=0)
+        self.st.hide(self.st.columns[12:], axis=1)

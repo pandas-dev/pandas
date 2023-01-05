@@ -8,6 +8,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    TYPE_CHECKING,
     Iterator,
     Sequence,
 )
@@ -16,7 +17,8 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter
 
 
 def _split_into_full_short_caption(
@@ -158,8 +160,7 @@ class RowStringConverter(ABC):
             def pad_empties(x):
                 for pad in reversed(x):
                     if pad:
-                        break
-                return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
+                        return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
             gen = (pad_empties(i) for i in out)
 
@@ -178,7 +179,7 @@ class RowStringConverter(ABC):
         return strcols
 
     @property
-    def _empty_info_line(self):
+    def _empty_info_line(self) -> str:
         return (
             f"Empty {type(self.frame).__name__}\n"
             f"Columns: {self.frame.columns}\n"
@@ -209,7 +210,7 @@ class RowStringConverter(ABC):
         ncol = 1
         coltext = ""
 
-        def append_col():
+        def append_col() -> None:
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
@@ -771,7 +772,7 @@ class LatexFormatter:
         Right alignment for numbers and left - for strings.
         """
 
-        def get_col_type(dtype):
+        def get_col_type(dtype) -> str:
             if issubclass(dtype.type, np.number):
                 return "r"
             return "l"

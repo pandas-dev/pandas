@@ -104,10 +104,13 @@ aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
                       'D': pd.date_range('20130101', periods=3)})
    df.dtypes
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   df.agg(['min', 'sum'])
+   In [10]: df.agg(['min', 'sum'])
+   Out[10]:
+        A    B          C          D
+   min  1  1.0        bar 2013-01-01
+   sum  6  6.0  foobarbaz        NaT
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
 
@@ -448,7 +451,7 @@ Selecting via a specific interval:
 
 .. ipython:: python
 
-   df.loc[pd.Interval(1.5, 3.0, "right")]
+   df.loc[pd.Interval(1.5, 3.0)]
 
 Selecting via a scalar value that is contained *in* the intervals.
 

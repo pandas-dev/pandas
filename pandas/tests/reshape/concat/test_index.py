@@ -387,3 +387,70 @@ class TestMultiIndexConcat:
         msg = "levels supported only when keys is not None"
         with pytest.raises(ValueError, match=msg):
             concat([df1, df2], levels=levels)
+
+    def test_concat_range_index_result(self):
+        # GH#47501
+        df1 = DataFrame({"a": [1, 2]})
+        df2 = DataFrame({"b": [1, 2]})
+
+        result = concat([df1, df2], sort=True, axis=1)
+        expected = DataFrame({"a": [1, 2], "b": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+        expected_index = pd.RangeIndex(0, 2)
+        tm.assert_index_equal(result.index, expected_index, exact=True)
+
+    def test_concat_index_keep_dtype(self):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype="object"))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="object"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="object")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_index_keep_dtype_ea_numeric(self, any_numeric_ea_dtype):
+        # GH#47329
+        df1 = DataFrame(
+            [[0, 1, 1]], columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        )
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=any_numeric_ea_dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]],
+            columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
+    def test_concat_index_find_common(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="Int32")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_axis_1_sort_false_rangeindex(self):
+        # GH 46675
+        s1 = Series(["a", "b", "c"])
+        s2 = Series(["a", "b"])
+        s3 = Series(["a", "b", "c", "d"])
+        s4 = Series([], dtype=object)
+        result = concat(
+            [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
+        )
+        expected = DataFrame(
+            [
+                ["a"] * 3 + [np.nan],
+                ["b"] * 3 + [np.nan],
+                ["c", np.nan] * 2,
+                [np.nan] * 2 + ["d"] + [np.nan],
+            ],
+            dtype=object,
+        )
+        tm.assert_frame_equal(
+            result, expected, check_index_type=True, check_column_type=True
+        )
