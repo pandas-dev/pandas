@@ -1482,7 +1482,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return val
 
     if values.descr.type_num != NPY_OBJECT:
-        # i.e. values.dtype != np.object
+        # i.e. values.dtype != np.object_
         # This should not be reached
         values = values.astype(object)
 

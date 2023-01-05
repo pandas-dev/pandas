@@ -46,10 +46,7 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-    from lxml.etree import (
-        _Element,
-        _XSLTResultTree,
-    )
+    from lxml import etree
 
     from pandas import DataFrame
 
@@ -417,7 +414,7 @@ class _XMLFrameParser:
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> Element | _Element:
+    ) -> Element | etree._Element:
         """
         Build tree from path_or_buffer.
 
@@ -625,7 +622,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> _Element:
+    ) -> etree._Element:
         from lxml.etree import (
             XMLParser,
             fromstring,
@@ -656,7 +653,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return document
 
-    def _transform_doc(self) -> _XSLTResultTree:
+    def _transform_doc(self) -> etree._XSLTResultTree:
         """
         Transform original tree using stylesheet.
 

@@ -707,13 +707,13 @@ class TestStyler:
             and isinstance(slice_[-1][-1], list)
             and "C" in slice_[-1][-1]
         ):
-            ctx = pytest.raises(KeyError, match="C")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="C")
         elif (
             isinstance(slice_[0], tuple)
             and isinstance(slice_[0][1], list)
             and 3 in slice_[0][1]
         ):
-            ctx = pytest.raises(KeyError, match="3")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="3")
         else:
             ctx = contextlib.nullcontext()
 

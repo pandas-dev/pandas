@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: PDF001
 import re
-from typing import Union
+from typing import (
+    Callable,
+    Union,
+)
 
 import numpy as np
 
