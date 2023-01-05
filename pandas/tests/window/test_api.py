@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    DataError,
+    SpecificationError,
+)
 
 from pandas import (
     DataFrame,
@@ -69,8 +72,7 @@ def tests_skip_nuisance(step):
 def test_sum_object_str_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
-    msg = r"cannot handle this type -> object"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(DataError, match="Cannot aggregate non-numeric type: object"):
         # GH#42738, enforced in 2.0
         r.sum()
 

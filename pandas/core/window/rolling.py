@@ -471,10 +471,6 @@ class BaseWindow(SelectionMixin):
             obj = notna(obj).astype(int)
             obj._mgr = obj._mgr.consolidate()
 
-        def hfunc(values: ArrayLike) -> ArrayLike:
-            values = self._prep_values(values)
-            return homogeneous_func(values)
-
         if self.axis == 1:
             obj = obj.T
 
@@ -483,7 +479,13 @@ class BaseWindow(SelectionMixin):
         for i, arr in enumerate(obj._iter_column_arrays()):
             # GH#42736 operate column-wise instead of block-wise
             # As of 2.0, hfunc will raise for nuisance columns
-            res = hfunc(arr)
+            try:
+                arr = self._prep_values(arr)
+            except (TypeError, NotImplementedError) as err:
+                raise DataError(
+                    f"Cannot aggregate non-numeric type: {arr.dtype}"
+                ) from err
+            res = homogeneous_func(arr)
             res_values.append(res)
             taker.append(i)
 
