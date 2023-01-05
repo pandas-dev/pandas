@@ -88,4 +88,5 @@ feedparser
 pyyaml
 requests
 sphinx-toggleprompt
+python-calamite
 setuptools>=61.0.0

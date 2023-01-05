@@ -1435,6 +1435,7 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     """
 
+    from pandas.io.excel._calamitereader import CalamineExcelReader
     from pandas.io.excel._odfreader import ODFReader
     from pandas.io.excel._openpyxl import OpenpyxlReader
     from pandas.io.excel._pyxlsb import PyxlsbReader
@@ -1445,6 +1446,7 @@ class ExcelFile:
         "openpyxl": OpenpyxlReader,
         "odf": ODFReader,
         "pyxlsb": PyxlsbReader,
+        "calamite": CalamineExcelReader,
     }
 
     def __init__(

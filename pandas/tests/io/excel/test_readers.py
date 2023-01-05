@@ -52,6 +52,7 @@ engine_params = [
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
     pytest.param("odf", marks=td.skip_if_no("odf")),
+    pytest.param("calamite"),
 ]
 
 
