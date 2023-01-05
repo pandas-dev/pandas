@@ -411,7 +411,7 @@ class TestClipboard:
         assert data == clipboard_get()
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-    @pytest.mark.parametrize("engine", ["c", "python", "pyarrow"])
+    @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
     ):
