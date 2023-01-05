@@ -71,34 +71,40 @@ from pandas.io.sql import (
 
 try:
     import sqlalchemy
+    from sqlalchemy import text
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
+    text = lambda x: x
 
 SQL_STRINGS = {
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
-        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        "mysql": text("SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s"),
+        "postgresql": text('SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s'),
     },
     "read_named_parameters": {
         "sqlite": """
                 SELECT * FROM iris WHERE Name=:name AND SepalLength=:length
                 """,
-        "mysql": """
+        "mysql": text(
+            """
                 SELECT * FROM iris WHERE
                 `Name`=%(name)s AND `SepalLength`=%(length)s
-                """,
-        "postgresql": """
+                """
+        ),
+        "postgresql": text(
+            """
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
-                """,
+                """
+        ),
     },
     "read_no_parameters_with_percent": {
         "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
-        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
-        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        "mysql": text("SELECT * FROM iris WHERE `Name` LIKE '%'"),
+        "postgresql": text("SELECT * FROM iris WHERE \"Name\" LIKE '%'"),
     },
 }
 
@@ -544,7 +550,10 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
 def test_read_iris(conn, request):
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn) as pandasSQL:
-        iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+        if isinstance(conn, sqlite3.Connection):
+            iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+        else:
+            iris_frame = pandasSQL.read_query(text("SELECT * FROM iris"))
     check_iris_frame(iris_frame)
 
 
@@ -665,7 +674,7 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 
 def test_execute_typeerror(sqlite_iris_engine):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        sql.execute("select * from iris", sqlite_iris_engine)
+        sql.execute(text("select * from iris"), sqlite_iris_engine)
 
 
 class MixInBase:
@@ -720,6 +729,8 @@ class PandasSQLTest:
     Base class with common private methods for SQLAlchemy and fallback cases.
 
     """
+
+    text = lambda x, y: text(y)
 
     def load_iris_data(self, iris_path):
         self.drop_table("iris", self.conn)
@@ -782,7 +793,9 @@ class PandasSQLTest:
     def _roundtrip(self, test_frame1):
         self.drop_table("test_frame_roundtrip", self.conn)
         assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+        result = self.pandasSQL.read_query(
+            self.text("SELECT * FROM test_frame_roundtrip")
+        )
 
         result.set_index("level_0", inplace=True)
         # result.index.astype(int)
@@ -793,7 +806,7 @@ class PandasSQLTest:
 
     def _execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = self.pandasSQL.execute("SELECT * FROM iris")
+        iris_results = self.pandasSQL.execute(self.text("SELECT * FROM iris"))
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
@@ -832,13 +845,13 @@ class PandasSQLTest:
         except DummyException:
             # ignore raised exception
             pass
-        res = self.pandasSQL.read_query("SELECT * FROM test_trans")
+        res = self.pandasSQL.read_query(self.text("SELECT * FROM test_trans"))
         assert len(res) == 0
 
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-        res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
+        res2 = self.pandasSQL.read_query(self.text("SELECT * FROM test_trans"))
         assert len(res2) == 1
 
 
@@ -879,11 +892,11 @@ class _TestSQLApi(PandasSQLTest):
         create_and_load_iris_view(self.conn)
 
     def test_read_sql_view(self):
-        iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
+        iris_frame = sql.read_sql_query(self.text("SELECT * FROM iris_view"), self.conn)
         check_iris_frame(iris_frame)
 
     def test_read_sql_with_chunksize_no_result(self):
-        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        query = self.text("SELECT * FROM iris_view WHERE SepalLength < 0.0")
         with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
         without_batch = sql.read_sql_query(query, self.conn)
         tm.assert_frame_equal(concat(with_batch), without_batch)
@@ -927,19 +940,21 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_to_sql_type_mapping(self, test_frame3):
         sql.to_sql(test_frame3, "test_frame5", self.conn, index=False)
-        result = sql.read_sql("SELECT * FROM test_frame5", self.conn)
+        result = sql.read_sql(self.text("SELECT * FROM test_frame5"), self.conn)
 
         tm.assert_frame_equal(test_frame3, result)
 
     def test_to_sql_series(self):
         s = Series(np.arange(5, dtype="int64"), name="series")
         sql.to_sql(s, "test_series", self.conn, index=False)
-        s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
+        s2 = sql.read_sql_query(self.text("SELECT * FROM test_series"), self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
     def test_roundtrip(self, test_frame1):
         sql.to_sql(test_frame1, "test_frame_roundtrip", con=self.conn)
-        result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=self.conn)
+        result = sql.read_sql_query(
+            self.text("SELECT * FROM test_frame_roundtrip"), con=self.conn
+        )
 
         # HACK!
         result.index = test_frame1.index
@@ -956,24 +971,26 @@ class _TestSQLApi(PandasSQLTest):
             index=False,
             chunksize=2,
         )
-        result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=self.conn)
+        result = sql.read_sql_query(
+            self.text("SELECT * FROM test_frame_roundtrip"), con=self.conn
+        )
         tm.assert_frame_equal(result, test_frame1)
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
         with sql.pandasSQL_builder(self.conn) as pandas_sql:
-            iris_results = pandas_sql.execute("SELECT * FROM iris")
+            iris_results = pandas_sql.execute(self.text("SELECT * FROM iris"))
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
     def test_date_parsing(self):
         # Test date parsing in read_sql
         # No Parsing
-        df = sql.read_sql_query("SELECT * FROM types", self.conn)
+        df = sql.read_sql_query(self.text("SELECT * FROM types"), self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query(
-            "SELECT * FROM types", self.conn, parse_dates=["DateCol"]
+            self.text("SELECT * FROM types"), self.conn, parse_dates=["DateCol"]
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
@@ -982,7 +999,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types",
+            self.text("SELECT * FROM types"),
             self.conn,
             parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"},
         )
@@ -993,7 +1010,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types", self.conn, parse_dates=["IntDateCol"]
+            self.text("SELECT * FROM types"), self.conn, parse_dates=["IntDateCol"]
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
@@ -1002,7 +1019,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types", self.conn, parse_dates={"IntDateCol": "s"}
+            self.text("SELECT * FROM types"), self.conn, parse_dates={"IntDateCol": "s"}
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
@@ -1011,7 +1028,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types",
+            self.text("SELECT * FROM types"),
             self.conn,
             parse_dates={"IntDateOnlyCol": "%Y%m%d"},
         )
@@ -1023,7 +1040,7 @@ class _TestSQLApi(PandasSQLTest):
 
     @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
     @pytest.mark.parametrize(
-        "read_sql, text, mode",
+        "read_sql, query, mode",
         [
             (sql.read_sql, "SELECT * FROM types", ("sqlalchemy", "fallback")),
             (sql.read_sql, "types", ("sqlalchemy")),
@@ -1036,13 +1053,13 @@ class _TestSQLApi(PandasSQLTest):
         ],
     )
     def test_custom_dateparsing_error(
-        self, read_sql, text, mode, error, types_data_frame
+        self, read_sql, query, mode, error, types_data_frame
     ):
         if self.mode in mode:
             expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
             result = read_sql(
-                text,
+                query,
                 con=self.conn,
                 parse_dates={
                     "DateCol": {"errors": error},
@@ -1055,7 +1072,7 @@ class _TestSQLApi(PandasSQLTest):
         # Test case where same column appears in parse_date and index_col
 
         df = sql.read_sql_query(
-            "SELECT * FROM types",
+            self.text("SELECT * FROM types"),
             self.conn,
             index_col="DateCol",
             parse_dates=["DateCol", "IntDateCol"],
@@ -1071,7 +1088,9 @@ class _TestSQLApi(PandasSQLTest):
         with tm.assert_produces_warning(UserWarning):
             result_count = df.to_sql("test_timedelta", self.conn)
         assert result_count == 2
-        result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
+        result = sql.read_sql_query(
+            self.text("SELECT * FROM test_timedelta"), self.conn
+        )
         tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
 
     def test_complex_raises(self):
@@ -1240,7 +1259,7 @@ class _TestSQLApi(PandasSQLTest):
         df.to_sql("test_chunksize", self.conn, index=False)
 
         # reading the query in one time
-        res1 = sql.read_sql_query("select * from test_chunksize", self.conn)
+        res1 = sql.read_sql_query(self.text("select * from test_chunksize"), self.conn)
 
         # reading the query in chunks with read_sql_query
         res2 = DataFrame()
@@ -1248,7 +1267,7 @@ class _TestSQLApi(PandasSQLTest):
         sizes = [5, 5, 5, 5, 2]
 
         for chunk in sql.read_sql_query(
-            "select * from test_chunksize", self.conn, chunksize=5
+            self.text("select * from test_chunksize"), self.conn, chunksize=5
         ):
             res2 = concat([res2, chunk], ignore_index=True)
             assert len(chunk) == sizes[i]
@@ -1470,7 +1489,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # in sqlalchemy.create_engine -> test passing of this error to user
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with pytest.raises(ImportError, match="pg8000"):
-            sql.read_sql("select * from table", db_uri)
+            sql.read_sql(text("select * from table"), db_uri)
 
     def test_query_by_text_obj(self):
         # WIP : GH10846
@@ -1512,6 +1531,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     flavor = "sqlite"
     mode = "fallback"
+    text = lambda x, y: y
 
     def connect(self, database=":memory:"):
         return sqlite3.connect(database)
@@ -1756,7 +1776,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = read_sql_query("select * from types", self.conn)
+        df = read_sql_query(text("select * from types"), self.conn)
         if not hasattr(df, "DateColWithTz"):
             request.node.add_marker(
                 pytest.mark.xfail(reason="no column with datetime with time zone")
@@ -1769,7 +1789,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert is_datetime64tz_dtype(col.dtype)
 
         df = read_sql_query(
-            "select * from types", self.conn, parse_dates=["DateColWithTz"]
+            text("select * from types"), self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
             request.node.add_marker(
@@ -1781,7 +1801,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         check(df.DateColWithTz)
 
         df = concat(
-            list(read_sql_query("select * from types", self.conn, chunksize=1)),
+            list(read_sql_query(text("select * from types"), self.conn, chunksize=1)),
             ignore_index=True,
         )
         col = df.DateColWithTz
@@ -2158,7 +2178,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         from sqlalchemy.engine import Engine
 
         def test_select(connection):
-            query = "SELECT test_foo_data FROM test_foo_data"
+            query = text("SELECT test_foo_data FROM test_foo_data")
             return sql.read_sql_query(query, con=connection)
 
         def test_append(connection, data):
@@ -2622,6 +2642,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
 
     flavor = "sqlite"
+    text = lambda x, y: y
 
     @pytest.fixture(autouse=True)
     def setup_method(self, iris_path, types_data):
