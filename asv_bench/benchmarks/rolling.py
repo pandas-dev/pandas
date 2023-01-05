@@ -307,6 +307,9 @@ class Groupby:
                 "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
             }
         )
+        if "on" in kwargs:
+            key = kwargs.pop("on")
+            df = df.set_index(key)
         self.groupby_window = getattr(df.groupby("A"), window)(**kwargs)
 
     def time_method(self, method, window_kwargs):
