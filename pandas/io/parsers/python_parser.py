@@ -1147,29 +1147,20 @@ class PythonParser(ParserBase):
         return new_rows
 
     def _set_no_thousand_columns(self) -> set[int]:
-        noconvert_columns = set()
-        if self.parse_dates:
-            noconvert_columns = self._set_noconvert_dtype_columns(
-                self._col_indices, self.names
+        no_thousands_columns: set[int] | None = None
+        if self.columns and self.parse_dates:
+            no_thousands_columns = self._set_noconvert_dtype_columns(
+                self._col_indices, self.columns
             )
-
         if self.columns and self.dtype:
-            if isinstance(self.dtype, dict):
-                for i in self._col_indices:
-                    if (
-                        not is_numeric_dtype(self.dtype.get(self.columns[i], None))
-                        and self.columns[i] in self.dtype
-                    ):
-                        noconvert_columns.add(i)
-            else:
-                for i in self._col_indices:
-                    if (
-                        not is_numeric_dtype(self.dtype)
-                        and self.columns[i] in self.dtype
-                    ):
-                        noconvert_columns.add(i)
-
-        return noconvert_columns
+            if no_thousands_columns is None:
+                no_thousands_columns = set()
+            for i in self._col_indices:
+                if isinstance(self.dtype, dict) and not is_numeric_dtype(
+                    self.dtype.get(self.columns[i], None)
+                ):
+                    no_thousands_columns.add(i)
+        return no_thousands_columns
 
 
 class FixedWidthReader(abc.Iterator):
