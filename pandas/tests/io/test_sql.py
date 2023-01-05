@@ -750,13 +750,13 @@ class PandasSQLTest:
             create_and_load_types(self.conn, types_data, self.flavor)
 
     def _read_sql_iris_parameter(self):
-        query = SQL_STRINGS["read_parameters"][self.flavor]
+        query = self.text(SQL_STRINGS["read_parameters"][self.flavor])
         params = ["Iris-setosa", 5.1]
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
     def _read_sql_iris_named_parameter(self):
-        query = SQL_STRINGS["read_named_parameters"][self.flavor]
+        query = self.text(SQL_STRINGS["read_named_parameters"][self.flavor])
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
@@ -1059,7 +1059,7 @@ class _TestSQLApi(PandasSQLTest):
             expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
             result = read_sql(
-                query,
+                self.text(query),
                 con=self.conn,
                 parse_dates={
                     "DateCol": {"errors": error},
@@ -1119,7 +1119,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_to_sql_index_label(self, index_name, index_label, expected):
         temp_frame = DataFrame({"col1": range(4)})
         temp_frame.index.name = index_name
-        query = "SELECT * FROM test_index_label"
+        query = self.text("SELECT * FROM test_index_label")
         sql.to_sql(temp_frame, "test_index_label", self.conn, index_label=index_label)
         frame = sql.read_sql_query(query, self.conn)
         assert frame.columns[0] == expected
@@ -1134,7 +1134,9 @@ class _TestSQLApi(PandasSQLTest):
         # no index name, defaults to 'level_0' and 'level_1'
         result = sql.to_sql(temp_frame, "test_index_label", self.conn)
         assert result == expected_row_count
-        frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
+        frame = sql.read_sql_query(
+            self.text("SELECT * FROM test_index_label"), self.conn
+        )
         assert frame.columns[0] == "level_0"
         assert frame.columns[1] == "level_1"
 
@@ -1147,7 +1149,9 @@ class _TestSQLApi(PandasSQLTest):
             index_label=["A", "B"],
         )
         assert result == expected_row_count
-        frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
+        frame = sql.read_sql_query(
+            self.text("SELECT * FROM test_index_label"), self.conn
+        )
         assert frame.columns[:2].tolist() == ["A", "B"]
 
         # using the index name
@@ -1156,7 +1160,9 @@ class _TestSQLApi(PandasSQLTest):
             temp_frame, "test_index_label", self.conn, if_exists="replace"
         )
         assert result == expected_row_count
-        frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
+        frame = sql.read_sql_query(
+            self.text("SELECT * FROM test_index_label"), self.conn
+        )
         assert frame.columns[:2].tolist() == ["A", "B"]
 
         # has index name, but specifying index_label
@@ -1168,7 +1174,9 @@ class _TestSQLApi(PandasSQLTest):
             index_label=["C", "D"],
         )
         assert result == expected_row_count
-        frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
+        frame = sql.read_sql_query(
+            self.text("SELECT * FROM test_index_label"), self.conn
+        )
         assert frame.columns[:2].tolist() == ["C", "D"]
 
         msg = "Length of 'index_label' should match number of levels, which is 2"
@@ -1190,7 +1198,9 @@ class _TestSQLApi(PandasSQLTest):
 
         df.to_sql("test_multiindex_roundtrip", self.conn)
         result = sql.read_sql_query(
-            "SELECT * FROM test_multiindex_roundtrip", self.conn, index_col=["A", "B"]
+            self.text("SELECT * FROM test_multiindex_roundtrip"),
+            self.conn,
+            index_col=["A", "B"],
         )
         tm.assert_frame_equal(df, result, check_index_type=True)
 
@@ -1210,7 +1220,9 @@ class _TestSQLApi(PandasSQLTest):
 
         expected = df.astype(dtype)
         result = sql.read_sql_query(
-            "SELECT A, B FROM test_dtype_argument", con=self.conn, dtype=dtype
+            self.text("SELECT A, B FROM test_dtype_argument"),
+            con=self.conn,
+            dtype=dtype,
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1301,7 +1313,7 @@ class _TestSQLApi(PandasSQLTest):
         df2["person_name"] = df2["person_name"].astype("category")
 
         df2.to_sql("test_categorical", self.conn, index=False)
-        res = sql.read_sql_query("SELECT * FROM test_categorical", self.conn)
+        res = sql.read_sql_query(self.text("SELECT * FROM test_categorical"), self.conn)
 
         tm.assert_frame_equal(res, df)
 
@@ -1315,7 +1327,9 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
         df.to_sql("d1187b08-4943-4c8d-a7f6", self.conn, index=False)
 
-        res = sql.read_sql_query("SELECT * FROM `d1187b08-4943-4c8d-a7f6`", self.conn)
+        res = sql.read_sql_query(
+            self.text("SELECT * FROM `d1187b08-4943-4c8d-a7f6`"), self.conn
+        )
 
         tm.assert_frame_equal(res, df)
 
@@ -1389,7 +1403,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("other_table", self.conn)
-            sql.read_sql_query("SELECT * FROM other_table", self.conn)
+            sql.read_sql_query(self.text("SELECT * FROM other_table"), self.conn)
 
     def test_warning_case_insensitive_table_name(self, test_frame1):
         # see gh-7815
@@ -1477,7 +1491,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             test_frame1.to_sql(table, db_uri, if_exists="replace", index=False)
             test_frame2 = sql.read_sql(table, db_uri)
             test_frame3 = sql.read_sql_table(table, db_uri)
-            query = "SELECT * FROM iris"
+            query = self.text("SELECT * FROM iris")
             test_frame4 = sql.read_sql_query(query, db_uri)
         tm.assert_frame_equal(test_frame1, test_frame2)
         tm.assert_frame_equal(test_frame1, test_frame3)
@@ -1579,8 +1593,8 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
                 sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
-        iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
-        iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
+        iris_frame1 = sql.read_sql_query(self.text("SELECT * FROM iris"), self.conn)
+        iris_frame2 = sql.read_sql(self.text("SELECT * FROM iris"), self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
         msg = "Execution failed on sql 'iris': near \"iris\": syntax error"
@@ -1837,7 +1851,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_table("test_datetime_tz", self.conn)
         tm.assert_frame_equal(result, expected)
 
-        result = sql.read_sql_query("SELECT * FROM test_datetime_tz", self.conn)
+        result = sql.read_sql_query(
+            self.text("SELECT * FROM test_datetime_tz"), self.conn
+        )
         if self.flavor == "sqlite":
             # read_sql_query does not return datetime type like read_sql_table
             assert isinstance(result.loc[0, "A"], str)
@@ -1906,7 +1922,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
         # with read_sql -> no type information -> sqlite has no native
-        result = sql.read_sql_query("SELECT * FROM test_datetime", self.conn)
+        result = sql.read_sql_query(self.text("SELECT * FROM test_datetime"), self.conn)
         result = result.drop("index", axis=1)
         if self.flavor == "sqlite":
             assert isinstance(result.loc[0, "A"], str)
@@ -1927,7 +1943,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
         # with read_sql -> no type information -> sqlite has no native
-        result = sql.read_sql_query("SELECT * FROM test_datetime", self.conn)
+        result = sql.read_sql_query(self.text("SELECT * FROM test_datetime"), self.conn)
         if self.flavor == "sqlite":
             assert isinstance(result.loc[0, "A"], str)
             result["A"] = to_datetime(result["A"], errors="coerce")
@@ -1990,7 +2006,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
         # with read_sql
-        result = sql.read_sql_query("SELECT * FROM test_nan", self.conn)
+        result = sql.read_sql_query(self.text("SELECT * FROM test_nan"), self.conn)
         tm.assert_frame_equal(result, df)
 
     def test_nan_fullcolumn(self):
@@ -2005,7 +2021,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_sql -> not type info from table -> stays None
         df["B"] = df["B"].astype("object")
         df["B"] = None
-        result = sql.read_sql_query("SELECT * FROM test_nan", self.conn)
+        result = sql.read_sql_query(self.text("SELECT * FROM test_nan"), self.conn)
         tm.assert_frame_equal(result, df)
 
     def test_nan_string(self):
@@ -2021,7 +2037,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
         # with read_sql
-        result = sql.read_sql_query("SELECT * FROM test_nan", self.conn)
+        result = sql.read_sql_query(self.text("SELECT * FROM test_nan"), self.conn)
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
@@ -2305,7 +2321,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         with pd.option_context("mode.string_storage", string_storage):
             result = getattr(pd, func)(
-                f"Select * from {table}", self.conn, use_nullable_dtypes=True
+                self.text(f"Select * from {table}"), self.conn, use_nullable_dtypes=True
             )
         expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
@@ -2392,7 +2408,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df.to_sql("test", self.conn, index=False, if_exists="replace")
 
         for result in read_sql_query(
-            "SELECT * FROM test",
+            self.text("SELECT * FROM test"),
             self.conn,
             dtype=dtypes,
             chunksize=1,
@@ -2702,7 +2718,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         df = DataFrame(tz_times, columns=["a"])
 
         assert df.to_sql("test_time", self.conn, index=False) == 2
-        res = read_sql_query("SELECT * FROM test_time", self.conn)
+        res = read_sql_query(self.text("SELECT * FROM test_time"), self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
             expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
