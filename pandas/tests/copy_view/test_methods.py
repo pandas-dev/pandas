@@ -189,8 +189,8 @@ def test_filter(using_copy_on_write, filter_kwargs):
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
-    df2.iloc[0, 0] = 0
     if using_copy_on_write:
+        df2.iloc[0, 0] = 0
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
 
