@@ -2,9 +2,6 @@ from importlib import import_module
 
 
 
-from .pandas_vb_common import tm
-
-for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:
         hashing = import_module(imp)
         break
