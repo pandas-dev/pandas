@@ -824,6 +824,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
 - Bug in :func:`Timestamp.utctimetuple` raising a ``TypeError`` (:issue:`32174`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
 
 Timedelta
 ^^^^^^^^^
