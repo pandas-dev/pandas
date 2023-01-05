@@ -67,7 +67,7 @@ def test_ufuncs_unary(ufunc):
 
 
 def test_ufunc_numeric():
-    # np.sqrt on np.bool returns float16, which we upcast to Float32
+    # np.sqrt on np.bool_ returns float16, which we upcast to Float32
     #  bc we do not have Float16
     arr = pd.array([True, False, None], dtype="boolean")
 
