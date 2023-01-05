@@ -750,7 +750,8 @@ class PandasSQLTest:
             create_and_load_types(self.conn, types_data, self.flavor)
 
     def _read_sql_iris_parameter(self):
-        query = self.text(SQL_STRINGS["read_parameters"][self.flavor])
+        query = SQL_STRINGS["read_parameters"][self.flavor]
+        query = self.text(query) if isinstance(query, str) else query
         params = ["Iris-setosa", 5.1]
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
@@ -1055,11 +1056,12 @@ class _TestSQLApi(PandasSQLTest):
     def test_custom_dateparsing_error(
         self, read_sql, query, mode, error, types_data_frame
     ):
+        query = self.text(query) if isinstance(query, str) else query
         if self.mode in mode:
             expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
             result = read_sql(
-                self.text(query),
+                query,
                 con=self.conn,
                 parse_dates={
                     "DateCol": {"errors": error},
@@ -1376,8 +1378,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         assert result.columns.tolist() == ["C", "D"]
 
     def test_read_sql_delegate(self):
-        iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
-        iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
+        iris_frame1 = sql.read_sql_query(self.text("SELECT * FROM iris"), self.conn)
+        iris_frame2 = sql.read_sql(self.text("SELECT * FROM iris"), self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
         iris_frame1 = sql.read_sql_table("iris", self.conn)
@@ -2328,7 +2330,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         with pd.option_context("mode.string_storage", string_storage):
             iterator = getattr(pd, func)(
-                f"Select * from {table}",
+                self.text(f"Select * from {table}"),
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
