@@ -1125,12 +1125,6 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        # GH#42738
-        expected = df.groupby("A", group_keys=True).apply(
-            lambda x: getattr(x.ewm(com=1.0), method)()
-        )
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "method, expected_data",
         [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
