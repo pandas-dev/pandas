@@ -1682,6 +1682,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         from sqlalchemy import inspect
 
         temp_conn = self.connect()
+        temp_conn.begin()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
@@ -1695,6 +1696,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         from sqlalchemy import inspect
 
         temp_conn = self.connect()
+        temp_conn.begin()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
