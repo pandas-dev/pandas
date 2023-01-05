@@ -3504,7 +3504,7 @@ class MultiIndex(Index):
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
         if other.has_duplicates:
-            # This is only necessary if other has dups,
+            # This is only necessary if other has dupes,
             # otherwise difference is faster
             result = super()._union(other, sort)
 
