@@ -1,6 +1,3 @@
-            "datetime64[ns, tz]",
-            "Int64",
-            "boolean",
             "string[pyarrow]",
         ],
     ]
