@@ -55,3 +55,6 @@ dependencies:
   - xlrd
   - xlsxwriter
   - zstandard
+
+  - pip:
+    - python-calamine

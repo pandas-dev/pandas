@@ -44,7 +44,6 @@ dependencies:
   - pymysql
   - pyreadstat
   - pytables
-  - python-calamine
   - python-snappy
   - pyxlsb
   - s3fs>=2021.08.0
@@ -70,3 +69,6 @@ dependencies:
   - pandas-gbq
   - pyyaml
   - py
+
+  - pip:
+    - python-calamine
