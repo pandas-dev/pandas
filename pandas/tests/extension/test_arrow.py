@@ -553,16 +553,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         ):
             super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
-    def test_in_numeric_groupby(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="ArrowExtensionArray doesn't support .sum() yet.",
-                )
-            )
-        super().test_in_numeric_groupby(data_for_grouping)
-
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
