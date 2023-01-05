@@ -292,7 +292,7 @@ class Groupby:
         ["sum", "median", "mean", "max", "min", "kurt", "sum"],
         [
             ("rolling", {"window": 2}),
-            ("rolling", {"window": "30s", "on": "C"}),
+            ("rolling", {"window": "30s"}),
             ("expanding", {}),
         ],
     )
@@ -304,12 +304,10 @@ class Groupby:
             {
                 "A": [str(i) for i in range(N)] * 10,
                 "B": list(range(N)) * 10,
-                "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
             }
         )
-        if "on" in kwargs:
-            key = kwargs.pop("on")
-            df = df.set_index(key)
+        if isinstance(kwargs.get("window", None), str):
+            df.index = (pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),)
         self.groupby_window = getattr(df.groupby("A"), window)(**kwargs)
 
     def time_method(self, method, window_kwargs):
