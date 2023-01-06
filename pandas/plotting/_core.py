@@ -662,6 +662,7 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
+
           .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
