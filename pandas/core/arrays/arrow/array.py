@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     TypeVar,
     cast,
 )
@@ -116,6 +117,11 @@ if not pa_version_under6p0:
     }
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
@@ -693,6 +699,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         return type(self)(pc.round(self._data, ndigits=decimals))
 
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
+        # Base class searchsorted would cast to object, which is *much* slower.
+        return self.to_numpy().searchsorted(value, side=side, sorter=sorter)
+
     def take(
         self,
         indices: TakeIndexer,
@@ -983,7 +1006,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return self.dtype.na_value
         return result.as_py()
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -1004,6 +1027,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
+        # GH50085: unwrap 1D indexers
+        if isinstance(key, tuple) and len(key) == 1:
+            key = key[0]
+
         key = check_array_indexer(self, key)
         value = self._maybe_convert_setitem_value(value)
 
@@ -1029,7 +1056,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 return
 
         indices = self._indexing_key_to_indices(key)
-
         argsort = np.argsort(indices)
         indices = indices[argsort]
 
