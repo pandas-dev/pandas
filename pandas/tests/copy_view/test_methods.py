@@ -634,3 +634,21 @@ def test_droplevel(using_copy_on_write):
 
     assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_items(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df_orig = df.copy()
+    for name, vals in df.items():
+        ser = Series(vals)
+
+        if using_copy_on_write:
+            assert np.shares_memory(ser.values, get_array(df, name))
+        else:
+            assert not np.shares_memory(ser.values, get_array(df, name))
+
+        # mutating df2 triggers a copy-on-write for that column / block
+        ser.iloc[0] = 0
+
+        assert not np.shares_memory(ser.values, get_array(df, name))
+        tm.assert_frame_equal(df, df_orig)
