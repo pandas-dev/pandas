@@ -253,14 +253,14 @@ MultiIndex
 ----------
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
 
-   MultiIndex
+   IndexSlice
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
-   IndexSlice
+   MultiIndex
 
 MultiIndex constructors
 ~~~~~~~~~~~~~~~~~~~~~~~
