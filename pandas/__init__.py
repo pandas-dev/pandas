@@ -135,7 +135,7 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing  # noqa:PDF015
+from pandas import testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (

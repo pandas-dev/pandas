@@ -48,7 +48,7 @@ class TestBuildSchema:
             "fields": [
                 {"name": "index", "type": "integer"},
                 {"name": "A", "type": "any", "extDtype": "DateDtype"},
-                {"name": "B", "type": "any", "extDtype": "decimal"},
+                {"name": "B", "type": "number", "extDtype": "decimal"},
                 {"name": "C", "type": "any", "extDtype": "string"},
                 {"name": "D", "type": "integer", "extDtype": "Int64"},
             ],
@@ -82,10 +82,10 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_ext_decimal_array_dtype(self, decimal_data):
-        assert as_json_table_type(decimal_data.dtype) == "any"
+        assert as_json_table_type(decimal_data.dtype) == "number"
 
     def test_as_json_table_type_ext_decimal_dtype(self):
-        assert as_json_table_type(DecimalDtype()) == "any"
+        assert as_json_table_type(DecimalDtype()) == "number"
 
     @pytest.mark.parametrize(
         "string_data",
@@ -180,7 +180,7 @@ class TestTableOrient:
 
         fields = [
             {"name": "id", "type": "integer"},
-            {"name": "a", "type": "any", "extDtype": "decimal"},
+            {"name": "a", "type": "number", "extDtype": "decimal"},
         ]
 
         schema = {"fields": fields, "primaryKey": ["id"]}
@@ -257,7 +257,7 @@ class TestTableOrient:
         fields = [
             OrderedDict({"name": "idx", "type": "integer"}),
             OrderedDict({"name": "A", "type": "any", "extDtype": "DateDtype"}),
-            OrderedDict({"name": "B", "type": "any", "extDtype": "decimal"}),
+            OrderedDict({"name": "B", "type": "number", "extDtype": "decimal"}),
             OrderedDict({"name": "C", "type": "any", "extDtype": "string"}),
             OrderedDict({"name": "D", "type": "integer", "extDtype": "Int64"}),
         ]
