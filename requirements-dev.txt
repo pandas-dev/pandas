@@ -65,7 +65,6 @@ gitpython
 gitdb
 natsort
 numpydoc
-pandas-dev-flaker==0.5.0
 pydata-sphinx-theme<0.11
 pytest-cython
 sphinx

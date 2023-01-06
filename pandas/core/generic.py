@@ -133,16 +133,15 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms as algos,
     arraylike,
+    common,
     indexing,
     nanops,
     sample,
 )
-from pandas.core import common  # noqa: PDF018
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
-from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -159,7 +158,8 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.internals.managers import _using_copy_on_write
+from pandas.core.internals.managers import using_copy_on_write
+from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -853,7 +853,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
-        return self.set_axis(new_labels, axis=axis)
+        return self.set_axis(new_labels, axis=axis, copy=None)
 
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]
@@ -10102,7 +10102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis), ax.truncate(before, after))
 
-        if copy or (copy is None and not _using_copy_on_write()):
+        if copy or (copy is None and not using_copy_on_write()):
             result = result.copy(deep=copy)
 
         return result
