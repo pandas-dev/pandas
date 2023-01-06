@@ -159,7 +159,8 @@ class TestAsFreq:
 
         # setup
         rng = date_range("1/1/2016", periods=10, freq="2S")
-        ts = Series(np.arange(len(rng)), index=rng)
+        # Explicit cast to 'float' to avoid implicit cast when setting None
+        ts = Series(np.arange(len(rng)), index=rng, dtype="float")
         df = DataFrame({"one": ts})
 
         # insert pre-existing missing value

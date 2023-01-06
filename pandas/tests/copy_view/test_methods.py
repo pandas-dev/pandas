@@ -3,8 +3,10 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -170,6 +172,27 @@ def test_select_dtypes(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_pop(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    view_original = df[:]
+    result = df.pop("a")
+
+    assert np.shares_memory(result.values, get_array(view_original, "a"))
+    assert np.shares_memory(get_array(df, "b"), get_array(view_original, "b"))
+
+    if using_copy_on_write:
+        result.iloc[0] = 0
+        assert not np.shares_memory(result.values, get_array(view_original, "a"))
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(view_original, "b"))
+        tm.assert_frame_equal(view_original, df_orig)
+    else:
+        expected = DataFrame({"a": [1, 2, 3], "b": [0, 5, 6], "c": [0.1, 0.2, 0.3]})
+        tm.assert_frame_equal(view_original, expected)
 
 
 @pytest.mark.parametrize(
@@ -369,6 +392,30 @@ def test_head_tail(method, using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"before": "a", "after": "b", "axis": 1},
+        {"before": 0, "after": 1, "axis": 0},
+    ],
+)
+def test_truncate(using_copy_on_write, kwargs):
+    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
+    df_orig = df.copy()
+    df2 = df.truncate(**kwargs)
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 @pytest.mark.parametrize("method", ["assign", "drop_duplicates"])
 def test_assign_drop_duplicates(using_copy_on_write, method):
     df = DataFrame({"a": [1, 2, 3]})
@@ -405,6 +452,23 @@ def test_reindex_like(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_sort_index(using_copy_on_write):
+    # GH 49473
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+    ser2 = ser.sort_index()
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser.values, ser2.values)
+    else:
+        assert not np.shares_memory(ser.values, ser2.values)
+
+    # mutating ser triggers a copy-on-write for the column / block
+    ser2.iloc[0] = 0
+    assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
+
+
 def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
@@ -422,6 +486,43 @@ def test_reorder_levels(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_series_reorder_levels(using_copy_on_write):
+    index = MultiIndex.from_tuples(
+        [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
+    )
+    ser = Series([1, 2, 3, 4], index=index)
+    ser_orig = ser.copy()
+    ser2 = ser.reorder_levels(order=["two", "one"])
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser2.values, ser.values)
+    else:
+        assert not np.shares_memory(ser2.values, ser.values)
+
+    ser2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize("obj", [Series([1, 2, 3]), DataFrame({"a": [1, 2, 3]})])
+def test_swaplevel(using_copy_on_write, obj):
+    index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
+    obj.index = index
+    obj_orig = obj.copy()
+    obj2 = obj.swaplevel()
+
+    if using_copy_on_write:
+        assert np.shares_memory(obj2.values, obj.values)
+    else:
+        assert not np.shares_memory(obj2.values, obj.values)
+
+    obj2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(obj2.values, obj.values)
+    tm.assert_equal(obj, obj_orig)
 
 
 def test_frame_set_axis(using_copy_on_write):
@@ -456,3 +557,80 @@ def test_series_set_axis(using_copy_on_write):
     ser2.iloc[0] = 0
     assert not np.shares_memory(ser2, ser)
     tm.assert_series_equal(ser, ser_orig)
+
+
+def test_set_flags(using_copy_on_write):
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+    ser2 = ser.set_flags(allows_duplicate_labels=False)
+
+    assert np.shares_memory(ser, ser2)
+
+    # mutating ser triggers a copy-on-write for the column / block
+    ser2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(ser2, ser)
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        assert np.shares_memory(ser2, ser)
+        expected = Series([0, 2, 3])
+        tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("copy_kwargs", [{"copy": True}, {}])
+@pytest.mark.parametrize("kwargs", [{"mapper": "test"}, {"index": "test"}])
+def test_rename_axis(using_copy_on_write, kwargs, copy_kwargs):
+    df = DataFrame({"a": [1, 2, 3, 4]}, index=Index([1, 2, 3, 4], name="a"))
+    df_orig = df.copy()
+    df2 = df.rename_axis(**kwargs, **copy_kwargs)
+
+    if using_copy_on_write and not copy_kwargs:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "func, tz", [("tz_convert", "Europe/Berlin"), ("tz_localize", None)]
+)
+def test_tz_convert_localize(using_copy_on_write, func, tz):
+    # GH 49473
+    ser = Series(
+        [1, 2], index=date_range(start="2014-08-01 09:00", freq="H", periods=2, tz=tz)
+    )
+    ser_orig = ser.copy()
+    ser2 = getattr(ser, func)("US/Central")
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser.values, ser2.values)
+    else:
+        assert not np.shares_memory(ser.values, ser2.values)
+
+    # mutating ser triggers a copy-on-write for the column / block
+    ser2.iloc[0] = 0
+    assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
+
+
+def test_droplevel(using_copy_on_write):
+    # GH 49473
+    index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=index)
+    df_orig = df.copy()
+    df2 = df.droplevel(0)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    else:
+        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
