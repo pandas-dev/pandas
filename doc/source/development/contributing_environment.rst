@@ -191,7 +191,7 @@ Enable Docker support and use the Services tool window to build and manage image
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
-Option 4: using GitPod
+Option 4: using Gitpod
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Gitpod is an open-source platform that automatically creates the correct development
