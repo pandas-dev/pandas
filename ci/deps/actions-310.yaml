@@ -48,7 +48,7 @@ dependencies:
   - pyxlsb
   - s3fs>=2021.08.0
   - scipy
-  - sqlalchemy
+  - sqlalchemy<1.4.46
   - tabulate
   - tzdata>=2022a
   - xarray
