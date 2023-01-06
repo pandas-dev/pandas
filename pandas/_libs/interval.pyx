@@ -107,7 +107,7 @@ cdef class IntervalMixin:
     def mid(self):
         """
         Return the midpoint of the Interval.
-        
+
         Examples
         --------
         >>> iv.Interval(0, 5)
