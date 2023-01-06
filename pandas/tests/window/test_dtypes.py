@@ -165,7 +165,7 @@ def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
     rolled = df.rolling(2, min_periods=min_periods, step=step)
 
     if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
-        msg = "No numeric types to aggregate"
+        msg = "Cannot aggregate non-numeric type"
         with pytest.raises(DataError, match=msg):
             getattr(rolled, method)()
     else:
