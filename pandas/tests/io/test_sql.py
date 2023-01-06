@@ -1978,7 +1978,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # first, use the fallback to have the sqlite adapter put in place
         sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
-        res = sql.read_sql_query(self.text("SELECT * FROM test_time2"), sqlite_conn)
+        res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
         ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
