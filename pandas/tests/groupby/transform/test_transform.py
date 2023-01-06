@@ -1563,3 +1563,18 @@ def test_as_index_no_change(keys, df, groupby_func):
     result = gb_as_index_true.transform(groupby_func, *args)
     expected = gb_as_index_false.transform(groupby_func, *args)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [np.mean, np.cumprod])
+def test_numeric_only_warning_numpy(func):
+    # GH#50538
+    df = DataFrame({"a": [1, 1, 2], "b": list("xyz"), "c": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb.transform(func)
+    # Ensure users can pass numeric_only
+    result = gb.transform(func, numeric_only=True)
+    values = [3.5, 3.5, 5.0] if func == np.mean else [3, 12, 5]
+    expected = DataFrame({"c": values})
+    tm.assert_frame_equal(result, expected)

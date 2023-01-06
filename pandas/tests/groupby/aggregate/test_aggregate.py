@@ -1454,3 +1454,15 @@ def test_agg_of_mode_list(test, constant):
     expected = expected.set_index(0)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_numeric_only_warning_numpy():
+    # GH#50538
+    df = DataFrame({"a": [1, 1, 2], "b": list("xyz"), "c": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = "The operation <function mean.*failed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb.agg(np.mean)
+    # Ensure users can't pass numeric_only
+    with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+        gb.agg(np.mean, numeric_only=True)

@@ -1357,3 +1357,16 @@ def test_empty_df(method, op):
     )
 
     tm.assert_series_equal(result, expected)
+
+
+def test_numeric_only_warning_numpy():
+    # GH#50538
+    df = DataFrame({"a": [1, 1, 2], "b": list("xyz"), "c": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = "The operation <function mean.*failed"
+    # Warning is raised from within NumPy
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        gb.apply(np.mean)
+    # Ensure users can't pass numeric_only
+    with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+        gb.apply(np.mean, numeric_only=True)

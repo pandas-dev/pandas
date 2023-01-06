@@ -39,7 +39,10 @@ from pandas.errors import (
     SpecificationError,
 )
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -174,7 +177,15 @@ class Apply(metaclass=abc.ABCMeta):
         if callable(arg):
             f = com.get_cython_func(arg)
             if f and not args and not kwargs:
-                return getattr(obj, f)()
+                # GH#50538
+                old_msg = "The default value of numeric_only"
+                new_msg = (
+                    f"The operation {arg} failed on a column. If any error is "
+                    f"raised, this will raise an exception in a future version "
+                    f"of pandas. Drop these columns to avoid this warning."
+                )
+                with rewrite_warning(old_msg, FutureWarning, new_msg):
+                    return getattr(obj, f)()
 
         # caller can react
         return None
@@ -309,7 +320,14 @@ class Apply(metaclass=abc.ABCMeta):
         if not args and not kwargs:
             f = com.get_cython_func(func)
             if f:
-                return getattr(obj, f)()
+                old_msg = "The default value of numeric_only"
+                new_msg = (
+                    f"The operation {func} failed on a column. If any error is "
+                    f"raised, this will raise an exception in a future version "
+                    f"of pandas. Drop these columns to avoid this warning."
+                )
+                with rewrite_warning(old_msg, FutureWarning, new_msg):
+                    return getattr(obj, f)()
 
         # Two possible ways to use a UDF - apply or call directly
         try:

@@ -486,9 +486,14 @@ def test_frame_set_name_single(df):
         result = df.groupby("A", as_index=False).mean()
     assert result.index.name != "A"
 
+    # GH#50538
+    msg = "The operation <function mean.*failed"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = grouped.agg(np.mean)
     assert result.index.name == "A"
+    # Ensure users can't pass numeric_only
+    with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+        grouped.agg(np.mean, numeric_only=True)
 
     result = grouped.agg({"C": np.mean, "D": np.std})
     assert result.index.name == "A"
@@ -766,12 +771,16 @@ def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
-    msg = "The default value of numeric_only"
+    # GH#50538
+    msg = "The operation <function sum.*failed"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = grouped["C"].agg(np.sum)
         expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
+    # Ensure users can't pass numeric_only
+    with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+        grouped.agg(np.mean, numeric_only=True)
 
     result2 = grouped2["C"].agg(np.sum)
     expected2 = grouped2.agg(np.sum).loc[:, ["A", "B", "C"]]
@@ -779,6 +788,7 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
     result = grouped["C"].sum()
+    msg = "The default value of numeric_only"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = grouped.sum().loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
@@ -1021,10 +1031,14 @@ def test_wrap_aggregated_output_multindex(mframe):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    msg = "The default value of numeric_only"
+    # GH#50538
+    msg = "The operation <function mean.*failed"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         agged = df.groupby(keys).agg(np.mean)
     assert isinstance(agged.columns, MultiIndex)
+    # Ensure users can't pass numeric_only
+    with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+        df.groupby(keys).agg(np.mean, numeric_only=True)
 
     def aggfun(ser):
         if ser.name == ("foo", "one"):

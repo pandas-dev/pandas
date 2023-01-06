@@ -1287,6 +1287,27 @@ def test_nuiscance_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["agg", "apply", "transform"])
+def test_numeric_only_warning_numpy(method):
+    # GH#50538
+    df = DataFrame({"a": [1, 1, 2], "b": list("xyz")})
+    if method == "agg":
+        msg = "The operation <function mean.*failed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            getattr(df, method)(np.mean)
+        # Ensure users can't pass numeric_only
+        with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+            getattr(df, method)(np.mean, numeric_only=True)
+    elif method == "apply":
+        with pytest.raises(TypeError, match="Could not convert"):
+            getattr(df, method)(np.mean)
+    else:
+        with pytest.raises(ValueError, match="Function did not transform"):
+            msg = "The operation <function mean.*failed"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                getattr(df, method)(np.mean)
+
+
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_non_callable_aggregates(how):
 
