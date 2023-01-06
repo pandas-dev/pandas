@@ -44,6 +44,10 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
+    from pandas.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -88,6 +92,7 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # scalars
 
@@ -342,6 +347,12 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+
+# join
+JoinHow = Literal["left", "right", "inner", "outer"]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[

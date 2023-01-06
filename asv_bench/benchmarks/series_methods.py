@@ -85,6 +85,7 @@ class Fillna:
         [
             "datetime64[ns]",
             "float64",
+            "Float64",
             "Int64",
             "int64[pyarrow]",
             "string",
@@ -99,7 +100,7 @@ class Fillna:
         if dtype == "datetime64[ns]":
             data = date_range("2000-01-01", freq="S", periods=N)
             na_value = NaT
-        elif dtype == "float64":
+        elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)
             na_value = np.nan
         elif dtype in ("Int64", "int64[pyarrow]"):
@@ -379,6 +380,25 @@ class Iter:
     def time_iter(self, dtype):
         for v in self.s:
             pass
+
+
+class ToNumpy:
+    def setup(self):
+        N = 1_000_000
+        self.ser = Series(
+            np.random.randn(
+                N,
+            )
+        )
+
+    def time_to_numpy(self):
+        self.ser.to_numpy()
+
+    def time_to_numpy_double_copy(self):
+        self.ser.to_numpy(dtype="float64", copy=True)
+
+    def time_to_numpy_copy(self):
+        self.ser.to_numpy(copy=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

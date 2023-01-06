@@ -1,5 +1,8 @@
 from collections import deque
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from enum import Enum
 import functools
 import operator
@@ -7,7 +10,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -1164,19 +1166,15 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # Automatic alignment for comparisons deprecated
-        result = df == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="not aligned"):
+        # Automatic alignment for comparisons deprecated GH#36795, enforced 2.0
+        df == ser
 
-    # non-float case should not raise on comparison
+    # non-float case should not raise TypeError on comparison
     df2 = DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="not aligned"):
         # Automatic alignment for comparisons deprecated
-        result = df2 == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+        df2 == ser
 
 
 def test_zero_len_frame_with_series_corner_cases():
@@ -1189,7 +1187,6 @@ def test_zero_len_frame_with_series_corner_cases():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_frame_single_columns_object_sum_axis_1():
     # GH 13758
     data = {
@@ -1214,10 +1211,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
         result = df_moscow + df
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
@@ -1539,7 +1536,10 @@ class TestFrameArithmeticUnsorted:
         result3 = func(float_frame, 0)
         tm.assert_numpy_array_equal(result3.values, func(float_frame.values, 0))
 
-        msg = "Can only compare identically-labeled DataFrame"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 

@@ -551,9 +551,6 @@ _shared_docs[
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 
-        .. versionchanged:: 0.23.0
-            Added to DataFrame.
-
     Returns
     -------
     {klass}
@@ -801,8 +798,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions
@@ -868,8 +865,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions

@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import config
 
 from pandas._libs import (
     algos as libalgos,
@@ -320,7 +320,7 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
-        assert "filter" not in kwargs and "ignore_failures" not in kwargs
+        assert "filter" not in kwargs
 
         align_keys = align_keys or []
         result_blocks: list[Block] = []
@@ -376,7 +376,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if _using_copy_on_write() and not self._has_no_reference(0):
+        if using_copy_on_write() and not self._has_no_reference(0):
             # if being referenced -> perform Copy-on-Write and clear the reference
             # this method is only called if there is a single block -> hardcoded 0
             self = self.copy()
@@ -385,7 +385,7 @@ class BaseBlockManager(DataManager):
 
     def putmask(self, mask, new, align: bool = True):
         if (
-            _using_copy_on_write()
+            using_copy_on_write()
             and self.refs is not None
             and not all(ref is None for ref in self.refs)
         ):
@@ -429,7 +429,7 @@ class BaseBlockManager(DataManager):
             limit = libalgos.validate_limit(None, limit=limit)
         if inplace:
             # TODO(CoW) can be optimized to only copy those blocks that have refs
-            if _using_copy_on_write() and any(
+            if using_copy_on_write() and any(
                 not self._has_no_reference_block(i) for i in range(len(self.blocks))
             ):
                 self = self.copy()
@@ -441,19 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(
-        self: T,
-        copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
-    ) -> T:
+    def convert(self: T, copy: bool) -> T:
         return self.apply(
             "convert",
             copy=copy,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
@@ -622,7 +613,7 @@ class BaseBlockManager(DataManager):
         BlockManager
         """
         if deep is None:
-            if _using_copy_on_write():
+            if using_copy_on_write():
                 # use shallow copy
                 deep = False
             else:
@@ -710,7 +701,7 @@ class BaseBlockManager(DataManager):
         pandas-indexer with -1's only.
         """
         if copy is None:
-            if _using_copy_on_write():
+            if using_copy_on_write():
                 # use shallow copy
                 copy = False
             else:
@@ -888,7 +879,7 @@ class BaseBlockManager(DataManager):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice or _using_copy_on_write():
+                    if only_slice or using_copy_on_write():
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
@@ -1048,7 +1039,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        parent = parent if _using_copy_on_write() else None
+        parent = parent if using_copy_on_write() else None
         return cls(blocks, axes, refs, parent, verify_integrity=False)
 
     # ----------------------------------------------------------------
@@ -1231,7 +1222,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
-                if _using_copy_on_write() and not self._has_no_reference_block(blkno_l):
+                if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
                     blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
                     self._clear_reference_block(blkno_l)
                 else:
@@ -1329,7 +1320,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if inplace and blk.should_store(value):
             copy = False
-            if _using_copy_on_write() and not self._has_no_reference_block(blkno):
+            if using_copy_on_write() and not self._has_no_reference_block(blkno):
                 # perform Copy-on-Write and clear the reference
                 copy = True
                 self._clear_reference_block(blkno)
@@ -1344,14 +1335,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._clear_reference_block(blkno)
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace_only: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if _using_copy_on_write() and not self._has_no_reference(loc):
+        if using_copy_on_write() and not self._has_no_reference(loc):
             # otherwise perform Copy-on-Write and clear the reference
             blkno = self.blknos[loc]
             blocks = list(self.blocks)
@@ -1362,8 +1355,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again
         col_mgr = self.iget(loc, track_ref=False)
-        new_mgr = col_mgr.setitem((idx,), value)
-        self.iset(loc, new_mgr._block.values, inplace=True)
+        if inplace_only:
+            col_mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = col_mgr.setitem((idx,), value)
+            self.iset(loc, new_mgr._block.values, inplace=True)
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -1466,54 +1462,35 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable) -> T:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
         Parameters
         ----------
         func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop blocks where func raises TypeError.
 
         Returns
         -------
         BlockManager
         """
         result_blocks: list[Block] = []
-        dropped_any = False
 
         for blk in self.blocks:
             if blk.is_object:
                 # split on object-dtype blocks bc some columns may raise
                 #  while others do not.
                 for sb in blk._split():
-                    try:
-                        applied = sb.apply(func)
-                    except (TypeError, NotImplementedError):
-                        if not ignore_failures:
-                            raise
-                        dropped_any = True
-                        continue
+                    applied = sb.apply(func)
                     result_blocks = extend_blocks(applied, result_blocks)
             else:
-                try:
-                    applied = blk.apply(func)
-                except (TypeError, NotImplementedError):
-                    if not ignore_failures:
-                        raise
-                    dropped_any = True
-                    continue
+                applied = blk.apply(func)
                 result_blocks = extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
             index = Index([None])  # placeholder
         else:
             index = Index(range(result_blocks[0].values.shape[-1]))
-
-        if dropped_any:
-            # faster to skip _combine if we haven't dropped any blocks
-            return self._combine(result_blocks, copy=False, index=index)
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1862,7 +1839,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         self.axes = [axis]
         self.blocks = (block,)
         self.refs = refs
-        self.parent = parent if _using_copy_on_write() else None
+        self.parent = parent if using_copy_on_write() else None
 
     @classmethod
     def from_blocks(
@@ -1899,7 +1876,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_blk = type(blk)(arr, placement=bp, ndim=2)
         axes = [columns, self.axes[0]]
         refs: list[weakref.ref | None] = [weakref.ref(blk)]
-        parent = self if _using_copy_on_write() else None
+        parent = self if using_copy_on_write() else None
         return BlockManager(
             [new_blk], axes=axes, refs=refs, parent=parent, verify_integrity=False
         )
@@ -2043,7 +2020,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if _using_copy_on_write() and not self._has_no_reference(0):
+        if using_copy_on_write() and not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
             self.refs = None
             self.parent = None
@@ -2377,5 +2354,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
-def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+_mode_options = config._global_config["mode"]
+
+
+def using_copy_on_write():
+    return _mode_options["copy_on_write"]

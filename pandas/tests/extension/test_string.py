@@ -391,7 +391,7 @@ class TestGroupBy(base.BaseGroupbyTests):
             _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
@@ -420,3 +420,20 @@ class Test2DCompat(base.Dim2CompatTests):
                 reason="2D support not implemented for ArrowStringArray"
             )
             request.node.add_marker(mark)
+
+
+def test_searchsorted_with_na_raises(data_for_sorting, as_series):
+    # GH50447
+    b, c, a = data_for_sorting
+    arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
+    arr[-1] = pd.NA
+
+    if as_series:
+        arr = pd.Series(arr)
+
+    msg = (
+        "searchsorted requires array to be sorted, "
+        "which is impossible with NAs present."
+    )
+    with pytest.raises(ValueError, match=msg):
+        arr.searchsorted(b)

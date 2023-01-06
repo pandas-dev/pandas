@@ -274,7 +274,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index._with_infer(expected)
+        expected = Index(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -886,7 +886,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
+    return pytest.raises(expected_exception, match=None)
 
 
 cython_table = pd.core.common._cython_table.items()

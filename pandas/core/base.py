@@ -79,6 +79,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        Index,
         Series,
     )
 
@@ -530,12 +531,19 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        result = np.asarray(self._values, dtype=dtype)
-        # TODO(GH-24345): Avoid potential double copy
-        if copy or na_value is not lib.no_default:
-            result = result.copy()
-            if na_value is not lib.no_default:
-                result[np.asanyarray(self.isna())] = na_value
+        if na_value is not lib.no_default:
+            values = self._values.copy()
+            values[np.asanyarray(self.isna())] = na_value
+        else:
+            values = self._values
+
+        result = np.asarray(values, dtype=dtype)
+
+        if copy and na_value is lib.no_default:
+            if np.shares_memory(self._values[:2], result[:2]):
+                # Take slices to improve performance of check
+                result = result.copy()
+
         return result
 
     @final
@@ -1134,8 +1142,22 @@ class IndexOpsMixin(OpsMixin):
         self,
         sort: bool = False,
         use_na_sentinel: bool = True,
-    ):
-        return algorithms.factorize(self, sort=sort, use_na_sentinel=use_na_sentinel)
+    ) -> tuple[npt.NDArray[np.intp], Index]:
+
+        codes, uniques = algorithms.factorize(
+            self._values, sort=sort, use_na_sentinel=use_na_sentinel
+        )
+        if uniques.dtype == np.float16:
+            uniques = uniques.astype(np.float32)
+
+        if isinstance(self, ABCIndex):
+            # preserve e.g. NumericIndex, preserve MultiIndex
+            uniques = self._constructor(uniques)
+        else:
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
 
     _shared_docs[
         "searchsorted"

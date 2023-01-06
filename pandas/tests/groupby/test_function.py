@@ -137,9 +137,6 @@ class TestNumericOnly:
         )
         return df
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
@@ -169,12 +166,7 @@ class TestNumericOnly:
             ],
         )
 
-        if method == "mean":
-            with pytest.raises(TypeError, match="[Cc]ould not convert"):
-                getattr(gb, method)()
-            result = getattr(gb, method)(numeric_only=True)
-        else:
-            result = getattr(gb, method)()
+        result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -220,9 +212,6 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
 
@@ -236,9 +225,6 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
 
@@ -266,7 +252,7 @@ class TestNumericOnly:
         # have no Python fallback
         exception = NotImplementedError if method.startswith("cum") else TypeError
 
-        if method in ("min", "max", "cummin", "cummax"):
+        if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
                 [
@@ -276,11 +262,12 @@ class TestNumericOnly:
             )
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
-        elif method in ("sum", "mean"):
+        elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
                 [
                     "category type does not support sum operations",
-                    "Could not convert",
+                    "[Cc]ould not convert",
+                    "can't multiply sequence by non-int of type 'str'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -327,21 +314,6 @@ class TestGroupByNonCythonPaths:
     def gni(self, df):
         gni = df.groupby("A", as_index=False)
         return gni
-
-    # TODO: non-unique columns, as_index=False
-    def test_idxmax_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmax()
-
-    def test_idxmin_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
@@ -498,7 +470,6 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False])
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
     df = DataFrame(
@@ -593,10 +564,8 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
             method(*args, **kwargs)
     elif groupby_func not in has_axis:
         msg = "got an unexpected keyword argument 'axis'"
-        warn = FutureWarning if groupby_func == "skew" and not numeric_only else None
-        with tm.assert_produces_warning(warn, match="Dropping of nuisance columns"):
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
     # fillna and shift are successful even on object dtypes
     elif (numeric_only is None or not numeric_only) and groupby_func not in (
         "fillna",
@@ -711,7 +680,8 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(StringIO(raw), parse_dates=[0])
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()
@@ -1376,46 +1346,44 @@ def test_groupby_sum_timedelta_with_nat():
 
 
 @pytest.mark.parametrize(
-    "kernel, numeric_only_default, has_arg",
+    "kernel, has_arg",
     [
-        ("all", False, False),
-        ("any", False, False),
-        ("bfill", False, False),
-        ("corr", True, True),
-        ("corrwith", True, True),
-        ("cov", True, True),
-        ("cummax", False, True),
-        ("cummin", False, True),
-        ("cumprod", True, True),
-        ("cumsum", True, True),
-        ("diff", False, False),
-        ("ffill", False, False),
-        ("fillna", False, False),
-        ("first", False, True),
-        ("idxmax", True, True),
-        ("idxmin", True, True),
-        ("last", False, True),
-        ("max", False, True),
-        ("mean", False, True),
-        ("median", True, True),
-        ("min", False, True),
-        ("nth", False, False),
-        ("nunique", False, False),
-        ("pct_change", False, False),
-        ("prod", True, True),
-        ("quantile", True, True),
-        ("sem", True, True),
-        ("skew", True, True),
-        ("std", True, True),
-        ("sum", False, True),
-        ("var", True, True),
+        ("all", False),
+        ("any", False),
+        ("bfill", False),
+        ("corr", True),
+        ("corrwith", True),
+        ("cov", True),
+        ("cummax", True),
+        ("cummin", True),
+        ("cumprod", True),
+        ("cumsum", True),
+        ("diff", False),
+        ("ffill", False),
+        ("fillna", False),
+        ("first", True),
+        ("idxmax", True),
+        ("idxmin", True),
+        ("last", True),
+        ("max", True),
+        ("mean", True),
+        ("median", True),
+        ("min", True),
+        ("nth", False),
+        ("nunique", False),
+        ("pct_change", False),
+        ("prod", True),
+        ("quantile", True),
+        ("sem", True),
+        ("skew", True),
+        ("std", True),
+        ("sum", True),
+        ("var", True),
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
-def test_deprecate_numeric_only(
-    kernel, numeric_only_default, has_arg, numeric_only, keys
-):
+def test_numeric_only(kernel, has_arg, numeric_only, keys):
     # GH#46072
     # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
     # has_arg: Whether the op has a numeric_only arg
@@ -1426,26 +1394,9 @@ def test_deprecate_numeric_only(
 
     gb = df.groupby(keys)
     method = getattr(gb, kernel)
-    if (
-        has_arg
-        and (kernel not in ("idxmax", "idxmin") or numeric_only is True)
-        and (
-            # Cases where b does not appear in the result
-            numeric_only is True
-            or (numeric_only is lib.no_default and numeric_only_default)
-        )
-    ):
-        if numeric_only is True or not numeric_only_default:
-            warn = None
-        else:
-            warn = FutureWarning
-        if numeric_only is lib.no_default and numeric_only_default:
-            msg = f"The default value of numeric_only in DataFrameGroupBy.{kernel}"
-        else:
-            msg = f"Dropping invalid columns in DataFrameGroupBy.{kernel}"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = method(*args, **kwargs)
-
+    if has_arg and numeric_only is True:
+        # Cases where b does not appear in the result
+        result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
@@ -1579,26 +1530,17 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype is object:
-        err_category = NotImplementedError
-        err_msg = f"{groupby_func} does not implement numeric_only"
-        if groupby_func.startswith("cum"):
-            # cum ops already exhibit future behavior
-            warn_category = None
-            warn_msg = ""
-            err_category = TypeError
-            err_msg = f"{groupby_func} is not supported for object dtype"
-        elif groupby_func == "skew":
-            warn_category = None
-            warn_msg = ""
-            err_category = TypeError
-            err_msg = "Series.skew does not allow numeric_only=True with non-numeric"
-        else:
-            warn_category = FutureWarning
-            warn_msg = "This will raise a TypeError"
-
-        with tm.assert_produces_warning(warn_category, match=warn_msg):
-            with pytest.raises(err_category, match=err_msg):
-                method(*args, numeric_only=True)
+        msg = "|".join(
+            [
+                "Cannot use numeric_only=True",
+                "called with numeric_only=True and dtype object",
+                "Series.skew does not allow numeric_only=True with non-numeric",
+                "got an unexpected keyword argument 'numeric_only'",
+                "is not supported for object dtype",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            method(*args, numeric_only=True)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
@@ -1642,7 +1584,6 @@ def test_corrwith_with_1_axis():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.* is deprecated:FutureWarning")
 def test_multiindex_group_all_columns_when_empty(groupby_func):
     # GH 32464
     df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])

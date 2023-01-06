@@ -286,7 +286,7 @@ class TestNumpyReductions:
                 expected = obj.prod(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'prod'
+                # Index has no 'prod'
                 expected = obj._values.prod()
                 assert result == expected
             else:
@@ -317,7 +317,7 @@ class TestNumpyReductions:
                 expected = obj.sum(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'sum'
+                # Index has no 'sum'
                 expected = obj._values.sum()
                 assert result == expected
             else:
@@ -426,14 +426,10 @@ def test_np_matmul():
     # GH26650
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
-    expected_result = pd.DataFrame(data=[102])
+    expected = pd.DataFrame(data=[102])
 
-    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
-        result = np.matmul(df1, df2)
-    tm.assert_frame_equal(
-        expected_result,
-        result,
-    )
+    result = np.matmul(df1, df2)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_array_ufuncs_for_many_arguments():

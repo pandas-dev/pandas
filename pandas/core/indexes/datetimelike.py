@@ -82,18 +82,25 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
+        self._data.freq = value  # type: ignore[misc]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
@@ -446,7 +453,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
             new_freq = to_offset(Timedelta(res_i8.step))
-            res_i8 = res_i8
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
@@ -626,9 +632,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
+    ):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other)
+        result = super()._wrap_joined_index(joined, other, lidx, ridx)
         result._data._freq = self._get_join_freq(other)
         return result
 

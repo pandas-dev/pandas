@@ -1,7 +1,17 @@
 minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
-# reserve "manual" for mypy and pyright
-default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+# reserve "manual" for relatively slow hooks which we still want to run in CI
+default_stages: [
+    commit,
+    merge-commit,
+    push,
+    prepare-commit-msg,
+    commit-msg,
+    post-checkout,
+    post-commit,
+    post-merge,
+    post-rewrite
+]
 ci:
     autofix_prs: false
 repos:
@@ -17,28 +27,28 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
--   repo: https://github.com/python/black
-    rev: 22.10.0
-    hooks:
-    -   id: black
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
+        additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.2.1
+    rev: v0.10.1
     hooks:
     -   id: cython-lint
+    -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
+                 post-checkout, post-commit, post-merge, post-rewrite]
     -   id: trailing-whitespace
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
+                 post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.1
     hooks:
@@ -48,24 +58,28 @@ repos:
         # this particular codebase (e.g. src/headers, src/klib). However,
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
-        args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
+        args: [
+            --quiet,
+            '--extensions=c,h',
+            '--headers=h',
+            --recursive,
+            --linelength=88,
+            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
+        ]
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
     -   id: flake8
-        # Need to patch os.remove rule in pandas-dev-flaker
-        exclude: ^ci/fix_wheels.py
         additional_dependencies: &flake8_dependencies
-        - flake8==5.0.4
+        - flake8==6.0.0
         - flake8-bugbear==22.7.1
-        - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.5
+    rev: v2.15.9
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.5
+    rev: v2.15.9
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -78,17 +92,14 @@ repos:
             |^pandas/util/_test_decorators\.py  # keep excluded
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
-            |^pandas/core/tools/datetimes\.py
-            |^pandas/io/formats/format\.py
-            |^pandas/core/generic\.py
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.11.4
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.0
+    rev: v3.3.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -111,8 +122,19 @@ repos:
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
+        stages: [manual]
 -   repo: local
     hooks:
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==22.10.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright
@@ -158,6 +180,21 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+    -   id: inconsistent-namespace-usage
+        name: 'Check for inconsistent use of pandas namespace'
+        entry: python scripts/check_for_inconsistent_pandas_namespace.py
+        exclude: ^pandas/core/interchange/
+        language: python
+        types: [python]
+    -   id: no-os-remove
+        name: Check code for instances of os.remove
+        entry: os\.remove
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
+        exclude: |
+            (?x)^
+            pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
@@ -167,6 +204,20 @@ repos:
             \#\ type:\ (?!ignore)
             |\#\ type:\s?ignore(?!\[)
 
+            # foo._class__ instead of type(foo)
+            |\.__class__
+
+            # np.bool/np.object instead of np.bool_/np.object_
+            |np\.bool[^_8`]
+            |np\.object[^_8`]
+
+            # imports from collections.abc instead of `from collections import abc`
+            |from\ collections\.abc\ import
+
+            # Numpy
+            |from\ numpy\ import\ random
+            |from\ numpy\.random\ import
+
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
@@ -175,7 +226,17 @@ repos:
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
+
+            # {foo!r} instead of {repr(foo)}
+            |!r}
+
+            # builtin filter function
+            |(?<!def)[\(\s]filter\(
+
+            # exec
+            |[^a-zA-Z0-9_]exec\(
         types_or: [python, cython, rst]
+        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: cython-casting
         name: Check Cython casting is `<type>obj`, not `<type> obj`
         language: pygrep
@@ -206,9 +267,60 @@ repos:
         files: ^pandas/tests/extension/base
         types: [python]
         exclude: ^pandas/tests/extension/base/base\.py
+    -   id: unwanted-patterns-in-tests
+        name: Unwanted patterns in tests
+        language: pygrep
+        entry: |
+            (?x)
+            # pytest.xfail instead of pytest.mark.xfail
+            pytest\.xfail
+
+            # imports from pandas._testing instead of `import pandas._testing as tm`
+            |from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
+
+            # No direct imports from conftest
+            |conftest\ import
+            |import\ conftest
+
+            # pandas.testing instead of tm
+            |pd\.testing\.
+
+            # pd.api.types instead of from pandas.api.types import ...
+            |(pd|pandas)\.api\.types\.
+
+            # np.testing, np.array_equal
+            |(numpy|np)(\.testing|\.array_equal)
+
+            # unittest.mock (use pytest builtin monkeypatch fixture instead)
+            |(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)
+
+            # pytest raises without context
+            |\s\ pytest.raises
+
+            # pytest.warns (use tm.assert_produces_warning instead)
+            |pytest\.warns
+        files: ^pandas/tests/
+        types_or: [python, cython, rst]
+    -   id: unwanted-patterns-in-ea-tests
+        name: Unwanted patterns in EA tests
+        language: pygrep
+        entry: |
+            (?x)
+            tm.assert_(series|frame)_equal
+        files: ^pandas/tests/extension/base/
+        exclude: ^pandas/tests/extension/base/base\.py$
+        types_or: [python, cython, rst]
+    -   id: unwanted-patterns-in-cython
+        name: Unwanted patterns in Cython code
+        language: pygrep
+        entry: |
+            (?x)
+            # `<type>obj` as opposed to `<type> obj`
+            [a-zA-Z0-9*]>[ ]
+        types: [cython]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
-        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
@@ -227,6 +339,38 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
+    -   id: unwanted-patterns-bare-pytest-raises
+        name: Check for use of bare pytest raises
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
+        types: [python]
+        files: ^pandas/tests/
+        exclude: ^pandas/tests/extension/
+    -   id: unwanted-patterns-private-function-across-module
+        name: Check for use of private functions across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-private-import-across-module
+        name: Check for import of private attributes across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
+        types: [python]
+        exclude: |
+            (?x)
+            ^(asv_bench|pandas/tests|doc)/
+            |scripts/validate_min_versions_in_sync\.py$
+    -   id: unwanted-patterns-strings-to-concatenate
+        name: Check for use of not concatenated strings
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
+        types_or: [python, cython]
+    -   id: unwanted-patterns-strings-with-misplaced-whitespace
+        name: Check for strings with misplaced spaces
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
+        types_or: [python, cython]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python
@@ -269,6 +413,7 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        additional_dependencies: [tomli]
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
@@ -304,6 +449,16 @@ repos:
         files: ^pandas
         exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
         language: python
+        stages: [manual]
         additional_dependencies:
         - autotyping==22.9.0
         - libcst==0.4.7
+    -   id: check-test-naming
+        name: check that test names start with 'test'
+        entry: python -m scripts.check_test_naming
+        types: [python]
+        files: ^pandas/tests
+        language: python
+        exclude: |
+            (?x)
+            ^pandas/tests/generic/test_generic.py  # GH50380

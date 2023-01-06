@@ -26,13 +26,6 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.endswith(pattern)
 
 
-def assert_series_or_index_equal(left, right):
-    if isinstance(left, Series):
-        tm.assert_series_equal(left, right)
-    else:  # Index
-        tm.assert_index_equal(left, right)
-
-
 # test integer/float dtypes (inferred by constructor) and mixed
 
 
@@ -128,7 +121,7 @@ def test_empty_str_methods(any_string_dtype):
         DataFrame(columns=[0, 1], dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
-    tm.assert_frame_equal(empty_df, empty.str.get_dummies())
+    tm.assert_frame_equal(empty_df.set_axis([], axis=1), empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
