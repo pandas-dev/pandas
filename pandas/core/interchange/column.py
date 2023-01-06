@@ -81,11 +81,10 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    def size(self) -> int:  # type: ignore[override]
+    def size(self) -> int:
         """
         Size of the column, in elements.
         """
-        # error: Signature of "size" incompatible with supertype "Column"  [override]
         return self._col.size
 
     @property
