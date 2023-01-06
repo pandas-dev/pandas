@@ -851,6 +851,15 @@ def test_to_numeric_use_nullable_dtypes_downcasting_uint():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64", "Float64", "boolean"])
+def test_to_numeric_use_nullable_dtypes_already_nullable(dtype):
+    # GH#50505
+    ser = Series([1, pd.NA], dtype=dtype)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([1, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
 )

@@ -29,7 +29,7 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas as pd
-from pandas.core.arrays.numeric import NumericArray
+from pandas.core.arrays import BaseMaskedArray
 
 
 def to_numeric(
@@ -185,7 +185,7 @@ def to_numeric(
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
-    if isinstance(values, NumericArray):
+    if isinstance(values, BaseMaskedArray):
         mask = values._mask
         values = values._data[~mask]
 
@@ -251,6 +251,8 @@ def to_numeric(
     if (mask is not None or new_mask is not None) and not is_object_dtype(values.dtype):
         if mask is None:
             mask = new_mask
+        else:
+            mask = mask.copy()
         assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
@@ -268,7 +270,7 @@ def to_numeric(
             klass = BooleanArray
         else:
             klass = FloatingArray
-        values = klass(data, mask.copy())
+        values = klass(data, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
