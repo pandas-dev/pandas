@@ -88,4 +88,4 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
 
         return np.select(booleans, replacements, default=default)
 
-    return lambda df: _eval(df)
+    return _eval
