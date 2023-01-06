@@ -29,8 +29,8 @@ you do not have an account yet, you will need to create one first.
 
 To get started just login at gitpod, and grant the appropriate permissions to github.
 
-We have built a python 3.8 enviroment and all development dependencies will
-install when the enviroment starts.
+We have built a python 3.8 environment and all development dependencies will
+install when the environment starts.
 
 
 Forking the pandas repository
@@ -128,7 +128,7 @@ When using Gitpod, git is pre configured for you:
    feature to keep email address private. You can check the git
    configuration with the command ``git config --list`` in your terminal. Use
    ``git config --global user.email “your-secret-email@users.noreply.github.com”``
-   to set your email address to teh one you use to make commits with your github
+   to set your email address to the one you use to make commits with your github
    profile.
 #. As you started your workspace from your own pandas fork, you will by default
    have both ``upstream`` and ``origin`` added as remotes. You can verify this by
@@ -142,7 +142,7 @@ Rendering the pandas documentation
 ----------------------------------
 You can find the detailed documentation on how rendering the documentation with
 Sphinx works in the :ref:`contributing.howto-build-docs` section. To build the full
-docs you need to run the following command in teh docs directory::
+docs you need to run the following command in the docs directory::
 
     $ cd docs
     $ python make.py html
