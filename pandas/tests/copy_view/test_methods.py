@@ -115,6 +115,53 @@ def test_rename_columns_modify_parent(using_copy_on_write):
     tm.assert_frame_equal(df2, df2_orig)
 
 
+def test_pipe(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df_orig = df.copy()
+
+    def testfunc(df):
+        return df
+
+    df2 = df.pipe(testfunc)
+
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        expected = DataFrame({"a": [0, 2, 3], "b": 1.5})
+        tm.assert_frame_equal(df, expected)
+
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+
+def test_pipe_modify_df(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df_orig = df.copy()
+
+    def testfunc(df):
+        df.iloc[0, 0] = 100
+        return df
+
+    df2 = df.pipe(testfunc)
+
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        expected = DataFrame({"a": [100, 2, 3], "b": 1.5})
+        tm.assert_frame_equal(df, expected)
+
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+
 def test_reindex_columns(using_copy_on_write):
     # Case: reindexing the column returns a new dataframe
     # + afterwards modifying the result
