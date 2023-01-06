@@ -153,7 +153,7 @@ Alternatively you can build a single page with::
 
 You have two main options to render the documentation in Gitpod.
 
-Option 1: Using Liveserve
+Option 1: using Liveserve
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #. View the documentation in ``pandas/doc/build/html``.
@@ -168,7 +168,7 @@ Option 1: Using Liveserve
    closing it and click on the **Open in browser** button in the pop-up.
 #. To stop the server click on the **Port: 5500** button on the status bar.
 
-Option 2: Using the rst extension
+Option 2: using the rst extension
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A quick and easy way to see live changes in a ``.rst`` file as you work on it
