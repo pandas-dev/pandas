@@ -107,6 +107,12 @@ cdef class IntervalMixin:
     def mid(self):
         """
         Return the midpoint of the Interval.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5)
+        >>> iv.mid
+        2.5
         """
         try:
             return 0.5 * (self.left + self.right)
