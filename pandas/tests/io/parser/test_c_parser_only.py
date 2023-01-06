@@ -4,7 +4,7 @@ as a CParser-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
-
+from decimal import Decimal
 from io import (
     BytesIO,
     StringIO,
@@ -169,8 +169,6 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 @td.skip_if_32bit
 @pytest.mark.slow
 def test_precise_conversion(c_parser_only):
-    from decimal import Decimal
-
     parser = c_parser_only
 
     normal_errors = []

@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -467,8 +468,6 @@ class TestDataFrameIndexing:
 
     def test_setitem_ambig(self):
         # Difficulties with mixed-type data
-        from decimal import Decimal
-
         # Created as float type
         dm = DataFrame(index=range(3), columns=range(3))
 

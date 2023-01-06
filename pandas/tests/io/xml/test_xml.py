@@ -8,6 +8,7 @@ from lzma import LZMAError
 import os
 from tarfile import ReadError
 from urllib.error import HTTPError
+from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile
 
 import numpy as np
@@ -491,8 +492,6 @@ def test_empty_string_lxml(val):
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_etree(val):
-    from xml.etree.ElementTree import ParseError
-
     with pytest.raises(ParseError, match="no element found"):
         read_xml(val, parser="etree")
 
@@ -511,8 +510,6 @@ def test_wrong_file_path_lxml():
 
 
 def test_wrong_file_path_etree():
-    from xml.etree.ElementTree import ParseError
-
     filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(

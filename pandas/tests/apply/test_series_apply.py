@@ -2,6 +2,8 @@ from collections import (
     Counter,
     defaultdict,
 )
+from decimal import Decimal
+import math
 
 import numpy as np
 import pytest
@@ -37,8 +39,6 @@ def test_apply(datetime_series):
         tm.assert_series_equal(datetime_series.apply(np.sqrt), np.sqrt(datetime_series))
 
         # element-wise apply
-        import math
-
         tm.assert_series_equal(datetime_series.apply(math.exp), np.exp(datetime_series))
 
     # empty series
@@ -525,8 +525,6 @@ def test_map_type_inference():
 
 
 def test_map_decimal(string_series):
-    from decimal import Decimal
-
     result = string_series.map(lambda x: Decimal(str(x)))
     assert result.dtype == np.object_
     assert isinstance(result[0], Decimal)
