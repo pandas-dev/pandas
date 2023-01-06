@@ -249,13 +249,15 @@ IntervalIndex components
 
 .. _api.multiindex:
 
-MultiIndex
+IndexSlice
 ----------
 .. autosummary::
    :toctree: api/
 
    IndexSlice
 
+MultiIndex
+----------
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
