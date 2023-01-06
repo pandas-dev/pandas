@@ -3790,11 +3790,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
+        indices = np.asarray(indices, dtype=np.intp)
         if (
             axis == 0
+            and indices.ndim == 1
             and using_copy_on_write()
             and array_equal_fast(
-                np.asarray(indices, dtype=np.intp),
+                indices,
                 np.arange(0, len(self), dtype=np.intp),
             )
         ):
