@@ -5,6 +5,7 @@ from io import StringIO
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import pytest
@@ -1730,8 +1731,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
-        import time
-
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
