@@ -108,7 +108,6 @@ Other enhancements
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
 - Improved error message in :func:`to_datetime` for non-ISO8601 formats, informing users about the position of the first error (:issue:`50361`)
 - Improved error message when trying to align :class:`DataFrame` objects (for example, in :func:`DataFrame.compare`) to clarify that "identically labelled" refers to both index and columns (:issue:`50083`)
-- Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -792,6 +791,8 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
 - Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
+- Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
+- Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -830,6 +831,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
 - Bug in :func:`Timestamp.utctimetuple` raising a ``TypeError`` (:issue:`32174`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
 
 Timedelta
 ^^^^^^^^^
