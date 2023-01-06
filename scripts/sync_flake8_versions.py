@@ -1,5 +1,5 @@
 """
-Check that the flake8 (and pandas-dev-flaker) pins are the same in:
+Check that the flake8 pins are the same in:
 
 - environment.yml
 - .pre-commit-config.yaml, in the flake8 hook
@@ -103,17 +103,13 @@ def get_revisions(
     precommit_config: YamlMapping, environment: YamlMapping
 ) -> tuple[Revisions, Revisions]:
     flake8_revisions = Revisions(name="flake8")
-    pandas_dev_flaker_revisions = Revisions(name="pandas-dev-flaker")
 
     repos = precommit_config["repos"]
     flake8_repo, flake8_hook = _get_repo_hook(repos, "flake8")
     flake8_revisions.pre_commit = Revision("flake8", "==", flake8_repo["rev"])
     flake8_additional_dependencies = []
     for dep in _process_dependencies(flake8_hook.get("additional_dependencies", [])):
-        if dep.name == "pandas-dev-flaker":
-            pandas_dev_flaker_revisions.pre_commit = dep
-        else:
-            flake8_additional_dependencies.append(dep)
+        flake8_additional_dependencies.append(dep)
 
     environment_dependencies = environment["dependencies"]
     environment_additional_dependencies = []
@@ -121,8 +117,6 @@ def get_revisions(
         if dep.name == "flake8":
             flake8_revisions.environment = dep
             environment_additional_dependencies.append(dep)
-        elif dep.name == "pandas-dev-flaker":
-            pandas_dev_flaker_revisions.environment = dep
         else:
             environment_additional_dependencies.append(dep)
 
@@ -131,8 +125,7 @@ def get_revisions(
         environment_additional_dependencies,
     )
 
-    for revisions in flake8_revisions, pandas_dev_flaker_revisions:
-        _validate_revisions(revisions)
+    _validate_revisions(flake8_revisions)
 
 
 if __name__ == "__main__":
