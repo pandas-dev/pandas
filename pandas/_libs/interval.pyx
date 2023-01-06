@@ -110,7 +110,7 @@ cdef class IntervalMixin:
 
         Examples
         --------
-        >>> iv.Interval(0, 5)
+        >>> iv = pd.Interval(0, 5)
         >>> iv.mid
         2.5
         """
