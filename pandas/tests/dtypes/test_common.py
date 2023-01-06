@@ -556,6 +556,24 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(pd.Series([1, 2]))
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
 
+    class MyNumericDType(ExtensionDtype):
+        @property
+        def type(self):
+            return str
+
+        @property
+        def name(self):
+            raise NotImplementedError
+
+        @classmethod
+        def construct_array_type(cls):
+            raise NotImplementedError
+
+        def _is_numeric(self) -> bool:
+            return True
+
+    assert com.is_numeric_dtype(MyNumericDType())
+
 
 def test_is_float_dtype():
     assert not com.is_float_dtype(str)

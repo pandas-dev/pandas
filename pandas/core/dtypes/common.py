@@ -1200,6 +1200,8 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     """
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ._is_numeric
     )
 
 

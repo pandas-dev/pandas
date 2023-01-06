@@ -37,7 +37,10 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_numeric_dtype,
+)
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
@@ -549,16 +552,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
             super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
-
-    def test_in_numeric_groupby(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="ArrowExtensionArray doesn't support .sum() yet.",
-                )
-            )
-        super().test_in_numeric_groupby(data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
@@ -1444,6 +1437,19 @@ def test_is_bool_dtype():
     result = s[data]
     expected = s[np.asarray(data)]
     tm.assert_series_equal(result, expected)
+
+
+def test_is_numeric_dtype(data):
+    # GH 50563
+    pa_type = data.dtype.pyarrow_dtype
+    if (
+        pa.types.is_floating(pa_type)
+        or pa.types.is_integer(pa_type)
+        or pa.types.is_decimal(pa_type)
+    ):
+        assert is_numeric_dtype(data)
+    else:
+        assert not is_numeric_dtype(data)
 
 
 def test_pickle_roundtrip(data):
