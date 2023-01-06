@@ -199,6 +199,25 @@ class TestValidator:
                 self._import_path(klass="BadDocstrings", func="leftover_files")
             )
 
+    def test_validate_all_ignore_functions(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings,
+            "get_all_api_items",
+            lambda: [
+                (
+                    "pandas.DataFrame.align",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                )
+            ],
+        )
+        result = validate_docstrings.validate_all(
+            prefix=None,
+            ignore_functions=["pandas.DataFrame.align"],
+        )
+        assert len(result) == 0
+
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings,

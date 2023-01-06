@@ -84,7 +84,33 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (RT02)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT02 --ignore_functions=pandas.Series.align,pandas.Series.dt.total_seconds,pandas.Series.cat.rename_categories,pandas.Series.cat.reorder_categories,pandas.Series.cat.add_categories,pandas.Series.cat.remove_categories,pandas.Series.cat.remove_unused_categories,pandas.Index.all,pandas.Index.any,pandas.CategoricalIndex.rename_categories,pandas.CategoricalIndex.reorder_categories,pandas.CategoricalIndex.add_categories,pandas.CategoricalIndex.remove_categories,pandas.CategoricalIndex.remove_unused_categories,pandas.MultiIndex.drop,pandas.DatetimeIndex.to_pydatetime,pandas.TimedeltaIndex.to_pytimedelta,pandas.core.groupby.SeriesGroupBy.apply,pandas.core.groupby.DataFrameGroupBy.apply,pandas.io.formats.style.Styler.export,pandas.api.extensions.ExtensionArray.astype,pandas.api.extensions.ExtensionArray.dropna,pandas.api.extensions.ExtensionArray.isna,pandas.api.extensions.ExtensionArray.repeat,pandas.api.extensions.ExtensionArray.unique,pandas.DataFrame.align
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT02 --ignore_functions \
+    	    pandas.Series.align \
+	    pandas.Series.dt.total_seconds \
+	    pandas.Series.cat.rename_categories \
+	    pandas.Series.cat.reorder_categories \
+	    pandas.Series.cat.add_categories \
+	    pandas.Series.cat.remove_categories \
+	    pandas.Series.cat.remove_unused_categories \
+	    pandas.Index.all \
+	    pandas.Index.any \
+	    pandas.CategoricalIndex.rename_categories \
+	    pandas.CategoricalIndex.reorder_categories \
+	    pandas.CategoricalIndex.add_categories \
+	    pandas.CategoricalIndex.remove_categories \
+	    pandas.CategoricalIndex.remove_unused_categories \
+	    pandas.MultiIndex.drop \
+	    pandas.DatetimeIndex.to_pydatetime \
+	    pandas.TimedeltaIndex.to_pytimedelta \
+	    pandas.core.groupby.SeriesGroupBy.apply \
+	    pandas.core.groupby.DataFrameGroupBy.apply \
+	    pandas.io.formats.style.Styler.export \
+	    pandas.api.extensions.ExtensionArray.astype \
+	    pandas.api.extensions.ExtensionArray.dropna \
+	    pandas.api.extensions.ExtensionArray.isna \
+	    pandas.api.extensions.ExtensionArray.repeat \
+	    pandas.api.extensions.ExtensionArray.unique \
+	    pandas.DataFrame.align
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

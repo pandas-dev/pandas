@@ -321,12 +321,7 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
 
     ignore_functions = set(ignore_functions or [])
 
-    base_path = pathlib.Path(__file__).parent.parent
-    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
-    api_items = []
-    for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
-            api_items += list(get_api_items(f))
+    api_items = get_all_api_items()
 
     for func_name, _, section, subsection in api_items:
         if func_name in ignore_functions:
@@ -352,6 +347,16 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
         seen[shared_code_key] = func_name
 
     return result
+
+
+def get_all_api_items():
+    base_path = pathlib.Path(__file__).parent.parent
+    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
+    api_items = []
+    for api_doc_fname in api_doc_fnames.glob("*.rst"):
+        with open(api_doc_fname) as f:
+            api_items += list(get_api_items(f))
+    return api_items
 
 
 def print_validate_all_results(
@@ -477,7 +482,7 @@ if __name__ == "__main__":
     )
     argparser.add_argument(
         "--ignore_functions",
-        default=None,
+        nargs="*",
         help="function or method to not validate "
         "(e.g. pandas.DataFrame.head). "
         "Inverse of the `function` argument.",
@@ -491,6 +496,6 @@ if __name__ == "__main__":
             args.errors.split(",") if args.errors else None,
             args.format,
             args.ignore_deprecated,
-            args.ignore_functions.split(",") if args.ignore_functions else None,
+            args.ignore_functions,
         )
     )
