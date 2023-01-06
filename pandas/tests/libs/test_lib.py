@@ -243,6 +243,27 @@ class TestIndexing:
         expected = np.array([4, 2, 3, 6, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_array_equal_fast(self, dtype):
+        # GH#50592
+        left = np.arange(1, 100, dtype=dtype)
+        right = np.arange(1, 100, dtype=dtype)
+        assert lib.array_equal_fast(left, right)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_array_equal_fast_not_equal(self, dtype):
+        # GH#50592
+        left = np.array([1, 2], dtype=dtype)
+        right = np.array([2, 2], dtype=dtype)
+        assert not lib.array_equal_fast(left, right)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_array_equal_fast_not_equal_shape(self, dtype):
+        # GH#50592
+        left = np.array([1, 2, 3], dtype=dtype)
+        right = np.array([2, 2], dtype=dtype)
+        assert not lib.array_equal_fast(left, right)
+
 
 def test_cache_readonly_preserve_docstrings():
     # GH18197
