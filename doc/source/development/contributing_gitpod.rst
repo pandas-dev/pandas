@@ -1,7 +1,7 @@
-.. contributing-gitpod:
+.. _contributing-gitpod:
 
 Using Gitpod for pandas development
-==================================
+===================================
 
 This section of the documentation will guide you through:
 
@@ -27,17 +27,11 @@ To be able to use Gitpod, you will need to have the Gitpod app installed on your
 GitHub account, so if
 you do not have an account yet, you will need to create one first.
 
-Head over to the `Gitpod`_ website and click on the **Continue with GitHub**
-button. You will be redirected to the GitHub authentication page.
-You will then be asked to install the `Gitpod GitHub app <https://github.com/marketplace/gitpod-io>`_.
+To get started just login at gitpod, and grant the appropriate permissions to github.
 
-Make sure to select **All repositories** access option to avoid issues with
-permissions later on. Click on the green **Install** button
+We have built a python 3.8 enviroment and all development dependencies will
+install when the enviroment starts.
 
-.. image:: ./gitpod-imgs/installing-gitpod-io.png
-   :alt: Gitpod repository access and installation screenshot
-
-This will install the necessary hooks for the integration.
 
 Forking the pandas repository
 -----------------------------
@@ -46,9 +40,10 @@ The best way to work on pandas as a contributor is by making a fork of the
 repository first.
 
 #. Browse to the `pandas repository on GitHub`_ and `create your own fork`_.
+
 #. Browse to your fork. Your fork will have a URL like
    https://github.com/noatamir/pandas-dev, except with your GitHub username in place of
-``noatamir``.
+   ``noatamir``.
 
 Starting Gitpod
 ---------------
@@ -64,7 +59,7 @@ repository:
    a new workspace.
 
 #. Alternatively, if you do not want to install the browser extension, you can
-   visit https://gitpod.io/#https://github.com/USERNAME/pandas-dev replacing
+   visit https://gitpod.io/#https://github.com/USERNAME/pandas replacing
    ``USERNAME`` with your GitHub username.
 
 #. In both cases, this will open a new tab on your web browser and start
@@ -144,7 +139,7 @@ When using Gitpod, git is pre configured for you:
       :alt: Gitpod workspace branches plugin screenshot
 
 Rendering the pandas documentation
----------------------------------
+----------------------------------
 You can find the detailed documentation on how rendering the documentation with
 Sphinx works in the :ref:`contributing.howto-build-docs` section. To build the full
 docs you need to run the following command in teh docs directory::
@@ -156,7 +151,7 @@ Alternatively you can build a single page with::
 
     python make.py html python make.py --single development/contributing_gitpod.rst
 
-yYu have two main options to render the documentation in Gitpod.
+You have two main options to render the documentation in Gitpod.
 
 Option 1: Using Liveserve
 ~~~~~~~~~~~~~~~~~~~~~~~~~
