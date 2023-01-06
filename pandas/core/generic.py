@@ -3790,17 +3790,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        indices = np.asarray(indices, dtype=np.intp)
-        if (
-            axis == 0
-            and indices.ndim == 1
-            and using_copy_on_write()
-            and array_equal_fast(
-                indices,
-                np.arange(0, len(self), dtype=np.intp),
-            )
-        ):
-            return self.copy(deep=None)
+        if not isinstance(indices, slice):
+            indices = np.asarray(indices, dtype=np.intp)
+            if (
+                axis == 0
+                and indices.ndim == 1
+                and using_copy_on_write()
+                and array_equal_fast(
+                    indices,
+                    np.arange(0, len(self), dtype=np.intp),
+                )
+            ):
+                return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indices,
