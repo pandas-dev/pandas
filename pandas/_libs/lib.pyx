@@ -50,6 +50,7 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int32_t,
     int64_t,
     intp_t,
     ndarray,
@@ -638,6 +639,34 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
             raise
 
         cnp.PyArray_MultiIter_NEXT(mi)
+
+    return True
+
+
+ctypedef fused int6432_t:
+    int64_t
+    int32_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equal_fast(
+    ndarray[int6432_t, ndim=1] left, ndarray[int6432_t, ndim=1] right,
+) -> bool:
+    """
+    Perform an element by element comparison on 1-d integer arrays, meant for indexer
+    comparisons
+    """
+    cdef:
+        Py_ssize_t i, n = left.size
+
+    if left.size != right.size:
+        return False
+
+    for i in range(n):
+
+        if left[i] != right[i]:
+            return False
 
     return True
 
