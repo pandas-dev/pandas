@@ -36,6 +36,7 @@ Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
 The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
 
 * :func:`read_csv`
+* :func:`read_clipboard`
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
@@ -49,6 +50,7 @@ Additionally a new global configuration, ``mode.dtype_backend`` can now be used 
 to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
+* :func:`read_clipboard` (with ``engine="python"``)
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
