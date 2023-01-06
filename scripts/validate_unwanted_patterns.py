@@ -52,6 +52,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
+    "_arrow_dtype_mapping",
 }
 
 
