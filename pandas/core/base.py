@@ -38,6 +38,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
@@ -532,7 +533,15 @@ class IndexOpsMixin(OpsMixin):
             )
 
         if na_value is not lib.no_default:
-            values = self._values.copy()
+            values = self._values
+            if not can_hold_element(values, na_value):
+                # if we can't hold the na_value asarray either makes a copy or we
+                # error before modifying values. The asarray later on thus won't make
+                # another copy
+                values = np.asarray(values, dtype=dtype)
+            else:
+                values = values.copy()
+
             values[np.asanyarray(self.isna())] = na_value
         else:
             values = self._values
