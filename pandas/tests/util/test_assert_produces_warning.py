@@ -216,9 +216,26 @@ def test_raises_during_exception():
     msg = "Did not see expected warning of class 'UserWarning'"
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(UserWarning):
-            raise Exception
+            raise ValueError
 
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(UserWarning):
             warnings.warn("FutureWarning", FutureWarning)
-            raise Exception
+            raise IndexError
+
+    msg = "Caused unexpected warning"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(None):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise SystemError
+
+
+def test_passes_during_exception():
+    with pytest.raises(SyntaxError, match="Error"):
+        with tm.assert_produces_warning(None):
+            raise SyntaxError("Error")
+
+    with pytest.raises(ValueError, match="Error"):
+        with tm.assert_produces_warning(FutureWarning, match="FutureWarning"):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise ValueError("Error")
