@@ -130,6 +130,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas import get_option
 from pandas.core import (
     algorithms as algos,
     arraylike,
@@ -157,7 +158,10 @@ from pandas.core.internals import (
     BlockManager,
     SingleArrayManager,
 )
-from pandas.core.internals.construction import mgr_to_mgr
+from pandas.core.internals.construction import (
+    mgr_to_mgr,
+    ndarray_to_mgr,
+)
 from pandas.core.internals.managers import using_copy_on_write
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
@@ -774,7 +778,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if copy is False and not _using_copy_on_write():
+            if copy is False and not using_copy_on_write():
                 return self
             return self.copy(deep=copy)
 
@@ -782,7 +786,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_axes = (self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN))
         new_values = self.values.swapaxes(i, j)
-        if copy:
+        if using_copy_on_write() and self._mgr.is_single_block:
+            # This should only get hit in case of having a single block, otherwise a
+            # copy is made, we don't have to set up references.
+            new_mgr = ndarray_to_mgr(
+                new_values,
+                *new_axes,
+                dtype=None,
+                copy=False,
+                typ=get_option("mode.data_manager"),
+            )
+            new_mgr.parent = self._mgr
+            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+
+        elif (copy or copy is None) and self._mgr.is_single_block:
             new_values = new_values.copy()
 
         return self._constructor(
