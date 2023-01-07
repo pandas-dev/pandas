@@ -38,23 +38,23 @@ def test_where_unsafe_float(float_numpy_dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype,expected_dtype",
+    "dtype,expected_dtype,warn",
     [
-        (np.int8, np.float64),
-        (np.int16, np.float64),
-        (np.int32, np.float64),
-        (np.int64, np.float64),
-        (np.float32, np.float32),
-        (np.float64, np.float64),
+        (np.int8, np.float64, FutureWarning),
+        (np.int16, np.float64, FutureWarning),
+        (np.int32, np.float64, FutureWarning),
+        (np.int64, np.float64, FutureWarning),
+        (np.float32, np.float32, None),
+        (np.float64, np.float64, None),
     ],
 )
-def test_where_unsafe_upcast(dtype, expected_dtype):
+def test_where_unsafe_upcast(dtype, expected_dtype, warn):
     # see gh-9743
     s = Series(np.arange(10), dtype=dtype)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
     expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with tm.assert_produces_warning(warn, match="incompatible dtype"):
         s[mask] = values
     tm.assert_series_equal(s, expected)
 

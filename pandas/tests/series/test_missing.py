@@ -99,6 +99,7 @@ def test_hasnans_uncached_for_series():
     ser = idx.to_series()
     assert ser.hasnans is False
     assert not hasattr(ser, "_cache")
-    ser.iloc[-1] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        ser.iloc[-1] = np.nan
     assert ser.hasnans is True
     assert Series.hasnans.__doc__ == Index.hasnans.__doc__
