@@ -642,13 +642,14 @@ def test_items(using_copy_on_write):
     for name, vals in df.items():
         ser = Series(vals)
 
-        if using_copy_on_write:
-            assert np.shares_memory(ser.values, get_array(df, name))
-        else:
-            assert not np.shares_memory(ser.values, get_array(df, name))
+        assert np.shares_memory(ser.values, get_array(df, name))
 
         # mutating df2 triggers a copy-on-write for that column / block
         ser.iloc[0] = 0
 
-        assert not np.shares_memory(ser.values, get_array(df, name))
-        tm.assert_frame_equal(df, df_orig)
+        if using_copy_on_write:
+            assert not np.shares_memory(ser.values, get_array(df, name))
+            tm.assert_frame_equal(df, df_orig)
+        else:
+            # Original frame will be modified
+            assert df.loc[0, name] == 0
