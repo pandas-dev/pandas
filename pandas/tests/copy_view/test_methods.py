@@ -115,6 +115,53 @@ def test_rename_columns_modify_parent(using_copy_on_write):
     tm.assert_frame_equal(df2, df2_orig)
 
 
+def test_pipe(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df_orig = df.copy()
+
+    def testfunc(df):
+        return df
+
+    df2 = df.pipe(testfunc)
+
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        expected = DataFrame({"a": [0, 2, 3], "b": 1.5})
+        tm.assert_frame_equal(df, expected)
+
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+
+def test_pipe_modify_df(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df_orig = df.copy()
+
+    def testfunc(df):
+        df.iloc[0, 0] = 100
+        return df
+
+    df2 = df.pipe(testfunc)
+
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        expected = DataFrame({"a": [100, 2, 3], "b": 1.5})
+        tm.assert_frame_equal(df, expected)
+
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+
 def test_reindex_columns(using_copy_on_write):
     # Case: reindexing the column returns a new dataframe
     # + afterwards modifying the result
@@ -170,6 +217,27 @@ def test_select_dtypes(using_copy_on_write):
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 0
     if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "filter_kwargs", [{"items": ["a"]}, {"like": "a"}, {"regex": "a"}]
+)
+def test_filter(using_copy_on_write, filter_kwargs):
+    # Case: selecting columns using `filter()` returns a new dataframe
+    # + afterwards modifying the result
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.filter(**filter_kwargs)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column/block
+    if using_copy_on_write:
+        df2.iloc[0, 0] = 0
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
 
@@ -634,6 +702,25 @@ def test_droplevel(using_copy_on_write):
 
     assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_squeeze(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    series = df.squeeze()
+
+    # Should share memory regardless of CoW since squeeze is just an iloc
+    assert np.shares_memory(series.values, get_array(df, "a"))
+
+    # mutating squeezed df triggers a copy-on-write for that column/block
+    series.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(series.values, get_array(df, "a"))
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        # Without CoW the original will be modified
+        assert np.shares_memory(series.values, get_array(df, "a"))
+        assert df.loc[0, "a"] == 0
 
 
 def test_items(using_copy_on_write):
