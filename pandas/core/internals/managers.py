@@ -1211,8 +1211,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 return value[placement.indexer]
 
         # Accessing public blknos ensures the public versions are initialized
+        # print(f"Loc is {loc}")
         blknos = self.blknos[loc]
+        # print(f"Blknos is {blknos}")
         blklocs = self.blklocs[loc].copy()
+        # print(f"Blklocs is {blklocs}")
+        # print(f"Blocks is {self.blocks}")
 
         unfit_mgr_locs = []
         unfit_val_locs = []
@@ -1223,8 +1227,32 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
-                    self._clear_reference_block(blkno_l)
+
+                    # print("Hit here")
+                    # print(f"Blk locs is {blk_locs}")
+                    # print(f"Blkno_l is {blkno_l}")
+                    prev_refs = self.refs[blkno_l]
+                    leftover_blocks = blk.delete(blk_locs)
+                    num_extra_blocks = len(leftover_blocks)
+                    # Preserve refs for unchanged blocks
+                    extra_refs = [prev_refs] * num_extra_blocks
+                    self.refs = self.refs[:blkno_l] + extra_refs + self.refs[blkno_l:]
+
+                    # TODO: Are we sure we want 2D?
+                    nb = new_block_2d(value, placement=blk._mgr_locs)
+                    old_blocks = self.blocks
+                    new_blocks = (
+                        old_blocks[:blkno_l]
+                        + tuple(leftover_blocks[:blkno_l])
+                        + (nb,)
+                        + tuple(leftover_blocks[blkno_l:])
+                        + old_blocks[blkno_l + num_extra_blocks :]
+                    )
+                    self.blocks = new_blocks
+
+                    self._rebuild_blknos_and_blklocs()
+                    # blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
+                    # self._clear_reference_block(blkno_l)
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
