@@ -321,9 +321,7 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
 
     ignore_functions = set(ignore_functions or [])
 
-    api_items = get_all_api_items()
-
-    for func_name, _, section, subsection in api_items:
+    for func_name, _, section, subsection in get_all_api_items():
         if func_name in ignore_functions:
             continue
         if prefix and not func_name.startswith(prefix):
@@ -352,11 +350,9 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
 def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
-    api_items = []
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
         with open(api_doc_fname) as f:
-            api_items += list(get_api_items(f))
-    return api_items
+            yield from get_api_items(f)
 
 
 def print_validate_all_results(

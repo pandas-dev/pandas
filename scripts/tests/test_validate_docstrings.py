@@ -209,14 +209,21 @@ class TestValidator:
                     "func",
                     "current_section",
                     "current_subsection",
-                )
+                ),
+                (
+                    "pandas.Index.all",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                ),
             ],
         )
         result = validate_docstrings.validate_all(
             prefix=None,
             ignore_functions=["pandas.DataFrame.align"],
         )
-        assert len(result) == 0
+        assert len(result) == 1
+        assert "pandas.Index.all" in result
 
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(
