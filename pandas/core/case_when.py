@@ -18,6 +18,7 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
     Create a callable for assignment based on a condition or multiple conditions.
 
     This is useful when you want to assign a column based on multiple conditions.
+    Uses `np.select` to perform the assignment.
 
     Parameters
     ----------
@@ -26,8 +27,9 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
             `condition0`, `value0`, `condition1`, `value1`, ...
         `condition` can be a 1-D boolean array/series or a callable
         that evaluate to a 1-D boolean array/series.
-    default : Any, default is `None`.
-        The default value to be used if all conditions evaluate False.
+    default : Any, default is `np.nan`.
+        The default value to be used if all conditions evaluate False. This value
+        will be passed to the underlying `np.select` call.
 
     Returns
     -------
@@ -72,7 +74,7 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
         )
 
     if default is lib.no_default:
-        default = None
+        default = np.nan
 
     def _eval(df: pd.DataFrame) -> np.ndarray:
         booleans = []
