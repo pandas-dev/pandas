@@ -608,7 +608,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = right = data
 
         for d in data:
-            if isna(d):
+            if not isinstance(d, tuple) and isna(d):
                 lhs = rhs = np.nan
             else:
                 name = cls.__name__
