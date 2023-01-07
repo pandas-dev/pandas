@@ -724,22 +724,24 @@ def test_squeeze(using_copy_on_write):
 
 
 @pytest.mark.parametrize(
-    "to_replace",
+    "replace_kwargs",
     [
-        {"a": 1, "b": 4},
+        {"to_replace": {"a": 1, "b": 4}, "value": -1},
         # Test CoW splits blocks to avoid copying unchanged columns
-        {"a": 1},
+        {"to_replace": {"a": 1}, "value": -1},
+        {"to_replace": {"b": 4}, "value": -1},
+        # TODO: broken, fix by fixing Block.replace_list()
+        # {"to_replace": {"b": 1}},
         # TODO: broken, fix by fixing Block.replace()
         # 1
     ],
 )
-def test_replace(using_copy_on_write, to_replace):
+def test_replace(using_copy_on_write, replace_kwargs):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["foo", "bar", "baz"]})
     df_orig = df.copy()
 
-    df_replaced = df.replace(to_replace=to_replace, value=-1)
+    df_replaced = df.replace(**replace_kwargs)
 
-    # Should share memory regardless of CoW since squeeze is just an iloc
     if using_copy_on_write:
         if (df_replaced["b"] == df["b"]).all():
             assert np.shares_memory(get_array(df_replaced, "b"), get_array(df, "b"))
