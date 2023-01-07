@@ -488,3 +488,26 @@ registers the default "matplotlib" backend as follows.
 
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.
+
+.. _extending.pandas_priority:
+
+Arithmetic with 3rd party types
+-------------------------------
+
+In order to control how arithmetic works between a custom type and a pandas type,
+implement ``__pandas_priority__``.  Similar to numpy's ``__array_priority__``
+semantics, arithmetic methods on :class:`DataFrame`, :class:`Series`, and :class:`Index`
+objects will return ``NotImplemented`` if the ``other`` has a higher ``__array_priority__``.
+
+.. code-block:: python
+
+    class MyClass:
+        __pandas_priority__ = 5000
+
+        def __add__(self, other):
+            return self
+
+    left = MyClass()
+    right = pd.Series([1, 2, 3])
+    assert right.__add__(left) is NotImplemented
+    assert right + left is left
