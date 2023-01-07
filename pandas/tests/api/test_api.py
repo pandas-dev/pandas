@@ -255,11 +255,6 @@ class TestTesting(Base):
 
         self.check(testing, self.funcs)
 
-    def test_util_in_top_level(self, monkeypatch):
-        # Can't import pandas from the test directory since its not
-        # built inplace with meson
-        if pd._built_with_meson:
-            monkeypatch.chdir("..")
-
+    def test_util_in_top_level(self):
         with pytest.raises(AttributeError, match="foo"):
             pd.util.foo

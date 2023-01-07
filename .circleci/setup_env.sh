@@ -55,6 +55,6 @@ if pip list | grep -q ^pandas; then
 fi
 
 echo "Install pandas"
-python -m pip install --no-build-isolation -v .
+python -m pip install --no-build-isolation -ve .
 
 echo "done"

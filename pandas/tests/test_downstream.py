@@ -130,21 +130,13 @@ def test_xarray_cftimeindex_nearest():
     assert result == expected
 
 
-def test_oo_optimizable(monkeypatch):
+def test_oo_optimizable():
     # GH 21071
-    # Can't import pandas from the test directory since its not
-    # built inplace with meson
-    if pd._built_with_meson:
-        monkeypatch.chdir("..")
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
-def test_oo_optimized_datetime_index_unpickle(monkeypatch):
+def test_oo_optimized_datetime_index_unpickle():
     # GH 42866
-    # Can't import pandas from the test directory since its not
-    # built inplace with meson
-    if pd._built_with_meson:
-        monkeypatch.chdir("..")
     subprocess.check_call(
         [
             sys.executable,
@@ -245,11 +237,7 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-def test_missing_required_dependency(monkeypatch):
-    # TODO: This test is basically disabled until we have
-    # editable installs in meson-python. Re-enable this when
-    # that happens.
-
+def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags
     # -S : disable site-packages
@@ -262,11 +250,6 @@ def test_missing_required_dependency(monkeypatch):
     # We skip this test if pandas is installed as a site package. We first
     # import the package normally and check the path to the module before
     # executing the test which imports pandas with site packages disabled.
-
-    # Can't import pandas from the test directory since its not
-    # built inplace with meson
-    if pd._built_with_meson:
-        monkeypatch.chdir("..")
     call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
     output = subprocess.check_output(call).decode()
     if "site-packages" in output:
