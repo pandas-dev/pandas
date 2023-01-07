@@ -321,7 +321,7 @@ class BooleanArray(BaseMaskedArray):
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s):
+        def map_string(s) -> bool:
             if s in true_values_union:
                 return True
             elif s in false_values_union:
