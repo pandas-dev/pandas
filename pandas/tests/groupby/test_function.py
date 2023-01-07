@@ -787,7 +787,7 @@ def test_nlargest_and_smallest_noop(data, groups, method):
         data = list(reversed(data))
     ser = Series(data, name="a")
     result = getattr(ser.groupby(groups), method)(n=2)
-    expidx = np.array(groups, dtype=np.intp) if isinstance(groups, list) else groups
+    expidx = np.array(groups, dtype=np.int_) if isinstance(groups, list) else groups
     expected = Series(data, index=MultiIndex.from_arrays([expidx, ser.index]), name="a")
     tm.assert_series_equal(result, expected)
 
