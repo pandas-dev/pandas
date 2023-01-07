@@ -239,7 +239,13 @@ class Preprocessors:
         and linked from there. This preprocessor obtains the list of
         PDEP's in different status from the directory tree and GitHub.
         """
-        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        KNOWN_STATUS = {
+            "Under discussion",
+            "Accepted",
+            "Implemented",
+            "Rejected",
+            "Withdrawn",
+        }
         context["pdeps"] = collections.defaultdict(list)
 
         # accepted, rejected and implemented
