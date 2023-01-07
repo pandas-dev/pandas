@@ -29,7 +29,10 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    array_equal_fast,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -878,7 +881,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         indices = ensure_platform_int(indices)
 
-        if using_copy_on_write() and np.array_equal(indices, np.arange(0, len(self))):
+        if using_copy_on_write() and array_equal_fast(indices, np.arange(0, len(self))):
             return self.copy(deep=None)
 
         new_index = self.index.take(indices)
