@@ -1776,8 +1776,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
             if is_object_dtype(vals.dtype) and skipna:
                 # GH#37501: don't raise on pd.NA when skipna=True
-                vals = vals.copy()
-                vals[isna(vals)] = True
+                mask = isna(vals)
+                if mask.any():
+                    # mask on original values computed separately
+                    vals = vals.copy()
+                    vals[mask] = True
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data
             vals = vals.astype(bool, copy=False)
