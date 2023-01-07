@@ -210,3 +210,15 @@ class TestFalseOrNoneExpectedWarning:
     def test_no_raise_with_false_raise_on_extra(self, false_or_none):
         with tm.assert_produces_warning(false_or_none, raise_on_extra_warnings=False):
             f()
+
+
+def test_raises_during_exception():
+    msg = "Did not see expected warning of class 'UserWarning'"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(UserWarning):
+            raise Exception
+
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(UserWarning):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise Exception

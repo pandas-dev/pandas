@@ -1092,8 +1092,7 @@ class TestDataFrameSelectReindex:
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df2.reindex(["a", "b"])
+            df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"

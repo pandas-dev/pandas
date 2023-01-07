@@ -1362,10 +1362,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
-    msg = f"{transformation_func} is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
