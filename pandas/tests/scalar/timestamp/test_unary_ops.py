@@ -29,6 +29,13 @@ import pandas._testing as tm
 class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
+    def test_round_divison_by_zero_raises(self):
+        ts = Timestamp("2016-01-01")
+
+        msg = "Division by zero in rounding"
+        with pytest.raises(ValueError, match=msg):
+            ts.round("0ns")
+
     # Timestamp.round
     @pytest.mark.parametrize(
         "timestamp, freq, expected",
@@ -256,7 +263,7 @@ class TestTimestampUnaryOps:
     def test_round_int64(self, timestamp, freq):
         # check that all rounding modes are accurate to int64 precision
         # see GH#22591
-        dt = Timestamp(timestamp)
+        dt = Timestamp(timestamp).as_unit("ns")
         unit = to_offset(freq).nanos
 
         # test floor

@@ -3480,7 +3480,7 @@ class DataFrame(NDFrame, OpsMixin):
         0     1     3
         1     2     4
 
-        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed = df1.T  # or df1.transpose()
         >>> df1_transposed
               0  1
         col1  1  2
@@ -3510,7 +3510,7 @@ class DataFrame(NDFrame, OpsMixin):
         0  Alice    9.5     False     0
         1    Bob    8.0      True     0
 
-        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed = df2.T  # or df2.transpose()
         >>> df2_transposed
                       0     1
         name      Alice   Bob
@@ -3721,6 +3721,10 @@ class DataFrame(NDFrame, OpsMixin):
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
+
+        if key.all():
+            return self.copy(deep=None)
+
         indexer = key.nonzero()[0]
         return self._take_with_is_copy(indexer, axis=0)
 
@@ -3821,6 +3825,15 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where `frame.columns` is unique, this is equivalent to
         `frame[frame.columns[i]] = value`.
         """
+        if isinstance(value, DataFrame):
+            if is_scalar(loc):
+                loc = [loc]
+
+            for i, idx in enumerate(loc):
+                arraylike = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False)
+            return
+
         arraylike = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
@@ -4743,7 +4756,7 @@ class DataFrame(NDFrame, OpsMixin):
         of the columns depends on another one defined within the same assign:
 
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
-        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+        ...           temp_k=lambda x: (x['temp_f'] + 459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
@@ -4882,7 +4895,7 @@ class DataFrame(NDFrame, OpsMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -4945,7 +4958,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -5982,8 +5995,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
         ...                                      ('species', 'type')])
         >>> df = pd.DataFrame([(389.0, 'fly'),
-        ...                    ( 24.0, 'fly'),
-        ...                    ( 80.5, 'run'),
+        ...                    (24.0, 'fly'),
+        ...                    (80.5, 'run'),
         ...                    (np.nan, 'jump')],
         ...                   index=index,
         ...                   columns=columns)
@@ -6421,7 +6434,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy()
+            return self.copy(deep=None)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
@@ -7253,7 +7266,7 @@ class DataFrame(NDFrame, OpsMixin):
         ),
     )
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy()
+        result = self.copy(deep=None)
 
         axis = self._get_axis_number(axis)
 
@@ -8261,14 +8274,14 @@ Parrot 2  Parrot       24.0
         4   2    1    1    5    4
         5   2    2    2    6    5
 
-        >>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+        >>> df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
         lev2    1         2
         lev3    1    2    1    2
         lev1
         1     0.0  1.0  2.0  NaN
         2     4.0  3.0  NaN  5.0
 
-        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"], values="values")
               lev3    1    2
         lev1  lev2
            1     1  0.0  1.0
@@ -8316,7 +8329,8 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
-        values : column to aggregate, optional
+        values : list-like or scalar, optional
+            Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
             If an array is passed, it must be the same length as the data. The
             list can contain any of the other types (except list).
@@ -8402,7 +8416,7 @@ Parrot 2  Parrot       24.0
         This first example aggregates values by taking the sum.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum)
+        ...                        columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
@@ -8414,7 +8428,7 @@ Parrot 2  Parrot       24.0
         We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
+        ...                        columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
         A   B
@@ -8426,8 +8440,7 @@ Parrot 2  Parrot       24.0
         The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': np.mean})
+        ...                        aggfunc={'D': np.mean, 'E': np.mean})
         >>> table
                         D         E
         A   C
@@ -8440,8 +8453,8 @@ Parrot 2  Parrot       24.0
         value column.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': [min, max, np.mean]})
+        ...                        aggfunc={'D': np.mean,
+        ...                                 'E': [min, max, np.mean]})
         >>> table
                           D   E
                        mean max      mean  min
@@ -10347,9 +10360,8 @@ Parrot 2  Parrot       24.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        # TODO: Make other agg func handle axis=None properly GH#21597
-        axis = self._get_axis_number(axis)
-        assert axis in [0, 1]
+        if axis is not None:
+            axis = self._get_axis_number(axis)
 
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
@@ -10400,7 +10412,7 @@ Parrot 2  Parrot       24.0
 
             return out
 
-        assert not numeric_only and axis == 1
+        assert not numeric_only and axis in (1, None)
 
         data = self
         values = data.values
@@ -10415,6 +10427,9 @@ Parrot 2  Parrot       24.0
                 except (ValueError, TypeError):
                     # try to coerce to the original dtypes item by item if we can
                     pass
+
+        if axis is None:
+            return result
 
         labels = self._get_agg_axis(axis)
         result = self._constructor_sliced(result, index=labels)
@@ -10925,7 +10940,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with DatetimeIndex
+        DataFrame
+            The DataFrame has a DatetimeIndex.
         """
         new_obj = self.copy(deep=copy)
 
@@ -10959,7 +10975,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with PeriodIndex
+        DataFrame:
+            The DataFrame has a PeriodIndex.
 
         Examples
         --------
