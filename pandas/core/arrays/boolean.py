@@ -322,16 +322,16 @@ class BooleanArray(BaseMaskedArray):
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
         def map_string(s):
-            if isna(s):
-                return s
-            elif s in true_values_union:
+            if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
-        scalars = [map_string(x) for x in strings]
+        scalars = np.array(strings, dtype=object)
+        mask = isna(scalars)
+        scalars[~mask] = list(map(map_string, scalars[~mask]))
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
