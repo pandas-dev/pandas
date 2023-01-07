@@ -4,6 +4,8 @@ import copy as cp
 import itertools
 from typing import (
     TYPE_CHECKING,
+    List,
+    Optional,
     Sequence,
     cast,
 )
@@ -297,7 +299,7 @@ def _concat_managers_axis0(
 
     result = BlockManager(tuple(blocks), axes)
     result.parent = parent
-    result.refs = refs if refs else None
+    result.refs = cast(Optional[List[Optional[weakref.ref]]], refs) if refs else None
     return result
 
 
