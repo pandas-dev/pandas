@@ -294,12 +294,6 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason=f"pyarrow doesn't support parsing {pa_dtype}",
                 )
             )
-        elif pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
-                )
-            )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             if pa_version_under7p0:
                 request.node.add_marker(
