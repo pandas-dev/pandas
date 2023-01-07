@@ -21,7 +21,7 @@ jobs:
     name: "Run benchmarks"
     # TODO: Support more benchmarking options later, against different branches, against self, etc
     if: startsWith(github.event.comment.body, '@github-actions benchmark')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}

@@ -12,19 +12,19 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Iterator,
+    Generator,
     cast,
 )
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
+import matplotlib.dates as mdates
 from matplotlib.ticker import (
     AutoLocator,
     Formatter,
     Locator,
 )
 from matplotlib.transforms import nonsingular
-import matplotlib.units as units
+import matplotlib.units as munits
 import numpy as np
 
 from pandas._libs import lib
@@ -99,7 +99,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Iterator[None]:
+def pandas_converters() -> Generator[None, None, None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -124,25 +124,25 @@ def register() -> None:
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
-        if type_ in units.registry and not isinstance(units.registry[type_], cls):
-            previous = units.registry[type_]
+        if type_ in munits.registry and not isinstance(munits.registry[type_], cls):
+            previous = munits.registry[type_]
             _mpl_units[type_] = previous
         # Replace with pandas converter
-        units.registry[type_] = cls()
+        munits.registry[type_] = cls()
 
 
 def deregister() -> None:
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance
-        if type(units.registry.get(type_)) is cls:
-            units.registry.pop(type_)
+        if type(munits.registry.get(type_)) is cls:
+            munits.registry.pop(type_)
 
     # restore the old keys
     for unit, formatter in _mpl_units.items():
         if type(formatter) not in {DatetimeConverter, PeriodConverter, TimeConverter}:
             # make it idempotent by excluding ours.
-            units.registry[unit] = formatter
+            munits.registry[unit] = formatter
 
 
 def _to_ordinalf(tm: pydt.time) -> float:
@@ -152,16 +152,14 @@ def _to_ordinalf(tm: pydt.time) -> float:
 
 def time2num(d):
     if isinstance(d, str):
-        parsed = tools.to_datetime(d)
-        if not isinstance(parsed, datetime):
-            raise ValueError(f"Could not parse time {d}")
+        parsed = Timestamp(d)
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
     return d
 
 
-class TimeConverter(units.ConversionInterface):
+class TimeConverter(munits.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
@@ -174,13 +172,13 @@ class TimeConverter(units.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis) -> units.AxisInfo | None:
+    def axisinfo(unit, axis) -> munits.AxisInfo | None:
         if unit != "time":
             return None
 
         majloc = AutoLocator()
         majfmt = TimeFormatter(majloc)
-        return units.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
+        return munits.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
     @staticmethod
     def default_units(x, axis) -> str:
@@ -231,7 +229,7 @@ class TimeFormatter(Formatter):
 # Period Conversion
 
 
-class PeriodConverter(dates.DateConverter):
+class PeriodConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
         if is_nested_list_like(values):
@@ -277,7 +275,7 @@ def get_datevalue(date, freq):
 
 
 # Datetime Conversion
-class DatetimeConverter(dates.DateConverter):
+class DatetimeConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, unit, axis):
         # values might be a 1-d array, or a list-like of arrays.
@@ -291,12 +289,12 @@ class DatetimeConverter(dates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return dates.date2num(tools.to_datetime(values))
+                return mdates.date2num(tools.to_datetime(values))
             except Exception:
                 return values
 
         if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
-            return dates.date2num(values)
+            return mdates.date2num(values)
         elif is_integer(values) or is_float(values):
             return values
         elif isinstance(values, str):
@@ -319,12 +317,12 @@ class DatetimeConverter(dates.DateConverter):
             except Exception:
                 pass
 
-            values = dates.date2num(values)
+            values = mdates.date2num(values)
 
         return values
 
     @staticmethod
-    def axisinfo(unit: tzinfo | None, axis) -> units.AxisInfo:
+    def axisinfo(unit: tzinfo | None, axis) -> munits.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -338,17 +336,17 @@ class DatetimeConverter(dates.DateConverter):
         datemin = pydt.date(2000, 1, 1)
         datemax = pydt.date(2010, 1, 1)
 
-        return units.AxisInfo(
+        return munits.AxisInfo(
             majloc=majloc, majfmt=majfmt, label="", default_limits=(datemin, datemax)
         )
 
 
-class PandasAutoDateFormatter(dates.AutoDateFormatter):
+class PandasAutoDateFormatter(mdates.AutoDateFormatter):
     def __init__(self, locator, tz=None, defaultfmt: str = "%Y-%m-%d") -> None:
-        dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
+        mdates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
 
 
-class PandasAutoDateLocator(dates.AutoDateLocator):
+class PandasAutoDateLocator(mdates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
         """Pick the best locator based on a distance."""
         delta = relativedelta(dmax, dmin)
@@ -366,18 +364,18 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
             locator.axis.set_data_interval(*self.axis.get_data_interval())
             return locator
 
-        return dates.AutoDateLocator.get_locator(self, dmin, dmax)
+        return mdates.AutoDateLocator.get_locator(self, dmin, dmax)
 
     def _get_unit(self):
         return MilliSecondLocator.get_unit_generic(self._freq)
 
 
-class MilliSecondLocator(dates.DateLocator):
+class MilliSecondLocator(mdates.DateLocator):
 
     UNIT = 1.0 / (24 * 3600 * 1000)
 
     def __init__(self, tz) -> None:
-        dates.DateLocator.__init__(self, tz)
+        mdates.DateLocator.__init__(self, tz)
         self._interval = 1.0
 
     def _get_unit(self):
@@ -385,7 +383,7 @@ class MilliSecondLocator(dates.DateLocator):
 
     @staticmethod
     def get_unit_generic(freq):
-        unit = dates.RRuleLocator.get_unit_generic(freq)
+        unit = mdates.RRuleLocator.get_unit_generic(freq)
         if unit < 0:
             return MilliSecondLocator.UNIT
         return unit
@@ -398,7 +396,7 @@ class MilliSecondLocator(dates.DateLocator):
             return []
 
         # We need to cap at the endpoints of valid datetime
-        nmax, nmin = dates.date2num((dmax, dmin))
+        nmax, nmin = mdates.date2num((dmax, dmin))
 
         num = (nmax - nmin) * 86400 * 1000
         max_millis_ticks = 6
@@ -406,9 +404,8 @@ class MilliSecondLocator(dates.DateLocator):
             if num <= interval * (max_millis_ticks - 1):
                 self._interval = interval
                 break
-            else:
-                # We went through the whole loop without breaking, default to 1
-                self._interval = 1000.0
+            # We went through the whole loop without breaking, default to 1
+            self._interval = 1000.0
 
         estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
 
@@ -428,12 +425,12 @@ class MilliSecondLocator(dates.DateLocator):
 
         try:
             if len(all_dates) > 0:
-                locs = self.raise_if_exceeds(dates.date2num(all_dates))
+                locs = self.raise_if_exceeds(mdates.date2num(all_dates))
                 return locs
         except Exception:  # pragma: no cover
             pass
 
-        lims = dates.date2num([dmin, dmax])
+        lims = mdates.date2num([dmin, dmax])
         return lims
 
     def _get_interval(self):
@@ -446,8 +443,8 @@ class MilliSecondLocator(dates.DateLocator):
         # We need to cap at the endpoints of valid datetime
         dmin, dmax = self.datalim_to_dt()
 
-        vmin = dates.date2num(dmin)
-        vmax = dates.date2num(dmax)
+        vmin = mdates.date2num(dmin)
+        vmax = mdates.date2num(dmax)
 
         return self.nonsingular(vmin, vmax)
 
@@ -606,7 +603,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         day_start = period_break(dates_, "day")
         month_start = period_break(dates_, "month")
 
-        def _hour_finder(label_interval, force_year_start):
+        def _hour_finder(label_interval, force_year_start) -> None:
             _hour = dates_.hour
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
@@ -619,7 +616,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             if force_year_start and not has_level_label(year_start, vmin_orig):
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
-        def _minute_finder(label_interval):
+        def _minute_finder(label_interval) -> None:
             hour_start = period_break(dates_, "hour")
             _minute = dates_.minute
             _prev_minute = (dates_ - 1 * dates_.freq).minute
@@ -632,7 +629,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
-        def _second_finder(label_interval):
+        def _second_finder(label_interval) -> None:
             minute_start = period_break(dates_, "minute")
             _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second
@@ -1110,7 +1107,5 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos: int = 0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin))))
-        if n_decimals > 9:
-            n_decimals = 9
+        n_decimals = min(int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin)))), 9)
         return self.format_timedelta_ticks(x, pos, n_decimals)

@@ -9,8 +9,8 @@ import pytest
 from pandas.compat import (
     is_platform_arm,
     is_platform_mac,
+    is_platform_power,
 )
-from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
     DataFrame,
@@ -27,7 +27,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.indexers.objects import VariableOffsetWindowIndexer
-from pandas.core.window import Rolling
 
 from pandas.tseries.offsets import BusinessDay
 
@@ -153,24 +152,6 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     tm.assert_frame_equal(result_roll_generic, expected)
 
 
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    r = Rolling(Series([2, 4, 6]), window=2)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(dtype=np.float64)
-
-
-@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -706,7 +687,7 @@ def test_rolling_window_as_string(center, expected_data):
     data = npr.randint(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
-    df = df.set_index("DateCol", copy=False)
+    df.set_index("DateCol", inplace=True)
     result = df.rolling(window="21D", min_periods=2, closed="left", center=center)[
         "metric"
     ].agg("max")
@@ -738,8 +719,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame_or_series(values).rolling(3).count()
+    result = frame_or_series(values).rolling(3, min_periods=0).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
 
@@ -1191,7 +1171,10 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
+@pytest.mark.xfail(
+    (is_platform_arm() and not is_platform_mac()) or is_platform_power(),
+    reason="GH 38921",
+)
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [

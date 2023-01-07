@@ -43,7 +43,7 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
+like ``black``, ``flake8``,
 ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
@@ -139,7 +139,7 @@ Otherwise, you need to do it manually:
         warnings.warn(
             'Use new_func instead.',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         new_func()
 
@@ -338,7 +338,22 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+inspiration.
+
+As a general tip, you can use the search functionality in your integrated development
+environment (IDE) or the git grep command in a terminal to find test files in which the method
+is called. If you are unsure of the best location to put your test, take your best guess,
+but note that reviewers may request that you move the test to a different location.
+
+To use git grep, you can run the following command in a terminal:
+
+``git grep "function_name("``
+
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
+codebase and determine the best location to add a test for it.
+
+Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
@@ -651,7 +666,7 @@ Example
 ^^^^^^^
 
 Here is an example of a self-contained set of tests in a file ``pandas/tests/test_cool_feature.py``
-that illustrate multiple features that we like to use. Please remember to add the Github Issue Number
+that illustrate multiple features that we like to use. Please remember to add the GitHub Issue Number
 as a comment to a new test.
 
 .. code-block:: python
@@ -777,6 +792,14 @@ install pandas) by typing::
 
     pytest pandas
 
+.. note::
+
+    If a handful of tests don't pass, it may not be an issue with your pandas installation.
+    Some tests (e.g. some SQLAlchemy ones) require additional setup, others might start
+    failing because a non-pinned library released a new version, and others might be flaky
+    if run in parallel. As long as you can import pandas from your locally built version,
+    your installation is probably fine and you can start contributing!
+
 Often it is worth running only a subset of tests first around your changes before running the
 entire suite.
 
@@ -790,25 +813,71 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
-speed up local testing on multicore machines. To use this feature, you will
-need to install ``pytest-xdist`` via::
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, which is
+included in our 'pandas-dev' environment, one can speed up local testing on
+multicore machines. The ``-n`` number flag then can be specified when running
+pytest to parallelize a test run across the number of specified cores or auto to
+utilize all the available cores on your machine.
 
-    pip install pytest-xdist
+.. code-block:: bash
 
-Two scripts are provided to assist with this.  These scripts distribute
-testing across 4 threads.
+   # Utilize 4 cores
+   pytest -n 4 pandas
 
-On Unix variants, one can type::
+   # Utilizes all available cores
+   pytest -n auto pandas
 
-    test_fast.sh
+If you'd like to speed things along further a more advanced use of this
+command would look like this
 
-On Windows, one can type::
+.. code-block:: bash
 
-    test_fast.bat
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
 
-This can significantly reduce the time it takes to locally run tests before
-submitting a pull request.
+In addition to the multithreaded performance increase this improves test
+speed by skipping some tests using the ``-m`` mark flag:
+
+- slow: any test taking long (think seconds rather than milliseconds)
+- network: tests requiring network connectivity
+- db: tests requiring a database (mysql or postgres)
+- single_cpu: tests that should run on a single cpu only
+
+You might want to enable the following option if it's relevant for you:
+
+- arm_slow: any test taking long on arm64 architecture
+
+These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
+, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+you want to check if new ones have been created which are of interest to you.
+
+The ``-r`` report flag will display a short summary info (see `pytest
+documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
+. Here we are displaying the number of:
+
+- s: skipped tests
+- x: xfailed tests
+- X: xpassed tests
+
+The summary is optional and can be removed if you don't need the added
+information. Using the parallelization option can significantly reduce the
+time it takes to locally run tests before submitting a pull request.
+
+If you require assistance with the results,
+which has happened in the past, please set a seed before running the command
+and opening a bug report, that way we can reproduce it. Here's an example
+for setting a seed on windows
+
+.. code-block:: bash
+
+    set PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
+
+On Unix use
+
+.. code-block:: bash
+
+    export PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 

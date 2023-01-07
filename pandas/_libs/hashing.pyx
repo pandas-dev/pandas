@@ -13,7 +13,6 @@ from numpy cimport (
     import_array,
     ndarray,
     uint8_t,
-    uint32_t,
     uint64_t,
 )
 
@@ -111,11 +110,11 @@ def hash_object_array(
     return result.base  # .base to retrieve underlying np.ndarray
 
 
-cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
+cdef uint64_t _rotl(uint64_t x, uint64_t b) nogil:
     return (x << b) | (x >> (64 - b))
 
 
-cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
+cdef uint64_t u8to64_le(uint8_t* p) nogil:
     return (<uint64_t>p[0] |
             <uint64_t>p[1] << 8 |
             <uint64_t>p[2] << 16 |
@@ -126,8 +125,8 @@ cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
             <uint64_t>p[7] << 56)
 
 
-cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
-                           uint64_t* v2, uint64_t* v3) nogil:
+cdef void _sipround(uint64_t* v0, uint64_t* v1,
+                    uint64_t* v2, uint64_t* v3) nogil:
     v0[0] += v1[0]
     v1[0] = _rotl(v1[0], 13)
     v1[0] ^= v0[0]
@@ -158,7 +157,6 @@ cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
     cdef int i
     cdef uint8_t* end = data + datalen - (datalen % sizeof(uint64_t))
     cdef int left = datalen & 7
-    cdef int left_byte
     cdef int cROUNDS = 2
     cdef int dROUNDS = 4
 

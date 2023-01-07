@@ -17,7 +17,7 @@ import pandas._testing as tm
 
 class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
-        ts = Timestamp("20130101").value
+        ts = Timestamp("20130101").as_unit("ns").value
         dti = DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(np.random.randn(100), index=dti)
 
@@ -63,7 +63,8 @@ class TestSeriesAsof:
 
         N = 30
         rng = date_range("1/1/1990", periods=N, freq="53s")
-        ts = Series(np.arange(N), index=rng)
+        # Explicit cast to float avoid implicit cast when setting nan
+        ts = Series(np.arange(N), index=rng, dtype="float")
         ts.iloc[5:10] = np.NaN
         ts.iloc[15:20] = np.NaN
 

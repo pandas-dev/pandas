@@ -12,9 +12,10 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
+#   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings]"; exit 9999; }
+[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -47,7 +48,7 @@ import pandas
 
 blocklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'matplotlib', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
+             'tables', 'urllib.request', 'xlrd', 'xlsxwriter'}
 
 # GH#28227 for some of these check for top-level modules, while others are
 #  more specific (e.g. urllib.request)
@@ -80,6 +81,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+fi
+
+### DOCUMENTATION NOTEBOOKS ###
+if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
+
+    MSG='Notebooks' ; echo $MSG
+    jupyter nbconvert --execute $(find doc/source -name '*.ipynb') --to notebook
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

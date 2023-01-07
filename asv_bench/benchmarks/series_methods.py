@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
+    NA,
     Index,
     NaT,
     Series,
@@ -76,6 +77,49 @@ class Dropna:
 
     def time_dropna(self, dtype):
         self.s.dropna()
+
+
+class Fillna:
+
+    params = [
+        [
+            "datetime64[ns]",
+            "float64",
+            "Float64",
+            "Int64",
+            "int64[pyarrow]",
+            "string",
+            "string[pyarrow]",
+        ],
+        [None, "pad", "backfill"],
+    ]
+    param_names = ["dtype", "method"]
+
+    def setup(self, dtype, method):
+        N = 10**6
+        if dtype == "datetime64[ns]":
+            data = date_range("2000-01-01", freq="S", periods=N)
+            na_value = NaT
+        elif dtype in ("float64", "Float64"):
+            data = np.random.randn(N)
+            na_value = np.nan
+        elif dtype in ("Int64", "int64[pyarrow]"):
+            data = np.arange(N)
+            na_value = NA
+        elif dtype in ("string", "string[pyarrow]"):
+            data = tm.rands_array(5, N)
+            na_value = NA
+        else:
+            raise NotImplementedError
+        fill_value = data[0]
+        ser = Series(data, dtype=dtype)
+        ser[::2] = na_value
+        self.ser = ser
+        self.fill_value = fill_value
+
+    def time_fillna(self, dtype, method):
+        value = self.fill_value if method is None else None
+        self.ser.fillna(value=value, method=method)
 
 
 class SearchSorted:
@@ -164,6 +208,19 @@ class ValueCounts:
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class ValueCountsEA:
+
+    params = [[10**3, 10**4, 10**5], [True, False]]
+    param_names = ["N", "dropna"]
+
+    def setup(self, N, dropna):
+        self.s = Series(np.random.randint(0, N, size=10 * N), dtype="Int64")
+        self.s.loc[1] = NA
+
+    def time_value_counts(self, N, dropna):
+        self.s.value_counts(dropna=dropna)
 
 
 class ValueCountsObjectDropNAFalse:
@@ -290,6 +347,58 @@ class Rank:
 
     def time_rank(self, dtype):
         self.s.rank()
+
+
+class Iter:
+
+    param_names = ["dtype"]
+    params = [
+        "bool",
+        "boolean",
+        "int64",
+        "Int64",
+        "float64",
+        "Float64",
+        "datetime64[ns]",
+    ]
+
+    def setup(self, dtype):
+        N = 10**5
+        if dtype in ["bool", "boolean"]:
+            data = np.repeat([True, False], N // 2)
+        elif dtype in ["int64", "Int64"]:
+            data = np.arange(N)
+        elif dtype in ["float64", "Float64"]:
+            data = np.random.randn(N)
+        elif dtype == "datetime64[ns]":
+            data = date_range("2000-01-01", freq="s", periods=N)
+        else:
+            raise NotImplementedError
+
+        self.s = Series(data, dtype=dtype)
+
+    def time_iter(self, dtype):
+        for v in self.s:
+            pass
+
+
+class ToNumpy:
+    def setup(self):
+        N = 1_000_000
+        self.ser = Series(
+            np.random.randn(
+                N,
+            )
+        )
+
+    def time_to_numpy(self):
+        self.ser.to_numpy()
+
+    def time_to_numpy_double_copy(self):
+        self.ser.to_numpy(dtype="float64", copy=True)
+
+    def time_to_numpy_copy(self):
+        self.ser.to_numpy(copy=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

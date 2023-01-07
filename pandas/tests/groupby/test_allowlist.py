@@ -28,63 +28,11 @@ AGG_FUNCTIONS = [
     "median",
     "mean",
     "skew",
-    "mad",
     "std",
     "var",
     "sem",
 ]
-AGG_FUNCTIONS_WITH_SKIPNA = ["skew", "mad"]
-
-df_allowlist = [
-    "quantile",
-    "fillna",
-    "mad",
-    "take",
-    "idxmax",
-    "idxmin",
-    "tshift",
-    "skew",
-    "plot",
-    "hist",
-    "dtypes",
-    "corrwith",
-    "corr",
-    "cov",
-    "diff",
-]
-
-
-@pytest.fixture(params=df_allowlist)
-def df_allowlist_fixture(request):
-    return request.param
-
-
-s_allowlist = [
-    "quantile",
-    "fillna",
-    "mad",
-    "take",
-    "idxmax",
-    "idxmin",
-    "tshift",
-    "skew",
-    "plot",
-    "hist",
-    "dtype",
-    "corr",
-    "cov",
-    "diff",
-    "unique",
-    "nlargest",
-    "nsmallest",
-    "is_monotonic_increasing",
-    "is_monotonic_decreasing",
-]
-
-
-@pytest.fixture(params=s_allowlist)
-def s_allowlist_fixture(request):
-    return request.param
+AGG_FUNCTIONS_WITH_SKIPNA = ["skew"]
 
 
 @pytest.fixture
@@ -113,96 +61,39 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize("allowlist", [df_allowlist, s_allowlist])
-def test_groupby_allowlist(df_letters, allowlist):
-    df = df_letters
-    if allowlist == df_allowlist:
-        # dataframe
-        obj = df_letters
-    else:
-        obj = df_letters["floats"]
-
-    gb = obj.groupby(df.letters)
-
-    assert set(allowlist) == set(gb._apply_allowlist)
-
-
-def check_allowlist(obj, df, m):
-    # check the obj for a particular allowlist m
-
-    gb = obj.groupby(df.letters)
-
-    f = getattr(type(gb), m)
-
-    # name
-    try:
-        n = f.__name__
-    except AttributeError:
-        return
-    assert n == m
-
-    # qualname
-    try:
-        n = f.__qualname__
-    except AttributeError:
-        return
-    assert n.endswith(m)
-
-
-def test_groupby_series_allowlist(df_letters, s_allowlist_fixture):
-    m = s_allowlist_fixture
-    df = df_letters
-    check_allowlist(df.letters, df, m)
-
-
-def test_groupby_frame_allowlist(df_letters, df_allowlist_fixture):
-    m = df_allowlist_fixture
-    df = df_letters
-    check_allowlist(df, df, m)
-
-
 @pytest.fixture
-def raw_frame(multiindex_dataframe_random_data):
-    df = multiindex_dataframe_random_data
-    df.iloc[1, [1, 2]] = np.nan
-    df.iloc[7, [0, 1]] = np.nan
-    return df
+def raw_frame():
+    return DataFrame([0])
 
 
 @pytest.mark.parametrize("op", AGG_FUNCTIONS)
-@pytest.mark.parametrize("level", [0, 1])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
-def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
+def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    warn = FutureWarning if op == "mad" else None
-
     if axis == 0:
         frame = raw_frame
     else:
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        with tm.assert_produces_warning(
-            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
-        ):
-            result = getattr(grouped, op)(skipna=skipna)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+        result = getattr(grouped, op)(skipna=skipna)
+        expected = frame.groupby(level=0).apply(
+            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+        )
         if sort:
-            expected = expected.sort_index(axis=axis, level=level)
+            expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(grouped, op)()
-            expected = getattr(frame, op)(level=level, axis=axis)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+        result = getattr(grouped, op)()
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
         if sort:
-            expected = expected.sort_index(axis=axis, level=level)
+            expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
 
 
@@ -302,10 +193,8 @@ def test_tab_completion(mframe):
         "shift",
         "skew",
         "take",
-        "tshift",
         "pct_change",
         "any",
-        "mad",
         "corr",
         "corrwith",
         "cov",
@@ -316,8 +205,6 @@ def test_tab_completion(mframe):
         "idxmin",
         "ffill",
         "bfill",
-        "pad",
-        "backfill",
         "rolling",
         "expanding",
         "pipe",
@@ -373,19 +260,6 @@ def test_groupby_selection_with_methods(df, method):
     tm.assert_frame_equal(res, exp)
 
 
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-def test_groupby_selection_tshift_raises(df):
-    rng = date_range("2014", periods=len(df))
-    df.index = rng
-
-    g = df.groupby(["A"])[["C"]]
-
-    # check that the index cache is cleared
-    with pytest.raises(ValueError, match="Freq was not set in the index"):
-        # GH#35937
-        g.tshift()
-
-
 def test_groupby_selection_other_methods(df):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))
@@ -416,9 +290,9 @@ def test_all_methods_categorized(mframe):
     new_names -= transformation_kernels
     new_names -= groupby_other_methods
 
-    assert not (reduction_kernels & transformation_kernels)
-    assert not (reduction_kernels & groupby_other_methods)
-    assert not (transformation_kernels & groupby_other_methods)
+    assert not reduction_kernels & transformation_kernels
+    assert not reduction_kernels & groupby_other_methods
+    assert not transformation_kernels & groupby_other_methods
 
     # new public method?
     if new_names:
@@ -442,7 +316,7 @@ how to fix this test.
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
     print(names)
     print(all_categorized)
-    if not (names == all_categorized):
+    if names != all_categorized:
         msg = f"""
 Some methods which are supposed to be on the Grouper class
 are missing:

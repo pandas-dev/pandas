@@ -109,7 +109,7 @@ class TestMap:
         # Order of categories in result can be different
         tm.assert_index_equal(result, expected)
 
-        mapper = {o: n for o, n in zip(orig_values[:-1], new_values[:-1])}
+        mapper = dict(zip(orig_values[:-1], new_values[:-1]))
         result = cur_index.map(mapper)
         # Order of categories in result can be different
         tm.assert_index_equal(result, expected)

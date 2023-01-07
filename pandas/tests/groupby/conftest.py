@@ -24,6 +24,11 @@ def dropna(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def observed(request):
+    return request.param
+
+
 @pytest.fixture
 def mframe(multiindex_dataframe_random_data):
     return multiindex_dataframe_random_data

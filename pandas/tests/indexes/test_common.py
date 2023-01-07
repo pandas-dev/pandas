@@ -3,6 +3,10 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+from copy import (
+    copy,
+    deepcopy,
+)
 import re
 
 import numpy as np
@@ -23,7 +27,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
@@ -133,11 +136,6 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import (
-            copy,
-            deepcopy,
-        )
-
         index = index_flat
 
         for func in (copy, deepcopy):
@@ -248,7 +246,7 @@ class TestCommon:
         assert idx_unique_nan.dtype == index.dtype
 
         expected = idx_unique_nan
-        for i in [idx_nan, idx_unique_nan]:
+        for pos, i in enumerate([idx_nan, idx_unique_nan]):
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
@@ -423,16 +421,6 @@ class TestCommon:
         else:
             assert result.name == index.name
 
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
-
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans
         index = index_flat
@@ -466,13 +454,12 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
             index_with_missing.sort_values(na_position=na_position)
 
 

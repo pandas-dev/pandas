@@ -1,16 +1,16 @@
 #!/bin/bash -e
 
-echo "Install Miniconda"
-CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Miniforge3-4.14.0-0-Linux-aarch64.sh"
-echo "Downloading $CONDA_URL"
-wget -q $CONDA_URL -O miniconda.sh
-chmod +x miniconda.sh
+echo "Install Mambaforge"
+MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+echo "Downloading $MAMBA_URL"
+wget -q $MAMBA_URL -O minimamba.sh
+chmod +x minimamba.sh
 
-MINICONDA_DIR="$HOME/miniconda3"
-rm -rf $MINICONDA_DIR
-./miniconda.sh -b -p $MINICONDA_DIR
+MAMBA_DIR="$HOME/miniconda3"
+rm -rf $MAMBA_DIR
+./minimamba.sh -b -p $MAMBA_DIR
 
-export PATH=$MINICONDA_DIR/bin:$PATH
+export PATH=$MAMBA_DIR/bin:$PATH
 
 echo
 echo "which conda"
@@ -20,7 +20,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip setuptools
+mamba install -y -c conda-forge -n base pip setuptools
 
 echo "conda info -a"
 conda info -a

@@ -114,14 +114,14 @@ def test_apply_with_reduce_empty():
     result = empty_frame.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_frame)
     result = empty_frame.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     empty_with_cols = DataFrame(columns=["a", "b", "c"])
     result = empty_with_cols.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_with_cols)
     result = empty_with_cols.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     # Ensure that x.append hasn't been called
@@ -147,7 +147,7 @@ def test_nunique_empty():
     tm.assert_series_equal(result, expected)
 
     result = df.T.nunique()
-    expected = Series([], index=pd.Index([]), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 
@@ -347,7 +347,7 @@ def test_apply_yield_list(float_frame):
 
 
 def test_apply_reduce_Series(float_frame):
-    float_frame["A"].iloc[::2] = np.nan
+    float_frame.iloc[::2, float_frame.columns.get_loc("A")] = np.nan
     expected = float_frame.mean(1)
     result = float_frame.apply(np.mean, axis=1)
     tm.assert_series_equal(result, expected)
@@ -461,7 +461,7 @@ def test_apply_convert_objects():
         }
     )
 
-    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -836,7 +836,8 @@ def test_with_dictlike_columns_with_datetime():
     df["author"] = ["X", "Y", "Z"]
     df["publisher"] = ["BBC", "NBC", "N24"]
     df["date"] = pd.to_datetime(
-        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"]
+        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"],
+        dayfirst=True,
     )
     result = df.apply(lambda x: {}, axis=1)
     expected = Series([{}, {}, {}])
@@ -1141,7 +1142,35 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_multiple_mixed_no_warning():
+def test_agg_multiple_mixed():
+    # GH 20909
+    mdf = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "B": [1.0, 2.0, 3.0],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+    expected = DataFrame(
+        {
+            "A": [1, 6],
+            "B": [1.0, 6.0],
+            "C": ["bar", "foobarbaz"],
+        },
+        index=["min", "sum"],
+    )
+    # sorted index
+    result = mdf.agg(["min", "sum"])
+    tm.assert_frame_equal(result, expected)
+
+    result = mdf[["C", "B", "A"]].agg(["sum", "min"])
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    expected = expected[["C", "B", "A"]].reindex(["sum", "min"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(
         {
@@ -1151,32 +1180,14 @@ def test_agg_multiple_mixed_no_warning():
             "D": date_range("20130101", periods=3),
         }
     )
-    expected = DataFrame(
-        {
-            "A": [1, 6],
-            "B": [1.0, 6.0],
-            "C": ["bar", "foobarbaz"],
-            "D": [Timestamp("2013-01-01"), pd.NaT],
-        },
-        index=["min", "sum"],
-    )
+
     # sorted index
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = mdf.agg(["min", "sum"])
+    msg = "does not support reduction"
+    with pytest.raises(TypeError, match=msg):
+        mdf.agg(["min", "sum"])
 
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
-
-    # GH40420: the result of .agg should have an index that is sorted
-    # according to the arguments provided to agg.
-    expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(TypeError, match=msg):
+        mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
 
 def test_agg_reduce(axis, float_frame):
@@ -1272,19 +1283,17 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        result = df.agg("sum")
+    msg = "does not support reduction"
+    with pytest.raises(TypeError, match=msg):
+        df.agg("sum")
+
+    result = df[["A", "B", "C"]].agg("sum")
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = df.agg(["sum"])
-    expected = DataFrame(
-        [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
-    )
-    tm.assert_frame_equal(result, expected)
+    msg = "does not support reduction"
+    with pytest.raises(TypeError, match=msg):
+        df.agg(["sum"])
 
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
@@ -1342,7 +1351,7 @@ def test_size_as_str(how, axis):
     # Just a string attribute arg same as calling df.arg
     # on the columns
     result = getattr(df, how)("size", axis=axis)
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         expected = Series(df.shape[0], index=df.columns)
     else:
         expected = Series(df.shape[1], index=df.index)
@@ -1421,13 +1430,14 @@ def test_apply_datetime_tz_issue():
 
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
-def test_consistency_of_aggregates_of_columns_with_missing_values(df, method):
+def test_mixed_column_raises(df, method):
     # GH 16832
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        none_in_first_column_result = getattr(df[["A", "B"]], method)()
-        none_in_second_column_result = getattr(df[["B", "A"]], method)()
-
-    tm.assert_series_equal(none_in_first_column_result, none_in_second_column_result)
+    if method == "sum":
+        msg = r'can only concatenate str \(not "int"\) to str'
+    else:
+        msg = "not supported between instances of 'str' and 'float'"
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, method)()
 
 
 @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
@@ -1499,32 +1509,28 @@ def test_aggregation_func_column_order():
     # according to the arguments provided to agg.
     df = DataFrame(
         [
-            ("1", 1, 0, 0),
-            ("2", 2, 0, 0),
-            ("3", 3, 0, 0),
-            ("4", 4, 5, 4),
-            ("5", 5, 6, 6),
-            ("6", 6, 7, 7),
+            (1, 0, 0),
+            (2, 0, 0),
+            (3, 0, 0),
+            (4, 5, 4),
+            (5, 6, 6),
+            (6, 7, 7),
         ],
-        columns=("item", "att1", "att2", "att3"),
+        columns=("att1", "att2", "att3"),
     )
 
-    def foo(s):
+    def sum_div2(s):
         return s.sum() / 2
 
-    aggs = ["sum", foo, "count", "min"]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['item'\] did not aggregate successfully"
-    ):
-        result = df.agg(aggs)
+    aggs = ["sum", sum_div2, "count", "min"]
+    result = df.agg(aggs)
     expected = DataFrame(
         {
-            "item": ["123456", np.nan, 6, "1"],
             "att1": [21.0, 10.5, 6.0, 1.0],
             "att2": [18.0, 9.0, 6.0, 0.0],
             "att3": [17.0, 8.5, 6.0, 0.0],
         },
-        index=["sum", "foo", "count", "min"],
+        index=["sum", "sum_div2", "count", "min"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1545,13 +1551,13 @@ def test_nuisance_depr_passes_through_warnings():
     # sure if some other warnings were raised, they get passed through to
     # the user.
 
-    def foo(x):
+    def expected_warning(x):
         warnings.warn("Hello, World!")
         return x.sum()
 
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
-        df.agg([foo])
+        df.agg([expected_warning])
 
 
 def test_apply_type():
@@ -1603,4 +1609,17 @@ def test_unique_agg_type_is_series(test, constant):
 
     result = df1.agg(aggregation)
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_any_apply_keyword_non_zero_axis_regression():
+    # https://github.com/pandas-dev/pandas/issues/48656
+    df = DataFrame({"A": [1, 2, 0], "B": [0, 2, 0], "C": [0, 0, 0]})
+    expected = Series([True, True, False])
+    tm.assert_series_equal(df.any(axis=1), expected)
+
+    result = df.apply("any", axis=1)
+    tm.assert_series_equal(result, expected)
+
+    result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)

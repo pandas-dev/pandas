@@ -6,11 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -38,9 +33,16 @@ from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
-    def test_categorical_scalar_deprecated(self):
+    def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
+        # GH#49309 we should preserve orderedness in `res`
+        cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
+
+        res = Categorical(cat, dtype="category")
+        assert res.dtype.ordered
+
+    def test_categorical_disallows_scalar(self):
         # GH#38433
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Categorical input must be list-like"):
             Categorical("A", categories=["A", "B"])
 
     def test_categorical_1d_only(self):
@@ -225,13 +227,6 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#38433
-            cat = Categorical(1)
-        assert len(cat.categories) == 1
-        assert cat.categories[0] == 1
-        assert len(cat.codes) == 1
-        assert cat.codes[0] == 0
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
@@ -450,7 +445,7 @@ class TestCategoricalConstructors:
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_np_strs(self):
-        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
         assert all(isinstance(x, np.str_) for x in cat.categories)
 
@@ -749,10 +744,6 @@ class TestCategoricalConstructors:
 
         assert not tm.shares_memory(result, cat)
 
-    @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in astype_overflowsafe",
-    )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")
         values = categories[::2].copy()

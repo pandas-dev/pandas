@@ -86,7 +86,7 @@ def operate_blockwise(
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: list[Block], locs):
+def _reset_block_mgr_locs(nbs: list[Block], locs) -> None:
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """

@@ -38,9 +38,13 @@ Exceptions and warnings
    errors.IncompatibilityWarning
    errors.IndexingError
    errors.InvalidColumnName
+   errors.InvalidComparison
    errors.InvalidIndexError
+   errors.InvalidVersion
    errors.IntCastingNaNError
+   errors.LossySetitemError
    errors.MergeError
+   errors.NoBufferPresent
    errors.NullFrequencyError
    errors.NumbaUtilError
    errors.NumExprClobberingError

@@ -1,3 +1,5 @@
+from string import ascii_lowercase
+
 import numpy as np
 import pytest
 
@@ -109,8 +111,7 @@ def test_filter_condition_raises():
     def raise_if_sum_is_zero(x):
         if x.sum() == 0:
             raise ValueError
-        else:
-            return x.sum() > 0
+        return x.sum() > 0
 
     s = Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)
@@ -193,8 +194,6 @@ def test_filter_against_workaround():
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
     # Set up DataFrame of ints, floats, strings.
-    from string import ascii_lowercase
-
     letters = np.array(list(ascii_lowercase))
     N = 1000
     random_letters = letters.take(np.random.randint(0, 26, N))

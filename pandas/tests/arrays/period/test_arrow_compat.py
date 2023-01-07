@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under10p0
+
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -21,11 +23,12 @@ def test_arrow_extension_type():
 
     assert p1.freq == "D"
     assert p1 == p2
-    assert not p1 == p3
+    assert p1 != p3
     assert hash(p1) == hash(p2)
-    assert not hash(p1) == hash(p3)
+    assert hash(p1) != hash(p3)
 
 
+@pytest.mark.xfail(not pa_version_under10p0, reason="Wrong behavior with pyarrow 10")
 @pytest.mark.parametrize(
     "data, freq",
     [

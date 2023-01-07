@@ -4,17 +4,10 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    float32_t,
-    float64_t,
-    int8_t,
-    int16_t,
-    int32_t,
     int64_t,
     intp_t,
     ndarray,
     uint8_t,
-    uint16_t,
-    uint32_t,
     uint64_t,
 )
 
@@ -24,6 +17,10 @@ cnp.import_array()
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    get_unit_from_dtype,
+)
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -35,13 +32,15 @@ from pandas._libs import (
 
 from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
-    C_NA as NA,
     checknull,
     is_matching_na,
 )
 
+# Defines shift of MultiIndex codes to avoid negative codes (missing values)
+multiindex_nulls_shift = 2
 
-cdef inline bint is_definitely_invalid_key(object val):
+
+cdef bint is_definitely_invalid_key(object val):
     try:
         hash(val)
     except TypeError:
@@ -177,7 +176,7 @@ cdef class IndexEngine:
         loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
-    cdef inline _get_loc_duplicates(self, object val):
+    cdef _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff, left, right
@@ -185,8 +184,8 @@ cdef class IndexEngine:
         if self.is_monotonic_increasing:
             values = self.values
             try:
-                left = values.searchsorted(val, side='left')
-                right = values.searchsorted(val, side='right')
+                left = values.searchsorted(val, side="left")
+                right = values.searchsorted(val, side="right")
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
                 #  2021-09-29 Now only reached for object-dtype
@@ -226,7 +225,7 @@ cdef class IndexEngine:
 
         return self.unique == 1
 
-    cdef inline _do_unique_check(self):
+    cdef _do_unique_check(self):
 
         # this de-facto the same
         self._ensure_mapping_populated()
@@ -245,7 +244,7 @@ cdef class IndexEngine:
 
         return self.monotonic_dec == 1
 
-    cdef inline _do_monotonic_check(self):
+    cdef _do_monotonic_check(self):
         cdef:
             bint is_unique
         try:
@@ -278,7 +277,7 @@ cdef class IndexEngine:
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
-    cdef inline _ensure_mapping_populated(self):
+    cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
@@ -354,8 +353,8 @@ cdef class IndexEngine:
             remaining_stargets = set()
             for starget in stargets:
                 try:
-                    start = values.searchsorted(starget, side='left')
-                    end = values.searchsorted(starget, side='right')
+                    start = values.searchsorted(starget, side="left")
+                    end = values.searchsorted(starget, side="right")
                 except TypeError:  # e.g. if we tried to search for string in int array
                     remaining_stargets.add(starget)
                 else:
@@ -493,17 +492,35 @@ cdef class ObjectEngine(IndexEngine):
 
 cdef class DatetimeEngine(Int64Engine):
 
+    cdef:
+        NPY_DATETIMEUNIT _creso
+
+    def __init__(self, ndarray values):
+        super().__init__(values.view("i8"))
+        self._creso = get_unit_from_dtype(values.dtype)
+
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
-        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
-            raise TypeError(scalar)
-        return scalar.value
+        if scalar is NaT:
+            return NaT.value
+        elif isinstance(scalar, _Timestamp):
+            if scalar._creso == self._creso:
+                return scalar.value
+            else:
+                # Note: caller is responsible for catching potential ValueError
+                #  from _as_creso
+                return (<_Timestamp>scalar)._as_creso(self._creso, round_ok=False).value
+        raise TypeError(scalar)
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        self._unbox_scalar(val)
+        try:
+            self._unbox_scalar(val)
+        except ValueError:
+            return False
+
         try:
             self.get_loc(val)
             return True
@@ -525,8 +542,8 @@ cdef class DatetimeEngine(Int64Engine):
 
         try:
             conv = self._unbox_scalar(val)
-        except TypeError:
-            raise KeyError(val)
+        except (TypeError, ValueError) as err:
+            raise KeyError(val) from err
 
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
@@ -534,7 +551,7 @@ cdef class DatetimeEngine(Int64Engine):
                 return self._get_loc_duplicates(conv)
             values = self.values
 
-            loc = values.searchsorted(conv, side='left')
+            loc = values.searchsorted(conv, side="left")
 
             if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
@@ -553,9 +570,16 @@ cdef class DatetimeEngine(Int64Engine):
 cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
-        if not (isinstance(scalar, _Timedelta) or scalar is NaT):
-            raise TypeError(scalar)
-        return scalar.value
+        if scalar is NaT:
+            return NaT.value
+        elif isinstance(scalar, _Timedelta):
+            if scalar._creso == self._creso:
+                return scalar.value
+            else:
+                # Note: caller is responsible for catching potential ValueError
+                #  from _as_creso
+                return (<_Timedelta>scalar)._as_creso(self._creso, round_ok=False).value
+        raise TypeError(scalar)
 
 
 cdef class PeriodEngine(Int64Engine):
@@ -627,10 +651,13 @@ cdef class BaseMultiIndexCodesEngine:
         self.levels = levels
         self.offsets = offsets
 
-        # Transform labels in a single array, and add 1 so that we are working
-        # with positive integers (-1 for NaN becomes 0):
-        codes = (np.array(labels, dtype='int64').T + 1).astype('uint64',
-                                                               copy=False)
+        # Transform labels in a single array, and add 2 so that we are working
+        # with positive integers (-1 for NaN becomes 1). This enables us to
+        # differentiate between values that are missing in other and matching
+        # NaNs. We will set values that are not found to 0 later:
+        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
+        codes = labels_arr.astype("uint64", copy=False)
+        self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
         # (no collisions possible), based on the "offsets", which describe the
@@ -659,9 +686,14 @@ cdef class BaseMultiIndexCodesEngine:
             Integers representing one combination each
         """
         zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
-                       in zip(self.levels, zt)]
-        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
+        level_codes = []
+        for i, (lev, codes) in enumerate(zip(self.levels, zt)):
+            result = lev.get_indexer_for(codes) + 1
+            result[result > 0] += 1
+            if self.level_has_nans[i] and codes.hasnans:
+                result[codes.isna()] += 1
+            level_codes.append(result)
+        return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
@@ -722,12 +754,12 @@ cdef class BaseMultiIndexCodesEngine:
             ndarray[int64_t, ndim=1] new_codes, new_target_codes
             ndarray[intp_t, ndim=1] sorted_indexer
 
-        target_order = np.argsort(target).astype('int64')
+        target_order = np.argsort(target).astype("int64")
         target_values = target[target_order]
         num_values, num_target_values = len(values), len(target_values)
         new_codes, new_target_codes = (
-            np.empty((num_values,)).astype('int64'),
-            np.empty((num_target_values,)).astype('int64'),
+            np.empty((num_values,)).astype("int64"),
+            np.empty((num_target_values,)).astype("int64"),
         )
 
         # `values` and `target_values` are both sorted, so we walk through them
@@ -771,13 +803,13 @@ cdef class BaseMultiIndexCodesEngine:
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:
-            indices = [0 if checknull(v) else lev.get_loc(v) + 1
+            indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
                        for lev, v in zip(self.levels, key)]
         except KeyError:
             raise KeyError(key)
 
         # Transform indices into single integer:
-        lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))
+        lab_int = self._codes_to_ints(np.array(indices, dtype="uint64"))
 
         return self._base.get_loc(self, lab_int)
 
@@ -900,7 +932,7 @@ cdef class SharedEngine:
 
         return self._get_loc_duplicates(val)
 
-    cdef inline _get_loc_duplicates(self, object val):
+    cdef _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff
@@ -908,8 +940,8 @@ cdef class SharedEngine:
         if self.is_monotonic_increasing:
             values = self.values
             try:
-                left = values.searchsorted(val, side='left')
-                right = values.searchsorted(val, side='right')
+                left = values.searchsorted(val, side="left")
+                right = values.searchsorted(val, side="right")
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
                 raise KeyError(val)
@@ -1061,7 +1093,7 @@ cdef class ExtensionEngine(SharedEngine):
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
-            return self.values.isna().view("uint8")
+            return self.values.isna()
 
         try:
             return self.values == val

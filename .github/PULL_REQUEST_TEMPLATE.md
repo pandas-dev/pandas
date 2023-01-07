@@ -1,4 +1,4 @@
-- [ ] closes #xxxx (Replace xxxx with the Github issue number)
+- [ ] closes #xxxx (Replace xxxx with the GitHub issue number)
 - [ ] [Tests added and passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#writing-tests) if fixing a bug or adding a new feature
 - [ ] All [code checks passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#pre-commit).
 - [ ] Added [type annotations](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#type-hints) to new arguments/methods/functions.

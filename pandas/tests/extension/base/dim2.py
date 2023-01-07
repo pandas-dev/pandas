@@ -6,12 +6,21 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
+    # Note: these are ONLY for ExtensionArray subclasses that support 2D arrays.
+    #  i.e. not for pyarrow-backed EAs.
+
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
         shape = arr2d.shape
@@ -186,12 +195,17 @@ class Dim2CompatTests(BaseExtensionTests):
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
-        if method == "std":
+        if method in ["std", "var"]:
             # pass ddof=0 so we get all-zero std instead of all-NA std
             kwargs["ddof"] = 0
 
         try:
-            result = getattr(arr2d, method)(axis=0, **kwargs)
+            if method in ["mean", "var", "std"] and hasattr(data, "_mask"):
+                # Empty slices produced by the mask cause RuntimeWarnings by numpy
+                with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+                    result = getattr(arr2d, method)(axis=0, **kwargs)
+            else:
+                result = getattr(arr2d, method)(axis=0, **kwargs)
         except Exception as err:
             try:
                 getattr(data, method)()
@@ -212,7 +226,7 @@ class Dim2CompatTests(BaseExtensionTests):
                 # i.e. dtype.kind == "u"
                 return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
 
-        if method in ["mean", "median", "sum", "prod"]:
+        if method in ["median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
             if method in ["sum", "prod"] and data.dtype.kind in "iub":
@@ -227,9 +241,13 @@ class Dim2CompatTests(BaseExtensionTests):
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)
-        elif method == "std":
-            self.assert_extension_array_equal(result, data - data)
-        # punt on method == "var"
+        elif method in ["mean", "std", "var"]:
+            if is_integer_dtype(data) or is_bool_dtype(data):
+                data = data.astype("Float64")
+            if method == "mean":
+                self.assert_extension_array_equal(result, data)
+            else:
+                self.assert_extension_array_equal(result, data - data)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis1(self, data, method):

@@ -49,7 +49,7 @@ class DatetimeLike(Base):
         # test the string repr
         idx = simple_index
         idx.name = "foo"
-        assert not (f"length={len(idx)}" in str(idx))
+        assert f"length={len(idx)}" not in str(idx)
         assert "'foo'" in str(idx)
         assert type(idx).__name__ in str(idx)
 

@@ -1,7 +1,6 @@
 """ io on the clipboard """
 from __future__ import annotations
 
-import inspect
 from io import StringIO
 import warnings
 
@@ -15,7 +14,9 @@ from pandas import (
 )
 
 
-def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
+def read_clipboard(
+    sep: str = r"\s+", use_nullable_dtypes: bool = False, **kwargs
+):  # pragma: no cover
     r"""
     Read text from clipboard and pass to read_csv.
 
@@ -24,6 +25,21 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     sep : str, default '\s+'
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
+
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        This is only implemented for the ``python``
+        engine.
+
+        .. versionadded:: 2.0
 
     **kwargs
         See read_csv for the full argument list.
@@ -83,10 +99,12 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
             "read_clipboard with regex separator does not work properly with c engine.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
-    return read_csv(StringIO(text), sep=sep, **kwargs)
+    return read_csv(
+        StringIO(text), sep=sep, use_nullable_dtypes=use_nullable_dtypes, **kwargs
+    )
 
 
 def to_clipboard(
@@ -140,12 +158,12 @@ def to_clipboard(
         except TypeError:
             warnings.warn(
                 "to_clipboard in excel mode requires a single character separator.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
     elif sep is not None:
         warnings.warn(
             "to_clipboard with excel=False ignores the sep argument.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     if isinstance(obj, ABCDataFrame):

@@ -14,10 +14,14 @@ Indexing, iteration
 .. autosummary::
    :toctree: api/
 
-   GroupBy.__iter__
-   GroupBy.groups
-   GroupBy.indices
-   GroupBy.get_group
+   DataFrameGroupBy.__iter__
+   SeriesGroupBy.__iter__
+   DataFrameGroupBy.groups
+   SeriesGroupBy.groups
+   DataFrameGroupBy.indices
+   SeriesGroupBy.indices
+   DataFrameGroupBy.get_group
+   SeriesGroupBy.get_group
 
 .. currentmodule:: pandas
 
@@ -27,6 +31,13 @@ Indexing, iteration
 
    Grouper
 
+Function application helper
+---------------------------
+.. autosummary::
+   :toctree: api/
+
+   NamedAgg
+
 .. currentmodule:: pandas.core.groupby
 
 Function application
@@ -34,65 +45,29 @@ Function application
 .. autosummary::
    :toctree: api/
 
-   GroupBy.apply
-   GroupBy.agg
+   SeriesGroupBy.apply
+   DataFrameGroupBy.apply
+   SeriesGroupBy.agg
+   DataFrameGroupBy.agg
    SeriesGroupBy.aggregate
    DataFrameGroupBy.aggregate
    SeriesGroupBy.transform
    DataFrameGroupBy.transform
-   GroupBy.pipe
+   SeriesGroupBy.pipe
+   DataFrameGroupBy.pipe
+   DataFrameGroupBy.filter
+   SeriesGroupBy.filter
 
-Computations / descriptive stats
---------------------------------
-.. autosummary::
-   :toctree: api/
-
-   GroupBy.all
-   GroupBy.any
-   GroupBy.bfill
-   GroupBy.backfill
-   GroupBy.count
-   GroupBy.cumcount
-   GroupBy.cummax
-   GroupBy.cummin
-   GroupBy.cumprod
-   GroupBy.cumsum
-   GroupBy.ffill
-   GroupBy.first
-   GroupBy.head
-   GroupBy.last
-   GroupBy.max
-   GroupBy.mean
-   GroupBy.median
-   GroupBy.min
-   GroupBy.ngroup
-   GroupBy.nth
-   GroupBy.ohlc
-   GroupBy.pad
-   GroupBy.prod
-   GroupBy.rank
-   GroupBy.pct_change
-   GroupBy.size
-   GroupBy.sem
-   GroupBy.std
-   GroupBy.sum
-   GroupBy.var
-   GroupBy.tail
-
-The following methods are available in both ``SeriesGroupBy`` and
-``DataFrameGroupBy`` objects, but may differ slightly, usually in that
-the ``DataFrameGroupBy`` version usually permits the specification of an
-axis argument, and often an argument indicating whether to restrict
-application to columns of a specific data type.
-
+``DataFrameGroupBy`` computations / descriptive stats
+-----------------------------------------------------
 .. autosummary::
    :toctree: api/
 
    DataFrameGroupBy.all
    DataFrameGroupBy.any
-   DataFrameGroupBy.backfill
    DataFrameGroupBy.bfill
    DataFrameGroupBy.corr
+   DataFrameGroupBy.corrwith
    DataFrameGroupBy.count
    DataFrameGroupBy.cov
    DataFrameGroupBy.cumcount
@@ -104,42 +79,98 @@ application to columns of a specific data type.
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
-   DataFrameGroupBy.filter
-   DataFrameGroupBy.hist
+   DataFrameGroupBy.first
+   DataFrameGroupBy.head
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
-   DataFrameGroupBy.mad
+   DataFrameGroupBy.last
+   DataFrameGroupBy.max
+   DataFrameGroupBy.mean
+   DataFrameGroupBy.median
+   DataFrameGroupBy.min
+   DataFrameGroupBy.ngroup
+   DataFrameGroupBy.nth
    DataFrameGroupBy.nunique
-   DataFrameGroupBy.pad
+   DataFrameGroupBy.ohlc
    DataFrameGroupBy.pct_change
-   DataFrameGroupBy.plot
+   DataFrameGroupBy.prod
    DataFrameGroupBy.quantile
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
    DataFrameGroupBy.sample
+   DataFrameGroupBy.sem
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
+   DataFrameGroupBy.std
+   DataFrameGroupBy.sum
+   DataFrameGroupBy.var
+   DataFrameGroupBy.tail
    DataFrameGroupBy.take
-   DataFrameGroupBy.tshift
    DataFrameGroupBy.value_counts
 
-The following methods are available only for ``SeriesGroupBy`` objects.
-
+``SeriesGroupBy`` computations / descriptive stats
+--------------------------------------------------
 .. autosummary::
    :toctree: api/
 
-   SeriesGroupBy.hist
-   SeriesGroupBy.nlargest
-   SeriesGroupBy.nsmallest
-   SeriesGroupBy.unique
+   SeriesGroupBy.all
+   SeriesGroupBy.any
+   SeriesGroupBy.bfill
+   SeriesGroupBy.corr
+   SeriesGroupBy.count
+   SeriesGroupBy.cov
+   SeriesGroupBy.cumcount
+   SeriesGroupBy.cummax
+   SeriesGroupBy.cummin
+   SeriesGroupBy.cumprod
+   SeriesGroupBy.cumsum
+   SeriesGroupBy.describe
+   SeriesGroupBy.diff
+   SeriesGroupBy.ffill
+   SeriesGroupBy.fillna
+   SeriesGroupBy.first
+   SeriesGroupBy.head
+   SeriesGroupBy.last
+   SeriesGroupBy.idxmax
+   SeriesGroupBy.idxmin
    SeriesGroupBy.is_monotonic_increasing
    SeriesGroupBy.is_monotonic_decreasing
+   SeriesGroupBy.max
+   SeriesGroupBy.mean
+   SeriesGroupBy.median
+   SeriesGroupBy.min
+   SeriesGroupBy.ngroup
+   SeriesGroupBy.nlargest
+   SeriesGroupBy.nsmallest
+   SeriesGroupBy.nth
+   SeriesGroupBy.nunique
+   SeriesGroupBy.unique
+   SeriesGroupBy.ohlc
+   SeriesGroupBy.pct_change
+   SeriesGroupBy.prod
+   SeriesGroupBy.quantile
+   SeriesGroupBy.rank
+   SeriesGroupBy.resample
+   SeriesGroupBy.sample
+   SeriesGroupBy.sem
+   SeriesGroupBy.shift
+   SeriesGroupBy.size
+   SeriesGroupBy.skew
+   SeriesGroupBy.std
+   SeriesGroupBy.sum
+   SeriesGroupBy.var
+   SeriesGroupBy.tail
+   SeriesGroupBy.take
+   SeriesGroupBy.value_counts
 
-The following methods are available only for ``DataFrameGroupBy`` objects.
-
+Plotting and visualization
+--------------------------
 .. autosummary::
    :toctree: api/
 
-   DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot
+   DataFrameGroupBy.hist
+   SeriesGroupBy.hist
+   DataFrameGroupBy.plot
+   SeriesGroupBy.plot

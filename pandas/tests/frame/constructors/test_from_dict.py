@@ -10,7 +10,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_dtype
 
 
 class TestFromDict:
@@ -79,9 +78,7 @@ class TestFromDict:
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4]]),
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
-        data = [
-            create_series_with_explicit_dtype(d, dtype_if_empty=object) for d in data
-        ]
+        data = [Series(d) for d in data]
 
         result = DataFrame(data)
         sdict = OrderedDict(zip(range(len(data)), data))

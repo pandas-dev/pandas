@@ -4,7 +4,6 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     Any,
     Iterable,
@@ -225,7 +224,7 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+    value: BoolishNoneT, arg_name, none_allowed: bool = True, int_allowed: bool = False
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -355,9 +354,7 @@ def validate_axis_style_args(
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -389,7 +386,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
-    elif value is None and method is not None:
+    if value is None and method is not None:
         method = clean_fill_method(method)
 
     elif value is not None and method is None:
