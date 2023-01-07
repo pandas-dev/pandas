@@ -1446,7 +1446,7 @@ class ExcelFile:
         "openpyxl": OpenpyxlReader,
         "odf": ODFReader,
         "pyxlsb": PyxlsbReader,
-        "calamite": CalamineExcelReader,
+        "calamine": CalamineExcelReader,
     }
 
     def __init__(

@@ -8,10 +8,7 @@ from pathlib import PurePath
 from tempfile import NamedTemporaryFile
 from typing import Any
 
-from python_calamine import (
-    get_sheet_data,
-    get_sheet_names,
-)
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -26,6 +23,7 @@ class __calamine__:
 class CalamineExcelReader(BaseExcelReader):
     book: str
     _sheet_names: list[str] | None = None
+    import_optional_dependency("python_calamine")
 
     @property
     def _workbook_class(self) -> type[__calamine__]:
@@ -48,11 +46,15 @@ class CalamineExcelReader(BaseExcelReader):
 
         assert isinstance(filepath_or_buffer, str)
 
+        from python_calamine import get_sheet_names
+
         self._sheet_names = get_sheet_names(filepath_or_buffer)
         return filepath_or_buffer
 
     @property
     def sheet_names(self) -> list[str]:
+        from python_calamine import get_sheet_names
+
         if self._sheet_names is None:
             self._sheet_names = get_sheet_names(self.book)
         return self._sheet_names
@@ -61,9 +63,7 @@ class CalamineExcelReader(BaseExcelReader):
         self.raise_if_bad_sheet_by_name(name)
         return self.sheet_names.index(name)
 
-    def get_sheet_by_index(self, index: int) -> int:
-        self.raise_if_bad_sheet_by_index(index)
-        return index
-
     def get_sheet_data(self, sheet: int, convert_float: bool) -> list[list[Any]]:
+        from python_calamine import get_sheet_data
+
         return get_sheet_data(self.book, sheet)
