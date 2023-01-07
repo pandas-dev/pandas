@@ -117,7 +117,8 @@ class TestTimeConversionFormats:
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_with_nat(self, cache):
-        ser = Series([19801222, 19801222] + [19810105] * 5)
+        # Explicit cast to float to explicit cast when setting np.nan
+        ser = Series([19801222, 19801222] + [19810105] * 5, dtype="float")
         # with NaT
         expected = Series(
             [Timestamp("19801222"), Timestamp("19801222")] + [Timestamp("19810105")] * 5
@@ -139,7 +140,8 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_format_YYYYMM_with_nat(self, cache):
         # https://github.com/pandas-dev/pandas/issues/50237
-        ser = Series([198012, 198012] + [198101] * 5)
+        # Explicit cast to float to explicit cast when setting np.nan
+        ser = Series([198012, 198012] + [198101] * 5, dtype="float")
         expected = Series(
             [Timestamp("19801201"), Timestamp("19801201")] + [Timestamp("19810101")] * 5
         )
@@ -542,6 +544,29 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    @pytest.mark.filterwarnings("ignore:Could not infer format")
+    def test_to_datetime_overflow(self):
+        # we should get an OutOfBoundsDatetime, NOT OverflowError
+        # TODO: Timestamp raises VaueError("could not convert string to Timestamp")
+        #  can we make these more consistent?
+        arg = "08335394550"
+        msg = 'Parsing "08335394550" to datetime overflows, at position 0'
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arg)
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime([arg])
+
+        res = to_datetime(arg, errors="coerce")
+        assert res is NaT
+        res = to_datetime([arg], errors="coerce")
+        tm.assert_index_equal(res, Index([NaT]))
+
+        res = to_datetime(arg, errors="ignore")
+        assert isinstance(res, str) and res == arg
+        res = to_datetime([arg], errors="ignore")
+        tm.assert_index_equal(res, Index([arg], dtype=object))
+
     def test_to_datetime_mixed_datetime_and_string(self):
         # GH#47018 adapted old doctest with new behavior
         d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
@@ -1071,8 +1096,9 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_tz_mixed_raises(self, cache):
-        # mixed tzs will raise
+    def test_to_datetime_tz_mixed(self, cache):
+        # mixed tzs will raise if errors='raise'
+        # https://github.com/pandas-dev/pandas/issues/50585
         arr = [
             Timestamp("2013-01-01 13:00:00", tz="US/Pacific"),
             Timestamp("2013-01-02 14:00:00", tz="US/Eastern"),
@@ -1083,6 +1109,21 @@ class TestToDatetime:
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(arr, cache=cache)
+
+        result = to_datetime(arr, cache=cache, errors="ignore")
+        expected = Index(
+            [
+                Timestamp("2013-01-01 13:00:00-08:00"),
+                Timestamp("2013-01-02 14:00:00-05:00"),
+            ],
+            dtype="object",
+        )
+        tm.assert_index_equal(result, expected)
+        result = to_datetime(arr, cache=cache, errors="coerce")
+        expected = DatetimeIndex(
+            ["2013-01-01 13:00:00-08:00", "NaT"], dtype="datetime64[ns, US/Pacific]"
+        )
+        tm.assert_index_equal(result, expected)
 
     def test_to_datetime_different_offsets(self, cache):
         # inspired by asv timeseries.ToDatetimeNONISO8601 benchmark
@@ -1517,7 +1558,10 @@ class TestToDatetime:
         ts_strings = ["200622-12-31", "111111-24-11"]
         with pytest.raises(
             ValueError,
-            match=r"^hour must be in 0\.\.23: 111111-24-11, at position 1$",
+            match=(
+                r"^offset must be a timedelta strictly between "
+                r"-timedelta\(hours=24\) and timedelta\(hours=24\)., at position 0$"
+            ),
         ):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -2358,8 +2402,8 @@ class TestToDatetimeMisc:
 
         expected = Index(np.array([1, "1"], dtype="O"))
         tm.assert_equal(result, expected)
-        msg = "invalid string coercion to datetime"
-        with pytest.raises(TypeError, match=msg):
+        msg = '^Given date string "1" not likely a datetime, at position 1$'
+        with pytest.raises(ValueError, match=msg):
             to_datetime([1, "1"], errors="raise", cache=cache)
 
     def test_to_datetime_unhashable_input(self, cache):

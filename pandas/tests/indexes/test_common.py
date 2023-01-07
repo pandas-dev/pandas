@@ -3,6 +3,10 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+from copy import (
+    copy,
+    deepcopy,
+)
 import re
 
 import numpy as np
@@ -132,11 +136,6 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import (
-            copy,
-            deepcopy,
-        )
-
         index = index_flat
 
         for func in (copy, deepcopy):
