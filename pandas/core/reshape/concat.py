@@ -50,7 +50,7 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import concatenate_managers
 from pandas.core.internals.construction import dict_to_mgr
-from pandas.core.internals.managers import _using_copy_on_write
+from pandas.core.internals.managers import using_copy_on_write
 
 if TYPE_CHECKING:
     from pandas import (
@@ -368,7 +368,7 @@ def concat(
     1   3   4
     """
     if copy is None:
-        if _using_copy_on_write():
+        if using_copy_on_write():
             copy = False
         else:
             copy = True
@@ -601,9 +601,9 @@ class _Concatenator:
                     copy=self.copy,
                     typ=get_option("mode.data_manager"),
                 )
-                if _using_copy_on_write() and not self.copy:
+                if using_copy_on_write() and not self.copy:
                     mgr = mgr.copy(deep=False)
-                df = cons(mgr, copy=self.copy)
+                df = cons(mgr, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -630,10 +630,8 @@ class _Concatenator:
             new_data = concatenate_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
-            if not self.copy and not _using_copy_on_write():
+            if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
-            elif _using_copy_on_write() and not self.copy:
-                new_data = new_data.copy(deep=False)
 
             cons = sample._constructor
             return cons(new_data).__finalize__(self, method="concat")
