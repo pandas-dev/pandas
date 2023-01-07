@@ -23,7 +23,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.internals.managers import _using_copy_on_write
+from pandas.core.internals.managers import using_copy_on_write
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -1010,7 +1010,7 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             assert len(result)
 
 
-@pytest.mark.skipif(_using_copy_on_write(), reason="strides buggy with cow")
+@pytest.mark.skipif(using_copy_on_write(), reason="strides buggy with cow")
 def test_hdfstore_strides(setup_path):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
