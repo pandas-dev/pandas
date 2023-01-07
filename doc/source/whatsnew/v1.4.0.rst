@@ -320,7 +320,7 @@ Null-values are no longer coerced to NaN-value in value_counts and mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`Series.value_counts` and :meth:`Series.mode` no longer coerce ``None``,
-``NaT`` and other null-values to a NaN-value for ``np.object``-dtype. This
+``NaT`` and other null-values to a NaN-value for ``np.object_``-dtype. This
 behavior is now consistent with ``unique``, ``isin`` and others
 (:issue:`42688`).
 

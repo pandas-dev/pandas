@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 import numpy as np
 import pytest
@@ -164,8 +165,6 @@ class TestGetDummies:
 
     def test_get_dummies_unicode(self, sparse):
         # See GH 6885 - get_dummies chokes on unicode values
-        import unicodedata
-
         e = "e"
         eacute = unicodedata.lookup("LATIN SMALL LETTER E WITH ACUTE")
         s = [e, eacute, eacute]
