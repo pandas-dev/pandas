@@ -872,13 +872,6 @@ class TestNestedToRecord:
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
 
-    def test_deprecated_import(self):
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.io.json import json_normalize  # pylint: disable=reimported
-
-            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
-            json_normalize(recs)
-
     def test_series_non_zero_index(self):
         # GH 19020
         data = {

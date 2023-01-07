@@ -522,6 +522,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
 - Removed deprecated module ``pandas.core.index`` (:issue:`30193`)
 - Removed deprecated alias ``pandas.core.tools.datetimes.to_time``, import the function directly from ``pandas.core.tools.times`` instead (:issue:`34145`)
+- Removed deprecated alias ``pandas.io.json.json_normalize``, import the function directly from ``pandas.json_normalize`` instead (:issue:`27615`)
 - Removed deprecated :meth:`Categorical.to_dense`, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - Removed deprecated :meth:`Categorical.take_nd` (:issue:`27745`)
 - Removed deprecated :meth:`Categorical.mode`, use ``Series(cat).mode()`` instead (:issue:`45033`)
