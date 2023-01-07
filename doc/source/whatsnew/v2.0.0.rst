@@ -775,6 +775,7 @@ Performance improvements
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
+- Performance improvement in :meth:`~arrays.IntervalArray.from_tuples` (:issue:`#####`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.__setitem__` when key is a null slice (:issue:`50248`)
 - Performance improvement in :class:`~arrays.ArrowExtensionArray` comparison methods when array contains NA (:issue:`50524`)
