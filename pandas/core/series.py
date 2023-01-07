@@ -881,7 +881,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         indices = ensure_platform_int(indices)
 
-        if using_copy_on_write() and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype)):
+        if (
+            indices.ndim == 1
+            and using_copy_on_write()
+            and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype))
+        ):
             return self.copy(deep=None)
 
         new_index = self.index.take(indices)
