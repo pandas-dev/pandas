@@ -91,18 +91,20 @@ def read_orc(
         pa_table = orc_file.read(columns=columns, **kwargs)
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
-        if dtype_backend != "pyarrow":
-            raise NotImplementedError(
-                f"mode.dtype_backend set to {dtype_backend} is not implemented."
+        if dtype_backend == "pyarrow":
+            df = DataFrame(
+                {
+                    col_name: ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
             )
-        df = DataFrame(
-            {
-                col_name: ArrowExtensionArray(pa_col)
-                for col_name, pa_col in zip(
-                    pa_table.column_names, pa_table.itercolumns()
-                )
-            }
-        )
+        else:
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping()
+            df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
         return pa_table.to_pandas()
