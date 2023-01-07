@@ -27,7 +27,7 @@ To be able to use Gitpod, you will need to have the Gitpod app installed on your
 GitHub account, so if
 you do not have an account yet, you will need to create one first.
 
-To get started just login at Gitpod, and grant the appropriate permissions to GitHub.
+To get started just login at `Gitpod`_, and grant the appropriate permissions to GitHub.
 
 We have built a python 3.8 environment and all development dependencies will
 install when the environment starts.
