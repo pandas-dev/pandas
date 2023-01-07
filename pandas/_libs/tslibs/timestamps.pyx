@@ -579,7 +579,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_start(self) -> bool:
         """
-        Return True if the date is the first day of the month.
+        Check if the date is the first day of the month.
 
         Returns
         -------
@@ -605,7 +605,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_end(self) -> bool:
         """
-        Return True if the date is the last day of the month.
+        Check if the date is the last day of the month.
 
         Returns
         -------
@@ -631,7 +631,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_start(self) -> bool:
         """
-        Return True if the date is the first day of the quarter.
+        Check if the date is the first day of the quarter.
 
         Returns
         -------
@@ -658,7 +658,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_end(self) -> bool:
         """
-        Return True if the date is last day of the quarter.
+        Check if date is last day of the quarter.
 
         Returns
         -------
