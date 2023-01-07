@@ -11,11 +11,8 @@ from typing import (
     TypeVar,
     overload,
 )
-import warnings
 
 import numpy as np
-
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -297,11 +294,6 @@ def validate_axis_style_args(
     >>> validate_axis_style_args(df, (str.upper,), {'columns': id},
     ...                          'mapper', 'rename')
     {'columns': <built-in function id>, 'index': <method 'upper' of 'str' objects>}
-
-    This emits a warning
-    >>> validate_axis_style_args(df, (str.upper, id), {},
-    ...                          'mapper', 'rename')
-    {'index': <method 'upper' of 'str' objects>, 'columns': <built-in function id>}
     """
     # TODO: Change to keyword-only args and remove all this
 
@@ -348,15 +340,10 @@ def validate_axis_style_args(
             raise TypeError(msg)
 
         msg = (
-            f"Interpreting call\n\t'.{method_name}(a, b)' as "
-            f"\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-            "arguments to remove any ambiguity. In the future, using "
-            "positional arguments for 'index' or 'columns' will raise "
-            "a 'TypeError'."
+            f"'.{method_name}(a, b)' is ambiguous. Use named keyword arguments"
+            "for 'index' or 'columns'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-        out[data._get_axis_name(0)] = args[0]
-        out[data._get_axis_name(1)] = args[1]
+        raise TypeError(msg)
     else:
         msg = f"Cannot specify all of '{arg_name}', 'index', 'columns'."
         raise TypeError(msg)
