@@ -244,6 +244,21 @@ At this point you should be able to import pandas from your locally built versio
    >>> print(pandas.__version__)  # note: the exact output may differ
    2.0.0.dev0+880.g2b9e661fbb.dirty
 
+When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified. 
+By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's 
+output when importing pandas, you can set the environment variable ``MESONPY_EDTIABLE_VERBOSE``. For example, this would be::
+
+   # On Linux/macOS
+   MESONPY_EDITABLE_VERBOSE=1 python
+   
+   # Windows
+   set MESONPY_EDITABLE_VERBOSE=1 # Only need to set this once per session
+   python
+
+If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::
+   
+   python -m pip install -ve . --config-settings editable-verbose=true
+
 .. tip::
    If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
    you can check the value of ``pandas._built_with_meson``, which will be true if meson was used
