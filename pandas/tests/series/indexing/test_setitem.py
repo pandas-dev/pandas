@@ -62,7 +62,10 @@ class TestSetitemDT64Values:
     def test_setitem_with_string_index(self):
         # GH#23451
         ser = Series([1, 2, 3], index=["Date", "b", "other"])
-        ser["Date"] = date.today()
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            ser["Date"] = date.today()
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
 
@@ -188,11 +191,14 @@ class TestSetitemScalarIndexer:
         expected = Series([Series([42], index=[ser_index]), 0], dtype="object")
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.parametrize("index, exp_value", [(0, 42), (1, np.nan)])
-    def test_setitem_series(self, index, exp_value):
+    @pytest.mark.parametrize(
+        "index, exp_value, warn", [(0, 42, None), (1, np.nan, FutureWarning)]
+    )
+    def test_setitem_series(self, index, exp_value, warn):
         # GH#38303
         ser = Series([0, 0])
-        ser.loc[0] = Series([42], index=[index])
+        with tm.assert_produces_warning(warn, match="item of incompatible dtype"):
+            ser.loc[0] = Series([42], index=[index])
         expected = Series([exp_value, 0])
         tm.assert_series_equal(ser, expected)
 
@@ -256,7 +262,10 @@ class TestSetitemBooleanMask:
         mask = ts > 0
         left = ts.copy()
         right = ts[mask].copy().map(str)
-        left[mask] = right
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left[mask] = right
         expected = ts.map(lambda t: str(t) if t > 0 else t)
         tm.assert_series_equal(left, expected)
 
@@ -264,7 +273,10 @@ class TestSetitemBooleanMask:
         ser = Series([0, 1, 2, 0])
         mask = ser > 0
         ser2 = ser[mask].map(str)
-        ser[mask] = ser2
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            ser[mask] = ser2
 
         expected = Series([0, "1", "2", 0])
         tm.assert_series_equal(ser, expected)
@@ -356,7 +368,10 @@ class TestSetitemBooleanMask:
     def test_setitem_nan_with_bool(self):
         # GH 13034
         result = Series([True, False, True])
-        result[0] = np.nan
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            result[0] = np.nan
         expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
 
@@ -367,12 +382,18 @@ class TestSetitemBooleanMask:
         mask = np.array([True, False, True])
 
         ser = orig.copy()
-        ser[mask] = Series(alt)
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            ser[mask] = Series(alt)
         expected = Series([999, 2, 1001])
         tm.assert_series_equal(ser, expected)
 
         ser2 = orig.copy()
-        ser2.mask(mask, alt, inplace=True)
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            ser2.mask(mask, alt, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
         ser3 = orig.copy()
