@@ -225,24 +225,13 @@ class PyArrowImpl(BaseImpl):
         dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            import pandas as pd
 
             if dtype_backend == "pandas":
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                    self.api.float32(): pd.Float32Dtype(),
-                    self.api.float64(): pd.Float64Dtype(),
-                }
+                from pandas.io._util import _arrow_dtype_mapping
+
+                mapping = _arrow_dtype_mapping()
                 to_pandas_kwargs["types_mapper"] = mapping.get
+
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
