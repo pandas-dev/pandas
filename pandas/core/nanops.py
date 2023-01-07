@@ -1711,6 +1711,9 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         np.minimum.accumulate: (np.inf, np.nan),
     }[accum_func]
 
+    # This should go through ea interface
+    assert values.dtype.kind not in ["m", "M"]
+
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
