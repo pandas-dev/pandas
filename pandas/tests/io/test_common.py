@@ -317,7 +317,7 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(  # pytables np.object usage
+    @pytest.mark.filterwarnings(  # pytables np.object_ usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
@@ -372,7 +372,7 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
-    @pytest.mark.filterwarnings(  # pytables np.object usage
+    @pytest.mark.filterwarnings(  # pytables np.object_ usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
     def test_write_fspath_hdf5(self):

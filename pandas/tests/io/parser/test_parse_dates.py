@@ -2052,7 +2052,7 @@ def test_parse_dot_separated_dates(all_parsers):
             name="a",
         )
         warn = UserWarning
-    msg = "when dayfirst=False was specified"
+    msg = r"when dayfirst=False \(the default\) was specified"
     result = parser.read_csv_check_warnings(
         warn, msg, StringIO(data), parse_dates=True, index_col=0
     )

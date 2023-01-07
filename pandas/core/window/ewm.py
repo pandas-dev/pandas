@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import common  # noqa: PDF018
+from pandas.core import common
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
