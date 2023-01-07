@@ -98,13 +98,13 @@ class OpsMixin:
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
         """
-        Get addition of DataFrame and other, column-wise.
+        Get Addition of DataFrame and other, column-wise.
 
-        This is equivalent to df.add(other, axis=1).
+        Equivalent to ``DataFrame.add(other)``.
 
         Parameters
         ----------
-        other : array-like
+        other : scalar, sequence, Series, dict or DataFrame
             Object to be added to the DataFrame.
 
         Returns
@@ -137,7 +137,7 @@ class OpsMixin:
 
         Even when the index of `other` is the same as the index of the DataFrame,
         the :class:`Series` will not be reoriented. If index-wise alignment is desired,
-        :meth:`DataFrame.add` should be used.
+        :meth:`DataFrame.add` should be used with `axis='index'`.
 
         >>> s = pd.Series([0.5, 1.5], index=['elk', 'moose'])
         >>> df[['height', 'weight']] + s
