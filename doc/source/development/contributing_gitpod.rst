@@ -5,7 +5,7 @@ Using Gitpod for pandas development
 
 This section of the documentation will guide you through:
 
-*  using GitPod for your pandas development environment
+*  using Gitpod for your pandas development environment
 *  creating a personal fork of the pandas repository on GitHub
 *  a quick tour of pandas and VSCode
 *  working on the pandas documentation in Gitpod
@@ -27,7 +27,7 @@ To be able to use Gitpod, you will need to have the Gitpod app installed on your
 GitHub account, so if
 you do not have an account yet, you will need to create one first.
 
-To get started just login at gitpod, and grant the appropriate permissions to github.
+To get started just login at Gitpod, and grant the appropriate permissions to GitHub.
 
 We have built a python 3.8 environment and all development dependencies will
 install when the environment starts.
@@ -48,7 +48,7 @@ repository first.
 Starting Gitpod
 ---------------
 Once you have authenticated to Gitpod through GitHub, you can install the
-`Gitpod browser extension <https://www.gitpod.io/docs/browser-extension>`_
+`Gitpod Chromium or Firefox browser extension <https://www.gitpod.io/docs/browser-extension>`_
 which will add a **Gitpod** button next to the **Code** button in the
 repository:
 
@@ -75,7 +75,7 @@ repository:
 #. When your workspace is ready, you can :ref:`test the build<contributing.running_tests>` by
    entering::
 
-      $ python pytest pandas
+      $ python -m pytest pandas
 
 
 Quick workspace tour
@@ -87,10 +87,6 @@ Your workspace will look similar to the image below:
 
 .. image:: ./gitpod-imgs/gitpod-workspace.png
    :alt: Gitpod workspace screenshot
-
-.. note::  By default, VSCode initializes with a light theme. You can change to
-   a dark theme by with the keyboard shortcut :kbd:`Cmd-K Cmd-T` in Mac or
-   :kbd:`Ctrl-K Ctrl-T` in Linux and Windows.
 
 We have marked some important sections in the editor:
 
