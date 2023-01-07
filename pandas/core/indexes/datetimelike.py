@@ -396,6 +396,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     _join_precedence = 10
 
+    @property
+    def unit(self) -> str:
+        return self._data.unit
+
+    def as_unit(self, unit: _TDT) -> _TDT:
+        arr = self._data.as_unit(unit)
+        return type(self)._simple_new(arr, name=self.name)
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
