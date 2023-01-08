@@ -177,7 +177,10 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        df.loc[0, "c"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[0, "c"] = "foo"
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
@@ -194,7 +197,10 @@ class TestFancy:
         )
 
         left = df.copy()
-        left.loc["a", "bar"] = val
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = val
         right = DataFrame(
             [[0, val, 2], [3, 4, 5]],
             index=list("ab"),
@@ -211,7 +217,10 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        left.loc["a", "bar"] = "wxyz"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = "wxyz"
 
         right = DataFrame(
             [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
@@ -455,7 +464,10 @@ class TestFancy:
         cols = ["col1", "col2"]
 
         dft = df2 * 2
-        dft.iloc[3, 3] = np.nan
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            dft.iloc[3, 3] = np.nan
 
         expected = DataFrame(
             {
@@ -467,7 +479,10 @@ class TestFancy:
         )
 
         # frame on rhs
-        df2.loc[mask, cols] = dft.loc[mask, cols]
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
         # with an ndarray on rhs
@@ -482,7 +497,10 @@ class TestFancy:
             }
         )
         df2 = df.copy()
-        df2.loc[mask, cols] = dft.loc[mask, cols].values
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
     def test_multi_assign_broadcasting_rhs(self):
@@ -659,6 +677,7 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -808,6 +827,7 @@ class TestDataframeNoneCoercion:
     ]
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_coercion_with_loc(self, expected):
         start_data, expected_result = expected
 
@@ -818,6 +838,7 @@ class TestDataframeNoneCoercion:
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_coercion_with_setitem_and_dataframe(self, expected):
         start_data, expected_result = expected
 
@@ -828,6 +849,7 @@ class TestDataframeNoneCoercion:
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_none_coercion_loc_and_dataframe(self, expected):
         start_data, expected_result = expected
 
