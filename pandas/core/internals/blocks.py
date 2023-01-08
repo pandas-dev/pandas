@@ -11,6 +11,7 @@ from typing import (
     cast,
     final,
 )
+import weakref
 
 import numpy as np
 
@@ -451,12 +452,18 @@ class Block(PandasObject):
         self,
         *,
         copy: bool = True,
+        using_copy_on_write: bool = False,
+        original_blocks: list[Block] = [],
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
+        if not copy and using_copy_on_write:
+            result = self.copy(deep=False)
+            result._ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+            return [result]
         return [self.copy()] if copy else [self]
 
     # ---------------------------------------------------------------------
@@ -1963,6 +1970,8 @@ class ObjectBlock(NumpyBlock):
         self,
         *,
         copy: bool = True,
+        using_copy_on_write: bool = False,
+        original_blocks: list[Block] = [],
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -1971,6 +1980,10 @@ class ObjectBlock(NumpyBlock):
         if self.dtype != _dtype_obj:
             # GH#50067 this should be impossible in ObjectBlock, but until
             #  that is fixed, we short-circuit here.
+            if using_copy_on_write:
+                result = self.copy(deep=False)
+                result._ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+                return [result]
             return [self]
 
         values = self.values
@@ -1986,10 +1999,16 @@ class ObjectBlock(NumpyBlock):
             convert_period=True,
             convert_interval=True,
         )
+        ref = None
         if copy and res_values is values:
             res_values = values.copy()
+        elif res_values is values and using_copy_on_write:
+            ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+
         res_values = ensure_block_shape(res_values, self.ndim)
-        return [self.make_block(res_values)]
+        result = self.make_block(res_values)
+        result._ref = ref
+        return [result]
 
 
 # -----------------------------------------------------------------

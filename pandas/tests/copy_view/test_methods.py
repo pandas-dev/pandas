@@ -440,7 +440,7 @@ def test_head_tail(method, using_copy_on_write):
 
 
 def test_infer_objects(using_copy_on_write):
-    df = DataFrame({"a": [1, 2], "b": "c"})
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
     df_orig = df.copy()
     df2 = df.infer_objects()
 

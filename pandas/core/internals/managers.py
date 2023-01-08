@@ -384,10 +384,8 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if (
-            using_copy_on_write()
-            and self.refs is not None
-            and not all(ref is None for ref in self.refs)
+        if using_copy_on_write() and any(
+            not self._has_no_reference_block(i) for i in range(len(self.blocks))
         ):
             # some reference -> copy full dataframe
             # TODO(CoW) this could be optimized to only copy the blocks that would
@@ -442,12 +440,22 @@ class BaseBlockManager(DataManager):
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self: T, copy: bool | None) -> T:
-        if copy is None and using_copy_on_write():
+        if not copy and using_copy_on_write():
             copy = False
         elif copy is None:
             copy = True
 
-        return self.apply("convert", copy=copy)
+        mgr = self.apply(
+            "convert",
+            copy=copy,
+            using_copy_on_write=using_copy_on_write(),
+            original_blocks=[self.blocks[i] for i in self.blknos],
+        )
+        refs = [getattr(blk, "_ref", None) is not None for blk in mgr.blocks]
+        if any(ref is not None for ref in refs):
+            mgr.refs = refs
+            mgr.parent = self
+        return mgr
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
         inplace = validate_bool_kwarg(inplace, "inplace")
