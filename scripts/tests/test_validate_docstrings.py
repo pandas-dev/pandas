@@ -199,6 +199,32 @@ class TestValidator:
                 self._import_path(klass="BadDocstrings", func="leftover_files")
             )
 
+    def test_validate_all_ignore_functions(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings,
+            "get_all_api_items",
+            lambda: [
+                (
+                    "pandas.DataFrame.align",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                ),
+                (
+                    "pandas.Index.all",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                ),
+            ],
+        )
+        result = validate_docstrings.validate_all(
+            prefix=None,
+            ignore_functions=["pandas.DataFrame.align"],
+        )
+        assert len(result) == 1
+        assert "pandas.Index.all" in result
+
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings,
@@ -339,6 +365,7 @@ class TestMainFunction:
             errors=[],
             output_format="default",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 0
 
@@ -346,7 +373,7 @@ class TestMainFunction:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
-            lambda prefix, ignore_deprecated=False: {
+            lambda prefix, ignore_deprecated=False, ignore_functions=None: {
                 "docstring1": {
                     "errors": [
                         ("ER01", "err desc"),
@@ -369,6 +396,7 @@ class TestMainFunction:
             errors=[],
             output_format="default",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 5
 
@@ -376,7 +404,7 @@ class TestMainFunction:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
-            lambda prefix, ignore_deprecated=False: {
+            lambda prefix, ignore_deprecated=False, ignore_functions=None: {
                 "docstring1": {"errors": [], "warnings": [("WN01", "warn desc")]},
                 "docstring2": {"errors": []},
             },
@@ -387,6 +415,7 @@ class TestMainFunction:
             errors=[],
             output_format="default",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 0
 
@@ -395,7 +424,7 @@ class TestMainFunction:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
-            lambda prefix, ignore_deprecated=False: {
+            lambda prefix, ignore_deprecated=False, ignore_functions=None: {
                 "docstring1": {
                     "errors": [
                         ("ER01", "err desc"),
@@ -412,6 +441,7 @@ class TestMainFunction:
             errors=[],
             output_format="json",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 0
 
@@ -419,7 +449,7 @@ class TestMainFunction:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
-            lambda prefix, ignore_deprecated=False: {
+            lambda prefix, ignore_deprecated=False, ignore_functions=None: {
                 "Series.foo": {
                     "errors": [
                         ("ER01", "err desc"),
@@ -447,6 +477,7 @@ class TestMainFunction:
             errors=["ER01"],
             output_format="default",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 3
 
@@ -456,5 +487,6 @@ class TestMainFunction:
             errors=["ER03"],
             output_format="default",
             ignore_deprecated=False,
+            ignore_functions=None,
         )
         assert exit_status == 1
