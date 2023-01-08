@@ -21,5 +21,5 @@ runs:
       run: |
         call micromamba activate test
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        python -m pip install . --no-build-isolation -v
+        python -m pip install -e . --no-build-isolation -v
       shell: cmd /C call {0}
