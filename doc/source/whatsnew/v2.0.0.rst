@@ -522,6 +522,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
 - Removed deprecated module ``pandas.core.index`` (:issue:`30193`)
 - Removed deprecated alias ``pandas.core.tools.datetimes.to_time``, import the function directly from ``pandas.core.tools.times`` instead (:issue:`34145`)
+- Removed deprecated alias ``pandas.io.json.json_normalize``, import the function directly from ``pandas.json_normalize`` instead (:issue:`27615`)
 - Removed deprecated :meth:`Categorical.to_dense`, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - Removed deprecated :meth:`Categorical.take_nd` (:issue:`27745`)
 - Removed deprecated :meth:`Categorical.mode`, use ``Series(cat).mode()`` instead (:issue:`45033`)
@@ -627,6 +628,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)
 - Disallow passing non-keyword arguments to :meth:`Series.sort_values` (:issue:`41505`)
+- Disallow passing 2 non-keyword arguments to :meth:`DataFrame.reindex` (:issue:`17966`)
 - Disallow :meth:`Index.reindex` with non-unique :class:`Index` objects (:issue:`42568`)
 - Disallowed constructing :class:`Categorical` with scalar ``data`` (:issue:`38433`)
 - Disallowed constructing :class:`CategoricalIndex` without passing ``data`` (:issue:`38944`)
@@ -751,6 +753,7 @@ Removal of prior version deprecations/changes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.all`, :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.all`, and :meth:`.SeriesGroupBy.any` for object dtype (:issue:`50623`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`, :issue:`48752`)
@@ -774,10 +777,12 @@ Performance improvements
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
+- Performance improvement in :meth:`~arrays.IntervalArray.from_tuples` (:issue:`50620`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.__setitem__` when key is a null slice (:issue:`50248`)
 - Performance improvement in :class:`~arrays.ArrowExtensionArray` comparison methods when array contains NA (:issue:`50524`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
+- Performance improvement when parsing strings to :class:`BooleanDtype` (:issue:`50613`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` and ``std`` for nullable dtypes (:issue:`48379`).
