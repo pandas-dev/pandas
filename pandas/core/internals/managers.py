@@ -448,7 +448,7 @@ class BaseBlockManager(DataManager):
             copy = True
 
         if self.is_single_block:
-            original_blocks = [self.blocks[0]]
+            original_blocks = [self.blocks[0]] * self.shape[0]
         else:
             original_blocks = [self.blocks[i] for i in self.blknos]
         mgr = self.apply(
