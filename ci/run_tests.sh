@@ -38,7 +38,7 @@ if [[ "$ERROR_ON_WARNINGS" == "1" ]]; then
 fi
 
 echo $PYTEST_CMD
-sh -c "$PYTEST_CMD -k test_oo"
+sh -c "$PYTEST_CMD -k lzma"
 exit 0
 
 if [[ "$PANDAS_DATA_MANAGER" != "array" && "$PYTEST_TARGET" == "pandas" ]]; then
