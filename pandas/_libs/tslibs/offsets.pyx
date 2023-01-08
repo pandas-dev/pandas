@@ -162,7 +162,11 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+        result2 = Timestamp(result).as_unit(other.unit)
+        if result == result2:
+            # i.e. the conversion is non-lossy, not the case for e.g.
+            #  test_milliseconds_combination
+            result = result2
 
         if self._adjust_dst:
             result = result.tz_localize(tz)
@@ -298,43 +302,54 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 
 cdef _determine_offset(kwds):
-    # timedelta is used for sub-daily plural offsets and all singular
-    # offsets, relativedelta is used for plural offsets of daily length or
-    # more, nanosecond(s) are handled by apply_wraps
-    kwds_no_nanos = dict(
-        (k, v) for k, v in kwds.items()
-        if k not in ("nanosecond", "nanoseconds")
+    if not kwds:
+        # GH 45643/45890: (historically) defaults to 1 day
+        return timedelta(days=1), False
+
+    if "millisecond" in kwds:
+        raise NotImplementedError(
+            "Using DateOffset to replace `millisecond` component in "
+            "datetime object is not supported. Use "
+            "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+            "instead."
+        )
+
+    nanos = {"nanosecond", "nanoseconds"}
+
+    # nanos are handled by apply_wraps
+    if all(k in nanos for k in kwds):
+        return timedelta(days=0), False
+
+    kwds_no_nanos = {k: v for k, v in kwds.items() if k not in nanos}
+
+    kwds_use_relativedelta = {
+        "year", "month", "day", "hour", "minute",
+        "second", "microsecond", "weekday", "years", "months", "weeks", "days",
+        "hours", "minutes", "seconds", "microseconds"
+    }
+
+    # "weeks" and "days" are left out despite being valid args for timedelta,
+    # because (historically) timedelta is used only for sub-daily.
+    kwds_use_timedelta = {
+        "seconds", "microseconds", "milliseconds", "minutes", "hours",
+    }
+
+    if all(k in kwds_use_timedelta for k in kwds_no_nanos):
+        # Sub-daily offset - use timedelta (tz-aware)
+        # This also handles "milliseconds" (plur): see GH 49897
+        return timedelta(**kwds_no_nanos), False
+
+    # convert milliseconds to microseconds, so relativedelta can parse it
+    if "milliseconds" in kwds_no_nanos:
+        micro = kwds_no_nanos.pop("milliseconds") * 1000
+        kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
+
+    if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        return relativedelta(**kwds_no_nanos), True
+
+    raise ValueError(
+        f"Invalid argument/s or bad combination of arguments: {list(kwds.keys())}"
     )
-    # TODO: Are nanosecond and nanoseconds allowed somewhere?
-
-    _kwds_use_relativedelta = ("years", "months", "weeks", "days",
-                               "year", "month", "week", "day", "weekday",
-                               "hour", "minute", "second", "microsecond",
-                               "millisecond")
-
-    use_relativedelta = False
-    if len(kwds_no_nanos) > 0:
-        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
-            if "millisecond" in kwds_no_nanos:
-                raise NotImplementedError(
-                    "Using DateOffset to replace `millisecond` component in "
-                    "datetime object is not supported. Use "
-                    "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
-                    "instead."
-                )
-            offset = relativedelta(**kwds_no_nanos)
-            use_relativedelta = True
-        else:
-            # sub-daily offset - use timedelta (tz-aware)
-            offset = timedelta(**kwds_no_nanos)
-    elif any(nano in kwds for nano in ("nanosecond", "nanoseconds")):
-        offset = timedelta(days=0)
-    else:
-        # GH 45643/45890: (historically) defaults to 1 day for non-nano
-        # since datetime.timedelta doesn't handle nanoseconds
-        offset = timedelta(days=1)
-    return offset, use_relativedelta
-
 
 # ---------------------------------------------------------------------
 # Mixins & Singletons
@@ -351,6 +366,21 @@ class ApplyTypeError(TypeError):
 cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
+
+    normalize : bool
+        Whether the frequency can align with midnight.
+
+    Examples
+    --------
+    >>> pd.offsets.Hour(5).n
+    5
+    >>> pd.offsets.Hour(5).normalize
+    False
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -369,23 +399,7 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        """
-        Number of multiples of the frequency.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).n
-        5
-        """
         self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).normalize
-        False
-        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
@@ -1163,7 +1177,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
-
         off, use_rd = _determine_offset(kwds)
         object.__setattr__(self, "_offset", off)
         object.__setattr__(self, "_use_relativedelta", use_rd)
@@ -1834,15 +1847,20 @@ cdef class BusinessHour(BusinessMixin):
         earliest_start = self.start[0]
         latest_start = self.start[-1]
 
+        if self.n == 0:
+            is_same_sign = sign > 0
+        else:
+            is_same_sign = self.n * sign >= 0
+
         if not self.next_bday.is_on_offset(other):
             # today is not business day
             other = other + sign * self.next_bday
-            if self.n * sign >= 0:
+            if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
                 hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0:
+            if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
                     other = other + sign * self.next_bday

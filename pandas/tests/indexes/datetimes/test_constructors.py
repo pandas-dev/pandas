@@ -547,7 +547,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds .* present at position 0"
+        msg = "^Out of bounds nanosecond timestamp: 3000-01-01 00:00:00, at position 0$"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -804,7 +804,7 @@ class TestDatetimeIndex:
     )
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
-        ts = Timestamp("2018-01-01", tz=tz)
+        ts = Timestamp("2018-01-01", tz=tz).as_unit("ns")
         result = klass(box([ts.value]), dtype=dtype)
         expected = klass([ts])
         assert result == expected
@@ -880,15 +880,8 @@ class TestDatetimeIndex:
         result = date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_with_nonexistent_keyword_arg(self, warsaw, request):
+    def test_constructor_with_nonexistent_keyword_arg(self, warsaw):
         # GH 35297
-        if type(warsaw).__name__ == "ZoneInfo":
-            mark = pytest.mark.xfail(
-                reason="nonexistent-shift not yet implemented for ZoneInfo",
-                raises=NotImplementedError,
-            )
-            request.node.add_marker(mark)
-
         timezone = warsaw
 
         # nonexistent keyword in start

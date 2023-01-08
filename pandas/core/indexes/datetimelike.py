@@ -82,7 +82,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -90,9 +90,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
+        self._data.freq = value  # type: ignore[misc]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:

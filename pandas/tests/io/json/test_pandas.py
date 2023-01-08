@@ -4,6 +4,7 @@ from io import StringIO
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import pytest
@@ -972,7 +973,9 @@ class TestPandasContainer:
         ts = Timestamp("20130101")
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
-        expected = DataFrame({"a": [pd.Timedelta(td).as_unit("ns").value, ts.value]})
+        expected = DataFrame(
+            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+        )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -1727,8 +1730,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
-        import time
-
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})

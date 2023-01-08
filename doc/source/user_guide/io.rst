@@ -1149,7 +1149,7 @@ To completely override the default values that are recognized as missing, specif
 .. _io.navaluesconst:
 
 The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
-'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
+'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', 'None', '']``.
 
 Let us consider some examples:
 
@@ -1255,6 +1255,21 @@ The bad line will be a list of strings that was split by the ``sep``:
 
     .. versionadded:: 1.4.0
 
+Note that the callable function will handle only a line with too many fields.
+Bad lines caused by other errors will be silently skipped.
+
+For example:
+
+.. code-block:: ipython
+
+   def bad_lines_func(line):
+      print(line)
+
+   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+   data
+   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
+
+The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
@@ -3833,7 +3848,7 @@ OpenDocument Spreadsheets
 The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
 using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
-``engine='odf'``.
+``engine='odf'``. The optional dependency 'odfpy' needs to be installed.
 
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 

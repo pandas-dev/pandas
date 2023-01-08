@@ -8,10 +8,7 @@ from typing import (
 
 import numpy as np
 
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
@@ -161,8 +158,7 @@ def melt(
     return result
 
 
-@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
+def lreshape(data: DataFrame, groups, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -178,10 +174,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
         {new_name : list_of_columns}.
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
-    label : None
-        Not used.
-
-        .. deprecated:: 1.0.0
 
     Returns
     -------

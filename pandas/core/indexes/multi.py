@@ -2147,12 +2147,12 @@ class MultiIndex(Index):
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
-        Make new MultiIndex with passed list of codes deleted
+        Make new MultiIndex with passed list of codes deleted.
 
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples when level is not specified
+            Must be a list of tuples when level is not specified.
         level : int or level name, default None
         errors : str, default 'raise'
 
@@ -3503,12 +3503,8 @@ class MultiIndex(Index):
 
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-        if (
-            any(-1 in code for code in self.codes)
-            and any(-1 in code for code in other.codes)
-            or other.has_duplicates
-        ):
-            # This is only necessary if both sides have nans or other has dups,
+        if other.has_duplicates:
+            # This is only necessary if other has dupes,
             # otherwise difference is faster
             result = super()._union(other, sort)
 

@@ -22,13 +22,9 @@ from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
-    def test_stack_unstack(self, float_frame, using_array_manager):
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
+    def test_stack_unstack(self, float_frame):
         df = float_frame.copy()
-        with tm.assert_produces_warning(warn, match=msg):
-            df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
+        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
         stacked_df = DataFrame({"foo": stacked, "bar": stacked})
@@ -861,6 +857,8 @@ class TestDataFrameReshape:
     def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -878,6 +876,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[2, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -890,6 +890,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
