@@ -386,11 +386,11 @@ class BaseArrayManager(DataManager):
                     convert_period=True,
                     convert_interval=True,
                 )
-                if result is arr and copy:
+                if result is arr and (copy or copy is None):
                     return arr.copy()
                 return result
             else:
-                return arr.copy() if copy else arr
+                return arr.copy() if (copy or copy is None) else arr
 
         return self.apply(_convert)
 
