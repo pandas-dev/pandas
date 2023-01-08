@@ -441,11 +441,13 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T, copy: bool) -> T:
-        return self.apply(
-            "convert",
-            copy=copy,
-        )
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None and using_copy_on_write():
+            copy = False
+        elif copy is None:
+            copy = True
+
+        return self.apply("convert", copy=copy)
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
         inplace = validate_bool_kwarg(inplace, "inplace")
