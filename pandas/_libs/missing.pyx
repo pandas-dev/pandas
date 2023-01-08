@@ -4,10 +4,16 @@ from sys import maxsize
 
 cimport cython
 from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    flatiter,
     float64_t,
     int64_t,
     ndarray,
@@ -200,13 +206,17 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         Py_ssize_t i, n
         object val
         ndarray[uint8_t] result
+        flatiter it = PyArray_IterNew(arr)
 
     assert arr.ndim == 1, "'arr' must be 1-D."
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
     for i in range(n):
-        val = arr[i]
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
         result[i] = checknull(val, inf_as_na=inf_as_na)
     return result.view(np.bool_)
 
