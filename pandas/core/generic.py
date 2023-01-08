@@ -130,7 +130,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas import get_option
 from pandas.core import (
     algorithms as algos,
     arraylike,
@@ -784,18 +783,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         mapping = {i: j, j: i}
 
-        new_axes = (self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN))
+        new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self.values.swapaxes(i, j)
-        if using_copy_on_write() and self._mgr.is_single_block:
+        if (
+            using_copy_on_write()
+            and self._mgr.is_single_block
+            and isinstance(self._mgr, BlockManager)
+        ):
             # This should only get hit in case of having a single block, otherwise a
             # copy is made, we don't have to set up references.
             new_mgr = ndarray_to_mgr(
                 new_values,
-                *new_axes,
+                new_axes[0],
+                new_axes[1],
                 dtype=None,
                 copy=False,
-                typ=get_option("mode.data_manager"),
+                typ="block",
             )
+            assert isinstance(new_mgr, BlockManager)
+            assert isinstance(self._mgr, BlockManager)
             new_mgr.parent = self._mgr
             new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
