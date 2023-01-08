@@ -203,21 +203,27 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
     result : ndarray (dtype=np.bool_)
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t i, n = arr.size
         object val
-        ndarray[uint8_t] result
+        bint is_null
+        ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
         flatiter it = PyArray_IterNew(arr)
+        flatiter it2 = PyArray_IterNew(result)
 
-    assert arr.ndim == 1, "'arr' must be 1-D."
+    # assert arr.ndim == 1, "'arr' must be 1-D."
 
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
+    # n = len(arr)
+    # result = np.empty(n, dtype=np.uint8)
     for i in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
-        result[i] = checknull(val, inf_as_na=inf_as_na)
+        is_null = checknull(val, inf_as_na=inf_as_na)
+        # Dereference pointer (set value)
+        (<uint8_t *>(PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
+        PyArray_ITER_NEXT(it2)
+        # result[i] = checknull(val, inf_as_na=inf_as_na)
     return result.view(np.bool_)
 
 
