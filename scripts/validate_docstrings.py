@@ -295,7 +295,7 @@ def pandas_validate(func_name: str):
     return result
 
 
-def validate_all(prefix, ignore_deprecated=False):
+def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -307,6 +307,8 @@ def validate_all(prefix, ignore_deprecated=False):
         validated. If None, all docstrings will be validated.
     ignore_deprecated: bool, default False
         If True, deprecated objects are ignored when validating docstrings.
+    ignore_functions: list of str or None, default None
+        If not None, contains a list of function to ignore
 
     Returns
     -------
@@ -317,14 +319,11 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    base_path = pathlib.Path(__file__).parent.parent
-    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
-    api_items = []
-    for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
-            api_items += list(get_api_items(f))
+    ignore_functions = set(ignore_functions or [])
 
-    for func_name, _, section, subsection in api_items:
+    for func_name, _, section, subsection in get_all_api_items():
+        if func_name in ignore_functions:
+            continue
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
@@ -348,16 +347,25 @@ def validate_all(prefix, ignore_deprecated=False):
     return result
 
 
+def get_all_api_items():
+    base_path = pathlib.Path(__file__).parent.parent
+    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
+    for api_doc_fname in api_doc_fnames.glob("*.rst"):
+        with open(api_doc_fname) as f:
+            yield from get_api_items(f)
+
+
 def print_validate_all_results(
     prefix: str,
     errors: list[str] | None,
     output_format: str,
     ignore_deprecated: bool,
+    ignore_functions: list[str] | None,
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
 
-    result = validate_all(prefix, ignore_deprecated)
+    result = validate_all(prefix, ignore_deprecated, ignore_functions)
 
     if output_format == "json":
         sys.stdout.write(json.dumps(result))
@@ -408,13 +416,17 @@ def print_validate_one_results(func_name: str):
         sys.stderr.write(result["examples_errs"])
 
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated):
+def main(func_name, prefix, errors, output_format, ignore_deprecated, ignore_functions):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
     if func_name is None:
         return print_validate_all_results(
-            prefix, errors, output_format, ignore_deprecated
+            prefix,
+            errors,
+            output_format,
+            ignore_deprecated,
+            ignore_functions,
         )
     else:
         print_validate_one_results(func_name)
@@ -464,6 +476,13 @@ if __name__ == "__main__":
         "deprecated objects are ignored when validating "
         "all docstrings",
     )
+    argparser.add_argument(
+        "--ignore_functions",
+        nargs="*",
+        help="function or method to not validate "
+        "(e.g. pandas.DataFrame.head). "
+        "Inverse of the `function` argument.",
+    )
 
     args = argparser.parse_args()
     sys.exit(
@@ -473,5 +492,6 @@ if __name__ == "__main__":
             args.errors.split(",") if args.errors else None,
             args.format,
             args.ignore_deprecated,
+            args.ignore_functions,
         )
     )
