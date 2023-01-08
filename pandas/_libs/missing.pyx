@@ -210,10 +210,6 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         flatiter it = PyArray_IterNew(arr)
         flatiter it2 = PyArray_IterNew(result)
 
-    # assert arr.ndim == 1, "'arr' must be 1-D."
-
-    # n = len(arr)
-    # result = np.empty(n, dtype=np.uint8)
     for i in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
@@ -223,46 +219,6 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         # Dereference pointer (set value)
         (<uint8_t *>(PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
         PyArray_ITER_NEXT(it2)
-        # result[i] = checknull(val, inf_as_na=inf_as_na)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 2-D array are na-like,
-    according to the criteria defined in `checknull`:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    result : ndarray (dtype=np.bool_)
-    """
-    cdef:
-        Py_ssize_t i, j, n, m
-        object val
-        ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object>arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i in range(n):
-        for j in range(m):
-            val = arr[i, j]
-            if checknull(val, inf_as_na=inf_as_na):
-                result[i, j] = 1
     return result.view(np.bool_)
 
 

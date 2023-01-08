@@ -315,8 +315,6 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
 
         if values.ndim == 1 or values.ndim == 2:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
-        # elif values.ndim == 2:
-        #    result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
         else:
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
