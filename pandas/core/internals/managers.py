@@ -455,7 +455,7 @@ class BaseBlockManager(DataManager):
             using_copy_on_write=using_copy_on_write(),
             original_blocks=original_blocks,
         )
-        refs = [getattr(blk, "_ref", None) is not None for blk in mgr.blocks]
+        refs = [getattr(blk, "_ref", None) for blk in mgr.blocks]
         if any(ref is not None for ref in refs):
             mgr.refs = refs
             mgr.parent = self

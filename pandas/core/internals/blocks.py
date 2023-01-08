@@ -462,7 +462,9 @@ class Block(PandasObject):
         """
         if not copy and using_copy_on_write:
             result = self.copy(deep=False)
-            result._ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+            result._ref = weakref.ref(  # type: ignore[attr-defined]
+                original_blocks[self.mgr_locs.as_array[0]]
+            )
             return [result]
         return [self.copy()] if copy else [self]
 
@@ -1982,7 +1984,9 @@ class ObjectBlock(NumpyBlock):
             #  that is fixed, we short-circuit here.
             if using_copy_on_write:
                 result = self.copy(deep=False)
-                result._ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+                result._ref = weakref.ref(  # type: ignore[attr-defined]
+                    original_blocks[self.mgr_locs.as_array[0]]
+                )
                 return [result]
             return [self]
 
@@ -2007,7 +2011,7 @@ class ObjectBlock(NumpyBlock):
 
         res_values = ensure_block_shape(res_values, self.ndim)
         result = self.make_block(res_values)
-        result._ref = ref
+        result._ref = ref  # type: ignore[attr-defined]
         return [result]
 
 
