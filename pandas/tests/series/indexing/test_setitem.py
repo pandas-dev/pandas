@@ -1531,7 +1531,12 @@ def test_32878_complex_itemsize():
     val = val.astype("c16")
 
     # GH#32878 used to coerce val to inf+0.000000e+00j
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    # 'overflow encountered in cast' thrown by numpy
+    with tm.assert_produces_warning(
+        (FutureWarning, RuntimeWarning),
+        match="incompatible dtype|overflow encountered in cast",
+        check_stacklevel=False,
+    ):
         ser[0] = val
     assert ser[0] == val
     expected = Series([val, 1, 2, 3, 4], dtype="c16")
