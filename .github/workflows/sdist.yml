@@ -60,13 +60,15 @@ jobs:
         name: ${{matrix.python-version}}-sdist.gz
         path: dist/*.gz
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Set up empty Conda environment
+      uses: mamba-org/provision-with-micromamba@v12
       with:
         environment-file: false
-        environment-name: pandas-sdist
+        environment-name: sdist
         extra-specs: |
           python =${{ matrix.python-version }}
+        channels: conda-forge
+        condarc-file: ci/condarc.yml
 
     - name: Install pandas from sdist
       run: |

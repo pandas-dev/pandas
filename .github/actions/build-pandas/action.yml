@@ -1,3 +1,4 @@
+# TODO: merge setup-ccache, setup-conda, build-pandas into a single action?
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
 runs:
@@ -9,7 +10,7 @@ runs:
     - name: Build Pandas
       if : ${{ runner.os != 'Windows' }}
       run: |
-        python -m pip install . --no-build-isolation -v
+        python -m pip install -ve . --no-build-isolation
       shell: bash -el {0}
 
     - name: Build Pandas (Windows)
@@ -17,5 +18,5 @@ runs:
       run: |
         call micromamba activate test
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        python -m pip install -e . --no-build-isolation -v
+        python -m pip install -ve . --no-build-isolation
       shell: cmd /C call {0}
