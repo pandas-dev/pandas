@@ -989,6 +989,12 @@ class Resampler(BaseGroupBy, PandasObject):
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
+
+        # If the result is a non-empty DataFrame we stack to get a Series
+        # GH 46826
+        if isinstance(result, ABCDataFrame) and not result.empty:
+            result = result.stack()
+
         if not len(self.ax):
             from pandas import Series
 
@@ -2085,7 +2091,7 @@ def _adjust_dates_anchored(
     elif origin == "start":
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.value
+        origin_nanos = origin.as_unit("ns").value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
         sub_freq_times = (origin_last.value - first.value) // freq.nanos

@@ -40,7 +40,7 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pyarrow<10
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables
@@ -48,7 +48,7 @@ dependencies:
   - pyxlsb
   - s3fs>=2021.08.0
   - scipy
-  - sqlalchemy
+  - sqlalchemy<1.4.46
   - tabulate
   - xarray
   - xlrd

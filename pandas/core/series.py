@@ -856,7 +856,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # coercion
     __float__ = _coerce_method(float)
-    __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
@@ -4071,7 +4070,9 @@ Keep all original rows and also all original values
         dtype: object"""
         ),
     )
-    def swaplevel(self, i: Level = -2, j: Level = -1, copy: bool = True) -> Series:
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | None = None
+    ) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
 
@@ -4091,10 +4092,9 @@ Keep all original rows and also all original values
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        new_index = self.index.swaplevel(i, j)
-        return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self, method="swaplevel"
-        )
+        result = self.copy(deep=copy)
+        result.index = self.index.swaplevel(i, j)
+        return result
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
         """
@@ -4114,7 +4114,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
         assert isinstance(result.index, MultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
@@ -4591,15 +4591,18 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
+        self,
+        new_index: Index | None,
+        indexer: npt.NDArray[np.intp] | None,
+        copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
-            if copy:
-                return self.copy()
+            if copy or copy is None:
+                return self.copy(deep=copy)
             return self
 
         new_values = algorithms.take_nd(
@@ -4626,7 +4629,7 @@ Keep all original rows and also all original values
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -4809,7 +4812,7 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> Series:
         return super().set_axis(labels, axis=axis, copy=copy)
 

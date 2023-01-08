@@ -162,7 +162,11 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+        result2 = Timestamp(result).as_unit(other.unit)
+        if result == result2:
+            # i.e. the conversion is non-lossy, not the case for e.g.
+            #  test_milliseconds_combination
+            result = result2
 
         if self._adjust_dst:
             result = result.tz_localize(tz)
@@ -362,6 +366,21 @@ class ApplyTypeError(TypeError):
 cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
+
+    normalize : bool
+        Whether the frequency can align with midnight.
+
+    Examples
+    --------
+    >>> pd.offsets.Hour(5).n
+    5
+    >>> pd.offsets.Hour(5).normalize
+    False
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -380,23 +399,7 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        """
-        Number of multiples of the frequency.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).n
-        5
-        """
         self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).normalize
-        False
-        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
@@ -1844,15 +1847,20 @@ cdef class BusinessHour(BusinessMixin):
         earliest_start = self.start[0]
         latest_start = self.start[-1]
 
+        if self.n == 0:
+            is_same_sign = sign > 0
+        else:
+            is_same_sign = self.n * sign >= 0
+
         if not self.next_bday.is_on_offset(other):
             # today is not business day
             other = other + sign * self.next_bday
-            if self.n * sign >= 0:
+            if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
                 hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0:
+            if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
                     other = other + sign * self.next_bday

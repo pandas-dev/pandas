@@ -601,7 +601,9 @@ class Index(IndexOpsMixin, PandasObject):
     # See each method's docstring.
 
     @classmethod
-    def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
+    def _simple_new(
+        cls: type[_IndexT], values: ArrayLike, name: Hashable = None
+    ) -> _IndexT:
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -880,6 +882,9 @@ class Index(IndexOpsMixin, PandasObject):
         if ufunc.nout == 2:
             # i.e. np.divmod, np.modf, np.frexp
             return tuple(self.__array_wrap__(x) for x in result)
+
+        if result.dtype == np.float16:
+            result = result.astype(np.float32)
 
         return self.__array_wrap__(result)
 
@@ -1958,7 +1963,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return index with requested level(s) removed.
 
         If resulting index has only 1 level left, the result will be
-        of Index type, not MultiIndex.
+        of Index type, not MultiIndex. The original index is not modified inplace.
 
         Parameters
         ----------
