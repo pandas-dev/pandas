@@ -846,7 +846,10 @@ class TestDataframeNoneCoercion:
                 "d": ["a", "b", "c"],
             }
         )
-        start_dataframe.iloc[0] = None
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            start_dataframe.iloc[0] = None
 
         exp = DataFrame(
             {

@@ -164,7 +164,8 @@ def test_error_with_prefix_default_category_dict_not_complete(
 
 
 def test_error_with_prefix_contains_nan(dummies_basic):
-    dummies_basic.loc[2, "col2_c"] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        dummies_basic.loc[2, "col2_c"] = np.nan
     with pytest.raises(
         ValueError, match=r"Dummy DataFrame contains NA value in column: 'col2_c'"
     ):
@@ -172,7 +173,8 @@ def test_error_with_prefix_contains_nan(dummies_basic):
 
 
 def test_error_with_prefix_contains_non_dummies(dummies_basic):
-    dummies_basic.loc[2, "col2_c"] = "str"
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        dummies_basic.loc[2, "col2_c"] = "str"
     with pytest.raises(TypeError, match=r"Passed DataFrame contains non-dummy data"):
         from_dummies(dummies_basic, sep="_")
 

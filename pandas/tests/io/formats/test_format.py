@@ -193,7 +193,8 @@ class TestDataFrameFormatting:
     )
     def test_show_counts(self, row, columns, show_counts, result):
 
-        df = DataFrame(1, columns=range(10), index=range(10))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        df = DataFrame(1, columns=range(10), index=range(10), dtype="float")
         df.iloc[1, 1] = np.nan
 
         with option_context(

@@ -346,7 +346,8 @@ def test_filter_and_transform_with_non_unique_int_index():
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
     expected = df.copy()
-    expected.iloc[[0, 3, 5, 6]] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
     # Filter Series
@@ -389,7 +390,8 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
     expected = df.copy()
-    expected.iloc[[0, 3, 5, 6]] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
     # Filter Series
@@ -432,7 +434,8 @@ def test_filter_and_transform_with_non_unique_float_index():
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
     expected = df.copy()
-    expected.iloc[[0, 3, 5, 6]] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
     # Filter Series
@@ -478,7 +481,8 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
     expected = df.copy()
-    expected.iloc[[0, 3, 5, 6]] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
     # Filter Series
@@ -521,7 +525,8 @@ def test_filter_and_transform_with_non_unique_string_index():
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
     expected = df.copy()
-    expected.iloc[[0, 3, 5, 6]] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
     # Filter Series
