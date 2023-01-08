@@ -1359,7 +1359,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                                             "is_nan",
                                                             NULL);
                 is_null = (is_null_obj == Py_True);
-                Py_XDECREF(is_null_obj);
+                if (!is_null_obj) {
+                    goto INVALID;
+                }
+                Py_DECREF(is_null);
             } else {
                 // Otherwise, fallback to string representation
                 // Replace item with the string to keep it alive.
@@ -1542,7 +1545,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             tc->type = JT_NULL;
         }
-        Py_XDECREF(is_null_obj);
+        if (!is_null_obj) {
+            goto INVALID;
+        }
+        Py_DECREF(is_null_obj);
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
         if (object_is_nat_type(obj)) {
