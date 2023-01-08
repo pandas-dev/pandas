@@ -12,6 +12,7 @@ foreach subdir: subdirs_list
 endforeach
 top_level_py_list = [
     '__init__.py',
+    '_util.py',
     'api.py',
     'clipboards.py',
     'common.py',
