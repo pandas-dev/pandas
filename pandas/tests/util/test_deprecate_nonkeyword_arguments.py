@@ -8,17 +8,6 @@ import warnings
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 import pandas._testing as tm
-from pandas.core.groupby.generic import (
-    skew,
-    take,
-)
-from pandas.core.groupby.groupby import (
-    cummax,
-    cummin,
-    cumprod,
-    cumsum,
-)
-
 
 @deprecate_nonkeyword_arguments(
     version="1.1", allowed_args=["a", "b"], name="f_add_inputs"
@@ -165,17 +154,3 @@ def test_class():
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         Foo().baz("qux", "quox")
-
-
-def test_deprecated_keywords():
-    msg = (
-        "In the future version of pandas the arguments args"
-        "and kwargs will be deprecated for these functions"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert cummax
-        assert cummin
-        assert cumprod
-        assert cumsum
-        assert skew
-        assert take

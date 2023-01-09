@@ -1594,3 +1594,19 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     result = method(*args).index
     expected = df.index
     tm.assert_index_equal(result, expected)
+
+
+def test_deprecated_keywords():
+    msg = (
+        "In the future version of pandas the arguments args"
+        "and kwargs will be deprecated for these functions"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+        gb = df.groupby("a")
+        assert gb.cummax(kwargs=1)
+        assert gb.cummin(kwargs=1)
+        assert gb.cumsum(args=1, kwargs=1)
+        assert gb.cumprod(args=1, kwargs=1)
+        assert gb.skew(kwargs=1)
+        assert gb.take(kwargs=1)
