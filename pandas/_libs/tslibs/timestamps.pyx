@@ -83,8 +83,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
-    get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -263,20 +261,6 @@ cdef class _Timestamp(ABCTimestamp):
         return create_timestamp_from_ts(
             value, obj.dts, tz=obj.tzinfo, fold=obj.fold, reso=reso
         )
-
-    @classmethod
-    def _from_dt64(cls, dt64: np.datetime64):
-        # construct a Timestamp from a np.datetime64 object, keeping the
-        #  resolution of the input.
-        # This is herely mainly so we can incrementally implement non-nano
-        #  (e.g. only tznaive at first)
-        cdef:
-            int64_t value
-            NPY_DATETIMEUNIT reso
-
-        reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
-        return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
 

@@ -1286,7 +1286,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_data
 
     @final
-    def _addsub_object_array(self, other: np.ndarray, op):
+    def _addsub_object_array(self, other: npt.NDArray[np.object_], op):
         """
         Add or subtract array-like of DateOffset objects
 
@@ -1297,10 +1297,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Returns
         -------
-        result : same class as self
+        np.ndarray[object]
+            Except in fastpath case with length 1 where we operate on the
+            contained scalar.
         """
         assert op in [operator.add, operator.sub]
         if len(other) == 1 and self.ndim == 1:
+            # Note: without this special case, we could annotate return type
+            #  as ndarray[object]
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
