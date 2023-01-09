@@ -403,6 +403,8 @@ use_nullable_dtypes : bool = False
     numpy-backed nullable dtypes or
     ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
     pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    This is only implemented for the ``pyarrow`` or ``python``
+    engines.
 
     .. versionadded:: 2.0
 
