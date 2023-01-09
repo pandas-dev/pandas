@@ -80,20 +80,12 @@ def test_builtins_apply(keys, f):
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
-    npfunc = getattr(np, fname)  # numpy's equivalent function
-    if f in [max, min]:
-        warn = FutureWarning
-    else:
-        warn = None
-    msg = "scalar (max|min) over the entire DataFrame"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        # stacklevel can be thrown off because (i think) the stack
-        #  goes through some of numpy's C code.
-        expected = gb.apply(npfunc)
+    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
+    expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
-        expected2 = gb.apply(lambda x: npfunc(x, axis=0))
+        expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 
     if f != sum:
@@ -101,7 +93,7 @@ def test_builtins_apply(keys, f):
         expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
+    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
 
 
 class TestNumericOnly:
