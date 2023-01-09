@@ -859,5 +859,5 @@ def test_value_counts_time_grouper(utc):
         codes=[[0, 1, 1, 2, 2, 3], range(6), [0, 0, 1, 2, 2, 3]],
         names=["Datetime", "Timestamp", "Food"],
     )
-    expected = Series(1, index=index)
+    expected = Series(1, index=index, name="count")
     tm.assert_series_equal(result, expected)
