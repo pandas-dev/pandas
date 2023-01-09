@@ -783,6 +783,7 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
+.. _contributing.running_tests:
 
 Running the test suite
 ----------------------

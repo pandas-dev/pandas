@@ -127,6 +127,7 @@ for some tips and tricks to get the doctests passing.
 When doing a PR with a docstring update, it is good to post the
 output of the validation script in a comment on github.
 
+.. _contributing.howto-build-docs:
 
 How to build the pandas documentation
 ---------------------------------------
