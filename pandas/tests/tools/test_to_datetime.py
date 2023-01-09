@@ -2893,8 +2893,8 @@ class TestDatetimeParsingWrappers:
             ("2014-6", datetime(2014, 6, 1), None),
             ("6-2014", datetime(2014, 6, 1), UserWarning),
             ("20010101 12", datetime(2001, 1, 1, 12), None),
-            ("20010101 1234", datetime(2001, 1, 1, 12, 34), UserWarning),
-            ("20010101 123456", datetime(2001, 1, 1, 12, 34, 56), UserWarning),
+            ("20010101 1234", datetime(2001, 1, 1, 12, 34), None),
+            ("20010101 123456", datetime(2001, 1, 1, 12, 34, 56), None),
         ],
     )
     def test_parsers(self, date_str, expected, warning, cache):
