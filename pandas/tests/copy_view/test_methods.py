@@ -537,39 +537,41 @@ def test_sort_index(using_copy_on_write):
     tm.assert_series_equal(ser, ser_orig)
 
 
-def test_sort_values(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    df_orig = df.copy()
-    df2 = df.sort_values(by="a")
+@pytest.mark.parametrize(
+    "obj, kwargs", [(Series([1, 2, 3]), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})]
+)
+def test_sort_values(using_copy_on_write, obj, kwargs):
+    obj_orig = obj.copy()
+    obj2 = obj.sort_values(**kwargs)
 
     if using_copy_on_write:
-        assert np.shares_memory(df.values, df2.values)
+        assert np.shares_memory(obj.values, obj2.values)
     else:
-        assert not np.shares_memory(df.values, df2.values)
+        assert not np.shares_memory(obj.values, obj2.values)
 
     # mutating df triggers a copy-on-write for the column / block
-    df2.iloc[0] = 0
-    assert not np.shares_memory(df2.values, df.values)
-    tm.assert_frame_equal(df, df_orig)
+    obj2.iloc[0] = 0
+    assert not np.shares_memory(obj2.values, obj.values)
+    tm.assert_equal(obj, obj_orig)
 
 
-def test_sort_values_inplace(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    df_orig = df.copy()
-    view = df[:]
-    df.sort_values(by="a", inplace=True)
+@pytest.mark.parametrize(
+    "obj, kwargs", [(Series([1, 2, 3]), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})]
+)
+def test_sort_values_inplace(using_copy_on_write, obj, kwargs):
+    obj_orig = obj.copy()
+    view = obj[:]
+    obj.sort_values(inplace=True, **kwargs)
 
-    assert np.shares_memory(df.values, view.values)
+    assert np.shares_memory(obj.values, view.values)
 
-    # mutating df triggers a copy-on-write for the column / block
-    df.iloc[0] = 0
+    # mutating obj triggers a copy-on-write for the column / block
+    obj.iloc[0] = 0
     if using_copy_on_write:
-        assert not np.shares_memory(view.values, df.values)
-        tm.assert_frame_equal(view, df_orig)
+        assert not np.shares_memory(view.values, obj.values)
+        tm.assert_equal(view, obj_orig)
     else:
-        assert np.shares_memory(view.values, df.values)
-        expected = DataFrame({"a": [0, 2, 3]})
-        tm.assert_frame_equal(view, expected)
+        assert np.shares_memory(view.values, obj.values)
 
 
 def test_reorder_levels(using_copy_on_write):

@@ -29,7 +29,10 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    array_equal_fast,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -3547,6 +3550,13 @@ Keep all original rows and also all original values
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
+
+        if array_equal_fast(
+            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
+        ):
+            if inplace:
+                return self._update_inplace(self)
+            return self.copy(deep=None)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
