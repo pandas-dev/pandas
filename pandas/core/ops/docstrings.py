@@ -559,16 +559,16 @@ rectangle       3      359
 Multiply a dictionary by axis.
 
 >>> df.mul({{'angles': 0, 'degrees': 2}})
-            angles	degrees
-circle	         0	    720
-triangle	     0	    360
-rectangle	     0	    720
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
 
 >>> df.mul({{'circle': 0, 'triangle': 2, 'rectangle': 3}}, axis='index')
-            angles	degrees
-circle		     0	      0
-triangle	     6	    360
-rectangle	    12	   1080
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
 
 Multiply a DataFrame of different shape with operator version.
 
