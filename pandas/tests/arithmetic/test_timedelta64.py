@@ -727,6 +727,13 @@ class TestAddSubNaTMasking:
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
+    def test_sub_nat_retain_unit(self):
+        ser = pd.to_timedelta(Series(["00:00:01"])).astype("m8[s]")
+
+        result = ser - NaT
+        expected = Series([NaT], dtype="m8[s]")
+        tm.assert_series_equal(result, expected)
+
     # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
     #  parametrization+de-duplication
     def test_timedelta_ops_with_missing_values(self):
