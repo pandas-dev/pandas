@@ -1235,19 +1235,62 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         + self.refs[blkno_l + 1 :]
                         + extra_refs
                     )
+                    if len(blk_locs) > 1:
+                        # Add the refs for the other deleted blocks
+                        self.refs += [None] * (len(blk_locs) - 1)
 
-                    # TODO: Are we sure we want 2D?
-                    # Also generalize this to bigger than 1-D locs
-                    nb = new_block_2d(
-                        value,
-                        placement=BlockPlacement(slice(blk_locs[0], blk_locs[0] + 1)),
-                    )
+                    # Fill before the first leftover block
+                    nbs = []
+                    leftover_start_i = leftover_blocks[0].mgr_locs.as_slice.start
+
+                    if leftover_start_i != 0:
+                        nbs.append(
+                            new_block_2d(
+                                np.tile(value, (leftover_start_i, 1)),
+                                placement=BlockPlacement(slice(0, leftover_start_i)),
+                            )
+                        )
+
+                    # Every hole in between leftover blocks is where we need to insert
+                    # a new block
+                    for i in range(len(leftover_blocks) - 1):
+                        curr_block = leftover_blocks[i]
+                        next_block = leftover_blocks[i + 1]
+
+                        curr_end = curr_block.as_slice.end
+                        next_start = next_block.as_slice.start
+
+                        num_to_fill = next_start - (curr_end - 1)
+                        nb = new_block_2d(
+                            np.tile(value, (num_to_fill, 1)),
+                            placement=BlockPlacement(
+                                slice(curr_end, curr_end + num_to_fill)
+                            ),
+                        )
+                        nbs.append(nb)
+
+                    # Fill after the last leftover block
+                    last_del_loc = blk_locs[-1] + 1
+                    last_leftover_loc = leftover_blocks[-1].mgr_locs.as_slice.stop
+                    if last_del_loc > last_leftover_loc:
+                        diff = last_del_loc - last_leftover_loc
+                        nbs.append(
+                            new_block_2d(
+                                np.tile(value, (diff, 1)),
+                                placement=BlockPlacement(
+                                    slice(last_leftover_loc, last_del_loc)
+                                ),
+                            )
+                        )
+
                     old_blocks = self.blocks
+                    nb = nbs[0]
                     new_blocks = (
                         old_blocks[:blkno_l]
                         + (nb,)
                         + old_blocks[blkno_l + 1 :]
                         + leftover_blocks
+                        + tuple(nbs)
                     )
                     self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
                     for i, nb in enumerate(leftover_blocks):
