@@ -537,6 +537,41 @@ def test_sort_index(using_copy_on_write):
     tm.assert_series_equal(ser, ser_orig)
 
 
+def test_sort_values(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    df2 = df.sort_values(by="a")
+
+    if using_copy_on_write:
+        assert np.shares_memory(df.values, df2.values)
+    else:
+        assert not np.shares_memory(df.values, df2.values)
+
+    # mutating df triggers a copy-on-write for the column / block
+    df2.iloc[0] = 0
+    assert not np.shares_memory(df2.values, df.values)
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_sort_values_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    view = df[:]
+    df.sort_values(by="a", inplace=True)
+
+    assert np.shares_memory(df.values, view.values)
+
+    # mutating df triggers a copy-on-write for the column / block
+    df.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(view.values, df.values)
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(view.values, df.values)
+        expected = DataFrame({"a": [0, 2, 3]})
+        tm.assert_frame_equal(view, expected)
+
+
 def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]

@@ -609,6 +609,14 @@ class TestDataFrameSortValues:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_sort_values_no_by_inplace(self):
+        # GH#
+        df = DataFrame({"a": [1, 2, 3]})
+        expected = df.copy()
+        result = df.sort_values(by=[], inplace=True)
+        tm.assert_frame_equal(df, expected)
+        assert result is None
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
