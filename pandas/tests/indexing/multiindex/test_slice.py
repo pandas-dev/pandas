@@ -1,3 +1,8 @@
+from datetime import (
+    datetime,
+    timedelta,
+)
+
 import numpy as np
 import pytest
 
@@ -248,12 +253,7 @@ class TestMultiIndexSlicers:
 
         # GH 7429
         # buggy/inconsistent behavior when slicing with datetime-like
-        import datetime
-
-        dates = [
-            datetime.datetime(2012, 1, 1, 12, 12, 12) + datetime.timedelta(days=i)
-            for i in range(6)
-        ]
+        dates = [datetime(2012, 1, 1, 12, 12, 12) + timedelta(days=i) for i in range(6)]
         freq = [1, 2]
         index = MultiIndex.from_product([dates, freq], names=["date", "frequency"])
 
