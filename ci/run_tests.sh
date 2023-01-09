@@ -38,8 +38,7 @@ if [[ "$ERROR_ON_WARNINGS" == "1" ]]; then
 fi
 
 echo $PYTEST_CMD
-sh -c "$PYTEST_CMD -k lzma"
-exit 0
+sh -c "$PYTEST_CMD"
 
 if [[ "$PANDAS_DATA_MANAGER" != "array" && "$PYTEST_TARGET" == "pandas" ]]; then
     # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
