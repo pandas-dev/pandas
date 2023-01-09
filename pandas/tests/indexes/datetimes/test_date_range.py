@@ -980,7 +980,7 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        msg = "could not convert string to Timestamp"
+        msg = "Unknown string format: 2007/100/1"
         with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 
