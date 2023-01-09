@@ -9,7 +9,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Iterator,
-    Literal,
     cast,
 )
 import warnings
@@ -2149,16 +2148,13 @@ def objects_to_datetime64ns(
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
 
-    flags = data.flags
-    order: Literal["F", "C"] = "F" if flags.f_contiguous else "C"
     result, tz_parsed = tslib.array_to_datetime(
-        data.ravel("K"),
+        data,
         errors=errors,
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
     )
-    result = result.reshape(data.shape, order=order)
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
