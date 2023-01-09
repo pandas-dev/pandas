@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     TypeVar,
     cast,
 )
@@ -116,6 +117,11 @@ if not pa_version_under6p0:
     }
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
@@ -692,6 +698,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Series.round : Round values of a Series.
         """
         return type(self)(pc.round(self._data, ndigits=decimals))
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
+        # Base class searchsorted would cast to object, which is *much* slower.
+        return self.to_numpy().searchsorted(value, side=side, sorter=sorter)
 
     def take(
         self,

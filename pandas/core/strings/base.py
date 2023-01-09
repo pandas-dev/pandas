@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable  # noqa: PDF001
 import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 
