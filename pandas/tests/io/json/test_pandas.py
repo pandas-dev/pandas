@@ -118,6 +118,7 @@ class TestPandasContainer:
                 expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
+            expected.columns = ["x", "x.1"]
 
         tm.assert_frame_equal(result, expected)
 
@@ -257,6 +258,28 @@ class TestPandasContainer:
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
         assert_json_roundtrip_equal(result, expected, orient)
+
+    @pytest.mark.xfail(
+        reason="#50456 Column multiindex is stored and loaded differently",
+        raises=AssertionError,
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["2022", "2022"], ["JAN", "FEB"]],
+            [["2022", "2023"], ["JAN", "JAN"]],
+            [["2022", "2022"], ["JAN", "JAN"]],
+        ],
+    )
+    def test_roundtrip_multiindex(self, columns):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays(columns),
+        )
+
+        result = read_json(df.to_json(orient="split"), orient="split")
+
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
