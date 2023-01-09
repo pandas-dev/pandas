@@ -1486,7 +1486,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
