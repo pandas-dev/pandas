@@ -928,6 +928,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         See Also
         --------
+        Series.take : Take elements from a Series along an axis.
         Series.loc : Select a subset of a DataFrame by labels.
         Series.iloc : Select a subset of a DataFrame by positions.
         numpy.take : Take elements from an array along an axis.
@@ -2377,6 +2378,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See Also
         --------
+        DataFrame.take : Take elements from a Series along an axis.
         DataFrame.loc : Select a subset of a DataFrame by labels.
         DataFrame.iloc : Select a subset of a DataFrame by positions.
         numpy.take : Take elements from an array along an axis.
