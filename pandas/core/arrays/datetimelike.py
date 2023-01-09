@@ -1966,6 +1966,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
     def as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
+
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
         new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
 
