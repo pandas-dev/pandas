@@ -1678,7 +1678,7 @@ default 'raise'
         See Also
         --------
         quarter : Return the quarter of the date.
-        is_quarter_end : Similar property for indicating the quarter start.
+        is_quarter_end : Similar property for indicating the quarter end.
 
         Examples
         --------
