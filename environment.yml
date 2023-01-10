@@ -82,6 +82,7 @@ dependencies:
   - mypy=0.991
   - pre-commit>=2.15.0
   - pyupgrade
+  - ruff=0.0.215
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
