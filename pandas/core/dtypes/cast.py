@@ -427,9 +427,7 @@ def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
     ndarray or ExtensionArray
     """
     dtype = arr.dtype
-    if not np.issubclass_(dtype.type, np.number):
-        return arr
-    elif is_signed_integer_dtype(dtype) and dtype != np.int64:
+    if is_signed_integer_dtype(dtype) and dtype != np.int64:
         return arr.astype(np.int64)
     elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
         return arr.astype(np.uint64)
