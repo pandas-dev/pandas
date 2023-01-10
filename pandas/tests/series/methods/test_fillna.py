@@ -20,7 +20,6 @@ from pandas import (
     date_range,
     isna,
 )
-
 import pandas._testing as tm
 from pandas.core.arrays import period_array
 
