@@ -2893,9 +2893,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...            index_label='id')
         2
         >>> pd.read_sql_query("SELECT * FROM users", con=engine)
-            index    name
-        0      0  User 6
-        1      1  User 7
+           id    name
+        0   0  User 6
+        1   1  User 7
 
         Specify the dtype (especially useful for integers with missing values).
         Notice that while pandas is forced to store the data as floating point,
