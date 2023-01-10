@@ -760,11 +760,11 @@ class TestSeriesConstructors:
         msg = "Values are too large to be losslessly converted"
         numpy_warning = DeprecationWarning if is_numpy_dev else None
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning):
+            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
                 Series([1, 200, 923442], dtype="int8")
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning):
+            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
                 Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(

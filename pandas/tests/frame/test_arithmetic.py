@@ -1101,7 +1101,11 @@ class TestFrameArithmetic:
                 msg = "ufunc 'remainder' not supported for the input types"
             elif op is operator.sub:
                 msg = "numpy boolean subtract, the `-` operator, is "
-                if dtype == "bool" and "numexpr" in request.node.callspec.id:
+                if (
+                    dtype == "bool"
+                    and expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                ):
                     warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
