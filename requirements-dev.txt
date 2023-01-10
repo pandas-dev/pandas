@@ -59,7 +59,6 @@ isort>=5.2.1
 mypy==0.991
 pre-commit>=2.15.0
 pyupgrade
-ruff==0.0.217
 gitpython
 gitdb
 natsort
