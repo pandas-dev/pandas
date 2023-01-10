@@ -455,6 +455,7 @@ class MPLPlot(ABC):
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
+    @abstractmethod
     def _args_adjust(self) -> None:
         pass
 
@@ -664,6 +665,7 @@ class MPLPlot(ABC):
         else:  # pragma no cover
             raise ValueError
 
+    @abstractmethod
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
 
@@ -1278,6 +1280,9 @@ class ScatterPlot(PlanePlot):
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
 
+    def _args_adjust(self) -> None:
+        pass
+
 
 class HexBinPlot(PlanePlot):
     @property
@@ -1308,6 +1313,9 @@ class HexBinPlot(PlanePlot):
             self._plot_colorbar(ax)
 
     def _make_legend(self) -> None:
+        pass
+
+    def _args_adjust(self) -> None:
         pass
 
 
@@ -1469,6 +1477,9 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
+    def _args_adjust(self) -> None:
+        pass
+
     def _post_plot_logic(self, ax: Axes, data) -> None:
         from matplotlib.ticker import FixedLocator
 
@@ -1572,6 +1583,9 @@ class AreaPlot(LinePlot):
         # LinePlot expects list of artists
         res = [rect]
         return res
+
+    def _args_adjust(self) -> None:
+        pass
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
@@ -1855,5 +1869,8 @@ class PiePlot(MPLPlot):
 
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
-            for p, l in zip(patches, leglabels):
-                self._append_legend_handles_labels(p, l)
+            for _patch, _leglabel in zip(patches, leglabels):
+                self._append_legend_handles_labels(_patch, _leglabel)
+
+    def _post_plot_logic(self, ax: Axes, data) -> None:
+        pass

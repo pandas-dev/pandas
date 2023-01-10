@@ -10,6 +10,7 @@ import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
     Sequence,
     cast,
 )
@@ -31,7 +32,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     JoinHow,
-    Literal,
     MergeHow,
     Shape,
     Suffixes,

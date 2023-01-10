@@ -10811,7 +10811,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             return self.T._accum_func(
-                name, func, axis=0, skipna=skipna, *args, **kwargs
+                name, func, axis=0, skipna=skipna, *args, **kwargs  # noqa: B026
             ).T
 
         def block_accum_func(blk_values):

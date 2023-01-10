@@ -201,13 +201,13 @@ class TestDatetime64SeriesComparison:
         expected,
     ):
         box = index_or_series
-        l, r = pair
+        lhs, rhs = pair
         if reverse:
             # add lhs / rhs switched data
-            l, r = r, l
+            lhs, rhs = rhs, lhs
 
-        left = Series(l, dtype=dtype)
-        right = box(r, dtype=dtype)
+        left = Series(lhs, dtype=dtype)
+        right = box(rhs, dtype=dtype)
 
         result = op(left, right)
 

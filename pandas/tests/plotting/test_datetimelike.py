@@ -1021,10 +1021,10 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1045,10 +1045,10 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1062,10 +1062,10 @@ class TestTSPlot(TestPlotBase):
         # check tick labels again
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1086,13 +1086,13 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
 
-            us = round((t - int(t)) * 1e6)
+            us = round((_tick - int(_tick)) * 1e6)
 
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if (us % 1000) != 0:
                     xp = time(h, m, s, us).strftime("%H:%M:%S.%f")
