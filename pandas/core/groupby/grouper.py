@@ -649,7 +649,7 @@ class Grouping:
                 uniques = Categorical.from_codes(
                     np.append(uniques.codes, [-1]), uniques.categories
                 )
-            else:
+            elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
                 cat = self.grouping_vector
                 na_idx = (cat.codes < 0).argmax()
