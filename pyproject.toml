@@ -232,16 +232,14 @@ ignore = [
   "B015",
   # false positives
   "B019",
-  # Use of functools.lru_cache or functools.cache on methods can lead to memory leaks.
-  "B020",
   # Loop control variable overrides iterable it iterates
+  "B020",
+  # Function definition does not bind loop variable
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
 
   # Additional checks that don't pass yet
-  # `zip()` without an explicit `strict=` parameter
-  "B905",
   # Within an except clause, raise exceptions with ...
   "B904",
 ]

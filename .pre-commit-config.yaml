@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
 repos:
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.216
+    rev: v0.0.217
     hooks:
     -   id: ruff
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
