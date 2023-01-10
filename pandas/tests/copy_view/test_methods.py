@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -567,7 +568,12 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manag
 
     # mutating obj triggers a copy-on-write for the column / block
     obj.iloc[0] = 0
-    if using_copy_on_write or using_array_manager and isinstance(obj, DataFrame):
+    if (
+        using_copy_on_write
+        or using_array_manager
+        and isinstance(obj, DataFrame)
+        and pd.options.mode.copy_on_write
+    ):
         assert not np.shares_memory(view.values, obj.values)
         tm.assert_equal(view, obj_orig)
     else:
