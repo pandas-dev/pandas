@@ -94,11 +94,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 	    pandas.Series.cat.remove_unused_categories \
 	    pandas.Index.all \
 	    pandas.Index.any \
-	    pandas.CategoricalIndex.rename_categories \
-	    pandas.CategoricalIndex.reorder_categories \
-	    pandas.CategoricalIndex.add_categories \
-	    pandas.CategoricalIndex.remove_categories \
-	    pandas.CategoricalIndex.remove_unused_categories \
 	    pandas.MultiIndex.drop \
 	    pandas.DatetimeIndex.to_pydatetime \
 	    pandas.TimedeltaIndex.to_pytimedelta \
