@@ -1223,21 +1223,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    prev_refs = self.refs[blkno_l]
                     leftover_blocks = tuple(blk.delete(blk_locs))
-                    # Preserve refs for unchanged blocks
-                    # Add new block where old block was and remaining blocks at
-                    # the end to avoid updating all block numbers
-                    extra_refs = [prev_refs] * len(leftover_blocks)
-                    self.refs = (
-                        self.refs[:blkno_l]
-                        + [None]
-                        + self.refs[blkno_l + 1 :]
-                        + extra_refs
-                    )
-                    if len(blk_locs) > 1:
-                        # Add the refs for the other deleted blocks
-                        self.refs += [None] * (len(blk_locs) - 1)
+                    if self.refs is not None:
+                        prev_refs = self.refs[blkno_l]
+                        # Preserve refs for unchanged blocks
+                        # Add new block where old block was and remaining blocks at
+                        # the end to avoid updating all block numbers
+                        extra_refs = [prev_refs] * len(leftover_blocks)
+                        self.refs = (
+                            self.refs[:blkno_l]
+                            + [None]
+                            + self.refs[blkno_l + 1 :]
+                            + extra_refs
+                        )
+                        if len(blk_locs) > 1:
+                            # Add the refs for the other deleted blocks
+                            self.refs += [None] * (len(blk_locs) - 1)
 
                     # Fill before the first leftover block
                     nbs = []
