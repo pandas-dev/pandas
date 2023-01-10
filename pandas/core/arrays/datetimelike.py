@@ -1251,7 +1251,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # For period dtype, timedelta64 is a close-enough return dtype.
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        return result.view("timedelta64[ns]")
+        if self.dtype.kind in ["m", "M"]:
+            # We can retain unit in dtype
+            self = cast("DatetimeArray| TimedeltaArray", self)
+            return result.view(f"timedelta64[{self.unit}]")
+        else:
+            return result.view("timedelta64[ns]")
 
     @final
     def _sub_periodlike(self, other: Period | PeriodArray) -> npt.NDArray[np.object_]:
@@ -1966,6 +1971,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
     def as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
+
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
         new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
 
