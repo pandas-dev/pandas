@@ -20,9 +20,9 @@ from pandas import (
     date_range,
     isna,
 )
-from pandas.core.arrays import period_array
 
 import pandas._testing as tm
+from pandas.core.arrays import period_array
 
 
 class TestSeriesFillNA:
