@@ -2485,7 +2485,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @doc(DataFrame.describe)
     def describe(
-        self: NDFrameT,
+        self,
         percentiles=None,
         include=None,
         exclude=None,
