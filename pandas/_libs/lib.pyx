@@ -2272,6 +2272,7 @@ def maybe_convert_numeric(
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
+                mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
@@ -2328,6 +2329,7 @@ def maybe_convert_numeric(
 
                 seen.saw_null()
                 floats[i] = NaN
+                mask[i] = 1
 
     if seen.check_uint64_conflict():
         return (values, None)

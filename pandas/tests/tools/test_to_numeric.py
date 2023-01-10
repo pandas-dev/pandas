@@ -807,3 +807,72 @@ def test_to_numeric_large_float_not_downcast_to_float_32(val):
     expected = Series([val])
     result = to_numeric(expected, downcast="float")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
+)
+def test_to_numeric_use_nullable_dtypes(val, dtype):
+    # GH#50505
+    ser = Series([val], dtype=object)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([val], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
+)
+def test_to_numeric_use_nullable_dtypes_na(val, dtype):
+    # GH#50505
+    ser = Series([val, None], dtype=object)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([val, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype, downcast",
+    [(1, "Int8", "integer"), (1.5, "Float32", "float"), (1, "Int8", "signed")],
+)
+def test_to_numeric_use_nullable_dtypes_downcasting(val, dtype, downcast):
+    # GH#50505
+    ser = Series([val, None], dtype=object)
+    result = to_numeric(ser, use_nullable_dtypes=True, downcast=downcast)
+    expected = Series([val, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_use_nullable_dtypes_downcasting_uint():
+    # GH#50505
+    ser = Series([1, pd.NA], dtype="UInt64")
+    result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
+    expected = Series([1, pd.NA], dtype="UInt8")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64", "Float64", "boolean"])
+def test_to_numeric_use_nullable_dtypes_already_nullable(dtype):
+    # GH#50505
+    ser = Series([1, pd.NA], dtype=dtype)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([1, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
+)
+def test_to_numeric_use_nullable_dtypes_error(use_nullable_dtypes, dtype):
+    # GH#50505
+    ser = Series(["a", "b", ""])
+    expected = ser.copy()
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes)
+
+    result = to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes, errors="ignore")
+    tm.assert_series_equal(result, expected)
+
+    result = to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes, errors="coerce")
+    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+    tm.assert_series_equal(result, expected)
