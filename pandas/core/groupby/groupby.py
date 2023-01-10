@@ -924,8 +924,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.dropna = dropna
 
         if grouper is None:
-            from pandas.core.groupby.grouper import get_grouper
-
             grouper, exclusions, obj = get_grouper(
                 obj,
                 keys,
@@ -3077,8 +3075,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import get_grouper
-
             grouper, _, _ = get_grouper(
                 dropped,
                 key=self.keys,
