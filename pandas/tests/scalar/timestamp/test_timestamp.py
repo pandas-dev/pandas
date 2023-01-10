@@ -659,7 +659,7 @@ class TestNonNano:
 
     @pytest.fixture
     def ts(self, dt64):
-        return Timestamp(dt64)
+        return Timestamp._from_dt64(dt64)
 
     @pytest.fixture
     def ts_tz(self, ts, tz_aware_fixture):
@@ -765,7 +765,7 @@ class TestNonNano:
     def test_cmp_cross_reso(self):
         # numpy gets this wrong because of silent overflow
         dt64 = np.datetime64(9223372800, "s")  # won't fit in M8[ns]
-        ts = Timestamp(dt64)
+        ts = Timestamp._from_dt64(dt64)
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
@@ -780,7 +780,7 @@ class TestNonNano:
     @pytest.mark.xfail(reason="Dispatches to np.datetime64 which is wrong")
     def test_cmp_cross_reso_reversed_dt64(self):
         dt64 = np.datetime64(106752, "D")  # won't fit in M8[ns]
-        ts = Timestamp(dt64)
+        ts = Timestamp._from_dt64(dt64)
         other = Timestamp(dt64 - 1)
 
         assert other.asm8 < ts
