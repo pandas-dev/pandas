@@ -1774,22 +1774,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype):
+            if is_object_dtype(vals.dtype) and skipna:
                 # GH#37501: don't raise on pd.NA when skipna=True
-                if skipna:
-                    func = np.vectorize(
-                        lambda x: bool(x) if not isna(x) else True, otypes=[bool]
-                    )
-                    vals = func(vals)
-                else:
-                    vals = vals.astype(bool, copy=False)
-
-                vals = cast(np.ndarray, vals)
+                mask = isna(vals)
+                if mask.any():
+                    # mask on original values computed separately
+                    vals = vals.copy()
+                    vals[mask] = True
             elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data.astype(bool, copy=False)
-            else:
-                vals = vals.astype(bool, copy=False)
-
+                vals = vals._data
+            vals = vals.astype(bool, copy=False)
             return vals.view(np.int8), bool
 
         def result_to_bool(

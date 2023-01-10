@@ -40,7 +40,7 @@ python-snappy
 pyxlsb
 s3fs>=2021.08.0
 scipy
-sqlalchemy
+sqlalchemy<1.4.46
 tabulate
 tzdata>=2022.1
 xarray
@@ -65,7 +65,6 @@ gitpython
 gitdb
 natsort
 numpydoc
-pandas-dev-flaker==0.5.0
 pydata-sphinx-theme<0.11
 pytest-cython
 sphinx

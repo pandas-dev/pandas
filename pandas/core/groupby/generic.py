@@ -95,7 +95,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -892,13 +891,85 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    @doc(Series.take.__doc__)
     def take(
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
         **kwargs,
     ) -> Series:
+        """
+        Return the elements in the given *positional* indices in each group.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
+
+        If a requested index does not exist for some group, this method will raise.
+        To get similar behavior that ignores indices that don't exist, see
+        :meth:`.SeriesGroupBy.nth`.
+
+        Parameters
+        ----------
+        indices : array-like
+            An array of ints indicating which positions to take in each group.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
+            For `SeriesGroupBy` this parameter is unused and defaults to 0.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        Series
+            A Series containing the elements taken from each group.
+
+        See Also
+        --------
+        Series.take : Take elements from a Series along an axis.
+        Series.loc : Select a subset of a DataFrame by labels.
+        Series.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
+        SeriesGroupBy.nth : Similar to take, won't raise if indices don't exist.
+
+        Examples
+        --------
+        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan),
+        ...                    ('rabbit', 'mammal', 15.0)],
+        ...                   columns=['name', 'class', 'max_speed'],
+        ...                   index=[4, 3, 2, 1, 0])
+        >>> df
+             name   class  max_speed
+        4  falcon    bird      389.0
+        3  parrot    bird       24.0
+        2    lion  mammal       80.5
+        1  monkey  mammal        NaN
+        0  rabbit  mammal       15.0
+        >>> gb = df["name"].groupby([1, 1, 2, 2, 2])
+
+        Take elements at positions 0 and 1 along the axis 0 in each group (default).
+
+        >>> gb.take([0, 1])
+        1  4    falcon
+           3    parrot
+        2  2      lion
+           1    monkey
+        Name: name, dtype: object
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> gb.take([-1, -2])
+        1  3    parrot
+           4    falcon
+        2  0    rabbit
+           1    monkey
+        Name: name, dtype: object
+        """
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
@@ -1848,17 +1919,82 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @doc(
-        _shared_docs["idxmax"],
-        numeric_only_default="False",
-    )
     def idxmax(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
-        axis = DataFrame._get_axis_number(axis)
+        """
+        Return index of first occurrence of maximum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            If axis is not provided, grouper's axis is used.
+
+            .. versionchanged:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of maxima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmax : Return index of the maximum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the maximum value in each column.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emissions             Beef
+        dtype: object
+
+        To return the index for the maximum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emissions
+        Wheat Products     consumption
+        Beef              co2_emissions
+        dtype: object
+        """
+        if axis is None:
+            axis = self.axis
 
         def func(df):
             res = df._reduce(
@@ -1879,17 +2015,82 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(
-        _shared_docs["idxmin"],
-        numeric_only_default="False",
-    )
     def idxmin(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
-        axis = DataFrame._get_axis_number(axis)
+        """
+        Return index of first occurrence of minimum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            If axis is not provided, grouper's axis is used.
+
+            .. versionchanged:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of minima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmin : Return index of the minimum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
+        """
+        if axis is None:
+            axis = self.axis
 
         def func(df):
             res = df._reduce(
@@ -2271,13 +2472,99 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(DataFrame.take.__doc__)
     def take(
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
         **kwargs,
     ) -> DataFrame:
+        """
+        Return the elements in the given *positional* indices in each group.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
+
+        If a requested index does not exist for some group, this method will raise.
+        To get similar behavior that ignores indices that don't exist, see
+        :meth:`.DataFrameGroupBy.nth`.
+
+        Parameters
+        ----------
+        indices : array-like
+            An array of ints indicating which positions to take.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        DataFrame
+            An DataFrame containing the elements taken from each group.
+
+        See Also
+        --------
+        DataFrame.take : Take elements from a Series along an axis.
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
+
+        Examples
+        --------
+        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan),
+        ...                    ('rabbit', 'mammal', 15.0)],
+        ...                   columns=['name', 'class', 'max_speed'],
+        ...                   index=[4, 3, 2, 1, 0])
+        >>> df
+             name   class  max_speed
+        4  falcon    bird      389.0
+        3  parrot    bird       24.0
+        2    lion  mammal       80.5
+        1  monkey  mammal        NaN
+        0  rabbit  mammal       15.0
+        >>> gb = df.groupby([1, 1, 2, 2, 2])
+
+        Take elements at positions 0 and 1 along the axis 0 (default).
+
+        Note how the indices selected in the result do not correspond to
+        our input indices 0 and 1. That's because we are selecting the 0th
+        and 1st rows, not rows whose indices equal 0 and 1.
+
+        >>> gb.take([0, 1])
+               name   class  max_speed
+        1 4  falcon    bird      389.0
+          3  parrot    bird       24.0
+        2 2    lion  mammal       80.5
+          1  monkey  mammal        NaN
+
+        The order of the specified indices influnces the order in the result.
+        Here, the order is swapped from the previous example.
+
+        >>> gb.take([0, 1])
+               name   class  max_speed
+        1 4  falcon    bird      389.0
+          3  parrot    bird       24.0
+        2 2    lion  mammal       80.5
+          1  monkey  mammal        NaN
+
+        Take elements at indices 1 and 2 along the axis 1 (column selection).
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> gb.take([-1, -2])
+               name   class  max_speed
+        1 3  parrot    bird       24.0
+          4  falcon    bird      389.0
+        2 0  rabbit  mammal       15.0
+          1  monkey  mammal        NaN
+        """
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
