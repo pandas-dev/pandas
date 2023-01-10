@@ -1605,14 +1605,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     tm.assert_index_equal(result, expected, exact=True)
 
 
-def test_get_attributes_dict_deprecated():
-    # https://github.com/pandas-dev/pandas/pull/44028
-    idx = Index([1, 2, 3, 1])
-    with tm.assert_produces_warning(DeprecationWarning):
-        attrs = idx._get_attributes_dict()
-    assert attrs == {"name": None}
-
-
 @pytest.mark.parametrize("op", [operator.lt, operator.gt])
 def test_nan_comparison_same_object(op):
     # GH#47105

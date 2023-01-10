@@ -2469,7 +2469,7 @@ class TestDataFrameConstructors:
         if (
             using_array_manager
             and not copy
-            and not (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
         ):
             # TODO(ArrayManager) properly honor copy keyword for dict input
             td.mark_array_manager_not_yet_implemented(request)
