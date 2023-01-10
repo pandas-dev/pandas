@@ -5238,7 +5238,7 @@ class DataFrame(NDFrame, OpsMixin):
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
-        Alter axes labels.
+        Rename columns or index labels.
 
         Function / dict values must be unique (1-to-1). Labels not contained in
         a dict / Series will be left as-is. Extra labels listed don't throw an
