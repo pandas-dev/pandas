@@ -2484,10 +2484,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @doc(DataFrame.describe)
-    def describe(self, **kwargs):
+    def describe(
+        self: NDFrameT,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> NDFrameT:
         with self._group_selection_context():
             if len(self._selected_obj) == 0:
-                described = self._selected_obj.describe(**kwargs)
+                described = self._selected_obj.describe(percentiles=percentiles, include=include, exclude=exclude)
                 if self._selected_obj.ndim == 1:
                     result = described
                 else:
@@ -2495,7 +2500,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return result.to_frame().T.iloc[:0]
 
             result = self._python_apply_general(
-                lambda x: x.describe(**kwargs),
+                lambda x: x.describe(percentiles=percentiles, include=include, exclude=exclude),
                 self._selected_obj,
                 not_indexed_same=True,
             )
