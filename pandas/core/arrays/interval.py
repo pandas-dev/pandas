@@ -1787,5 +1787,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         values = extract_array(values, extract_numpy=True)
 
     if not hasattr(values, "dtype"):
-        return np.asarray(values)
+        values = np.asarray(values)
+        if is_integer_dtype(values) and values.dtype != np.int64:
+            values = values.astype(np.int64)
     return values
