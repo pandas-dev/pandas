@@ -66,7 +66,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     name : object
         Name to be stored in the index.
     dtype : numpy.dtype
-         Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
 
          .. warning::
 
