@@ -553,7 +553,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
-- Deprecated ``pandas.io.sql.execute``(:issue:`50185`)
+- Deprecated :func:`pandas.io.sql.execute`(:issue:`50185`)
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_200.prior_deprecations:
