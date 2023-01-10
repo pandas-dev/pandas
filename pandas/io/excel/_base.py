@@ -394,12 +394,7 @@ def read_excel(
     header: int | Sequence[int] | None = ...,
     names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols: int
-    | str
-    | Sequence[int]
-    | Sequence[str]
-    | Callable[[str], bool]
-    | None = ...,
+    usecols: int | str | Sequence[int] | Sequence[str] | Callable[[str], bool] | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
