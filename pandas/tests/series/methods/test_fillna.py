@@ -20,6 +20,8 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.core.arrays import period_array
+
 import pandas._testing as tm
 
 
@@ -944,5 +946,29 @@ class TestFillnaPad:
                 datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
             ]
         )
+
+        tm.assert_series_equal(filled, expected)
+
+    def test_fillna_parr(self):
+        # GH-24537
+        dti = date_range(
+            Timestamp.max - Timedelta(nanoseconds=10), periods=5, freq="ns"
+        )
+        pi = dti.to_period("ns")
+        parr = pi._data
+        parr[2] = NaT
+        arr = period_array(
+            [
+                Timestamp("2262-04-11 23:47:16.854775797"),
+                Timestamp("2262-04-11 23:47:16.854775798"),
+                Timestamp("2262-04-11 23:47:16.854775798"),
+                Timestamp("2262-04-11 23:47:16.854775800"),
+                Timestamp("2262-04-11 23:47:16.854775801"),
+            ],
+            freq="ns",
+        )
+        expected = Series(arr)
+
+        filled = Series(parr.fillna(method="pad"))
 
         tm.assert_series_equal(filled, expected)
