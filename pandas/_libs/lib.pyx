@@ -2722,6 +2722,9 @@ class _NoDefault(Enum):
     def __repr__(self) -> str:
         return "<no_default>"
 
+    def __str__(self) -> str:
+        return "<no_default>"
+
 
 # Note: no_default is exported to the public API in pandas.api.extensions
 no_default = _NoDefault.no_default  # Sentinel indicating the default value.
