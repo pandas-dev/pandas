@@ -1243,22 +1243,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         try:
             return pc.if_else(cond, left, right)
         except pa.ArrowNotImplementedError:
+            pass
 
-            def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
-                if isinstance(value, (pa.Array, pa.ChunkedArray)):
-                    pa_type = value.type
-                elif isinstance(value, pa.Scalar):
-                    pa_type = value.type
-                    value = value.as_py()
-                else:
-                    pa_type = None
-                return np.array(value, dtype=object), pa_type
+        def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
+            if isinstance(value, (pa.Array, pa.ChunkedArray)):
+                pa_type = value.type
+            elif isinstance(value, pa.Scalar):
+                pa_type = value.type
+                value = value.as_py()
+            else:
+                pa_type = None
+            return np.array(value, dtype=object), pa_type
 
-            left, left_type = _to_numpy_and_type(left)
-            right, right_type = _to_numpy_and_type(right)
-            pa_type = left_type or right_type
-            result = np.where(cond, left, right)
-            return pa.array(result, type=pa_type, from_pandas=True)
+        left, left_type = _to_numpy_and_type(left)
+        right, right_type = _to_numpy_and_type(right)
+        pa_type = left_type or right_type
+        result = np.where(cond, left, right)
+        return pa.array(result, type=pa_type, from_pandas=True)
 
     @classmethod
     def _replace_with_mask(
@@ -1291,13 +1292,22 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
+        if pa_version_under7p0 and values.null_count > 0:
+            # pc.replace_with_mask fails to replace nulls in version 6 and lower
+            if isinstance(replacements, pa.Array):
+                indices = np.full(len(values), None)
+                indices[mask] = np.arange(len(replacements))
+                indices = pa.array(indices, type=pa.int64())
+                replacements = replacements.take(indices)
+            return cls._if_else(mask, replacements, values)
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
-            if isinstance(replacements, (pa.Array, pa.ChunkedArray)):
-                replacements = np.array(replacements, dtype=object)
-            elif isinstance(replacements, pa.Scalar):
-                replacements = replacements.as_py()
-            result = np.array(values, dtype=object)
-            result[mask] = replacements
-            return pa.array(result, type=values.type, from_pandas=True)
+            pass
+        if isinstance(replacements, pa.Array):
+            replacements = np.array(replacements, dtype=object)
+        elif isinstance(replacements, pa.Scalar):
+            replacements = replacements.as_py()
+        result = np.array(values, dtype=object)
+        result[mask] = replacements
+        return pa.array(result, type=values.type, from_pandas=True)
