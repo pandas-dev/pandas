@@ -79,7 +79,7 @@ Step 2: create an isolated environment
 Before we begin, please:
 
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
-* ``cd`` to the pandas source directory
+* ``cd`` to the pandas source directory you just created with the clone command
 
 .. _contributing.mamba:
 
