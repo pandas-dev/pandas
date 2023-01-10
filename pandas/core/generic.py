@@ -2918,6 +2918,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.read_sql("SELECT * FROM integers", con=engine)
              A
         0  1.0
+        1  NaN
+        2  2.0
         """  # noqa:E501
         from pandas.io import sql
 
