@@ -172,7 +172,7 @@ class TestSeriesConstructors:
         assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
-        with pytest.raises(ValueError, match="Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead""):
+        with pytest.raises(ValueError, match=r"Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead"):
             Series(np.random.randn(3, 3), index=np.arange(3))
 
         mixed.name = "Series"
