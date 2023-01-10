@@ -2864,7 +2864,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1      1  User 2
         2      2  User 3
 
-
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
         >>> with engine.begin() as connection:
