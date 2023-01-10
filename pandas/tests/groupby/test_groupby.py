@@ -1870,7 +1870,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
+def test_empty_groupby(
+    columns, keys, values, method, op, request, using_array_manager, dropna
+):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -1930,7 +1932,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -2037,7 +2039,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 lev = Categorical([0], dtype=values.dtype)
                 ci = Index(lev, name=keys[0])
                 expected = DataFrame([], columns=[], index=ci)
-            # expected = df.set_index(keys)[columns]
 
             tm.assert_equal(result, expected)
             return

@@ -1,4 +1,4 @@
-.. _contributing:
+3.. _contributing:
 
 {{ header }}
 

@@ -848,7 +848,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     # attr name, format, padding (if any)
     datetime_attrs_to_format = [
+        (("year", "month", "day", "hour", "minute", "second"), "%Y%m%d%H%M%S", 0),
+        (("year", "month", "day", "hour", "minute"), "%Y%m%d%H%M", 0),
+        (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
+        (("hour", "minute", "second"), "%H%M%S", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),

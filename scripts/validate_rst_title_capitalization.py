@@ -151,6 +151,10 @@ CAPITALIZATION_EXCEPTIONS = {
     "Numba",
     "Timestamp",
     "PyArrow",
+    "Gitpod",
+    "Liveserve",
+    "I",
+    "VSCode",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
