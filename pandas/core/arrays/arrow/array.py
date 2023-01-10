@@ -657,7 +657,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_type = self._data.type
         if pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            arr = self.astype("int64[pyarrow]")
+            arr = cast(ArrowExtensionArray, self.astype("int64[pyarrow]"))
             indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
             uniques = uniques.astype(self.dtype)
             return indices, uniques
@@ -860,9 +860,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         if pa.types.is_duration(self._data.type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            arr = self.astype("int64[pyarrow]")
+            arr = cast(ArrowExtensionArrayT, self.astype("int64[pyarrow]"))
             result = arr.unique()
-            return result.astype(self.dtype)
+            return cast(ArrowExtensionArrayT, result.astype(self.dtype))
 
         return type(self)(pc.unique(self._data))
 
@@ -885,7 +885,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         if pa.types.is_duration(self._data.type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            arr = self.astype("int64[pyarrow]")
+            arr = cast(ArrowExtensionArray, self.astype("int64[pyarrow]"))
             result = arr.value_counts()
             result.index = result.index.astype(self.dtype)
             return result
