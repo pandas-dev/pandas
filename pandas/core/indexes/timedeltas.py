@@ -65,6 +65,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Make a copy of input ndarray.
     name : object
         Name to be stored in the index.
+    dtype : numpy.dtype
+         Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+
+         .. warning::
+
+           A future version of pandas will change dtype to be an instance
+           of an ``ExtensionDtype`` subclass, not a ``numpy.dtype``.
+           See :class:`pandas.arrays.TimedeltaArray`.
 
     Attributes
     ----------
@@ -120,7 +128,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         data=None,
         unit=None,
         freq=lib.no_default,
-        closed=None,
         dtype=None,
         copy: bool = False,
         name=None,
