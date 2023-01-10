@@ -558,7 +558,7 @@ def test_sort_values(using_copy_on_write, obj, kwargs):
 @pytest.mark.parametrize(
     "obj, kwargs", [(Series([1, 2, 3]), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})]
 )
-def test_sort_values_inplace(using_copy_on_write, obj, kwargs):
+def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manager):
     obj_orig = obj.copy()
     view = obj[:]
     obj.sort_values(inplace=True, **kwargs)
@@ -567,7 +567,7 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs):
 
     # mutating obj triggers a copy-on-write for the column / block
     obj.iloc[0] = 0
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager and isinstance(obj, DataFrame):
         assert not np.shares_memory(view.values, obj.values)
         tm.assert_equal(view, obj_orig)
     else:
