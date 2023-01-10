@@ -84,17 +84,6 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
-def test_array_wrap_compat():
-    # Note: at time of dask 2022.01.0, this is still used by eg dask
-    # (https://github.com/dask/dask/issues/8580).
-    # This test is a small dummy ensuring coverage
-    orig = Series([1, 2, 3], dtype="int64", index=["a", "b", "c"])
-    with tm.assert_produces_warning(DeprecationWarning):
-        result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
-    expected = orig * 2
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj

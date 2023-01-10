@@ -58,11 +58,7 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
-@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
 def test_dask_ufunc():
-    # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
-    # for some ufuncs (https://github.com/dask/dask/issues/8580).
-
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
     olduse = pd.get_option("compute.use_numexpr")
