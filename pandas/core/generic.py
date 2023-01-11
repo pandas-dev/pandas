@@ -2858,11 +2858,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.to_sql('users', con=engine)
         3
-        >>> pd.read_sql_query("SELECT * FROM users", con=engine)
-            index    name
-        0      0  User 1
-        1      1  User 2
-        2      2  User 3
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
@@ -2892,10 +2889,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
-        >>> pd.read_sql_query("SELECT * FROM users", con=engine)
-           id    name
-        0   0  User 6
-        1   1  User 7
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 6'), (1, 'User 7')]
 
         Specify the dtype (especially useful for integers with missing values).
         Notice that while pandas is forced to store the data as floating point,
@@ -2914,11 +2909,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...           dtype={"A": Integer()})
         3
 
-        >>> pd.read_sql("SELECT * FROM integers", con=engine)
-             A
-        0  1.0
-        1  NaN
-        2  2.0
+        >>> engine.execute("SELECT * FROM integers").fetchall()
+        [(1,), (None,), (2,)]
         """  # noqa:E501
         from pandas.io import sql
 
