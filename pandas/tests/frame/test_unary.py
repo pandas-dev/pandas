@@ -98,7 +98,7 @@ class TestDataFrameUnaryOperators:
     @pytest.mark.parametrize(
         "df",
         [
-            # numpy changing behavior in the future
+            # numpy changing behavior in 1.25
             pytest.param(
                 pd.DataFrame({"a": ["a", "b"]}),
                 marks=[
@@ -110,7 +110,7 @@ class TestDataFrameUnaryOperators:
         ],
     )
     def test_pos_object(self, df):
-        # GH#21380F
+        # GH#21380
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
