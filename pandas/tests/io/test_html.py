@@ -17,7 +17,9 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     Series,
@@ -27,6 +29,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -131,6 +137,64 @@ class TestReadHtml:
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
+
+    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+    @pytest.mark.parametrize("storage", ["python", "pyarrow"])
+    def test_use_nullable_dtypes(self, storage, dtype_backend):
+        # GH#50286
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+        if storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.string_storage", storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = self.read_html(out, use_nullable_dtypes=True)[0]
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
     @tm.network(
@@ -341,10 +405,8 @@ class TestReadHtml:
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, path, *args, **kwargs):
-        return self.read_html(
-            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
-        )
+    def _bank_data(self, path, **kwargs):
+        return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
     def test_multiindex_header(self, banklist_data):

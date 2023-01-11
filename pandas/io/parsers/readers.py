@@ -317,7 +317,7 @@ comment : str, optional
     `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
-encoding : str, optional
+encoding : str, optional, default "utf-8"
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
@@ -399,10 +399,12 @@ use_nullable_dtypes : bool = False
     implementation, even if no nulls are present.
 
     The nullable dtype implementation can be configured by calling
-    ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+    ``pd.set_option("mode.dtype_backend", "pandas")`` to use
     numpy-backed nullable dtypes or
-    ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+    ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
     pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    This is only implemented for the ``pyarrow`` or ``python``
+    engines.
 
     .. versionadded:: 2.0
 
@@ -561,12 +563,12 @@ def _read(
             )
     elif (
         kwds.get("use_nullable_dtypes", False)
-        and get_option("mode.nullable_backend") == "pyarrow"
+        and get_option("mode.dtype_backend") == "pyarrow"
         and kwds.get("engine") == "c"
     ):
         raise NotImplementedError(
             f"use_nullable_dtypes=True and engine={kwds['engine']} with "
-            "mode.nullable_backend set to 'pyarrow' is not implemented."
+            "mode.dtype_backend set to 'pyarrow' is not implemented."
         )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
@@ -1227,6 +1229,7 @@ def read_fwf(
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
+    use_nullable_dtypes: bool = False,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1258,6 +1261,13 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. versionadded:: 2.0
+
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1314,6 +1324,7 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+    kwds["use_nullable_dtypes"] = use_nullable_dtypes
     return _read(filepath_or_buffer, kwds)
 
 

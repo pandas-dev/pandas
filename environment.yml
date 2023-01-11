@@ -43,7 +43,7 @@ dependencies:
   - odfpy
   - py
   - psycopg2
-  - pyarrow<10
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables
@@ -51,7 +51,7 @@ dependencies:
   - pyxlsb
   - s3fs>=2021.08.0
   - scipy
-  - sqlalchemy
+  - sqlalchemy<1.4.46
   - tabulate
   - tzdata>=2022a
   - xarray
@@ -78,19 +78,17 @@ dependencies:
   - black=22.10.0
   - cpplint
   - flake8=6.0.0
-  - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.991
   - pre-commit>=2.15.0
-  - pycodestyle  # used by flake8
   - pyupgrade
+  - ruff=0.0.215
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pandas-dev-flaker=0.5.0
   - pydata-sphinx-theme<0.11
   - pytest-cython  # doctest
   - sphinx

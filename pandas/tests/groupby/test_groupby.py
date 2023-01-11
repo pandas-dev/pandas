@@ -433,19 +433,12 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    msg = "The default value of numeric_only"
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     result = grouped.mean(numeric_only=True)
     assert result.index.name == "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A", as_index=False).mean()
     result = df.groupby("A", as_index=False).mean(numeric_only=True)
     assert result.index.name != "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["C", "D"]].agg(np.mean)
     assert result.index.name == "A"
 
@@ -1877,7 +1870,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
+def test_empty_groupby(
+    columns, keys, values, method, op, request, using_array_manager, dropna
+):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -1937,7 +1932,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -2044,7 +2039,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 lev = Categorical([0], dtype=values.dtype)
                 ci = Index(lev, name=keys[0])
                 expected = DataFrame([], columns=[], index=ci)
-            # expected = df.set_index(keys)[columns]
 
             tm.assert_equal(result, expected)
             return
@@ -2834,4 +2828,14 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
 
     result = series.to_frame().groupby("blah").sum()
     expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n", [1, 10, 32, 100, 1000])
+def test_sum_of_booleans(n):
+    # GH 50347
+    df = DataFrame({"groupby_col": 1, "bool": [True] * n})
+    df["bool"] = df["bool"].eq(True)
+    result = df.groupby("groupby_col").sum()
+    expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
     tm.assert_frame_equal(result, expected)

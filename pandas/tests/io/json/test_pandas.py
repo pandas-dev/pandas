@@ -5,6 +5,7 @@ from io import StringIO
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import pytest
@@ -117,6 +118,7 @@ class TestPandasContainer:
                 expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
+            expected.columns = ["x", "x.1"]
 
         tm.assert_frame_equal(result, expected)
 
@@ -256,6 +258,28 @@ class TestPandasContainer:
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
         assert_json_roundtrip_equal(result, expected, orient)
+
+    @pytest.mark.xfail(
+        reason="#50456 Column multiindex is stored and loaded differently",
+        raises=AssertionError,
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["2022", "2022"], ["JAN", "FEB"]],
+            [["2022", "2023"], ["JAN", "JAN"]],
+            [["2022", "2022"], ["JAN", "JAN"]],
+        ],
+    )
+    def test_roundtrip_multiindex(self, columns):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays(columns),
+        )
+
+        result = read_json(df.to_json(orient="split"), orient="split")
+
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
@@ -973,7 +997,9 @@ class TestPandasContainer:
         ts = Timestamp("20130101")
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
-        expected = DataFrame({"a": [pd.Timedelta(td).as_unit("ns").value, ts.value]})
+        expected = DataFrame(
+            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+        )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -1728,8 +1754,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
-        import time
-
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})

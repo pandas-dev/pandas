@@ -27,6 +27,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
+from pandas.core.arrays import PandasArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
@@ -583,7 +584,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = obj + other.astype(object)
-        tm.assert_equal(result, other)
+        tm.assert_equal(result, other.astype(object))
 
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
@@ -725,6 +726,13 @@ class TestAddSubNaTMasking:
 
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
+
+    def test_sub_nat_retain_unit(self):
+        ser = pd.to_timedelta(Series(["00:00:01"])).astype("m8[s]")
+
+        result = ser - NaT
+        expected = Series([NaT], dtype="m8[s]")
+        tm.assert_series_equal(result, expected)
 
     # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
     #  parametrization+de-duplication
@@ -1295,8 +1303,8 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
-        expected_sub = tm.box_expected(expected_sub, box)
+        expected = tm.box_expected(expected, box).astype(object, copy=False)
+        expected_sub = tm.box_expected(expected_sub, box).astype(object, copy=False)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
@@ -1324,7 +1332,7 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
@@ -1334,7 +1342,7 @@ class TestTimedeltaArraylikeAddSubOps:
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-        expected_sub = tm.box_expected(expected_sub, box_with_array)
+        expected_sub = tm.box_expected(expected_sub, box_with_array).astype(object)
         with tm.assert_produces_warning(PerformanceWarning):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
@@ -1348,9 +1356,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([offsets.Hour(n=1), offsets.Minute(n=-2)], name=names[1])
 
-        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))], name=exname)
+        expected_add = Series(
+            [tdi[n] + other[n] for n in range(len(tdi))], name=exname, dtype=object
+        )
         obj = tm.box_expected(tdi, box)
-        expected_add = tm.box_expected(expected_add, box2)
+        expected_add = tm.box_expected(expected_add, box2).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = obj + other
@@ -1360,8 +1370,10 @@ class TestTimedeltaArraylikeAddSubOps:
             res2 = other + obj
         tm.assert_equal(res2, expected_add)
 
-        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))], name=exname)
-        expected_sub = tm.box_expected(expected_sub, box2)
+        expected_sub = Series(
+            [tdi[n] - other[n] for n in range(len(tdi))], name=exname, dtype=object
+        )
+        expected_sub = tm.box_expected(expected_sub, box2).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res3 = obj - other
@@ -1394,7 +1406,7 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Unsorted
 
-    def test_td64arr_add_sub_object_array(self, box_with_array, using_array_manager):
+    def test_td64arr_add_sub_object_array(self, box_with_array):
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
@@ -1409,12 +1421,7 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = pd.Index(
             [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
-        expected = tm.box_expected(expected, xbox)
-        if not using_array_manager:
-            # TODO: avoid mismatched behavior. This occurs bc inference
-            #  can happen within TimedeltaArray method, which means results
-            #  depend on whether we split blocks.
-            expected = expected.astype(object)
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1426,9 +1433,7 @@ class TestTimedeltaArraylikeAddSubOps:
             result = other - tdarr
 
         expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
-        expected = tm.box_expected(expected, xbox)
-        if not using_array_manager:
-            expected = expected.astype(object)
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1668,7 +1673,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         result = rng / other.astype(object)
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, expected.astype(object))
 
         result = rng / list(other)
         tm.assert_equal(result, expected)
@@ -1701,6 +1706,39 @@ class TestTimedeltaArraylikeMulDivOps:
                 with pytest.raises(ValueError, match=msg):
                     other / rng
 
+    def test_td64_div_object_mixed_result(self, box_with_array):
+        # Case where we having a NaT in the result inseat of timedelta64("NaT")
+        #  is misleading
+        orig = timedelta_range("1 Day", periods=3).insert(1, NaT)
+        tdi = tm.box_expected(orig, box_with_array, transpose=False)
+
+        other = np.array([orig[0], 1.5, 2.0, orig[2]], dtype=object)
+        other = tm.box_expected(other, box_with_array, transpose=False)
+
+        res = tdi / other
+
+        expected = pd.Index(
+            [1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object
+        )
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        if isinstance(expected, PandasArray):
+            expected = expected.to_numpy()
+        tm.assert_equal(res, expected)
+        if box_with_array is DataFrame:
+            # We have a np.timedelta64(NaT), not pd.NaT
+            assert isinstance(res.iloc[1, 0], np.timedelta64)
+
+        res = tdi // other
+
+        expected = pd.Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        if isinstance(expected, PandasArray):
+            expected = expected.to_numpy()
+        tm.assert_equal(res, expected)
+        if box_with_array is DataFrame:
+            # We have a np.timedelta64(NaT), not pd.NaT
+            assert isinstance(res.iloc[1, 0], np.timedelta64)
+
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
@@ -1720,17 +1758,23 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
         if box is DataFrame and using_array_manager:
-            # INFO(ArrayManager) floorfiv returns integer, and ArrayManager
+            # INFO(ArrayManager) floordiv returns integer, and ArrayManager
             # performs ops column-wise and thus preserves int64 dtype for
             # columns without missing values
             expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
-        result = left // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = left // right
 
         tm.assert_equal(result, expected)
 
         # case that goes through __rfloordiv__ with arraylike
-        result = np.asarray(left) // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
@@ -1788,6 +1832,10 @@ class TestTimedeltaArraylikeMulDivOps:
         warn = None
         if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
             warn = PerformanceWarning
+            # TODO: making expected be object here a result of DataFrame.__divmod__
+            #  being defined in a naive way that does not dispatch to the underlying
+            #  array's __divmod__
+            expected = expected.astype(object)
 
         with tm.assert_produces_warning(warn):
             result = divmod(tdarr, three_days)
@@ -1984,6 +2032,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 "cannot perform __truediv__",
                 "unsupported operand",
                 "Cannot divide",
+                "ufunc 'divide' cannot use operands with types",
             ]
         )
         with pytest.raises(TypeError, match=pattern):
@@ -1992,11 +2041,16 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdser / vector.astype(object)
         if box_with_array is DataFrame:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+            expected = tm.box_expected(expected, xbox).astype(object)
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
-        expected = pd.Index(expected)  # do dtype inference
-        expected = tm.box_expected(expected, xbox)
-        assert tm.get_dtype(expected) == "m8[ns]"
+            expected = [
+                x if x is not NaT else np.timedelta64("NaT", "ns") for x in expected
+            ]
+            if xbox is tm.to_array:
+                expected = tm.to_array(expected).astype(object)
+            else:
+                expected = xbox(expected, dtype=object)
 
         tm.assert_equal(result, expected)
 
@@ -2064,11 +2118,15 @@ class TestTimedeltaArraylikeMulDivOps:
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
 
+        expected = pd.Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
+        if box_with_array is not pd.Index:
+            expected = tm.box_expected(expected, box_with_array).astype(object)
+
         result = left / right
-        tm.assert_equal(result, left)
+        tm.assert_equal(result, expected)
 
         result = left // right
-        tm.assert_equal(result, left)
+        tm.assert_equal(result, expected)
 
 
 class TestTimedelta64ArrayLikeArithmetic:

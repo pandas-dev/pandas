@@ -22,13 +22,9 @@ from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
-    def test_stack_unstack(self, float_frame, using_array_manager):
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
+    def test_stack_unstack(self, float_frame):
         df = float_frame.copy()
-        with tm.assert_produces_warning(warn, match=msg):
-            df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
+        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
         stacked_df = DataFrame({"foo": stacked, "bar": stacked})
@@ -861,6 +857,8 @@ class TestDataFrameReshape:
     def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -878,6 +876,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[2, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -890,6 +890,8 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
+        # Explicit cast to avoid implicit cast when setting to np.NaN
+        df = df.astype({"B": "float"})
         df.iloc[3, 1] = np.NaN
         left = df.set_index(["A", "B"]).unstack(0)
 
@@ -1323,8 +1325,15 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
 
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
-    df = DataFrame(np.random.randn(15, 4), index=mi)
-    df[1] = df[1].astype(np.int64)
+    df = DataFrame(
+        {
+            0: np.random.randn(15),
+            1: np.random.randn(15).astype(np.int64),
+            2: np.random.randn(15),
+            3: np.random.randn(15),
+        },
+        index=mi,
+    )
     if not using_array_manager:
         assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
 

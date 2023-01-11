@@ -32,7 +32,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -44,6 +43,7 @@ from pandas._libs import (
 )
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -113,6 +113,7 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
+from pandas.core.groupby.grouper import get_grouper
 from pandas.core.groupby.indexing import (
     GroupByIndexingMixin,
     GroupByNthSelector,
@@ -923,8 +924,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.dropna = dropna
 
         if grouper is None:
-            from pandas.core.groupby.grouper import get_grouper
-
             grouper, exclusions, obj = get_grouper(
                 obj,
                 keys,
@@ -1013,14 +1012,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
-        if not (
-            grp.groupings is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
+        if (
+            grp.groupings is None
+            or self.obj.ndim == 1
+            or self._group_selection is not None
         ):
             return
 
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+        groupers = self.exclusions
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
@@ -1774,22 +1773,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype):
+            if is_object_dtype(vals.dtype) and skipna:
                 # GH#37501: don't raise on pd.NA when skipna=True
-                if skipna:
-                    func = np.vectorize(
-                        lambda x: bool(x) if not isna(x) else True, otypes=[bool]
-                    )
-                    vals = func(vals)
-                else:
-                    vals = vals.astype(bool, copy=False)
-
-                vals = cast(np.ndarray, vals)
+                mask = isna(vals)
+                if mask.any():
+                    # mask on original values computed separately
+                    vals = vals.copy()
+                    vals[mask] = True
             elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data.astype(bool, copy=False)
-            else:
-                vals = vals.astype(bool, copy=False)
-
+                vals = vals._data
+            vals = vals.astype(bool, copy=False)
             return vals.view(np.int8), bool
 
         def result_to_bool(
@@ -1806,8 +1799,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             libgroupby.group_any_all,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
-            needs_mask=True,
-            needs_nullable=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
             val_test=val_test,
@@ -2084,13 +2075,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"{type(self).__name__}.std called with "
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
+
+            def _postprocessing(
+                vals, inference, nullable: bool = False, mask=None
+            ) -> ArrayLike:
+                if nullable:
+                    if mask.ndim == 2:
+                        mask = mask[:, 0]
+                    return FloatingArray(np.sqrt(vals), mask.view(np.bool_))
+                return np.sqrt(vals)
+
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
-                post_processing=lambda vals, inference: np.sqrt(vals),
+                post_processing=_postprocessing,
                 ddof=ddof,
+                how="std",
             )
             return result
 
@@ -2158,6 +2160,138 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
+    def _value_counts(
+        self,
+        subset: Sequence[Hashable] | None = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        dropna: bool = True,
+    ) -> DataFrame | Series:
+        """
+        Shared implementation of value_counts for SeriesGroupBy and DataFrameGroupBy.
+
+        SeriesGroupBy additionally supports a bins argument. See the docstring of
+        DataFrameGroupBy.value_counts for a description of arguments.
+        """
+        if self.axis == 1:
+            raise NotImplementedError(
+                "DataFrameGroupBy.value_counts only handles axis=0"
+            )
+
+        with self._group_selection_context():
+            df = self.obj
+
+            in_axis_names = {
+                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
+            }
+            if isinstance(self._selected_obj, Series):
+                name = self._selected_obj.name
+                keys = [] if name in in_axis_names else [self._selected_obj]
+            else:
+                unique_cols = set(self._selected_obj.columns)
+                if subset is not None:
+                    subsetted = set(subset)
+                    clashing = subsetted & set(in_axis_names)
+                    if clashing:
+                        raise ValueError(
+                            f"Keys {clashing} in subset cannot be in "
+                            "the groupby column keys."
+                        )
+                    doesnt_exist = subsetted - unique_cols
+                    if doesnt_exist:
+                        raise ValueError(
+                            f"Keys {doesnt_exist} in subset do not "
+                            f"exist in the DataFrame."
+                        )
+                else:
+                    subsetted = unique_cols
+
+                keys = [
+                    # Can't use .values because the column label needs to be preserved
+                    self._selected_obj.iloc[:, idx]
+                    for idx, name in enumerate(self._selected_obj.columns)
+                    if name not in in_axis_names and name in subsetted
+                ]
+
+            groupings = list(self.grouper.groupings)
+            for key in keys:
+                grouper, _, _ = get_grouper(
+                    df,
+                    key=key,
+                    axis=self.axis,
+                    sort=self.sort,
+                    observed=False,
+                    dropna=dropna,
+                )
+                groupings += list(grouper.groupings)
+
+            # Take the size of the overall columns
+            gb = df.groupby(
+                groupings,
+                sort=self.sort,
+                observed=self.observed,
+                dropna=self.dropna,
+            )
+            result_series = cast(Series, gb.size())
+
+            # GH-46357 Include non-observed categories
+            # of non-grouping columns regardless of `observed`
+            if any(
+                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
+                and not grouping._observed
+                for grouping in groupings
+            ):
+                levels_list = [ping.result_index for ping in groupings]
+                multi_index, _ = MultiIndex.from_product(
+                    levels_list, names=[ping.name for ping in groupings]
+                ).sortlevel()
+                result_series = result_series.reindex(multi_index, fill_value=0)
+
+            if normalize:
+                # Normalize the results by dividing by the original group sizes.
+                # We are guaranteed to have the first N levels be the
+                # user-requested grouping.
+                levels = list(
+                    range(len(self.grouper.groupings), result_series.index.nlevels)
+                )
+                indexed_group_size = result_series.groupby(
+                    result_series.index.droplevel(levels),
+                    sort=self.sort,
+                    dropna=self.dropna,
+                ).transform("sum")
+                result_series /= indexed_group_size
+
+                # Handle groups of non-observed categories
+                result_series = result_series.fillna(0.0)
+
+            if sort:
+                # Sort the values and then resort by the main grouping
+                index_level = range(len(self.grouper.groupings))
+                result_series = result_series.sort_values(
+                    ascending=ascending
+                ).sort_index(level=index_level, sort_remaining=False)
+
+            result: Series | DataFrame
+            if self.as_index:
+                result = result_series
+            else:
+                # Convert to frame
+                name = "proportion" if normalize else "count"
+                index = result_series.index
+                columns = com.fill_missing_names(index.names)
+                if name in columns:
+                    raise ValueError(
+                        f"Column label '{name}' is duplicate of result column"
+                    )
+                result_series.name = name
+                result_series.index = index.set_names(range(len(columns)))
+                result_frame = result_series.reset_index()
+                result_frame.columns = columns + [name]
+                result = result_frame
+            return result.__finalize__(self.obj, method="value_counts")
+
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def sem(self, ddof: int = 1, numeric_only: bool = False):
@@ -2199,13 +2333,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-            with warnings.catch_warnings():
-                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
-                #  this catching will be unnecessary
-                warnings.filterwarnings(
-                    "ignore", ".*will attempt to set the values inplace.*"
-                )
-                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+
+            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final
@@ -2933,14 +3062,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # (e.g. we have selected out
             # a column that is not in the current object)
             axis = self.grouper.axis
-            grouper = axis[axis.isin(dropped.index)]
+            grouper = self.grouper.codes_info[axis.isin(dropped.index)]
+            if self.grouper.has_dropped_na:
+                # Null groups need to still be encoded as -1 when passed to groupby
+                nulls = grouper == -1
+                # error: No overload variant of "where" matches argument types
+                #        "Any", "NAType", "Any"
+                values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
+                grouper = Index(values, dtype="Int64")
 
         else:
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import get_grouper
-
             grouper, _, _ = get_grouper(
                 dropped,
                 key=self.keys,
@@ -3172,6 +3306,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
+        Groups with missing keys (where `pd.isna()` is True) will be labeled with `NaN`
+        and will be skipped from the count.
+
         Parameters
         ----------
         ascending : bool, default True
@@ -3188,38 +3325,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": list("aaabba")})
+        >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-           A
-        0  a
-        1  a
-        2  a
-        3  b
-        4  b
-        5  a
-        >>> df.groupby('A').ngroup()
-        0    0
-        1    0
-        2    0
-        3    1
-        4    1
-        5    0
-        dtype: int64
-        >>> df.groupby('A').ngroup(ascending=False)
+           color
+        0    red
+        1   None
+        2    red
+        3   blue
+        4   blue
+        5    red
+        >>> df.groupby("color").ngroup()
+        0    1.0
+        1    NaN
+        2    1.0
+        3    0.0
+        4    0.0
+        5    1.0
+        dtype: float64
+        >>> df.groupby("color", dropna=False).ngroup()
         0    1
-        1    1
+        1    2
         2    1
         3    0
         4    0
         5    1
         dtype: int64
-        >>> df.groupby(["A", [1,1,2,3,2,1]]).ngroup()
-        0    0
+        >>> df.groupby("color", dropna=False).ngroup(ascending=False)
+        0    1
         1    0
         2    1
-        3    3
+        3    2
         4    2
-        5    0
+        5    1
         dtype: int64
         """
         with self._group_selection_context():
@@ -3493,10 +3630,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         cython_dtype: np.dtype,
         numeric_only: bool = False,
         needs_counts: bool = False,
-        needs_nullable: bool = False,
-        needs_mask: bool = False,
         pre_processing=None,
         post_processing=None,
+        how: str = "any_all",
         **kwargs,
     ):
         """
@@ -3511,12 +3647,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Whether only numeric datatypes should be computed
         needs_counts : bool, default False
             Whether the counts should be a part of the Cython call
-        needs_mask : bool, default False
-            Whether boolean mask needs to be part of the Cython call
-            signature
-        needs_nullable : bool, default False
-            Whether a bool specifying if the input is nullable is part
-            of the Cython call signature
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -3531,6 +3661,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        how : str, default any_all
+            Determines if any/all cython interface or std interface is used.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -3574,15 +3706,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 vals = vals.reshape((-1, 1))
             func = partial(func, values=vals)
 
-            if needs_mask:
+            if how != "std" or isinstance(values, BaseMaskedArray):
                 mask = isna(values).view(np.uint8)
                 if mask.ndim == 1:
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
-            if needs_nullable:
+            if how != "std":
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
+
+            else:
+                result_mask = np.zeros(result.shape, dtype=np.bool_)
+                func = partial(func, result_mask=result_mask)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -3591,9 +3727,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result[:, 0]
 
             if post_processing:
-                pp_kwargs = {}
-                if needs_nullable:
-                    pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                pp_kwargs: dict[str, bool | np.ndarray] = {}
+                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+                if how == "std":
+                    pp_kwargs["mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
 

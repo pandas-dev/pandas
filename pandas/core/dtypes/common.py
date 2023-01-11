@@ -690,7 +690,11 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     >>> is_integer_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.integer))
+    return _is_dtype_type(
+        arr_or_dtype, classes_and_not_datetimelike(np.integer)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind in "iu"
+    )
 
 
 def is_signed_integer_dtype(arr_or_dtype) -> bool:
@@ -744,7 +748,11 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
+    return _is_dtype_type(
+        arr_or_dtype, classes_and_not_datetimelike(np.signedinteger)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind == "i"
+    )
 
 
 def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
@@ -791,6 +799,8 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     """
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.unsignedinteger)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind == "u"
     )
 
 
@@ -1200,6 +1210,8 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     """
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ._is_numeric
     )
 
 
@@ -1232,7 +1244,9 @@ def is_float_dtype(arr_or_dtype) -> bool:
     >>> is_float_dtype(pd.Index([1, 2.]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.floating))
+    return _is_dtype_type(arr_or_dtype, classes(np.floating)) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind in "f"
+    )
 
 
 def is_bool_dtype(arr_or_dtype) -> bool:

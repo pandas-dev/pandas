@@ -425,14 +425,22 @@ class Grouping:
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
+    dropna : bool, default True
+        Whether to drop NA groups.
+    uniques : Array-like, optional
+        When specified, will be used for unique values. Enables including empty groups
+        in the result for a BinGrouper. Must not contain duplicates.
 
-    Returns
+    Attributes
     -------
-    **Attributes**:
-      * indices : dict of {group -> index_list}
-      * codes : ndarray, group codes
-      * group_index : unique groups
-      * groups : dict of {group -> label_list}
+    indices : dict
+        Mapping of {group -> index_list}
+    codes : ndarray
+        Group codes
+    group_index : Index or None
+        unique groups
+    groups : dict
+        Mapping of {group -> label_list}
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
@@ -452,6 +460,7 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
+        uniques: ArrayLike | None = None,
     ) -> None:
         self.level = level
         self._orig_grouper = grouper
@@ -464,6 +473,7 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
+        self._uniques = uniques
 
         self._passed_categorical = False
 
@@ -639,7 +649,7 @@ class Grouping:
                 uniques = Categorical.from_codes(
                     np.append(uniques.codes, [-1]), uniques.categories
                 )
-            else:
+            elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
                 cat = self.grouping_vector
                 na_idx = (cat.codes < 0).argmax()
@@ -653,6 +663,7 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
+        uniques: ArrayLike
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
@@ -697,11 +708,13 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            # error: Incompatible types in assignment (expression has type "Union
-            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
-            uniques = (
-                self.grouping_vector.result_index._values  # type: ignore[assignment]
-            )
+            uniques = self.grouping_vector.result_index._values
+        elif self._uniques is not None:
+            # GH#50486 Code grouping_vector using _uniques; allows
+            # including uniques that are not present in grouping_vector.
+            cat = Categorical(self.grouping_vector, categories=self._uniques)
+            codes = cat.codes
+            uniques = self._uniques
         else:
             # GH35667, replace dropna=False with use_na_sentinel=False
             # error: Incompatible types in assignment (expression has type "Union[
@@ -906,7 +919,7 @@ def get_grouper(
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.add(gpr.key)
-            in_axis = False
+            in_axis = True
         else:
             in_axis = False
 

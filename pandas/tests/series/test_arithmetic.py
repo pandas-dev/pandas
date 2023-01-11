@@ -1,7 +1,9 @@
 from datetime import (
+    date,
     timedelta,
     timezone,
 )
+from decimal import Decimal
 import operator
 
 import numpy as np
@@ -222,9 +224,6 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from datetime import date
-        from decimal import Decimal
-
         ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
@@ -643,10 +642,19 @@ class TestSeriesComparison:
     )
     def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        # GH 50083 to clarify that index and columns must be identically labeled
         if frame_or_series is not Series:
+            msg = (
+                rf"Can only compare identically-labeled \(both index and columns\) "
+                f"{frame_or_series.__name__} objects"
+            )
             left = left.to_frame()
             right = right.to_frame()
+        else:
+            msg = (
+                f"Can only compare identically-labeled {frame_or_series.__name__} "
+                f"objects"
+            )
 
         with pytest.raises(ValueError, match=msg):
             left == right
@@ -900,4 +908,12 @@ def test_series_varied_multiindex_alignment():
             names=["xy", "num", "ab"],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rmod_consistent_large_series():
+    # GH 29602
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
+
     tm.assert_series_equal(result, expected)

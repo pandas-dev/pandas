@@ -57,10 +57,12 @@ from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
-    _extension_to_compression,
+    dedup_names,
+    extension_to_compression,
     file_exists,
     get_handle,
     is_fsspec_url,
+    is_potential_multi_index,
     is_url,
     stringify_path,
 )
@@ -854,7 +856,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         elif (
             isinstance(filepath_or_buffer, str)
             and filepath_or_buffer.lower().endswith(
-                (".json",) + tuple(f".json{c}" for c in _extension_to_compression)
+                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
             )
             and not file_exists(filepath_or_buffer)
         ):
@@ -1246,6 +1248,14 @@ class FrameParser(Parser):
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
+            orig_names = [
+                (tuple(col) if isinstance(col, list) else col)
+                for col in decoded["columns"]
+            ]
+            decoded["columns"] = dedup_names(
+                orig_names,
+                is_potential_multi_index(orig_names, None),
+            )
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
