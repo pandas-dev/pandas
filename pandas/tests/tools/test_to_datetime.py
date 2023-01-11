@@ -2901,7 +2901,9 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
+        result1, _ = parsing.parse_datetime_string_with_reso(
+            date_str, yearfirst=yearfirst
+        )
         with tm.assert_produces_warning(warning, match="Could not infer format"):
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
@@ -2937,7 +2939,7 @@ class TestDatetimeParsingWrappers:
 
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
-        result1, _ = parsing.parse_time_string("NaT")
+        result1, _ = parsing.parse_datetime_string_with_reso("NaT")
         result2 = to_datetime("NaT")
         result3 = Timestamp("NaT")
         result4 = DatetimeIndex(["NaT"])[0]
@@ -3008,7 +3010,7 @@ class TestDatetimeParsingWrappers:
         dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
         assert dateutil_result == expected
 
-        result1, _ = parsing.parse_time_string(
+        result1, _ = parsing.parse_datetime_string_with_reso(
             date_str, dayfirst=dayfirst, yearfirst=yearfirst
         )
 
@@ -3036,7 +3038,7 @@ class TestDatetimeParsingWrappers:
         # must be the same as dateutil result
         exp_now = parse(date_str)
 
-        result1, _ = parsing.parse_time_string(date_str)
+        result1, _ = parsing.parse_datetime_string_with_reso(date_str)
         with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])

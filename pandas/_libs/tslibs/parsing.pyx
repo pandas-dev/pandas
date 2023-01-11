@@ -59,7 +59,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     string_to_dts,
 )
-from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
@@ -308,16 +307,22 @@ def parse_datetime_string(
     return dt
 
 
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+def parse_datetime_string_with_reso(
+    str date_string, str freq=None, dayfirst=None, yearfirst=None
+):
+    # NB: This will break with np.str_ (GH#45580) even though
+    #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
+    #  the argument is *exactly* 'str'
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
 
     Parameters
     ----------
-    arg : str
-    freq : str or DateOffset, default None
+    date_string : str
+    freq : str or None, default None
         Helps with interpreting time string if supplied
+        Corresponds to `offset.rule_code`
     dayfirst : bool, default None
         If None uses default from print_config
     yearfirst : bool, default None
@@ -328,50 +333,21 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime
     str
         Describing resolution of parsed string.
-    """
-    if type(arg) is not str:
-        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
-        #  arg as "str" this raises here
-        if not isinstance(arg, np.str_):
-            raise TypeError(
-                "Argument 'arg' has incorrect type "
-                f"(expected str, got {type(arg).__name__})"
-            )
-        arg = str(arg)
-
-    if is_offset_object(freq):
-        freq = freq.rule_code
-
-    if dayfirst is None:
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        yearfirst = get_option("display.date_yearfirst")
-
-    res = parse_datetime_string_with_reso(arg, freq=freq,
-                                          dayfirst=dayfirst,
-                                          yearfirst=yearfirst)
-    return res
-
-
-cdef parse_datetime_string_with_reso(
-    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
-):
-    """
-    Parse datetime string and try to identify its resolution.
-
-    Returns
-    -------
-    datetime
-    str
-        Inferred resolution of the parsed string.
 
     Raises
     ------
     ValueError : preliminary check suggests string is not datetime
     DateParseError : error within dateutil
     """
+
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
+
     cdef:
-        object parsed, reso
+        datetime parsed
+        str reso
         bint string_to_dts_failed
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
@@ -505,8 +481,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         except ValueError:
             pass
 
-    try:
-        if 4 <= date_len <= 7:
+    if 4 <= date_len <= 7:
+        try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
                 quarter = int(date_string[0])
@@ -553,10 +529,11 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
             ret = default.replace(year=year, month=month)
             return ret, "quarter"
 
-    except DateParseError:
-        raise
-    except ValueError:
-        pass
+        except DateParseError:
+            raise
+        except ValueError:
+            # e.g. if "Q" is not in date_string and .index raised
+            pass
 
     if date_len == 6 and freq == "M":
         year = int(date_string[:4])

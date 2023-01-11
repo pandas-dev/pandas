@@ -241,7 +241,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freq
         except NotImplementedError:
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        parsed, reso_str = parsing.parse_time_string(label, freq)
+
+        if freq is not None and not isinstance(freq, str):
+            freq = freq.rule_code
+
+        if isinstance(label, np.str_):
+            # GH#45580
+            label = str(label)
+
+        parsed, reso_str = parsing.parse_datetime_string_with_reso(label, freq)
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
