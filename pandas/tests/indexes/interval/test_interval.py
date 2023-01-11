@@ -427,7 +427,9 @@ class TestIntervalIndex:
         key = make_key(breaks)
 
         result = index._maybe_convert_i8(key)
-        expected = Index(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
