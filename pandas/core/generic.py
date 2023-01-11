@@ -2009,43 +2009,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(
-        self,
-        result: np.ndarray,
-        context: tuple[Callable, tuple[Any, ...], int] | None = None,
-    ):
-        """
-        Gets called after a ufunc and other functions.
-
-        Parameters
-        ----------
-        result: np.ndarray
-            The result of the ufunc or other function called on the NumPy array
-            returned by __array__
-        context: tuple of (func, tuple, int)
-            This parameter is returned by ufuncs as a 3-element tuple: (name of the
-            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
-            other numpy functions.q
-
-        Notes
-        -----
-        Series implements __array_ufunc_ so this not called for ufunc on Series.
-        """
-        # Note: at time of dask 2022.01.0, this is still used by dask
-        warnings.warn(
-            "The __array_wrap__ method of DataFrame and Series will be removed in "
-            "a future version",
-            DeprecationWarning,
-            stacklevel=find_stack_level(),
-        )
-        res = lib.item_from_zerodim(result)
-        if is_scalar(res):
-            # e.g. we get here with np.ptp(series)
-            # ptp also requires the item_from_zerodim
-            return res
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(res, **d).__finalize__(self, method="__array_wrap__")
-
     @final
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any
@@ -5771,6 +5734,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
         """
+        if using_copy_on_write():
+            return common.pipe(self.copy(deep=None), func, *args, **kwargs)
         return common.pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
@@ -10846,7 +10811,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             return self.T._accum_func(
-                name, func, axis=0, skipna=skipna, *args, **kwargs
+                name, func, axis=0, skipna=skipna, *args, **kwargs  # noqa: B026
             ).T
 
         def block_accum_func(blk_values):
@@ -10942,7 +10907,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None | lib.NoDefault = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -10954,30 +10919,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
-        if axis is None and self.ndim > 1:
-            # user must have explicitly passed axis=None
-            # GH#21597
-            warnings.warn(
-                f"In a future version, DataFrame.{name}(axis=None) will return a "
-                f"scalar {name} over the entire DataFrame. To retain the old "
-                f"behavior, use 'frame.{name}(axis=0)' or just 'frame.{name}()'",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if axis is lib.no_default:
-            axis = None
-
-        if axis is None:
-            axis = self._stat_axis_number
-
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
 
     def min(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -10993,7 +10941,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def max(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11009,7 +10957,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def mean(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11020,7 +10968,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11031,7 +10979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11042,7 +10990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11364,7 +11312,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def mean(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11385,7 +11333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def skew(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11409,7 +11357,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def kurt(
             self,
-            axis: Axis | None | lib.NoDefault = lib.no_default,
+            axis: Axis | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11431,7 +11379,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def median(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11454,7 +11402,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def max(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11477,7 +11425,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def min(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11706,6 +11654,12 @@ Parameters
 axis : {axis_descr}
     Axis for the function to be applied on.
     For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 numeric_only : bool, default False
@@ -11717,7 +11671,7 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or {name2} (if level specified)\
+{name1} or scalar\
 {see_also}\
 {examples}
 """

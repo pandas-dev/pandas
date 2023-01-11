@@ -3,10 +3,12 @@ from datetime import (
     date,
     datetime,
 )
+import gc
 import itertools
 import re
 import string
 import warnings
+import weakref
 
 import numpy as np
 import pytest
@@ -1782,9 +1784,6 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """Check that every plot type gets properly collected."""
-        import gc
-        import weakref
-
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
 

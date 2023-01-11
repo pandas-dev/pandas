@@ -147,11 +147,7 @@ def test_basic():  # TODO: split this test
     tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
 
     gbc = df.groupby(c, observed=False)
-    with tm.assert_produces_warning(
-        FutureWarning, match="scalar max", check_stacklevel=False
-    ):
-        # stacklevel is thrown off (i think) bc the stack goes through numpy C code
-        result = gbc.transform(lambda xs: np.max(xs))
+    result = gbc.transform(lambda xs: np.max(xs, axis=0))
     tm.assert_frame_equal(result, df[["a"]])
 
     with tm.assert_produces_warning(None):
@@ -295,7 +291,7 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = DataFrame([0, 1, 2.0], index=idx, columns=["values"])
 
-    result = grouped.apply(lambda x: np.mean(x))
+    result = grouped.apply(lambda x: np.mean(x, axis=0))
     tm.assert_frame_equal(result, expected)
 
     result = grouped.mean()
