@@ -2874,15 +2874,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
         2
-        >>> pd.read_sql_query("SELECT * FROM users", con=engine)
-            index    name
-        0      0  User 1
-        1      1  User 2
-        2      2  User 3
-        3      0  User 4
-        4      1  User 5
-        5      0  User 6
-        6      1  User 7
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
+         (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
+         (1, 'User 7')]
 
         Overwrite the table with just ``df2``.
 
