@@ -935,7 +935,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with renamed categories.
 
         Raises
@@ -1001,7 +1001,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with reordered categories.
 
         Raises
@@ -1041,7 +1041,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with new categories added.
 
         Raises
@@ -1110,7 +1110,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with removed categories.
 
         Raises
@@ -1160,7 +1160,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with unused categories dropped.
 
         See Also
