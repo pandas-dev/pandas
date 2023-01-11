@@ -12,8 +12,11 @@ changes, you can skip to :ref:`contributing to the documentation <contributing_d
 creating the development environment you won't be able to build the documentation
 locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
-.. contents:: Table of contents:
-   :local:
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+
+    contributing_gitpod.rst
 
 Step 1: install a C compiler
 ----------------------------
@@ -76,7 +79,7 @@ Step 2: create an isolated environment
 Before we begin, please:
 
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
-* ``cd`` to the pandas source directory
+* ``cd`` to the pandas source directory you just created with the clone command
 
 .. _contributing.mamba:
 
@@ -187,6 +190,17 @@ See https://code.visualstudio.com/docs/remote/containers for details.
 Enable Docker support and use the Services tool window to build and manage images as well as
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
+
+Option 4: using Gitpod
+~~~~~~~~~~~~~~~~~~~~~~
+
+Gitpod is an open-source platform that automatically creates the correct development
+environment right in your browser, reducing the need to install local development
+environments and deal with incompatible dependencies.
+
+If you are a Windows user, unfamiliar with using the command line or building pandas
+for the first time, it is often faster to build with Gitpod. Here are the in-depth instructions
+for :ref:`building pandas with GitPod <contributing-gitpod>`.
 
 Step 3: build and install pandas
 --------------------------------

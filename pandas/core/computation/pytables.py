@@ -242,7 +242,7 @@ class BinOp(ops.BinOp):
             return TermValue(v, v, kind)
         elif kind == "bool":
             if isinstance(v, str):
-                v = not v.strip().lower() in [
+                v = v.strip().lower() not in [
                     "false",
                     "f",
                     "no",

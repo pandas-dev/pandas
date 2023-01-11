@@ -82,7 +82,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -90,9 +90,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
+        self._data.freq = value  # type: ignore[misc]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
@@ -387,6 +395,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _is_unique = Index.is_unique
 
     _join_precedence = 10
+
+    @property
+    def unit(self) -> str:
+        return self._data.unit
+
+    def as_unit(self: _TDT, unit: str) -> _TDT:
+        """
+        Convert to a dtype with the given unit resolution.
+
+        Parameters
+        ----------
+        unit : {'s', 'ms', 'us', 'ns'}
+
+        Returns
+        -------
+        same type as self
+        """
+        arr = self._data.as_unit(unit)
+        return type(self)._simple_new(arr, name=self.name)
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)

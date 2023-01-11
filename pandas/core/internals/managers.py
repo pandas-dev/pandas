@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     algos as libalgos,
@@ -376,7 +376,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if _using_copy_on_write() and not self._has_no_reference(0):
+        if using_copy_on_write() and not self._has_no_reference(0):
             # if being referenced -> perform Copy-on-Write and clear the reference
             # this method is only called if there is a single block -> hardcoded 0
             self = self.copy()
@@ -385,7 +385,7 @@ class BaseBlockManager(DataManager):
 
     def putmask(self, mask, new, align: bool = True):
         if (
-            _using_copy_on_write()
+            using_copy_on_write()
             and self.refs is not None
             and not all(ref is None for ref in self.refs)
         ):
@@ -429,7 +429,7 @@ class BaseBlockManager(DataManager):
             limit = libalgos.validate_limit(None, limit=limit)
         if inplace:
             # TODO(CoW) can be optimized to only copy those blocks that have refs
-            if _using_copy_on_write() and any(
+            if using_copy_on_write() and any(
                 not self._has_no_reference_block(i) for i in range(len(self.blocks))
             ):
                 self = self.copy()
@@ -613,7 +613,7 @@ class BaseBlockManager(DataManager):
         BlockManager
         """
         if deep is None:
-            if _using_copy_on_write():
+            if using_copy_on_write():
                 # use shallow copy
                 deep = False
             else:
@@ -701,7 +701,7 @@ class BaseBlockManager(DataManager):
         pandas-indexer with -1's only.
         """
         if copy is None:
-            if _using_copy_on_write():
+            if using_copy_on_write():
                 # use shallow copy
                 copy = False
             else:
@@ -879,7 +879,7 @@ class BaseBlockManager(DataManager):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice or _using_copy_on_write():
+                    if only_slice or using_copy_on_write():
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
@@ -1039,7 +1039,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        parent = parent if _using_copy_on_write() else None
+        parent = parent if using_copy_on_write() else None
         return cls(blocks, axes, refs, parent, verify_integrity=False)
 
     # ----------------------------------------------------------------
@@ -1222,7 +1222,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
-                if _using_copy_on_write() and not self._has_no_reference_block(blkno_l):
+                if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
                     blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
                     self._clear_reference_block(blkno_l)
                 else:
@@ -1235,14 +1235,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
                 else:
-                    nb = blk.delete(blk_locs)
+                    nbs = blk.delete(blk_locs)
+                    # Add first block where old block was and remaining blocks at
+                    # the end to avoid updating all block numbers
+                    first_nb = nbs[0]
+                    nbs_tup = tuple(nbs[1:])
+                    nr_blocks = len(self.blocks)
                     blocks_tup = (
-                        self.blocks[:blkno_l] + (nb,) + self.blocks[blkno_l + 1 :]
+                        self.blocks[:blkno_l]
+                        + (first_nb,)
+                        + self.blocks[blkno_l + 1 :]
+                        + nbs_tup
                     )
                     self.blocks = blocks_tup
-                    self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                    # blk.delete gives a copy, so we can remove a possible reference
-                    self._clear_reference_block(blkno_l)
+                    self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+
+                    for i, nb in enumerate(nbs_tup):
+                        self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+                        self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
@@ -1320,7 +1330,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if inplace and blk.should_store(value):
             copy = False
-            if _using_copy_on_write() and not self._has_no_reference_block(blkno):
+            if using_copy_on_write() and not self._has_no_reference_block(blkno):
                 # perform Copy-on-Write and clear the reference
                 copy = True
                 self._clear_reference_block(blkno)
@@ -1344,7 +1354,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if _using_copy_on_write() and not self._has_no_reference(loc):
+        if using_copy_on_write() and not self._has_no_reference(loc):
             # otherwise perform Copy-on-Write and clear the reference
             blkno = self.blknos[loc]
             blocks = list(self.blocks)
@@ -1839,7 +1849,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         self.axes = [axis]
         self.blocks = (block,)
         self.refs = refs
-        self.parent = parent if _using_copy_on_write() else None
+        self.parent = parent if using_copy_on_write() else None
 
     @classmethod
     def from_blocks(
@@ -1876,7 +1886,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_blk = type(blk)(arr, placement=bp, ndim=2)
         axes = [columns, self.axes[0]]
         refs: list[weakref.ref | None] = [weakref.ref(blk)]
-        parent = self if _using_copy_on_write() else None
+        parent = self if using_copy_on_write() else None
         return BlockManager(
             [new_blk], axes=axes, refs=refs, parent=parent, verify_integrity=False
         )
@@ -2020,7 +2030,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if _using_copy_on_write() and not self._has_no_reference(0):
+        if using_copy_on_write() and not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
             self.refs = None
             self.parent = None
@@ -2034,7 +2044,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         Ensures that self.blocks doesn't become empty.
         """
-        nb = self._block.delete(indexer)
+        nb = self._block.delete(indexer)[0]
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
         self._cache.clear()
@@ -2352,10 +2362,3 @@ def _preprocess_slice_or_indexer(
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
-
-
-_mode_options = _global_config["mode"]
-
-
-def _using_copy_on_write():
-    return _mode_options["copy_on_write"]

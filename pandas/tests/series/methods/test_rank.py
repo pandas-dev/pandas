@@ -92,6 +92,8 @@ class TestSeriesRank:
         iranks = iseries.rank(pct=True)
         tm.assert_series_equal(iranks, exp)
 
+        # Explicit cast to float to avoid implicit cast when setting nan
+        iseries = iseries.astype("float")
         iseries[1] = np.nan
         exp = Series(np.repeat(50.0 / 99.0, 100))
         exp[1] = np.nan
@@ -109,14 +111,16 @@ class TestSeriesRank:
         iranks = iseries.rank(pct=True)
         tm.assert_series_equal(iranks, exp)
 
-        iseries = Series(np.arange(5)) + 1
+        # Explicit cast to float to avoid implicit cast when setting nan
+        iseries = Series(np.arange(5), dtype="float") + 1
         iseries[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         tm.assert_series_equal(iranks, exp)
 
         rng = date_range("1/1/1990", periods=5)
-        iseries = Series(np.arange(5), rng) + 1
+        # Explicit cast to float to avoid implicit cast when setting nan
+        iseries = Series(np.arange(5), rng, dtype="float") + 1
         iseries.iloc[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)

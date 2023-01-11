@@ -36,19 +36,25 @@ Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
 The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
 
 * :func:`read_csv`
+* :func:`read_clipboard`
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
+* :func:`read_xml`
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
+* :func:`read_orc`
+* :func:`to_numeric`
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
+* :func:`read_clipboard` (with ``engine="python"``)
 * :func:`read_excel`
 * :func:`read_html`
+* :func:`read_xml`
 * :func:`read_parquet`
 * :func:`read_orc`
 
@@ -77,12 +83,53 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
+Copy on write improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new lazy copy mechanism that defers the copy until the object in question is modified
+was added to the following methods:
+
+- :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
+- :meth:`DataFrame.set_index` / :meth:`Series.set_index`
+- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+- :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
+- :meth:`DataFrame.rename_columns`
+- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+- :meth:`DataFrame.assign`
+- :meth:`DataFrame.drop`
+- :meth:`DataFrame.dropna` / :meth:`Series.dropna`
+- :meth:`DataFrame.select_dtypes`
+- :meth:`DataFrame.align` / :meth:`Series.align`
+- :meth:`Series.to_frame`
+- :meth:`DataFrame.rename` / :meth:`Series.rename`
+- :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
+- :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
+- :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
+- :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
+
+These methods return views when copy on write is enabled, which provides a significant
+performance improvement compared to the regular execution (:issue:`49473`). Copy on write
+can be enabled through
+
+.. code-block:: python
+
+    pd.set_option("mode.copy_on_write", True)
+    pd.options.mode.copy_on_write = True
+
+Alternatively, copy on write can be enabled locally through:
+
+.. code-block:: python
+
+    with pd.option_context("mode.copy_on_write", True):
+        ...
+
 .. _whatsnew_200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
-- :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
+- :meth:`.DataFrameGroupBy.quantile`, :meth:`.SeriesGroupBy.quantile` and :meth:`.DataFrameGroupBy.std` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
@@ -103,6 +150,7 @@ Other enhancements
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
 - Improved error message in :func:`to_datetime` for non-ISO8601 formats, informing users about the position of the first error (:issue:`50361`)
 - Improved error message when trying to align :class:`DataFrame` objects (for example, in :func:`DataFrame.compare`) to clarify that "identically labelled" refers to both index and columns (:issue:`50083`)
+- Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -461,7 +509,7 @@ to each element individually, e.g. ::
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`)
+- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`, :issue:`32526`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
@@ -471,6 +519,7 @@ Other API changes
 - Passing data with dtype of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; timedelta64 data with lower resolution will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
 - Passing ``dtype`` of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; passing a dtype with lower resolution for :class:`Series` or :class:`DataFrame` will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
 - Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49008`)
+- Passing ``datetime64`` values with resolution other than nanosecond to :func:`to_datetime` will retain the input resolution if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`50369`)
 - Passing a string in ISO-8601 format to :class:`Timestamp` will retain the resolution of the parsed input if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49737`)
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
 - Changed behavior of :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`SparseDtype` to retain sparse dtype (:issue:`49583`)
@@ -496,6 +545,7 @@ Other API changes
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
+- Loading a JSON file with duplicate columns using ``read_json(orient='split')`` renames columns to avoid duplicates, as :func:`read_csv` and the other readers do (:issue:`50370`)
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 -
 
@@ -517,6 +567,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
 - Removed deprecated module ``pandas.core.index`` (:issue:`30193`)
 - Removed deprecated alias ``pandas.core.tools.datetimes.to_time``, import the function directly from ``pandas.core.tools.times`` instead (:issue:`34145`)
+- Removed deprecated alias ``pandas.io.json.json_normalize``, import the function directly from ``pandas.json_normalize`` instead (:issue:`27615`)
 - Removed deprecated :meth:`Categorical.to_dense`, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - Removed deprecated :meth:`Categorical.take_nd` (:issue:`27745`)
 - Removed deprecated :meth:`Categorical.mode`, use ``Series(cat).mode()`` instead (:issue:`45033`)
@@ -622,6 +673,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)
 - Disallow passing non-keyword arguments to :meth:`Series.sort_values` (:issue:`41505`)
+- Disallow passing 2 non-keyword arguments to :meth:`DataFrame.reindex` (:issue:`17966`)
 - Disallow :meth:`Index.reindex` with non-unique :class:`Index` objects (:issue:`42568`)
 - Disallowed constructing :class:`Categorical` with scalar ``data`` (:issue:`38433`)
 - Disallowed constructing :class:`CategoricalIndex` without passing ``data`` (:issue:`38944`)
@@ -710,6 +762,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and an incompatible ``fill_value``; this now casts to ``object`` dtype instead of raising, consistent with the behavior with other dtypes (:issue:`45746`)
 - Change the default argument of ``regex`` for :meth:`Series.str.replace` from ``True`` to ``False``. Additionally, a single character ``pat`` with ``regex=True`` is now treated as a regular expression instead of a string literal. (:issue:`36695`, :issue:`24804`)
 - Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
+- Changed behavior of :meth:`DataFrame.max`, :class:`DataFrame.min`, :class:`DataFrame.mean`, :class:`DataFrame.median`, :class:`DataFrame.skew`, :class:`DataFrame.kurt` with ``axis=None`` to return a scalar applying the aggregation across both axes (:issue:`45072`)
 - Changed behavior of comparison of a :class:`Timestamp` with a ``datetime.date`` object; these now compare as un-equal and raise on inequality comparisons, matching the ``datetime.datetime`` behavior (:issue:`36131`)
 - Changed behavior of comparison of ``NaT`` with a ``datetime.date`` object; these now raise on inequality comparisons (:issue:`39196`)
 - Enforced deprecation of silently dropping columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a list or dictionary (:issue:`43740`)
@@ -725,6 +778,7 @@ Removal of prior version deprecations/changes
 - Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
 - Changed default of ``numeric_only`` to ``False`` in :meth:`Series.rank` (:issue:`47561`)
 - Enforced deprecation of silently dropping nuisance columns in groupby and resample operations when ``numeric_only=False`` (:issue:`41475`)
+- Enforced deprecation of silently dropping nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. This will now raise a :class:`.errors.DataError` (:issue:`42834`)
 - Changed behavior in setting values with ``df.loc[:, foo] = bar`` or ``df.iloc[:, foo] = bar``, these now always attempt to set values inplace before falling back to casting (:issue:`45333`)
 - Changed default of ``numeric_only`` in various :class:`.DataFrameGroupBy` methods; all methods now default to ``numeric_only=False`` (:issue:`46072`)
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
@@ -736,7 +790,8 @@ Removal of prior version deprecations/changes
 - Removed the deprecated argument ``line_terminator`` from :meth:`DataFrame.to_csv` (:issue:`45302`)
 - Removed the deprecated argument ``label`` from :func:`lreshape` (:issue:`30219`)
 - Arguments after ``expr`` in :meth:`DataFrame.eval` and :meth:`DataFrame.query` are keyword-only (:issue:`47587`)
--
+- Removed :meth:`Index._get_attributes_dict` (:issue:`50648`)
+- Removed :meth:`Series.__array_wrap__` (:issue:`50648`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
@@ -744,6 +799,7 @@ Removal of prior version deprecations/changes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.all`, :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.all`, and :meth:`.SeriesGroupBy.any` for object dtype (:issue:`50623`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`, :issue:`48752`)
@@ -754,6 +810,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.putmask` (:issue:`49830`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
 - Performance improvement in :meth:`Series.rank` for pyarrow-backed dtypes (:issue:`50264`)
+- Performance improvement in :meth:`Series.searchsorted` for pyarrow-backed dtypes (:issue:`50447`)
 - Performance improvement in :meth:`Series.fillna` for extension array dtypes (:issue:`49722`, :issue:`50078`)
 - Performance improvement in :meth:`Index.join`, :meth:`Index.intersection` and :meth:`Index.union` for masked dtypes when :class:`Index` is monotonic (:issue:`50310`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
@@ -766,15 +823,20 @@ Performance improvements
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
+- Performance improvement in :meth:`~arrays.IntervalArray.from_tuples` (:issue:`50620`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.__setitem__` when key is a null slice (:issue:`50248`)
+- Performance improvement in :class:`~arrays.ArrowExtensionArray` comparison methods when array contains NA (:issue:`50524`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
+- Performance improvement when parsing strings to :class:`BooleanDtype` (:issue:`50613`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
+- Performance improvement in :meth:`DataFrame.__setitem__` (:issue:`46267`)
 - Performance improvement in ``var`` and ``std`` for nullable dtypes (:issue:`48379`).
 - Performance improvement when iterating over pyarrow and nullable dtypes (:issue:`49825`, :issue:`49851`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
+- Performance improvement in :meth:`Series.to_numpy` if ``copy=True`` by avoiding copying twice (:issue:`24345`)
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``observed=False`` (:issue:`49596`)
 - Performance improvement in :func:`read_stata` with parameter ``index_col`` set to ``None`` (the default). Now the index will be a :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49745`)
@@ -782,6 +844,9 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
 - Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
+- Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
+- Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
+- Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -799,6 +864,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
+- Bug in :func:`to_datetime` incorrectly raising ``OverflowError`` with string arguments corresponding to large integers (:issue:`50533`)
 - Bug in :func:`to_datetime` was raising on invalid offsets with ``errors='coerce'`` and ``infer_datetime_format=True`` (:issue:`48633`)
 - Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
@@ -818,7 +884,8 @@ Datetimelike
 - Bug in :func:`to_datetime` was throwing ``ValueError`` when parsing dates with ISO8601 format where some values were not zero-padded (:issue:`21422`)
 - Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
--
+- Bug in :func:`Timestamp.utctimetuple` raising a ``TypeError`` (:issue:`32174`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
 
 Timedelta
 ^^^^^^^^^
@@ -849,6 +916,7 @@ Conversion
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
 - Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 - Bug in :meth:`Series.astype` raising ``pyarrow.ArrowInvalid`` when converting from a non-pyarrow string dtype to a pyarrow numeric type (:issue:`50430`)
+- Bug in :meth:`Series.to_numpy` converting to NumPy array before applying ``na_value`` (:issue:`48951`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
 -
@@ -868,14 +936,18 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__setitem__` raising when indexer is a :class:`DataFrame` with ``boolean`` dtype (:issue:`47125`)
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
+- Bug in :meth:`DataFrame.loc` when setting :class:`DataFrame` with different dtypes coercing values to single dtype (:issue:`50467`)
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
+- Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :meth:`DataFrame.iloc` raising ``IndexError`` when indexer is a :class:`Series` with numeric extension array dtype (:issue:`49521`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
+- Bug in :meth:`DataFrame.isetitem` coercing extension array dtypes in :class:`DataFrame` to object (:issue:`49922`)
+- Bug in :class:`BusinessHour` would cause creation of :class:`DatetimeIndex` to fail when no opening hour was included in the index (:issue:`49835`)
 -
 
 Missing
@@ -925,6 +997,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.plot.hist`, not dropping elements of ``weights`` corresponding to ``NaN`` values in ``data`` (:issue:`48884`)
 - ``ax.set_xlim`` was sometimes raising ``UserWarning`` which users couldn't address due to ``set_xlim`` not accepting parsing arguments - the converter now uses :func:`Timestamp` instead (:issue:`49148`)
 -
 
@@ -944,6 +1017,11 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.nunique` would incorrectly raise when the grouper was an empty categorical and ``observed=True`` (:issue:`21334`)
 - Bug in :meth:`.SeriesGroupBy.nth` would raise when grouper contained NA values after subsetting from a :class:`DataFrameGroupBy` (:issue:`26454`)
 - Bug in :meth:`DataFrame.groupby` would not include a :class:`.Grouper` specified by ``key`` in the result when ``as_index=False`` (:issue:`50413`)
+- Bug in :meth:`.DataFrameGrouBy.value_counts` would raise when used with a :class:`.TimeGrouper` (:issue:`50486`)
+- Bug in :meth:`Resampler.size` caused a wide :class:`DataFrame` to be returned instead of a :class:`Series` with :class:`MultiIndex` (:issue:`46826`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"idxmin"`` and ``"idxmax"`` arguments (:issue:`45986`)
+- Bug in :class:`.DataFrameGroupBy` would raise when used with an empty DataFrame, categorical grouper, and ``dropna=False`` (:issue:`50634`)
+- Bug in :meth:`.SeriesGroupBy.value_counts` did not respect ``sort=False`` (:issue:`50482`)
 -
 
 Reshaping
@@ -972,6 +1050,8 @@ ExtensionArray
 - Bug in :meth:`Series.round` for pyarrow-backed dtypes raising ``AttributeError`` (:issue:`50437`)
 - Bug when concatenating an empty DataFrame with an ExtensionDtype to another DataFrame with the same ExtensionDtype, the resulting dtype turned into object (:issue:`48510`)
 - Bug in :meth:`array.PandasArray.to_numpy` raising with ``NA`` value when ``na_value`` is specified (:issue:`40638`)
+- Bug in :meth:`api.types.is_numeric_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``_is_numeric`` returned ``True`` (:issue:`50563`)
+- Bug in :meth:`api.types.is_integer_dtype`, :meth:`api.types.is_unsigned_integer_dtype`, :meth:`api.types.is_signed_integer_dtype`, :meth:`api.types.is_float_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``kind`` returned the corresponding NumPy type (:issue:`50667`)
 
 Styler
 ^^^^^^
@@ -985,6 +1065,8 @@ Metadata
 
 Other
 ^^^^^
+- Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 
