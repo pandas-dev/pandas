@@ -53,7 +53,7 @@ engine_params = [
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
     pytest.param("odf", marks=td.skip_if_no("odf")),
-    pytest.param("calamite"),
+    pytest.param("calamine", marks=td.skip_if_no("python_calamine")),
 ]
 
 
@@ -67,11 +67,11 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
         return False
     if engine == "odf" and read_ext != ".ods":
         return False
-    if read_ext == ".ods" and engine != "odf":
+    if read_ext == ".ods" and engine not in {"odf", "calamine"}:
         return False
     if engine == "pyxlsb" and read_ext != ".xlsb":
         return False
-    if read_ext == ".xlsb" and engine != "pyxlsb":
+    if read_ext == ".xlsb" and engine not in {"pyxlsb", "calamine"}:
         return False
     if engine == "xlrd" and read_ext != ".xls":
         return False
@@ -835,6 +835,11 @@ class TestReaders:
                 "Unsupported format, or corrupt file: Expected BOF "
                 "record; found b'foo'"
             )
+        elif engine == "calamine":
+            import python_calamine
+            
+            error = python_calamine._python_calamine.CalamineError
+            msg = "Cannot detect file format"
         else:
             error = BadZipFile
             msg = "File is not a zip file"
@@ -1375,7 +1380,7 @@ class TestReaders:
 
     def test_ignore_chartsheets_by_str(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1388,7 +1393,7 @@ class TestReaders:
 
     def test_ignore_chartsheets_by_int(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1657,7 +1662,7 @@ class TestExcelFileRead:
 
     def test_ignore_chartsheets(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1677,6 +1682,10 @@ class TestExcelFileRead:
             import xlrd
 
             errors = (BadZipFile, xlrd.biffh.XLRDError)
+        elif engine == "calamine":
+            import python_calamine
+
+            errors = (python_calamine._python_calamine.CalamineError,)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
             Path(file).write_text("corrupt")
