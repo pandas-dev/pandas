@@ -913,7 +913,7 @@ def test_series_varied_multiindex_alignment():
 
 def test_rmod_consistent_large_series():
     # GH 29602
-    result = pd.Series([2] * 10001).rmod(-1)
-    expected = pd.Series([1] * 10001)
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
