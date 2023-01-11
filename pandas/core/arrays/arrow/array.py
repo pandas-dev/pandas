@@ -1285,15 +1285,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         pa.Array or pa.ChunkedArray
         """
-        if isinstance(values, pa.ChunkedArray) and pa_version_under8p0:
-            # pc.replace_with_mask segfaults on chunked arrays for
-            # version 7 and below
-            values = values.combine_chunks()
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
-        if pa_version_under7p0 and values.null_count > 0:
-            # pc.replace_with_mask fails to replace nulls in version 6 and lower
+        if pa_version_under8p0:
+            # pc.replace_with_mask seems to be a bit unreliable for versions < 8.0:
+            #  version <= 7: segfaults with various types
+            #  version <= 6: fails to replace nulls
             if isinstance(replacements, pa.Array):
                 indices = np.full(len(values), None)
                 indices[mask] = np.arange(len(replacements))
