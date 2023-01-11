@@ -46,10 +46,7 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-    from lxml.etree import (
-        _Element,
-        _XSLTResultTree,
-    )
+    from lxml import etree
 
     from pandas import DataFrame
 
@@ -209,7 +206,7 @@ class _XMLFrameParser:
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
-        elif self.elems_only:
+        if self.elems_only:
             if self.names:
                 dicts = [
                     {
@@ -283,7 +280,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -380,7 +377,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -417,7 +414,7 @@ class _XMLFrameParser:
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> Element | _Element:
+    ) -> Element | etree._Element:
         """
         Build tree from path_or_buffer.
 
@@ -482,9 +479,9 @@ class _EtreeFrameParser(_XMLFrameParser):
             if elems is not None:
                 if self.elems_only and children == []:
                     raise ValueError(msg)
-                elif self.attrs_only and attrs == {}:
+                if self.attrs_only and attrs == {}:
                     raise ValueError(msg)
-                elif children == [] and attrs == {}:
+                if children == [] and attrs == {}:
                     raise ValueError(msg)
 
         except (KeyError, SyntaxError):
@@ -533,9 +530,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            doc = parse(xml_data, parser=curr_parser)
+            document = parse(xml_data, parser=curr_parser)
 
-        return doc.getroot()
+        return document.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -595,9 +592,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         if elems != []:
             if self.elems_only and children == []:
                 raise ValueError(msg)
-            elif self.attrs_only and attrs == {}:
+            if self.attrs_only and attrs == {}:
                 raise ValueError(msg)
-            elif children == [] and attrs == {}:
+            if children == [] and attrs == {}:
                 raise ValueError(msg)
 
         return elems
@@ -625,7 +622,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> _Element:
+    ) -> etree._Element:
         from lxml.etree import (
             XMLParser,
             fromstring,
@@ -648,15 +645,15 @@ class _LxmlFrameParser(_XMLFrameParser):
                         "Can not pass encoding None when input is StringIO."
                     )
 
-                doc = fromstring(
+                document = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                doc = parse(xml_data, parser=curr_parser)
+                document = parse(xml_data, parser=curr_parser)
 
-        return doc
+        return document
 
-    def _transform_doc(self) -> _XSLTResultTree:
+    def _transform_doc(self) -> etree._XSLTResultTree:
         """
         Transform original tree using stylesheet.
 
@@ -774,6 +771,7 @@ def _parse(
     iterparse: dict[str, list[str]] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
+    use_nullable_dtypes: bool = False,
     **kwargs,
 ) -> DataFrame:
     """
@@ -843,6 +841,7 @@ def _parse(
         dtype=dtype,
         converters=converters,
         parse_dates=parse_dates,
+        use_nullable_dtypes=use_nullable_dtypes,
         **kwargs,
     )
 
@@ -869,6 +868,7 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -979,6 +979,19 @@ def read_xml(
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
+
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1113,4 +1126,5 @@ def read_xml(
         iterparse=iterparse,
         compression=compression,
         storage_options=storage_options,
+        use_nullable_dtypes=use_nullable_dtypes,
     )

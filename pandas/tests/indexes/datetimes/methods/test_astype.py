@@ -32,7 +32,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        result = idx.astype(int)
+        result = idx.astype(np.int64)
         expected = Int64Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
@@ -214,6 +214,8 @@ class TestDatetimeIndex:
         # GH 13149, GH 13209
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
         msg = "Cannot cast DatetimeIndex to dtype"
+        if dtype == "datetime64":
+            msg = "Casting to unit-less dtype 'datetime64' is not supported"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
@@ -274,7 +276,7 @@ class TestDatetimeIndex:
     )
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
-        val = [Timestamp("2018-01-01", tz=tz).value]
+        val = [Timestamp("2018-01-01", tz=tz).as_unit("ns").value]
         result = Index(val, name="idx").astype(dtype)
         expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
         tm.assert_index_equal(result, expected)

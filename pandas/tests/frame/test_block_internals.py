@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
-    compat,
     date_range,
     option_context,
 )
@@ -86,12 +85,6 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_values_consolidate(self, float_frame):
-        float_frame["E"] = 7.0
-        assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values
-        assert float_frame._mgr.is_consolidated()
-
     def test_modify_values(self, float_frame):
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
@@ -100,10 +93,10 @@ class TestDataFrameBlockInternals:
         float_frame["E"] = 7.0
         col = float_frame["E"]
         float_frame.values[6] = 6
-        assert (float_frame.values[6] == 6).all()
+        # as of 2.0 .values does not consolidate, so subsequent calls to .values
+        #  does not share data
+        assert not (float_frame.values[6] == 6).all()
 
-        # check that item_cache was cleared
-        assert float_frame["E"] is not col
         assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
@@ -266,8 +259,8 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        # invalid error message on dt inference
-        if not compat.is_platform_windows():
+        msg = "^Unknown string format: aa, at position 0$"
+        with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
     def test_pickle(self, float_string_frame, timezone_frame):

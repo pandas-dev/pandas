@@ -21,7 +21,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import json
+from pandas._libs.json import (
+    dumps,
+    loads,
+)
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
@@ -49,16 +52,17 @@ from pandas import (
     notna,
     to_datetime,
 )
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
-    _extension_to_compression,
+    dedup_names,
+    extension_to_compression,
     file_exists,
     get_handle,
     is_fsspec_url,
+    is_potential_multi_index,
     is_url,
     stringify_path,
 )
@@ -73,9 +77,6 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
-
-loads = json.loads
-dumps = json.dumps
 
 
 # interface to/from
@@ -249,7 +250,6 @@ class Writer(ABC):
     @abstractmethod
     def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         """Object to write in JSON format."""
-        pass
 
 
 class SeriesWriter(Writer):
@@ -551,18 +551,10 @@ def read_json(
 
         For all ``orient`` values except ``'table'``, default is True.
 
-        .. versionchanged:: 0.25.0
-
-           Not applicable for ``orient='table'``.
-
     convert_axes : bool, default None
         Try to convert the axes to the proper dtypes.
 
         For all ``orient`` values except ``'table'``, default is True.
-
-        .. versionchanged:: 0.25.0
-
-           Not applicable for ``orient='table'``.
 
     convert_dates : bool or list of str, default True
         If True then default datelike columns may be converted (depending on
@@ -752,8 +744,7 @@ def read_json(
 
     if chunksize:
         return json_reader
-
-    with json_reader:
+    else:
         return json_reader.read()
 
 
@@ -865,7 +856,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         elif (
             isinstance(filepath_or_buffer, str)
             and filepath_or_buffer.lower().endswith(
-                (".json",) + tuple(f".json{c}" for c in _extension_to_compression)
+                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
             )
             and not file_exists(filepath_or_buffer)
         ):
@@ -898,20 +889,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read the whole JSON input into a pandas object.
         """
         obj: DataFrame | Series
-        if self.lines:
-            if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
-                lines = list(islice(self.data, self.nrows))
-                lines_json = self._combine_lines(lines)
-                obj = self._get_object_parser(lines_json)
+        with self:
+            if self.lines:
+                if self.chunksize:
+                    obj = concat(self)
+                elif self.nrows:
+                    lines = list(islice(self.data, self.nrows))
+                    lines_json = self._combine_lines(lines)
+                    obj = self._get_object_parser(lines_json)
+                else:
+                    data = ensure_str(self.data)
+                    data_lines = data.split("\n")
+                    obj = self._get_object_parser(self._combine_lines(data_lines))
             else:
-                data = ensure_str(self.data)
-                data_lines = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data_lines))
-        else:
-            obj = self._get_object_parser(self.data)
-        self.close()
+                obj = self._get_object_parser(self.data)
         return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
@@ -966,24 +957,27 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows:
-            if self.nrows_seen >= self.nrows:
-                self.close()
-                raise StopIteration
+        if self.nrows and self.nrows_seen >= self.nrows:
+            self.close()
+            raise StopIteration
 
         lines = list(islice(self.data, self.chunksize))
-        if lines:
+        if not lines:
+            self.close()
+            raise StopIteration
+
+        try:
             lines_json = self._combine_lines(lines)
             obj = self._get_object_parser(lines_json)
 
             # Make sure that the returned objects have the right index.
             obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
             self.nrows_seen += len(obj)
+        except Exception as ex:
+            self.close()
+            raise ex
 
-            return obj
-
-        self.close()
-        raise StopIteration
+        return obj
 
     def __enter__(self) -> JsonReader[FrameSeriesStrT]:
         return self
@@ -1221,9 +1215,9 @@ class SeriesParser(Parser):
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = create_series_with_explicit_dtype(**decoded)
+            self.obj = Series(**decoded)
         else:
-            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+            self.obj = Series(data)
 
     def _try_convert_types(self) -> None:
         if self.obj is None:
@@ -1254,6 +1248,14 @@ class FrameParser(Parser):
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
+            orig_names = [
+                (tuple(col) if isinstance(col, list) else col)
+                for col in decoded["columns"]
+            ]
+            decoded["columns"] = dedup_names(
+                orig_names,
+                is_potential_multi_index(orig_names, None),
+            )
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(

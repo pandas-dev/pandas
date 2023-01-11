@@ -4,11 +4,14 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 import re
 
-from dateutil.parser import parse
+from dateutil.parser import parse as du_parse
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import (
+    parsing,
+    strptime,
+)
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
 
@@ -146,44 +149,50 @@ def test_parsers_month_freq(date_str, expected):
     "string,fmt",
     [
         ("20111230", "%Y%m%d"),
+        ("201112300000", "%Y%m%d%H%M"),
+        ("20111230000000", "%Y%m%d%H%M%S"),
+        ("20111230T00", "%Y%m%dT%H"),
+        ("20111230T0000", "%Y%m%dT%H%M"),
+        ("20111230T000000", "%Y%m%dT%H%M%S"),
         ("2011-12-30", "%Y-%m-%d"),
         ("2011", "%Y"),
         ("2011-01", "%Y-%m"),
-        ("2011/01", "%Y/%m"),
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
         ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z"),
         ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
-        # The +9 format for offsets is supported by dateutil,
-        # but don't round-trip, see https://github.com/pandas-dev/pandas/issues/48921
-        ("2011-12-30T00:00:00+9", None),
-        ("2011-12-30T00:00:00+09", None),
+        ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+090", None),
         ("2011-12-30T00:00:00+0900", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00-0900", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:00", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:000", None),
-        ("2011-12-30T00:00:00+9:0", None),
+        ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:", None),
         ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
         ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+9", None),
-        ("2011-12-30T00:00:00.000000+09", None),
+        ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+090", None),
         ("2011-12-30T00:00:00.000000+0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000-0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:000", None),
-        ("2011-12-30T00:00:00.000000+9:0", None),
+        ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:", None),
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
         ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
+    with tm.maybe_produces_warning(
+        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
+    ):
+        result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -218,6 +227,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "51a",
         "13/2019",
         "202001",  # YYYYMM isn't ISO8601
+        "2020/01",  # YYYY/MM isn't ISO8601 either
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
@@ -238,27 +248,41 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 
 
 @pytest.mark.parametrize(
-    "string,fmt",
+    "string,fmt,dayfirst,warning",
     [
-        ("2011-1-1", "%Y-%m-%d"),
-        ("1/1/2011", "%m/%d/%Y"),
-        ("30-1-2011", "%d-%m-%Y"),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S"),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S"),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S"),
+        ("2011-1-1", "%Y-%m-%d", False, None),
+        ("2011-1-1", "%Y-%d-%m", True, None),
+        ("1/1/2011", "%m/%d/%Y", False, None),
+        ("1/1/2011", "%d/%m/%Y", True, None),
+        ("30-1-2011", "%d-%m-%Y", False, UserWarning),
+        ("30-1-2011", "%d-%m-%Y", True, None),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True, None),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False, None),
+        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True, None),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True, None),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
     # see gh-11142
-    result = parsing.guess_datetime_format(string)
+    msg = (
+        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
+        "was specified. "
+        "Pass `dayfirst=True` or specify a format to silence this warning."
+    )
+    with tm.assert_produces_warning(warning, match=msg):
+        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(arr, dayfirst=True)
+    result = parsing.try_parse_dates(
+        arr, dayfirst=True, parser=lambda x: du_parse(x, dayfirst=True)
+    )
 
-    expected = np.array([parse(d, dayfirst=True) for d in arr])
+    expected = np.array([du_parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -284,20 +308,20 @@ def test_parse_time_string_check_instance_type_raise_exception():
         ("%Y%m%d %H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S%z", True),
-        ("%Y-%m-%dT%H:%M:%S%Z", True),
+        ("%Y-%m-%dT%H:%M:%S%Z", False),
         ("%Y-%m-%dT%H:%M:%S.%f", True),
         ("%Y-%m-%dT%H:%M:%S.%f%z", True),
-        ("%Y-%m-%dT%H:%M:%S.%f%Z", True),
-        ("%Y%m%d", False),
+        ("%Y-%m-%dT%H:%M:%S.%f%Z", False),
+        ("%Y%m%d", True),
         ("%Y%m", False),
-        ("%Y", False),
+        ("%Y", True),
         ("%Y-%m-%d", True),
         ("%Y-%m", True),
     ],
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = parsing.format_is_iso(fmt)
+    result = strptime._test_format_is_iso(fmt)
     assert result == expected
 
 

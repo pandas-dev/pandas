@@ -1,11 +1,14 @@
+""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
 )
+import gc
 import itertools
 import re
 import string
 import warnings
+import weakref
 
 import numpy as np
 import pytest
@@ -32,15 +35,10 @@ from pandas.tests.plotting.common import (
 
 from pandas.io.formats.printing import pprint_thing
 
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
-
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
@@ -657,11 +655,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
-        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
-            df.plot.scatter(x="x", y="y", s=2, size=2)
-        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
-            df.plot.scatter(x="a", y="b", c="red", color="green")
-
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -735,7 +728,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
 
         df = DataFrame(
             np.random.randint(low=0, high=100, size=(6, 4)),
@@ -748,10 +740,7 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            if mpl_ge_3_4_0():
-                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
-            else:
-                assert ax.collections[0].colorbar._label == "z"
+            assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -1795,9 +1784,6 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """Check that every plot type gets properly collected."""
-        import gc
-        import weakref
-
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
 

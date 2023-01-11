@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import array
 import re
 
 import numpy as np
@@ -220,7 +221,7 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
-        expected = arr._data.dtype.type
+        expected = arr._ndarray.dtype.type
         assert isinstance(result, expected)
 
         result = arr._unbox_scalar(NaT)
@@ -292,19 +293,7 @@ class SharedTests:
         assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box, request, string_storage):
-        if isinstance(arr1d, DatetimeArray):
-            tz = arr1d.tz
-            ts1, ts2 = arr1d[1:3]
-            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
-                # If we have e.g. tzutc(), when we cast to string and parse
-                #  back we get pytz.UTC, and then consider them different timezones
-                #  so incorrectly raise.
-                mark = pytest.mark.xfail(
-                    raises=TypeError, reason="timezone comparisons inconsistent"
-                )
-                request.node.add_marker(mark)
-
+    def test_searchsorted_castable_strings(self, arr1d, box, string_storage):
         arr = arr1d
         if box is None:
             pass
@@ -362,13 +351,13 @@ class SharedTests:
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
-        expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
+        expected = type(arr1d)(arr1d._ndarray[:, np.newaxis], dtype=arr1d.dtype)
         result = arr1d[:, np.newaxis]
         tm.assert_equal(result, expected)
 
         # Lookup on a 2D array
         arr2d = expected
-        expected = type(arr2d)(arr2d._data[:3, 0], dtype=arr2d.dtype)
+        expected = type(arr2d)(arr2d._ndarray[:3, 0], dtype=arr2d.dtype)
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
@@ -378,7 +367,7 @@ class SharedTests:
         assert result == expected
 
     def test_iter_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
         result = list(arr2d)
         assert len(result) == 3
@@ -388,7 +377,7 @@ class SharedTests:
             assert x.dtype == arr1d.dtype
 
     def test_repr_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
 
         result = repr(arr2d)
@@ -461,19 +450,8 @@ class SharedTests:
 
         tm.assert_equal(arr1d, expected)
 
-    def test_setitem_strs(self, arr1d, request):
+    def test_setitem_strs(self, arr1d):
         # Check that we parse strs in both scalar and listlike
-        if isinstance(arr1d, DatetimeArray):
-            tz = arr1d.tz
-            ts1, ts2 = arr1d[-2:]
-            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
-                # If we have e.g. tzutc(), when we cast to string and parse
-                #  back we get pytz.UTC, and then consider them different timezones
-                #  so incorrectly raise.
-                mark = pytest.mark.xfail(
-                    raises=TypeError, reason="timezone comparisons inconsistent"
-                )
-                request.node.add_marker(mark)
 
         # Setting list-like of strs
         expected = arr1d.copy()
@@ -655,7 +633,7 @@ class TestDatetimeArray(SharedTests):
 
         # default asarray gives the same underlying data (for tz naive)
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -664,7 +642,7 @@ class TestDatetimeArray(SharedTests):
 
         # specifying M8[ns] gives the same result as default
         result = np.asarray(arr, dtype="datetime64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]", copy=False)
@@ -743,13 +721,13 @@ class TestDatetimeArray(SharedTests):
         assert result.base is None
 
     def test_from_array_keeps_base(self):
-        # Ensure that DatetimeArray._data.base isn't lost.
+        # Ensure that DatetimeArray._ndarray.base isn't lost.
         arr = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         dta = DatetimeArray(arr)
 
-        assert dta._data is arr
+        assert dta._ndarray is arr
         dta = DatetimeArray(arr[:0])
-        assert dta._data.base is arr
+        assert dta._ndarray.base is arr
 
     def test_from_dti(self, arr1d):
         arr = arr1d
@@ -852,18 +830,14 @@ class TestDatetimeArray(SharedTests):
             # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
             value = fixed_now_ts.tz_localize("Australia/Melbourne")
-            msg = "Timezones don't match. .* != 'Australia/Melbourne'"
-            with pytest.raises(ValueError, match=msg):
-                # require tz match, not just tzawareness match
-                with tm.assert_produces_warning(
-                    FutureWarning, match="mismatched timezone"
-                ):
-                    result = arr.take([-1, 1], allow_fill=True, fill_value=value)
+            result = arr.take([-1, 1], allow_fill=True, fill_value=value)
 
-            # once deprecation is enforced
-            # expected = arr.take([-1, 1], allow_fill=True,
-            #  fill_value=value.tz_convert(arr.dtype.tz))
-            # tm.assert_equal(result, expected)
+            expected = arr.take(
+                [-1, 1],
+                allow_fill=True,
+                fill_value=value.tz_convert(arr.dtype.tz),
+            )
+            tm.assert_equal(result, expected)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
@@ -968,7 +942,7 @@ class TestTimedeltaArray(SharedTests):
 
         # default asarray gives the same underlying data
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -977,7 +951,7 @@ class TestTimedeltaArray(SharedTests):
 
         # specifying m8[ns] gives the same result as default
         result = np.asarray(arr, dtype="timedelta64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]", copy=False)
@@ -1373,9 +1347,6 @@ def array_likes(request):
     if name == "memoryview":
         data = memoryview(arr)
     elif name == "array":
-        # stdlib array
-        import array
-
         data = array.array("i", arr)
     elif name == "dask":
         import dask.array

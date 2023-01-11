@@ -167,7 +167,6 @@ Computations / descriptive stats
    Series.unique
    Series.nunique
    Series.is_unique
-   Series.is_monotonic
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
@@ -248,7 +247,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   Series.append
    Series.compare
    Series.update
 

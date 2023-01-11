@@ -283,7 +283,7 @@ class SettingWithCopyError(ValueError):
     The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
     happen unintentionally when chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -306,7 +306,7 @@ class SettingWithCopyWarning(Warning):
     'Warn' is the default option. This can happen unintentionally when
     chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,

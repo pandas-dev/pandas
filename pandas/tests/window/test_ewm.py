@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -10,7 +8,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.window import ExponentialMovingWindow
 
 
 def test_doc_string():
@@ -64,23 +61,6 @@ def test_constructor(frame_or_series):
             c(alpha=alpha)
 
 
-@pytest.mark.parametrize("method", ["std", "mean", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    e = ExponentialMovingWindow(Series([2, 4, 6]), alpha=0.5)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to ExponentialMovingWindow.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to ExponentialMovingWindow.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(dtype=np.float64)
-
-
 def test_ewma_times_not_datetime_type():
     msg = r"times must be datetime64\[ns\] dtype."
     with pytest.raises(ValueError, match=msg):
@@ -118,11 +98,9 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
-    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    with tm.assert_produces_warning(FutureWarning, match="nuisance columns"):
-        # GH#42738
-        result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-        expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    df = DataFrame({"A": data})
+    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
+    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
     tm.assert_frame_equal(result, expected)
 
 

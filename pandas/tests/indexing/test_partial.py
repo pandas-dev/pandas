@@ -100,12 +100,12 @@ class TestEmptyFrameSetitemExpansion:
 
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame()
+        df = DataFrame(index=Index([]))
         df["foo"] = Series(df.index)
 
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame()
+        df = DataFrame(index=Index([]))
         df["foo"] = df.index
 
         tm.assert_frame_equal(df, expected)
@@ -135,7 +135,7 @@ class TestEmptyFrameSetitemExpansion:
 
     def test_partial_set_empty_frame5(self):
         df = DataFrame()
-        tm.assert_index_equal(df.columns, Index([], dtype=object))
+        tm.assert_index_equal(df.columns, pd.RangeIndex(0))
         df2 = DataFrame()
         df2[1] = Series([1], index=["foo"])
         df.loc[:, 1] = Series([1], index=["foo"])
@@ -182,7 +182,7 @@ class TestEmptyFrameSetitemExpansion:
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
         result = y.reindex(columns=["A", "B", "C"])
-        expected = DataFrame(columns=["A", "B", "C"], index=Index([], dtype="int64"))
+        expected = DataFrame(columns=["A", "B", "C"])
         expected["A"] = expected["A"].astype("int64")
         expected["B"] = expected["B"].astype("float64")
         expected["C"] = expected["C"].astype("float64")
@@ -308,12 +308,12 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
+        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "B"] = df.loc[:, "A"]
+        # as of 2.0, df.loc[:, "B"] = ... attempts (and here succeeds) at
+        #  setting inplace
+        df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting

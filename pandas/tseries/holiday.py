@@ -335,6 +335,9 @@ class Holiday:
         -------
         Dates with rules applied
         """
+        if dates.empty:
+            return DatetimeIndex([])
+
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
 
@@ -553,8 +556,7 @@ EasterMonday = Holiday("Easter Monday", month=1, day=1, offset=[Easter(), Day(1)
 class USFederalHolidayCalendar(AbstractHolidayCalendar):
     """
     US Federal Government Holiday Calendar based on rules specified by:
-    https://www.opm.gov/policy-data-oversight/
-       snow-dismissal-procedures/federal-holidays/
+    https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/
     """
 
     rules = [

@@ -6,8 +6,7 @@ import seaborn as sns
 from pandas import DataFrame
 
 setup_common = """from pandas import DataFrame
-from numpy.random import randn
-df = DataFrame(randn(%d, 3), columns=list('abc'))
+df = DataFrame(np.random.randn(%d, 3), columns=list('abc'))
 %s"""
 
 setup_with = "s = 'a + b * (c ** 2 + b ** 2 - a) / (a * c) ** 3'"
@@ -17,7 +16,7 @@ def bench_with(n, times=10, repeat=3, engine="numexpr"):
     return (
         np.array(
             timeit(
-                "df.eval(s, engine=%r)" % engine,
+                f"df.eval(s, engine={repr(engine)})",
                 setup=setup_common % (n, setup_with),
                 repeat=repeat,
                 number=times,
@@ -34,7 +33,7 @@ def bench_subset(n, times=20, repeat=3, engine="numexpr"):
     return (
         np.array(
             timeit(
-                "df.query(s, engine=%r)" % engine,
+                f"df.query(s, engine={repr(engine)})",
                 setup=setup_common % (n, setup_subset),
                 repeat=repeat,
                 number=times,
@@ -55,7 +54,7 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
     for engine in engines:
         for i, n in enumerate(r):
             if verbose & (i % 10 == 0):
-                print("engine: %r, i == %d" % (engine, i))
+                print(f"engine: {repr(engine)}, i == {i:d}")
             ev_times = bench_with(n, times=1, repeat=1, engine=engine)
             ev.loc[i, engine] = np.mean(ev_times)
             qu_times = bench_subset(n, times=1, repeat=1, engine=engine)

@@ -290,6 +290,52 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
+.. _whatsnew_150.enhancements.copy_on_write:
+
+Copy on Write
+^^^^^^^^^^^^^
+
+A new feature ``copy_on_write`` was added (:issue:`46958`). Copy on write ensures that
+any DataFrame or Series derived from another in any way always behaves as a copy.
+Copy on write disallows updating any other object than the object the method
+was applied to.
+
+Copy on write can be enabled through:
+
+.. code-block:: python
+
+    pd.set_option("mode.copy_on_write", True)
+    pd.options.mode.copy_on_write = True
+
+Alternatively, copy on write can be enabled locally through:
+
+.. code-block:: python
+
+    with pd.option_context("mode.copy_on_write", True):
+        ...
+
+Without copy on write, the parent :class:`DataFrame` is updated when updating a child
+:class:`DataFrame` that was derived from this :class:`DataFrame`.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
+    view = df["foo"]
+    view.iloc[0]
+    df
+
+With copy on write enabled, df won't be updated anymore:
+
+.. ipython:: python
+
+    with pd.option_context("mode.copy_on_write", True):
+        df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
+        view = df["foo"]
+        view.iloc[0]
+        df
+
+A more detailed explanation can be found `here <https://phofl.github.io/cow-introduction.html>`_.
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
@@ -1155,7 +1201,6 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
-- The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 - Bug in :meth:`DataFrame.plot` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
 - Bug in :meth:`DataFrame.plot` that prevented setting y-axis label, limits and ticks for a secondary y-axis (:issue:`47753`)

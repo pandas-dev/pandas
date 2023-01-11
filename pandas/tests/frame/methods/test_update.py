@@ -136,7 +136,8 @@ class TestDataFrameUpdate:
     def test_update_datetime_tz(self):
         # GH 25807
         result = DataFrame([pd.Timestamp("2019", tz="UTC")])
-        result.update(result)
+        with tm.assert_produces_warning(None):
+            result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
@@ -166,3 +167,13 @@ class TestDataFrameUpdate:
             tm.assert_frame_equal(result_view, df2_orig)
         else:
             tm.assert_frame_equal(result_view, expected)
+
+    def test_update_dt_column_with_NaT_create_column(self):
+        # GH#16713
+        df = DataFrame({"A": [1, None], "B": [pd.NaT, pd.to_datetime("2016-01-01")]})
+        df2 = DataFrame({"A": [2, 3]})
+        df.update(df2, overwrite=False)
+        expected = DataFrame(
+            {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
+        )
+        tm.assert_frame_equal(df, expected)

@@ -18,6 +18,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
+from pandas.tseries.frequencies import to_offset
+
 
 class TestDatetime64:
     def test_no_millisecond_field(self):
@@ -139,41 +141,48 @@ class TestDatetime64:
         assert dti.is_month_start[0] == 1
 
     def test_datetimeindex_accessors5(self):
-        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
-            tests = [
-                (Timestamp("2013-06-01", freq="M").is_month_start, 1),
-                (Timestamp("2013-06-01", freq="BM").is_month_start, 0),
-                (Timestamp("2013-06-03", freq="M").is_month_start, 0),
-                (Timestamp("2013-06-03", freq="BM").is_month_start, 1),
-                (Timestamp("2013-02-28", freq="Q-FEB").is_month_end, 1),
-                (Timestamp("2013-02-28", freq="Q-FEB").is_quarter_end, 1),
-                (Timestamp("2013-02-28", freq="Q-FEB").is_year_end, 1),
-                (Timestamp("2013-03-01", freq="Q-FEB").is_month_start, 1),
-                (Timestamp("2013-03-01", freq="Q-FEB").is_quarter_start, 1),
-                (Timestamp("2013-03-01", freq="Q-FEB").is_year_start, 1),
-                (Timestamp("2013-03-31", freq="QS-FEB").is_month_end, 1),
-                (Timestamp("2013-03-31", freq="QS-FEB").is_quarter_end, 0),
-                (Timestamp("2013-03-31", freq="QS-FEB").is_year_end, 0),
-                (Timestamp("2013-02-01", freq="QS-FEB").is_month_start, 1),
-                (Timestamp("2013-02-01", freq="QS-FEB").is_quarter_start, 1),
-                (Timestamp("2013-02-01", freq="QS-FEB").is_year_start, 1),
-                (Timestamp("2013-06-30", freq="BQ").is_month_end, 0),
-                (Timestamp("2013-06-30", freq="BQ").is_quarter_end, 0),
-                (Timestamp("2013-06-30", freq="BQ").is_year_end, 0),
-                (Timestamp("2013-06-28", freq="BQ").is_month_end, 1),
-                (Timestamp("2013-06-28", freq="BQ").is_quarter_end, 1),
-                (Timestamp("2013-06-28", freq="BQ").is_year_end, 0),
-                (Timestamp("2013-06-30", freq="BQS-APR").is_month_end, 0),
-                (Timestamp("2013-06-30", freq="BQS-APR").is_quarter_end, 0),
-                (Timestamp("2013-06-30", freq="BQS-APR").is_year_end, 0),
-                (Timestamp("2013-06-28", freq="BQS-APR").is_month_end, 1),
-                (Timestamp("2013-06-28", freq="BQS-APR").is_quarter_end, 1),
-                (Timestamp("2013-03-29", freq="BQS-APR").is_year_end, 1),
-                (Timestamp("2013-11-01", freq="AS-NOV").is_year_start, 1),
-                (Timestamp("2013-10-31", freq="AS-NOV").is_year_end, 1),
-                (Timestamp("2012-02-01").days_in_month, 29),
-                (Timestamp("2013-02-01").days_in_month, 28),
-            ]
+        freq_m = to_offset("M")
+        bm = to_offset("BM")
+        qfeb = to_offset("Q-FEB")
+        qsfeb = to_offset("QS-FEB")
+        bq = to_offset("BQ")
+        bqs_apr = to_offset("BQS-APR")
+        as_nov = to_offset("AS-NOV")
+
+        tests = [
+            (freq_m.is_month_start(Timestamp("2013-06-01")), 1),
+            (bm.is_month_start(Timestamp("2013-06-01")), 0),
+            (freq_m.is_month_start(Timestamp("2013-06-03")), 0),
+            (bm.is_month_start(Timestamp("2013-06-03")), 1),
+            (qfeb.is_month_end(Timestamp("2013-02-28")), 1),
+            (qfeb.is_quarter_end(Timestamp("2013-02-28")), 1),
+            (qfeb.is_year_end(Timestamp("2013-02-28")), 1),
+            (qfeb.is_month_start(Timestamp("2013-03-01")), 1),
+            (qfeb.is_quarter_start(Timestamp("2013-03-01")), 1),
+            (qfeb.is_year_start(Timestamp("2013-03-01")), 1),
+            (qsfeb.is_month_end(Timestamp("2013-03-31")), 1),
+            (qsfeb.is_quarter_end(Timestamp("2013-03-31")), 0),
+            (qsfeb.is_year_end(Timestamp("2013-03-31")), 0),
+            (qsfeb.is_month_start(Timestamp("2013-02-01")), 1),
+            (qsfeb.is_quarter_start(Timestamp("2013-02-01")), 1),
+            (qsfeb.is_year_start(Timestamp("2013-02-01")), 1),
+            (bq.is_month_end(Timestamp("2013-06-30")), 0),
+            (bq.is_quarter_end(Timestamp("2013-06-30")), 0),
+            (bq.is_year_end(Timestamp("2013-06-30")), 0),
+            (bq.is_month_end(Timestamp("2013-06-28")), 1),
+            (bq.is_quarter_end(Timestamp("2013-06-28")), 1),
+            (bq.is_year_end(Timestamp("2013-06-28")), 0),
+            (bqs_apr.is_month_end(Timestamp("2013-06-30")), 0),
+            (bqs_apr.is_quarter_end(Timestamp("2013-06-30")), 0),
+            (bqs_apr.is_year_end(Timestamp("2013-06-30")), 0),
+            (bqs_apr.is_month_end(Timestamp("2013-06-28")), 1),
+            (bqs_apr.is_quarter_end(Timestamp("2013-06-28")), 1),
+            (bqs_apr.is_year_end(Timestamp("2013-03-29")), 1),
+            (as_nov.is_year_start(Timestamp("2013-11-01")), 1),
+            (as_nov.is_year_end(Timestamp("2013-10-31")), 1),
+            (Timestamp("2012-02-01").days_in_month, 29),
+            (Timestamp("2013-02-01").days_in_month, 28),
+        ]
 
         for ts, value in tests:
             assert ts == value

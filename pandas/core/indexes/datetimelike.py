@@ -33,6 +33,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import NullFrequencyError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -81,18 +82,25 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
+        self._data.freq = value  # type: ignore[misc]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
@@ -353,10 +361,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         Index.shift : Shift values of Index.
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
-        arr = self._data.view()
-        arr._freq = self.freq
-        result = arr._time_shift(periods, freq=freq)
-        return type(self)._simple_new(result, name=self.name)
+        raise NotImplementedError
 
     # --------------------------------------------------------------------
 
@@ -391,6 +396,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     _join_precedence = 10
 
+    @property
+    def unit(self) -> str:
+        return self._data.unit
+
+    def as_unit(self: _TDT, unit: str) -> _TDT:
+        """
+        Convert to a dtype with the given unit resolution.
+
+        Parameters
+        ----------
+        unit : {'s', 'ms', 'us', 'ns'}
+
+        Returns
+        -------
+        same type as self
+        """
+        arr = self._data.as_unit(unit)
+        return type(self)._simple_new(arr, name=self.name)
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
@@ -399,6 +423,32 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         return self._data._ndarray
+
+    @doc(DatetimeIndexOpsMixin.shift)
+    def shift(self: _TDT, periods: int = 1, freq=None) -> _TDT:
+        if freq is not None and freq != self.freq:
+            if isinstance(freq, str):
+                freq = to_offset(freq)
+            offset = periods * freq
+            return self + offset
+
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
+            return self.copy()
+
+        if self.freq is None:
+            raise NullFrequencyError("Cannot shift with no freq")
+
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
+        result = self._data._generate_range(
+            start=start, end=end, periods=None, freq=self.freq
+        )
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -422,7 +472,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
             new_freq = to_offset(Timedelta(res_i8.step))
-            res_i8 = res_i8
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
@@ -602,9 +651,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
+    ):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other)
+        result = super()._wrap_joined_index(joined, other, lidx, ridx)
         result._data._freq = self._get_join_freq(other)
         return result
 

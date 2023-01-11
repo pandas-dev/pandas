@@ -16,14 +16,14 @@ VERSIONS = {
     "blosc": "1.21.0",
     "bottleneck": "1.3.2",
     "brotli": "0.7.0",
-    "fastparquet": "0.4.0",
+    "fastparquet": "0.6.3",
     "fsspec": "2021.07.0",
     "html5lib": "1.1",
     "hypothesis": "6.13.0",
     "gcsfs": "2021.07.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
-    "matplotlib": "3.3.2",
+    "matplotlib": "3.6.1",
     "numba": "0.53.1",
     "numexpr": "2.7.3",
     "odfpy": "1.4.1",
@@ -41,11 +41,13 @@ VERSIONS = {
     "sqlalchemy": "1.4.16",
     "tables": "3.6.1",
     "tabulate": "0.8.9",
-    "xarray": "0.19.0",
+    "xarray": "0.21.0",
     "xlrd": "2.0.1",
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
     "tzdata": "2022.1",
+    "qtpy": "2.2.0",
+    "pyqt5": "5.15.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -141,8 +143,7 @@ def import_optional_dependency(
     except ImportError:
         if errors == "raise":
             raise ImportError(msg)
-        else:
-            return None
+        return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]

@@ -3,8 +3,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
@@ -20,27 +18,25 @@ class TestNonNano:
         return request.param
 
     @pytest.fixture
-    def reso(self, unit):
-        if unit == "s":
-            return NpyDatetimeUnit.NPY_FR_s.value
-        elif unit == "ms":
-            return NpyDatetimeUnit.NPY_FR_ms.value
-        elif unit == "us":
-            return NpyDatetimeUnit.NPY_FR_us.value
-        else:
-            raise NotImplementedError(unit)
-
-    @pytest.fixture
     def tda(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         return TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
-    def test_non_nano(self, unit, reso):
+    def test_non_nano(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
         assert tda.dtype == arr.dtype
-        assert tda[0]._creso == reso
+        assert tda[0].unit == unit
+
+    def test_as_unit_raises(self, tda):
+        # GH#50616
+        with pytest.raises(ValueError, match="Supported units"):
+            tda.as_unit("D")
+
+        tdi = pd.Index(tda)
+        with pytest.raises(ValueError, match="Supported units"):
+            tdi.as_unit("D")
 
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
     def test_fields(self, tda, field):
@@ -102,9 +98,9 @@ class TestNonNano:
     # TODO: 2022-07-11 this is the only test that gets to DTA.tz_convert
     #  or tz_localize with non-nano; implement tests specific to that.
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
-        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
+        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture).as_unit("ns")
 
-        expected = tda._as_unit("ns") + ts
+        expected = tda.as_unit("ns") + ts
         res = tda + ts
         tm.assert_extension_array_equal(res, expected)
         res = ts + tda
@@ -173,8 +169,7 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_add_timedeltaarraylike(self, tda):
-        # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
-        tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
+        tda_nano = tda.astype("m8[ns]")
 
         expected = tda_nano * 2
         res = tda_nano + tda

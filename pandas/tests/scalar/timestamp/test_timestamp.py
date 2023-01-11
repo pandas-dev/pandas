@@ -4,19 +4,17 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 import locale
-import pickle
+import time
 import unicodedata
 
 from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import (
-    timezone,
-    utc,
-)
+from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -36,64 +34,31 @@ from pandas import (
 import pandas._testing as tm
 
 from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampProperties:
-    def test_freq_deprecation(self):
-        # GH#41586
-        msg = "The 'freq' argument in Timestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # warning issued at construction
-            ts = Timestamp("2021-06-01", freq="D")
-            ts2 = Timestamp("2021-06-01", freq="B")
-
-        msg = "Timestamp.freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # warning issued at attribute lookup
-            ts.freq
-
-        for per in ["month", "quarter", "year"]:
-            for side in ["start", "end"]:
-                attr = f"is_{per}_{side}"
-
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    getattr(ts2, attr)
-
-                # is_(month|quarter|year)_(start|end) does _not_ issue a warning
-                #  with freq="D" bc the result will be unaffected by the deprecation
-                with tm.assert_produces_warning(None):
-                    getattr(ts, attr)
-
-    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_properties_business(self):
-        ts = Timestamp("2017-10-01", freq="B")
-        control = Timestamp("2017-10-01")
+        freq = to_offset("B")
+
+        ts = Timestamp("2017-10-01")
         assert ts.dayofweek == 6
         assert ts.day_of_week == 6
-        assert not ts.is_month_start  # not a weekday
-        assert not ts.freq.is_month_start(ts)
-        assert ts.freq.is_month_start(ts + Timedelta(days=1))
-        assert not ts.is_quarter_start  # not a weekday
-        assert not ts.freq.is_quarter_start(ts)
-        assert ts.freq.is_quarter_start(ts + Timedelta(days=1))
-        # Control case: non-business is month/qtr start
-        assert control.is_month_start
-        assert control.is_quarter_start
+        assert ts.is_month_start  # not a weekday
+        assert not freq.is_month_start(ts)
+        assert freq.is_month_start(ts + Timedelta(days=1))
+        assert not freq.is_quarter_start(ts)
+        assert freq.is_quarter_start(ts + Timedelta(days=1))
 
-        ts = Timestamp("2017-09-30", freq="B")
-        control = Timestamp("2017-09-30")
+        ts = Timestamp("2017-09-30")
         assert ts.dayofweek == 5
         assert ts.day_of_week == 5
-        assert not ts.is_month_end  # not a weekday
-        assert not ts.freq.is_month_end(ts)
-        assert ts.freq.is_month_end(ts - Timedelta(days=1))
-        assert not ts.is_quarter_end  # not a weekday
-        assert not ts.freq.is_quarter_end(ts)
-        assert ts.freq.is_quarter_end(ts - Timedelta(days=1))
-        # Control case: non-business is month/qtr start
-        assert control.is_month_end
-        assert control.is_quarter_end
+        assert ts.is_month_end
+        assert not freq.is_month_end(ts)
+        assert freq.is_month_end(ts - Timedelta(days=1))
+        assert ts.is_quarter_end
+        assert not freq.is_quarter_end(ts)
+        assert freq.is_quarter_end(ts - Timedelta(days=1))
 
     @pytest.mark.parametrize(
         "attr, expected",
@@ -238,15 +203,24 @@ class TestTimestampProperties:
 
     def test_resolution(self):
         # GH#21336, GH#21365
-        dt = Timestamp("2100-01-01 00:00:00")
+        dt = Timestamp("2100-01-01 00:00:00.000000000")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib datetime behavior
         assert Timestamp.resolution == Timedelta(nanoseconds=1)
 
+        assert dt.as_unit("us").resolution == Timedelta(microseconds=1)
+        assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
+        assert dt.as_unit("s").resolution == Timedelta(seconds=1)
+
 
 class TestTimestamp:
+    def test_default_to_stdlib_utc(self):
+        assert Timestamp.utcnow().tz is timezone.utc
+        assert Timestamp.now("UTC").tz is timezone.utc
+        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+
     def test_tz(self):
         tstr = "2014-02-01 09:00"
         ts = Timestamp(tstr)
@@ -267,7 +241,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
         np.random.seed(7_960_929)
@@ -285,18 +259,13 @@ class TestTimestamp:
             assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
-        msg = "timezone-aware Timestamp with UTC"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#22451
-            ts_utc = Timestamp.utcfromtimestamp(current_time)
-        compare(
-            ts_utc,
-            datetime.utcfromtimestamp(current_time),
-        )
+
+        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        assert ts_utc.timestamp() == current_time
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )
@@ -334,15 +303,9 @@ class TestTimestamp:
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
-        msg = "timezone-aware Timestamp with UTC"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#22451
-            ts_utc = Timestamp.utcfromtimestamp(current_time)
+        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        assert ts_utc.timestamp() == current_time
 
-        compare(
-            ts_utc,
-            datetime.utcfromtimestamp(current_time),
-        )
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )
@@ -421,7 +384,7 @@ class TestTimestamp:
 
         # test value to string and back conversions
         # further test accessors
-        base = Timestamp("20140101 00:00:00")
+        base = Timestamp("20140101 00:00:00").as_unit("ns")
 
         result = Timestamp(base.value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
@@ -475,26 +438,6 @@ class TestTimestamp:
             tzinfo=test_timezone,
         )
         assert hash(transition_1) == hash(transition_2)
-
-    def test_tz_conversion_freq(self, tz_naive_fixture):
-        # GH25241
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            t1 = Timestamp("2019-01-01 10:00", freq="H")
-            assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
-            assert t2.tz_convert(tz="UTC").freq == t2.freq
-
-    def test_pickle_freq_no_warning(self):
-        # GH#41949 we don't want a warning on unpickling
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            ts = Timestamp("2019-01-01 10:00", freq="H")
-
-        out = pickle.dumps(ts)
-        with tm.assert_produces_warning(None):
-            res = pickle.loads(out)
-
-        assert res._freq == ts._freq
 
 
 class TestTimestampNsOperations:
@@ -583,7 +526,7 @@ class TestTimestampToJulianDate:
 class TestTimestampConversion:
     def test_conversion(self):
         # GH#9255
-        ts = Timestamp("2000-01-01")
+        ts = Timestamp("2000-01-01").as_unit("ns")
 
         result = ts.to_pydatetime()
         expected = datetime(2000, 1, 1)
@@ -644,7 +587,9 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(exp_warning):
             pydt_max = Timestamp.max.to_pydatetime()
 
-        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
+        assert (
+            Timestamp(pydt_max).as_unit("ns").value / 1000 == Timestamp.max.value / 1000
+        )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning):
@@ -655,7 +600,10 @@ class TestTimestampConversion:
         tdus = timedelta(microseconds=1)
         assert pydt_min + tdus > Timestamp.min
 
-        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
+        assert (
+            Timestamp(pydt_min + tdus).as_unit("ns").value / 1000
+            == Timestamp.min.value / 1000
+        )
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone
@@ -749,18 +697,13 @@ class TestNonNano:
         assert not ts.is_month_end
         assert not ts.is_month_end
 
-        freq = offsets.BDay()
-        ts._set_freq(freq)
-
         # 2016-01-01 is a Friday, so is year/quarter/month start with this freq
-        msg = "Timestamp.freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert ts.is_year_start
-            assert ts.is_quarter_start
-            assert ts.is_month_start
-            assert not ts.is_year_end
-            assert not ts.is_month_end
-            assert not ts.is_month_end
+        assert ts.is_year_start
+        assert ts.is_quarter_start
+        assert ts.is_month_start
+        assert not ts.is_year_end
+        assert not ts.is_month_end
+        assert not ts.is_month_end
 
     def test_day_name(self, dt64, ts):
         alt = Timestamp(dt64)
@@ -826,7 +769,7 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
+        other = Timestamp(dt64 - 3600 * 24).as_unit("ns")
         assert other < ts
         assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
@@ -940,7 +883,7 @@ class TestNonNano:
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
             NpyDatetimeUnit.NPY_FR_s.value: "us",
         }[ts._creso]
-        other = ts._as_unit(unit)
+        other = ts.as_unit(unit)
         assert other._creso != ts._creso
 
         result = ts - other
@@ -956,7 +899,7 @@ class TestNonNano:
         if ts._creso < other._creso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._creso)
-            exp = ts._as_unit(other._unit) - other2
+            exp = ts.as_unit(other.unit) - other2
 
             res = ts - other2
             assert res == exp
@@ -967,7 +910,7 @@ class TestNonNano:
             assert res._creso == max(ts._creso, other._creso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
-            exp = ts2 - other._as_unit(ts2._unit)
+            exp = ts2 - other.as_unit(ts2.unit)
 
             res = ts2 - other
             assert res == exp
@@ -988,7 +931,7 @@ class TestNonNano:
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
             NpyDatetimeUnit.NPY_FR_s.value: "us",
         }[ts._creso]
-        other = Timedelta(0)._as_unit(unit)
+        other = Timedelta(0).as_unit(unit)
         assert other._creso != ts._creso
 
         result = ts + other
@@ -1004,7 +947,7 @@ class TestNonNano:
         if ts._creso < other._creso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._creso)
-            exp = ts._as_unit(other._unit) + other2
+            exp = ts.as_unit(other.unit) + other2
             res = ts + other2
             assert res == exp
             assert res._creso == max(ts._creso, other._creso)
@@ -1013,7 +956,7 @@ class TestNonNano:
             assert res._creso == max(ts._creso, other._creso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
-            exp = ts2 + other._as_unit(ts2._unit)
+            exp = ts2 + other.as_unit(ts2.unit)
 
             res = ts2 + other
             assert res == exp
@@ -1024,8 +967,8 @@ class TestNonNano:
 
     def test_addition_doesnt_downcast_reso(self):
         # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
-        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999)._as_unit("us")
-        td = Timedelta(microseconds=1)._as_unit("us")
+        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999).as_unit("us")
+        td = Timedelta(microseconds=1).as_unit("us")
         res = ts + td
         assert res._creso == ts._creso
 
@@ -1033,7 +976,7 @@ class TestNonNano:
         ts = ts_tz
 
         res = ts + np.timedelta64(1, "ns")
-        exp = ts._as_unit("ns") + np.timedelta64(1, "ns")
+        exp = ts.as_unit("ns") + np.timedelta64(1, "ns")
         assert exp == res
         assert exp._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
@@ -1069,31 +1012,32 @@ def test_timestamp_class_min_max_resolution():
 
 class TestAsUnit:
     def test_as_unit(self):
-        ts = Timestamp("1970-01-01")
+        ts = Timestamp("1970-01-01").as_unit("ns")
+        assert ts.unit == "ns"
 
-        assert ts._as_unit("ns") is ts
+        assert ts.as_unit("ns") is ts
 
-        res = ts._as_unit("us")
+        res = ts.as_unit("us")
         assert res.value == ts.value // 1000
         assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
         assert res.value == ts.value // 1_000_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
-        res = ts._as_unit("s")
+        res = ts.as_unit("s")
         assert res.value == ts.value // 1_000_000_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
@@ -1104,15 +1048,15 @@ class TestAsUnit:
 
         msg = "Cannot cast 2262-04-12 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            ts._as_unit("ns")
+            ts.as_unit("ns")
 
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
         assert res.value == us // 1000
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     def test_as_unit_rounding(self):
         ts = Timestamp(1_500_000)  # i.e. 1500 microseconds
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
 
         expected = Timestamp(1_000_000)  # i.e. 1 millisecond
         assert res == expected
@@ -1121,17 +1065,17 @@ class TestAsUnit:
         assert res.value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):
-            ts._as_unit("ms", round_ok=False)
+            ts.as_unit("ms", round_ok=False)
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        ts = Timestamp("1970-01-02")._as_unit("ms")
+        ts = Timestamp("1970-01-02").as_unit("ms")
         assert ts.year == 1970
         assert ts.month == 1
         assert ts.day == 2
         assert ts.hour == ts.minute == ts.second == ts.microsecond == ts.nanosecond == 0
 
-        res = ts._as_unit("s")
+        res = ts.as_unit("s")
         assert res.value == 24 * 3600
         assert res.year == 1970
         assert res.month == 1
@@ -1144,3 +1088,19 @@ class TestAsUnit:
             == res.nanosecond
             == 0
         )
+
+
+def test_delimited_date():
+    # https://github.com/pandas-dev/pandas/issues/50231
+    with tm.assert_produces_warning(None):
+        result = Timestamp("13-01-2000")
+    expected = Timestamp(2000, 1, 13)
+    assert result == expected
+
+
+def test_utctimetuple():
+    # GH 32174
+    ts = Timestamp("2000-01-01", tz="UTC")
+    result = ts.utctimetuple()
+    expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
+    assert result == expected

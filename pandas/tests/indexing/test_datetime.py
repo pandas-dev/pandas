@@ -1,3 +1,7 @@
+import re
+
+import pytest
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -17,14 +21,12 @@ class TestDatetimeIndex:
         ser = Series(range(100), index=dti)
 
         key = "2013-01-01 00:00:00.000000050+0000"
-        msg = "Indexing a timezone-naive DatetimeIndex with a timezone-aware datetime"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser[key]
-        assert res == 0
+        msg = re.escape(repr(key))
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            loc = dti.get_loc(key)
-        assert loc == 0
+        with pytest.raises(KeyError, match=msg):
+            dti.get_loc(key)
 
     def test_indexing_with_datetime_tz(self):
 

@@ -61,10 +61,10 @@ def test_view_preserves_name(index):
     assert index.view().name == index.name
 
 
-def test_ravel_deprecation(index):
-    # GH#19956 ravel returning ndarray is deprecated
-    with tm.assert_produces_warning(FutureWarning):
-        index.ravel()
+def test_ravel(index):
+    # GH#19956 ravel returning ndarray is deprecated, in 2.0 returns a view on self
+    res = index.ravel()
+    tm.assert_index_equal(res, index)
 
 
 class TestConversion:
@@ -133,8 +133,6 @@ class TestIndexing:
         assert index.name == index[1:].name
 
     @pytest.mark.parametrize("item", [101, "no_int", 2.5])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, item):
         msg = "|".join(
             [
@@ -145,8 +143,6 @@ class TestIndexing:
                     "are valid indices"
                 ),
                 "index out of bounds",  # string[pyarrow]
-                "Only integers, slices and integer or "
-                "boolean arrays are valid indices.",  # string[pyarrow]
             ]
         )
         with pytest.raises(IndexError, match=msg):

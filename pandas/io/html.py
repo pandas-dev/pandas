@@ -27,14 +27,13 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import isna
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
+from pandas.core.series import Series
 
 from pandas.io.common import (
     file_exists,
@@ -745,8 +744,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
+        # GH 49929
+        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -858,7 +857,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    lens = Series(data)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
@@ -1026,9 +1025,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,
@@ -1044,6 +1043,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    use_nullable_dtypes: bool = False,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1144,6 +1144,19 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     dfs
@@ -1219,4 +1232,5 @@ def read_html(
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
         extract_links=extract_links,
+        use_nullable_dtypes=use_nullable_dtypes,
     )

@@ -418,7 +418,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - stata_epoch
+                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -1725,7 +1725,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
@@ -2417,7 +2417,6 @@ class StataWriter(StataParser):
 
     def _update_strl_names(self) -> None:
         """No-op, forward compatibility"""
-        pass
 
     def _validate_variable_name(self, name: str) -> str:
         """
@@ -2701,19 +2700,15 @@ supported types."""
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_file_close_tag(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_characteristics(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_strls(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_expansion_fields(self) -> None:
         """Write 5 zeros for expansion fields"""
@@ -3438,7 +3433,6 @@ class StataWriter117(StataWriter):
 
     def _write_expansion_fields(self) -> None:
         """No-op in dta 117+"""
-        pass
 
     def _write_value_labels(self) -> None:
         self._update_map("value_labels")

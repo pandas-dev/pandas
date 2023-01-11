@@ -102,7 +102,6 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         -----
         Must be implemented by subclasses.
         """
-        pass
 
 
 class NumExprEngine(AbstractEngine):

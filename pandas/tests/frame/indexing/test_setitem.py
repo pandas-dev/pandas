@@ -340,8 +340,8 @@ class TestDataFrameSetItem:
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
-        v1base = v1._data.base
-        v2base = v2._data.base
+        v1base = v1._ndarray.base
+        v2base = v2._ndarray.base
         assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan
@@ -409,16 +409,12 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager):
+    def test_setitem_frame_duplicate_columns(self):
         # GH#15695
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[:, "B"] = (1, 4)
+        df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -429,19 +425,10 @@ class TestDataFrameSetItem:
             dtype="object",
         )
 
-        if using_array_manager:
-            # setitem replaces column so changes dtype
-
-            expected.columns = cols
-            expected["C"] = expected["C"].astype("int64")
-            # TODO(ArrayManager) .loc still overwrites
-            expected["B"] = expected["B"].astype("int64")
-
-        else:
-            # set these with unique columns to be extra-unambiguous
-            expected[2] = expected[2].astype(np.int64)
-            expected[5] = expected[5].astype(np.int64)
-            expected.columns = cols
+        # set these with unique columns to be extra-unambiguous
+        expected[2] = expected[2].astype(np.int64)
+        expected[5] = expected[5].astype(np.int64)
+        expected.columns = cols
 
         tm.assert_frame_equal(df, expected)
 
@@ -1125,6 +1112,19 @@ class TestDataFrameSetItemBooleanMask:
         df.loc[indexer, ["b"]] = DataFrame({"b": [5, 6]}, index=[0, 1])
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_ea_boolean_mask(self):
+        # GH#47125
+        df = DataFrame([[-1, 2], [3, -4]])
+        expected = DataFrame([[0, 2], [3, 0]])
+        boolean_indexer = DataFrame(
+            {
+                0: Series([True, False], dtype="boolean"),
+                1: Series([pd.NA, True], dtype="boolean"),
+            }
+        )
+        df[boolean_indexer] = 0
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetitemCopyViewSemantics:
     def test_setitem_always_copy(self, float_frame):
@@ -1132,7 +1132,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         s = float_frame["A"].copy()
         float_frame["E"] = s
 
-        float_frame["E"][5:10] = np.nan
+        float_frame.iloc[5:10, float_frame.columns.get_loc("E")] = np.nan
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])

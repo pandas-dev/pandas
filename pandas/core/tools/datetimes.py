@@ -19,19 +19,25 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import tslib
+from pandas._libs import (
+    lib,
+    tslib,
+)
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
+    astype_overflowsafe,
+    get_unit_from_dtype,
     iNaT,
+    is_supported_unit,
     nat_strings,
     parsing,
-    timezones,
+    timezones as libtimezones,
 )
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
-    format_is_iso,
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
@@ -39,7 +45,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DateTimeErrorChoices,
-    Timezone,
     npt,
 )
 from pandas.util._exceptions import find_stack_level
@@ -47,7 +52,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_float,
     is_integer,
@@ -65,6 +69,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
+    PandasArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
@@ -129,7 +134,18 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
     if (first_non_null := tslib.first_non_null(arr)) != -1:
         if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
-            return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
+            guessed_format = guess_datetime_format(
+                first_non_nan_element, dayfirst=dayfirst
+            )
+            if guessed_format is not None:
+                return guessed_format
+            warnings.warn(
+                "Could not infer format, so each element will be parsed "
+                "individually, falling back to `dateutil`. To ensure parsing is "
+                "consistent and as-expected, please specify a format.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
     return None
 
 
@@ -241,7 +257,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: bool | None = None, name: Hashable = None
+    dt_array: ArrayLike, utc: bool = False, name: Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -251,8 +267,8 @@ def _box_as_indexlike(
     ----------
     dt_array: 1-d array
         Array of datetimes to be wrapped in an Index.
-    tz : object
-        None or 'utc'
+    utc : bool
+        Whether to convert/localize timestamps to UTC.
     name : string, default None
         Name for a resulting index
 
@@ -292,10 +308,12 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    return _box_as_indexlike(result._values, utc=None, name=name)
+    return _box_as_indexlike(result._values, utc=False, name=name)
 
 
-def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
+def _return_parsed_timezone_results(
+    result: np.ndarray, timezones, utc: bool, name
+) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -305,8 +323,8 @@ def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> 
         int64 date representations of the dates
     timezones : ndarray
         pytz timezone objects
-    tz : object
-        None or pytz timezone object
+    utc : bool
+        Whether to convert/localize timestamps to UTC.
     name : string, default None
         Name for a DatetimeIndex
 
@@ -314,12 +332,16 @@ def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> 
     -------
     tz_result : Index-like of parsed dates with timezone
     """
-    tz_results = np.array(
-        [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
-    )
-    if tz is not None:
-        # Convert to the same tz
-        tz_results = np.array([tz_result.tz_convert(tz) for tz_result in tz_results])
+    tz_results = np.empty(len(result), dtype=object)
+    for zone in unique(timezones):
+        mask = timezones == zone
+        dta = DatetimeArray(result[mask]).tz_localize(zone)
+        if utc:
+            if dta.tzinfo is None:
+                dta = dta.tz_localize("utc")
+            else:
+                dta = dta.tz_convert("utc")
+        tz_results[mask] = dta
 
     return Index(tz_results, name=name)
 
@@ -328,10 +350,9 @@ def _convert_listlike_datetimes(
     arg,
     format: str | None,
     name: Hashable = None,
-    tz: Timezone | None = None,
+    utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",
-    infer_datetime_format: bool = False,
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
     exact: bool = True,
@@ -346,14 +367,12 @@ def _convert_listlike_datetimes(
         date to be parsed
     name : object
         None or string for the Index name
-    tz : object
-        None or 'utc'
+    utc : bool
+        Whether to convert/localize timestamps to UTC.
     unit : str
         None or string of the frequency of the passed data
     errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
-    infer_datetime_format : bool, default False
-        inferring format behavior from to_datetime
     dayfirst : bool
         dayfirst parsing behavior from to_datetime
     yearfirst : bool
@@ -367,32 +386,42 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
+    elif isinstance(arg, PandasArray):
+        arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
+    tz = "utc" if utc else None
     if is_datetime64tz_dtype(arg_dtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
-        if tz == "utc":
-            arg = arg.tz_convert(None).tz_localize(tz)
+        if utc:
+            arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
-    elif is_datetime64_ns_dtype(arg_dtype):
+    elif is_datetime64_dtype(arg_dtype):
+        arg_dtype = cast(np.dtype, arg_dtype)
+        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+            # We go to closest supported reso, i.e. "s"
+            arg = astype_overflowsafe(
+                # TODO: looks like we incorrectly raise with errors=="ignore"
+                np.asarray(arg),
+                np.dtype("M8[s]"),
+                is_coerce=errors == "coerce",
+            )
+
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
-            try:
-                return DatetimeIndex(arg, tz=tz, name=name)
-            except ValueError:
-                pass
-        elif tz:
+            return DatetimeIndex(arg, tz=tz, name=name)
+        elif utc:
             # DatetimeArray, DatetimeIndex
-            return arg.tz_localize(tz)
+            return arg.tz_localize("utc")
 
         return arg
 
     elif unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and unit")
-        return _to_datetime_with_unit(arg, unit, name, tz, errors)
+        return _to_datetime_with_unit(arg, unit, name, utc, errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
@@ -400,9 +429,8 @@ def _convert_listlike_datetimes(
 
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
-    orig_arg = arg
     try:
-        arg, _ = maybe_convert_dtype(arg, copy=False, tz=timezones.maybe_get_tz(tz))
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
@@ -413,37 +441,19 @@ def _convert_listlike_datetimes(
         raise
 
     arg = ensure_object(arg)
-    require_iso8601 = False
 
-    if infer_datetime_format and format is None:
+    if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
     if format is not None:
-        # There is a special fast-path for iso8601 formatted
-        # datetime strings, so in those cases don't use the inferred
-        # format because this path makes process slower in this
-        # special case
-        format_is_iso8601 = format_is_iso(format)
-        if format_is_iso8601:
-            require_iso8601 = not infer_datetime_format
-            format = None
+        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
-    if format is not None:
-        res = _to_datetime_with_format(
-            arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
-        )
-        if res is not None:
-            return res
-
-    assert format is None or infer_datetime_format
-    utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(
         arg,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         utc=utc,
         errors=errors,
-        require_iso8601=require_iso8601,
         allow_object=True,
     )
 
@@ -453,97 +463,28 @@ def _convert_listlike_datetimes(
         dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
         return DatetimeIndex._simple_new(dta, name=name)
 
-    utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
 
 
 def _array_strptime_with_fallback(
     arg,
     name,
-    tz,
+    utc: bool,
     fmt: str,
     exact: bool,
     errors: str,
-    infer_datetime_format: bool,
-) -> Index | None:
+) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    utc = tz == "utc"
-
-    try:
-        result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors)
-    except OutOfBoundsDatetime:
-        if errors == "raise":
-            raise
-        elif errors == "coerce":
-            result = np.empty(arg.shape, dtype="M8[ns]")
-            iresult = result.view("i8")
-            iresult.fill(iNaT)
-        else:
-            result = arg
-    except ValueError:
-        # if fmt was inferred, try falling back
-        # to array_to_datetime - terminate here
-        # for specified formats
-        if not infer_datetime_format:
-            if errors == "raise":
-                raise
-            elif errors == "coerce":
-                result = np.empty(arg.shape, dtype="M8[ns]")
-                iresult = result.view("i8")
-                iresult.fill(iNaT)
-            else:
-                result = arg
-        else:
-            # Indicates to the caller to fallback to objects_to_datetime64ns
-            return None
-    else:
-        if "%Z" in fmt or "%z" in fmt:
-            return _return_parsed_timezone_results(result, timezones, tz, name)
+    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    if any(tz is not None for tz in timezones):
+        return _return_parsed_timezone_results(result, timezones, utc, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
 
 
-def _to_datetime_with_format(
-    arg,
-    orig_arg,
-    name,
-    tz,
-    fmt: str,
-    exact: bool,
-    errors: str,
-    infer_datetime_format: bool,
-) -> Index | None:
-    """
-    Try parsing with the given format, returning None on failure.
-    """
-    result = None
-
-    # shortcut formatting here
-    if fmt == "%Y%m%d":
-        # pass orig_arg as float-dtype may have been converted to
-        # datetime64[ns]
-        orig_arg = ensure_object(orig_arg)
-        try:
-            # may return None without raising
-            result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-        except (ValueError, TypeError, OutOfBoundsDatetime) as err:
-            raise ValueError(
-                "cannot convert the input to '%Y%m%d' date format"
-            ) from err
-        if result is not None:
-            utc = tz == "utc"
-            return _box_as_indexlike(result, utc=utc, name=name)
-
-    # fallback
-    res = _array_strptime_with_fallback(
-        arg, name, tz, fmt, exact, errors, infer_datetime_format
-    )
-    return res
-
-
-def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
+def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
@@ -556,7 +497,48 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         tz_parsed = None
     else:
         arg = np.asarray(arg)
-        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+
+        if arg.dtype.kind in ["i", "u"]:
+            # Note we can't do "f" here because that could induce unwanted
+            #  rounding GH#14156, GH#20445
+            arr = arg.astype(f"datetime64[{unit}]", copy=False)
+            try:
+                arr = astype_overflowsafe(arr, np.dtype("M8[ns]"), copy=False)
+            except OutOfBoundsDatetime:
+                if errors == "raise":
+                    raise
+                arg = arg.astype(object)
+                return _to_datetime_with_unit(arg, unit, name, utc, errors)
+            tz_parsed = None
+
+        elif arg.dtype.kind == "f":
+            mult, _ = precision_from_unit(unit)
+
+            iresult = arg.astype("i8")
+            mask = np.isnan(arg) | (arg == iNaT)
+            iresult[mask] = 0
+
+            fvalues = iresult.astype("f8") * mult
+
+            if (fvalues < Timestamp.min.value).any() or (
+                fvalues > Timestamp.max.value
+            ).any():
+                if errors != "raise":
+                    arg = arg.astype(object)
+                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
+                raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
+
+            # TODO: is fresult meaningfully different from fvalues?
+            fresult = (arg * mult).astype("f8")
+            fresult[mask] = 0
+
+            arr = fresult.astype("M8[ns]", copy=False)
+            arr[mask] = np.datetime64("NaT", "ns")
+
+            tz_parsed = None
+        else:
+            arg = arg.astype(object, copy=False)
+            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
@@ -572,11 +554,11 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     # result will be naive but in UTC
     result = result.tz_localize("UTC").tz_convert(tz_parsed)
 
-    if tz is not None:
+    if utc:
         if result.tz is None:
-            result = result.tz_localize(tz)
+            result = result.tz_localize("utc")
         else:
-            result = result.tz_convert(tz)
+            result = result.tz_convert("utc")
     return result
 
 
@@ -659,7 +641,7 @@ def to_datetime(
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: bool | None = ...,
+    utc: bool = ...,
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
@@ -676,7 +658,7 @@ def to_datetime(
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: bool | None = ...,
+    utc: bool = ...,
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
@@ -693,7 +675,7 @@ def to_datetime(
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: bool | None = ...,
+    utc: bool = ...,
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
@@ -709,11 +691,11 @@ def to_datetime(
     errors: DateTimeErrorChoices = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
-    utc: bool | None = None,
+    utc: bool = False,
     format: str | None = None,
     exact: bool = True,
     unit: str | None = None,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
@@ -758,7 +740,7 @@ def to_datetime(
             ``yearfirst=True`` is not strict, but will prefer to parse
             with year first.
 
-    utc : bool, default None
+    utc : bool, default False
         Control timezone-related parsing, localization and conversion.
 
         - If :const:`True`, the function *always* returns a timezone-aware
@@ -800,6 +782,11 @@ def to_datetime(
         of the datetime strings based on the first non-NaN element,
         and if it can be inferred, switch to a faster method of parsing them.
         In some cases this can increase the parsing speed by ~5-10x.
+
+        .. deprecated:: 2.0.0
+            A strict version of this argument is now the default, passing it has
+            no effect.
+
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -819,9 +806,6 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
-
-        .. versionchanged:: 0.25.0
-            changed default value from :const:`False` to :const:`True`.
 
     Returns
     -------
@@ -918,24 +902,6 @@ def to_datetime(
     1   2016-03-05
     dtype: datetime64[ns]
 
-    Passing ``infer_datetime_format=True`` can often-times speedup a parsing
-    if its not an ISO8601 format exactly, but in a regular format.
-
-    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000'] * 1000)
-    >>> s.head()
-    0    3/11/2000
-    1    3/12/2000
-    2    3/13/2000
-    3    3/11/2000
-    4    3/12/2000
-    dtype: object
-
-    >>> %timeit pd.to_datetime(s, infer_datetime_format=True)  # doctest: +SKIP
-    100 loops, best of 3: 10.4 ms per loop
-
-    >>> %timeit pd.to_datetime(s, infer_datetime_format=False)  # doctest: +SKIP
-    1 loop, best of 3: 471 ms per loop
-
     Using a unix epoch time
 
     >>> pd.to_datetime(1490195805, unit='s')
@@ -972,7 +938,7 @@ def to_datetime(
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
-    datetime.datetime(1300, 1, 1, 0, 0)
+    '13000101'
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
@@ -984,7 +950,7 @@ def to_datetime(
 
     - Timezone-naive inputs are converted to timezone-naive :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
+    >>> pd.to_datetime(['2018-10-26 12:00:00', '2018-10-26 13:00:15'])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
@@ -993,7 +959,7 @@ def to_datetime(
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
-                  dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
+                  dtype='datetime64[ns, UTC-05:00]', freq=None)
 
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
@@ -1005,14 +971,12 @@ def to_datetime(
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
-    - A mix of timezone-aware and timezone-naive inputs is converted to
-      a timezone-aware :class:`DatetimeIndex` if the offsets of the timezone-aware
-      are constant:
+    - A mix of timezone-aware and timezone-naive inputs is also converted to
+      a simple :class:`Index` containing :class:`datetime.datetime` objects:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
-    DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
-                  dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
+    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)])
+    Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
     |
 
@@ -1032,46 +996,47 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
 
-    - Inputs can contain both naive and aware, string or datetime, the above
+    - Inputs can contain both string or datetime, the above
       rules still apply
 
-    >>> from datetime import timezone, timedelta
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
-    ...                datetime(2020, 1, 1, 18),
-    ...                datetime(2020, 1, 1, 18,
-    ...                tzinfo=timezone(-timedelta(hours=1)))],
-    ...                utc=True)
-    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00',
-                   '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'],
+    >>> pd.to_datetime(['2018-10-26 12:00', datetime(2020, 1, 1, 18)], utc=True)
+    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            stacklevel=find_stack_level(),
+        )
     if arg is None:
         return None
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)
 
-    tz = "utc" if utc else None
     convert_listlike = partial(
         _convert_listlike_datetimes,
-        tz=tz,
+        utc=utc,
         unit=unit,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         errors=errors,
         exact=exact,
-        infer_datetime_format=infer_datetime_format,
     )
-
+    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
         result = arg
-        if tz is not None:
+        if utc:
             if arg.tz is not None:
-                result = arg.tz_convert(tz)
+                result = arg.tz_convert("utc")
             else:
-                result = arg.tz_localize(tz)
+                result = arg.tz_localize("utc")
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -1080,7 +1045,7 @@ def to_datetime(
             values = convert_listlike(arg._values, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
-        result = _assemble_from_unit_mappings(arg, errors, tz)
+        result = _assemble_from_unit_mappings(arg, errors, utc)
     elif isinstance(arg, Index):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -1147,7 +1112,7 @@ _unit_map = {
 }
 
 
-def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, tz):
+def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
     """
     assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing
@@ -1160,7 +1125,8 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, tz):
         - If :const:`'raise'`, then invalid parsing will raise an exception
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`
         - If :const:`'ignore'`, then invalid parsing will return the input
-    tz : None or 'utc'
+    utc : bool
+        Whether to convert/localize timestamps to UTC.
 
     Returns
     -------
@@ -1223,7 +1189,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, tz):
         + coerce(arg[unit_rev["day"]])
     )
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
+        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
@@ -1294,27 +1260,8 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(
-    arg,
-    format=None,
-    infer_time_format: bool = False,
-    errors: DateTimeErrorChoices = "raise",
-):
-    # GH#34145
-    warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
-        "This alias will be removed in a future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    from pandas.core.tools.times import to_time
-
-    return to_time(arg, format, infer_time_format, errors)
-
-
 __all__ = [
     "DateParseError",
     "should_cache",
     "to_datetime",
-    "to_time",
 ]

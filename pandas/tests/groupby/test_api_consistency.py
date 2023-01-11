@@ -37,19 +37,19 @@ def test_frame_consistency(request, groupby_func):
     # Some of these may be purposeful inconsistencies between the APIs
     exclude_expected, exclude_result = set(), set()
     if groupby_func in ("any", "all"):
-        exclude_expected = {"kwargs", "bool_only", "level", "axis"}
+        exclude_expected = {"kwargs", "bool_only", "axis"}
     elif groupby_func in ("count",):
-        exclude_expected = {"numeric_only", "level", "axis"}
+        exclude_expected = {"numeric_only", "axis"}
     elif groupby_func in ("nunique",):
         exclude_expected = {"axis"}
     elif groupby_func in ("max", "min"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
     elif groupby_func in ("mean", "std", "sum", "var"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"engine", "engine_kwargs"}
     elif groupby_func in ("median", "prod", "sem"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
     elif groupby_func in ("backfill", "bfill", "ffill", "pad"):
         exclude_expected = {"downcast", "inplace", "axis"}
     elif groupby_func in ("cummax", "cummin"):
@@ -95,19 +95,17 @@ def test_series_consistency(request, groupby_func):
     # Some of these may be purposeful inconsistencies between the APIs
     exclude_expected, exclude_result = set(), set()
     if groupby_func in ("any", "all"):
-        exclude_expected = {"kwargs", "bool_only", "level", "axis"}
-    elif groupby_func in ("count",):
-        exclude_expected = {"level"}
+        exclude_expected = {"kwargs", "bool_only", "axis"}
     elif groupby_func in ("diff",):
         exclude_result = {"axis"}
     elif groupby_func in ("max", "min"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
     elif groupby_func in ("mean", "std", "sum", "var"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"engine", "engine_kwargs"}
     elif groupby_func in ("median", "prod", "sem"):
-        exclude_expected = {"axis", "kwargs", "level", "skipna"}
+        exclude_expected = {"axis", "kwargs", "skipna"}
     elif groupby_func in ("backfill", "bfill", "ffill", "pad"):
         exclude_expected = {"downcast", "inplace", "axis"}
     elif groupby_func in ("cummax", "cummin"):

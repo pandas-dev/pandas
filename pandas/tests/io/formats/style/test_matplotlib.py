@@ -13,7 +13,6 @@ pytest.importorskip("jinja2")
 import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
 
 @pytest.fixture
@@ -263,7 +262,7 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
 
 @pytest.mark.parametrize(
     "cmap",
-    ["PuBu", mpl.colormaps["PuBu"] if mpl_ge_3_6_0() else mpl.cm.get_cmap("PuBu")],
+    ["PuBu", mpl.colormaps["PuBu"]],
 )
 def test_bar_colormap(cmap):
     data = DataFrame([[1, 2], [3, 4]])
@@ -288,3 +287,17 @@ def test_bar_color_raises(df):
     msg = "`color` and `cmap` cannot both be given"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(color="something", cmap="something else").to_html()
+
+
+@pytest.mark.parametrize(
+    "plot_method",
+    ["scatter", "hexbin"],
+)
+def test_pass_colormap_instance(df, plot_method):
+    # https://github.com/pandas-dev/pandas/issues/49374
+    cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])
+    df["c"] = df.A + df.B
+    kwargs = dict(x="A", y="B", c="c", colormap=cmap)
+    if plot_method == "hexbin":
+        kwargs["C"] = kwargs.pop("c")
+    getattr(df.plot, plot_method)(**kwargs)
