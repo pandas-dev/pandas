@@ -22,7 +22,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     lib,
@@ -1263,10 +1266,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # for CoW, we never want to update the parent DataFrame cache
             # if the Series changed, and always pop the cached item
             elif (
-                not (
-                    get_option("mode.copy_on_write")
-                    and get_option("mode.data_manager") == "block"
-                )
+                not using_copy_on_write()
                 and len(self) == len(ref)
                 and self.name in ref.columns
             ):
