@@ -36,6 +36,7 @@ from pandas._typing import (
     RandomState,
     T,
 )
+from pandas.compat.numpy import np_version_under1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
+    is_list_like,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -232,7 +234,10 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     elif isinstance(values, ABCIndex):
         return values._values
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    if isinstance(values, list) and (
+        dtype in [np.object_, object]
+        or (not np_version_under1p24 and any(is_list_like(val) for val in values))
+    ):
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
