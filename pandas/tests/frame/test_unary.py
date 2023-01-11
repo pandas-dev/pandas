@@ -101,14 +101,16 @@ class TestDataFrameUnaryOperators:
             # numpy changing behavior in the future
             pytest.param(
                 pd.DataFrame({"a": ["a", "b"]}),
-                marks=[pytest.mark.filterwarnings("ignore")],
+                marks=[
+                    pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
+                ],
             ),
             pd.DataFrame({"a": np.array([-1, 2], dtype=object)}),
             pd.DataFrame({"a": [Decimal("-1.0"), Decimal("2.0")]}),
         ],
     )
     def test_pos_object(self, df):
-        # GH#21380
+        # GH#21380F
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 

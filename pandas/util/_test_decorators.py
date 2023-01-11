@@ -32,7 +32,6 @@ from typing import (
     Callable,
     Generator,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -67,34 +66,10 @@ def safe_import(mod_name: str, min_version: str | None = None):
     object
         The imported module if successful, or False
     """
-    with warnings.catch_warnings():
-        # Suppress warnings that we can't do anything about,
-        #  e.g. from aiohttp
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            module="aiohttp",
-            message=".*decorator is deprecated since Python 3.8.*",
-        )
-
-        # fastparquet import accesses pd.Int64Index
-        warnings.filterwarnings(
-            "ignore",
-            category=FutureWarning,
-            module="fastparquet",
-            message=".*Int64Index.*",
-        )
-
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message="distutils Version classes are deprecated.*",
-        )
-
-        try:
-            mod = __import__(mod_name)
-        except ImportError:
-            return False
+    try:
+        mod = __import__(mod_name)
+    except ImportError:
+        return False
 
     if not min_version:
         return mod
