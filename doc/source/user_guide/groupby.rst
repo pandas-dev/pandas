@@ -1083,6 +1083,7 @@ The dimension of the returned result can also change:
     def f(group):
         return pd.DataFrame({'original': group,
                              'demeaned': group - group.mean()})
+
     grouped.apply(f)
 
 ``apply`` on a Series can operate on a returned value from the applied function,

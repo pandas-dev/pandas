@@ -149,6 +149,11 @@ def test_parsers_month_freq(date_str, expected):
     "string,fmt",
     [
         ("20111230", "%Y%m%d"),
+        ("201112300000", "%Y%m%d%H%M"),
+        ("20111230000000", "%Y%m%d%H%M%S"),
+        ("20111230T00", "%Y%m%dT%H"),
+        ("20111230T0000", "%Y%m%dT%H%M"),
+        ("20111230T000000", "%Y%m%dT%H%M%S"),
         ("2011-12-30", "%Y-%m-%d"),
         ("2011", "%Y"),
         ("2011-01", "%Y-%m"),
@@ -262,7 +267,8 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
     # see gh-11142
     msg = (
-        f"Parsing dates in {fmt} format when dayfirst=False was specified. "
+        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
+        "was specified. "
         "Pass `dayfirst=True` or specify a format to silence this warning."
     )
     with tm.assert_produces_warning(warning, match=msg):

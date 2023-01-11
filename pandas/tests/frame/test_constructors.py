@@ -1,13 +1,18 @@
+import array
 from collections import (
     OrderedDict,
     abc,
+    defaultdict,
+    namedtuple,
 )
+from dataclasses import make_dataclass
 from datetime import (
     date,
     datetime,
     timedelta,
 )
 import functools
+import random
 import re
 from typing import Iterator
 import warnings
@@ -467,8 +472,6 @@ class TestDataFrameConstructors:
         assert result[0][0] == value
 
     def test_constructor_ordereddict(self):
-        import random
-
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
@@ -719,8 +722,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
-        from collections import defaultdict
-
         data = {}
         float_frame.loc[: float_frame.index[10], "B"] = np.nan
 
@@ -1344,8 +1345,6 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        import array
-
         result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
@@ -1545,8 +1544,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_namedtuples(self):
         # GH11181
-        from collections import namedtuple
-
         named_tuple = namedtuple("Pandas", list("ab"))
         tuples = [named_tuple(1, 3), named_tuple(2, 4)]
         expected = DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -1560,8 +1557,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         data = [Point(0, 3), Point(1, 3)]
@@ -1571,8 +1566,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses_with_varying_types(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         # varying types
         Point = make_dataclass("Point", [("x", int), ("y", int)])
         HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
@@ -1587,8 +1580,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
@@ -2479,7 +2470,7 @@ class TestDataFrameConstructors:
         if (
             using_array_manager
             and not copy
-            and not (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
         ):
             # TODO(ArrayManager) properly honor copy keyword for dict input
             td.mark_array_manager_not_yet_implemented(request)

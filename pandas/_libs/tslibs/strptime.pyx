@@ -1,4 +1,18 @@
 """Strptime-related classes and functions.
+
+TimeRE, _calc_julian_from_U_or_W are vendored
+from the standard library, see
+https://github.com/python/cpython/blob/main/Lib/_strptime.py
+The original module-level docstring follows.
+
+Strptime-related classes and functions.
+CLASSES:
+    LocaleTime -- Discovers and stores locale-specific time information
+    TimeRE -- Creates regexes for pattern matching a string of text containing
+                time information
+FUNCTIONS:
+    _getlang -- Figure out what language is being used for the locale
+    strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
 
@@ -10,6 +24,11 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from _strptime import (
+    TimeRE as _TimeRE,
+    _getlang,
+)
+from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 
@@ -495,29 +514,6 @@ def array_strptime(
             return values, []
 
     return result, result_timezone.base
-
-
-"""
-TimeRE, _calc_julian_from_U_or_W are vendored
-from the standard library, see
-https://github.com/python/cpython/blob/main/Lib/_strptime.py
-The original module-level docstring follows.
-
-Strptime-related classes and functions.
-CLASSES:
-    LocaleTime -- Discovers and stores locale-specific time information
-    TimeRE -- Creates regexes for pattern matching a string of text containing
-                time information
-FUNCTIONS:
-    _getlang -- Figure out what language is being used for the locale
-    strptime -- Calculates the time struct represented by the passed-in string
-"""
-
-from _strptime import (
-    TimeRE as _TimeRE,
-    _getlang,
-)
-from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):

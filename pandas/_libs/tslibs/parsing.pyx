@@ -53,6 +53,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
@@ -298,6 +299,12 @@ def parse_datetime_string(
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{date_string}" to datetime overflows'
+            ) from err
 
     return dt
 
@@ -841,7 +848,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     # attr name, format, padding (if any)
     datetime_attrs_to_format = [
+        (("year", "month", "day", "hour", "minute", "second"), "%Y%m%d%H%M%S", 0),
+        (("year", "month", "day", "hour", "minute"), "%Y%m%d%H%M", 0),
+        (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
+        (("hour", "minute", "second"), "%H%M%S", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
@@ -1005,7 +1017,8 @@ cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
             )
         if (day_index < month_index) and not dayfirst:
             warnings.warn(
-                f"Parsing dates in {format} format when dayfirst=False was specified. "
+                f"Parsing dates in {format} format when dayfirst=False (the default) "
+                "was specified. "
                 "Pass `dayfirst=True` or specify a format to silence this warning.",
                 UserWarning,
                 stacklevel=find_stack_level(),
