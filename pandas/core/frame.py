@@ -10357,8 +10357,9 @@ Parrot 2  Parrot       24.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        if axis is not None:
-            axis = self._get_axis_number(axis)
+        # TODO: Make other agg func handle axis=None properly GH#21597
+        axis = self._get_axis_number(axis)
+        assert axis in [0, 1]
 
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
@@ -10409,7 +10410,7 @@ Parrot 2  Parrot       24.0
 
             return out
 
-        assert not numeric_only and axis in (1, None)
+        assert not numeric_only and axis == 1
 
         data = self
         values = data.values
@@ -10424,9 +10425,6 @@ Parrot 2  Parrot       24.0
                 except (ValueError, TypeError):
                     # try to coerce to the original dtypes item by item if we can
                     pass
-
-        if axis is None:
-            return result
 
         labels = self._get_agg_axis(axis)
         result = self._constructor_sliced(result, index=labels)

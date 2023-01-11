@@ -57,7 +57,7 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
     def demean(arr):
-        return arr - arr.mean(axis=0)
+        return arr - arr.mean()
 
     people = DataFrame(
         np.random.randn(5, 5),
@@ -144,7 +144,7 @@ def test_transform_broadcast(tsframe, ts):
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     for _, gp in grouped:
-        agged = gp.mean(axis=0)
+        agged = gp.mean()
         res = result.reindex(gp.index)
         for col in tsframe:
             assert_fp_equal(res[col], agged[col])
@@ -214,7 +214,7 @@ def test_transform_axis_ts(tsframe):
     ts = tso
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: x - x.mean(axis=0))
+    expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
@@ -227,7 +227,7 @@ def test_transform_axis_ts(tsframe):
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: x - x.mean(axis=0))
+    expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
@@ -477,8 +477,15 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
 
-    result = g.transform(lambda x: np.mean(x, axis=0))
+    # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
+    #  which not gives a scalar instead of Series
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result2 = g.transform(lambda x: np.mean(x, axis=0))
+    tm.assert_frame_equal(result2, expected)
 
 
 def test_groupby_transform_with_int():
