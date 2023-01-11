@@ -35,7 +35,10 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -4153,10 +4156,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
-        if (
-            get_option("mode.copy_on_write")
-            and get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             loc = self.columns.get_loc(item)
             return self._ixs(loc, axis=1)
 
@@ -10925,7 +10925,7 @@ Parrot 2  Parrot       24.0
         freq: Frequency | None = None,
         how: str = "start",
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -10960,7 +10960,7 @@ Parrot 2  Parrot       24.0
         return new_obj
 
     def to_period(
-        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool = True
+        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool | None = None
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.

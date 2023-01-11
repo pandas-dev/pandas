@@ -29,7 +29,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_copy_on_write,
+)
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -158,7 +161,6 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.internals.managers import using_copy_on_write
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -3649,10 +3651,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
-        if (
-            config.get_option("mode.copy_on_write")
-            and config.get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             return
 
         if verify_is_copy:
@@ -4028,10 +4027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if (
-            config.get_option("mode.copy_on_write")
-            and config.get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             return
 
         # return early if the check is not needed

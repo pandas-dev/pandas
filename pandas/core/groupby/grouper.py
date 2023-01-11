@@ -14,7 +14,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_copy_on_write
 
 from pandas._typing import (
     ArrayLike,
@@ -889,10 +889,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if (
-            get_option("mode.copy_on_write")
-            and get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             # For the CoW case, we need an equality check as the identity check
             # no longer works (each Series from column access is a new object)
             try:
