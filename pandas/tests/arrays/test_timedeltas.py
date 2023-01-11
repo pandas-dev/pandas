@@ -29,6 +29,15 @@ class TestNonNano:
         assert tda.dtype == arr.dtype
         assert tda[0].unit == unit
 
+    def test_as_unit_raises(self, tda):
+        # GH#50616
+        with pytest.raises(ValueError, match="Supported units"):
+            tda.as_unit("D")
+
+        tdi = pd.Index(tda)
+        with pytest.raises(ValueError, match="Supported units"):
+            tdi.as_unit("D")
+
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
     def test_fields(self, tda, field):
         as_nano = tda._ndarray.astype("m8[ns]")
