@@ -10918,7 +10918,7 @@ Parrot 2  Parrot       24.0
         freq: Frequency | None = None,
         how: str = "start",
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -10953,7 +10953,7 @@ Parrot 2  Parrot       24.0
         return new_obj
 
     def to_period(
-        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool = True
+        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool | None = None
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
