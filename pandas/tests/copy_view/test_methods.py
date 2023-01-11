@@ -483,6 +483,7 @@ def test_assign_drop_duplicates(using_copy_on_write, method):
 
 @pytest.mark.parametrize("obj", [Series([1, 2]), DataFrame({"a": [1, 2]})])
 def test_take(using_copy_on_write, obj):
+    # Check that no copy is made when we take all rows in original order
     obj_orig = obj.copy()
     obj2 = obj.take([0, 1])
 
