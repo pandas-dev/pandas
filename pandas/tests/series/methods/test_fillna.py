@@ -953,9 +953,8 @@ class TestFillnaPad:
         dti = date_range(
             Timestamp.max - Timedelta(nanoseconds=10), periods=5, freq="ns"
         )
-        pi = dti.to_period("ns")
-        parr = pi._data
-        parr[2] = NaT
+        ser = Series(dti.to_period("ns"))
+        ser[2] = NaT
         arr = period_array(
             [
                 Timestamp("2262-04-11 23:47:16.854775797"),
@@ -968,6 +967,6 @@ class TestFillnaPad:
         )
         expected = Series(arr)
 
-        filled = Series(parr.fillna(method="pad"))
+        filled = Series(ser.fillna(method="pad"))
 
         tm.assert_series_equal(filled, expected)
