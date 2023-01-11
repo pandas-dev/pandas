@@ -11,10 +11,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.api import (
-    Int64Index,
-    UInt64Index,
-)
+from pandas.core.indexes.api import Int64Index
 
 
 class TestPeriodIndexAsType:
@@ -55,13 +52,11 @@ class TestPeriodIndexAsType:
 
     def test_astype_uint(self):
         arr = period_range("2000", periods=2, name="idx")
-        expected = UInt64Index(np.array([10957, 10958], dtype="uint64"), name="idx")
-        tm.assert_index_equal(arr.astype("uint64"), expected)
 
-        msg = "will return exactly the specified dtype instead of uint64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = arr.astype("uint32")
-        tm.assert_index_equal(res, expected)
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint64")
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint32")
 
     def test_astype_object(self):
         idx = PeriodIndex([], freq="M")

@@ -14,26 +14,13 @@ def test_astype_int(dtype):
     # Period/Datetime/Timedelta astype
     arr = period_array(["2000", "2001", None], freq="D")
 
-    if np.dtype(dtype).kind == "u":
-        expected_dtype = np.dtype("uint64")
-        warn1 = FutureWarning
-    else:
-        expected_dtype = np.dtype("int64")
-        warn1 = None
+    if np.dtype(dtype) != np.int64:
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype(dtype)
+        return
 
-    msg_overflow = "will raise if the conversion overflows"
-    with tm.assert_produces_warning(warn1, match=msg_overflow):
-        expected = arr.astype(expected_dtype)
-
-    warn = None if dtype == expected_dtype else FutureWarning
-    msg = " will return exactly the specified dtype"
-    if warn is None and warn1 is not None:
-        warn = warn1
-        msg = msg_overflow
-    with tm.assert_produces_warning(warn, match=msg):
-        result = arr.astype(dtype)
-
-    assert result.dtype == expected_dtype
+    result = arr.astype(dtype)
+    expected = arr._ndarray.view("i8")
     tm.assert_numpy_array_equal(result, expected)
 
 
