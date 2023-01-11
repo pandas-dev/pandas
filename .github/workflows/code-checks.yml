@@ -20,7 +20,7 @@ permissions:
 jobs:
   pre_commit:
     name: pre-commit
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
@@ -39,7 +39,7 @@ jobs:
 
   typing_and_docstring_validation:
     name: Docstring and typing validation
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -98,7 +98,7 @@ jobs:
 
   asv-benchmarks:
     name: ASV Benchmarks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -129,7 +129,7 @@ jobs:
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -152,11 +152,11 @@ jobs:
         run: docker build --pull --no-cache --tag pandas-dev-env .
 
       - name: Show environment
-        run: docker run -w /home/pandas pandas-dev-env mamba run -n pandas-dev python -c "import pandas as pd; print(pd.show_versions())"
+        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7

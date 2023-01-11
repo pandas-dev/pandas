@@ -12,7 +12,6 @@ from cpython.datetime cimport (
     datetime,
     datetime_new,
     import_datetime,
-    tzinfo,
 )
 from cpython.object cimport PyObject_Str
 from cython cimport Py_ssize_t
@@ -44,7 +43,6 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
-    tzstr as _dateutil_tzstr,
     tzutc as _dateutil_tzutc,
 )
 
@@ -441,7 +439,7 @@ cdef parse_datetime_string_with_reso(
     try:
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False, tzinfos=None)
+                                      ignoretz=False)
     except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
         raise DateParseError(err)
@@ -633,7 +631,6 @@ cdef dateutil_parse(
     str timestr,
     object default,
     bint ignoretz=False,
-    object tzinfos=None,
     bint dayfirst=False,
     bint yearfirst=False,
 ):
@@ -642,7 +639,7 @@ cdef dateutil_parse(
     cdef:
         str attr
         datetime ret
-        object res, tzdata
+        object res
         object reso = None
         dict repl = {}
 
@@ -671,24 +668,7 @@ cdef dateutil_parse(
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
-        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
-            # Note: as of 1.0 this is not reached because
-            #  we never pass tzinfos, see GH#22234
-            if callable(tzinfos):
-                tzdata = tzinfos(res.tzname, res.tzoffset)
-            else:
-                tzdata = tzinfos.get(res.tzname)
-            if isinstance(tzdata, tzinfo):
-                new_tzinfo = tzdata
-            elif isinstance(tzdata, str):
-                new_tzinfo = _dateutil_tzstr(tzdata)
-            elif isinstance(tzdata, int):
-                new_tzinfo = tzoffset(res.tzname, tzdata)
-            else:
-                raise ValueError("offset must be tzinfo subclass, "
-                                 "tz string, or int offset")
-            ret = ret.replace(tzinfo=new_tzinfo)
-        elif res.tzname and res.tzname in time.tzname:
+        if res.tzname and res.tzname in time.tzname:
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())

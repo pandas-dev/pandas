@@ -27,6 +27,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import json
 import operator
 import os
 import pathlib
@@ -157,6 +158,18 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
+        timestamp = time.time()
+
+        cache_file = pathlib.Path("maintainers.json")
+        if cache_file.is_file():
+            with open(cache_file) as f:
+                context["maintainers"] = json.load(f)
+            # refresh cache after 1 hour
+            if (timestamp - context["maintainers"]["timestamp"]) < 3_600:
+                return context
+
+        context["maintainers"]["timestamp"] = timestamp
+
         repeated = set(context["maintainers"]["active"]) & set(
             context["maintainers"]["inactive"]
         )
@@ -171,6 +184,10 @@ class Preprocessors:
                     return context
                 resp.raise_for_status()
                 context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
+
+        with open(cache_file, "w") as f:
+            json.dump(context["maintainers"], f)
+
         return context
 
     @staticmethod

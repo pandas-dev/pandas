@@ -4134,7 +4134,9 @@ def shift_months(
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
 
-    if day_opt not in [None, "start", "end", "business_start", "business_end"]:
+    if day_opt is not None and day_opt not in {
+            "start", "end", "business_start", "business_end"
+    }:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
 

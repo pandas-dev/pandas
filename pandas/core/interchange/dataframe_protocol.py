@@ -213,7 +213,6 @@ class Column(ABC):
           doesn't need its own version or ``__column__`` protocol.
     """
 
-    @property
     @abstractmethod
     def size(self) -> int:
         """
