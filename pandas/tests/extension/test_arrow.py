@@ -491,10 +491,24 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if not pa.types.is_boolean(pa_dtype):
+        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+            # We *might* want to make this behave like the non-pyarrow cases,
+            #  but have not yet decided.
             request.node.add_marker(xfail_mark)
+
         op_name = all_boolean_reductions
         ser = pd.Series(data)
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+
+            with pytest.raises(TypeError, match="does not support reduction"):
+                getattr(ser, op_name)(skipna=skipna)
+
+            return
+
         result = getattr(ser, op_name)(skipna=skipna)
         assert result is (op_name == "any")
 

@@ -10,7 +10,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    Timedelta,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -971,6 +974,26 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         ------
         TypeError : subclass does not define reductions
         """
+        pa_type = self._data.type
+
+        if name in ["any", "all"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_duration(pa_type)
+        ):
+            # pyarrow only supports any/all for boolean dtype, we allow
+            #  for other dtypes, matching our non-pyarrow behavior
+
+            if pa.types.is_duration(pa_type):
+                zero = Timedelta(0)
+            else:
+                zero = 0
+            result = (self != zero)._reduce(name, skipna=skipna, **kwargs)
+            if isinstance(result, np.bool_):
+                # need to rule out pd.NA
+                result = bool(result)
+            return result
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
