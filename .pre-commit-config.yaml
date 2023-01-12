@@ -15,6 +15,10 @@ default_stages: [
 ci:
     autofix_prs: false
 repos:
+-   repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.215
+    hooks:
+    -   id: ruff
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.1
     hooks:
@@ -66,13 +70,6 @@ repos:
             --linelength=88,
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
--   repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
-    hooks:
-    -   id: flake8
-        additional_dependencies: &flake8_dependencies
-        - flake8==6.0.0
-        - flake8-bugbear==22.7.1
 -   repo: https://github.com/pycqa/pylint
     rev: v2.15.9
     hooks:
@@ -117,12 +114,6 @@ repos:
     rev: v0.6.7
     hooks:
     - id: sphinx-lint
--   repo: https://github.com/asottile/yesqa
-    rev: v1.4.0
-    hooks:
-    -   id: yesqa
-        additional_dependencies: *flake8_dependencies
-        stages: [manual]
 -   repo: local
     hooks:
     # NOTE: we make `black` a local hook because if it's installed from
@@ -324,13 +315,6 @@ repos:
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
-        pass_filenames: false
-        additional_dependencies: [pyyaml, toml]
-    -   id: sync-flake8-versions
-        name: Check flake8 version is synced across flake8, yesqa, and environment.yml
-        language: python
-        entry: python scripts/sync_flake8_versions.py
-        files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
         additional_dependencies: [pyyaml, toml]
     -   id: title-capitalization

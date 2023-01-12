@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import config
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     algos as libalgos,
@@ -1235,14 +1235,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
                 else:
-                    nb = blk.delete(blk_locs)
+                    nbs = blk.delete(blk_locs)
+                    # Add first block where old block was and remaining blocks at
+                    # the end to avoid updating all block numbers
+                    first_nb = nbs[0]
+                    nbs_tup = tuple(nbs[1:])
+                    nr_blocks = len(self.blocks)
                     blocks_tup = (
-                        self.blocks[:blkno_l] + (nb,) + self.blocks[blkno_l + 1 :]
+                        self.blocks[:blkno_l]
+                        + (first_nb,)
+                        + self.blocks[blkno_l + 1 :]
+                        + nbs_tup
                     )
                     self.blocks = blocks_tup
-                    self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                    # blk.delete gives a copy, so we can remove a possible reference
-                    self._clear_reference_block(blkno_l)
+                    self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+
+                    for i, nb in enumerate(nbs_tup):
+                        self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+                        self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
@@ -2034,7 +2044,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         Ensures that self.blocks doesn't become empty.
         """
-        nb = self._block.delete(indexer)
+        nb = self._block.delete(indexer)[0]
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
         self._cache.clear()
@@ -2352,10 +2362,3 @@ def _preprocess_slice_or_indexer(
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
-
-
-_mode_options = config._global_config["mode"]
-
-
-def using_copy_on_write():
-    return _mode_options["copy_on_write"]
