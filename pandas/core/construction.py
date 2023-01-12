@@ -666,7 +666,9 @@ def _sanitize_ndim(
         if isinstance(data, np.ndarray):
             if allow_2d:
                 return result
-            raise ValueError("Data must be 1-dimensional")
+            raise ValueError(
+                f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
+            )
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
