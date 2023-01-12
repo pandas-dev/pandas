@@ -225,3 +225,18 @@ class TestSeriesQuantile:
         if dtype == "Int64":
             expected = expected.astype("Float64")
         tm.assert_series_equal(result, expected)
+
+    def test_quantile_all_na(self, any_int_ea_dtype):
+        # GH#50681
+        ser = Series([pd.NA, pd.NA], dtype=any_int_ea_dtype)
+        with tm.assert_produces_warning(None):
+            result = ser.quantile([0.1, 0.5])
+        expected = Series([pd.NA, pd.NA], dtype=any_int_ea_dtype, index=[0.1, 0.5])
+        tm.assert_series_equal(result, expected)
+
+    def test_quantile_dtype_size(self, any_int_ea_dtype):
+        # GH#50681
+        ser = Series([pd.NA, pd.NA, 1], dtype=any_int_ea_dtype)
+        result = ser.quantile([0.1, 0.5])
+        expected = Series([1, 1], dtype=any_int_ea_dtype, index=[0.1, 0.5])
+        tm.assert_series_equal(result, expected)
