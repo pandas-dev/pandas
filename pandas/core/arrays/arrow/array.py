@@ -1209,6 +1209,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         if pa_version_under6p0:
             raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
+
+        pa_type = self._data.type
+        if pa.types.is_temporal(pa_type):
+            nbits = pa_type.bit_width
+            dtype = f"int{nbits}[pyarrow]"
+            obj = self.astype(dtype, copy=False)
+            result = obj._mode(dropna=dropna)
+            return result.astype(self.dtype, copy=False)
+
         modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
         values = modes.field(0)
         counts = modes.field(1)
