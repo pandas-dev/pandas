@@ -550,15 +550,23 @@ def test_agg_misc():
         result = t[["A", "B"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-    msg = "nested renamer is not supported"
-
-    # series like aggs
+    # series like aggs - GH#50684
     for t in cases:
-        with pytest.raises(pd.errors.SpecificationError, match=msg):
-            t["A"].agg({"A": ["sum", "std"]})
+        result = t["A"].agg({"A": ["sum", "std"]})
+        expected = t["A"].agg(["sum", "std"])
+        expected.columns = pd.MultiIndex(
+            levels=[["A"], ["sum", "std"]],
+            codes=[[0, 0], [0, 1]],
+        )
+        tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(pd.errors.SpecificationError, match=msg):
-            t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
+        result = t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
+        expected = t["A"].agg(["sum", "std", "mean", "std"])
+        expected.columns = pd.MultiIndex(
+            levels=[["A", "B"], ["sum", "std", "mean"]],
+            codes=[[0, 0, 1, 1], [0, 1, 2, 1]],
+        )
+        tm.assert_frame_equal(result, expected)
 
     # errors
     # invalid names in the agg specification

@@ -292,18 +292,15 @@ class SeriesGroupBy(GroupBy[Series]):
     agg = aggregate
 
     def _aggregate_multiple_funcs(self, arg) -> DataFrame:
-        if isinstance(arg, dict):
+        if is_dict_like(arg):
+            # GH#50684
+            # Series is dict-like but doesn't have a `.values()`; use `.items()`
+            if any(is_dict_like(value) for _, value in arg.items()):
+                raise SpecificationError("nested renamer is not supported")
+            arg = [(name, func) for name, func in arg.items()]
 
-            # show the deprecation, but only if we
-            # have not shown a higher level one
-            # GH 15931
-            raise SpecificationError("nested renamer is not supported")
-
-        if any(isinstance(x, (tuple, list)) for x in arg):
+        elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
-
-            # indicated column order
-            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []

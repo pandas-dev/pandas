@@ -228,9 +228,10 @@ def test_agg_dict_renaming_deprecation():
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        df.groupby("A").B.agg({"foo": "count"})
+    # GH#50684
+    result = df.groupby("A").B.agg({"foo": "count"})
+    expected = DataFrame({"foo": df.groupby("A").B.count()})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_compat():
@@ -246,12 +247,17 @@ def test_agg_compat():
 
     g = df.groupby(["A", "B"])
 
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        g["D"].agg({"C": ["sum", "std"]})
+    result = g["D"].agg({"C": ["sum", "std"]})
+    expected = g["D"].agg(["sum", "std"])
+    expected.columns = MultiIndex(
+        levels=[["C"], ["sum", "std"]],
+        codes=[[0, 0], [0, 1]],
+    )
+    tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(SpecificationError, match=msg):
-        g["D"].agg({"C": "sum", "D": "std"})
+    result = g["D"].agg({"C": "sum", "D": "std"})
+    expected = g["D"].agg(["sum", "std"]).rename(columns={"sum": "C", "std": "D"})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_nested_dicts():
@@ -276,11 +282,15 @@ def test_agg_nested_dicts():
 
     # same name as the original column
     # GH9052
-    with pytest.raises(SpecificationError, match=msg):
-        g["D"].agg({"result1": np.sum, "result2": np.mean})
+    result = g["D"].agg({"result1": np.sum, "result2": np.mean})
+    expected = g["D"].agg(["sum", "mean"])
+    expected.columns = ["result1", "result2"]
+    tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(SpecificationError, match=msg):
-        g["D"].agg({"D": np.sum, "result2": np.mean})
+    result = g["D"].agg({"D": np.sum, "result2": np.mean})
+    expected = g["D"].agg(["sum", "mean"])
+    expected.columns = ["D", "result2"]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_item_by_item_raise_typeerror():
