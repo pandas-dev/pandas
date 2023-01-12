@@ -548,8 +548,9 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_ohlc(series):
+def test_resample_ohlc(series, unit):
     s = series
+    s.index = s.index.as_unit(unit)
 
     grouper = Grouper(freq=Minute(5))
     expect = s.groupby(grouper).agg(lambda x: x[-1])
@@ -571,11 +572,11 @@ def test_resample_ohlc(series):
     assert xs["close"] == s[4]
 
 
-def test_resample_ohlc_result():
+def test_resample_ohlc_result(unit):
 
     # GH 12332
-    index = date_range("1-1-2000", "2-15-2000", freq="h")
-    index = index.union(date_range("4-15-2000", "5-15-2000", freq="h"))
+    index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
+    index = index.union(date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit))
     s = Series(range(len(index)), index=index)
 
     a = s.loc[:"4-15-2000"].resample("30T").ohlc()
@@ -585,10 +586,10 @@ def test_resample_ohlc_result():
     assert isinstance(b, DataFrame)
 
 
-def test_resample_ohlc_result_odd_period():
+def test_resample_ohlc_result_odd_period(unit):
     # GH12348
     # raising on odd period
-    rng = date_range("2013-12-30", "2014-01-07")
+    rng = date_range("2013-12-30", "2014-01-07").as_unit(unit)
     index = rng.drop(
         [
             Timestamp("2014-01-01"),
@@ -599,11 +600,11 @@ def test_resample_ohlc_result_odd_period():
     )
     df = DataFrame(data=np.arange(len(index)), index=index)
     result = df.resample("B").mean()
-    expected = df.reindex(index=date_range(rng[0], rng[-1], freq="B"))
+    expected = df.reindex(index=date_range(rng[0], rng[-1], freq="B").as_unit(unit))
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_ohlc_dataframe():
+def test_resample_ohlc_dataframe(unit):
     df = (
         DataFrame(
             {
@@ -620,6 +621,7 @@ def test_resample_ohlc_dataframe():
             }
         )
     ).reindex(["VOLUME", "PRICE"], axis=1)
+    df.index = df.index.as_unit(unit)
     df.columns.name = "Cols"
     res = df.resample("H").ohlc()
     exp = pd.concat(
@@ -666,8 +668,10 @@ def test_resample_dup_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_reresample():
-    dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D")
+def test_resample_reresample(unit):
+    dti = date_range(
+        start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D"
+    ).as_unit(unit)
     s = Series(np.random.rand(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8H").mean()
@@ -684,8 +688,11 @@ def test_resample_reresample():
         ["M", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
-def test_resample_timestamp_to_period(simple_date_range_series, freq, expected_kwargs):
+def test_resample_timestamp_to_period(
+    simple_date_range_series, freq, expected_kwargs, unit
+):
     ts = simple_date_range_series("1/1/1990", "1/1/2000")
+    ts.index = ts.index.as_unit(unit)
 
     result = ts.resample(freq, kind="period").mean()
     expected = ts.resample(freq).mean()
@@ -693,13 +700,13 @@ def test_resample_timestamp_to_period(simple_date_range_series, freq, expected_k
     tm.assert_series_equal(result, expected)
 
 
-def test_ohlc_5min():
+def test_ohlc_5min(unit):
     def _ohlc(group):
         if isna(group).all():
             return np.repeat(np.nan, 4)
         return [group[0], group.max(), group.min(), group[-1]]
 
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 5:59:50", freq="10s")
+    rng = date_range("1/1/2000 00:00:00", "1/1/2000 5:59:50", freq="10s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     resampled = ts.resample("5min", closed="right", label="right").ohlc()
@@ -713,8 +720,8 @@ def test_ohlc_5min():
     assert (resampled.loc["1/1/2000 6:00:00"] == exp).all()
 
 
-def test_downsample_non_unique():
-    rng = date_range("1/1/2000", "2/29/2000")
+def test_downsample_non_unique(unit):
+    rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     rng2 = rng.repeat(5).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
@@ -726,9 +733,9 @@ def test_downsample_non_unique():
     tm.assert_almost_equal(result[1], expected[2])
 
 
-def test_asfreq_non_unique():
+def test_asfreq_non_unique(unit):
     # GH #1077
-    rng = date_range("1/1/2000", "2/29/2000")
+    rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     rng2 = rng.repeat(2).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
@@ -737,8 +744,8 @@ def test_asfreq_non_unique():
         ts.asfreq("B")
 
 
-def test_resample_axis1():
-    rng = date_range("1/1/2000", "2/29/2000")
+def test_resample_axis1(unit):
+    rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     df = DataFrame(np.random.randn(3, len(rng)), columns=rng, index=["a", "b", "c"])
 
     result = df.resample("M", axis=1).mean()
@@ -747,13 +754,13 @@ def test_resample_axis1():
 
 
 @pytest.mark.parametrize("freq", ["t", "5t", "15t", "30t", "4h", "12h"])
-def test_resample_anchored_ticks(freq):
+def test_resample_anchored_ticks(freq, unit):
     # If a fixed delta (5 minute, 4 hour) evenly divides a day, we should
     # "anchor" the origin at midnight so we get regular intervals rather
     # than starting from the first timestamp which might start in the
     # middle of a desired interval
 
-    rng = date_range("1/1/2000 04:00:00", periods=86400, freq="s")
+    rng = date_range("1/1/2000 04:00:00", periods=86400, freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
     result = ts[2:].resample(freq, closed="left", label="left").mean()
@@ -762,33 +769,38 @@ def test_resample_anchored_ticks(freq):
 
 
 @pytest.mark.parametrize("end", [1, 2])
-def test_resample_single_group(end):
+def test_resample_single_group(end, unit):
     mysum = lambda x: x.sum()
 
-    rng = date_range("2000-1-1", f"2000-{end}-10", freq="D")
+    rng = date_range("2000-1-1", f"2000-{end}-10", freq="D").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     tm.assert_series_equal(ts.resample("M").sum(), ts.resample("M").apply(mysum))
 
 
-def test_resample_single_group_std():
+def test_resample_single_group_std(unit):
     # GH 3849
     s = Series(
         [30.1, 31.6],
         index=[Timestamp("20070915 15:30:00"), Timestamp("20070915 15:40:00")],
     )
-    expected = Series([0.75], index=DatetimeIndex([Timestamp("20070915")], freq="D"))
+    s.index = s.index.as_unit(unit)
+    expected = Series(
+        [0.75], index=DatetimeIndex([Timestamp("20070915")], freq="D").as_unit(unit)
+    )
     result = s.resample("D").apply(lambda x: np.std(x))
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_offset():
+def test_resample_offset(unit):
     # GH 31809
 
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
+    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     resampled = ts.resample("5min", offset="2min").mean()
-    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
+    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min").as_unit(
+        unit
+    )
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
@@ -803,12 +815,14 @@ def test_resample_offset():
         {"offset": "-3m"},
     ],
 )
-def test_resample_origin(kwargs):
+def test_resample_origin(kwargs, unit):
     # GH 31809
-    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min")
+    exp_rng = date_range(
+        "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min"
+    ).as_unit(unit)
 
     resampled = ts.resample("5min", **kwargs).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -817,8 +831,8 @@ def test_resample_origin(kwargs):
 @pytest.mark.parametrize(
     "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()]
 )
-def test_resample_bad_origin(origin):
-    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+def test_resample_bad_origin(origin, unit):
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = (
         "'origin' should be equal to 'epoch', 'start', 'start_day', "
@@ -830,27 +844,31 @@ def test_resample_bad_origin(origin):
 
 
 @pytest.mark.parametrize("offset", ["invalid_value", "12dayys", "2000-30-30", object()])
-def test_resample_bad_offset(offset):
-    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+def test_resample_bad_offset(offset, unit):
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = f"'offset' should be a Timedelta convertible type. Got '{offset}' instead."
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", offset=offset)
 
 
-def test_resample_origin_prime_freq():
+def test_resample_origin_prime_freq(unit):
     # GH 31809
     start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
-    rng = date_range(start, end, freq="7min")
+    rng = date_range(start, end, freq="7min").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range("2000-10-01 23:14:00", "2000-10-02 00:22:00", freq="17min")
+    exp_rng = date_range(
+        "2000-10-01 23:14:00", "2000-10-02 00:22:00", freq="17min"
+    ).as_unit(unit)
     resampled = ts.resample("17min").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
     resampled = ts.resample("17min", origin="start_day").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    exp_rng = date_range("2000-10-01 23:30:00", "2000-10-02 00:21:00", freq="17min")
+    exp_rng = date_range(
+        "2000-10-01 23:30:00", "2000-10-02 00:21:00", freq="17min"
+    ).as_unit(unit)
     resampled = ts.resample("17min", origin="start").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
     resampled = ts.resample("17min", offset="23h30min").mean()
@@ -858,24 +876,32 @@ def test_resample_origin_prime_freq():
     resampled = ts.resample("17min", origin="start_day", offset="23h30min").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    exp_rng = date_range("2000-10-01 23:18:00", "2000-10-02 00:26:00", freq="17min")
+    exp_rng = date_range(
+        "2000-10-01 23:18:00", "2000-10-02 00:26:00", freq="17min"
+    ).as_unit(unit)
     resampled = ts.resample("17min", origin="epoch").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    exp_rng = date_range("2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min")
+    exp_rng = date_range(
+        "2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min"
+    ).as_unit(unit)
     resampled = ts.resample("17min", origin="2000-01-01").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
-def test_resample_origin_with_tz():
+def test_resample_origin_with_tz(unit):
     # GH 31809
     msg = "The origin must have the same timezone as the index."
 
     tz = "Europe/Paris"
-    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s", tz=tz)
+    rng = date_range(
+        "2000-01-01 00:00:00", "2000-01-01 02:00", freq="s", tz=tz
+    ).as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz)
+    exp_rng = date_range(
+        "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz
+    ).as_unit(unit)
     resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
@@ -890,16 +916,16 @@ def test_resample_origin_with_tz():
         ts.resample("5min", origin="12/31/1999 23:57:00").mean()
 
     # if the series is not tz aware, origin should not be tz aware
-    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin="12/31/1999 23:57:00+03:00").mean()
 
 
-def test_resample_origin_epoch_with_tz_day_vs_24h():
+def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
     # GH 34474
     start, end = "2000-10-01 23:30:00+0500", "2000-12-02 00:30:00+0500"
-    rng = date_range(start, end, freq="7min")
+    rng = date_range(start, end, freq="7min").as_unit(unit)
     random_values = np.random.randn(len(rng))
     ts_1 = Series(random_values, index=rng)
 
@@ -916,7 +942,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h():
 
     # check that we have the similar results with two different timezones (+2H and +5H)
     start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
-    rng = date_range(start, end, freq="7min")
+    rng = date_range(start, end, freq="7min").as_unit(unit)
     ts_2 = Series(random_values, index=rng)
     result_5 = ts_2.resample("D", origin="epoch").mean()
     result_6 = ts_2.resample("24H", origin="epoch").mean()
@@ -924,7 +950,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h():
     tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
 
 
-def test_resample_origin_with_day_freq_on_dst():
+def test_resample_origin_with_day_freq_on_dst(unit):
     # GH 31809
     tz = "America/Chicago"
 
@@ -933,13 +959,13 @@ def test_resample_origin_with_day_freq_on_dst():
             values,
             index=DatetimeIndex(
                 [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
-            ),
+            ).as_unit(unit),
         )
 
     # test classical behavior of origin in a DST context
     start = Timestamp("2013-11-02", tz=tz)
     end = Timestamp("2013-11-03 23:59", tz=tz)
-    rng = date_range(start, end, freq="1h")
+    rng = date_range(start, end, freq="1h").as_unit(unit)
     ts = Series(np.ones(len(rng)), index=rng)
 
     expected = _create_series([24.0, 25.0], ["2013-11-02", "2013-11-03"])
@@ -950,7 +976,7 @@ def test_resample_origin_with_day_freq_on_dst():
     # test complex behavior of origin/offset in a DST context
     start = Timestamp("2013-11-03", tz=tz)
     end = Timestamp("2013-11-03 23:59", tz=tz)
-    rng = date_range(start, end, freq="1h")
+    rng = date_range(start, end, freq="1h").as_unit(unit)
     ts = Series(np.ones(len(rng)), index=rng)
 
     expected_ts = ["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"]
@@ -979,8 +1005,8 @@ def test_resample_origin_with_day_freq_on_dst():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_daily_anchored():
-    rng = date_range("1/1/2000 0:00:00", periods=10000, freq="T")
+def test_resample_daily_anchored(unit):
+    rng = date_range("1/1/2000 0:00:00", periods=10000, freq="T").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
 
@@ -989,10 +1015,10 @@ def test_resample_daily_anchored():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_to_period_monthly_buglet():
+def test_resample_to_period_monthly_buglet(unit):
     # GH #1259
 
-    rng = date_range("1/1/2000", "12/31/2000")
+    rng = date_range("1/1/2000", "12/31/2000").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     result = ts.resample("M", kind="period").mean()
@@ -1014,7 +1040,7 @@ def test_period_with_agg():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_segfault():
+def test_resample_segfault(unit):
     # GH 8573
     # segfaulting in older versions
     all_wins_and_wagers = [
@@ -1027,19 +1053,20 @@ def test_resample_segfault():
     df = DataFrame.from_records(
         all_wins_and_wagers, columns=("ID", "timestamp", "A", "B")
     ).set_index("timestamp")
+    df.index = df.index.as_unit(unit)
     result = df.groupby("ID").resample("5min").sum()
     expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_dtype_preservation():
+def test_resample_dtype_preservation(unit):
 
     # GH 12202
     # validation tests for dtype preservation
 
     df = DataFrame(
         {
-            "date": date_range(start="2016-01-01", periods=4, freq="W"),
+            "date": date_range(start="2016-01-01", periods=4, freq="W").as_unit(unit),
             "group": [1, 1, 2, 2],
             "val": Series([5, 6, 7, 8], dtype="int32"),
         }
@@ -1052,13 +1079,13 @@ def test_resample_dtype_preservation():
     assert result.val.dtype == np.int32
 
 
-def test_resample_dtype_coercion():
+def test_resample_dtype_coercion(unit):
 
     pytest.importorskip("scipy.interpolate")
 
     # GH 16361
     df = {"a": [1, 3, 1, 4]}
-    df = DataFrame(df, index=date_range("2017-01-01", "2017-01-04"))
+    df = DataFrame(df, index=date_range("2017-01-01", "2017-01-04").as_unit(unit))
 
     expected = df.astype("float64").resample("H").mean()["a"].interpolate("cubic")
 
@@ -1069,9 +1096,9 @@ def test_resample_dtype_coercion():
     tm.assert_series_equal(result, expected)
 
 
-def test_weekly_resample_buglet():
+def test_weekly_resample_buglet(unit):
     # #1327
-    rng = date_range("1/1/2000", freq="B", periods=20)
+    rng = date_range("1/1/2000", freq="B", periods=20).as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     resampled = ts.resample("W").mean()
@@ -1079,34 +1106,38 @@ def test_weekly_resample_buglet():
     tm.assert_series_equal(resampled, expected)
 
 
-def test_monthly_resample_error():
+def test_monthly_resample_error(unit):
     # #1451
-    dates = date_range("4/16/2012 20:00", periods=5000, freq="h")
+    dates = date_range("4/16/2012 20:00", periods=5000, freq="h").as_unit(unit)
     ts = Series(np.random.randn(len(dates)), index=dates)
     # it works!
     ts.resample("M")
 
 
-def test_nanosecond_resample_error():
+def test_nanosecond_resample_error(unit):
     # GH 12307 - Values falls after last bin when
     # Resampling using pd.tseries.offsets.Nano as period
     start = 1443707890427
     exp_start = 1443707890400
-    indx = date_range(start=pd.to_datetime(start), periods=10, freq="100n")
+    indx = date_range(start=pd.to_datetime(start), periods=10, freq="100n").as_unit(
+        unit
+    )
     ts = Series(range(len(indx)), index=indx)
     r = ts.resample(pd.tseries.offsets.Nano(100))
     result = r.agg("mean")
 
-    exp_indx = date_range(start=pd.to_datetime(exp_start), periods=10, freq="100n")
+    exp_indx = date_range(
+        start=pd.to_datetime(exp_start), periods=10, freq="100n"
+    ).as_unit(unit)
     exp = Series(range(len(exp_indx)), index=exp_indx, dtype=float)
 
     tm.assert_series_equal(result, exp)
 
 
-def test_resample_anchored_intraday(simple_date_range_series):
+def test_resample_anchored_intraday(simple_date_range_series, unit):
     # #1471, #1458
 
-    rng = date_range("1/1/2012", "4/1/2012", freq="100min")
+    rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("M").mean()
@@ -1125,7 +1156,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     assert exp.index.freq == "M"
     tm.assert_frame_equal(result, exp)
 
-    rng = date_range("1/1/2012", "4/1/2012", freq="100min")
+    rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("Q").mean()
@@ -1149,8 +1180,9 @@ def test_resample_anchored_intraday(simple_date_range_series):
 
 
 @pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "AS-DEC", "AS-JUN"])
-def test_resample_anchored_monthstart(simple_date_range_series, freq):
+def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts = simple_date_range_series("1/1/2000", "12/31/2002")
+    ts.index = ts.index.as_unit(unit)
     ts.resample(freq).mean()
 
 
@@ -1258,9 +1290,10 @@ def test_resample_median_bug_1688(dtype):
     tm.assert_frame_equal(result, exp)
 
 
-def test_how_lambda_functions(simple_date_range_series):
+def test_how_lambda_functions(simple_date_range_series, unit):
 
     ts = simple_date_range_series("1/1/2000", "4/1/2000")
+    ts.index = ts.index.as_unit(unit)
 
     result = ts.resample("M").apply(lambda x: x.mean())
     exp = ts.resample("M").mean()
@@ -1285,29 +1318,29 @@ def test_how_lambda_functions(simple_date_range_series):
     tm.assert_series_equal(result["bar"], bar_exp, check_names=False)
 
 
-def test_resample_unequal_times():
+def test_resample_unequal_times(unit):
     # #1772
     start = datetime(1999, 3, 1, 5)
     # end hour is less than start
     end = datetime(2012, 7, 31, 4)
-    bad_ind = date_range(start, end, freq="30min")
+    bad_ind = date_range(start, end, freq="30min").as_unit(unit)
     df = DataFrame({"close": 1}, index=bad_ind)
 
     # it works!
     df.resample("AS").sum()
 
 
-def test_resample_consistency():
+def test_resample_consistency(unit):
 
     # GH 6418
     # resample with bfill / limit / reindex consistency
 
-    i30 = date_range("2002-02-02", periods=4, freq="30T")
+    i30 = date_range("2002-02-02", periods=4, freq="30T").as_unit(unit)
     s = Series(np.arange(4.0), index=i30)
     s[2] = np.NaN
 
     # Upsample by factor 3 with reindex() and resample() methods:
-    i10 = date_range(i30[0], i30[-1], freq="10T")
+    i10 = date_range(i30[0], i30[-1], freq="10T").as_unit(unit)
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
@@ -1419,11 +1452,11 @@ def test_resample_nunique_preserves_column_level_names():
     ],
     ids=["nunique", "series_nunique", "nunique_str"],
 )
-def test_resample_nunique_with_date_gap(func):
+def test_resample_nunique_with_date_gap(func, unit):
     # GH 13453
     # Since all elements are unique, these should all be the same
-    index = date_range("1-1-2000", "2-15-2000", freq="h")
-    index2 = date_range("4-15-2000", "5-15-2000", freq="h")
+    index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
+    index2 = date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit)
     index3 = index.append(index2)
     s = Series(range(len(index3)), index=index3, dtype="int64")
     r = s.resample("M")
@@ -1434,13 +1467,13 @@ def test_resample_nunique_with_date_gap(func):
 
 @pytest.mark.parametrize("n", [10000, 100000])
 @pytest.mark.parametrize("k", [10, 100, 1000])
-def test_resample_group_info(n, k):
+def test_resample_group_info(n, k, unit):
     # GH10914
 
     # use a fixed seed to always have the same uniques
     prng = np.random.RandomState(1234)
 
-    dr = date_range(start="2015-08-27", periods=n // 10, freq="T")
+    dr = date_range(start="2015-08-27", periods=n // 10, freq="T").as_unit(unit)
     ts = Series(prng.randint(0, n // k, n).astype("int64"), index=prng.choice(dr, n))
 
     left = ts.resample("30T").nunique()
@@ -1461,13 +1494,13 @@ def test_resample_group_info(n, k):
     tm.assert_series_equal(left, right)
 
 
-def test_resample_size():
+def test_resample_size(unit):
     n = 10000
-    dr = date_range("2015-09-19", periods=n, freq="T")
+    dr = date_range("2015-09-19", periods=n, freq="T").as_unit(unit)
     ts = Series(np.random.randn(n), index=np.random.choice(dr, n))
 
     left = ts.resample("7T").size()
-    ix = date_range(start=left.index.min(), end=ts.index.max(), freq="7T")
+    ix = date_range(start=left.index.min(), end=ts.index.max(), freq="7T").as_unit(unit)
 
     bins = np.searchsorted(ix.values, ts.index.values, side="right")
     val = np.bincount(bins, minlength=len(ix) + 1)[1:].astype("int64", copy=False)
