@@ -19,6 +19,6 @@ dependencies:
   - hypothesis>=5.5.3
 
   # required
-  - numpy<1.24
+  - numpy
   - python-dateutil
   - pytz
