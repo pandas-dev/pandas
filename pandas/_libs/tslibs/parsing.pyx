@@ -209,7 +209,7 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
-cdef bint does_string_look_like_time(str parse_string):
+cdef bint _does_string_look_like_time(str parse_string):
     """
     Checks whether given string is a time: it has to start either from
     H:MM or from HH:MM, and hour and minute values must be valid.
@@ -249,7 +249,6 @@ def parse_datetime_string(
     str date_string,
     bint dayfirst=False,
     bint yearfirst=False,
-    **kwargs,
 ) -> datetime:
     """
     Parse datetime string, only returns datetime.
@@ -266,10 +265,10 @@ def parse_datetime_string(
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
-    if does_string_look_like_time(date_string):
+    if _does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst, **kwargs)
+                      yearfirst=yearfirst)
         return dt
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
@@ -294,7 +293,7 @@ def parse_datetime_string(
 
     try:
         dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+                      dayfirst=dayfirst, yearfirst=yearfirst)
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
@@ -680,9 +679,7 @@ cdef dateutil_parse(
 # Parsing for type-inference
 
 
-def try_parse_dates(
-    object[:] values, parser, bint dayfirst=False, default=None,
-) -> np.ndarray:
+def try_parse_dates(object[:] values, parser) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[::1] result
@@ -714,47 +711,6 @@ def try_parse_year_month_day(
 
     for i in range(n):
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
-
-    return result.base  # .base to access underlying ndarray
-
-
-def try_parse_datetime_components(object[:] years,
-                                  object[:] months,
-                                  object[:] days,
-                                  object[:] hours,
-                                  object[:] minutes,
-                                  object[:] seconds) -> np.ndarray:
-
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-        int secs
-        double float_secs
-        double micros
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if (
-        months.shape[0] != n
-        or days.shape[0] != n
-        or hours.shape[0] != n
-        or minutes.shape[0] != n
-        or seconds.shape[0] != n
-    ):
-        raise ValueError("Length of all datetime components must be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        float_secs = float(seconds[i])
-        secs = int(float_secs)
-
-        micros = float_secs - secs
-        if micros > 0:
-            micros = micros * 1000000
-
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), secs,
-                             int(micros))
 
     return result.base  # .base to access underlying ndarray
 
@@ -1014,6 +970,7 @@ cdef str _fill_token(token: str, padding: int):
         token_filled = f"{seconds}.{nanoseconds}"
     return token_filled
 
+
 cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
@@ -1075,16 +1032,13 @@ cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
+def concat_date_cols(tuple date_cols) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 
     Parameters
     ----------
     date_cols : tuple[ndarray]
-    keep_trivial_numbers : bool, default True
-        if True and len(date_cols) == 1, then
-        conversion (to string from integer/float zero) is not performed
 
     Returns
     -------
@@ -1123,8 +1077,7 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
         it = <flatiter>PyArray_IterNew(array)
         for row_idx in range(rows_count):
             item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            result_view[row_idx] = convert_to_unicode(item,
-                                                      keep_trivial_numbers)
+            result_view[row_idx] = convert_to_unicode(item, True)
             PyArray_ITER_NEXT(it)
     else:
         # create fixed size list - more efficient memory allocation
