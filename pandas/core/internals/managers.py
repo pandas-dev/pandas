@@ -1961,7 +1961,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         if (
-            _using_copy_on_write()
+            using_copy_on_write()
             and isinstance(indexer, np.ndarray)
             and len(indexer) > 0
             and com.is_bool_indexer(indexer)
