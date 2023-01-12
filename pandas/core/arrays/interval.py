@@ -383,7 +383,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Left and right bounds for each interval.
         closed : {'left', 'right', 'both', 'neither'}, default 'right'
             Whether the intervals are closed on the left-side, right-side, both
-            or neither.
+            or neither.\
+        %(name)s
         copy : bool, default False
             Copy the data.
         dtype : dtype or None, default None
@@ -408,6 +409,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         _interval_shared_docs["from_breaks"]
         % {
             "klass": "IntervalArray",
+            "name": "",
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -443,7 +445,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Right bounds for each interval.
         closed : {'left', 'right', 'both', 'neither'}, default 'right'
             Whether the intervals are closed on the left-side, right-side, both
-            or neither.
+            or neither.\
+        %(name)s
         copy : bool, default False
             Copy the data.
         dtype : dtype, optional
@@ -485,6 +488,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         _interval_shared_docs["from_arrays"]
         % {
             "klass": "IntervalArray",
+            "name": "",
             "examples": textwrap.dedent(
                 """\
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
@@ -520,7 +524,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Array of tuples.
         closed : {'left', 'right', 'both', 'neither'}, default 'right'
             Whether the intervals are closed on the left-side, right-side, both
-            or neither.
+            or neither.\
+        %(name)s
         copy : bool, default False
             By-default copy the data, this is compat only and ignored.
         dtype : dtype or None, default None
@@ -547,6 +552,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         _interval_shared_docs["from_tuples"]
         % {
             "klass": "IntervalArray",
+            "name": "",
             "examples": textwrap.dedent(
                 """\
         Examples
