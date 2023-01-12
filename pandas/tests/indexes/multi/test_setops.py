@@ -692,6 +692,43 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     assert mi_int._lexsort_depth == 2
 
 
+@pytest.mark.parametrize(
+    "a",
+    [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
+)
+@pytest.mark.parametrize(
+    "b",
+    [
+        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
+        pd.Categorical(["a", "b"], categories=["b", "a"]),
+    ],
+)
+def test_intersection_with_non_lex_sorted_categories(a, b):
+    # GH#49974
+    other = ["1", "2"]
+
+    df1 = DataFrame({"x": a, "y": other})
+    df2 = DataFrame({"x": b, "y": other})
+
+    expected = MultiIndex.from_arrays([a, other], names=["x", "y"])
+
+    res1 = MultiIndex.from_frame(df1).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+    res2 = MultiIndex.from_frame(df1).intersection(MultiIndex.from_frame(df2))
+    res3 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2)
+    )
+    res4 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+
+    tm.assert_index_equal(res1, expected)
+    tm.assert_index_equal(res2, expected)
+    tm.assert_index_equal(res3, expected)
+    tm.assert_index_equal(res4, expected)
+
+
 @pytest.mark.parametrize("val", [pd.NA, 100])
 def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     # GH#48604
