@@ -6,7 +6,9 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Period,
     Series,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm
@@ -373,6 +375,42 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
     df.iloc[0, 0] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+@pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
+def test_to_timestamp(using_copy_on_write, obj):
+    obj.index = Index([Period("2012-1-1", freq="D"), Period("2012-1-2", freq="D")])
+
+    obj_orig = obj.copy()
+    obj2 = obj.to_timestamp()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    else:
+        assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+
+    # mutating obj2 triggers a copy-on-write for that column / block
+    obj2.iloc[0] = 0
+    assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    tm.assert_equal(obj, obj_orig)
+
+
+@pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
+def test_to_period(using_copy_on_write, obj):
+    obj.index = Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")])
+
+    obj_orig = obj.copy()
+    obj2 = obj.to_period(freq="Y")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    else:
+        assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+
+    # mutating obj2 triggers a copy-on-write for that column / block
+    obj2.iloc[0] = 0
+    assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    tm.assert_equal(obj, obj_orig)
 
 
 def test_set_index(using_copy_on_write):
