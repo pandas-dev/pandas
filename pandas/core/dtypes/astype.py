@@ -171,16 +171,6 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
     -------
     ndarray or ExtensionArray
     """
-    if (
-        values.dtype.kind in ["m", "M"]
-        and dtype.kind in ["i", "u"]
-        and isinstance(dtype, np.dtype)
-        and dtype.itemsize != 8
-    ):
-        # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
-        msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
-        raise TypeError(msg)
-
     if is_dtype_equal(values.dtype, dtype):
         if copy:
             return values.copy()
