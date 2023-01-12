@@ -200,7 +200,9 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tz_convert_from_utc(self.i8values, index.tz)
+                self.i8values = tz_convert_from_utc(
+                    self.i8values, index.tz, reso=self._creso
+                )
 
         if len(index) < 3:
             raise ValueError("Need at least 3 dates to infer frequency")
@@ -395,7 +397,7 @@ class _FrequencyInferer:
 
         # probably business daily, but need to confirm
         first_weekday = self.index[0].weekday()
-        shifts = np.diff(self.index.asi8)
+        shifts = np.diff(self.i8values)
         ppd = periods_per_day(self._creso)
         shifts = np.floor_divide(shifts, ppd)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
