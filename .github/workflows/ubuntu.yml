@@ -92,6 +92,12 @@ jobs:
             pyarrow_version: "8"
           - env_file: actions-39.yaml
             pyarrow_version: "9"
+          - env_file: actions-311.yaml
+            pyarrow_version: "7"
+          - env_file: actions-311.yaml
+            pyarrow_version: "8"
+          - env_file: actions-311.yaml
+            pyarrow_version: "9"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
