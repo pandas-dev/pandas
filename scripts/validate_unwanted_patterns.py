@@ -48,11 +48,11 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_registry",
     "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
-    "_json_normalize",  # TODO: remove after deprecation is enforced
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
     "_arrow_dtype_mapping",
+    "_global_config",
 }
 
 

@@ -405,10 +405,8 @@ class TestReadHtml:
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, path, *args, **kwargs):
-        return self.read_html(
-            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
-        )
+    def _bank_data(self, path, **kwargs):
+        return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
     def test_multiindex_header(self, banklist_data):

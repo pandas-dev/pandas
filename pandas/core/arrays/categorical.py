@@ -471,10 +471,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = self._ndarray.dtype
         return dtype.type(-1)
 
-    @property
-    def _constructor(self) -> type[Categorical]:
-        return Categorical
-
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -935,7 +931,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with renamed categories.
 
         Raises
@@ -1001,7 +997,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with reordered categories.
 
         Raises
@@ -1041,7 +1037,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with new categories added.
 
         Raises
@@ -1110,7 +1106,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with removed categories.
 
         Raises
@@ -1160,7 +1156,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with unused categories dropped.
 
         See Also

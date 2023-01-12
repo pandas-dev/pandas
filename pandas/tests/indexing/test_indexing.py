@@ -608,7 +608,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
-            assert s2.index.is_floating()
+            assert is_float_dtype(s2.index)
             assert indexer(s2)[0.1] == 0
 
             s2 = s.copy()
@@ -624,11 +624,11 @@ class TestFancy:
 
         for s in [Series(range(5), index=np.arange(5.0))]:
 
-            assert s.index.is_floating()
+            assert is_float_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
-            assert s2.index.is_floating()
+            assert is_float_dtype(s2.index)
             assert indexer(s2)[0.1] == 0
 
             s2 = s.copy()

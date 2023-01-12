@@ -149,6 +149,11 @@ def test_parsers_month_freq(date_str, expected):
     "string,fmt",
     [
         ("20111230", "%Y%m%d"),
+        ("201112300000", "%Y%m%d%H%M"),
+        ("20111230000000", "%Y%m%d%H%M%S"),
+        ("20111230T00", "%Y%m%dT%H"),
+        ("20111230T0000", "%Y%m%dT%H%M"),
+        ("20111230T000000", "%Y%m%dT%H%M%S"),
         ("2011-12-30", "%Y-%m-%d"),
         ("2011", "%Y"),
         ("2011-01", "%Y-%m"),
@@ -273,9 +278,7 @@ def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(
-        arr, dayfirst=True, parser=lambda x: du_parse(x, dayfirst=True)
-    )
+    result = parsing.try_parse_dates(arr, parser=lambda x: du_parse(x, dayfirst=True))
 
     expected = np.array([du_parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
