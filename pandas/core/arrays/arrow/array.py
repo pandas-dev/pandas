@@ -984,6 +984,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
 
+            zero: int | Timedelta
             if pa.types.is_duration(pa_type):
                 zero = Timedelta(0)
             else:
