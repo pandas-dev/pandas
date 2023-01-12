@@ -161,6 +161,14 @@ class ArrowDtype(StorageExtensionDtype):
         except ValueError as err:
             has_parameters = re.search(r"\[.*\]", base_type)
             if has_parameters:
+
+                # Fallback to try common temporal types
+                try:
+                    return cls._parse_temporal_dtype_string(base_type)
+                except (NotImplementedError, ValueError):
+                    # Fall through to raise with nice exception message below
+                    pass
+
                 raise NotImplementedError(
                     "Passing pyarrow type specific parameters "
                     f"({has_parameters.group()}) in the string is not supported. "
@@ -169,6 +177,37 @@ class ArrowDtype(StorageExtensionDtype):
                 ) from err
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
         return cls(pa_dtype)
+
+    @classmethod
+    def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
+        """
+        Construct a temporal ArrowDtype from string.
+        """
+        # we assume
+        #  1) "[pyarrow]" has already been stripped from the end of our string.
+        #  2) we know "[" is present
+        head, tail = string.split("[", 1)
+
+        if not tail.endswith("]"):
+            raise ValueError
+        tail = tail[:-1]
+
+        if head == "timestamp":
+            if "," not in tail:
+                tz = None
+                unit = tail
+            else:
+                unit, tz = tail.split(",", 1)
+                unit = unit.strip()
+                tz = tz.strip()
+                if tz.startswith("tz="):
+                    tz = tz[3:]
+
+            pa_type = pa.timestamp(unit, tz=tz)
+            dtype = cls(pa_type)
+            return dtype
+
+        raise NotImplementedError(string)
 
     @property
     def _is_numeric(self) -> bool:
