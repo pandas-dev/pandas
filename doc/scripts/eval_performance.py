@@ -6,6 +6,7 @@ import seaborn as sns
 from pandas import DataFrame
 
 setup_common = """from pandas import DataFrame
+import numpy as np
 df = DataFrame(np.random.randn(%d, 3), columns=list('abc'))
 %s"""
 
