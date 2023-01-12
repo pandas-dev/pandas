@@ -73,10 +73,10 @@ jobs:
       run: |
         python --version
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+        python -m pip install --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         python -m pip install git+https://github.com/nedbat/coveragepy.git
         python -m pip install versioneer[toml]
-        python -m pip install python-dateutil pytz cython hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
+        python -m pip install python-dateutil pytz cython hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
         python -m pip list
 
     # GH 47305: Parallel build can cause flaky ImportError from pandas/_libs/tslibs

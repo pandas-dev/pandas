@@ -447,13 +447,19 @@ Increased minimum versions for dependencies
 Some minimum supported versions of dependencies were updated.
 If installed, we now require:
 
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| mypy (dev)      | 0.991           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| python-dateutil | 2.8.2           |    X     |    X    |
-+-----------------+-----------------+----------+---------+
++-------------------+-----------------+----------+---------+
+| Package           | Minimum Version | Required | Changed |
++===================+=================+==========+=========+
+| mypy (dev)        | 0.991           |          |    X    |
++-------------------+-----------------+----------+---------+
+| pytest (dev)      | 7.0.0           |          |    X    |
++-------------------+-----------------+----------+---------+
+| pytest-xdist (dev)| 2.2.0           |          |    X    |
++-------------------+-----------------+----------+---------+
+| hypothesis (dev)  | 6.34.2          |          |    X    |
++-------------------+-----------------+----------+---------+
+| python-dateutil   | 2.8.2           |    X     |    X    |
++-------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -556,9 +562,12 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
+- Deprecated :func:`pandas.io.sql.execute`(:issue:`50185`)
+-
+
+- :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 
 .. ---------------------------------------------------------------------------
-
 .. _whatsnew_200.prior_deprecations:
 
 Removal of prior version deprecations/changes
