@@ -768,12 +768,9 @@ def test_nsmallest():
 
 @pytest.mark.parametrize(
     "data, groups",
-    [
-        ([0, 1, 2, 3], [0, 0, 1, 1]),
-        ([0], [0]),
-    ],
+    [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
 )
-@pytest.mark.parametrize("dtype", [None] + tm.ALL_INT_NUMPY_DTYPES)
+@pytest.mark.parametrize("dtype", [None, *tm.ALL_INT_NUMPY_DTYPES])
 @pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
 def test_nlargest_and_smallest_noop(data, groups, dtype, method):
     # GH 15272, GH 16345, GH 29129

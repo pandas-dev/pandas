@@ -309,6 +309,8 @@ class TestFromTuples(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_tuples
         """
+        if tm.is_unsigned_integer_dtype(breaks):
+            pytest.skip(f"{breaks.dtype} not relevant IntervalIndex.from_tuples tests")
         if len(breaks) == 0:
             return {"data": breaks}
 
@@ -364,6 +366,9 @@ class TestClassConstructors(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by the IntervalIndex/Index constructors
         """
+        if tm.is_unsigned_integer_dtype(breaks):
+            pytest.skip(f"{breaks.dtype} not relevant for class constructor tests")
+
         if len(breaks) == 0:
             return {"data": breaks}
 
