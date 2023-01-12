@@ -297,7 +297,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # Series is dict-like but doesn't have a `.values()`; use `.items()`
             if any(is_dict_like(value) for _, value in arg.items()):
                 raise SpecificationError("nested renamer is not supported")
-            arg = [(name, func) for name, func in arg.items()]
+            arg = list(arg.items())
 
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
