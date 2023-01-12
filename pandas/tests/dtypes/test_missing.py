@@ -629,6 +629,13 @@ class TestNAObj:
         result = libmissing.isnaobj(arr, inf_as_na=True)
         tm.assert_numpy_array_equal(result, expected)
 
+        # Test fortran order
+        arr = arr.copy(order="F")
+        result = libmissing.isnaobj(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        result = libmissing.isnaobj(arr, inf_as_na=True)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_basic(self):
         arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])

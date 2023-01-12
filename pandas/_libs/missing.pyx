@@ -9,10 +9,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
     flatiter,
     float64_t,
     int64_t,
@@ -207,18 +203,18 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         object val
         bint is_null
         ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
-        flatiter it = PyArray_IterNew(arr)
-        flatiter it2 = PyArray_IterNew(result)
+        flatiter it = cnp.PyArray_IterNew(arr)
+        flatiter it2 = cnp.PyArray_IterNew(result)
 
     for i in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-        PyArray_ITER_NEXT(it)
+        val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
+        cnp.PyArray_ITER_NEXT(it)
         is_null = checknull(val, inf_as_na=inf_as_na)
         # Dereference pointer (set value)
-        (<uint8_t *>(PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
-        PyArray_ITER_NEXT(it2)
+        (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
+        cnp.PyArray_ITER_NEXT(it2)
     return result.view(np.bool_)
 
 
