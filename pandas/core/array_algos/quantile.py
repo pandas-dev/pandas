@@ -204,8 +204,10 @@ def _nanpercentile(
             result = np.array(result, copy=False).T
             if (
                 result.dtype != values.dtype
+                and not mask.all()
                 and (result == result.astype(values.dtype, copy=False)).all()
             ):
+                # mask.all() will never get cast back to int
                 # e.g. values id integer dtype and result is floating dtype,
                 #  only cast back to integer dtype if result values are all-integer.
                 result = result.astype(values.dtype, copy=False)

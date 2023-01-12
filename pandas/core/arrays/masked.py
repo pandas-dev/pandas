@@ -1039,6 +1039,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 raise NotImplementedError
             if self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
+
+                if is_integer_dtype(self.dtype):
+                    # We try to maintain int dtype if possible for not all-na case
+                    # as well
+                    res = np.zeros(res.shape, dtype=self.dtype.numpy_dtype)
             else:
                 out_mask = np.zeros(res.shape, dtype=bool)
         else:
