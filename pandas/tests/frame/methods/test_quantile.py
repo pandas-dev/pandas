@@ -929,15 +929,8 @@ class TestQuantileExtensionDtype:
         qs = [0.5, 0, 1]
         result = self.compute_quantile(obj, qs)
 
-        if np_version_under1p21 and index.dtype == "timedelta64[ns]":
-            msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
-            request.node.add_marker(mark)
-
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
         expected = Series(expected, index=qs, name="A")
-        if expected.dtype == "Int64":
-            expected = expected.astype("Float64")
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
