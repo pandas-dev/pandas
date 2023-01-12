@@ -13,10 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat import (
-    IS64,
-    is_numpy_dev,
-)
+from pandas.compat import is_numpy_dev
 from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
@@ -736,7 +733,7 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
-    @pytest.mark.xfail(np_version_gte1p24 and not IS64, reason="GH49777")
+    @pytest.mark.xfail(np_version_gte1p24, reason="GH49777")
     def test_constructor_signed_int_overflow_deprecation(self):
         # GH#41734 disallow silent overflow
         msg = "Values are too large to be losslessly cast"
