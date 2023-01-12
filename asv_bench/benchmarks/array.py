@@ -44,6 +44,15 @@ class IntegerArray:
         pd.array(self.values_integer, dtype="Int64")
 
 
+class IntervalArray:
+    def setup(self):
+        N = 10_000
+        self.tuples = [(i, i + 1) for i in range(N)]
+
+    def time_from_tuples(self):
+        pd.arrays.IntervalArray.from_tuples(self.tuples)
+
+
 class StringArray:
     def setup(self):
         N = 100_000

@@ -35,11 +35,17 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_any_int_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
     is_bool_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_numeric_dtype,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
 )
 from pandas.tests.extension import base
 
@@ -292,12 +298,6 @@ class TestConstructors(base.BaseConstructorsTests):
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support parsing {pa_dtype}",
-                )
-            )
-        elif pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
@@ -1450,6 +1450,48 @@ def test_is_numeric_dtype(data):
         assert is_numeric_dtype(data)
     else:
         assert not is_numeric_dtype(data)
+
+
+def test_is_integer_dtype(data):
+    # GH 50667
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_type):
+        assert is_integer_dtype(data)
+    else:
+        assert not is_integer_dtype(data)
+
+
+def test_is_any_integer_dtype(data):
+    # GH 50667
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_type):
+        assert is_any_int_dtype(data)
+    else:
+        assert not is_any_int_dtype(data)
+
+
+def test_is_signed_integer_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_signed_integer(pa_type):
+        assert is_signed_integer_dtype(data)
+    else:
+        assert not is_signed_integer_dtype(data)
+
+
+def test_is_unsigned_integer_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_unsigned_integer(pa_type):
+        assert is_unsigned_integer_dtype(data)
+    else:
+        assert not is_unsigned_integer_dtype(data)
+
+
+def test_is_float_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_floating(pa_type):
+        assert is_float_dtype(data)
+    else:
+        assert not is_float_dtype(data)
 
 
 def test_pickle_roundtrip(data):
