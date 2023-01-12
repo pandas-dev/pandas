@@ -358,8 +358,7 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
             and all_numeric_accumulations == "cumsum"
             and not pa_version_under9p0
         ):
-            # These work, are tested by test_accumulate_series
-            return
+            pytest.skip("These work, are tested by test_accumulate_series.")
 
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
@@ -373,21 +372,22 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
 
+        do_skip = False
         if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
             if op_name in ["cumsum", "cumprod"]:
-                # These should *not* work, we test in test_accumulate_series_raises
-                #  that these correctly raise
-                return
+                do_skip = True
         elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
             if op_name in ["cumsum", "cumprod"]:
-                # These should *not* work, we test in test_accumulate_series_raises
-                #  that these correctly raise
-                return
+                do_skip = True
         elif pa.types.is_duration(pa_type):
             if op_name == "cumprod":
-                # These should *not* work, we test in test_accumulate_series_raises
-                #  that these correctly raise
-                return
+                do_skip = True
+
+        if do_skip:
+            pytest.skip(
+                "These should *not* work, we test in test_accumulate_series_raises "
+                "that these correctly raise."
+            )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             request.node.add_marker(
