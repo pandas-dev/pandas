@@ -2083,11 +2083,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> Index([1, 2, 3]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 3]).is_monotonic_increasing
         True
-        >>> Index([1, 2, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 2]).is_monotonic_increasing
         True
-        >>> Index([1, 3, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
         return self._engine.is_monotonic_increasing
@@ -2107,11 +2107,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> Index([3, 2, 1]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 1]).is_monotonic_decreasing
         True
-        >>> Index([3, 2, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 2]).is_monotonic_decreasing
         True
-        >>> Index([3, 1, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
         return self._engine.is_monotonic_decreasing
