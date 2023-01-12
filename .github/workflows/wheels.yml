@@ -168,7 +168,7 @@ jobs:
           # (1. Generate sdist 2. Build wheels from sdist)
           # This tests the sdists, and saves some build time
           python -m pip install dist/*.gz
-          pip install hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
+          pip install hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
           cd .. # Not a good idea to test within the src tree
           python -c "import pandas; print(pandas.__version__);
           pandas.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '-n=2']);

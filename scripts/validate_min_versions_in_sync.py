@@ -47,11 +47,7 @@ def get_versions_from_code() -> dict[str, str]:
     versions = _optional.VERSIONS
     for item in EXCLUDE_DEPS:
         versions.pop(item, None)
-    return {
-        install_map.get(k, k).casefold(): v
-        for k, v in versions.items()
-        if k != "pytest"
-    }
+    return {install_map.get(k, k).casefold(): v for k, v in versions.items()}
 
 
 def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -59,10 +55,18 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
     # Don't parse with pyyaml because it ignores comments we're looking for
     seen_required = False
     seen_optional = False
+    seen_test = False
     required_deps = {}
     optional_deps = {}
     for line in content:
-        if "# required dependencies" in line:
+        if "# test dependencies" in line:
+            seen_test = True
+        elif seen_test and "- pytest>=" in line:
+            # Only grab pytest
+            package, version = line.strip().split(">=")
+            package = package[2:]
+            optional_deps[package.casefold()] = version
+        elif "# required dependencies" in line:
             seen_required = True
         elif "# optional dependencies" in line:
             seen_optional = True
@@ -87,7 +91,6 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
 def get_versions_from_toml() -> dict[str, str]:
     """Min versions in pyproject.toml for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
-    dependencies = set()
     optional_dependencies = {}
 
     with open(SETUP_PATH, "rb") as pyproject_f:
@@ -95,9 +98,9 @@ def get_versions_from_toml() -> dict[str, str]:
         opt_deps = pyproject_toml["project"]["optional-dependencies"]
         dependencies = set(opt_deps["all"])
 
-        # remove test dependencies
-        test_deps = set(opt_deps["test"])
-        dependencies = dependencies.difference(test_deps)
+        # remove pytest plugin dependencies
+        pytest_plugins = {dep for dep in opt_deps["test"] if dep.startswith("pytest-")}
+        dependencies = dependencies.difference(pytest_plugins)
 
     for dependency in dependencies:
         package, version = dependency.strip().split(">=")
