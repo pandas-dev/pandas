@@ -730,9 +730,11 @@ def test_squeeze(using_copy_on_write):
         # Test CoW splits blocks to avoid copying unchanged columns
         {"to_replace": {"a": 1}, "value": -1},
         {"to_replace": {"b": 4}, "value": -1},
-        # TODO: broken, fix by fixing Block.replace_list()
+        {"to_replace": {"b": {4: 1}}},
+        # TODO: Add these in a further optimization
+        # We would need to see which columns got replaced in the mask
+        # which could be expensive
         # {"to_replace": {"b": 1}},
-        # TODO: broken, fix by fixing Block.replace()
         # 1
     ],
 )

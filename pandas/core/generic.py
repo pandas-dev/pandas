@@ -7105,7 +7105,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                # TODO: Is it even worth doing the CoW here?
                 return self.copy(deep=None)
 
             if is_dict_like(to_replace):

@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
+import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
@@ -92,3 +93,48 @@ def test_switch_options():
         subset.iloc[0, 0] = 0
         # df updated with CoW disabled
         assert df.iloc[0, 0] == 0
+
+
+@td.skip_array_manager_invalid_test
+@pytest.mark.parametrize(
+    "locs",
+    [
+        [0],
+        [1],
+        [3],
+        [0, 1],
+        [0, 2],
+        [0, 1, 2],
+        [1, 2],
+        [1, 3],
+        [0, 5],
+    ],
+)
+def test_iset_splits_blocks_inplace(using_copy_on_write, locs):
+    # Nothing currently calls iset with
+    # more than 1 loc with inplace=True (only happens with inplace=False)
+    # but ensure that it works
+    df = DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [4, 5, 6],
+            "c": [7, 8, 9],
+            "d": [10, 11, 12],
+            "e": [13, 14, 15],
+            "f": ["foo", "bar", "baz"],
+        }
+    )
+    df_orig = df.copy()
+    df2 = df.copy(deep=None)  # Trigger a CoW (if enabled, otherwise makes copy)
+    arr = np.array([-1, -2, -3])
+    df2._mgr.iset(locs, arr, inplace=True)
+
+    tm.assert_frame_equal(df, df_orig)
+
+    if using_copy_on_write:
+        for i, col in enumerate(df.columns):
+            if i not in locs:
+                assert np.shares_memory(get_array(df, col), get_array(df2, col))
+    else:
+        for col in df.columns:
+            assert not np.shares_memory(get_array(df, col), get_array(df2, col))

@@ -1224,21 +1224,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
                     leftover_blocks = tuple(blk.delete(blk_locs))
-                    if self.refs is not None:
-                        prev_refs = self.refs[blkno_l]
-                        # Preserve refs for unchanged blocks
-                        # Add new block where old block was and remaining blocks at
-                        # the end to avoid updating all block numbers
-                        extra_refs = [prev_refs] * len(leftover_blocks)
-                        self.refs = (
-                            self.refs[:blkno_l]
-                            + [None]
-                            + self.refs[blkno_l + 1 :]
-                            + extra_refs
-                        )
-                        if len(blk_locs) > 1:
-                            # Add the refs for the other deleted blocks
-                            self.refs += [None] * (len(blk_locs) - 1)
 
                     # Fill before the first leftover block
                     nbs = []
@@ -1258,8 +1243,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         curr_block = leftover_blocks[i]
                         next_block = leftover_blocks[i + 1]
 
-                        curr_end = curr_block.as_slice.end
-                        next_start = next_block.as_slice.start
+                        curr_end = curr_block.mgr_locs.as_slice.stop
+                        next_start = next_block.mgr_locs.as_slice.start
 
                         num_to_fill = next_start - (curr_end - 1)
                         nb = new_block_2d(
@@ -1283,7 +1268,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                                 ),
                             )
                         )
-
+                    # Add new block where old block was and remaining blocks at
+                    # the end to avoid updating all block numbers
                     old_blocks = self.blocks
                     nb = nbs[0]
                     new_blocks = (
@@ -1291,16 +1277,21 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         + (nb,)
                         + old_blocks[blkno_l + 1 :]
                         + leftover_blocks
-                        + tuple(nbs)
+                        + tuple(nbs[1:])
                     )
+                    if self.refs is not None:
+                        prev_refs = self.refs[blkno_l]
+                        extra_refs = [prev_refs] * len(leftover_blocks)
+                        self.refs[blkno_l] = None
+                        self.refs += extra_refs
+                        if len(blk_locs) > 1:
+                            # Add the refs for the other deleted blocks
+                            self.refs += [None] * (len(blk_locs) - 1)
                     self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
                     for i, nb in enumerate(leftover_blocks):
                         self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
                         self._blknos[nb.mgr_locs.indexer] = i + len(old_blocks)
                     self.blocks = new_blocks
-
-                    # blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
-                    # self._clear_reference_block(blkno_l)
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
