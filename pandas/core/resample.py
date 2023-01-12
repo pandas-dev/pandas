@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from datetime import timedelta
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -1750,7 +1749,11 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 bin_edges = binner.tz_localize(None)
-                bin_edges = bin_edges + timedelta(1) - Timedelta(1, unit=bin_edges.unit)
+                bin_edges = (
+                    bin_edges
+                    + Timedelta(days=1, unit=bin_edges.unit).as_unit(bin_edges.unit)
+                    - Timedelta(1, unit=bin_edges.unit).as_unit(bin_edges.unit)
+                )
                 bin_edges = bin_edges.tz_localize(binner.tz).asi8
             else:
                 bin_edges = binner.asi8
