@@ -1214,9 +1214,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
             dtype = f"int{nbits}[pyarrow]"
-            obj = self.astype(dtype, copy=False)
+            obj = cast(ArrowExtensionArrayT, self.astype(dtype, copy=False))
             result = obj._mode(dropna=dropna)
-            return result.astype(self.dtype, copy=False)
+            out = result.astype(self.dtype, copy=False)
+            return cast(ArrowExtensionArrayT, out)
 
         modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
         values = modes.field(0)

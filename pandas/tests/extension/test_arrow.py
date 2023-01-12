@@ -1329,7 +1329,10 @@ def test_quantile(data, interpolation, quantile, request):
     ):
         # For string, bytes, and bool, we don't *expect* to have quantile work
         # Note this matches the non-pyarrow behavior
-        msg = r"Function 'quantile' has no kernel matching input types \(.*\)"
+        if pa_version_under7p0:
+            msg = r"Function quantile has no kernel matching input types \(.*\)"
+        else:
+            msg = r"Function 'quantile' has no kernel matching input types \(.*\)"
         with pytest.raises(pa.ArrowNotImplementedError, match=msg):
             ser.quantile(q=quantile, interpolation=interpolation)
         return
