@@ -128,7 +128,24 @@ class HDF(BaseIO):
         self.df["object"] = tm.makeStringIndex(N)
         self.df.to_hdf(self.fname, "df", format=format)
 
+        # Numeric df
+        self.df1 = self.df.copy()
+        self.df1 = self.df1.reset_index()
+        self.df1.to_hdf(self.fname, "df1", format=format)
+
     def time_read_hdf(self, format):
+        read_hdf(self.fname, "df")
+
+    def mem_read_hdf_index(self, format):
+        # Check to make sure that index is not a view into
+        # the original recarray (which prevents it from being freed)
+        # xref GH 37441
+        # TODO: Don't abuse internals, need to fix asv
+        # to detect memory of ndarray views properly
+        df1 = read_hdf(self.fname, "df1")
+        return df1.index._data.base  # Will be None(0 bytes) if not a view
+
+    def peakmem_read_hdf(self, format):
         read_hdf(self.fname, "df")
 
     def time_write_hdf(self, format):
