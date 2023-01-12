@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         pattern: ["not single_cpu", "single_cpu"]
         pyarrow_version: ["7", "8", "9", "10"]
         include:
