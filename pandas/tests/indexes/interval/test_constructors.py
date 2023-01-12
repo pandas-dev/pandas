@@ -297,27 +297,7 @@ class TestFromBreaks(ConstructorTests):
         assert result._left.base is None or result._left.base is not result._right.base
 
 
-class TuplesClassConstructorTests(ConstructorTests):
-    @pytest.fixture(
-        params=[
-            ([3, 14, 15, 92, 653], np.int64),
-            (np.arange(10, dtype="int64"), np.int64),
-            (NumericIndex(range(-10, 11), dtype=np.int64), np.int64),
-            (NumericIndex(range(10, 31), dtype=np.uint64), np.int64),
-            (NumericIndex(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
-            (date_range("20180101", periods=10), "<M8[ns]"),
-            (
-                date_range("20180101", periods=10, tz="US/Eastern"),
-                "datetime64[ns, US/Eastern]",
-            ),
-            (timedelta_range("1 day", periods=10), "<m8[ns]"),
-        ]
-    )
-    def breaks_and_expected_subtype(self, request):
-        return request.param
-
-
-class TestFromTuples(TuplesClassConstructorTests):
+class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
     @pytest.fixture
@@ -364,7 +344,7 @@ class TestFromTuples(TuplesClassConstructorTests):
         tm.assert_index_equal(idx_na_tuple, idx_na_element)
 
 
-class TestClassConstructors(TuplesClassConstructorTests):
+class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
     @pytest.fixture(

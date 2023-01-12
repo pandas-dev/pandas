@@ -183,8 +183,6 @@ def test_apply_datetimetz():
     exp = Series(exp_values, name="XX")
     tm.assert_series_equal(result, exp)
 
-    # change dtype
-    # GH 14506 : Returned dtype changed from int32 to int64
     result = s.apply(lambda x: x.hour)
     exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
     tm.assert_series_equal(result, exp)
@@ -761,8 +759,6 @@ def test_map_datetimetz():
     exp = Series(exp_values, name="XX")
     tm.assert_series_equal(result, exp)
 
-    # change dtype
-    # GH 14506 : Returned dtype changed from int32 to int64
     result = s.map(lambda x: x.hour)
     exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
     tm.assert_series_equal(result, exp)

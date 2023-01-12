@@ -29,8 +29,7 @@ class TestIntervalRange:
     @pytest.mark.parametrize("freq, periods", [(1, 100), (2.5, 40), (5, 20), (25, 4)])
     def test_constructor_numeric(self, closed, name, freq, periods):
         start, end = 0, 100
-        dtype = np.int64 if is_integer(freq) else np.float64
-        breaks = np.arange(101, step=freq, dtype=dtype)
+        breaks = np.arange(101, step=freq)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq

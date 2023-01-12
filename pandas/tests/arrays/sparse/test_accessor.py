@@ -218,6 +218,8 @@ class TestFrameAccessor:
         A = scipy.sparse.eye(3, format="coo", dtype=dtype)
         result = pd.Series.sparse.from_coo(A, dense_index=dense_index)
 
+        # TODO: GH49560: scipy.sparse.eye always has A.row and A.col dtype as int32.
+        # fix index_dtype to follow scipy.sparse convention (always int32)?
         index_dtype = np.int64 if dense_index else np.int32
         index = pd.MultiIndex.from_tuples(
             [
