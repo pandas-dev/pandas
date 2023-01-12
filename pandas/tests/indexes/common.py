@@ -610,8 +610,10 @@ class Base:
 
         idx = simple_index
         if isinstance(idx, CategoricalIndex):
-            # TODO(2.0): see if we can avoid skipping once
-            #  CategoricalIndex.reindex is removed.
+            # FIXME: this fails with CategoricalIndex bc it goes through
+            # Categorical.map which ends up calling get_indexer with
+            #  non-unique values, which raises.  This _should_ work fine for
+            #  CategoricalIndex.
             pytest.skip(f"skipping tests for {type(idx)}")
 
         identity = mapper(idx.values, idx)

@@ -764,7 +764,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
 
     Parameters
     ----------
-    dts: npy_datetimestruct*
+    dts : npy_datetimestruct*
     freq : int
 
     Returns

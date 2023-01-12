@@ -52,7 +52,7 @@ cdef tzinfo convert_timezone(
 )
 
 cdef int64_t parse_pydatetime(
-    object val,
+    datetime val,
     npy_datetimestruct *dts,
     bint utc_convert,
 ) except? -1

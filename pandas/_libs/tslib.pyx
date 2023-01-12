@@ -546,9 +546,6 @@ cpdef array_to_datetime(
                 else:
                     # coerce
                     # we now need to parse this as if unit='ns'
-                    # we can ONLY accept integers at this point
-                    # if we have previously (or in future accept
-                    # datetimes/strings, then we must coerce)
                     try:
                         iresult[i] = cast_from_unit(val, "ns")
                     except OverflowError:

@@ -880,13 +880,9 @@ class TestQuantileExtensionDtype:
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
-    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, request, obj, index):
         obj.iloc[:] = index._na_value
-
-        # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
-        obj = obj.astype(index.dtype)
+        # Check dtypes were preserved; this was once a problem see GH#39763
         assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling

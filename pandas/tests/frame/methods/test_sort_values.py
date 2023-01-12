@@ -18,7 +18,6 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize("dtype", [np.uint8, bool])
     def test_sort_values_sparse_no_warning(self, dtype):
         # GH#45618
-        # TODO(2.0): test will be unnecessary
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
         df = pd.get_dummies(ser, dtype=dtype, sparse=True)
 

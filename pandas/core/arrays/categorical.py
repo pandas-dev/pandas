@@ -471,10 +471,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = self._ndarray.dtype
         return dtype.type(-1)
 
-    @property
-    def _constructor(self) -> type[Categorical]:
-        return Categorical
-
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False

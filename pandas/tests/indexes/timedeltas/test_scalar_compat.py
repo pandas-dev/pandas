@@ -41,11 +41,12 @@ class TestVectorizedTimedelta:
         )
         tm.assert_series_equal(ser.dt.total_seconds(), s_expt)
 
+    def test_tdi_total_seconds_all_nat(self):
         # with both nat
         ser = Series([np.nan, np.nan], dtype="timedelta64[ns]")
-        tm.assert_series_equal(
-            ser.dt.total_seconds(), Series([np.nan, np.nan], index=[0, 1])
-        )
+        result = ser.dt.total_seconds()
+        expected = Series([np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
 
     def test_tdi_round(self):
         td = timedelta_range(start="16801 days", periods=5, freq="30Min")
