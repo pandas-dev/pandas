@@ -638,7 +638,11 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
     >>> is_any_int_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.integer, np.timedelta64))
+    return _is_dtype_type(
+        arr_or_dtype, classes(np.integer, np.timedelta64)
+    ) or _is_dtype(
+        arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind in "iu"
+    )
 
 
 def is_integer_dtype(arr_or_dtype) -> bool:
