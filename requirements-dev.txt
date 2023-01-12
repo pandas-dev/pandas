@@ -4,14 +4,14 @@
 pip
 versioneer[toml]
 cython==0.29.32
-pytest>=6.0
+pytest>=7.0.0
 pytest-cov
-pytest-xdist>=1.31
+pytest-xdist>=2.2.0
 psutil
 pytest-asyncio>=0.17
 coverage
 python-dateutil
-numpy<1.24
+numpy
 pytz
 beautifulsoup4
 blosc
