@@ -90,7 +90,6 @@ from pandas.tseries.frequencies import (
 )
 from pandas.tseries.offsets import (
     Day,
-    Nano,
     Tick,
 )
 
@@ -1715,7 +1714,7 @@ class TimeGrouper(Grouper):
             name=ax.name,
             ambiguous=True,
             nonexistent="shift_forward",
-        )
+        ).as_unit(ax.unit)
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
@@ -1751,7 +1750,7 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 bin_edges = binner.tz_localize(None)
-                bin_edges = bin_edges + timedelta(1) - Nano(1)
+                bin_edges = bin_edges + timedelta(1) - Timedelta(1, unit=bin_edges.unit)
                 bin_edges = bin_edges.tz_localize(binner.tz).asi8
             else:
                 bin_edges = binner.asi8
