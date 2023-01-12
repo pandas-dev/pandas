@@ -149,7 +149,6 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
-from pandas.core.internals.managers import using_copy_on_write
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
