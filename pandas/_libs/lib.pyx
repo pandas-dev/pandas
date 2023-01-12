@@ -50,6 +50,7 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int32_t,
     int64_t,
     intp_t,
     ndarray,
@@ -638,6 +639,34 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
             raise
 
         cnp.PyArray_MultiIter_NEXT(mi)
+
+    return True
+
+
+ctypedef fused int6432_t:
+    int64_t
+    int32_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equal_fast(
+    ndarray[int6432_t, ndim=1] left, ndarray[int6432_t, ndim=1] right,
+) -> bool:
+    """
+    Perform an element by element comparison on 1-d integer arrays, meant for indexer
+    comparisons
+    """
+    cdef:
+        Py_ssize_t i, n = left.size
+
+    if left.size != right.size:
+        return False
+
+    for i in range(n):
+
+        if left[i] != right[i]:
+            return False
 
     return True
 
@@ -1482,7 +1511,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return val
 
     if values.descr.type_num != NPY_OBJECT:
-        # i.e. values.dtype != np.object
+        # i.e. values.dtype != np.object_
         # This should not be reached
         values = values.astype(object)
 
@@ -2243,6 +2272,7 @@ def maybe_convert_numeric(
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
+                mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
@@ -2299,6 +2329,7 @@ def maybe_convert_numeric(
 
                 seen.saw_null()
                 floats[i] = NaN
+                mask[i] = 1
 
     if seen.check_uint64_conflict():
         return (values, None)

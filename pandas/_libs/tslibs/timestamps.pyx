@@ -579,7 +579,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_start(self) -> bool:
         """
-        Return True if date is first day of month.
+        Check if the date is the first day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the first day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_end : Similar property indicating the last day of the month.
 
         Examples
         --------
@@ -596,7 +605,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_end(self) -> bool:
         """
-        Return True if date is last day of month.
+        Check if the date is the last day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the last day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_start : Similar property indicating month start.
 
         Examples
         --------
@@ -613,7 +631,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_start(self) -> bool:
         """
-        Return True if date is first day of the quarter.
+        Check if the date is the first day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is first day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_end : Similar property indicating the quarter end.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -630,7 +658,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_end(self) -> bool:
         """
-        Return True if date is last day of the quarter.
+        Check if date is last day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is last day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_start : Similar property indicating the quarter start.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -1525,15 +1563,10 @@ class Timestamp(_Timestamp):
         elif is_integer_object(year):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, nanosecond[, tzinfo]]]]]])
+            # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
-
-            if nanosecond is None:
-                # nanosecond was not passed as a keyword, but may have been
-                #  passed positionally see test_constructor_nanosecond
-                nanosecond = microsecond
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "

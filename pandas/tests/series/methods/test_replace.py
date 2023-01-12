@@ -16,7 +16,8 @@ class TestSeriesReplace:
         expected = pd.Series([0, 0, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        df = pd.DataFrame(np.zeros((3, 3)))
+        # Cast column 2 to object to avoid implicit cast when setting entry to ""
+        df = pd.DataFrame(np.zeros((3, 3))).astype({2: object})
         df.iloc[2, 2] = ""
         result = df.replace("", None)
         expected = pd.DataFrame(
@@ -674,3 +675,18 @@ class TestSeriesReplace:
         result = ser.replace(val, None)
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_change_dtype_series(self):
+        # GH#25797
+        df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})
+        df["Test"] = df["Test"].replace([True], [np.nan])
+        expected = pd.DataFrame.from_dict({"Test": ["0.5", np.nan, "0.6"]})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df["Test"] = df["Test"].replace([None], [np.nan])
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df["Test"] = df["Test"].fillna(np.nan)
+        tm.assert_frame_equal(df, expected)

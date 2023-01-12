@@ -35,9 +35,18 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_any_int_dtype
+
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_numeric_dtype,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
+)
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
@@ -289,12 +298,6 @@ class TestConstructors(base.BaseConstructorsTests):
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support parsing {pa_dtype}",
-                )
-            )
-        elif pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
@@ -549,16 +552,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
             super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
-
-    def test_in_numeric_groupby(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="ArrowExtensionArray doesn't support .sum() yet.",
-                )
-            )
-        super().test_in_numeric_groupby(data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
@@ -1446,6 +1439,61 @@ def test_is_bool_dtype():
     tm.assert_series_equal(result, expected)
 
 
+def test_is_numeric_dtype(data):
+    # GH 50563
+    pa_type = data.dtype.pyarrow_dtype
+    if (
+        pa.types.is_floating(pa_type)
+        or pa.types.is_integer(pa_type)
+        or pa.types.is_decimal(pa_type)
+    ):
+        assert is_numeric_dtype(data)
+    else:
+        assert not is_numeric_dtype(data)
+
+
+def test_is_integer_dtype(data):
+    # GH 50667
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_type):
+        assert is_integer_dtype(data)
+    else:
+        assert not is_integer_dtype(data)
+
+
+def test_is_any_integer_dtype(data):
+    # GH 50667
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_type):
+        assert is_any_int_dtype(data)
+    else:
+        assert not is_any_int_dtype(data)
+
+
+def test_is_signed_integer_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_signed_integer(pa_type):
+        assert is_signed_integer_dtype(data)
+    else:
+        assert not is_signed_integer_dtype(data)
+
+
+def test_is_unsigned_integer_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_unsigned_integer(pa_type):
+        assert is_unsigned_integer_dtype(data)
+    else:
+        assert not is_unsigned_integer_dtype(data)
+
+
+def test_is_float_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_floating(pa_type):
+        assert is_float_dtype(data)
+    else:
+        assert not is_float_dtype(data)
+
+
 def test_pickle_roundtrip(data):
     # GH 42600
     expected = pd.Series(data)
@@ -1553,3 +1601,20 @@ def test_round():
     result = ser.round(-1)
     expected = pd.Series([120.0, pd.NA, 60.0], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_searchsorted_with_na_raises(data_for_sorting, as_series):
+    # GH50447
+    b, c, a = data_for_sorting
+    arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
+    arr[-1] = pd.NA
+
+    if as_series:
+        arr = pd.Series(arr)
+
+    msg = (
+        "searchsorted requires array to be sorted, "
+        "which is impossible with NAs present."
+    )
+    with pytest.raises(ValueError, match=msg):
+        arr.searchsorted(b)

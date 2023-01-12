@@ -727,6 +727,13 @@ class TestAddSubNaTMasking:
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
+    def test_sub_nat_retain_unit(self):
+        ser = pd.to_timedelta(Series(["00:00:01"])).astype("m8[s]")
+
+        result = ser - NaT
+        expected = Series([NaT], dtype="m8[s]")
+        tm.assert_series_equal(result, expected)
+
     # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
     #  parametrization+de-duplication
     def test_timedelta_ops_with_missing_values(self):
@@ -1756,12 +1763,18 @@ class TestTimedeltaArraylikeMulDivOps:
             # columns without missing values
             expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
-        result = left // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = left // right
 
         tm.assert_equal(result, expected)
 
         # case that goes through __rfloordiv__ with arraylike
-        result = np.asarray(left) // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
