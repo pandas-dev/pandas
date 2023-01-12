@@ -44,6 +44,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -59,8 +60,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -342,8 +341,11 @@ class IntervalIndex(ExtensionIndex):
     # "Union[IndexEngine, ExtensionEngine]" in supertype "Index"
     @cache_readonly
     def _engine(self) -> IntervalTree:  # type: ignore[override]
+        # IntervalTree does not supports numpy array unless they are 64 bit
         left = self._maybe_convert_i8(self.left)
+        left = maybe_upcast_numeric_to_64bit(left)
         right = self._maybe_convert_i8(self.right)
+        right = maybe_upcast_numeric_to_64bit(right)
         return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key: Any) -> bool:
@@ -520,13 +522,12 @@ class IntervalIndex(ExtensionIndex):
             The original key if no conversion occurred, int if converted scalar,
             Int64Index if converted list-like.
         """
-        original = key
         if is_list_like(key):
             key = ensure_index(key)
-            key = self._maybe_convert_numeric_to_64bit(key)
+            key = maybe_upcast_numeric_to_64bit(key)
 
         if not self._needs_i8_conversion(key):
-            return original
+            return key
 
         scalar = is_scalar(key)
         if is_interval_dtype(key) or isinstance(key, Interval):
@@ -568,20 +569,6 @@ class IntervalIndex(ExtensionIndex):
             )
 
         return key_i8
-
-    def _maybe_convert_numeric_to_64bit(self, idx: Index) -> Index:
-        # IntervalTree only supports 64 bit numpy array
-        dtype = idx.dtype
-        if np.issubclass_(dtype.type, np.number):
-            return idx
-        elif is_signed_integer_dtype(dtype) and dtype != np.int64:
-            return idx.astype(np.int64)
-        elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
-            return idx.astype(np.uint64)
-        elif is_float_dtype(dtype) and dtype != np.float64:
-            return idx.astype(np.float64)
-        else:
-            return idx
 
     def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if not self.is_non_overlapping_monotonic:

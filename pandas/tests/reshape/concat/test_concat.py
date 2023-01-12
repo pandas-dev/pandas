@@ -2,6 +2,7 @@ from collections import (
     abc,
     deque,
 )
+from datetime import datetime
 from decimal import Decimal
 from typing import Iterator
 from warnings import (
@@ -343,11 +344,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
         # 12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
