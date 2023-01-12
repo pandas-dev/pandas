@@ -260,6 +260,12 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
 
 
+def test_background_gradient_nullable_dtypes():
+    # test when gmap as converted ndarray is bad shape
+    df = DataFrame([[1], [None]], dtype="Int64")
+    df.style.background_gradient()._compute()
+
+
 @pytest.mark.parametrize(
     "cmap",
     ["PuBu", mpl.colormaps["PuBu"]],
