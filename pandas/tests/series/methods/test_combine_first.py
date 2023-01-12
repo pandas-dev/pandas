@@ -103,13 +103,13 @@ class TestCombineFirst:
 
     def test_combine_first_timezone_series_with_empty_series(self):
         # GH 41800
-        time_index = pd.date_range(
+        time_index = date_range(
             datetime(2021, 1, 1, 1),
             datetime(2021, 1, 1, 10),
             freq="H",
-            tz="Europe/Rome"
+            tz="Europe/Rome",
         )
-        s1 = Series(np.random.random(10), index=time_index)
-        s2 = Series()
+        s1 = Series(range(10), index=time_index)
+        s2 = Series(index=time_index)
         result = s1.combine_first(s2)
-        tm.assert_equal(result.values, s1.values)
+        tm.assert_series_equal(result, s1)
