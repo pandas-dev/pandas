@@ -967,6 +967,6 @@ class TestFillnaPad:
         )
         expected = Series(arr)
 
-        filled = Series(ser.fillna(method="pad"))
+        filled = ser.fillna(method="pad")
 
         tm.assert_series_equal(filled, expected)
