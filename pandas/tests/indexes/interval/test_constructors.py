@@ -311,6 +311,7 @@ class TestFromTuples(ConstructorTests):
         """
         if tm.is_unsigned_integer_dtype(breaks):
             pytest.skip(f"{breaks.dtype} not relevant IntervalIndex.from_tuples tests")
+
         if len(breaks) == 0:
             return {"data": breaks}
 
