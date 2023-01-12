@@ -2249,8 +2249,8 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_integer is deprecated."
-            "Use pandas.api.types.is_integer_dtype instead",
+            f"{type(self).__name__}.is_integer is deprecated. "
+            "Use pandas.api.types.is_integer_dtype instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
