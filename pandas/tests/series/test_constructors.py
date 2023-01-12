@@ -733,7 +733,6 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
-    @pytest.mark.xfail(np_version_gte1p24, reason="GH49777")
     def test_constructor_signed_int_overflow_deprecation(self):
         # GH#41734 disallow silent overflow
         msg = "Values are too large to be losslessly cast"
