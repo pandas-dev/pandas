@@ -276,8 +276,9 @@ class TestLocBaseIndependent:
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
         # GH#20684
         """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        parse_datetime_string_with_reso return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_datetime_string_with_reso
+        as a tuple.
         If first argument is Period and a tuple has 3 items,
         process go on not raise exception
         """
