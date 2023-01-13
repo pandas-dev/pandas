@@ -2182,8 +2182,8 @@ def objects_to_datetime64ns(
 
 def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     """
-    Convert data based on dtype conventions, issuing deprecation warnings
-    or errors where appropriate.
+    Convert data based on dtype conventions, issuing
+    errors where appropriate.
 
     Parameters
     ----------
