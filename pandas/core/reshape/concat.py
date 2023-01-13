@@ -18,7 +18,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._typing import (
     Axis,
@@ -51,7 +54,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import concatenate_managers
 from pandas.core.internals.construction import dict_to_mgr
-from pandas.core.internals.managers import using_copy_on_write
 
 if TYPE_CHECKING:
     from pandas import (

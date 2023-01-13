@@ -11,6 +11,8 @@ from warnings import (
 import numpy as np
 import pytest
 
+from pandas._config import using_copy_on_write
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -24,7 +26,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.internals.managers import using_copy_on_write
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
