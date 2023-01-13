@@ -126,7 +126,7 @@ def test_coerce_outside_ns_bounds(invalid_date, errors):
     kwargs = {"values": arr, "errors": errors}
 
     if errors == "raise":
-        msg = "Out of bounds .* present at position 0"
+        msg = "^Out of bounds nanosecond timestamp: .*, at position 0$"
 
         with pytest.raises(ValueError, match=msg):
             tslib.array_to_datetime(**kwargs)
@@ -171,9 +171,7 @@ def test_to_datetime_barely_out_of_bounds():
     # Close enough to bounds that dropping nanos
     # would result in an in-bounds datetime.
     arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
-    msg = (
-        "Out of bounds nanosecond timestamp: 2262-04-11 23:47:16 present at position 0"
-    )
+    msg = "^Out of bounds nanosecond timestamp: 2262-04-11 23:47:16, at position 0$"
 
     with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
         tslib.array_to_datetime(arr)

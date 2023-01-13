@@ -1,4 +1,18 @@
 """Strptime-related classes and functions.
+
+TimeRE, _calc_julian_from_U_or_W are vendored
+from the standard library, see
+https://github.com/python/cpython/blob/main/Lib/_strptime.py
+The original module-level docstring follows.
+
+Strptime-related classes and functions.
+CLASSES:
+    LocaleTime -- Discovers and stores locale-specific time information
+    TimeRE -- Creates regexes for pattern matching a string of text containing
+                time information
+FUNCTIONS:
+    _getlang -- Figure out what language is being used for the locale
+    strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
 
@@ -10,10 +24,16 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from _strptime import (
+    TimeRE as _TimeRE,
+    _getlang,
+)
+from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
+import re
 
 import numpy as np
 import pytz
@@ -34,12 +54,14 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pydate_to_dt64,
     pydatetime_to_dt64,
+    string_to_dts,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -49,8 +71,58 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
+from pandas._libs.tslibs.timestamps import Timestamp
+
 cnp.import_array()
 
+cdef bint format_is_iso(f: str):
+    """
+    Does format match the iso8601 set that can be handled by the C parser?
+    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
+    but must be consistent.  Leading 0s in dates and times are optional.
+    """
+    iso_regex = re.compile(
+        r"""
+        ^                     # start of string
+        %Y                    # Year
+        (?:([-/ \\.]?)%m      # month with or without separators
+        (?: \1%d              # day with same separator as for year-month
+        (?:[ T]%H             # hour with separator
+        (?:\:%M               # minute with separator
+        (?:\:%S               # second with separator
+        (?:%z|\.%f(?:%z)?     # timezone or fractional second
+        )?)?)?)?)?)?          # optional
+        $                     # end of string
+        """,
+        re.VERBOSE,
+    )
+    excluded_formats = ["%Y%m"]
+    return re.match(iso_regex, f) is not None and f not in excluded_formats
+
+
+def _test_format_is_iso(f: str) -> bool:
+    """Only used in testing."""
+    return format_is_iso(f)
+
+
+cdef bint parse_today_now(str val, int64_t* iresult, bint utc):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+
+    # Multiply by 1000 to convert to nanos, since these methods naturally have
+    #  microsecond resolution
+    if val == "now":
+        if utc:
+            iresult[0] = Timestamp.utcnow().value * 1000
+        else:
+            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
+            # Note using Timestamp.now() is faster than Timestamp("now")
+            iresult[0] = Timestamp.now().value * 1000
+        return True
+    elif val == "today":
+        iresult[0] = Timestamp.today().value * 1000
+        return True
+    return False
 
 cdef dict _parse_code_table = {"y": 0,
                                "Y": 1,
@@ -111,6 +183,9 @@ def array_strptime(
         bint found_naive = False
         bint found_tz = False
         tzinfo tz_out = None
+        bint iso_format = fmt is not None and format_is_iso(fmt)
+        NPY_DATETIMEUNIT out_bestunit
+        int out_local = 0, out_tzoffset = 0
 
     assert is_raise or is_ignore or is_coerce
 
@@ -232,21 +307,54 @@ def array_strptime(
             else:
                 val = str(val)
 
+            if iso_format:
+                string_to_dts_failed = string_to_dts(
+                    val, &dts, &out_bestunit, &out_local,
+                    &out_tzoffset, False, fmt, exact
+                )
+                if not string_to_dts_failed:
+                    # No error reported by string_to_dts, pick back up
+                    # where we left off
+                    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                    if out_local == 1:
+                        # Store the out_tzoffset in seconds
+                        # since we store the total_seconds of
+                        # dateutil.tz.tzoffset objects
+                        tz = timezone(timedelta(minutes=out_tzoffset))
+                        result_timezone[i] = tz
+                        out_local = 0
+                        out_tzoffset = 0
+                    iresult[i] = value
+                    check_dts_bounds(&dts)
+                    continue
+
+            if parse_today_now(val, &iresult[i], utc):
+                continue
+
+            # Some ISO formats can't be parsed by string_to_dts
+            # For example, 6-digit YYYYMD. So, if there's an error,
+            # try the string-matching code below.
+
             # exact matching
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    raise ValueError(f"time data '{val}' does not match "
-                                     f"format '{fmt}' (match)")
+                    raise ValueError(f"time data \"{val}\" doesn't "
+                                     f"match format \"{fmt}\"")
                 if len(val) != found.end():
-                    raise ValueError(f"unconverted data remains: {val[found.end():]}")
+                    raise ValueError(
+                        f"unconverted data remains: "
+                        f'"{val[found.end():]}"'
+                    )
 
             # search
             else:
                 found = format_regex.search(val)
                 if not found:
-                    raise ValueError(f"time data {repr(val)} does not match format "
-                                     f"{repr(fmt)} (search)")
+                    raise ValueError(
+                        f"time data \"{val}\" doesn't match "
+                        f"format \"{fmt}\""
+                    )
 
             iso_year = -1
             year = 1900
@@ -396,7 +504,8 @@ def array_strptime(
 
             result_timezone[i] = tz
 
-        except (ValueError, OutOfBoundsDatetime):
+        except (ValueError, OutOfBoundsDatetime) as ex:
+            ex.args = (f"{str(ex)}, at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
@@ -405,29 +514,6 @@ def array_strptime(
             return values, []
 
     return result, result_timezone.base
-
-
-"""
-TimeRE, _calc_julian_from_U_or_W are vendored
-from the standard library, see
-https://github.com/python/cpython/blob/main/Lib/_strptime.py
-The original module-level docstring follows.
-
-Strptime-related classes and functions.
-CLASSES:
-    LocaleTime -- Discovers and stores locale-specific time information
-    TimeRE -- Creates regexes for pattern matching a string of text containing
-                time information
-FUNCTIONS:
-    _getlang -- Figure out what language is being used for the locale
-    strptime -- Calculates the time struct represented by the passed-in string
-"""
-
-from _strptime import (
-    TimeRE as _TimeRE,
-    _getlang,
-)
-from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):

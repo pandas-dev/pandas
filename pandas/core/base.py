@@ -38,6 +38,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
@@ -531,12 +532,27 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        result = np.asarray(self._values, dtype=dtype)
-        # TODO(GH-24345): Avoid potential double copy
-        if copy or na_value is not lib.no_default:
-            result = result.copy()
-            if na_value is not lib.no_default:
-                result[np.asanyarray(self.isna())] = na_value
+        if na_value is not lib.no_default:
+            values = self._values
+            if not can_hold_element(values, na_value):
+                # if we can't hold the na_value asarray either makes a copy or we
+                # error before modifying values. The asarray later on thus won't make
+                # another copy
+                values = np.asarray(values, dtype=dtype)
+            else:
+                values = values.copy()
+
+            values[np.asanyarray(self.isna())] = na_value
+        else:
+            values = self._values
+
+        result = np.asarray(values, dtype=dtype)
+
+        if copy and na_value is lib.no_default:
+            if np.shares_memory(self._values[:2], result[:2]):
+                # Take slices to improve performance of check
+                result = result.copy()
+
         return result
 
     @final
@@ -1140,6 +1156,8 @@ class IndexOpsMixin(OpsMixin):
         codes, uniques = algorithms.factorize(
             self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
+        if uniques.dtype == np.float16:
+            uniques = uniques.astype(np.float32)
 
         if isinstance(self, ABCIndex):
             # preserve e.g. NumericIndex, preserve MultiIndex
@@ -1282,6 +1300,13 @@ class IndexOpsMixin(OpsMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+
+        if isinstance(value, ABCDataFrame):
+            msg = (
+                "Value must be 1-D array-like or scalar, "
+                f"{type(value).__name__} is not supported"
+            )
+            raise ValueError(msg)
 
         values = self._values
         if not isinstance(values, np.ndarray):

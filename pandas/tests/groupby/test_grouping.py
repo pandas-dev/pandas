@@ -1,4 +1,10 @@
-""" test where we are determining what we are grouping, or getting groups """
+"""
+test where we are determining what we are grouping, or getting groups
+"""
+from datetime import (
+    date,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -7,6 +13,7 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
+    Grouper,
     Index,
     MultiIndex,
     Series,
@@ -55,11 +62,7 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
         df["mean"] = 1.5
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").mean()
         result = df.groupby("A").mean(numeric_only=True)
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").agg(np.mean)
         expected = df.groupby("A")[["C", "D", "mean"]].agg(np.mean)
         tm.assert_frame_equal(result, expected)
 
@@ -170,14 +173,8 @@ class TestGrouping:
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
-
         # GH 7885
-        # with level and freq specified in a pd.Grouper
-        from datetime import (
-            date,
-            timedelta,
-        )
-
+        # with level and freq specified in a Grouper
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
         date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
@@ -186,20 +183,20 @@ class TestGrouping:
         # Check string level
         expected = (
             df.reset_index()
-            .groupby([pd.Grouper(key="foo", freq="W"), pd.Grouper(key="bar", freq="W")])
+            .groupby([Grouper(key="foo", freq="W"), Grouper(key="bar", freq="W")])
             .sum()
         )
         # reset index changes columns dtype to object
         expected.columns = Index([0], dtype="int64")
 
         result = df.groupby(
-            [pd.Grouper(level="foo", freq="W"), pd.Grouper(level="bar", freq="W")]
+            [Grouper(level="foo", freq="W"), Grouper(level="bar", freq="W")]
         ).sum()
         tm.assert_frame_equal(result, expected)
 
         # Check integer level
         result = df.groupby(
-            [pd.Grouper(level=0, freq="W"), pd.Grouper(level=1, freq="W")]
+            [Grouper(level=0, freq="W"), Grouper(level=1, freq="W")]
         ).sum()
         tm.assert_frame_equal(result, expected)
 
@@ -210,11 +207,11 @@ class TestGrouping:
         g = df.groupby("A")
         expected = g.sum()
 
-        g = df.groupby(pd.Grouper(key="A"))
+        g = df.groupby(Grouper(key="A"))
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        g = df.groupby(pd.Grouper(key="A", axis=0))
+        g = df.groupby(Grouper(key="A", axis=0))
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -224,13 +221,13 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         # GH14334
-        # pd.Grouper(key=...) may be passed in a list
+        # Grouper(key=...) may be passed in a list
         df = DataFrame(
             {"A": [0, 0, 0, 1, 1, 1], "B": [1, 1, 2, 2, 3, 3], "C": [1, 2, 3, 4, 5, 6]}
         )
         # Group by single column
         expected = df.groupby("A").sum()
-        g = df.groupby([pd.Grouper(key="A")])
+        g = df.groupby([Grouper(key="A")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -239,17 +236,17 @@ class TestGrouping:
         expected = df.groupby(["A", "B"]).sum()
 
         # Group with two Grouper objects
-        g = df.groupby([pd.Grouper(key="A"), pd.Grouper(key="B")])
+        g = df.groupby([Grouper(key="A"), Grouper(key="B")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
         # Group with a string and a Grouper object
-        g = df.groupby(["A", pd.Grouper(key="B")])
+        g = df.groupby(["A", Grouper(key="B")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
         # Group with a Grouper object and a string
-        g = df.groupby([pd.Grouper(key="A"), "B"])
+        g = df.groupby([Grouper(key="A"), "B"])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -261,7 +258,7 @@ class TestGrouping:
                 names=["one", "two", "three"],
             ),
         )
-        result = s.groupby(pd.Grouper(level="three", freq="M")).sum()
+        result = s.groupby(Grouper(level="three", freq="M")).sum()
         expected = Series(
             [28],
             index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
@@ -269,7 +266,7 @@ class TestGrouping:
         tm.assert_series_equal(result, expected)
 
         # just specifying a level breaks
-        result = s.groupby(pd.Grouper(level="one")).sum()
+        result = s.groupby(Grouper(level="one")).sum()
         expected = s.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
 
@@ -286,22 +283,14 @@ class TestGrouping:
             {"A": np.arange(6), "B": ["one", "one", "two", "two", "one", "one"]},
             index=idx,
         )
-        result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean(
-            numeric_only=True
-        )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_multi.reset_index().groupby(["B", "inner"]).mean()
+        result = df_multi.groupby(["B", Grouper(level="inner")]).mean(numeric_only=True)
         expected = (
             df_multi.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
         )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean(
-            numeric_only=True
-        )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_multi.reset_index().groupby(["inner", "B"]).mean()
+        result = df_multi.groupby([Grouper(level="inner"), "B"]).mean(numeric_only=True)
         expected = (
             df_multi.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
         )
@@ -310,26 +299,18 @@ class TestGrouping:
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index("outer")
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
-        result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean(
+        result = df_single.groupby(["B", Grouper(level="inner")]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.reset_index().groupby(["B", "inner"]).mean()
         expected = (
             df_single.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
         )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
-        result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean(
+        result = df_single.groupby([Grouper(level="inner"), "B"]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.reset_index().groupby(["inner", "B"]).mean()
         expected = (
             df_single.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
         )
@@ -384,7 +365,7 @@ class TestGrouping:
             ),
         )
         result = df.groupby(
-            [pd.Grouper(level="one"), pd.Grouper(level="two", freq="M")]
+            [Grouper(level="one"), Grouper(level="two", freq="M")]
         ).sum()
         expected = DataFrame(
             {"A": [31, 28, 21, 31, 28, 21]},
@@ -406,11 +387,7 @@ class TestGrouping:
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
 
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby(grouped.grouper).mean()
         result = df.groupby(grouped.grouper).mean(numeric_only=True)
-        with pytest.raises(TypeError, match="Could not convert"):
-            grouped.mean()
         expected = grouped.mean(numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
@@ -666,7 +643,7 @@ class TestGrouping:
         # GH 14715
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
-        grouper = pd.Grouper(key="date", freq="AS")
+        grouper = Grouper(key="date", freq="AS")
 
         # Grouper in a list grouping
         result = df.groupby([grouper])
@@ -867,7 +844,7 @@ class TestGetGroup:
         index = pd.DatetimeIndex(())
         data = ()
         series = Series(data, index, dtype=object)
-        grouper = pd.Grouper(freq="D")
+        grouper = Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
@@ -1002,7 +979,7 @@ class TestIteration:
             {"event": ["start", "start"], "change": [1234, 5678]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10"]),
         )
-        grouped = df.groupby([pd.Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1017,7 +994,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-09-15"]),
         )
-        grouped = df.groupby([pd.Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1033,7 +1010,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-08-05"]),
         )
-        grouped = df.groupby([pd.Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1056,3 +1033,17 @@ class TestIteration:
         result = gr.grouper.groupings[0].__repr__()
         expected = "Grouping(('A', 'a'))"
         assert result == expected
+
+
+def test_grouping_by_key_is_in_axis():
+    # GH#50413 - Groupers specified by key are in-axis
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 2], "c": [3, 4, 5]}).set_index("a")
+    gb = df.groupby([Grouper(level="a"), Grouper(key="b")], as_index=False)
+    assert not gb.grouper.groupings[0].in_axis
+    assert gb.grouper.groupings[1].in_axis
+
+    # Currently only in-axis groupings are including in the result when as_index=False;
+    # This is likely to change in the future.
+    result = gb.sum()
+    expected = DataFrame({"b": [1, 2], "c": [7, 5]})
+    tm.assert_frame_equal(result, expected)

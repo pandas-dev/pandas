@@ -1067,7 +1067,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
 
         skip = {
             (operator.truediv, "bool"),
@@ -1099,10 +1099,14 @@ class TestFrameArithmetic:
                 msg = None
             elif dtype == "complex128":
                 msg = "ufunc 'remainder' not supported for the input types"
-                warn = UserWarning  # "evaluating in Python space because ..."
             elif op is operator.sub:
                 msg = "numpy boolean subtract, the `-` operator, is "
-                warn = UserWarning  # "evaluating in Python space because ..."
+                if (
+                    dtype == "bool"
+                    and expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                ):
+                    warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1536,7 +1540,10 @@ class TestFrameArithmeticUnsorted:
         result3 = func(float_frame, 0)
         tm.assert_numpy_array_equal(result3.values, func(float_frame.values, 0))
 
-        msg = "Can only compare identically-labeled DataFrame"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 

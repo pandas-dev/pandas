@@ -285,7 +285,7 @@ class TestBlock:
     def test_delete(self, fblock):
         newb = fblock.copy()
         locs = newb.mgr_locs
-        nb = newb.delete(0)
+        nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
 
         assert nb is not newb
@@ -299,21 +299,25 @@ class TestBlock:
         newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
+        assert len(nb) == 2
         assert newb.mgr_locs is locs
 
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            nb[1].mgr_locs.as_array, np.array([4], dtype=np.intp)
         )
         assert not (newb.values[1] == 2).all()
-        assert (nb.values[1] == 2).all()
+        assert (nb[1].values[0] == 2).all()
 
         newb = fblock.copy()
-        locs = newb.mgr_locs
         nb = newb.delete(2)
+        assert len(nb) == 1
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
-        assert (nb.values[1] == 1).all()
+        assert (nb[0].values[1] == 1).all()
 
         newb = fblock.copy()
 
@@ -328,14 +332,18 @@ class TestBlock:
         assert isinstance(blk.values, TimedeltaArray)
 
         nb = blk.delete(1)
-        assert isinstance(nb.values, TimedeltaArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, TimedeltaArray)
+        assert isinstance(nb[1].values, TimedeltaArray)
 
         df = DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
         nb = blk.delete([1, 3])
-        assert isinstance(nb.values, DatetimeArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, DatetimeArray)
+        assert isinstance(nb[1].values, DatetimeArray)
 
     def test_split(self):
         # GH#37799
@@ -1323,10 +1331,6 @@ class TestCanHoldElement:
         elem = element(dti)
         self.check_series_setitem(elem, pi, False)
 
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
-
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1349,23 +1353,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:

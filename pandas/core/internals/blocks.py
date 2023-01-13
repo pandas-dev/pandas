@@ -325,6 +325,7 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
+    @final
     def reduce(self, func) -> list[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
@@ -1314,11 +1315,48 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
 
-    def delete(self, loc) -> Block:
+    def delete(self, loc) -> list[Block]:
+        """Deletes the locs from the block.
+
+        We split the block to avoid copying the underlying data. We create new
+        blocks for every connected segment of the initial block that is not deleted.
+        The new blocks point to the initial array.
         """
-        Return a new Block with the given loc(s) deleted.
-        """
-        raise AbstractMethodError(self)
+        if not is_list_like(loc):
+            loc = [loc]
+
+        if self.ndim == 1:
+            values = cast(np.ndarray, self.values)
+            values = np.delete(values, loc)
+            mgr_locs = self._mgr_locs.delete(loc)
+            return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+
+        if np.max(loc) >= self.values.shape[0]:
+            raise IndexError
+
+        # Add one out-of-bounds indexer as maximum to collect
+        # all columns after our last indexer if any
+        loc = np.concatenate([loc, [self.values.shape[0]]])
+        mgr_locs_arr = self._mgr_locs.as_array
+        new_blocks: list[Block] = []
+
+        previous_loc = -1
+        for idx in loc:
+
+            if idx == previous_loc + 1:
+                # There is no column between current and last idx
+                pass
+            else:
+                # No overload variant of "__getitem__" of "ExtensionArray" matches
+                # argument type "Tuple[slice, slice]"
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa
+                locs = mgr_locs_arr[previous_loc + 1 : idx]
+                nb = type(self)(values, placement=BlockPlacement(locs), ndim=self.ndim)
+                new_blocks.append(nb)
+
+            previous_loc = idx
+
+        return new_blocks
 
     @property
     def is_view(self) -> bool:
@@ -1531,11 +1569,13 @@ class EABackedBlock(Block):
 
         return [self]
 
-    def delete(self, loc) -> Block:
+    def delete(self, loc) -> list[Block]:
         # This will be unnecessary if/when __array_function__ is implemented
-        values = self.values.delete(loc)
-        mgr_locs = self._mgr_locs.delete(loc)
-        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
+        if self.ndim == 1:
+            values = self.values.delete(loc)
+            mgr_locs = self._mgr_locs.delete(loc)
+            return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+        return super().delete(loc)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
@@ -1850,11 +1890,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
     def values_for_json(self) -> np.ndarray:
         return self.values
 
-    def delete(self, loc) -> Block:
-        values = np.delete(self.values, loc, 0)
-        mgr_locs = self._mgr_locs.delete(loc)
-        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
-
 
 class NumericBlock(NumpyBlock):
     __slots__ = ()
@@ -1957,19 +1992,6 @@ class ObjectBlock(NumpyBlock):
     __slots__ = ()
     is_object = True
 
-    def reduce(self, func) -> list[Block]:
-        """
-        For object-dtype, we operate column-wise.
-        """
-        assert self.ndim == 2
-
-        res = func(self.values)
-
-        assert isinstance(res, np.ndarray)
-        assert res.ndim == 1
-        res = res.reshape(-1, 1)
-        return [self.make_block_same_class(res)]
-
     @maybe_split
     def convert(
         self,
@@ -1980,7 +2002,9 @@ class ObjectBlock(NumpyBlock):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
-        if self.dtype != object:
+        if self.dtype != _dtype_obj:
+            # GH#50067 this should be impossible in ObjectBlock, but until
+            #  that is fixed, we short-circuit here.
             return [self]
 
         values = self.values

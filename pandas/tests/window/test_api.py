@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    DataError,
+    SpecificationError,
+)
 
 from pandas import (
     DataFrame,
@@ -66,18 +69,12 @@ def tests_skip_nuisance(step):
     tm.assert_frame_equal(result, expected)
 
 
-def test_skip_sum_object_raises(step):
+def test_sum_object_str_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
-    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#42738
-        result = r.sum()
-    expected = DataFrame(
-        {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
-        columns=list("AB"),
-    )[::step]
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(DataError, match="Cannot aggregate non-numeric type: object"):
+        # GH#42738, enforced in 2.0
+        r.sum()
 
 
 def test_agg(step):

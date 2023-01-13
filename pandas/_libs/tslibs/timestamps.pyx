@@ -448,6 +448,7 @@ cdef class _Timestamp(ABCTimestamp):
             # cython semantics, args have been switched and this is __radd__
             # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -578,7 +579,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_start(self) -> bool:
         """
-        Return True if date is first day of month.
+        Check if the date is the first day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the first day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_end : Similar property indicating the last day of the month.
 
         Examples
         --------
@@ -595,7 +605,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_end(self) -> bool:
         """
-        Return True if date is last day of month.
+        Check if the date is the last day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the last day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_start : Similar property indicating month start.
 
         Examples
         --------
@@ -612,7 +631,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_start(self) -> bool:
         """
-        Return True if date is first day of the quarter.
+        Check if the date is the first day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is first day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_end : Similar property indicating the quarter end.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -629,7 +658,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_end(self) -> bool:
         """
-        Return True if date is last day of the quarter.
+        Check if date is last day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is last day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_start : Similar property indicating the quarter start.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -1524,15 +1563,10 @@ class Timestamp(_Timestamp):
         elif is_integer_object(year):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, nanosecond[, tzinfo]]]]]])
+            # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
-
-            if nanosecond is None:
-                # nanosecond was not passed as a keyword, but may have been
-                #  passed positionally see test_constructor_nanosecond
-                nanosecond = microsecond
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
@@ -1560,8 +1594,17 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        to_offset(freq).nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
+
+            # e.g. self.unit == "s" and sub-second freq
+            return self
+
+        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None).value

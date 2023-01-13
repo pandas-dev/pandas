@@ -103,7 +103,7 @@ class TestTimestampTZOperations:
         ts_dst = ts.tz_localize("US/Eastern", ambiguous=True)
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
-        assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
+        assert ts_no_dst.value - ts_dst.value == 3600
         msg = re.escape(
             "'ambiguous' parameter must be one of: "
             "True, False, 'NaT', 'raise' (default)"
@@ -190,7 +190,7 @@ class TestTimestampTZOperations:
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
         assert result_pytz.value == result_dateutil.value
-        assert result_pytz.value == 1382835600000000000
+        assert result_pytz.value == 1382835600
 
         # fixed ambiguous behavior
         # see gh-14621, GH#45087
@@ -202,7 +202,7 @@ class TestTimestampTZOperations:
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=True)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=True)
         assert result_pytz.value == result_dateutil.value
-        assert result_pytz.value == 1382832000000000000
+        assert result_pytz.value == 1382832000
 
         # see gh-14621
         assert str(result_pytz) == str(result_dateutil)
@@ -431,7 +431,7 @@ class TestTimestampTZOperations:
             Timestamp("2017-03-26 02:00", tz="Europe/Paris")
 
         result = Timestamp("2017-03-26 02:00:00+0100", tz="Europe/Paris")
-        naive = Timestamp(result.value)
+        naive = Timestamp(result.as_unit("ns").value)
         expected = naive.tz_localize("UTC").tz_convert("Europe/Paris")
         assert result == expected
 

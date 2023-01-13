@@ -29,7 +29,7 @@ jobs:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
         pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["7", "8", "9"]
+        pyarrow_version: ["7", "8", "9", "10"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -38,7 +38,7 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: ""
+            error_on_warnings: "0"
           - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -63,40 +63,47 @@ jobs:
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
-            test_args: ""
+            error_on_warnings: "0"
           - name: "Data Manager"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
-            test_args: ""
+            error_on_warnings: "0"
           - name: "Pypy"
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
+            error_on_warnings: "0"
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
+            error_on_warnings: "0"
         exclude:
-          - env_file: actions-39.yaml
-            pyarrow_version: "6"
+          - env_file: actions-38.yaml
+            pyarrow_version: "7"
+          - env_file: actions-38.yaml
+            pyarrow_version: "8"
+          - env_file: actions-38.yaml
+            pyarrow_version: "9"
           - env_file: actions-39.yaml
             pyarrow_version: "7"
-          - env_file: actions-310.yaml
-            pyarrow_version: "6"
-          - env_file: actions-310.yaml
-            pyarrow_version: "7"
+          - env_file: actions-39.yaml
+            pyarrow_version: "8"
+          - env_file: actions-39.yaml
+            pyarrow_version: "9"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
+      ERROR_ON_WARNINGS: ${{ matrix.error_on_warnings || '1' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      TEST_ARGS: ${{ matrix.test_args || '-W error:::pandas' }}
+      TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}

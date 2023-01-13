@@ -66,7 +66,10 @@ class TestFactorize:
         constructor = Index
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
-        expected_uniques = constructor(obj.unique())
+        expected_arr = obj.unique()
+        if expected_arr.dtype == np.float16:
+            expected_arr = expected_arr.astype(np.float32)
+        expected_uniques = constructor(expected_arr)
         if (
             isinstance(obj, Index)
             and expected_uniques.dtype == bool
@@ -2160,8 +2163,7 @@ def test_int64_add_overflow():
             b_mask=np.array([False, True]),
         )
     with pytest.raises(OverflowError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
+        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
 
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just

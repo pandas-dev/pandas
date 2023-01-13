@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -467,8 +468,6 @@ class TestDataFrameIndexing:
 
     def test_setitem_ambig(self):
         # Difficulties with mixed-type data
-        from decimal import Decimal
-
         # Created as float type
         dm = DataFrame(index=range(3), columns=range(3))
 
@@ -1492,6 +1491,15 @@ class TestDataFrameIndexing:
 
         df.loc[df["update"], indexer] = update_df["date"]
 
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer, idx", [(tm.loc, 1), (tm.iloc, 2)])
+    def test_setitem_value_coercing_dtypes(self, indexer, idx):
+        # GH#50467
+        df = DataFrame([["1", np.nan], ["2", np.nan], ["3", np.nan]], dtype=object)
+        rhs = DataFrame([[1, np.nan], [2, np.nan]])
+        indexer(df)[:idx, :] = rhs
+        expected = DataFrame([[1, np.nan], [2, np.nan], ["3", np.nan]], dtype=object)
         tm.assert_frame_equal(df, expected)
 
 

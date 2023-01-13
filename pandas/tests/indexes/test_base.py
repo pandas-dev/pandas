@@ -891,7 +891,6 @@ class TestIndex(Base):
         "index",
         [
             Index(["qux", "baz", "foo", "bar"]),
-            # float64 Index overrides isin, so must be checked separately
             NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
@@ -1604,14 +1603,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(list(range(2000, 2005)), **extra_kwargs)
     tm.assert_index_equal(result, expected, exact=True)
-
-
-def test_get_attributes_dict_deprecated():
-    # https://github.com/pandas-dev/pandas/pull/44028
-    idx = Index([1, 2, 3, 1])
-    with tm.assert_produces_warning(DeprecationWarning):
-        attrs = idx._get_attributes_dict()
-    assert attrs == {"name": None}
 
 
 @pytest.mark.parametrize("op", [operator.lt, operator.gt])

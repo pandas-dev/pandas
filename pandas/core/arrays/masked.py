@@ -1039,6 +1039,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 raise NotImplementedError
             if self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
+
+                if is_integer_dtype(self.dtype):
+                    # We try to maintain int dtype if possible for not all-na case
+                    # as well
+                    res = np.zeros(res.shape, dtype=self.dtype.numpy_dtype)
             else:
                 out_mask = np.zeros(res.shape, dtype=bool)
         else:
@@ -1049,7 +1054,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var"}:
+        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
@@ -1060,7 +1065,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             data = self.to_numpy("float64", na_value=np.nan)
 
-        # median, var, std, skew, kurt, idxmin, idxmax
+        # median, skew, kurt, idxmin, idxmax
         op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
@@ -1154,6 +1159,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result(
             "var", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def std(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        result = masked_reductions.std(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+            ddof=ddof,
+        )
+        return self._wrap_reduction_result(
+            "std", result, skipna=skipna, axis=axis, **kwargs
         )
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
