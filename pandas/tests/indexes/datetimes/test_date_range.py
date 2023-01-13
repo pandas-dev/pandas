@@ -812,7 +812,7 @@ class TestDateRangeTZ:
 
         dr = date_range("2012-11-02", periods=10, tz=tzstr)
         result = dr.hour
-        expected = pd.Index([0] * 10)
+        expected = pd.Index([0] * 10, dtype="int32")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
@@ -980,7 +980,7 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        msg = "could not convert string to Timestamp"
+        msg = "Unknown string format: 2007/100/1"
         with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 
