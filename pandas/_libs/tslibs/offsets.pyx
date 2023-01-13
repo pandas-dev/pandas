@@ -2500,7 +2500,6 @@ cdef class Week(SingleConstructorOffset):
 
     Examples
     ---------
-    import pandas as pd
 
     >>> date_format = "%Y-%m-%d"
     >>> date_object = pd.to_datetime("2023-01-13",format = date_format)
