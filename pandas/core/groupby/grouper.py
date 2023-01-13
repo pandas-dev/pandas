@@ -27,15 +27,18 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_dtype_equal,
     is_list_like,
     is_scalar,
 )
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    BaseMaskedArray,
     Categorical,
     ExtensionArray,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
@@ -893,7 +896,7 @@ def get_grouper(
             # For the CoW case, we need an equality check as the identity check
             # no longer works (each Series from column access is a new object)
             try:
-                return gpr.equals(obj[gpr.name])
+                return _is_same_memory(gpr, obj[gpr.name])
             except (AttributeError, KeyError, IndexError, InvalidIndexError):
                 return False
         try:
@@ -986,3 +989,29 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
     else:
         return grouper
+
+
+def _is_same_memory(s1, s2):
+    if not is_dtype_equal(s1, s2):
+        return False
+    if len(s1) != len(s2):
+        return False
+
+    arr1 = s1._values
+    arr2 = s2._values
+
+    if isinstance(arr1, np.ndarray):
+        # slice first element -> if first element shares memory and they are
+        # equal length -> share exactly memory for the full length (if not
+        # checking first element, two arrays might overlap partially)
+        return np.shares_memory(arr1[:1], arr2[:1])
+
+    elif isinstance(arr1, BaseMaskedArray):
+        return np.shares_memory(arr1._data[:1], arr2._data[:1]) and np.shares_memory(
+            arr1._mask[:1], arr2._mask[:1]
+        )
+
+    elif isinstance(arr1, NDArrayBackedExtensionArray):
+        return np.shares_memory(arr1._ndarray[:1], arr2._ndarray[:1])
+    else:
+        return s1.equals(s2)
