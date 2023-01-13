@@ -610,7 +610,7 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(df, expected)
 
     def test_sort_values_no_by_inplace(self):
-        # GH#
+        # GH#50643
         df = DataFrame({"a": [1, 2, 3]})
         expected = df.copy()
         result = df.sort_values(by=[], inplace=True)
