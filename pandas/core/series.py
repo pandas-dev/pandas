@@ -426,10 +426,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
-                if (
-                    get_option("mode.copy_on_write")
-                    and get_option("mode.data_manager") == "block"
-                ):
+                if using_copy_on_write():
                     data = data._mgr.copy(deep=False)
                 else:
                     data = data._mgr
