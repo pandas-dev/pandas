@@ -272,7 +272,6 @@ class TestSeriesGetitemSlices:
         with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             datetime_series[:, np.newaxis]
 
-    # FutureWarning from NumPy.
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
         ser = Series(np.random.randn(13), index=index)

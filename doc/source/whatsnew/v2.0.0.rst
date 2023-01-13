@@ -83,34 +83,40 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
-Copy on write improvements
+Copy-on-Write improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A new lazy copy mechanism that defers the copy until the object in question is modified
-was added to the following methods:
+- A new lazy copy mechanism that defers the copy until the object in question is modified
+  was added to the following methods:
 
-- :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
-- :meth:`DataFrame.set_index` / :meth:`Series.set_index`
-- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
-- :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
-- :meth:`DataFrame.rename_columns`
-- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
-- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
-- :meth:`DataFrame.assign`
-- :meth:`DataFrame.drop`
-- :meth:`DataFrame.dropna` / :meth:`Series.dropna`
-- :meth:`DataFrame.select_dtypes`
-- :meth:`DataFrame.align` / :meth:`Series.align`
-- :meth:`Series.to_frame`
-- :meth:`DataFrame.rename` / :meth:`Series.rename`
-- :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
-- :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
-- :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
-- :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
+  - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
+  - :meth:`DataFrame.set_index` / :meth:`Series.set_index`
+  - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+  - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
+  - :meth:`DataFrame.rename_columns`
+  - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+  - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+  - :meth:`DataFrame.assign`
+  - :meth:`DataFrame.drop`
+  - :meth:`DataFrame.dropna` / :meth:`Series.dropna`
+  - :meth:`DataFrame.select_dtypes`
+  - :meth:`DataFrame.align` / :meth:`Series.align`
+  - :meth:`Series.to_frame`
+  - :meth:`DataFrame.rename` / :meth:`Series.rename`
+  - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
+  - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
+  - :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
+  - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
 
-These methods return views when copy on write is enabled, which provides a significant
-performance improvement compared to the regular execution (:issue:`49473`). Copy on write
-can be enabled through
+  These methods return views when Copy-on-Write is enabled, which provides a significant
+  performance improvement compared to the regular execution (:issue:`49473`).
+
+- Accessing a single column of a DataFrame as a Series (e.g. ``df["col"]``) now always
+  returns a new object every time it is constructed when Copy-on-Write is enabled (not
+  returning multiple times an identical, cached Series object). This ensures that those
+  Series objects correctly follow the Copy-on-Write rules (:issue:`49450`)
+
+Copy-on-Write can be enabled through
 
 .. code-block:: python
 
@@ -563,8 +569,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated :func:`pandas.io.sql.execute`(:issue:`50185`)
--
-
+- :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 
 .. ---------------------------------------------------------------------------
@@ -909,6 +914,8 @@ Timezones
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` with object-dtype containing multiple timezone-aware ``datetime`` objects with heterogeneous timezones to a :class:`DatetimeTZDtype` incorrectly raising (:issue:`32581`)
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 - Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
+- Bug in string parsing incorrectly allowing a :class:`Timestamp` to be constructed with an invalid timezone, which would raise when trying to print (:issue:`50668`)
+-
 
 Numeric
 ^^^^^^^
@@ -947,6 +954,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` raising when indexer is a :class:`DataFrame` with ``boolean`` dtype (:issue:`47125`)
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
 - Bug in :meth:`DataFrame.loc` when setting :class:`DataFrame` with different dtypes coercing values to single dtype (:issue:`50467`)
+- Bug in :meth:`DataFrame.sort_values` where ``None`` was not returned when ``by`` is empty list and ``inplace=True`` (:issue:`50643`)
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
