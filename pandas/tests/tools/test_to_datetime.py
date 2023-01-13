@@ -1561,12 +1561,14 @@ class TestToDatetime:
     def test_to_datetime_malformed_raise(self):
         # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
+        msg = (
+            'Parsed string "200622-12-31" gives an invalid tzoffset, which must '
+            r"be between -timedelta\(hours=24\) and timedelta\(hours=24\), "
+            "at position 0"
+        )
         with pytest.raises(
             ValueError,
-            match=(
-                r"^offset must be a timedelta strictly between "
-                r"-timedelta\(hours=24\) and timedelta\(hours=24\)., at position 0$"
-            ),
+            match=msg,
         ):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"

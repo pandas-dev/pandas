@@ -304,6 +304,19 @@ def parse_datetime_string(
         raise OutOfBoundsDatetime(
             f'Parsing "{date_string}" to datetime overflows'
             ) from err
+    if dt.tzinfo is not None:
+        # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+        #  bounds, which is invalid (can be constructed, but raises if we call
+        #  str(dt)).  Check that and raise here if necessary.
+        try:
+            dt.utcoffset()
+        except ValueError as err:
+            # offset must be a timedelta strictly between -timedelta(hours=24)
+            #  and timedelta(hours=24)
+            raise ValueError(
+                f'Parsed string "{date_string}" gives an invalid tzoffset, '
+                "which must be between -timedelta(hours=24) and timedelta(hours=24)"
+            )
 
     return dt
 

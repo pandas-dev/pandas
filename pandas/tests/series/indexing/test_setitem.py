@@ -793,7 +793,8 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
     def test_index_putmask(self, obj, key, expected, val):
         mask = np.zeros(obj.shape, dtype=bool)
