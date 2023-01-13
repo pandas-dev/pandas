@@ -370,7 +370,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.nan
 
             if isna(result):
-                result = np.datetime64("NaT", "ns")
+                result = np.datetime64("NaT", "ns").astype(dtype)
             else:
                 result = np.int64(result).view(dtype)
             # retain original unit

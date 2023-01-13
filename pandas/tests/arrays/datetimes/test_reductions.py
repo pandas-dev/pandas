@@ -10,6 +10,10 @@ from pandas.core.arrays import DatetimeArray
 
 
 class TestReductions:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
         """Fixture returning DatetimeArray with parametrized timezones"""
@@ -28,8 +32,9 @@ class TestReductions:
         )
         return arr
 
-    def test_min_max(self, arr1d):
+    def test_min_max(self, arr1d, unit):
         arr = arr1d
+        arr = arr.as_unit(unit)
         tz = arr.tz
 
         result = arr.min()
