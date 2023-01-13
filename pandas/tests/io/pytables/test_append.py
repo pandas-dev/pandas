@@ -26,7 +26,6 @@ from pandas.tests.io.pytables.common import (
 pytestmark = pytest.mark.single_cpu
 
 
-@pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
 def test_append(setup_path):
 
     with ensure_clean_store(setup_path) as store:

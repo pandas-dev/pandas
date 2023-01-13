@@ -8,7 +8,7 @@ from pandas.core.arrays import FloatingArray
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
-@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single_int(ufunc):
     a = pd.array([1, 2, -3, np.nan])
     result = ufunc(a)

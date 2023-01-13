@@ -73,9 +73,6 @@ def test_retain_index_attributes(setup_path):
         store.append("df2", df3)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
-)
 def test_retain_index_attributes2(tmp_path, setup_path):
     path = tmp_path / setup_path
 

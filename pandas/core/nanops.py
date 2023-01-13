@@ -752,7 +752,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             return np.nan
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings("ignore", "All-NaN slice encountered")
+            warnings.filterwarnings(
+                "ignore", "All-NaN slice encountered", RuntimeWarning
+            )
             res = np.nanmedian(x[mask])
         return res
 
@@ -780,7 +782,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                 # fastpath for the skipna case
                 with warnings.catch_warnings():
                     # Suppress RuntimeWarning about All-NaN slice
-                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    warnings.filterwarnings(
+                        "ignore", "All-NaN slice encountered", RuntimeWarning
+                    )
                     res = np.nanmedian(values, axis)
 
         else:

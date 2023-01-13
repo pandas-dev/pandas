@@ -9,7 +9,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
-@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single(ufunc):
     a = pd.array([1, 2, -3, np.nan], dtype="Float64")
     result = ufunc(a)
