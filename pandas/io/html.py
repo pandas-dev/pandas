@@ -1046,7 +1046,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
-    use_nullable_dtypes: bool | lib.NoDefault = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.

@@ -980,3 +980,16 @@ def test_use_nullable_dtypes(string_storage):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes_option():
+    # GH#99999
+
+    data = """a
+1
+3"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = read_fwf(StringIO(data))
+
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
