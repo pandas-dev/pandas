@@ -4,8 +4,6 @@ import copy as cp
 import itertools
 from typing import (
     TYPE_CHECKING,
-    List,
-    Optional,
     Sequence,
     cast,
 )
@@ -273,7 +271,7 @@ def _concat_managers_axis0(
 
     offset = 0
     blocks = []
-    refs = []
+    refs: list[weakref.ref | None] = []
     parent = None
     for i, mgr in enumerate(mgrs):
         # If we already reindexed, then we definitely don't need another copy
@@ -299,7 +297,7 @@ def _concat_managers_axis0(
 
     result = BlockManager(tuple(blocks), axes)
     result.parent = parent
-    result.refs = cast(Optional[List[Optional[weakref.ref]]], refs) if refs else None
+    result.refs = refs if refs else None
     return result
 
 
