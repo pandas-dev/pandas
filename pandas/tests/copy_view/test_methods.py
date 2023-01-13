@@ -53,6 +53,40 @@ def test_copy_shallow(using_copy_on_write):
         assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
 
 
+@pytest.mark.parametrize("copy", [True, None, False])
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df, copy: df.rename(columns=str.lower, copy=copy),
+        lambda df, copy: df.reindex(columns=["a", "c"], copy=copy),
+        lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
+        lambda df, copy: df.rename_axis(index="test", copy=copy),
+        lambda df, copy: df.rename_axis(columns="test", copy=copy),
+    ],
+    ids=["rename", "reindex", "set_axis", "rename_axis0", "rename_axis1"],
+)
+def test_methods_copy_keyword(
+    request, method, copy, using_copy_on_write, using_array_manager
+):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df2 = method(df, copy=copy)
+
+    share_memory = (using_copy_on_write and copy is not True) or copy is False
+
+    if request.node.callspec.id.startswith("reindex"):
+        # TODO copy=False without CoW still returns a copy in this case
+        if not using_copy_on_write and not using_array_manager and copy is False:
+            share_memory = False
+        # TODO copy=True with CoW still returns a view
+        if using_copy_on_write:
+            share_memory = True
+
+    if share_memory:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+
 # -----------------------------------------------------------------------------
 # DataFrame methods returning new DataFrame using shallow copy
 
