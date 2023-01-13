@@ -6346,7 +6346,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
-            result = self.copy()
+            result = self.copy(deep=None)
         else:
             result = self.loc(axis=axis)[mask]
 
