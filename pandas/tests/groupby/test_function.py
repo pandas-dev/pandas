@@ -830,6 +830,8 @@ def test_cummin(dtypes_for_minmax):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
+    # Explicit cast to float to avoid implicit cast when setting nan
+    base_df = base_df.astype({"B": "float"})
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = DataFrame({"B": [np.nan, 4, np.nan, 2, np.nan, 3, np.nan, 1]})
     result = base_df.groupby("A").cummin()
@@ -895,6 +897,8 @@ def test_cummax(dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
+    # Explicit cast to float to avoid implicit cast when setting nan
+    base_df = base_df.astype({"B": "float"})
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()
