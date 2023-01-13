@@ -41,7 +41,7 @@ class TestFancy:
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(np.arange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11), dtype=np.int64))
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
@@ -603,7 +603,7 @@ class TestFancy:
         # integer indexes
         for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
 
-            assert s.index.is_integer()
+            assert is_integer_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
