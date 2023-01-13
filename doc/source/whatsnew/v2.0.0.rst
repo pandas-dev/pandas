@@ -1071,7 +1071,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Fix style.background_gradient() for nullable dtype (ex: Int64) series with pd.NA values (:issue:`50712`)
 -
 
 Metadata

@@ -32,7 +32,6 @@ Bug fixes
 - Bug in :meth:`Series.quantile` emitting warning from NumPy when :class:`Series` has only ``NA`` values (:issue:`50681`)
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
-- Fix style.background_gradient() for nullable dtype (ex: Int64) series with pd.NA values (:issue:`50712`)
 -
 
 .. ---------------------------------------------------------------------------
