@@ -1074,11 +1074,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if (
-            get_option("mode.copy_on_write")
-            and get_option("mode.data_manager") == "block"
-        ):
-            print("Series.__getitem__ refcount: ", sys.getrefcount(self))
+        if using_copy_on_write():
+            # print("Series.__getitem__ refcount: ", sys.getrefcount(self))
             if sys.getrefcount(self) <= 3:
                 raise ChainedAssignmentError("Chained assignment doesn't work!!")
 

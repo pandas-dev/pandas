@@ -3842,10 +3842,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
-        if (
-            get_option("mode.copy_on_write")
-            and get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 raise ChainedAssignmentError("Chained assignment doesn't work!!")
 

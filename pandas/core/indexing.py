@@ -13,7 +13,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_copy_on_write
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -834,11 +834,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if (
-            get_option("mode.copy_on_write")
-            and get_option("mode.data_manager") == "block"
-        ):
-            print("_LocationIndexer.__setitem__ refcount: ", sys.getrefcount(self.obj))
+        if using_copy_on_write():
+            # print("_LocationIndexer.__setitem__ refcount: ",sys.getrefcount(self.obj))
             if sys.getrefcount(self.obj) <= 2:
                 raise ChainedAssignmentError("Chained assignment doesn't work!!")
 
