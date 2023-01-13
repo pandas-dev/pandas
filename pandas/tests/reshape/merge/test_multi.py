@@ -123,7 +123,8 @@ class TestMergeMulti:
 
         lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
         left = DataFrame(np.random.choice(lc, (5000, 2)), columns=["1st", "3rd"])
-        left.insert(1, "2nd", np.random.randint(0, 1000, len(left)))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        left.insert(1, "2nd", np.random.randint(0, 1000, len(left)).astype("float"))
 
         i = np.random.permutation(len(left))
         right = left.iloc[i].copy()
