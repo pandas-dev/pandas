@@ -803,6 +803,12 @@ class Base:
         with tm.assert_produces_warning(FutureWarning):
             idx.is_floating()
 
+    def test_is_integer_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_integer()
+
 
 class NumericBase(Base):
     """

@@ -603,7 +603,7 @@ class TestFancy:
         # integer indexes
         for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
 
-            assert s.index.is_integer()
+            assert is_integer_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
