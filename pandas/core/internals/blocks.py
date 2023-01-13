@@ -664,21 +664,26 @@ class Block(PandasObject):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
-            masks = [
-                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
+            masks = (
+                extract_bool_array(
+                    compare_or_regex_search(values, s[0], regex=regex, mask=mask)
+                )
                 for s in pairs
-            ]
+            )
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(values, s[0]) for s in pairs]
+            # masks = [missing.mask_missing(values, s[0]) for s in pairs]
+            masks = (
+                extract_bool_array(missing.mask_missing(values, s[0])) for s in pairs
+            )
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
         # ndarray]"
-        masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
+        # masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
 
         rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(pairs):
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
 
@@ -687,9 +692,9 @@ class Block(PandasObject):
             # where to index into the mask
             for blk_num, blk in enumerate(rb):
                 if len(rb) == 1:
-                    m = masks[i]
+                    m = mask
                 else:
-                    mib = masks[i]
+                    mib = mask
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
