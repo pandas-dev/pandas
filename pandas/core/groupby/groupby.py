@@ -2178,6 +2178,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
             )
+        name = "proportion" if normalize else "count"
 
         with self._group_selection_context():
             df = self.obj
@@ -2186,8 +2187,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
             if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
+                _name = self._selected_obj.name
+                keys = [] if _name in in_axis_names else [self._selected_obj]
             else:
                 unique_cols = set(self._selected_obj.columns)
                 if subset is not None:
@@ -2210,8 +2211,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
+                    for idx, _name in enumerate(self._selected_obj.columns)
+                    if _name not in in_axis_names and _name in subsetted
                 ]
 
             groupings = list(self.grouper.groupings)
@@ -2234,6 +2235,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 dropna=self.dropna,
             )
             result_series = cast(Series, gb.size())
+            result_series.name = name
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
@@ -2277,7 +2279,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result_series
             else:
                 # Convert to frame
-                name = "proportion" if normalize else "count"
                 index = result_series.index
                 columns = com.fill_missing_names(index.names)
                 if name in columns:
