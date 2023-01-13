@@ -50,7 +50,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # https://github.com/cython/cython/issues/1720
-@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -317,9 +316,6 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(  # pytables np.object_ usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -372,9 +368,6 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
-    @pytest.mark.filterwarnings(  # pytables np.object_ usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-    )
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
