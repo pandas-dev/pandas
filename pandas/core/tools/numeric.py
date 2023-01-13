@@ -4,6 +4,8 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._config import using_nullable_dtypes
+
 from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
@@ -36,7 +38,7 @@ def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
 ):
     """
     Convert argument to a numeric type.
@@ -154,6 +156,12 @@ def to_numeric(
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.NoDefault
+        else using_nullable_dtypes()
+    )
 
     is_series = False
     is_index = False
