@@ -770,6 +770,15 @@ cdef _array_to_datetime_object(
                 oresult[i] = "NaT"
                 cnp.PyArray_MultiIter_NEXT(mi)
                 continue
+            elif val == "now":
+                oresult[i] = datetime.now()
+                cnp.PyArray_MultiIter_NEXT(mi)
+                continue
+            elif val == "today":
+                oresult[i] = datetime.today()
+                cnp.PyArray_MultiIter_NEXT(mi)
+                continue
+
             try:
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                    yearfirst=yearfirst)

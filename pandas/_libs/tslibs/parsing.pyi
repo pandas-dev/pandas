@@ -2,7 +2,6 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import npt
 
 class DateParseError(ValueError): ...
@@ -12,9 +11,9 @@ def parse_datetime_string(
     dayfirst: bool = ...,
     yearfirst: bool = ...,
 ) -> datetime: ...
-def parse_time_string(
-    arg: str,
-    freq: BaseOffset | str | None = ...,
+def parse_datetime_string_with_reso(
+    date_string: str,
+    freq: str | None = ...,
     dayfirst: bool | None = ...,
     yearfirst: bool | None = ...,
 ) -> tuple[datetime, str]: ...
