@@ -114,7 +114,10 @@ class TestDataFrameUnaryOperators:
         [
             pytest.param(
                 pd.DataFrame({"a": ["a", "b"]}),
-                marks=[pytest.mark.filterwarnings("ignore")],
+                # filterwarnings removable once min numpy version is 1.25
+                marks=[
+                    pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
+                ],
             ),
         ],
     )

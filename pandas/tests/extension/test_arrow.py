@@ -533,7 +533,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_transform(data_for_grouping)
 
@@ -549,7 +551,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
@@ -571,7 +575,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_agg(as_index, data_for_grouping)
 
@@ -810,7 +816,9 @@ class TestBaseMethods(base.BaseMethodsTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_value_counts_with_normalize(data)
 
@@ -929,7 +937,9 @@ class TestBaseMethods(base.BaseMethodsTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
