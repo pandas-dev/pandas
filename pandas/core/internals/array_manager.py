@@ -375,6 +375,9 @@ class BaseArrayManager(DataManager):
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            copy = True
+
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
@@ -386,11 +389,11 @@ class BaseArrayManager(DataManager):
                     convert_period=True,
                     convert_interval=True,
                 )
-                if result is arr and (copy or copy is None):
+                if result is arr and copy:
                     return arr.copy()
                 return result
             else:
-                return arr.copy() if (copy or copy is None) else arr
+                return arr.copy() if copy else arr
 
         return self.apply(_convert)
 
