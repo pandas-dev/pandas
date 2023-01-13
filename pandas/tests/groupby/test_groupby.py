@@ -133,7 +133,6 @@ def test_inconsistent_return_type():
     result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
-        # TODO is this right? Should it warn when setting new column?
         e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 

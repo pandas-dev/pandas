@@ -756,6 +756,7 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
 New behavior
 
 .. ipython:: python
+   :okwarning:
 
    s[1] = True
    s

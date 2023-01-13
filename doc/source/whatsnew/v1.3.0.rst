@@ -502,6 +502,7 @@ Setting non-boolean values into a :class:`Series` with ``dtype=bool`` now consis
 casts to ``dtype=object`` (:issue:`38709`)
 
 .. ipython:: python
+   :okwarning:
 
    orig = pd.Series([True, False])
    ser = orig.copy()
