@@ -116,6 +116,10 @@ Copy-on-Write improvements
   returning multiple times an identical, cached Series object). This ensures that those
   Series objects correctly follow the Copy-on-Write rules (:issue:`49450`)
 
+- The :class:`Series` constructor will now create a lazy copy (deferring the copy until
+  a modification to the data happens) when constructing a Series from an existing
+  Series with the default of ``copy=False`` (:issue:`50471`)
+
 Copy-on-Write can be enabled through
 
 .. code-block:: python
