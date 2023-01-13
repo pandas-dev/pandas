@@ -2778,6 +2778,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
+
     Parameters
     ----------
     weekday : int or None, default None
