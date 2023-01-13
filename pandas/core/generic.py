@@ -3676,6 +3676,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
+        if using_copy_on_write():
+            return
 
         if verify_is_copy:
             self._check_setitem_copy(t="referent")

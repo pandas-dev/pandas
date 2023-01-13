@@ -35,7 +35,10 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -4153,6 +4156,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
+        if using_copy_on_write():
+            loc = self.columns.get_loc(item)
+            return self._ixs(loc, axis=1)
+
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
