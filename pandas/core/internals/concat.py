@@ -272,7 +272,7 @@ def _concat_managers_axis0(
     offset = 0
     blocks = []
     refs: list[weakref.ref | None] = []
-    parent = None
+    parents: list = []
     for i, mgr in enumerate(mgrs):
         # If we already reindexed, then we definitely don't need another copy
         made_copy = had_reindexers[i]
@@ -291,12 +291,12 @@ def _concat_managers_axis0(
 
         if not made_copy and not copy and using_copy_on_write():
             refs.extend([weakref.ref(blk) for blk in mgr.blocks])
-            parent = mgr
+            parents.append(mgr)
 
         offset += len(mgr.items)
 
     result = BlockManager(tuple(blocks), axes)
-    result.parent = parent
+    result.parent = parents if parents else None
     result.refs = refs if refs else None
     return result
 
