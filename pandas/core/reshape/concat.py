@@ -536,18 +536,19 @@ class _Concatenator:
                     )
 
                 else:
-                    name = getattr(obj, "name", None)
+                    name = new_name = getattr(obj, "name", None)
                     if ignore_index or name is None:
-                        name = current_column
+                        new_name = current_column
                         current_column += 1
 
                     # doing a row-wise concatenation so need everything
                     # to line up
                     if self._is_frame and axis == 1:
-                        name = 0
+                        new_name = 0
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor({name: obj})
+                    obj = sample._constructor(obj, columns=[name], copy=False)
+                    obj.columns = [new_name]
 
                 self.objs.append(obj)
 

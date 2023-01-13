@@ -730,6 +730,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     typ=manager,
+                    copy=copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
