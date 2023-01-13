@@ -891,7 +891,6 @@ def value_counts(
                 .groupby(level=levels, dropna=dropna)
                 .size()
             )
-            # TODO: allow index names to remain (see discussion in GH49497)
             result.index.names = values.names
             counts = result._values
 
