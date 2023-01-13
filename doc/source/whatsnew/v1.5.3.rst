@@ -27,6 +27,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in the Copy-on-Write implementation losing track of views when indexing a :class:`DataFrame` with another :class:`DataFrame` (:issue:`50630`)
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
 - Bug in :meth:`Series.quantile` emitting warning from NumPy when :class:`Series` has only ``NA`` values (:issue:`50681`)
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
