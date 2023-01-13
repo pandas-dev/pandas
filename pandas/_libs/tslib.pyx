@@ -576,11 +576,6 @@ cpdef array_to_datetime(
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
-                    if not  (-24 * 3600 < nsecs < 24 * 3600):
-                        # calling timezone(...) below will raise,
-                        #  raise here so that we can possibly catch if
-                        #  errors=="coerce"
-                        timezone(timedelta(seconds=nsecs))
                     out_tzoffset_vals.add(nsecs)
                     # need to set seen_datetime_offset *after* the
                     #  potentially-raising timezone(timedelta(...)) call,
@@ -754,13 +749,6 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-
-                if oresult[i].tzinfo is not None:
-                    # if we have an invalid tzoffset
-                    #  (less than -24H or more than 24H),
-                    #  calling utcoffset() will raise ValueError
-                    oresult[i].utcoffset()
-
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:
