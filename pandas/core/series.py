@@ -921,7 +921,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -3559,6 +3559,13 @@ Keep all original rows and also all original values
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
+        if array_equal_fast(
+            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
+        ):
+            if inplace:
+                return self._update_inplace(self)
+            return self.copy(deep=None)
+
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
         )
@@ -5576,7 +5583,7 @@ Keep all original rows and also all original values
                 return result
         else:
             if not inplace:
-                return self.copy()
+                return self.copy(deep=None)
         return None
 
     # ----------------------------------------------------------------------

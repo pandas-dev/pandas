@@ -1955,9 +1955,17 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer: slice | npt.NDArray[np.bool_]) -> SingleBlockManager:
+    def getitem_mgr(self, indexer: slice | np.ndarray) -> SingleBlockManager:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
+        if (
+            using_copy_on_write()
+            and isinstance(indexer, np.ndarray)
+            and len(indexer) > 0
+            and com.is_bool_indexer(indexer)
+            and indexer.all()
+        ):
+            return type(self)(blk, self.index, [weakref.ref(blk)], parent=self)
         array = blk._slice(indexer)
         if array.ndim > 1:
             # This will be caught by Series._get_values
