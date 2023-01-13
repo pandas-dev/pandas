@@ -93,7 +93,9 @@ def test_data_frame_value_counts_empty():
     df_no_cols = pd.DataFrame()
 
     result = df_no_cols.value_counts()
-    expected = pd.Series([], dtype=np.int64, name="count")
+    expected = pd.Series(
+        [], dtype=np.int64, name="count", index=np.array([], dtype=np.intp)
+    )
 
     tm.assert_series_equal(result, expected)
 
@@ -102,7 +104,9 @@ def test_data_frame_value_counts_empty_normalize():
     df_no_cols = pd.DataFrame()
 
     result = df_no_cols.value_counts(normalize=True)
-    expected = pd.Series([], dtype=np.float64, name="proportion")
+    expected = pd.Series(
+        [], dtype=np.float64, name="proportion", index=np.array([], dtype=np.intp)
+    )
 
     tm.assert_series_equal(result, expected)
 

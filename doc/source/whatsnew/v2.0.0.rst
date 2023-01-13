@@ -944,6 +944,8 @@ Timezones
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` with object-dtype containing multiple timezone-aware ``datetime`` objects with heterogeneous timezones to a :class:`DatetimeTZDtype` incorrectly raising (:issue:`32581`)
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 - Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
+- Bug in string parsing incorrectly allowing a :class:`Timestamp` to be constructed with an invalid timezone, which would raise when trying to print (:issue:`50668`)
+-
 
 Numeric
 ^^^^^^^
