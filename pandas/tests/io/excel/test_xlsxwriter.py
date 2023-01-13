@@ -1,5 +1,4 @@
 import contextlib
-import warnings
 
 import pytest
 
@@ -16,10 +15,7 @@ pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 def test_column_format(ext):
     # Test that column formats are applied to cells. Test for issue #9167.
     # Applicable to xlsxwriter only.
-    with warnings.catch_warnings():
-        # Ignore the openpyxl lxml warning.
-        warnings.simplefilter("ignore")
-        openpyxl = pytest.importorskip("openpyxl")
+    openpyxl = pytest.importorskip("openpyxl")
 
     with tm.ensure_clean(ext) as path:
         frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
