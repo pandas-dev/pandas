@@ -2778,8 +2778,6 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
-
-    This can increment the date object by given week or weekdays.
     Parameters
     ----------
     weekday : int or None, default None
@@ -2791,21 +2789,21 @@ cdef class Week(SingleConstructorOffset):
 
     Examples
     ---------
-    >>> date_format = "%Y-%m-%d"
-    >>> date_object = pd.to_datetime("2023-01-13",format = date_format)
-    >>> print(date_object)
+
+    >>> date_object = pd.Timestamp("2023-01-13")
+    >>> date_object
     2023-01-13 00:00:00
 
     >>> date_plus_one_week = date_object + pd.tseries.offsets.Week(n=1)
-    >>> print(date_plus_one_week)
+    >>> date_plus_one_week
     2023-01-20 00:00:00
 
-    >>> date_next_Monday = date_object + pd.tseries.offsets.Week(weekday=0)
-    >>> print(date_next_Monday)
+    >>> date_next_monday = date_object + pd.tseries.offsets.Week(weekday=0)
+    >>> date_next_monday
     2023-01-16 00:00:00
 
-    >>> date_next_Sunday = date_object + pd.tseries.offsets.Week(weekday=6)
-    >>> print(date_next_Sunday)
+    >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
+    >>> date_next_sunday
     2023-01-15 00:00:00
     """
 
