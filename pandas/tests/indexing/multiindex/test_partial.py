@@ -10,10 +10,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 
 class TestMultiIndexPartial:
@@ -160,9 +156,9 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert isinstance(mi.levels[0], Int64Index)
+            assert mi.levels[0].dtype == np.int_
         else:
-            assert isinstance(mi.levels[0], Float64Index)
+            assert mi.levels[0].dtype == np.float64
 
         assert 14 not in mi.levels[0]
         assert not mi.levels[0]._should_fallback_to_positional

@@ -276,8 +276,9 @@ class TestLocBaseIndependent:
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
         # GH#20684
         """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        parse_datetime_string_with_reso return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_datetime_string_with_reso
+        as a tuple.
         If first argument is Period and a tuple has 3 items,
         process go on not raise exception
         """
@@ -436,7 +437,7 @@ class TestLocBaseIndependent:
         )
 
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -454,7 +455,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -470,7 +471,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -487,7 +488,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[3\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -504,12 +505,11 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                "\"None of [Int64Index([3], dtype='int64')] are in the [index]\""
-            ),
-        ):
+        msg = (
+            f"\"None of [NumericIndex([3], dtype='{np.int_().dtype}')] "
+            'are in the [index]"'
+        )
+        with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
         # a non-match and a match
@@ -1199,7 +1199,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+            rf"None of \[NumericIndex\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
