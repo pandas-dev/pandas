@@ -256,6 +256,10 @@ def parse_datetime_string(
     Returns
     -------
     datetime
+
+    Notes
+    -----
+    Does not handle "today" or "now", which caller is responsible for handling.
     """
 
     cdef:
@@ -272,14 +276,6 @@ def parse_datetime_string(
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
-        return dt
-
-    # Handling special case strings today & now
-    if date_string == "now":
-        dt = datetime.now()
-        return dt
-    elif date_string == "today":
-        dt = datetime.today()
         return dt
 
     try:
@@ -459,7 +455,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
 cdef object _parse_dateabbr_string(object date_string, datetime default,
                                    str freq=None):
     cdef:
-        object ret
+        datetime ret
         # year initialized to prevent compiler warnings
         int year = -1, quarter = -1, month
         Py_ssize_t date_len
@@ -541,8 +537,9 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         try:
             ret = default.replace(year=year, month=month)
             return ret, "month"
-        except ValueError:
-            pass
+        except ValueError as err:
+            # We can infer that none of the patterns below will match
+            raise ValueError(f"Unable to parse {date_string}") from err
 
     for pat in ["%Y-%m", "%b %Y", "%b-%Y"]:
         try:
