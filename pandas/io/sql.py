@@ -201,6 +201,12 @@ def execute(sql, con, params=None):
     -------
     Results Iterable
     """
+    warnings.warn(
+        "`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )  # GH50185
     sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
