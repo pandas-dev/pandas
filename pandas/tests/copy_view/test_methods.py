@@ -644,6 +644,45 @@ def test_sort_index(using_copy_on_write):
     tm.assert_series_equal(ser, ser_orig)
 
 
+@pytest.mark.parametrize(
+    "obj, kwargs",
+    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+)
+def test_sort_values(using_copy_on_write, obj, kwargs):
+    obj_orig = obj.copy()
+    obj2 = obj.sort_values(**kwargs)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    else:
+        assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+
+    # mutating df triggers a copy-on-write for the column / block
+    obj2.iloc[0] = 0
+    assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    tm.assert_equal(obj, obj_orig)
+
+
+@pytest.mark.parametrize(
+    "obj, kwargs",
+    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+)
+def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manager):
+    obj_orig = obj.copy()
+    view = obj[:]
+    obj.sort_values(inplace=True, **kwargs)
+
+    assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
+
+    # mutating obj triggers a copy-on-write for the column / block
+    obj.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
+        tm.assert_equal(view, obj_orig)
+    else:
+        assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
+
+
 def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
