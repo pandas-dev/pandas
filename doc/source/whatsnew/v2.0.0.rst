@@ -398,7 +398,7 @@ Now, the axes return an empty :class:`RangeIndex`.
 .. _whatsnew_200.api_breaking.to_latex:
 
 DataFrame to LaTeX has a new render engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The existing :meth:`DataFrame.to_latex` has been restructured to utilise the
 extended implementation previously available under :meth:`.Styler.to_latex`.
