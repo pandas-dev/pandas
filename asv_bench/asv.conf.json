@@ -41,7 +41,7 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
-        "numpy": ["1.23.5"],  // https://github.com/pandas-dev/pandas/pull/50356
+        "numpy": [],
         "Cython": ["0.29.32"],
         "matplotlib": [],
         "sqlalchemy": [],
