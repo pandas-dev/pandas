@@ -161,7 +161,7 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
     >>> hours_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="h"))
     >>> hours_series
@@ -173,7 +173,7 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
     >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="q"))
     >>> quarters_series
@@ -185,7 +185,7 @@ class DatetimeProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
 
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
@@ -303,7 +303,7 @@ class TimedeltaProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
     """
 
     def to_pytimedelta(self) -> np.ndarray:

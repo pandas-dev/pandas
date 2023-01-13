@@ -41,7 +41,12 @@ class TestSeriesAccessor:
         sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
 
-        index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
+        index = pd.MultiIndex.from_arrays(
+            [
+                np.array([0, 0, 1, 3], dtype=np.int32),
+                np.array([0, 2, 1, 3], dtype=np.int32),
+            ],
+        )
         expected = pd.Series([4, 9, 7, 5], index=index, dtype="Sparse[int]")
         tm.assert_series_equal(result, expected)
 
@@ -212,7 +217,17 @@ class TestFrameAccessor:
 
         A = scipy.sparse.eye(3, format="coo", dtype=dtype)
         result = pd.Series.sparse.from_coo(A, dense_index=dense_index)
-        index = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
+
+        # TODO: GH49560: scipy.sparse.eye always has A.row and A.col dtype as int32.
+        # fix index_dtype to follow scipy.sparse convention (always int32)?
+        index_dtype = np.int64 if dense_index else np.int32
+        index = pd.MultiIndex.from_tuples(
+            [
+                np.array([0, 0], dtype=index_dtype),
+                np.array([1, 1], dtype=index_dtype),
+                np.array([2, 2], dtype=index_dtype),
+            ],
+        )
         expected = pd.Series(SparseArray(np.array([1, 1, 1], dtype=dtype)), index=index)
         if dense_index:
             expected = expected.reindex(pd.MultiIndex.from_product(index.levels))

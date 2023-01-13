@@ -316,7 +316,7 @@ def test_resample_groupby_with_label():
     result = df.groupby("col0").resample("1W", label="left").sum()
 
     mi = [
-        np.array([0, 0, 1, 2]),
+        np.array([0, 0, 1, 2], dtype=np.int64),
         pd.to_datetime(
             np.array(["1999-12-26", "2000-01-02", "2000-01-02", "2000-01-02"])
         ),

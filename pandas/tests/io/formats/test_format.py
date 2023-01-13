@@ -1328,7 +1328,6 @@ class TestDataFrameFormatting:
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
-            index=np.arange(200),
         )
 
         biggie.loc[:20, "A"] = np.nan

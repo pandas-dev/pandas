@@ -130,7 +130,6 @@ def frame():
     return DataFrame(
         np.random.randn(100, 10),
         index=bdate_range(datetime(2009, 1, 1), periods=100),
-        columns=np.arange(10),
     )
 
 

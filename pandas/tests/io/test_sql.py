@@ -2852,7 +2852,7 @@ class TestXSQLite:
 
         frame["txt"] = ["a"] * len(frame)
         frame2 = frame.copy()
-        new_idx = Index(np.arange(len(frame2))) + 10
+        new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
         frame2["Idx"] = new_idx.copy()
         assert (
             sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False)

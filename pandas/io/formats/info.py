@@ -165,7 +165,7 @@ series_examples_sub = dedent(
     >>> s = pd.Series(text_values, index=int_values)
     >>> s.info()
     <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
+    NumericIndex: 5 entries, 1 to 5
     Series name: None
     Non-Null Count  Dtype
     --------------  -----
@@ -177,7 +177,7 @@ series_examples_sub = dedent(
 
     >>> s.info(verbose=False)
     <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
+    NumericIndex: 5 entries, 1 to 5
     dtypes: object(1)
     memory usage: 80.0+ bytes
 

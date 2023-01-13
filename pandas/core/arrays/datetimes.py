@@ -1384,7 +1384,7 @@ default 'raise'
         0    2000
         1    2001
         2    2002
-        dtype: int64
+        dtype: int32
         """,
     )
     month = _field_accessor(
@@ -1407,7 +1407,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     day = _field_accessor(
@@ -1430,7 +1430,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     hour = _field_accessor(
@@ -1453,7 +1453,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     minute = _field_accessor(
@@ -1476,7 +1476,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     second = _field_accessor(
@@ -1499,7 +1499,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     microsecond = _field_accessor(
@@ -1522,7 +1522,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     nanosecond = _field_accessor(
@@ -1545,7 +1545,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     _dayofweek_doc = """
@@ -1580,7 +1580,7 @@ default 'raise'
     2017-01-06    4
     2017-01-07    5
     2017-01-08    6
-    Freq: D, dtype: int64
+    Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
     dayofweek = day_of_week

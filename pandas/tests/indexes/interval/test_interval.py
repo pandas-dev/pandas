@@ -47,9 +47,9 @@ class TestIntervalIndex:
         assert index.size == 10
         assert index.shape == (10,)
 
-        tm.assert_index_equal(index.left, Index(np.arange(10)))
-        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
-        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
+        tm.assert_index_equal(index.left, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11, dtype=np.int64)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5, dtype=np.float64)))
 
         assert index.closed == closed
 
@@ -160,7 +160,8 @@ class TestIntervalIndex:
         )
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
+        breaks = np.arange(1, 11, dtype=np.int64)
+        expected = IntervalIndex.from_breaks(breaks, closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
@@ -426,7 +427,9 @@ class TestIntervalIndex:
         key = make_key(breaks)
 
         result = index._maybe_convert_i8(key)
-        expected = Index(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

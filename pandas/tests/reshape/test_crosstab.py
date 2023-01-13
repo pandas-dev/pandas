@@ -112,7 +112,7 @@ class TestCrosstab:
         # GH 17005
         a = Series([0, 1, 1], index=["a", "b", "c"])
         b = Series([3, 4, 3, 4, 3], index=["a", "b", "c", "d", "f"])
-        c = np.array([3, 4, 3])
+        c = np.array([3, 4, 3], dtype=np.int64)
 
         expected = DataFrame(
             [[1, 0], [1, 1]],

@@ -151,12 +151,6 @@ class TestFloatNumericIndex(NumericBase):
         with pytest.raises(ValueError, match=msg):
             Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
-    def test_type_coercion_valid(self, float_numpy_dtype):
-        # There is no Float32Index, so we always
-        # generate Float64Index.
-        idx = Index([1, 2, 3.5], dtype=float_numpy_dtype)
-        tm.assert_index_equal(idx, Index([1, 2, 3.5]), exact=True)
-
     def test_equals_numeric(self):
         index_cls = self._index_cls
 
@@ -451,14 +445,14 @@ class TestIntNumericIndex(NumericInt):
         # GH#47475
         scalar = np.dtype(any_signed_int_numpy_dtype).type(1)
         result = Index([scalar])
-        expected = Index([1], dtype=np.int64)
+        expected = Index([1], dtype=any_signed_int_numpy_dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_constructor_np_unsigned(self, any_unsigned_int_numpy_dtype):
         # GH#47475
         scalar = np.dtype(any_unsigned_int_numpy_dtype).type(1)
         result = Index([scalar])
-        expected = Index([1], dtype=np.uint64)
+        expected = Index([1], dtype=any_unsigned_int_numpy_dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_coerce_list(self):

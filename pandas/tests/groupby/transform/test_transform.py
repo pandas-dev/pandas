@@ -305,7 +305,7 @@ def test_transform_datetime_to_numeric():
         lambda x: x.dt.dayofweek - x.dt.dayofweek.min()
     )
 
-    expected = Series([0, 1], name="b")
+    expected = Series([0, 1], dtype=np.int32, name="b")
     tm.assert_series_equal(result, expected)
 
 

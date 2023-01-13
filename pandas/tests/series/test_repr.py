@@ -322,7 +322,7 @@ Categories (3, int64): [1, 2, 3]"""
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10)))
-        exp = """0    0
+        exp = f"""0    0
 1    1
 2    2
 3    3
@@ -333,7 +333,7 @@ Categories (3, int64): [1, 2, 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
         assert repr(s) == exp
 
@@ -348,7 +348,7 @@ Categories (3, int64): [1 < 2 < 3]"""
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10), ordered=True))
-        exp = """0    0
+        exp = f"""0    0
 1    1
 2    2
 3    3
@@ -359,7 +359,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 
         assert repr(s) == exp
 

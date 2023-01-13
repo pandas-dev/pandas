@@ -108,10 +108,7 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
-    from pandas.core.api import (
-        Float64Index,
-        Index,
-    )
+    from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
@@ -1281,7 +1278,7 @@ class Block(PandasObject):
     @final
     def quantile(
         self,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         interpolation: QuantileInterpolation = "linear",
         axis: AxisInt = 0,
     ) -> Block:

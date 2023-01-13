@@ -41,7 +41,7 @@ class TestFancy:
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(np.arange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11), dtype=np.int64))
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 

@@ -642,7 +642,8 @@ class TestDataFrameIndexingWhere:
     @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
-        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        data = np.arange(2 * 3, dtype=np.int64).reshape(2, 3)
+        df = DataFrame(data, columns=list("ABC"))
         mask = np.array([[True, False, False], [False, False, True]])
 
         # change type to category

@@ -429,7 +429,11 @@ class TestPairwise:
         expected = DataFrame(
             np.nan,
             index=MultiIndex.from_arrays(
-                [np.repeat(np.arange(5), 2), ["M", "N"] * 5, ["P", "Q"] * 5],
+                [
+                    np.repeat(np.arange(5, dtype=np.int64), 2),
+                    ["M", "N"] * 5,
+                    ["P", "Q"] * 5,
+                ],
                 names=[None, "a", "b"],
             ),
             columns=columns,
