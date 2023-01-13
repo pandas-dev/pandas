@@ -2297,7 +2297,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_with_mixed_nested_tuples(self):
+    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
         # GH 50342
         df = DataFrame(
             {
@@ -2361,6 +2361,9 @@ class TestPivotTable:
                 [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
             ),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
 
