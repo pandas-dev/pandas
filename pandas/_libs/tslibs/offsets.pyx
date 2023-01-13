@@ -2493,7 +2493,6 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     This can increment the date object by given week or weekdays.
-
     Parameters
     ----------
     weekday : int or None, default None
