@@ -315,7 +315,6 @@ disable = [
   "unnecessary-lambda-assignment",
 
   # pylint type "R": refactor, for bad code smell
-  "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",
