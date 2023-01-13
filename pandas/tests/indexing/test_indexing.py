@@ -69,8 +69,7 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="label-based"):
-                df[2:5] = np.arange(1, 4) * 1j
+            df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -604,7 +603,7 @@ class TestFancy:
         # integer indexes
         for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
 
-            assert s.index.is_integer()
+            assert is_integer_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
