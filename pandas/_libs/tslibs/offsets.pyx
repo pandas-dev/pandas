@@ -2490,9 +2490,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 
 cdef class Week(SingleConstructorOffset):
     """
-
     Weekly offset.
-
     Parameters
     ----------
     weekday : int or None, default None
@@ -2500,7 +2498,6 @@ cdef class Week(SingleConstructorOffset):
 
     Examples
     ---------
-
     >>> date_format = "%Y-%m-%d"
     >>> date_object = pd.to_datetime("2023-01-13",format = date_format)
     >>> print(date_object)
