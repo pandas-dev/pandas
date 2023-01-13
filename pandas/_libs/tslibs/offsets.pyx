@@ -2490,13 +2490,36 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 
 cdef class Week(SingleConstructorOffset):
     """
-    Weekly offset.
+        Weekly offset.
 
-    Parameters
-    ----------
-    weekday : int or None, default None
-        Always generate specific day of week. 0 for Monday.
-    """
+        Parameters
+        ----------
+        weekday : int or None, default None
+            Always generate specific day of week. 0 for Monday and 6 for Sunday.
+
+        Examples
+        ---------
+        ## Below examples explain the usage of this object.
+        ## Importing modules
+        import pandas as pd
+
+        date_format = "%Y-%m-%d"
+        date_object = pd.to_datetime("2023-01-13",format = date_format)
+        print(date_object)
+        ## 2023-01-13 00:00:00
+
+        date_plus_one_week = date_object + pd.tseries.offsets.Week(1)
+        print(date_plus_one_week)
+        #2023-01-20 00:00:00
+
+        date_next_Monday = date_object + pd.tseries.offsets.Week(weekday=0)
+        print(date_next_Monday)
+        #2023-01-16 00:00:00
+
+        date_next_Sunday = date_object + pd.tseries.offsets.Week(weekday=6)
+        print(date_next_Sunday)
+        #2023-01-15 00:00:00
+        """
 
     _inc = timedelta(weeks=1)
     _prefix = "W"
