@@ -2214,7 +2214,7 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_boolean is deprecated."
+            f"{type(self).__name__}.is_boolean is deprecated. "
             "Use pandas.api.types.is_bool_type instead",
             FutureWarning,
             stacklevel=find_stack_level(),
