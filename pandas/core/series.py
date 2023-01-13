@@ -921,7 +921,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
