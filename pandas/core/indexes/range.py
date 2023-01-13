@@ -12,7 +12,6 @@ from typing import (
     List,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -31,7 +30,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -45,7 +43,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
-from pandas.core.algorithms import resolve_na_sentinel
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -170,8 +167,13 @@ class RangeIndex(NumericIndex):
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
+    #  error: Argument 1 of "_simple_new" is incompatible with supertype "Index";
+    #  supertype defines the argument type as
+    #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
-    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
+    def _simple_new(  # type: ignore[override]
+        cls, values: range, name: Hashable = None
+    ) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -238,11 +240,6 @@ class RangeIndex(NumericIndex):
         return header + [f"{x:<{max_length}}" for x in self._range]
 
     # --------------------------------------------------------------------
-    _deprecation_message = (
-        "RangeIndex.{} is deprecated and will be "
-        "removed in a future version. Use RangeIndex.{} "
-        "instead"
-    )
 
     @property
     def start(self) -> int:
@@ -253,42 +250,11 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self) -> int:
-        """
-        The value of the `start` parameter (``0`` if this was not supplied).
-
-         .. deprecated:: 0.25.0
-            Use ``start`` instead.
-        """
-        warnings.warn(
-            self._deprecation_message.format("_start", "start"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.start
-
-    @property
     def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
-
-    @property
-    def _stop(self) -> int:
-        """
-        The value of the `stop` parameter.
-
-         .. deprecated:: 0.25.0
-            Use ``stop`` instead.
-        """
-        # GH 25710
-        warnings.warn(
-            self._deprecation_message.format("_stop", "stop"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.stop
 
     @property
     def step(self) -> int:
@@ -297,22 +263,6 @@ class RangeIndex(NumericIndex):
         """
         # GH 25710
         return self._range.step
-
-    @property
-    def _step(self) -> int:
-        """
-        The value of the `step` parameter (``1`` if this was not supplied).
-
-         .. deprecated:: 0.25.0
-            Use ``step`` instead.
-        """
-        # GH 25710
-        warnings.warn(
-            self._deprecation_message.format("_step", "step"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.step
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -383,17 +333,15 @@ class RangeIndex(NumericIndex):
     # Indexing Methods
 
     @doc(Int64Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if method is None and tolerance is None:
-            if is_integer(key) or (is_float(key) and key.is_integer()):
-                new_key = int(key)
-                try:
-                    return self._range.index(new_key)
-                except ValueError as err:
-                    raise KeyError(key) from err
-            self._check_indexing_error(key)
-            raise KeyError(key)
-        return super().get_loc(key, method=method, tolerance=tolerance)
+    def get_loc(self, key):
+        if is_integer(key) or (is_float(key) and key.is_integer()):
+            new_key = int(key)
+            try:
+                return self._range.index(new_key)
+            except ValueError as err:
+                raise KeyError(key) from err
+        self._check_indexing_error(key)
+        raise KeyError(key)
 
     def _get_indexer(
         self,
@@ -456,24 +404,9 @@ class RangeIndex(NumericIndex):
         return result
 
     @doc(Int64Index.copy)
-    def copy(
-        self,
-        name: Hashable = None,
-        deep: bool = False,
-        dtype: Dtype | None = None,
-        names=None,
-    ):
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+    def copy(self, name: Hashable = None, deep: bool = False):
+        name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def _minmax(self, meth: str):
@@ -526,11 +459,8 @@ class RangeIndex(NumericIndex):
     def factorize(
         self,
         sort: bool = False,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
-        # resolve to emit warning if appropriate
-        resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -553,8 +483,6 @@ class RangeIndex(NumericIndex):
         na_position: str = "last",
         key: Callable | None = None,
     ):
-        sorted_index = self
-        indexer = RangeIndex(range(len(self)))
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -564,24 +492,29 @@ class RangeIndex(NumericIndex):
             )
         else:
             sorted_index = self
+            inverse_indexer = False
             if ascending:
                 if self.step < 0:
                     sorted_index = self[::-1]
-                    indexer = indexer[::-1]
+                    inverse_indexer = True
             else:
                 if self.step > 0:
                     sorted_index = self[::-1]
-                    indexer = indexer = indexer[::-1]
+                    inverse_indexer = True
 
         if return_indexer:
-            return sorted_index, indexer
+            if inverse_indexer:
+                rng = range(len(self) - 1, -1, -1)
+            else:
+                rng = range(len(self))
+            return sorted_index, RangeIndex(rng)
         else:
             return sorted_index
 
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other: Index, sort=False):
+    def _intersection(self, other: Index, sort: bool = False):
         # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
@@ -676,8 +609,6 @@ class RangeIndex(NumericIndex):
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
             an unsorted ``Int64Index``
-
-            .. versionadded:: 0.25.0
 
         Returns
         -------
@@ -845,11 +776,11 @@ class RangeIndex(NumericIndex):
         # In some cases we can retain RangeIndex, see also
         #  DatetimeTimedeltaMixin._get_delete_Freq
         if is_integer(loc):
-            if loc == 0 or loc == -len(self):
+            if loc in (0, -len(self)):
                 return self[1:]
-            if loc == -1 or loc == len(self) - 1:
+            if loc in (-1, len(self) - 1):
                 return self[:-1]
-            if len(self) == 3 and (loc == 1 or loc == -2):
+            if len(self) == 3 and loc in (1, -2):
                 return self[::2]
 
         elif lib.is_list_like(loc):

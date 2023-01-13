@@ -17,7 +17,8 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-import pandas.core.nanops as nanops
+from pandas.core import nanops
+from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
 
@@ -79,20 +80,12 @@ def test_builtins_apply(keys, f):
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
-    npfunc = getattr(np, fname)  # numpy's equivalent function
-    if f in [max, min]:
-        warn = FutureWarning
-    else:
-        warn = None
-    msg = "scalar (max|min) over the entire DataFrame"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        # stacklevel can be thrown off because (i think) the stack
-        #  goes through some of numpy's C code.
-        expected = gb.apply(npfunc)
+    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
+    expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
-        expected2 = gb.apply(lambda x: npfunc(x, axis=0))
+        expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 
     if f != sum:
@@ -100,7 +93,7 @@ def test_builtins_apply(keys, f):
         expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
+    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
 
 
 class TestNumericOnly:
@@ -162,14 +155,10 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "category_int",
-                "datetime",
-                "datetimetz",
-                "timedelta",
             ],
         )
 
-        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-            result = getattr(gb, method)(numeric_only=False)
+        result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -251,30 +240,49 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        # cummin, cummax dont have numeric_only kwarg, always use False
-        warn = None
-        if method in ["cummin", "cummax"]:
-            # these dont have numeric_only kwarg, always use False
-            warn = FutureWarning
-        elif method in ["min", "max"]:
-            # these have numeric_only kwarg, but default to False
-            warn = FutureWarning
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if method.startswith("cum") else TypeError
 
-        with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", raise_on_extra_warnings=False
-        ):
+        if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
+            # The methods default to numeric_only=False and raise TypeError
+            msg = "|".join(
+                [
+                    "Categorical is not ordered",
+                    "function is not implemented for this dtype",
+                ]
+            )
+            with pytest.raises(exception, match=msg):
+                getattr(gb, method)()
+        elif method in ("sum", "mean", "median", "prod"):
+            msg = "|".join(
+                [
+                    "category type does not support sum operations",
+                    "[Cc]ould not convert",
+                    "can't multiply sequence by non-int of type 'str'",
+                ]
+            )
+            with pytest.raises(exception, match=msg):
+                getattr(gb, method)()
+        else:
             result = getattr(gb, method)()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
-
-        # GH#41475 deprecated silently ignoring nuisance columns
-        warn = None
-        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        if method not in ("first", "last"):
+            msg = "|".join(
+                [
+                    "[Cc]ould not convert",
+                    "Categorical is not ordered",
+                    "category type does not support",
+                    "can't multiply sequence",
+                    "function is not implemented for this dtype",
+                ]
+            )
+            with pytest.raises(exception, match=msg):
+                getattr(gb, method)(numeric_only=False)
+        else:
             result = getattr(gb, method)(numeric_only=False)
-
-        tm.assert_index_equal(result.columns, expected_columns)
+            tm.assert_index_equal(result.columns, expected_columns)
 
 
 class TestGroupByNonCythonPaths:
@@ -299,46 +307,6 @@ class TestGroupByNonCythonPaths:
         gni = df.groupby("A", as_index=False)
         return gni
 
-    # TODO: non-unique columns, as_index=False
-    def test_idxmax(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmax"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmax()
-        tm.assert_frame_equal(result, expected)
-
-    def test_idxmin(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmin"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmin()
-        tm.assert_frame_equal(result, expected)
-
-    def test_mad(self, gb, gni):
-        # mad
-        expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with tm.assert_produces_warning(
-            FutureWarning, match="The 'mad' method is deprecated"
-        ):
-            result = gb.mad()
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-        with tm.assert_produces_warning(
-            FutureWarning, match="The 'mad' method is deprecated"
-        ):
-            result = gni.mad()
-        tm.assert_frame_equal(result, expected)
-
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
@@ -357,13 +325,7 @@ class TestGroupByNonCythonPaths:
         result = gb.describe()
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.concat(
-            [
-                df[df.A == 1].describe().unstack().to_frame().T,
-                df[df.A == 3].describe().unstack().to_frame().T,
-            ]
-        )
-        expected.index = Index([0, 1])
+        expected = expected.reset_index()
         result = gni.describe()
         tm.assert_frame_equal(result, expected)
 
@@ -429,7 +391,6 @@ def test_median_empty_bins(observed):
         ("last", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
         ("min", {"df": [{"a": 1, "b": 1}, {"a": 2, "b": 3}]}),
         ("max", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
-        ("nth", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}], "args": [1]}),
         ("count", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 2}], "out_type": "int64"}),
     ],
 )
@@ -501,7 +462,6 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False])
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
     df = DataFrame(
@@ -559,8 +519,6 @@ def test_idxmin_idxmax_axis1():
 def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if groupby_func in ("idxmax", "idxmin"):
         pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
-    if groupby_func in ("mad", "tshift"):
-        pytest.skip("mad and tshift are deprecated")
     if groupby_func in ("corrwith", "skew"):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
@@ -570,7 +528,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
     gb = df.groupby(groups)
     method = getattr(gb, groupby_func)
-    args = (0,) if groupby_func == "fillna" else ()
+    args = get_groupby_method_args(groupby_func, df)
     kwargs = {"axis": 1}
     if numeric_only is not None:
         # when numeric_only is None we don't pass any argument
@@ -598,10 +556,8 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
             method(*args, **kwargs)
     elif groupby_func not in has_axis:
         msg = "got an unexpected keyword argument 'axis'"
-        warn = FutureWarning if groupby_func == "skew" and not numeric_only else None
-        with tm.assert_produces_warning(warn, match="Dropping of nuisance columns"):
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
     # fillna and shift are successful even on object dtypes
     elif (numeric_only is None or not numeric_only) and groupby_func not in (
         "fillna",
@@ -640,13 +596,42 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
     df = DataFrame({"key": ["b"] * 100, "value": 2})
-    actual = df.groupby("key")["value"].cumprod()
-    # if overflows, groupby product casts to float
-    # while numpy passes back invalid values
     df["value"] = df["value"].astype(float)
+    actual = df.groupby("key")["value"].cumprod()
     expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_cumprod_overflow():
+    # GH#37493 if we overflow we return garbage consistent with numpy
+    df = DataFrame({"key": ["b"] * 4, "value": 100_000})
+    actual = df.groupby("key")["value"].cumprod()
+    expected = Series(
+        [100_000, 10_000_000_000, 1_000_000_000_000_000, 7766279631452241920],
+        name="value",
+    )
+    tm.assert_series_equal(actual, expected)
+
+    numpy_result = df.groupby("key", group_keys=False)["value"].apply(
+        lambda x: x.cumprod()
+    )
+    numpy_result.name = "value"
+    tm.assert_series_equal(actual, numpy_result)
+
+
+def test_groupby_cumprod_nan_influences_other_columns():
+    # GH#48064
+    df = DataFrame(
+        {
+            "a": 1,
+            "b": [1, np.nan, 2],
+            "c": [1, 2, 3.0],
+        }
+    )
+    result = df.groupby("a").cumprod(numeric_only=True, skipna=False)
+    expected = DataFrame({"b": [1, np.nan, np.nan], "c": [1, 2, 6.0]})
+    tm.assert_frame_equal(result, expected)
 
 
 def scipy_sem(*args, **kwargs):
@@ -687,7 +672,8 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(StringIO(raw), parse_dates=[0])
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()
@@ -1088,6 +1074,38 @@ def test_series_describe_single():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("keys", ["key1", ["key1", "key2"]])
+def test_series_describe_as_index(as_index, keys):
+    # GH#49256
+    df = DataFrame(
+        {
+            "key1": ["one", "two", "two", "three", "two"],
+            "key2": ["one", "two", "two", "three", "two"],
+            "foo2": [1, 2, 4, 4, 6],
+        }
+    )
+    gb = df.groupby(keys, as_index=as_index)["foo2"]
+    result = gb.describe()
+    expected = DataFrame(
+        {
+            "key1": ["one", "three", "two"],
+            "count": [1.0, 1.0, 3.0],
+            "mean": [1.0, 4.0, 4.0],
+            "std": [np.nan, np.nan, 2.0],
+            "min": [1.0, 4.0, 2.0],
+            "25%": [1.0, 4.0, 3.0],
+            "50%": [1.0, 4.0, 4.0],
+            "75%": [1.0, 4.0, 5.0],
+            "max": [1.0, 4.0, 6.0],
+        }
+    )
+    if len(keys) == 2:
+        expected.insert(1, "key2", expected["key1"])
+    if as_index:
+        expected = expected.set_index(keys)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_series_index_name(df):
     grouped = df.loc[:, ["C"]].groupby(df["A"])
     result = grouped.agg(lambda x: x.mean())
@@ -1172,29 +1190,25 @@ def test_frame_describe_unstacked_format():
     "pandas.errors.PerformanceWarning"
 )
 @pytest.mark.parametrize("as_index", [True, False])
-def test_describe_with_duplicate_output_column_names(as_index):
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314
     df = DataFrame(
         {
-            "a": [99, 99, 99, 88, 88, 88],
+            "a1": [99, 99, 99, 88, 88, 88],
+            "a2": [99, 99, 99, 88, 88, 88],
             "b": [1, 2, 3, 4, 5, 6],
             "c": [10, 20, 30, 40, 50, 60],
         },
-        columns=["a", "b", "b"],
+        columns=["a1", "a2", "b", "b"],
         copy=False,
     )
+    if keys == ["a1"]:
+        df = df.drop(columns="a2")
 
     expected = (
         DataFrame.from_records(
             [
-                ("a", "count", 3.0, 3.0),
-                ("a", "mean", 88.0, 99.0),
-                ("a", "std", 0.0, 0.0),
-                ("a", "min", 88.0, 99.0),
-                ("a", "25%", 88.0, 99.0),
-                ("a", "50%", 88.0, 99.0),
-                ("a", "75%", 88.0, 99.0),
-                ("a", "max", 88.0, 99.0),
                 ("b", "count", 3.0, 3.0),
                 ("b", "mean", 5.0, 2.0),
                 ("b", "std", 1.0, 1.0),
@@ -1217,14 +1231,17 @@ def test_describe_with_duplicate_output_column_names(as_index):
         .T
     )
     expected.columns.names = [None, None]
-    expected.index = Index([88, 99], name="a")
-
-    if as_index:
-        expected = expected.drop(columns=["a"], level=0)
+    if len(keys) == 2:
+        expected.index = MultiIndex(
+            levels=[[88, 99], [88, 99]], codes=[[0, 1], [0, 1]], names=["a1", "a2"]
+        )
     else:
-        expected = expected.reset_index(drop=True)
+        expected.index = Index([88, 99], name="a1")
 
-    result = df.groupby("a", as_index=as_index).describe()
+    if not as_index:
+        expected = expected.reset_index()
+
+    result = df.groupby(keys, as_index=as_index).describe()
 
     tm.assert_frame_equal(result, expected)
 
@@ -1321,78 +1338,57 @@ def test_groupby_sum_timedelta_with_nat():
 
 
 @pytest.mark.parametrize(
-    "kernel, numeric_only_default, drops_nuisance, has_arg",
+    "kernel, has_arg",
     [
-        ("all", False, False, False),
-        ("any", False, False, False),
-        ("bfill", False, False, False),
-        ("corr", True, False, True),
-        ("corrwith", True, False, True),
-        ("cov", True, False, True),
-        ("cummax", False, True, True),
-        ("cummin", False, True, True),
-        ("cumprod", True, True, True),
-        ("cumsum", True, True, True),
-        ("diff", False, False, False),
-        ("ffill", False, False, False),
-        ("fillna", False, False, False),
-        ("first", False, False, True),
-        ("idxmax", True, False, True),
-        ("idxmin", True, False, True),
-        ("last", False, False, True),
-        ("max", False, True, True),
-        ("mean", True, True, True),
-        ("median", True, True, True),
-        ("min", False, True, True),
-        ("nth", False, False, False),
-        ("nunique", False, False, False),
-        ("pct_change", False, False, False),
-        ("prod", True, True, True),
-        ("quantile", True, False, True),
-        ("sem", True, True, True),
-        ("skew", True, False, True),
-        ("std", True, True, True),
-        ("sum", True, True, True),
-        ("var", True, False, True),
+        ("all", False),
+        ("any", False),
+        ("bfill", False),
+        ("corr", True),
+        ("corrwith", True),
+        ("cov", True),
+        ("cummax", True),
+        ("cummin", True),
+        ("cumprod", True),
+        ("cumsum", True),
+        ("diff", False),
+        ("ffill", False),
+        ("fillna", False),
+        ("first", True),
+        ("idxmax", True),
+        ("idxmin", True),
+        ("last", True),
+        ("max", True),
+        ("mean", True),
+        ("median", True),
+        ("min", True),
+        ("nth", False),
+        ("nunique", False),
+        ("pct_change", False),
+        ("prod", True),
+        ("quantile", True),
+        ("sem", True),
+        ("skew", True),
+        ("std", True),
+        ("sum", True),
+        ("var", True),
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
-def test_deprecate_numeric_only(
-    kernel, numeric_only_default, drops_nuisance, has_arg, numeric_only, keys
-):
+def test_numeric_only(kernel, has_arg, numeric_only, keys):
     # GH#46072
     # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
     # has_arg: Whether the op has a numeric_only arg
     df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
 
-    if kernel == "corrwith":
-        args = (df,)
-    elif kernel == "nth" or kernel == "fillna":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(kernel, df)
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
     gb = df.groupby(keys)
     method = getattr(gb, kernel)
-    if has_arg and (
+    if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
-        numeric_only is True
-        or (numeric_only is lib.no_default and numeric_only_default)
-        or drops_nuisance
-    ):
-        if numeric_only is True or (not numeric_only_default and not drops_nuisance):
-            warn = None
-        else:
-            warn = FutureWarning
-        if numeric_only is lib.no_default and numeric_only_default:
-            msg = f"The default value of numeric_only in DataFrameGroupBy.{kernel}"
-        else:
-            msg = f"Dropping invalid columns in DataFrameGroupBy.{kernel}"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = method(*args, **kwargs)
-
+        result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
@@ -1405,19 +1401,26 @@ def test_deprecate_numeric_only(
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
-    elif has_arg:
+    elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
-        assert numeric_only is not lib.no_default or numeric_only_default is False
-        assert not drops_nuisance
         # kernels that are successful on any dtype were above; this will fail
-        msg = (
-            "(not allowed for this dtype"
-            "|must be a string or a number"
-            "|cannot be performed against 'object' dtypes"
-            "|must be a string or a real number"
-            "|unsupported operand type)"
+
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if kernel.startswith("cum") else TypeError
+
+        msg = "|".join(
+            [
+                "not allowed for this dtype",
+                "must be a string or a number",
+                "cannot be performed against 'object' dtypes",
+                "must be a string or a real number",
+                "unsupported operand type",
+                "not supported between instances of",
+                "function is not implemented for this dtype",
+            ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
@@ -1435,7 +1438,7 @@ def test_deprecate_numeric_only(
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "mad", "pad", "tshift"):
+    if groupby_func in ("backfill", "pad"):
         pytest.skip("method is deprecated")
     elif groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"
@@ -1451,22 +1454,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     expected_gb = expected_ser.groupby(grouper)
     expected_method = getattr(expected_gb, groupby_func)
 
-    if groupby_func == "corrwith":
-        args = (ser,)
-    elif groupby_func == "corr":
-        args = (ser,)
-    elif groupby_func == "cov":
-        args = (ser,)
-    elif groupby_func == "nth":
-        args = (0,)
-    elif groupby_func == "fillna":
-        args = (True,)
-    elif groupby_func == "take":
-        args = ([0],)
-    elif groupby_func == "quantile":
-        args = (0.5,)
-    else:
-        args = ()
+    args = get_groupby_method_args(groupby_func, ser)
 
     fails_on_numeric_object = (
         "corr",
@@ -1534,24 +1522,17 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype is object:
-        err_category = NotImplementedError
-        err_msg = f"{groupby_func} does not implement numeric_only"
-        if groupby_func.startswith("cum"):
-            # cum ops already exhibit future behavior
-            warn_category = None
-            warn_msg = ""
-            err_category = TypeError
-            err_msg = f"{groupby_func} is not supported for object dtype"
-        elif groupby_func == "skew":
-            warn_category = FutureWarning
-            warn_msg = "will raise a TypeError in the future"
-        else:
-            warn_category = FutureWarning
-            warn_msg = "This will raise a TypeError"
-
-        with tm.assert_produces_warning(warn_category, match=warn_msg):
-            with pytest.raises(err_category, match=err_msg):
-                method(*args, numeric_only=True)
+        msg = "|".join(
+            [
+                "Cannot use numeric_only=True",
+                "called with numeric_only=True and dtype object",
+                "Series.skew does not allow numeric_only=True with non-numeric",
+                "got an unexpected keyword argument 'numeric_only'",
+                "is not supported for object dtype",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            method(*args, numeric_only=True)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
@@ -1593,3 +1574,15 @@ def test_corrwith_with_1_axis():
     )
     expected = Series([np.nan] * 6, index=index)
     tm.assert_series_equal(result, expected)
+
+
+def test_multiindex_group_all_columns_when_empty(groupby_func):
+    # GH 32464
+    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
+    gb = df.groupby(["a", "b", "c"], group_keys=False)
+    method = getattr(gb, groupby_func)
+    args = get_groupby_method_args(groupby_func, df)
+
+    result = method(*args).index
+    expected = df.index
+    tm.assert_index_equal(result, expected)

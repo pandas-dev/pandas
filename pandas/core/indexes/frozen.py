@@ -8,7 +8,10 @@ These are used for:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    Any,
+    NoReturn,
+)
 
 from pandas.core.base import PandasObject
 
@@ -62,7 +65,10 @@ class FrozenList(PandasObject, list):
         return type(self)(temp)
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
-    __add__ = __iadd__ = union
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[FrozenList, Any], FrozenList]", base class "list" defined the
+    # type as overloaded function)
+    __add__ = __iadd__ = union  # type: ignore[assignment]
 
     def __getitem__(self, n):
         if isinstance(n, slice):
@@ -93,7 +99,7 @@ class FrozenList(PandasObject, list):
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(tuple(self))
 
-    def _disabled(self, *args, **kwargs):
+    def _disabled(self, *args, **kwargs) -> NoReturn:
         """
         This method will not function because object is immutable.
         """

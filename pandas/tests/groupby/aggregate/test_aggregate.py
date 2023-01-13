@@ -210,6 +210,21 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+def test_std_masked_dtype(any_numeric_ea_dtype):
+    # GH#35516
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 1, 2, 2, 1],
+            "b": Series([pd.NA, 1, 2, 1, 1, 1, 2], dtype="Float64"),
+        }
+    )
+    result = df.groupby("a").std()
+    expected = DataFrame(
+        {"b": [0.57735, 0]}, index=Index([1, 2], name="a"), dtype="Float64"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -239,10 +254,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby(level=1, axis=1).agg(func)
+    result = df.groupby(level=1, axis=1).agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
@@ -266,10 +278,7 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby("x", axis=1).agg(func)
+    result = df.groupby("x", axis=1).agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -281,23 +290,23 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
-    aggfun = lambda ser: ser.size
-    result = grouped.agg(aggfun)
-    foo = (df.A == "foo").sum()
-    bar = (df.A == "bar").sum()
+    aggfun_0 = lambda ser: ser.size
+    result = grouped.agg(aggfun_0)
+    foosum = (df.A == "foo").sum()
+    barsum = (df.A == "bar").sum()
     K = len(result.columns)
 
     # GH5782
-    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
+    exp = Series(np.array([foosum] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
+    exp = Series(np.array([barsum] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
-    def aggfun(ser):
+    def aggfun_1(ser):
         return ser.size
 
-    result = DataFrame().groupby(df.A).agg(aggfun)
+    result = DataFrame().groupby(df.A).agg(aggfun_1)
     assert isinstance(result, DataFrame)
     assert len(result) == 0
 
@@ -307,12 +316,12 @@ def test_wrap_agg_out(three_group):
 
     def func(ser):
         if ser.dtype == object:
-            raise TypeError
-        else:
-            return ser.sum()
+            raise TypeError("Test error message")
+        return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = grouped.aggregate(func)
+    with pytest.raises(TypeError, match="Test error message"):
+        grouped.aggregate(func)
+    result = grouped[[c for c in three_group if c != "C"]].aggregate(func)
     exp_grouped = three_group.loc[:, three_group.columns != "C"]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
@@ -383,21 +392,18 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
 
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
+    # Columns B and C would cause partial failure
+    df = df.drop(columns=["B", "C"])
+
     funcs = [("foo", "mean"), "std"]
     ex_funcs = [("foo", "mean"), ("std", "std")]
 
-    result = df.groupby("A")["C"].agg(funcs)
-    expected = df.groupby("A")["C"].agg(ex_funcs)
+    result = df.groupby("A")["D"].agg(funcs)
+    expected = df.groupby("A")["D"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        result = df.groupby("A").agg(funcs)
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        expected = df.groupby("A").agg(ex_funcs)
+    result = df.groupby("A").agg(funcs)
+    expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -420,10 +426,10 @@ def test_more_flexible_frame_multi_function(df):
     expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
     tm.assert_frame_equal(result, expected)
 
-    def foo(x):
+    def numpymean(x):
         return np.mean(x)
 
-    def bar(x):
+    def numpystd(x):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
@@ -433,7 +439,7 @@ def test_more_flexible_frame_multi_function(df):
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [foo, bar]}
+    d = {"C": [np.mean], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 
@@ -475,6 +481,16 @@ def test_groupby_agg_coercing_bools():
     result = gp["c"].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name="c")
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_agg_dict_with_getitem():
+    # issue 25471
+    dat = DataFrame({"A": ["A", "A", "B", "B", "B"], "B": [1, 2, 1, 1, 2]})
+    result = dat.groupby("A")[["B"]].agg({"B": "sum"})
+
+    expected = DataFrame({"B": [3, 4]}, index=["A", "B"]).rename_axis("A", axis=0)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -562,6 +578,22 @@ def test_order_aggregate_multiple_funcs():
     expected = Index(["sum", "max", "mean", "ohlc", "min"])
 
     tm.assert_index_equal(result, expected)
+
+
+def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
+        dtype=any_numeric_ea_dtype,
+    )
+    result = df.groupby("a").ohlc()
+    expected = DataFrame(
+        [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
+        columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
+        index=Index([1, 2, 3, 4], dtype=any_numeric_ea_dtype, name="a"),
+        dtype=any_numeric_ea_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
@@ -667,7 +699,7 @@ class TestNamedAggregationSeries:
 
         # but we do allow this
         result = gr.agg([])
-        expected = DataFrame()
+        expected = DataFrame(columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_series_named_agg_duplicates_no_raises(self):
@@ -1068,7 +1100,6 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
-    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
@@ -1332,13 +1363,11 @@ def test_groupby_aggregate_directory(reduction_func):
     # GH#32793
     if reduction_func in ["corrwith", "nth"]:
         return None
-    warn = FutureWarning if reduction_func == "mad" else None
 
     obj = DataFrame([[0, 1], [0, np.nan]])
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result_reduced_series = obj.groupby(0).agg(reduction_func)
-        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
+    result_reduced_series = obj.groupby(0).agg(reduction_func)
+    result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
     if reduction_func in ["size", "ngroup"]:
         # names are different: None / 1

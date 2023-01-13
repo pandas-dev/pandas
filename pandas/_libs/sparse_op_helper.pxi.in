@@ -13,7 +13,7 @@ ctypedef fused sparse_t:
     int64_t
 
 
-cdef inline float64_t __div__(sparse_t a, sparse_t b):
+cdef float64_t __div__(sparse_t a, sparse_t b):
     if b == 0:
         if a > 0:
             return INF
@@ -25,11 +25,11 @@ cdef inline float64_t __div__(sparse_t a, sparse_t b):
         return float(a) / b
 
 
-cdef inline float64_t __truediv__(sparse_t a, sparse_t b):
+cdef float64_t __truediv__(sparse_t a, sparse_t b):
     return __div__(a, b)
 
 
-cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
+cdef sparse_t __mod__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             return NaN
@@ -39,7 +39,7 @@ cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
         return a % b
 
 
-cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
+cdef sparse_t __floordiv__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             # Match non-sparse Series behavior implemented in mask_zero_div_zero
@@ -131,7 +131,7 @@ def get_dispatch(dtypes):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
+cdef tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                                 BlockIndex xindex,
                                                 {{dtype}}_t xfill,
                                                 {{dtype}}_t[:] y_,
@@ -232,7 +232,7 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
+cdef tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                               IntIndex xindex,
                                               {{dtype}}_t xfill,
                                               {{dtype}}_t[:] y_,

@@ -8,6 +8,7 @@ from lzma import LZMAError
 import os
 from tarfile import ReadError
 from urllib.error import HTTPError
+from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile
 
 import numpy as np
@@ -21,65 +22,72 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+import pandas as pd
+from pandas import (
+    NA,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
-"""
-CHECK LIST
+# CHECK LIST
 
-[x] - ValueError: "Values for parser can only be lxml or etree."
+# [x] - ValueError: "Values for parser can only be lxml or etree."
 
-etree
-[X] - ImportError: "lxml not found, please install or use the etree parser."
-[X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - ValueError: "xpath does not return any nodes..."
-[X] - SyntaxError: "You have used an incorrect or unsupported XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - ValueError: "To use stylesheet, you need lxml installed..."
-[]  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
-[X] - HTTPError: "HTTP Error 404: Not Found"
-[]  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
-[X] - FileNotFoundError: "No such file or directory"
-[]  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
+# etree
+# [X] - ImportError: "lxml not found, please install or use the etree parser."
+# [X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - ValueError: "xpath does not return any nodes..."
+# [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - ValueError: "To use stylesheet, you need lxml installed..."
+# []  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
+# [X] - HTTPError: "HTTP Error 404: Not Found"
+# []  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+# [X] - FileNotFoundError: "No such file or directory"
+# []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
-lxml
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - AttributeError: "__enter__"
-[X] - XSLTApplyError: "Cannot resolve URI"
-[X] - XSLTParseError: "document is not a stylesheet"
-[X] - ValueError: "xpath does not return any nodes."
-[X] - XPathEvalError: "Invalid expression"
-[]  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
-[X] - TypeError: "empty namespace prefix is not supported in XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - LookupError: "unknown encoding"
-[]  - URLError: (USUALLY DUE TO NETWORKING)
-[X  - HTTPError: "HTTP Error 404: Not Found"
-[X] - OSError: "failed to load external entity"
-[X] - XMLSyntaxError: "Start tag expected, '<' not found"
-[]  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
-[X] - ValueError: "Values for parser can only be lxml or etree."
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
-"""
+# lxml
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - AttributeError: "__enter__"
+# [X] - XSLTApplyError: "Cannot resolve URI"
+# [X] - XSLTParseError: "document is not a stylesheet"
+# [X] - ValueError: "xpath does not return any nodes."
+# [X] - XPathEvalError: "Invalid expression"
+# []  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
+# [X] - TypeError: "empty namespace prefix is not supported in XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - LookupError: "unknown encoding"
+# []  - URLError: (USUALLY DUE TO NETWORKING)
+# [X  - HTTPError: "HTTP Error 404: Not Found"
+# [X] - OSError: "failed to load external entity"
+# [X] - XMLSyntaxError: "Start tag expected, '<' not found"
+# []  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
+# [X] - ValueError: "Values for parser can only be lxml or etree."
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
 geom_df = DataFrame(
     {
@@ -471,14 +479,19 @@ def test_file_handle_close(datapath, parser):
 def test_empty_string_lxml(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(XMLSyntaxError, match="Document is empty"):
+    msg = "|".join(
+        [
+            "Document is empty",
+            # Seen on Mac with lxml 4.91
+            r"None \(line 0\)",
+        ]
+    )
+    with pytest.raises(XMLSyntaxError, match=msg):
         read_xml(val, parser="lxml")
 
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_etree(val):
-    from xml.etree.ElementTree import ParseError
-
     with pytest.raises(ParseError, match="no element found"):
         read_xml(val, parser="etree")
 
@@ -497,8 +510,6 @@ def test_wrong_file_path_lxml():
 
 
 def test_wrong_file_path_etree():
-    from xml.etree.ElementTree import ParseError
-
     filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(
@@ -758,6 +769,45 @@ def test_elem_and_attrs_only(datapath, parser):
         match=("Either element or attributes can be parsed not both"),
     ):
         read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
+
+
+def test_empty_attrs_only(parser):
+    xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
+
+
+def test_empty_elems_only(parser):
+    xml = """
+      <data>
+        <row sides="4" shape="square" degrees="360"/>
+        <row sides="0" shape="circle" degrees="360"/>
+        <row sides="3" shape="triangle" degrees="180"/>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
 
 
 @td.skip_if_no("lxml")
@@ -1048,19 +1098,6 @@ def test_stylesheet_file(datapath):
 
     tm.assert_frame_equal(df_kml, df_style)
     tm.assert_frame_equal(df_kml, df_iter)
-
-
-def test_read_xml_passing_as_positional_deprecated(datapath, parser):
-    # GH#45133
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
-    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
-        read_xml(
-            kml,
-            ".//k:Placemark",
-            namespaces={"k": "http://www.opengis.net/kml/2.2"},
-            parser=parser,
-        )
 
 
 @td.skip_if_no("lxml")
@@ -1671,3 +1708,74 @@ def test_s3_parser_consistency():
     )
 
     tm.assert_frame_equal(df_lxml, df_etree)
+
+
+@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
+    # GH#50500
+    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+    data = """<?xml version='1.0' encoding='utf-8'?>
+<data xmlns="http://example.com">
+<row>
+  <a>x</a>
+  <b>1</b>
+  <c>4.0</c>
+  <d>x</d>
+  <e>2</e>
+  <f>4.0</f>
+  <g></g>
+  <h>True</h>
+  <i>False</i>
+</row>
+<row>
+  <a>y</a>
+  <b>2</b>
+  <c>5.0</c>
+  <d></d>
+  <e></e>
+  <f></f>
+  <g></g>
+  <h>False</h>
+  <i></i>
+</row>
+</data>"""
+
+    if string_storage == "python":
+        string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
+        string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
+
+    else:
+        string_array = ArrowStringArray(pa.array(["x", "y"]))
+        string_array_na = ArrowStringArray(pa.array(["x", None]))
+
+    with pd.option_context("mode.string_storage", string_storage):
+        with pd.option_context("mode.dtype_backend", dtype_backend):
+            result = read_xml(data, parser=parser, use_nullable_dtypes=True)
+
+    expected = DataFrame(
+        {
+            "a": string_array,
+            "b": Series([1, 2], dtype="Int64"),
+            "c": Series([4.0, 5.0], dtype="Float64"),
+            "d": string_array_na,
+            "e": Series([2, NA], dtype="Int64"),
+            "f": Series([4.0, NA], dtype="Float64"),
+            "g": Series([NA, NA], dtype="Int64"),
+            "h": Series([True, False], dtype="boolean"),
+            "i": Series([False, NA], dtype="boolean"),
+        }
+    )
+
+    if dtype_backend == "pyarrow":
+        from pandas.arrays import ArrowExtensionArray
+
+        expected = DataFrame(
+            {
+                col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                for col in expected.columns
+            }
+        )
+        expected["g"] = ArrowExtensionArray(pa.array([None, None]))
+
+    tm.assert_frame_equal(result, expected)

@@ -27,7 +27,7 @@ from pandas.io.common import get_handle
 
 class TestDataFrameToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"index_col": 0, "parse_dates": True}
+        params = {"index_col": 0}
         params.update(**kwargs)
 
         return read_csv(path, **params)
@@ -35,7 +35,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
 
         with tm.ensure_clean("__tmp_to_csv_from_csv1__") as path:
-            float_frame["A"][:5] = np.nan
+            float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan
 
             float_frame.to_csv(path)
             float_frame.to_csv(path, columns=["A", "B"])
@@ -46,17 +46,17 @@ class TestDataFrameToCSV:
             # freq does not roundtrip
             datetime_frame.index = datetime_frame.index._with_freq(None)
             datetime_frame.to_csv(path)
-            recons = self.read_csv(path)
+            recons = self.read_csv(path, parse_dates=True)
             tm.assert_frame_equal(datetime_frame, recons)
 
             datetime_frame.to_csv(path, index_label="index")
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
 
             assert len(recons.columns) == len(datetime_frame.columns) + 1
 
             # no index
             datetime_frame.to_csv(path, index=False)
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
             tm.assert_almost_equal(datetime_frame.values, recons.values)
 
             # corner case
@@ -390,7 +390,7 @@ class TestDataFrameToCSV:
     def test_to_csv_empty(self):
         df = DataFrame(index=np.arange(10))
         result, expected = self._return_result_expected(df, 1000)
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.slow
     def test_to_csv_chunksize(self):
@@ -514,7 +514,10 @@ class TestDataFrameToCSV:
             tsframe.index = MultiIndex.from_arrays(new_index)
 
             tsframe.to_csv(path, index_label=["time", "foo"])
-            recons = self.read_csv(path, index_col=[0, 1])
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                recons = self.read_csv(path, index_col=[0, 1], parse_dates=True)
 
             # TODO to_csv drops column name
             tm.assert_frame_equal(tsframe, recons, check_names=False)
@@ -1056,7 +1059,7 @@ class TestDataFrameToCSV:
 
             # test NaTs
             nat_index = to_datetime(
-                ["NaT"] * 10 + ["2000-01-01", "1/1/2000", "1-1-2000"]
+                ["NaT"] * 10 + ["2000-01-01", "2000-01-01", "2000-01-01"]
             )
             nat_frame = DataFrame({"A": nat_index}, index=nat_index)
             nat_frame.to_csv(path, date_format="%Y-%m-%d")
@@ -1316,7 +1319,7 @@ class TestDataFrameToCSV:
                     pd.Interval(
                         Timestamp("2020-01-01"),
                         Timestamp("2020-01-02"),
-                        inclusive="both",
+                        closed="both",
                     )
                 ]
             }

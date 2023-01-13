@@ -12,6 +12,8 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
 )
 
+from pandas.util.version import InvalidVersion
+
 
 class IntCastingNaNError(ValueError):
     """
@@ -281,7 +283,7 @@ class SettingWithCopyError(ValueError):
     The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
     happen unintentionally when chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -304,7 +306,7 @@ class SettingWithCopyWarning(Warning):
     'Warn' is the default option. This can happen unintentionally when
     chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -479,10 +481,85 @@ class DatabaseError(OSError):
     """
 
 
+class PossiblePrecisionLoss(Warning):
+    """
+    Warning raised by to_stata on a column with a value outside or equal to int64.
+
+    When the column value is outside or equal to the int64 value the column is
+    converted to a float64 dtype.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # PossiblePrecisionLoss: Column converted from int64 to float64...
+    """
+
+
+class ValueLabelTypeMismatch(Warning):
+    """
+    Warning raised by to_stata on a category column that contains non-string values.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
+    """
+
+
+class InvalidColumnName(Warning):
+    """
+    Warning raised by to_stata the column contains a non-valid stata name.
+
+    Because the column name is an invalid Stata variable, the name needs to be
+    converted.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
+    """
+
+
+class CategoricalConversionWarning(Warning):
+    """
+    Warning is raised when reading a partial labeled Stata file using a iterator.
+
+    Examples
+    --------
+    >>> from pandas.io.stata import StataReader
+    >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
+    ...   for i, block in enumerate(reader):
+    ...      print(i, block))
+    ... # CategoricalConversionWarning: One or more series with value labels...
+    """
+
+
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+    """
+
+
+class NoBufferPresent(Exception):
+    """
+    Exception is raised in _get_data_buffer to signal that there is no requested buffer.
+    """
+
+
+class InvalidComparison(Exception):
+    """
+    Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
     "AttributeConflictWarning",
+    "CategoricalConversionWarning",
     "ClosedFileError",
     "CSSWarning",
     "DatabaseError",
@@ -492,9 +569,14 @@ __all__ = [
     "EmptyDataError",
     "IncompatibilityWarning",
     "IntCastingNaNError",
+    "InvalidColumnName",
+    "InvalidComparison",
     "InvalidIndexError",
+    "InvalidVersion",
     "IndexingError",
+    "LossySetitemError",
     "MergeError",
+    "NoBufferPresent",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",
@@ -505,6 +587,7 @@ __all__ = [
     "ParserWarning",
     "PerformanceWarning",
     "PossibleDataLossError",
+    "PossiblePrecisionLoss",
     "PyperclipException",
     "PyperclipWindowsException",
     "SettingWithCopyError",
@@ -513,4 +596,5 @@ __all__ = [
     "UndefinedVariableError",
     "UnsortedIndexError",
     "UnsupportedFunctionCall",
+    "ValueLabelTypeMismatch",
 ]

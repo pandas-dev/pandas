@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 from collections import abc
+from datetime import timedelta
 from decimal import Decimal
 import operator
-from typing import Any
 
 import numpy as np
 import pytest
@@ -71,15 +71,10 @@ def compare_op(series, other, op):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: list[Any] = [Series, Index]
-lefts: list[Any] = [RangeIndex(10, 40, 10)]
-lefts.extend(
-    [
-        cls([10, 20, 30], dtype=dtype)
-        for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
-        for cls in ser_or_index
-    ]
-)
+_ldtypes = ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
+lefts: list[Index | Series] = [RangeIndex(10, 40, 10)]
+lefts.extend([Series([10, 20, 30], dtype=dtype) for dtype in _ldtypes])
+lefts.extend([Index([10, 20, 30], dtype=dtype) for dtype in _ldtypes if dtype != "f2"])
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -150,9 +145,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([1, 2, 3], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = TimedeltaIndex(["10s", "40s", "90s"])
+        expected = TimedeltaIndex(["10s", "40s", "90s"], dtype=right.dtype)
+
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
+        assert expected.dtype == right.dtype
 
         result = left * right
         tm.assert_equal(result, expected)
@@ -169,9 +166,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([10, 40, 90], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = TimedeltaIndex(["1s", "2s", "3s"])
+        expected = TimedeltaIndex(["1s", "2s", "3s"], dtype=right.dtype)
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
+        assert expected.dtype == right.dtype
 
         result = right / left
         tm.assert_equal(result, expected)
@@ -179,10 +177,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = "Cannot divide"
+        # (true_) needed for min-versions build 2022-12-26
+        msg = "ufunc '(true_)?divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left / right
 
+        msg = "ufunc 'floor_divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left // right
 
@@ -204,6 +204,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         box = box_with_array
         index = numeric_idx
         expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        if isinstance(scalar_td, np.timedelta64):
+            dtype = scalar_td.dtype
+            expected = expected.astype(dtype)
+        elif type(scalar_td) is timedelta:
+            expected = expected.astype("m8[us]")
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -235,6 +240,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         obj = tm.box_expected(arr, box, transpose=False)
 
         expected = arr_i8.view("timedelta64[D]").astype("timedelta64[ns]")
+        if type(scalar_td) is timedelta:
+            expected = expected.astype("timedelta64[us]")
+
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj * scalar_td
@@ -249,6 +257,14 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
+        if isinstance(three_days, np.timedelta64):
+            dtype = three_days.dtype
+            if dtype < np.dtype("m8[s]"):
+                # i.e. resolution is lower -> use lowest supported resolution
+                dtype = np.dtype("m8[s]")
+            expected = expected.astype(dtype)
+        elif type(three_days) is timedelta:
+            expected = expected.astype("m8[us]")
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -300,6 +316,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
                 "can only perform ops with numeric values",
                 "cannot subtract DatetimeArray from ndarray",
+                # pd.Timedelta(1) + Index([0, 1, 2])
+                "Cannot add or subtract Timedelta from integers",
             ]
         )
         assert_invalid_addsub_type(left, other, msg)
@@ -911,7 +929,7 @@ class TestAdditionSubtraction:
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
-        msg = "cannot subtract period"
+        msg = "cannot subtract PeriodArray from DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             # GH#18850
             result = ser - ser.index.to_period()

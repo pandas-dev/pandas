@@ -23,4 +23,4 @@ Development
     developer
     policies
     roadmap
-    meeting
+    community

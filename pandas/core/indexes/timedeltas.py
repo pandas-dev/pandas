@@ -12,7 +12,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
-    TD64NS_DTYPE,
+    is_dtype_equal,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -121,14 +121,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         unit=None,
         freq=lib.no_default,
         closed=None,
-        dtype=TD64NS_DTYPE,
-        copy=False,
+        dtype=None,
+        copy: bool = False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -136,13 +136,21 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "represent unambiguous timedelta values durations."
             )
 
-        # FIXME: need to check for dtype/data match
-        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
+        if (
+            isinstance(data, TimedeltaArray)
+            and freq is lib.no_default
+            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+        ):
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
+        if (
+            isinstance(data, TimedeltaIndex)
+            and freq is lib.no_default
+            and name is None
+            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+        ):
             if copy:
                 return data.copy()
             else:
@@ -166,7 +174,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label
 
@@ -181,7 +189,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         except TypeError as err:
             raise KeyError(key) from err
 
-        return Index.get_loc(self, key, method, tolerance)
+        return Index.get_loc(self, key)
 
     def _parse_with_reso(self, label: str):
         # the "with_reso" is a no-op for TimedeltaIndex
@@ -208,6 +216,8 @@ def timedelta_range(
     freq=None,
     name=None,
     closed=None,
+    *,
+    unit: str | None = None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -227,6 +237,10 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+    unit : str, default None
+        Specify the desired resolution of the result.
+
+        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -271,10 +285,19 @@ def timedelta_range(
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
                    dtype='timedelta64[ns]', freq=None)
+
+    **Specify a unit**
+
+    >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
+    TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
+                    '200001 days 00:00:00'],
+                   dtype='timedelta64[s]', freq='100000D')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     freq, _ = dtl.maybe_infer_freq(freq)
-    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
+    tdarr = TimedeltaArray._generate_range(
+        start, end, periods, freq, closed=closed, unit=unit
+    )
     return TimedeltaIndex._simple_new(tdarr, name=name)

@@ -118,9 +118,9 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cdef duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
+cdef duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first', const uint8_t[:] mask=None):
 {{else}}
-cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
+cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', const uint8_t[:] mask=None):
 {{endif}}
     cdef:
         int ret = 0
@@ -129,38 +129,41 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
         {{else}}
         PyObject* value
         {{endif}}
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
+        bint seen_na = False, uses_mask = mask is not None
+        bint seen_multiple_na = False
 
     kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
 
-    if keep == 'last':
+    {{for cond, keep in [('if', '"last"'), ('elif', '"first"')]}}
+    {{cond}} keep == {{keep}}:
         {{if dtype == 'object'}}
         if True:
         {{else}}
         with nogil:
         {{endif}}
+            {{if keep == '"last"'}}
             for i in range(n - 1, -1, -1):
-                # equivalent: range(n)[::-1], which cython doesn't like in nogil
-                value = {{to_c_type}}(values[i])
-                kh_put_{{ttype}}(table, value, &ret)
-                out[i] = ret == 0
-
-    elif keep == 'first':
-        {{if dtype == 'object'}}
-        if True:
-        {{else}}
-        with nogil:
-        {{endif}}
+            {{else}}
             for i in range(n):
-                value = {{to_c_type}}(values[i])
-                kh_put_{{ttype}}(table, value, &ret)
-                out[i] = ret == 0
+            {{endif}}
+                if uses_mask and mask[i]:
+                    if seen_na:
+                        out[i] = True
+                    else:
+                        out[i] = False
+                        seen_na = True
+                else:
+                    value = {{to_c_type}}(values[i])
+                    kh_put_{{ttype}}(table, value, &ret)
+                    out[i] = ret == 0
+    {{endfor}}
 
     else:
         {{if dtype == 'object'}}
@@ -169,15 +172,28 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
         with nogil:
         {{endif}}
             for i in range(n):
-                value = {{to_c_type}}(values[i])
-                k = kh_get_{{ttype}}(table, value)
-                if k != table.n_buckets:
-                    out[table.vals[k]] = 1
-                    out[i] = 1
+                if uses_mask and mask[i]:
+                    if not seen_na:
+                        first_na = i
+                        seen_na = True
+                        out[i] = 0
+                    elif not seen_multiple_na:
+                        out[i] = 1
+                        out[first_na] = 1
+                        seen_multiple_na = True
+                    else:
+                        out[i] = 1
+
                 else:
-                    k = kh_put_{{ttype}}(table, value, &ret)
-                    table.vals[k] = i
-                    out[i] = 0
+                    value = {{to_c_type}}(values[i])
+                    k = kh_get_{{ttype}}(table, value)
+                    if k != table.n_buckets:
+                        out[table.vals[k]] = 1
+                        out[i] = 1
+                    else:
+                        k = kh_put_{{ttype}}(table, value, &ret)
+                        table.vals[k] = i
+                        out[i] = 0
 
     kh_destroy_{{ttype}}(table)
     return out
@@ -301,37 +317,37 @@ cpdef value_count(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=N
         raise TypeError(values.dtype)
 
 
-cpdef duplicated(ndarray[htfunc_t] values, object keep="first"):
+cpdef duplicated(ndarray[htfunc_t] values, object keep="first", const uint8_t[:] mask=None):
     if htfunc_t is object:
-        return duplicated_object(values, keep)
+        return duplicated_object(values, keep, mask=mask)
 
     elif htfunc_t is int8_t:
-        return duplicated_int8(values, keep)
+        return duplicated_int8(values, keep, mask=mask)
     elif htfunc_t is int16_t:
-        return duplicated_int16(values, keep)
+        return duplicated_int16(values, keep, mask=mask)
     elif htfunc_t is int32_t:
-        return duplicated_int32(values, keep)
+        return duplicated_int32(values, keep, mask=mask)
     elif htfunc_t is int64_t:
-        return duplicated_int64(values, keep)
+        return duplicated_int64(values, keep, mask=mask)
 
     elif htfunc_t is uint8_t:
-        return duplicated_uint8(values, keep)
+        return duplicated_uint8(values, keep, mask=mask)
     elif htfunc_t is uint16_t:
-        return duplicated_uint16(values, keep)
+        return duplicated_uint16(values, keep, mask=mask)
     elif htfunc_t is uint32_t:
-        return duplicated_uint32(values, keep)
+        return duplicated_uint32(values, keep, mask=mask)
     elif htfunc_t is uint64_t:
-        return duplicated_uint64(values, keep)
+        return duplicated_uint64(values, keep, mask=mask)
 
     elif htfunc_t is float64_t:
-        return duplicated_float64(values, keep)
+        return duplicated_float64(values, keep, mask=mask)
     elif htfunc_t is float32_t:
-        return duplicated_float32(values, keep)
+        return duplicated_float32(values, keep, mask=mask)
 
     elif htfunc_t is complex128_t:
-        return duplicated_complex128(values, keep)
+        return duplicated_complex128(values, keep, mask=mask)
     elif htfunc_t is complex64_t:
-        return duplicated_complex64(values, keep)
+        return duplicated_complex64(values, keep, mask=mask)
 
     else:
         raise TypeError(values.dtype)

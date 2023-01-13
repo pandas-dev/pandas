@@ -21,7 +21,13 @@ import toml
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-RENAME = {"pytables": "tables", "geopandas-base": "geopandas", "pytorch": "torch"}
+REMAP_VERSION = {"tzdata": "2022.1"}
+RENAME = {
+    "pytables": "tables",
+    "psycopg2": "psycopg2-binary",
+    "dask-core": "dask",
+    "seaborn-base": "seaborn",
+}
 
 
 def conda_package_to_pip(package: str):
@@ -41,7 +47,8 @@ def conda_package_to_pip(package: str):
             pkg, version = package.split(compare)
             if pkg in EXCLUDE:
                 return
-
+            if pkg in REMAP_VERSION:
+                return "".join((pkg, compare, REMAP_VERSION[pkg]))
             if pkg in RENAME:
                 return "".join((RENAME[pkg], compare, version))
 

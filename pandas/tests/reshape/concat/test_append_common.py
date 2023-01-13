@@ -55,26 +55,10 @@ class TestConcatAppendCommon:
 
     item2 = item
 
-    def _check_expected_dtype(self, obj, label):
-        """
-        Check whether obj has expected dtype depending on label
-        considering not-supported dtypes
-        """
-        if isinstance(obj, Index):
-            assert obj.dtype == label
-        elif isinstance(obj, Series):
-            if label.startswith("period"):
-                assert obj.dtype == "Period[M]"
-            else:
-                assert obj.dtype == label
-        else:
-            raise ValueError
-
-    @pytest.mark.parametrize("box", [Index, Series])
-    def test_dtypes(self, item, box):
+    def test_dtypes(self, item, index_or_series):
         # to confirm test case covers intended dtypes
         typ, vals = item
-        obj = box(vals)
+        obj = index_or_series(vals)
         if isinstance(obj, Index):
             assert obj.dtype == typ
         elif isinstance(obj, Series):
@@ -208,7 +192,6 @@ class TestConcatAppendCommon:
             #  instead of a list; we have separate dedicated tests for categorical
             return
 
-        warn = None
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):
             # series coerces to numeric based on numpy rule
@@ -216,12 +199,10 @@ class TestConcatAppendCommon:
             exp_series_dtype = typ2
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
             request.node.add_marker(mark)
-            warn = FutureWarning
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
             request.node.add_marker(mark)
-            warn = FutureWarning
         elif (
             typ1 == "datetime64[ns, US/Eastern]"
             or typ2 == "datetime64[ns, US/Eastern]"
@@ -237,9 +218,8 @@ class TestConcatAppendCommon:
         # ----- Index ----- #
 
         # index.append
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            res = Index(vals1).append(Index(vals2))
+        # GH#39817
+        res = Index(vals1).append(Index(vals2))
         exp = Index(exp_data, dtype=exp_index_dtype)
         tm.assert_index_equal(res, exp)
 
@@ -251,33 +231,27 @@ class TestConcatAppendCommon:
         # ----- Series ----- #
 
         # series._append
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            res = Series(vals1)._append(Series(vals2), ignore_index=True)
+        # GH#39817
+        res = Series(vals1)._append(Series(vals2), ignore_index=True)
         exp = Series(exp_data, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # concat
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
+        # GH#39817
+        res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # 3 elements
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            res = Series(vals1)._append(
-                [Series(vals2), Series(vals3)], ignore_index=True
-            )
+        # GH#39817
+        res = Series(vals1)._append([Series(vals2), Series(vals3)], ignore_index=True)
         exp = Series(exp_data3, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp)
 
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            res = pd.concat(
-                [Series(vals1), Series(vals2), Series(vals3)],
-                ignore_index=True,
-            )
+        # GH#39817
+        res = pd.concat(
+            [Series(vals1), Series(vals2), Series(vals3)],
+            ignore_index=True,
+        )
         tm.assert_series_equal(res, exp)
 
     def test_concatlike_common_coerce_to_pandas_object(self):

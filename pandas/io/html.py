@@ -10,7 +10,9 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    TYPE_CHECKING,
     Iterable,
+    Literal,
     Pattern,
     Sequence,
     cast,
@@ -25,12 +27,13 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.frame import DataFrame
+from pandas import isna
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.series import Series
 
 from pandas.io.common import (
     file_exists,
@@ -42,6 +45,9 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -181,6 +187,12 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+    extract_links : {None, "all", "header", "body", "footer"}
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted.
+
+        .. versionadded:: 1.5.0
+
     Attributes
     ----------
     io : str or file-like
@@ -199,11 +211,18 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+    extract_links : {None, "all", "header", "body", "footer"}
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted.
+
+        .. versionadded:: 1.5.0
+
     Notes
     -----
     To subclass this class effectively you must override the following methods:
         * :func:`_build_doc`
         * :func:`_attr_getter`
+        * :func:`_href_getter`
         * :func:`_text_getter`
         * :func:`_parse_td`
         * :func:`_parse_thead_tr`
@@ -222,12 +241,14 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
+        extract_links: Literal[None, "header", "footer", "body", "all"],
     ) -> None:
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
+        self.extract_links = extract_links
 
     def parse_tables(self):
         """
@@ -259,6 +280,22 @@ class _HtmlFrameParser:
         """
         # Both lxml and BeautifulSoup have the same implementation:
         return obj.get(attr)
+
+    def _href_getter(self, obj):
+        """
+        Return a href if the DOM node contains a child <a> or None.
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        Returns
+        -------
+        href : str or unicode
+            The href from the <a> child of the DOM node.
+        """
+        raise AbstractMethodError(self)
 
     def _text_getter(self, obj):
         """
@@ -436,13 +473,15 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows)
-        body = self._expand_colspan_rowspan(body_rows)
-        footer = self._expand_colspan_rowspan(footer_rows)
+        header = self._expand_colspan_rowspan(header_rows, section="header")
+        body = self._expand_colspan_rowspan(body_rows, section="body")
+        footer = self._expand_colspan_rowspan(footer_rows, section="footer")
 
         return header, body, footer
 
-    def _expand_colspan_rowspan(self, rows):
+    def _expand_colspan_rowspan(
+        self, rows, section: Literal["header", "footer", "body"]
+    ):
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -450,11 +489,13 @@ class _HtmlFrameParser:
         ----------
         rows : list of node-like
             List of <tr>s
+        section : the section that the rows belong to (header, body or footer).
 
         Returns
         -------
         list of list
-            Each returned row is a list of str text.
+            Each returned row is a list of str text, or tuple (text, link)
+            if extract_links is not None.
 
         Notes
         -----
@@ -462,7 +503,10 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder: list[tuple[int, str, int]] = []  # list of (index, text, nrows)
+        text: str | tuple
+        remainder: list[
+            tuple[int, str | tuple, int]
+        ] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -482,6 +526,9 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
+                if self.extract_links in ("all", section):
+                    href = self._href_getter(td)
+                    text = (text, href)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -586,6 +633,10 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
 
+    def _href_getter(self, obj) -> str | None:
+        a = obj.find("a", href=True)
+        return None if not a else a["href"]
+
     def _text_getter(self, obj):
         return obj.text
 
@@ -677,6 +728,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
     :class:`_HtmlFrameParser`.
     """
 
+    def _href_getter(self, obj) -> str | None:
+        href = obj.xpath(".//a/@href")
+        return None if not href else href[0]
+
     def _text_getter(self, obj):
         return obj.text_content()
 
@@ -689,8 +744,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
+        # GH 49929
+        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -800,9 +855,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath(".//tfoot//tr")
 
 
-def _expand_elements(body):
+def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    lens = Series(data)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
@@ -917,14 +972,14 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only, extract_links)
 
         try:
             tables = p.parse_tables()
@@ -952,15 +1007,27 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     ret = []
     for table in tables:
         try:
-            ret.append(_data_to_frame(data=table, **kwargs))
+            df = _data_to_frame(data=table, **kwargs)
+            # Cast MultiIndex header to an Index of tuples when extracting header
+            # links and replace nan with None (therefore can't use mi.to_flat_index()).
+            # This maintains consistency of selection (e.g. df.columns.str[1])
+            if extract_links in ("all", "header") and isinstance(
+                df.columns, MultiIndex
+            ):
+                df.columns = Index(
+                    ((col[0], None if isna(col[1]) else col[1]) for col in df.columns),
+                    tupleize_cols=False,
+                )
+
+            ret.append(df)
         except EmptyDataError:  # empty table
             continue
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,
@@ -975,6 +1042,8 @@ def read_html(
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
+    extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    use_nullable_dtypes: bool = False,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1069,6 +1138,25 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
+    extract_links : {None, "all", "header", "body", "footer"}
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted.
+
+        .. versionadded:: 1.5.0
+
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     dfs
@@ -1117,6 +1205,12 @@ def read_html(
             "cannot skip rows starting from the end of the "
             "data (you passed a negative value)"
         )
+    if extract_links not in [None, "header", "footer", "body", "all"]:
+        raise ValueError(
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got '
+            f'"{extract_links}"'
+        )
     validate_header_arg(header)
 
     io = stringify_path(io)
@@ -1137,4 +1231,6 @@ def read_html(
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
+        extract_links=extract_links,
+        use_nullable_dtypes=use_nullable_dtypes,
     )

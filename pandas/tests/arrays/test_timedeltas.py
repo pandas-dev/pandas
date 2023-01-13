@@ -3,8 +3,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
@@ -20,27 +18,25 @@ class TestNonNano:
         return request.param
 
     @pytest.fixture
-    def reso(self, unit):
-        if unit == "s":
-            return NpyDatetimeUnit.NPY_FR_s.value
-        elif unit == "ms":
-            return NpyDatetimeUnit.NPY_FR_ms.value
-        elif unit == "us":
-            return NpyDatetimeUnit.NPY_FR_us.value
-        else:
-            raise NotImplementedError(unit)
-
-    @pytest.fixture
     def tda(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         return TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
-    def test_non_nano(self, unit, reso):
+    def test_non_nano(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
         assert tda.dtype == arr.dtype
-        assert tda[0]._reso == reso
+        assert tda[0].unit == unit
+
+    def test_as_unit_raises(self, tda):
+        # GH#50616
+        with pytest.raises(ValueError, match="Supported units"):
+            tda.as_unit("D")
+
+        tdi = pd.Index(tda)
+        with pytest.raises(ValueError, match="Supported units"):
+            tdi.as_unit("D")
 
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
     def test_fields(self, tda, field):
@@ -67,45 +63,50 @@ class TestNonNano:
         expected = tda_nano.total_seconds()
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_timedelta_array_total_seconds(self):
+        # GH34290
+        expected = Timedelta("2 min").total_seconds()
+
+        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
+        assert result == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )
     def test_add_nat_datetimelike_scalar(self, nat, tda):
         result = tda + nat
         assert isinstance(result, DatetimeArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
         result = nat + tda
         assert isinstance(result, DatetimeArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
     def test_add_pdnat(self, tda):
         result = tda + pd.NaT
         assert isinstance(result, TimedeltaArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
         result = pd.NaT + tda
         assert isinstance(result, TimedeltaArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
     # TODO: 2022-07-11 this is the only test that gets to DTA.tz_convert
     #  or tz_localize with non-nano; implement tests specific to that.
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
-        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
+        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture).as_unit("ns")
 
-        msg = "with mis-matched resolutions"
-        with pytest.raises(NotImplementedError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            tda + ts
-        with pytest.raises(NotImplementedError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            ts + tda
+        expected = tda.as_unit("ns") + ts
+        res = tda + ts
+        tm.assert_extension_array_equal(res, expected)
+        res = ts + tda
+        tm.assert_extension_array_equal(res, expected)
 
-        ts = ts._as_unit(tda._unit)
+        ts += Timedelta(1)  # case where we can't cast losslessly
 
         exp_values = tda._ndarray + ts.asm8
         expected = (
@@ -125,28 +126,28 @@ class TestNonNano:
         result = tda * other
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_mul_listlike(self, tda):
         other = np.arange(len(tda))
         result = tda * other
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_mul_listlike_object(self, tda):
         other = np.arange(len(tda))
         result = tda * other.astype(object)
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_numeric_scalar(self, tda):
         other = 2
         result = tda / other
         expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_td_scalar(self, tda):
         other = timedelta(seconds=1)
@@ -159,7 +160,7 @@ class TestNonNano:
         result = tda / other
         expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_td_array(self, tda):
         other = tda._ndarray + tda._ndarray[-1]
@@ -167,26 +168,35 @@ class TestNonNano:
         expected = tda._ndarray / other
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_add_timedeltaarraylike(self, tda):
+        tda_nano = tda.astype("m8[ns]")
+
+        expected = tda_nano * 2
+        res = tda_nano + tda
+        tm.assert_extension_array_equal(res, expected)
+        res = tda + tda_nano
+        tm.assert_extension_array_equal(res, expected)
+
+        expected = tda_nano * 0
+        res = tda - tda_nano
+        tm.assert_extension_array_equal(res, expected)
+
+        res = tda_nano - tda
+        tm.assert_extension_array_equal(res, expected)
+
 
 class TestTimedeltaArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = TimedeltaArray._from_sequence([Timedelta("1H"), Timedelta("2H")])
 
-        if np.dtype(dtype).kind == "u":
-            expected_dtype = np.dtype("uint64")
-        else:
-            expected_dtype = np.dtype("int64")
-        expected = arr.astype(expected_dtype)
+        if np.dtype(dtype) != np.int64:
+            with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+                arr.astype(dtype)
+            return
 
-        warn = None
-        if dtype != expected_dtype:
-            warn = FutureWarning
-        msg = " will return exactly the specified dtype"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = arr.astype(dtype)
-
-        assert result.dtype == expected_dtype
+        result = arr.astype(dtype)
+        expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_setitem_clears_freq(self):

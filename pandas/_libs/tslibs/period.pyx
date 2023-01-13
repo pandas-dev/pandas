@@ -1,5 +1,3 @@
-import warnings
-
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -22,7 +20,6 @@ cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDelta_Check,
     datetime,
     import_datetime,
 )
@@ -47,7 +44,6 @@ from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
@@ -315,21 +311,21 @@ cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back,
     return DtoB_weekday(unix_date)
 
 
-cdef inline int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+cdef int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
     if af_info.is_end:
         return (ordinal + 1) * af_info.intraday_conversion_factor - 1
     else:
         return ordinal * af_info.intraday_conversion_factor
 
 
-cdef inline int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+cdef int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
     return ordinal // af_info.intraday_conversion_factor
 
 
-cdef inline int64_t transform_via_day(int64_t ordinal,
-                                      asfreq_info *af_info,
-                                      freq_conv_func first_func,
-                                      freq_conv_func second_func) nogil:
+cdef int64_t transform_via_day(int64_t ordinal,
+                               asfreq_info *af_info,
+                               freq_conv_func first_func,
+                               freq_conv_func second_func) nogil:
     cdef:
         int64_t result
 
@@ -681,12 +677,12 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # ----------------------------------------------------------------------
 # Conversion between date_info and npy_datetimestruct
 
-cdef inline int get_freq_group(int freq) nogil:
+cdef int get_freq_group(int freq) nogil:
     # See also FreqGroup.get_freq_group
     return (freq // 1000) * 1000
 
 
-cdef inline int get_freq_group_index(int freq) nogil:
+cdef int get_freq_group_index(int freq) nogil:
     return freq // 1000
 
 
@@ -725,12 +721,12 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
     return unix_date
 
 
-cdef inline int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
+cdef int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
     # AKA: use npy_datetimestruct_to_datetime(NPY_FR_M, &dts)
     return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
 
 
-cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
+cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
     cdef:
         int64_t result
 
@@ -741,7 +737,7 @@ cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nog
         return result
 
 
-cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
+cdef int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
     cdef:
         int quarter
 
@@ -750,7 +746,7 @@ cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogi
     return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
 
 
-cdef inline int get_anchor_month(int freq, int freq_group) nogil:
+cdef int get_anchor_month(int freq, int freq_group) nogil:
     cdef:
         int fmonth
     fmonth = freq - freq_group
@@ -768,7 +764,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
 
     Parameters
     ----------
-    dts: npy_datetimestruct*
+    dts : npy_datetimestruct*
     freq : int
 
     Returns
@@ -777,7 +773,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     """
     cdef:
         int64_t unix_date
-        int freq_group, fmonth, mdiff
+        int freq_group, fmonth
         NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)
@@ -934,7 +930,7 @@ cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
     return quarter
 
 
-cdef inline int month_to_quarter(int month) nogil:
+cdef int month_to_quarter(int month) nogil:
     return (month - 1) // 3 + 1
 
 
@@ -1031,7 +1027,7 @@ cdef int calc_a_year_end(int freq, int group) nogil:
         return result
 
 
-cdef inline int calc_week_end(int freq, int group) nogil:
+cdef int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
@@ -1057,7 +1053,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64, 0)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_INT64, 0
+        )
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -1159,34 +1157,35 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return "NaT"
 
     if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
         if freq_group == FR_ANN:
-            fmt = b'%Y'
+            fmt = b"%Y"
         elif freq_group == FR_QTR:
-            fmt = b'%FQ%q'
+            fmt = b"%FQ%q"
         elif freq_group == FR_MTH:
-            fmt = b'%Y-%m'
+            fmt = b"%Y-%m"
         elif freq_group == FR_WK:
             left = period_asfreq(value, freq, FR_DAY, 0)
             right = period_asfreq(value, freq, FR_DAY, 1)
             return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
         elif freq_group == FR_BUS or freq_group == FR_DAY:
-            fmt = b'%Y-%m-%d'
+            fmt = b"%Y-%m-%d"
         elif freq_group == FR_HR:
-            fmt = b'%Y-%m-%d %H:00'
+            fmt = b"%Y-%m-%d %H:00"
         elif freq_group == FR_MIN:
-            fmt = b'%Y-%m-%d %H:%M'
+            fmt = b"%Y-%m-%d %H:%M"
         elif freq_group == FR_SEC:
-            fmt = b'%Y-%m-%d %H:%M:%S'
+            fmt = b"%Y-%m-%d %H:%M:%S"
         elif freq_group == FR_MS:
-            fmt = b'%Y-%m-%d %H:%M:%S.%l'
+            fmt = b"%Y-%m-%d %H:%M:%S.%l"
         elif freq_group == FR_US:
-            fmt = b'%Y-%m-%d %H:%M:%S.%u'
+            fmt = b"%Y-%m-%d %H:%M:%S.%u"
         elif freq_group == FR_NS:
-            fmt = b'%Y-%m-%d %H:%M:%S.%n'
+            fmt = b"%Y-%m-%d %H:%M:%S.%n"
         else:
             raise ValueError(f"Unknown freq: {freq}")
 
@@ -1228,7 +1227,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    # Decode result according to current locale
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
@@ -1364,7 +1364,6 @@ def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         int64_t[::1] out
-        accessor f
 
     func = _get_accessor_func(field)
     if func is NULL:
@@ -1440,7 +1439,9 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
+        ndarray ordinals = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 
@@ -1464,7 +1465,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     return ordinals
 
 
-cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     """
     See extract_ordinals.
     """
@@ -1512,7 +1513,7 @@ def extract_freq(ndarray[object] values) -> BaseOffset:
         if is_period_object(value):
             return value.freq
 
-    raise ValueError('freq not specified and cannot be inferred')
+    raise ValueError("freq not specified and cannot be inferred")
 
 # -----------------------------------------------------------------------
 # period helpers
@@ -1686,12 +1687,15 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
-        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+        if (
+            util.is_timedelta64_object(other) and
+            get_timedelta64_value(other) == NPY_NAT
+        ):
             # i.e. np.timedelta64("nat")
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
@@ -1737,6 +1741,11 @@ cdef class _Period(PeriodMixin):
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
                             f"and '{oname}'")
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self + x for x in other], dtype=object)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -1763,14 +1772,25 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self - x for x in other], dtype=object)
+
         return NotImplemented
 
     def __rsub__(self, other):
         if other is NaT:
             return NaT
+
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([x - self for x in other], dtype=object)
+
         return NotImplemented
 
-    def asfreq(self, freq, how='E') -> "Period":
+    def asfreq(self, freq, how="E") -> "Period":
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
@@ -1791,7 +1811,7 @@ cdef class _Period(PeriodMixin):
         base2 = freq_to_dtype_code(freq)
 
         # self.n can't be negative or 0
-        end = how == 'E'
+        end = how == "E"
         if end:
             ordinal = self.ordinal + self.freq.n - 1
         else:
@@ -1800,7 +1820,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
+    def to_timestamp(self, freq=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -1820,25 +1840,15 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
-        if tz is not None:
-            # GH#34522
-            warnings.warn(
-                "Period.to_timestamp `tz` argument is deprecated and will "
-                "be removed in a future version.  Use "
-                "`per.to_timestamp(...).tz_localize(tz)` instead.",
-                FutureWarning,
-                stacklevel=1,
-            )
-
         how = validate_end_alias(how)
 
-        end = how == 'E'
+        end = how == "E"
         if end:
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, "ns")
                 return self.to_timestamp(how="start") + adjust
-            endpoint = (self + self.freq).to_timestamp(how='start')
+            endpoint = (self + self.freq).to_timestamp(how="start")
             return endpoint - np.timedelta64(1, "ns")
 
         if freq is None:
@@ -1851,7 +1861,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, tz=tz)
+        return Timestamp(dt64)
 
     @property
     def year(self) -> int:
@@ -2286,9 +2296,14 @@ cdef class _Period(PeriodMixin):
         return bool(is_leapyear(self.year))
 
     @classmethod
-    def now(cls, freq=None):
+    def now(cls, freq):
         """
         Return the period of now's date.
+
+        Parameters
+        ----------
+        freq : str, BaseOffset
+            Frequency to use for the returned period.
         """
         return Period(datetime.now(), freq=freq)
 
@@ -2485,7 +2500,8 @@ class Period(_Period):
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
-        strings are listed in the :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        strings are listed in the
+        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
@@ -2518,7 +2534,6 @@ class Period(_Period):
         # ('T', 5) but may be passed in as a string like '5T'
 
         # ordinal is the period offset from the gregorian proleptic epoch
-        cdef _Period self
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
@@ -2531,7 +2546,7 @@ class Period(_Period):
             if not util.is_integer_object(ordinal):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
-                raise ValueError('Must supply freq for ordinal value')
+                raise ValueError("Must supply freq for ordinal value")
 
         elif value is None:
             if (year is None and month is None and
@@ -2582,7 +2597,7 @@ class Period(_Period):
             else:
                 nanosecond = ts.nanosecond
                 if nanosecond != 0:
-                    reso = 'nanosecond'
+                    reso = "nanosecond"
             if dt is NaT:
                 ordinal = NPY_NAT
 
@@ -2597,18 +2612,18 @@ class Period(_Period):
         elif PyDateTime_Check(value):
             dt = value
             if freq is None:
-                raise ValueError('Must supply freq for datetime value')
+                raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
         elif util.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
-                raise ValueError('Must supply freq for datetime value')
+                raise ValueError("Must supply freq for datetime value")
             nanosecond = dt.nanosecond
         elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
-                raise ValueError('Must supply freq for datetime value')
+                raise ValueError("Must supply freq for datetime value")
         else:
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
@@ -2645,10 +2660,10 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
 
 
 def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
-    how_dict = {'S': 'S', 'E': 'E',
-                'START': 'S', 'FINISH': 'E',
-                'BEGIN': 'S', 'END': 'E'}
+    how_dict = {"S": "S", "E": "E",
+                "START": "S", "FINISH": "E",
+                "BEGIN": "S", "END": "E"}
     how = how_dict.get(str(how).upper())
-    if how not in {'S', 'E'}:
-        raise ValueError('How must be one of S or E')
+    if how not in {"S", "E"}:
+        raise ValueError("How must be one of S or E")
     return how

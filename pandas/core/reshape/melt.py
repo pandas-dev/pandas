@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
-import warnings
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 
 import numpy as np
 
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
@@ -32,6 +30,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from pandas._typing import AnyArrayLike
+
     from pandas import DataFrame
 
 
@@ -41,7 +41,7 @@ def melt(
     id_vars=None,
     value_vars=None,
     var_name=None,
-    value_name="value",
+    value_name: Hashable = "value",
     col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:
@@ -53,13 +53,9 @@ def melt(
         cols = list(frame.columns)
 
     if value_name in frame.columns:
-        warnings.warn(
-            "This dataframe has a column name that matches the 'value_name' column "
-            "name of the resulting Dataframe. "
-            "In the future this will raise an error, please set the 'value_name' "
-            "parameter of DataFrame.melt to a unique name.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise ValueError(
+            f"value_name ({value_name}) cannot match an element in "
+            "the DataFrame columns."
         )
 
     if id_vars is not None:
@@ -127,7 +123,7 @@ def melt(
     N, K = frame.shape
     K -= len(id_vars)
 
-    mdata = {}
+    mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
@@ -144,17 +140,15 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    # error: Incompatible types in assignment (expression has type "ndarray",
-    # target has type "Series")
-    mdata[value_name] = frame._values.ravel("F")  # type: ignore[assignment]
+    if frame.shape[1] > 0:
+        mdata[value_name] = concat(
+            [frame.iloc[:, i] for i in range(frame.shape[1])]
+        ).values
+    else:
+        mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-
-        # error: Incompatible types in assignment (expression has type "ndarray", target
-        # has type "Series")
-        mdata[col] = np.asanyarray(  # type: ignore[assignment]
-            frame.columns._get_level_values(i)
-        ).repeat(N)
+        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 
@@ -164,8 +158,7 @@ def melt(
     return result
 
 
-@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
+def lreshape(data: DataFrame, groups, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -181,10 +174,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
         {new_name : list_of_columns}.
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
-    label : None
-        Not used.
-
-        .. deprecated:: 1.0.0
 
     Returns
     -------

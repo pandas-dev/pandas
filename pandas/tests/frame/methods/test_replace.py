@@ -29,8 +29,8 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 class TestDataFrameReplace:
     def test_replace_inplace(self, datetime_frame, float_string_frame):
-        datetime_frame["A"][:5] = np.nan
-        datetime_frame["A"][-5:] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         tsframe = datetime_frame.copy()
         return_value = tsframe.replace(np.nan, 0, inplace=True)
@@ -420,16 +420,16 @@ class TestDataFrameReplace:
         tm.assert_equal(result, expected)
 
     def test_replace(self, datetime_frame):
-        datetime_frame["A"][:5] = np.nan
-        datetime_frame["A"][-5:] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         zero_filled = datetime_frame.replace(np.nan, -1e8)
         tm.assert_frame_equal(zero_filled, datetime_frame.fillna(-1e8))
         tm.assert_frame_equal(zero_filled.replace(-1e8, np.nan), datetime_frame)
 
-        datetime_frame["A"][:5] = np.nan
-        datetime_frame["A"][-5:] = np.nan
-        datetime_frame["B"][:5] = -1e8
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "B"] = -1e8
 
         # empty
         df = DataFrame(index=["a", "b"])
@@ -716,16 +716,16 @@ class TestDataFrameReplace:
 
         # dtypes
         tsframe = datetime_frame.copy().astype(np.float32)
-        tsframe["A"][:5] = np.nan
-        tsframe["A"][-5:] = np.nan
+        tsframe.loc[tsframe.index[:5], "A"] = np.nan
+        tsframe.loc[tsframe.index[-5:], "A"] = np.nan
 
         zero_filled = tsframe.replace(np.nan, -1e8)
         tm.assert_frame_equal(zero_filled, tsframe.fillna(-1e8))
         tm.assert_frame_equal(zero_filled.replace(-1e8, np.nan), tsframe)
 
-        tsframe["A"][:5] = np.nan
-        tsframe["A"][-5:] = np.nan
-        tsframe["B"][:5] = -1e8
+        tsframe.loc[tsframe.index[:5], "A"] = np.nan
+        tsframe.loc[tsframe.index[-5:], "A"] = np.nan
+        tsframe.loc[tsframe.index[:5], "B"] = -1e8
 
         b = tsframe["B"]
         b[b == -1e8] = np.nan
@@ -839,7 +839,7 @@ class TestDataFrameReplace:
         ],
     )
     def test_replace_dtypes(self, frame, to_replace, value, expected):
-        result = getattr(frame, "replace")(to_replace, value)
+        result = frame.replace(to_replace, value)
         tm.assert_frame_equal(result, expected)
 
     def test_replace_input_formats_listlike(self):
@@ -873,8 +873,8 @@ class TestDataFrameReplace:
         values = [-2, -1, "missing"]
         result = df.replace(to_rep, values)
         expected = df.copy()
-        for i in range(len(to_rep)):
-            return_value = expected.replace(to_rep[i], values[i], inplace=True)
+        for rep, value in zip(to_rep, values):
+            return_value = expected.replace(rep, value, inplace=True)
             assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -901,8 +901,8 @@ class TestDataFrameReplace:
         to_rep = [np.nan, 0, ""]
         result = df.replace(to_rep, -1)
         expected = df.copy()
-        for i in range(len(to_rep)):
-            return_value = expected.replace(to_rep[i], -1, inplace=True)
+        for rep in to_rep:
+            return_value = expected.replace(rep, -1, inplace=True)
             assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -1162,20 +1162,15 @@ class TestDataFrameReplace:
         result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Eastern"))
         tm.assert_frame_equal(result, expected)
 
-        # coerce to object
+        # pre-2.0 this would coerce to object with mismatched tzs
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            result = result.replace(
-                {"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific")
-            )
+        result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific"))
         expected = DataFrame(
             {
                 "A": [
                     Timestamp("20130101", tz="US/Eastern"),
-                    Timestamp("20130104", tz="US/Pacific"),
-                    # once deprecation is enforced
-                    # Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
+                    Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
                     Timestamp("20130103", tz="US/Eastern"),
                 ],
                 "B": [0, np.nan, 2],
@@ -1496,6 +1491,18 @@ class TestDataFrameReplace:
         result = obj.replace(box(to_replace), value)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("val", [2, np.nan, 2.0])
+    def test_replace_value_none_dtype_numeric(self, val):
+        # GH#48231
+        df = DataFrame({"a": [1, val]})
+        result = df.replace(val, None)
+        expected = DataFrame({"a": [1, None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({"a": [1, val]})
+        result = df.replace({val: None})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
@@ -1558,4 +1565,18 @@ class TestDataFrameReplaceRegex:
         df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
         result = df.replace({0: 1, 1: np.nan})
         expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_categorical_no_replacement(self):
+        # GH#46672
+        df = DataFrame(
+            {
+                "a": ["one", "two", None, "three"],
+                "b": ["one", None, "two", "three"],
+            },
+            dtype="category",
+        )
+        expected = df.copy()
+
+        result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)

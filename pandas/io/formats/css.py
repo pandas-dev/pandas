@@ -13,6 +13,7 @@ from typing import (
 import warnings
 
 from pandas.errors import CSSWarning
+from pandas.util._exceptions import find_stack_level
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -46,7 +47,11 @@ def _side_expander(prop_fmt: str) -> Callable:
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(f'Could not expand "{prop}: {value}"', CSSWarning)
+            warnings.warn(
+                f'Could not expand "{prop}: {value}"',
+                CSSWarning,
+                stacklevel=find_stack_level(),
+            )
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -88,7 +93,9 @@ def _border_expander(side: str = "") -> Callable:
         tokens = value.split()
         if len(tokens) == 0 or len(tokens) > 3:
             warnings.warn(
-                f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning
+                f'Too many tokens provided to "{prop}" (expected 1-3)',
+                CSSWarning,
+                stacklevel=find_stack_level(),
             )
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
@@ -98,9 +105,9 @@ def _border_expander(side: str = "") -> Callable:
             f"border{side}-width": "medium",
         }
         for token in tokens:
-            if token in self.BORDER_STYLES:
+            if token.lower() in self.BORDER_STYLES:
                 border_declarations[f"border{side}-style"] = token
-            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+            elif any(ratio in token.lower() for ratio in self.BORDER_WIDTH_RATIOS):
                 border_declarations[f"border{side}-width"] = token
             else:
                 border_declarations[f"border{side}-color"] = token
@@ -174,6 +181,13 @@ class CSSResolver:
         "ridge",
         "inset",
         "outset",
+        "mediumdashdot",
+        "dashdotdot",
+        "hair",
+        "mediumdashdotdot",
+        "dashdot",
+        "slantdashdot",
+        "mediumdashed",
     ]
 
     SIDE_SHORTHANDS = {
@@ -187,11 +201,11 @@ class CSSResolver:
 
     CSS_EXPANSIONS = {
         **{
-            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
+            (f"border-{prop}" if prop else "border"): _border_expander(prop)
             for prop in ["", "top", "right", "bottom", "left"]
         },
         **{
-            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
         **{
@@ -324,7 +338,11 @@ class CSSResolver:
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
+            warnings.warn(
+                f"Unhandled size: {repr(in_val)}",
+                CSSWarning,
+                stacklevel=find_stack_level(),
+            )
             return self.size_to_pt("1!!default", conversions=conversions)
 
         match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
@@ -396,4 +414,5 @@ class CSSResolver:
                 warnings.warn(
                     f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
+                    stacklevel=find_stack_level(),
                 )

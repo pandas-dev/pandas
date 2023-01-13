@@ -4,15 +4,19 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
+
+  # build dependencies
+  - versioneer[toml]
+  - cython=0.29.32
 
   # test dependencies
-  - cython=0.29.30
-  - pytest>=6.0
+  - pytest>=7.0.0
   - pytest-cov
-  - pytest-xdist>=1.31
+  - pytest-xdist>=2.2.0
   - psutil
   - pytest-asyncio>=0.17
-  - boto3
+  - coverage
 
   # required dependencies
   - python-dateutil
@@ -29,14 +33,15 @@ dependencies:
   - html5lib
   - hypothesis
   - gcsfs
+  - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba>=0.53.1
   - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
-  - pandas-gbq
+  - py
   - psycopg2
   - pyarrow
   - pymysql
@@ -44,62 +49,47 @@ dependencies:
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
-  - sqlalchemy
+  - sqlalchemy<1.4.46
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
-  - botocore
-  - cftime
-  - dask
-  - ipython
-  - geopandas-base
-  - seaborn
-  - scikit-learn
-  - statsmodels
-  - coverage
-  - pandas-datareader
-  - pyyaml
-  - py
-  - pytorch
+  - dask-core
+  - seaborn-base
 
   # local testing dependencies
   - moto
   - flask
 
   # benchmarks
-  - asv
+  - asv>=0.5.1
 
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
   # code checks
-  - black=22.3.0
+  - black=22.10.0
   - cpplint
-  - flake8=4.0.1
-  - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
-  - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8=6.0.0
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.971
+  - mypy=0.991
   - pre-commit>=2.15.0
-  - pycodestyle  # used by flake8
   - pyupgrade
+  - ruff=0.0.215
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pandas-dev-flaker=0.5.0
-  - pydata-sphinx-theme=0.8.0
+  - pydata-sphinx-theme<0.11
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
@@ -125,8 +115,5 @@ dependencies:
   - pyyaml
   - requests
 
-  # build the interactive terminal
-  - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b10
       - sphinx-toggleprompt

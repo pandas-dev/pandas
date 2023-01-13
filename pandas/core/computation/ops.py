@@ -10,6 +10,7 @@ import operator
 from typing import (
     Callable,
     Iterable,
+    Iterator,
     Literal,
 )
 
@@ -99,7 +100,14 @@ class Term:
         return self
 
     def _resolve_name(self):
-        res = self.env.resolve(self.local_name, is_local=self.is_local)
+        local_name = str(self.local_name)
+        is_local = self.is_local
+        if local_name in self.env.scope and isinstance(
+            self.env.scope[local_name], type
+        ):
+            is_local = False
+
+        res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
         if hasattr(res, "ndim") and res.ndim > 2:
@@ -163,7 +171,7 @@ class Term:
         return self._value
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value) -> None:
         self._value = new_value
 
     @property
@@ -207,7 +215,7 @@ class Op:
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.operands)
 
     def __repr__(self) -> str:
@@ -322,7 +330,7 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
     """
     Cast an expression inplace.
 

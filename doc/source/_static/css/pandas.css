@@ -5,6 +5,10 @@
   --pst-color-info: 23, 162, 184;
 }
 
+table {
+  width: auto; /* Override fit-content which breaks Styler user guide ipynb */
+}
+
 /* Main index page overview cards */
 
 .intro-card {
@@ -25,7 +29,7 @@
 
 .intro-card .card-header {
   border: none;
-  background-color:white;
+  background-color: transparent;
   color: #150458 !important;
   font-size: var(--pst-font-size-h5);
   font-weight: bold;
@@ -34,11 +38,15 @@
 
 .intro-card .card-footer {
   border: none;
-  background-color:white;
+  background-color: transparent;
 }
 
 .intro-card .card-footer p.card-text{
   max-width: 220px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.card, .card img {
+  background-color: transparent !important;
 }

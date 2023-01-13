@@ -77,13 +77,6 @@ class TestRangeIndex(NumericBase):
         assert index.stop == stop
         assert index.step == step
 
-    @pytest.mark.parametrize("attr_name", ["_start", "_stop", "_step"])
-    def test_deprecated_start_stop_step_attrs(self, attr_name, simple_index):
-        # GH 26581
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            getattr(idx, attr_name)
-
     def test_copy(self):
         i = RangeIndex(5, name="Foo")
         i_copy = i.copy()

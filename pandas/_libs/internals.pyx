@@ -1,4 +1,5 @@
 from collections import defaultdict
+import weakref
 
 cimport cython
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -68,7 +69,7 @@ cdef class BlockPlacement:
                 or not cnp.PyArray_ISWRITEABLE(val)
                 or (<ndarray>val).descr.type_num != cnp.NPY_INTP
             ):
-                arr = np.require(val, dtype=np.intp, requirements='W')
+                arr = np.require(val, dtype=np.intp, requirements="W")
             else:
                 arr = val
             # Caller is responsible for ensuring arr.ndim == 1
@@ -132,7 +133,7 @@ cdef class BlockPlacement:
     @property
     def as_array(self) -> np.ndarray:
         cdef:
-            Py_ssize_t start, stop, end, _
+            Py_ssize_t start, stop, _
 
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
@@ -225,7 +226,7 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step
+            Py_ssize_t start, stop, step
             ndarray[intp_t, ndim=1] newarr
 
         if s is not None:
@@ -258,7 +259,6 @@ cdef class BlockPlacement:
         """
         cdef:
             slice slc = self._ensure_has_slice()
-            slice new_slice
             ndarray[intp_t, ndim=1] new_placement
 
         if slc is not None and slc.step == 1:
@@ -469,12 +469,14 @@ def get_blkno_indexers(
 
     n = blknos.shape[0]
     result = list()
+
+    if n == 0:
+        return result
+
     start = 0
     cur_blkno = blknos[start]
 
-    if n == 0:
-        pass
-    elif group is False:
+    if group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 result.append((cur_blkno, slice(start, i)))
@@ -672,8 +674,17 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
+        public list refs
+        public object parent
 
-    def __cinit__(self, blocks=None, axes=None, verify_integrity=True):
+    def __cinit__(
+        self,
+        blocks=None,
+        axes=None,
+        refs=None,
+        parent=None,
+        verify_integrity=True,
+    ):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))
@@ -685,6 +696,8 @@ cdef class BlockManager:
 
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
+        self.refs = refs
+        self.parent = parent
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -793,12 +806,16 @@ cdef class BlockManager:
             ndarray blknos, blklocs
 
         nbs = []
+        nrefs = []
         for blk in self.blocks:
             nb = blk.getitem_block_index(slobj)
             nbs.append(nb)
+            nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
+        mgr = type(self)(
+            tuple(nbs), new_axes, nrefs, parent=self, verify_integrity=False
+        )
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -811,7 +828,7 @@ cdef class BlockManager:
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(slobj)
+            new_blocks, new_refs = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
             return self._get_index_slice(slobj)
         else:
@@ -820,4 +837,6 @@ cdef class BlockManager:
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
+        return type(self)(
+            tuple(new_blocks), new_axes, new_refs, parent=self, verify_integrity=False
+        )

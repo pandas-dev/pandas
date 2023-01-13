@@ -21,14 +21,13 @@ from pandas._typing import (
     WriteBuffer,
 )
 
-from pandas.core.indexes.api import Index
-
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
+    from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -51,13 +50,6 @@ show_counts_sub = dedent(
         ``pandas.options.display.max_info_rows`` and
         ``pandas.options.display.max_info_columns``. A value of True always
         shows the counts, and False never shows the counts."""
-)
-
-null_counts_sub = dedent(
-    """
-    null_counts : bool, optional
-        .. deprecated:: 1.2.0
-            Use show_counts instead."""
 )
 
 
@@ -160,7 +152,6 @@ frame_sub_kwargs = {
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": null_counts_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
     "version_added_sub": "",
@@ -241,7 +232,6 @@ series_sub_kwargs = {
     "type_sub": "",
     "max_cols_sub": "",
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": "",
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
@@ -281,7 +271,7 @@ INFO_DOCSTRING = dedent(
         at the cost of computational resources. See the
         :ref:`Frequently Asked Questions <df-memory-usage>` for more
         details.
-    {show_counts_sub}{null_counts_sub}
+    {show_counts_sub}
 
     Returns
     -------
@@ -501,10 +491,7 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def memory_usage_bytes(self) -> int:
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     def render(
@@ -580,10 +567,7 @@ class SeriesInfo(BaseInfo):
         memory_usage_bytes : int
             Object's total memory usage in bytes.
         """
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep)
 
 

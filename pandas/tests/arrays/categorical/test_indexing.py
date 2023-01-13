@@ -191,13 +191,6 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
-    def test_categories_assignments(self):
-        cat = Categorical(["a", "b", "c", "a"])
-        exp = np.array([1, 2, 3, 1], dtype=np.int64)
-        cat.categories = [1, 2, 3]
-        tm.assert_numpy_array_equal(cat.__array__(), exp)
-        tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
-
     @pytest.mark.parametrize(
         "null_val",
         [None, np.nan, NaT, NA, math.nan, "NaT", "nat", "NAT", "nan", "NaN", "NAN"],
@@ -217,7 +210,7 @@ class TestCategoricalIndexing:
             "as the old categories!"
         )
         with pytest.raises(ValueError, match=msg):
-            cat.categories = new_categories
+            cat.rename_categories(new_categories)
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(

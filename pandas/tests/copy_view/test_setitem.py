@@ -34,8 +34,9 @@ def test_set_column_with_series(using_copy_on_write):
     df["c"] = ser
 
     if using_copy_on_write:
-        # with CoW we can delay the copy
-        assert np.shares_memory(df["c"].values, ser.values)
+        # TODO(CoW) with CoW we can delay the copy
+        # assert np.shares_memory(df["c"].values, ser.values)
+        assert not np.shares_memory(df["c"].values, ser.values)
     else:
         # the series data is copied
         assert not np.shares_memory(df["c"].values, ser.values)
@@ -78,8 +79,9 @@ def test_set_columns_with_dataframe(using_copy_on_write):
     df[["c", "d"]] = df2
 
     if using_copy_on_write:
-        # with CoW we can delay the copy
-        assert np.shares_memory(df["c"].values, df2["c"].values)
+        # TODO(CoW) with CoW we can delay the copy
+        # assert np.shares_memory(df["c"].values, df2["c"].values)
+        assert not np.shares_memory(df["c"].values, df2["c"].values)
     else:
         # the data is copied
         assert not np.shares_memory(df["c"].values, df2["c"].values)

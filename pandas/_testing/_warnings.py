@@ -7,6 +7,7 @@ from contextlib import (
 import re
 import sys
 from typing import (
+    Generator,
     Literal,
     Sequence,
     Type,
@@ -24,7 +25,7 @@ def assert_produces_warning(
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
-):
+) -> Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
     multiple specific warnings, or not raise any warnings. Verifies that the code
@@ -86,22 +87,22 @@ def assert_produces_warning(
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter(filter_level)
-        yield w
-
-        if expected_warning:
-            expected_warning = cast(Type[Warning], expected_warning)
-            _assert_caught_expected_warning(
-                caught_warnings=w,
-                expected_warning=expected_warning,
-                match=match,
-                check_stacklevel=check_stacklevel,
-            )
-
-        if raise_on_extra_warnings:
-            _assert_caught_no_extra_warnings(
-                caught_warnings=w,
-                expected_warning=expected_warning,
-            )
+        try:
+            yield w
+        finally:
+            if expected_warning:
+                expected_warning = cast(Type[Warning], expected_warning)
+                _assert_caught_expected_warning(
+                    caught_warnings=w,
+                    expected_warning=expected_warning,
+                    match=match,
+                    check_stacklevel=check_stacklevel,
+                )
+            if raise_on_extra_warnings:
+                _assert_caught_no_extra_warnings(
+                    caught_warnings=w,
+                    expected_warning=expected_warning,
+                )
 
 
 def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
@@ -130,9 +131,7 @@ def _assert_caught_expected_warning(
         if issubclass(actual_warning.category, expected_warning):
             saw_warning = True
 
-            if check_stacklevel and issubclass(
-                actual_warning.category, (FutureWarning, DeprecationWarning)
-            ):
+            if check_stacklevel:
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
             if match is not None:

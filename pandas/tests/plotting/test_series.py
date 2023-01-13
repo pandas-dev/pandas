@@ -12,14 +12,13 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
 
 
 @pytest.fixture
@@ -493,6 +492,7 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_boxplot_series(self, ts):
         _, ax = self.plt.subplots()
         ax = ts.plot.box(logy=True, ax=ax)
@@ -575,8 +575,10 @@ class TestSeriesPlots(TestPlotBase):
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name="x")
-        s_err = np.random.randn(10)
-        d_err = DataFrame(np.random.randn(10, 2), index=s.index, columns=["x", "y"])
+        s_err = np.abs(np.random.randn(10))
+        d_err = DataFrame(
+            np.abs(np.random.randn(10, 2)), index=s.index, columns=["x", "y"]
+        )
         # test line and bar plots
         kinds = ["line", "bar"]
         for kind in kinds:
@@ -597,8 +599,8 @@ class TestSeriesPlots(TestPlotBase):
         # test time series plotting
         ix = date_range("1/1/2000", "1/1/2001", freq="M")
         ts = Series(np.arange(12), index=ix, name="x")
-        ts_err = Series(np.random.randn(12), index=ix)
-        td_err = DataFrame(np.random.randn(12, 2), index=ix, columns=["x", "y"])
+        ts_err = Series(np.abs(np.random.randn(12)), index=ix)
+        td_err = DataFrame(np.abs(np.random.randn(12, 2)), index=ix, columns=["x", "y"])
 
         ax = _check_plot_works(ts.plot, yerr=ts_err)
         self._check_has_errorbars(ax, xerr=0, yerr=1)
@@ -644,7 +646,7 @@ class TestSeriesPlots(TestPlotBase):
         assert result == [c] * 3
 
     def test_standard_colors_all(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors
 
         from pandas.plotting._matplotlib.style import get_standard_colors
 
@@ -734,7 +736,11 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.xfail(reason="GH#24426")
+    @pytest.mark.xfail(
+        reason="GH#24426, see also "
+        "github.com/pandas-dev/pandas/commit/"
+        "ef1bd69fa42bbed5d09dd17f08c44fc8bfc2b685#r61470674"
+    )
     def test_plot_accessor_updates_on_inplace(self):
         ser = Series([1, 2, 3, 4])
         _, ax = self.plt.subplots()
@@ -801,7 +807,7 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh", "hist"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
@@ -812,6 +818,9 @@ class TestSeriesPlots(TestPlotBase):
         if kind == "barh":
             assert ax.get_xlabel() == ""
             assert ax.get_ylabel() == old_label
+        elif kind == "hist":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == "Frequency"
         else:
             assert ax.get_ylabel() == ""
             assert ax.get_xlabel() == old_label

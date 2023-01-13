@@ -26,6 +26,7 @@ Data manipulations
    from_dummies
    factorize
    unique
+   lreshape
    wide_to_long
 
 Top-level missing data

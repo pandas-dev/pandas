@@ -31,7 +31,7 @@ import operator
 import os
 from typing import (
     Callable,
-    Literal,
+    Iterator,
 )
 
 from dateutil.tz import (
@@ -62,6 +62,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -79,9 +80,17 @@ else:
     has_pyarrow = True
 
 zoneinfo = None
-if pd.compat.PY39:
+if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
+
+    # Although zoneinfo can be imported in Py39, it is effectively
+    # "not available" without tzdata/IANA tz data.
+    # We will set zoneinfo to not found in this case
+    try:
+        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
+    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
+        zoneinfo = None
 
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
@@ -127,7 +136,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
         item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
 
 
-def pytest_collection_modifyitems(items, config):
+def pytest_collection_modifyitems(items, config) -> None:
     skip_slow = config.getoption("--skip-slow")
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
@@ -142,14 +151,6 @@ def pytest_collection_modifyitems(items, config):
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        # Deprecations where the docstring will emit a warning
-        ("DataFrame.append", "The frame.append method is deprecated"),
-        ("Series.append", "The series.append method is deprecated"),
-        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
-        ("Categorical.replace", "Categorical.replace is deprecated"),
-        ("dtypes.common.is_extension_type", "'is_extension_type' is deprecated"),
-        ("Index.is_mixed", "Index.is_mixed is deprecated"),
-        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
@@ -441,10 +442,7 @@ def frame_or_series(request):
     return request.param
 
 
-# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
-@pytest.fixture(
-    params=[Index, Series], ids=["index", "series"]  # type: ignore[list-item]
-)
+@pytest.fixture(params=[Index, Series], ids=["index", "series"])
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -507,10 +505,10 @@ def non_dict_mapping_subclass():
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self._data.__iter__()
 
-        def __len__(self):
+        def __len__(self) -> int:
             return self._data.__len__()
 
     return TestNonDictMapping
@@ -593,26 +591,23 @@ indices_dict = {
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
     "timedelta": tm.makeTimedeltaIndex(100),
-    "int": tm.makeIntIndex(100),
-    "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
-    "float": tm.makeFloatIndex(100),
-    "complex64": tm.makeFloatIndex(100).astype("complex64"),
-    "complex128": tm.makeFloatIndex(100).astype("complex128"),
-    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
-    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
-    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
-    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
-    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
-    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
-    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
-    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
-    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
-    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
+    "int8": tm.makeIntIndex(100, dtype="int8"),
+    "int16": tm.makeIntIndex(100, dtype="int16"),
+    "int32": tm.makeIntIndex(100, dtype="int32"),
+    "int64": tm.makeIntIndex(100, dtype="int64"),
+    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
+    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
+    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
+    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
+    "float32": tm.makeFloatIndex(100, dtype="float32"),
+    "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
+    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
+    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100, inclusive="right"),
+    "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -650,7 +645,7 @@ index_fixture2 = index
 
 @pytest.fixture(
     params=[
-        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+        key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
     ]
 )
 def index_flat(request):
@@ -668,27 +663,14 @@ index_flat2 = index_flat
 @pytest.fixture(
     params=[
         key
-        for key in indices_dict
-        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
-    ]
-)
-def index_flat_unique(request):
-    """
-    index_flat with uniqueness requirement.
-    """
-    key = request.param
-    return indices_dict[key].copy()
-
-
-@pytest.fixture(
-    params=[
-        key
-        for key in indices_dict
+        for key, value in indices_dict.items()
         if not (
-            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
-            or key.startswith("num_")
+            key.startswith("int")
+            or key.startswith("uint")
+            or key.startswith("float")
+            or key in ["range", "empty", "repeats", "bool-dtype"]
         )
-        and not isinstance(indices_dict[key], MultiIndex)
+        and not isinstance(value, MultiIndex)
     ]
 )
 def index_with_missing(request):
@@ -940,14 +922,8 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (
-            Interval(left=0, right=5, inclusive="right"),
-            IntervalDtype("int64", inclusive="right"),
-        ),
-        (
-            Interval(left=0.1, right=0.5, inclusive="right"),
-            IntervalDtype("float64", inclusive="right"),
-        ),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1058,6 +1034,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1068,6 +1045,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 
@@ -1145,6 +1123,17 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
@@ -1184,8 +1173,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
                 raise ValueError(
                     f"Could not find file {path} and --strict-data-files is set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -1283,9 +1271,7 @@ def string_dtype(request):
 @pytest.fixture(
     params=[
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1301,7 +1287,7 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1344,9 +1330,7 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1502,7 +1486,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
@@ -1582,6 +1566,31 @@ def any_real_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
+)
+def any_real_numeric_dtype(request):
+    """
+    Parameterized fixture for any (purely) real numeric dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+
+    and associated ea dtypes.
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_NUMPY_DTYPES)
 def any_numpy_dtype(request):
     """
@@ -1615,6 +1624,45 @@ def any_numpy_dtype(request):
     * 'm8[ns]'
     * object
     * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + tm.COMPLEX_DTYPES
+    + tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+)
+def any_numeric_dtype(request):
+    """
+    Parameterized fixture for all numeric dtypes.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
@@ -1684,7 +1732,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
@@ -1851,8 +1899,21 @@ def using_array_manager():
 
 
 @pytest.fixture
-def using_copy_on_write() -> Literal[False]:
+def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return False
+    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request):
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param

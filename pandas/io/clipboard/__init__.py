@@ -40,7 +40,9 @@ A malicious user could rename or add programs with these names, tricking
 Pyperclip into running them with whatever permissions the Python process has.
 
 """
+
 __version__ = "1.7.0"
+
 
 import contextlib
 import ctypes
@@ -62,11 +64,12 @@ from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
 )
+from pandas.util._exceptions import find_stack_level
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
 # and not load PyQt4 if it is absent.
-HAS_DISPLAY = os.getenv("DISPLAY", False)
+HAS_DISPLAY = os.getenv("DISPLAY")
 
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
@@ -270,12 +273,16 @@ def init_dev_clipboard_clipboard():
         if text == "":
             warnings.warn(
                 "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
-                "This is effectively a no-op."
+                "This is effectively a no-op.",
+                stacklevel=find_stack_level(),
             )
         if "\r" in text:
-            warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
+            warnings.warn(
+                "Pyperclip cannot handle \\r characters on Cygwin.",
+                stacklevel=find_stack_level(),
+            )
 
-        with open("/dev/clipboard", "wt") as fd:
+        with open("/dev/clipboard", "w") as fd:
             fd.write(text)
 
     def paste_dev_clipboard() -> str:
@@ -517,7 +524,8 @@ def determine_clipboard():
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
                 "Pyperclip's support for Cygwin is not perfect, "
-                "see https://github.com/asweigart/pyperclip/issues/55"
+                "see https://github.com/asweigart/pyperclip/issues/55",
+                stacklevel=find_stack_level(),
             )
             return init_dev_clipboard_clipboard()
 
@@ -529,7 +537,7 @@ def determine_clipboard():
         if which("wslconfig.exe"):
             return init_wsl_clipboard()
 
-    # Setup for the MAC OS X platform:
+    # Setup for the macOS platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
             import AppKit
@@ -578,7 +586,7 @@ def set_clipboard(clipboard):
     the copy() and paste() functions interact with the operating system to
     implement the copy/paste feature. The clipboard parameter must be one of:
         - pbcopy
-        - pbobjc (default on Mac OS X)
+        - pyobjc (default on macOS)
         - qt
         - xclip
         - xsel
@@ -600,7 +608,7 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
-        allowed_clipboard_types = [repr(_) for _ in clipboard_types.keys()]
+        allowed_clipboard_types = [repr(_) for _ in clipboard_types]
         raise ValueError(
             f"Argument must be one of {', '.join(allowed_clipboard_types)}"
         )

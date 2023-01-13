@@ -58,7 +58,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             raise ValueError
 
     @classmethod
-    def from_coo(cls, A, dense_index=False) -> Series:
+    def from_coo(cls, A, dense_index: bool = False) -> Series:
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
@@ -66,9 +66,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ----------
         A : scipy.sparse.coo_matrix
         dense_index : bool, default False
-            If False (default), the SparseSeries index consists of only the
+            If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
-            If True, the SparseSeries index consists of the full sorted
+            If True, the index consists of the full sorted
             (row, col) coordinates of the coo_matrix.
 
         Returns
@@ -107,7 +107,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
@@ -193,8 +193,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a Series from sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         Series:
@@ -227,8 +225,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
-
-    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
@@ -240,8 +236,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -297,8 +291,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a DataFrame with sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         DataFrame
@@ -322,11 +314,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
-        coo_matrix : scipy.sparse.spmatrix
+        scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 

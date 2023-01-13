@@ -91,9 +91,7 @@ class TestDataFrameDiff:
 
         df[1] = ser.copy()
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0] = pd.NaT
+        df.iloc[:, 0] = pd.NaT
 
         expected = df - df
         assert expected[0].isna().all()

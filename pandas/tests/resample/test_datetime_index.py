@@ -32,7 +32,7 @@ from pandas.core.resample import (
     _get_timestamp_range_edges,
 )
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
@@ -700,8 +700,7 @@ def test_asfreq_non_unique():
 
     msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            ts.asfreq("B")
+        ts.asfreq("B")
 
 
 def test_resample_axis1():
@@ -1300,7 +1299,7 @@ dates1: List[DatetimeNaTType] = [
 dates2: List[DatetimeNaTType] = (
     dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
 )
-dates3 = [pd.NaT] + dates1 + [pd.NaT]  # type: ignore[operator]
+dates3 = [pd.NaT] + dates1 + [pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
