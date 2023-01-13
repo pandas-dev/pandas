@@ -38,7 +38,7 @@ class SQL:
             },
             index=tm.makeStringIndex(N),
         )
-        self.df.loc[1000:3000, "float_with_nan"] = np.nan
+        self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
         self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
@@ -88,7 +88,7 @@ class WriteSQLDtypes:
             },
             index=tm.makeStringIndex(N),
         )
-        self.df.loc[1000:3000, "float_with_nan"] = np.nan
+        self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
         self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
@@ -117,7 +117,7 @@ class ReadSQLTable:
             },
             index=tm.makeStringIndex(N),
         )
-        self.df.loc[1000:3000, "float_with_nan"] = np.nan
+        self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
         self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
@@ -164,7 +164,7 @@ class ReadSQLTableDtypes:
             },
             index=tm.makeStringIndex(N),
         )
-        self.df.loc[1000:3000, "float_with_nan"] = np.nan
+        self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
         self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)

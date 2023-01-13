@@ -74,13 +74,9 @@ def test_to_csv(cleared_fs, df1):
     tm.assert_frame_equal(df1, df2)
 
 
-@pytest.mark.parametrize("ext", ["xls", "xlsx"])
-def test_to_excel(cleared_fs, ext, df1):
-    if ext == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
-
+def test_to_excel(cleared_fs, df1):
+    pytest.importorskip("openpyxl")
+    ext = "xlsx"
     path = f"memory://test/test.{ext}"
     df1.to_excel(path, index=True)
 
@@ -132,12 +128,9 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
-@pytest.mark.parametrize("extension", ["xlsx", "xls"])
-def test_excel_options(fsspectest, extension):
-    if extension == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
+def test_excel_options(fsspectest):
+    pytest.importorskip("openpyxl")
+    extension = "xlsx"
 
     df = DataFrame({"a": [0]})
 
@@ -157,7 +150,7 @@ def test_to_parquet_new_file(cleared_fs, df1):
     )
 
 
-@td.skip_if_no("pyarrow", min_version="2")
+@td.skip_if_no("pyarrow")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -218,7 +211,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
+        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
         read_csv(tips_file),
     )
 

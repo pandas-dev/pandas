@@ -193,8 +193,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a Series from sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         Series:
@@ -227,8 +225,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
-
-    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
@@ -240,8 +236,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -297,8 +291,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a DataFrame with sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         DataFrame
@@ -322,11 +314,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
-        coo_matrix : scipy.sparse.spmatrix
+        scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 

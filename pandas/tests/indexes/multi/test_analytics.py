@@ -12,11 +12,18 @@ import pandas._testing as tm
 from pandas.core.api import UInt64Index
 
 
+def test_infer_objects(idx):
+    with pytest.raises(NotImplementedError, match="to_frame"):
+        idx.infer_objects()
+
+
 def test_shift(idx):
 
     # GH8083 test the base class for shift
-    msg = "This method is only implemented for DatetimeIndex, PeriodIndex and "
-    "TimedeltaIndex; Got type MultiIndex"
+    msg = (
+        "This method is only implemented for DatetimeIndex, PeriodIndex and "
+        "TimedeltaIndex; Got type MultiIndex"
+    )
     with pytest.raises(NotImplementedError, match=msg):
         idx.shift(1)
     with pytest.raises(NotImplementedError, match=msg):

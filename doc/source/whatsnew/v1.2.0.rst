@@ -383,12 +383,17 @@ this pathological behavior (:issue:`37827`):
 
 *New behavior*:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    df.mean()
+    In [3]: df.mean()
+    Out[3]:
+    A    1.0
+    dtype: float64
 
-    df[["A"]].mean()
+    In [4]: df[["A"]].mean()
+    Out[4]:
+    A    1.0
+    dtype: float64
 
 Moreover, DataFrame reductions with ``numeric_only=None`` will now be
 consistent with their Series counterparts.  In particular, for
@@ -415,10 +420,10 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 
 *New behavior*:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    df.any()
+    In [5]: df.any()
+    Out[5]: Series([], dtype: bool)
 
 
 .. _whatsnew_120.api_breaking.python:

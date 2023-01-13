@@ -13,6 +13,7 @@ from pandas import (
     MultiIndex,
     Series,
     date_range,
+    plotting,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -22,7 +23,6 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl

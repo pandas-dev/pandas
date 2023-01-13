@@ -54,7 +54,7 @@ def _split_into_full_short_caption(
     return full_caption, short_caption
 
 
-class RowStringConverter(ABC):
+class RowStringConverter:
     r"""Converter for dataframe rows into LaTeX strings.
 
     Parameters
@@ -160,8 +160,7 @@ class RowStringConverter(ABC):
             def pad_empties(x):
                 for pad in reversed(x):
                     if pad:
-                        break
-                return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
+                        return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
             gen = (pad_empties(i) for i in out)
 

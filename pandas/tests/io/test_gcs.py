@@ -74,7 +74,7 @@ def test_to_read_gcs(gcs_buffer, format):
         df1.to_csv(path, index=True)
         df2 = read_csv(path, parse_dates=["dt"], index_col=0)
     elif format == "excel":
-        path = "gs://test/test.xls"
+        path = "gs://test/test.xlsx"
         df1.to_excel(path)
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":

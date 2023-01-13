@@ -31,6 +31,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
+    is_numeric_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
 )
@@ -130,10 +131,7 @@ def infer_freq(index) -> str | None:
     """
     from pandas.core.api import (
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
-        RangeIndex,
     )
 
     if isinstance(index, ABCSeries):
@@ -164,9 +162,9 @@ def infer_freq(index) -> str | None:
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if isinstance(index, (Int64Index, Float64Index, RangeIndex)):
+        if is_numeric_dtype(index):
             raise TypeError(
-                f"cannot infer freq from a non-convertible index type {type(index)}"
+                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
         index = index._values
 
@@ -202,7 +200,9 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tz_convert_from_utc(self.i8values, index.tz)
+                self.i8values = tz_convert_from_utc(
+                    self.i8values, index.tz, reso=self._creso
+                )
 
         if len(index) < 3:
             raise ValueError("Need at least 3 dates to infer frequency")
@@ -397,7 +397,7 @@ class _FrequencyInferer:
 
         # probably business daily, but need to confirm
         first_weekday = self.index[0].weekday()
-        shifts = np.diff(self.index.asi8)
+        shifts = np.diff(self.i8values)
         ppd = periods_per_day(self._creso)
         shifts = np.floor_divide(shifts, ppd)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)

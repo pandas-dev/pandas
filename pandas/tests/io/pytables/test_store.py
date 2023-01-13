@@ -1,6 +1,7 @@
-import datetime
+import datetime as dt
 import hashlib
 import os
+import tempfile
 import time
 from warnings import (
     catch_warnings,
@@ -126,10 +127,10 @@ def test_repr(setup_path):
         df["int2"] = 2
         df["timestamp1"] = Timestamp("20010102")
         df["timestamp2"] = Timestamp("20010103")
-        df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
-        df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
+        df["datetime1"] = dt.datetime(2001, 1, 2, 0, 0)
+        df["datetime2"] = dt.datetime(2001, 1, 3, 0, 0)
         df.loc[df.index[3:6], ["obj1"]] = np.nan
-        df = df._consolidate()._convert(datetime=True)
+        df = df._consolidate()
 
         with catch_warnings(record=True):
             simplefilter("ignore", pd.errors.PerformanceWarning)
@@ -441,10 +442,10 @@ def test_table_mixed_dtypes(setup_path):
     df["int2"] = 2
     df["timestamp1"] = Timestamp("20010102")
     df["timestamp2"] = Timestamp("20010103")
-    df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
-    df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
+    df["datetime1"] = dt.datetime(2001, 1, 2, 0, 0)
+    df["datetime2"] = dt.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         store.append("df1_mixed", df)
@@ -458,14 +459,14 @@ def test_calendar_roundtrip_issue(setup_path):
     weekmask_egypt = "Sun Mon Tue Wed Thu"
     holidays = [
         "2012-05-01",
-        datetime.datetime(2013, 5, 1),
+        dt.datetime(2013, 5, 1),
         np.datetime64("2014-05-01"),
     ]
     bday_egypt = pd.offsets.CustomBusinessDay(
         holidays=holidays, weekmask=weekmask_egypt
     )
-    dt = datetime.datetime(2013, 4, 30)
-    dts = date_range(dt, periods=5, freq=bday_egypt)
+    mydt = dt.datetime(2013, 4, 30)
+    dts = date_range(mydt, periods=5, freq=bday_egypt)
 
     s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
@@ -534,7 +535,6 @@ def test_same_name_scoping(setup_path):
 
         # changes what 'datetime' points to in the namespace where
         #  'select' does the lookup
-        from datetime import datetime  # noqa:F401
 
         # technically an error, but allow it
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
@@ -558,11 +558,11 @@ def test_store_index_name(setup_path):
 def test_store_index_name_numpy_str(tmp_path, table_format, setup_path):
     # GH #13492
     idx = Index(
-        pd.to_datetime([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]),
+        pd.to_datetime([dt.date(2000, 1, 1), dt.date(2000, 1, 2)]),
         name="cols\u05d2",
     )
     idx1 = Index(
-        pd.to_datetime([datetime.date(2010, 1, 1), datetime.date(2010, 1, 2)]),
+        pd.to_datetime([dt.date(2010, 1, 1), dt.date(2010, 1, 2)]),
         name="rows\u05d0",
     )
     df = DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
@@ -876,13 +876,11 @@ def test_copy():
     with catch_warnings(record=True):
 
         def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
+            if new_f is None:
+                fd, new_f = tempfile.mkstemp()
+
             try:
                 store = HDFStore(f, "r")
-
-                if new_f is None:
-                    import tempfile
-
-                    fd, new_f = tempfile.mkstemp()
                 tstore = store.copy(new_f, keys=keys, propindexes=propindexes, **kwargs)
 
                 # check keys
@@ -911,7 +909,7 @@ def test_copy():
                     os.close(fd)
                 except (OSError, ValueError):
                     pass
-                os.remove(new_f)  # noqa: PDF008
+                os.remove(new_f)
 
         # new table
         df = tm.makeDataFrame()
@@ -1007,15 +1005,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
             assert len(result)
-
-
-def test_hdfstore_iteritems_deprecated(tmp_path, setup_path):
-    path = tmp_path / setup_path
-    df = DataFrame({"a": [1]})
-    with HDFStore(path, mode="w") as hdf:
-        hdf.put("table", df)
-        with tm.assert_produces_warning(FutureWarning):
-            next(hdf.iteritems())
 
 
 def test_hdfstore_strides(setup_path):

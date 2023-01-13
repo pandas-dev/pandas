@@ -24,11 +24,7 @@ import pickle
 import shutil
 import tarfile
 import uuid
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-    simplefilter,
-)
+from warnings import catch_warnings
 import zipfile
 
 import numpy as np
@@ -38,8 +34,8 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
-from pandas.compat._compressors import flatten_buffer
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.compressors import flatten_buffer
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -56,10 +52,6 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
 
 @pytest.fixture(scope="module")
 def current_pickle_data():
@@ -67,10 +59,6 @@ def current_pickle_data():
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
     with catch_warnings():
-        filterwarnings(
-            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
-        )
-
         return create_pickle_data()
 
 
@@ -89,7 +77,6 @@ def compare_element(result, expected, typ):
             assert result is pd.NaT
         else:
             assert result == expected
-            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
@@ -142,49 +129,46 @@ def test_pickles(legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    with catch_warnings(record=True):
-        simplefilter("ignore")
+    data = pd.read_pickle(legacy_pickle)
 
-        data = pd.read_pickle(legacy_pickle)
+    for typ, dv in data.items():
+        for dt, result in dv.items():
+            expected = data[typ][dt]
 
-        for typ, dv in data.items():
-            for dt, result in dv.items():
-                expected = data[typ][dt]
+            if typ == "series" and dt == "ts":
+                # GH 7748
+                tm.assert_series_equal(result, expected)
+                assert result.index.freq == expected.index.freq
+                assert not result.index.freq.normalize
+                tm.assert_series_equal(result > 0, expected > 0)
 
-                if typ == "series" and dt == "ts":
-                    # GH 7748
-                    tm.assert_series_equal(result, expected)
-                    assert result.index.freq == expected.index.freq
-                    assert not result.index.freq.normalize
-                    tm.assert_series_equal(result > 0, expected > 0)
+                # GH 9291
+                freq = result.index.freq
+                assert freq + Day(1) == Day(2)
 
-                    # GH 9291
-                    freq = result.index.freq
-                    assert freq + Day(1) == Day(2)
+                res = freq + pd.Timedelta(hours=1)
+                assert isinstance(res, pd.Timedelta)
+                assert res == pd.Timedelta(days=1, hours=1)
 
-                    res = freq + pd.Timedelta(hours=1)
-                    assert isinstance(res, pd.Timedelta)
-                    assert res == pd.Timedelta(days=1, hours=1)
-
-                    res = freq + pd.Timedelta(nanoseconds=1)
-                    assert isinstance(res, pd.Timedelta)
-                    assert res == pd.Timedelta(days=1, nanoseconds=1)
-                elif typ == "index" and dt == "period":
-                    tm.assert_index_equal(result, expected)
-                    assert isinstance(result.freq, MonthEnd)
-                    assert result.freq == MonthEnd()
-                    assert result.freqstr == "M"
-                    tm.assert_index_equal(result.shift(2), expected.shift(2))
-                elif typ == "series" and dt in ("dt_tz", "cat"):
-                    tm.assert_series_equal(result, expected)
-                elif typ == "frame" and dt in (
-                    "dt_mixed_tzs",
-                    "cat_onecol",
-                    "cat_and_float",
-                ):
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    compare_element(result, expected, typ)
+                res = freq + pd.Timedelta(nanoseconds=1)
+                assert isinstance(res, pd.Timedelta)
+                assert res == pd.Timedelta(days=1, nanoseconds=1)
+            elif typ == "index" and dt == "period":
+                tm.assert_index_equal(result, expected)
+                assert isinstance(result.freq, MonthEnd)
+                assert result.freq == MonthEnd()
+                assert result.freqstr == "M"
+                tm.assert_index_equal(result.shift(2), expected.shift(2))
+            elif typ == "series" and dt in ("dt_tz", "cat"):
+                tm.assert_series_equal(result, expected)
+            elif typ == "frame" and dt in (
+                "dt_mixed_tzs",
+                "cat_onecol",
+                "cat_and_float",
+            ):
+                tm.assert_frame_equal(result, expected)
+            else:
+                compare_element(result, expected, typ)
 
 
 def python_pickler(obj, path):
@@ -215,7 +199,6 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -266,7 +249,7 @@ def get_random_path():
 
 class TestCompression:
 
-    _extension_to_compression = icom._extension_to_compression
+    _extension_to_compression = icom.extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:
@@ -294,8 +277,9 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh, f:
-                f.write(fh.read())
+            with open(src_path, "rb") as fh:
+                with f:
+                    f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -363,7 +347,6 @@ class TestCompression:
 
             # read compressed file
             df2 = pd.read_pickle(p2, compression=compression)
-
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -383,7 +366,6 @@ class TestCompression:
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
@@ -607,5 +589,5 @@ def test_pickle_frame_v124_unpickle_130():
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

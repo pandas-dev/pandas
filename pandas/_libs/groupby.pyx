@@ -60,7 +60,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -97,7 +97,7 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
     return result
 
 
-cdef inline float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -134,7 +134,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
     cdef:
         float64_t result
 
@@ -265,7 +265,7 @@ def group_cumprod(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, size
+        Py_ssize_t i, j, N, K
         int64float_t val, na_val
         int64float_t[:, ::1] accum
         intp_t lab
@@ -356,7 +356,7 @@ def group_cumsum(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, size
+        Py_ssize_t i, j, N, K
         int64float_t val, y, t, na_val
         int64float_t[:, ::1] accum, compensation
         uint8_t[:, ::1] accum_mask
@@ -441,7 +441,7 @@ def group_shift_indexer(
     int periods,
 ) -> None:
     cdef:
-        Py_ssize_t N, i, j, ii, lab
+        Py_ssize_t N, i, ii, lab
         int offset = 0, sign
         int64_t idxer, idxer_slot
         int64_t[::1] label_seen = np.zeros(ngroups, dtype=np.int64)
@@ -604,12 +604,12 @@ def group_any_all(
         intp_t lab
         int8_t flag_val, val
 
-    if val_test == 'all':
+    if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
         # start with an array full of ones and set to zero when a False value
         # is encountered
         flag_val = 0
-    elif val_test == 'any':
+    elif val_test == "any":
         # Because the 'any' value of an empty iterable in Python is False we
         # can start with an array full of zeros and set to one only if any
         # value encountered is True
@@ -743,8 +743,11 @@ def group_sum(
                     #  is otherwise the same as in _treat_as_na
                     if uses_mask:
                         isna_entry = mask[i, j]
-                    elif (sum_t is float32_t or sum_t is float64_t
-                        or sum_t is complex64_t or sum_t is complex64_t):
+                    elif (
+                        sum_t is float32_t
+                        or sum_t is float64_t
+                        or sum_t is complex64_t
+                    ):
                         # avoid warnings because of equality comparison
                         isna_entry = not val == val
                     elif sum_t is int64_t and is_datetimelike and val == NPY_NAT:
@@ -770,8 +773,11 @@ def group_sum(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        elif (sum_t is float32_t or sum_t is float64_t
-                            or sum_t is complex64_t or sum_t is complex64_t):
+                        elif (
+                            sum_t is float32_t
+                            or sum_t is float64_t
+                            or sum_t is complex64_t
+                        ):
                             out[i, j] = NAN
                         elif sum_t is int64_t:
                             out[i, j] = NPY_NAT
@@ -799,7 +805,7 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        int64float_t val, count
+        int64float_t val
         int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
@@ -872,7 +878,7 @@ def group_var(
         floating[:, ::1] mean
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -969,7 +975,7 @@ def group_mean(
         mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -1042,10 +1048,10 @@ def group_ohlc(
     Only aggregates on axis=0
     """
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, N, K, lab
         int64float_t val
         uint8_t[::1] first_element_set
-        bint isna_entry, uses_mask = not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -1055,7 +1061,7 @@ def group_ohlc(
     N, K = (<object>values).shape
 
     if out.shape[1] != 4:
-        raise ValueError('Output array must have 4 columns')
+        raise ValueError("Output array must have 4 columns")
 
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only one dimension")
@@ -1151,11 +1157,11 @@ def group_quantile(
         )
 
     inter_methods = {
-        'linear': INTERPOLATION_LINEAR,
-        'lower': INTERPOLATION_LOWER,
-        'higher': INTERPOLATION_HIGHER,
-        'nearest': INTERPOLATION_NEAREST,
-        'midpoint': INTERPOLATION_MIDPOINT,
+        "linear": INTERPOLATION_LINEAR,
+        "lower": INTERPOLATION_LOWER,
+        "higher": INTERPOLATION_HIGHER,
+        "nearest": INTERPOLATION_NEAREST,
+        "midpoint": INTERPOLATION_MIDPOINT,
     }
     interp = inter_methods[interpolation]
 
@@ -1225,7 +1231,7 @@ def group_quantile(
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
     if numeric_object_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
@@ -1240,7 +1246,11 @@ cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
         return False
 
 
-cdef numeric_object_t _get_min_or_max(numeric_object_t val, bint compute_max, bint is_datetimelike):
+cdef numeric_object_t _get_min_or_max(
+    numeric_object_t val,
+    bint compute_max,
+    bint is_datetimelike,
+):
     """
     Find either the min or the max supported by numeric_object_t; 'val' is a
     placeholder to effectively make numeric_object_t an argument.
@@ -1366,7 +1376,10 @@ def group_last(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        elif numeric_object_t is float32_t or numeric_object_t is float64_t:
+                        elif (
+                            numeric_object_t is float32_t
+                            or numeric_object_t is float64_t
+                        ):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:
                             # Per above, this is a placeholder in
@@ -1486,7 +1499,10 @@ def group_nth(
                             #  it was initialized with np.empty. Also ensures
                             #  we can downcast out if appropriate.
                             out[i, j] = 0
-                        elif numeric_object_t is float32_t or numeric_object_t is float64_t:
+                        elif (
+                            numeric_object_t is float32_t
+                            or numeric_object_t is float64_t
+                        ):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:
                             # Per above, this is a placeholder in

@@ -55,17 +55,14 @@ class TestPDApi(Base):
         "DatetimeIndex",
         "ExcelFile",
         "ExcelWriter",
-        "Float64Index",
         "Flags",
         "Grouper",
         "HDFStore",
         "Index",
-        "Int64Index",
         "MultiIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
-        "UInt64Index",
         "Series",
         "SparseDtype",
         "StringDtype",
@@ -93,7 +90,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: list[str] = ["Float64Index", "Int64Index", "UInt64Index"]
+    deprecated_classes: list[str] = []
 
     # external modules exposed in pandas namespace
     modules: list[str] = []
@@ -253,7 +250,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing  # noqa: PDF015
+        from pandas import testing
 
         self.check(testing, self.funcs)
 

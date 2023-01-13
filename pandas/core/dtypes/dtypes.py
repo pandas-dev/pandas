@@ -23,10 +23,13 @@ from pandas._libs.tslibs import (
     NaTType,
     Period,
     Timestamp,
-    dtypes,
     timezones,
     to_offset,
     tz_compare,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    PeriodDtypeBase,
 )
 from pandas._typing import (
     Dtype,
@@ -115,8 +118,6 @@ class CategoricalDtypeType(type):
     """
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
-
-    pass
 
 
 @register_extension_dtype
@@ -277,6 +278,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
                 if dtype == "category":
+                    if ordered is None and cls.is_dtype(values):
+                        # GH#49309 preserve orderedness
+                        ordered = values.dtype.ordered
+
                     dtype = CategoricalDtype(categories, ordered)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")
@@ -525,7 +530,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndex):
+        if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -678,7 +683,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
     def str(self) -> str:  # type: ignore[override]
-        return f"|M8[{self._unit}]"
+        return f"|M8[{self.unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
@@ -718,11 +723,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
         reso = {
-            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
-            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
-            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
-            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
-        }[self._unit]
+            "s": NpyDatetimeUnit.NPY_FR_s,
+            "ms": NpyDatetimeUnit.NPY_FR_ms,
+            "us": NpyDatetimeUnit.NPY_FR_us,
+            "ns": NpyDatetimeUnit.NPY_FR_ns,
+        }[self.unit]
         return reso.value
 
     @property
@@ -804,7 +809,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
-                other = "datetime64[" + other[3:]
+                other = f"datetime64[{other[3:]}"
             return other == self.name
 
         return (
@@ -822,7 +827,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
+class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -871,7 +876,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         elif freq is None:
             # empty constructor for pickle compat
             # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = dtypes.PeriodDtypeBase.__new__(cls, -10_000)
+            u = PeriodDtypeBase.__new__(cls, -10_000)
             u._freq = None
             return u
 
@@ -882,7 +887,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
+            u = PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
             cls._cache_dtypes[freq.freqstr] = u
             return u
@@ -1134,7 +1139,7 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        key = str(subtype) + str(closed)
+        key = f"{subtype}{closed}"
         try:
             return cls._cache_dtypes[key]
         except KeyError:

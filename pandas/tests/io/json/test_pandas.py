@@ -5,6 +5,7 @@ from io import StringIO
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import pytest
@@ -117,6 +118,7 @@ class TestPandasContainer:
                 expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
+            expected.columns = ["x", "x.1"]
 
         tm.assert_frame_equal(result, expected)
 
@@ -207,12 +209,15 @@ class TestPandasContainer:
         empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes)
-        expected = empty_frame.copy()
-
-        # TODO: both conditions below are probably bugs
-        if convert_axes:
-            expected.index = expected.index.astype(float)
-            expected.columns = expected.columns.astype(float)
+        if orient == "split":
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(index=idx, columns=idx)
+        elif orient in ["index", "columns"]:
+            # TODO: this condition is probably a bug
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(columns=idx)
+        else:
+            expected = empty_frame.copy()
 
         tm.assert_frame_equal(result, expected)
 
@@ -253,6 +258,28 @@ class TestPandasContainer:
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
         assert_json_roundtrip_equal(result, expected, orient)
+
+    @pytest.mark.xfail(
+        reason="#50456 Column multiindex is stored and loaded differently",
+        raises=AssertionError,
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["2022", "2022"], ["JAN", "FEB"]],
+            [["2022", "2023"], ["JAN", "JAN"]],
+            [["2022", "2022"], ["JAN", "JAN"]],
+        ],
+    )
+    def test_roundtrip_multiindex(self, columns):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays(columns),
+        )
+
+        result = read_json(df.to_json(orient="split"), orient="split")
+
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
@@ -937,21 +964,22 @@ class TestPandasContainer:
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        s = Series([timedelta(23), timedelta(seconds=5)])
-        assert s.dtype == "timedelta64[ns]"
+        ser = Series([timedelta(23), timedelta(seconds=5)])
+        assert ser.dtype == "timedelta64[ns]"
 
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
-        s = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
-        assert s.dtype == "timedelta64[ns]"
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        ser = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
+        assert ser.dtype == "timedelta64[ns]"
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         assert frame[0].dtype == "timedelta64[ns]"
         tm.assert_frame_equal(frame, read_json(frame.to_json()).apply(converter))
 
+    def test_timedelta2(self):
         frame = DataFrame(
             {
                 "a": [timedelta(days=23), timedelta(seconds=5)],
@@ -970,7 +998,9 @@ class TestPandasContainer:
         ts = Timestamp("20130101")
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
-        expected = DataFrame({"a": [pd.Timedelta(td)._as_unit("ns").value, ts.value]})
+        expected = DataFrame(
+            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+        )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -1725,8 +1755,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
-        import time
-
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
