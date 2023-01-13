@@ -285,9 +285,6 @@ class FastParquetImpl(BaseImpl):
         **kwargs,
     ) -> None:
         self.validate_dataframe(df)
-        # thriftpy/protocol/compact.py:339:
-        # DeprecationWarning: tostring() is deprecated.
-        # Use tobytes() instead.
 
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(

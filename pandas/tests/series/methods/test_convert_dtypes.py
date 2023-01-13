@@ -187,17 +187,7 @@ class TestSeriesConvertDtypes:
             if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
                 expected_dtype = dtype
 
-        warn2 = None
-        if (
-            hasattr(data, "dtype")
-            and data.dtype == "M8[ns]"
-            and isinstance(expected_dtype, pd.DatetimeTZDtype)
-        ):
-            # this astype is deprecated in favor of tz_localize
-            warn2 = FutureWarning
-
-        with tm.assert_produces_warning(warn2):
-            expected = pd.Series(data, dtype=expected_dtype)
+        expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
         # Test that it is a copy
