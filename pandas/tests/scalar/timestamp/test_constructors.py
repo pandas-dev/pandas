@@ -415,12 +415,13 @@ class TestTimestampConstructors:
                 nanosecond=1,
                 tz="UTC",
             ),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, None, nanosecond=1),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=pytz.UTC, nanosecond=1),
         ],
     )
     def test_constructor_nanosecond(self, result):
         # GH 18898
+        # As of 2.0 (GH 49416), nanosecond should not be accepted positionally
         expected = Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), tz=result.tz)
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
@@ -428,7 +429,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = "could not convert string to Timestamp"
+        msg = f"Unknown string format: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 

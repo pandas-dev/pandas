@@ -317,7 +317,7 @@ comment : str, optional
     `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
-encoding : str, optional
+encoding : str, optional, default "utf-8"
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
@@ -403,6 +403,8 @@ use_nullable_dtypes : bool = False
     numpy-backed nullable dtypes or
     ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
     pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    This is only implemented for the ``pyarrow`` or ``python``
+    engines.
 
     .. versionadded:: 2.0
 

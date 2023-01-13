@@ -96,7 +96,6 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
-    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -468,39 +467,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
             values = self.asi8
-
-            if is_unsigned_integer_dtype(dtype):
-                # Again, we ignore int32 vs. int64
-                values = values.view("uint64")
-                if dtype != np.uint64:
-                    # GH#45034
-                    warnings.warn(
-                        f"The behavior of .astype from {self.dtype} to {dtype} is "
-                        "deprecated. In a future version, this astype will return "
-                        "exactly the specified dtype instead of uint64, and will "
-                        "raise if that conversion overflows.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                elif (self.asi8 < 0).any():
-                    # GH#45034
-                    warnings.warn(
-                        f"The behavior of .astype from {self.dtype} to {dtype} is "
-                        "deprecated. In a future version, this astype will "
-                        "raise if the conversion overflows, as it did in this "
-                        "case with negative int64 values.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-            elif dtype != np.int64:
-                # GH#45034
-                warnings.warn(
-                    f"The behavior of .astype from {self.dtype} to {dtype} is "
-                    "deprecated. In a future version, this astype will return "
-                    "exactly the specified dtype instead of int64, and will "
-                    "raise if that conversion overflows.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+            if dtype != np.int64:
+                raise TypeError(
+                    f"Converting from {self.dtype} to {dtype} is not supported. "
+                    "Do obj.astype('int64').astype(dtype) instead"
                 )
 
             if copy:
@@ -1251,7 +1221,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # For period dtype, timedelta64 is a close-enough return dtype.
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        return result.view("timedelta64[ns]")
+        if self.dtype.kind in ["m", "M"]:
+            # We can retain unit in dtype
+            self = cast("DatetimeArray| TimedeltaArray", self)
+            return result.view(f"timedelta64[{self.unit}]")
+        else:
+            return result.view("timedelta64[ns]")
 
     @final
     def _sub_periodlike(self, other: Period | PeriodArray) -> npt.NDArray[np.object_]:
@@ -1281,7 +1256,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_data
 
     @final
-    def _addsub_object_array(self, other: np.ndarray, op):
+    def _addsub_object_array(self, other: npt.NDArray[np.object_], op):
         """
         Add or subtract array-like of DateOffset objects
 
@@ -1292,10 +1267,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Returns
         -------
-        result : same class as self
+        np.ndarray[object]
+            Except in fastpath case with length 1 where we operate on the
+            contained scalar.
         """
         assert op in [operator.add, operator.sub]
         if len(other) == 1 and self.ndim == 1:
+            # Note: without this special case, we could annotate return type
+            #  as ndarray[object]
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
@@ -1966,6 +1945,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
     def as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
+
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
         new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
 

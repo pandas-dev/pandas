@@ -292,7 +292,7 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
-        elif is_nan(val):
+        elif is_nan(val) or val is None:
             mask[i] = 1
             result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
             has_na = True

@@ -65,6 +65,7 @@ def test_clear_parent(using_copy_on_write):
     assert subset._mgr.parent is None
 
 
+@pytest.mark.single_cpu
 @td.skip_array_manager_invalid_test
 def test_switch_options():
     # ensure we can switch the value of the option within one session

@@ -35,6 +35,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    NumpyIndexT,
     Scalar,
     npt,
 )
@@ -65,6 +66,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
@@ -410,6 +412,29 @@ def maybe_downcast_numeric(
             return new_result
 
     return result
+
+
+def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
+    """
+    If array is a int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
+
+    Parameters
+    ----------
+    arr : ndarray or ExtensionArray
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    dtype = arr.dtype
+    if is_signed_integer_dtype(dtype) and dtype != np.int64:
+        return arr.astype(np.int64)
+    elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
+        return arr.astype(np.uint64)
+    elif is_float_dtype(dtype) and dtype != np.float64:
+        return arr.astype(np.float64)
+    else:
+        return arr
 
 
 def maybe_cast_pointwise_result(
@@ -768,8 +793,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             val = val.to_datetime64()
             dtype = val.dtype
-            # TODO(2.0): this should be dtype = val.dtype
-            #  to get the correct M8 resolution
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
             if pandas_dtype:
@@ -1652,8 +1675,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO(2.0): stop catching ValueError for tzaware, see
-                #  _catch_deprecated_value_error
+                # TODO: re-use _catch_deprecated_value_error to ensure we are
+                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of

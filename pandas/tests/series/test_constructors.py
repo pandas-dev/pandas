@@ -14,7 +14,10 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat import is_numpy_dev
+from pandas.compat import (
+    IS64,
+    is_numpy_dev,
+)
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -172,7 +175,10 @@ class TestSeriesConstructors:
         assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
-        with pytest.raises(ValueError, match="Data must be 1-dimensional"):
+        with pytest.raises(
+            ValueError,
+            match=r"Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead",
+        ):
             Series(np.random.randn(3, 3), index=np.arange(3))
 
         mixed.name = "Series"
@@ -758,13 +764,13 @@ class TestSeriesConstructors:
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
         msg = "Values are too large to be losslessly converted"
-        numpy_warning = DeprecationWarning if is_numpy_dev else None
+        numpy_warning = DeprecationWarning if is_numpy_dev or not IS64 else None
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning):
+            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
                 Series([1, 200, 923442], dtype="int8")
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning):
+            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
                 Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
@@ -974,7 +980,7 @@ class TestSeriesConstructors:
         dts.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
+        msg = r"Converting from datetime64\[ns\] to int32 is not supported"
         with pytest.raises(TypeError, match=msg):
             dts.astype("int32")
 
@@ -1508,7 +1514,7 @@ class TestSeriesConstructors:
         td.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
+        msg = r"Converting from timedelta64\[ns\] to int32 is not supported"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 
@@ -1587,9 +1593,8 @@ class TestSeriesConstructors:
         ser = Series(arr)
         assert ser.dtype == arr.dtype
 
-        tdi = timedelta_range("00:00:01", periods=3, freq="s")
-        tda = tdi._data.as_unit("s")
-        expected = Series(tda)
+        tdi = timedelta_range("00:00:01", periods=3, freq="s").as_unit("s")
+        expected = Series(tdi)
         assert expected.dtype == arr.dtype
         tm.assert_series_equal(ser, expected)
 

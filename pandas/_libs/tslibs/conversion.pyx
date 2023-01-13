@@ -413,8 +413,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     Parameters
     ----------
-    dts: npy_datetimestruct
-    tzoffset: int
+    dts : npy_datetimestruct
+    tzoffset : int
     tz : tzinfo or None
         timezone for the timezone-aware output.
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
@@ -463,7 +463,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     return obj
 
 
-cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
+cdef _TSObject _convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                                         bint dayfirst=False,
                                         bint yearfirst=False):
     """
@@ -499,7 +499,6 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         NPY_DATETIMEUNIT out_bestunit, reso
 
     if len(ts) == 0 or ts in nat_strings:
-        ts = NaT
         obj = _TSObject()
         obj.value = NPY_NAT
         obj.tzinfo = tz
@@ -520,43 +519,35 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         )
         if not string_to_dts_failed:
             reso = get_supported_reso(out_bestunit)
-            try:
-                check_dts_bounds(&dts, reso)
-                if out_local == 1:
-                    return _create_tsobject_tz_using_offset(
-                        dts, out_tzoffset, tz, reso
+            check_dts_bounds(&dts, reso)
+            if out_local == 1:
+                return _create_tsobject_tz_using_offset(
+                    dts, out_tzoffset, tz, reso
+                )
+            else:
+                ival = npy_datetimestruct_to_datetime(reso, &dts)
+                if tz is not None:
+                    # shift for _localize_tso
+                    ival = tz_localize_to_utc_single(
+                        ival, tz, ambiguous="raise", nonexistent=None, creso=reso
                     )
-                else:
-                    ival = npy_datetimestruct_to_datetime(reso, &dts)
-                    if tz is not None:
-                        # shift for _localize_tso
-                        ival = tz_localize_to_utc_single(
-                            ival, tz, ambiguous="raise", nonexistent=None, creso=reso
-                        )
-                    obj = _TSObject()
-                    obj.dts = dts
-                    obj.value = ival
-                    obj.creso = reso
-                    maybe_localize_tso(obj, tz, obj.creso)
-                    return obj
-
-            except OutOfBoundsDatetime:
-                # GH#19382 for just-barely-OutOfBounds falling back to dateutil
-                # parser will return incorrect result because it will ignore
-                # nanoseconds
-                raise
-
-            except ValueError:
-                # Fall through to parse_datetime_string
-                pass
+                obj = _TSObject()
+                obj.dts = dts
+                obj.value = ival
+                obj.creso = reso
+                maybe_localize_tso(obj, tz, obj.creso)
+                return obj
 
         try:
-            # TODO: use the one that returns reso
             dt = parse_datetime_string(
                 ts, dayfirst=dayfirst, yearfirst=yearfirst
             )
-        except (ValueError, OverflowError) as err:
-            raise ValueError("could not convert string to Timestamp") from err
+        except ValueError as err:
+            if "out of range for month" in str(err):
+                # dateutil raised when constructing a datetime object,
+                #  let's give a nicer exception message
+                raise ValueError("could not convert string to Timestamp") from err
+            raise
 
     return convert_datetime_to_tsobject(dt, tz)
 
@@ -735,16 +726,16 @@ cdef tzinfo convert_timezone(
 
 
 cdef int64_t parse_pydatetime(
-        object val,
-        npy_datetimestruct *dts,
-        bint utc_convert,
+    datetime val,
+    npy_datetimestruct *dts,
+    bint utc_convert,
 ) except? -1:
     """
     Convert pydatetime to datetime64.
 
     Parameters
     ----------
-    val
+    val : datetime
         Element being processed.
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.

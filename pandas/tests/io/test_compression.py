@@ -19,7 +19,7 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 _compression_to_extension = {
-    value: key for key, value in icom._extension_to_compression.items()
+    value: key for key, value in icom.extension_to_compression.items()
 }
 
 

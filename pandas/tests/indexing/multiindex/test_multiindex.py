@@ -151,57 +151,35 @@ class TestMultiIndexBasic:
         expected = DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "data_result, data_expected",
-        [
-            (
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(np.nan, np.nan), (82.0, np.nan)],
-                    [1, 2],
-                    [1, 2],
-                ],
-                [
-                    [[81, 82.0, np.nan], Series([np.nan, np.nan, np.nan])],
-                    [[81, 82.0, np.nan], Series([np.nan, np.nan, np.nan])],
-                    [1, np.nan, 2],
-                    [np.nan, 2, 1],
-                ],
-            ),
-            (
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(np.nan, np.nan), (81.0, np.nan)],
-                    [1, 2],
-                    [1, 2],
-                ],
-                [
-                    [[81.0, np.nan], Series([np.nan, np.nan])],
-                    [[81.0, np.nan], Series([np.nan, np.nan])],
-                    [1, 2],
-                    [2, 1],
-                ],
-            ),
-        ],
-    )
-    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
-        self, data_result, data_expected
-    ):
+    def test_series_align_multiindex_with_nan_overlap_only(self):
         # GH 38439
-        # TODO: Refactor. This is impossible to understand GH#49443
-        a_index_result = MultiIndex.from_tuples(data_result[0])
-        b_index_result = MultiIndex.from_tuples(data_result[1])
-        a_series_result = Series(data_result[2], index=a_index_result)
-        b_series_result = Series(data_result[3], index=b_index_result)
-        result = a_series_result.align(b_series_result)
+        mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        mi2 = MultiIndex.from_arrays([[np.nan, 82.0], [np.nan, np.nan]])
+        ser1 = Series([1, 2], index=mi1)
+        ser2 = Series([1, 2], index=mi2)
+        result1, result2 = ser1.align(ser2)
 
-        a_index_expected = MultiIndex.from_arrays(data_expected[0])
-        b_index_expected = MultiIndex.from_arrays(data_expected[1])
-        a_series_expected = Series(data_expected[2], index=a_index_expected)
-        b_series_expected = Series(data_expected[3], index=b_index_expected)
+        mi = MultiIndex.from_arrays([[81.0, 82.0, np.nan], [np.nan, np.nan, np.nan]])
+        expected1 = Series([1.0, np.nan, 2.0], index=mi)
+        expected2 = Series([np.nan, 2.0, 1.0], index=mi)
 
-        tm.assert_series_equal(result[0], a_series_expected)
-        tm.assert_series_equal(result[1], b_series_expected)
+        tm.assert_series_equal(result1, expected1)
+        tm.assert_series_equal(result2, expected2)
+
+    def test_series_align_multiindex_with_nan(self):
+        # GH 38439
+        mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        mi2 = MultiIndex.from_arrays([[np.nan, 81.0], [np.nan, np.nan]])
+        ser1 = Series([1, 2], index=mi1)
+        ser2 = Series([1, 2], index=mi2)
+        result1, result2 = ser1.align(ser2)
+
+        mi = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        expected1 = Series([1, 2], index=mi)
+        expected2 = Series([2, 1], index=mi)
+
+        tm.assert_series_equal(result1, expected1)
+        tm.assert_series_equal(result2, expected2)
 
     def test_nunique_smoke(self):
         # GH 34019
