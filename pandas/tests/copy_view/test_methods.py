@@ -575,6 +575,40 @@ def test_assign_drop_duplicates(using_copy_on_write, method):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("obj", [Series([1, 2]), DataFrame({"a": [1, 2]})])
+def test_take(using_copy_on_write, obj):
+    # Check that no copy is made when we take all rows in original order
+    obj_orig = obj.copy()
+    obj2 = obj.take([0, 1])
+
+    if using_copy_on_write:
+        assert np.shares_memory(obj2.values, obj.values)
+    else:
+        assert not np.shares_memory(obj2.values, obj.values)
+
+    obj2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(obj2.values, obj.values)
+    tm.assert_equal(obj, obj_orig)
+
+
+@pytest.mark.parametrize("obj", [Series([1, 2]), DataFrame({"a": [1, 2]})])
+def test_between_time(using_copy_on_write, obj):
+    obj.index = date_range("2018-04-09", periods=2, freq="1D20min")
+    obj_orig = obj.copy()
+    obj2 = obj.between_time("0:00", "1:00")
+
+    if using_copy_on_write:
+        assert np.shares_memory(obj2.values, obj.values)
+    else:
+        assert not np.shares_memory(obj2.values, obj.values)
+
+    obj2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(obj2.values, obj.values)
+    tm.assert_equal(obj, obj_orig)
+
+
 def test_reindex_like(using_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": "a"})
     other = DataFrame({"b": "a", "a": [1, 2]})
