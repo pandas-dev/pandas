@@ -106,8 +106,7 @@ def test_reindex_non_unique():
 
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            a.reindex(new_idx)
+        a.reindex(new_idx)
 
 
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])

@@ -1725,8 +1725,7 @@ The repeated labels are:\n-+\nwolof
                 r"ordinal not in range\(128\)"
             )
             with pytest.raises(UnicodeEncodeError, match=f"{msg1}|{msg2}"):
-                with tm.assert_produces_warning(ResourceWarning):
-                    df.to_stata(path)
+                df.to_stata(path)
 
     def test_strl_latin1(self):
         # GH 23573, correct GSO data to reflect correct size

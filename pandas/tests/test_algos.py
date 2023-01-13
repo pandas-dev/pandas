@@ -2163,8 +2163,7 @@ def test_int64_add_overflow():
             b_mask=np.array([False, True]),
         )
     with pytest.raises(OverflowError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
+        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
 
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just

@@ -924,9 +924,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         tm.assert_frame_equal(df, expected)
     else:
         msg = "got an unexpected keyword argument 'day_first'"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             parser.read_csv(
                 StringIO(data),
                 names=["time", "Q", "NTU"],
