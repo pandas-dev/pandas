@@ -2492,10 +2492,16 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
+    This can increment the date object by given week or weekdays.
+
     Parameters
     ----------
     weekday : int or None, default None
         Always generate specific day of week. 0 for Monday and 6 for Sunday.
+
+    See Also
+    --------
+    pd.tseries.offsets.WeekOfMonth : Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
     Examples
     ---------
