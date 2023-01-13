@@ -18,11 +18,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# xarray, fsspec, fastparquet all produce these
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
-)
-
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
@@ -58,11 +53,7 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
-@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
 def test_dask_ufunc():
-    # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
-    # for some ufuncs (https://github.com/dask/dask/issues/8580).
-
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
     olduse = pd.get_option("compute.use_numexpr")
@@ -152,12 +143,6 @@ def test_oo_optimized_datetime_index_unpickle():
 
 @pytest.mark.network
 @tm.network
-# Cython import warning
-@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-@pytest.mark.filterwarnings(
-    # patsy needs to update their imports
-    "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
-)
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa:F841
@@ -168,8 +153,6 @@ def test_statsmodels():
     smf.ols("Lottery ~ Literacy + np.log(Pop1831)", data=df).fit()
 
 
-# Cython import warning
-@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
@@ -184,10 +167,8 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-# Cython import warning and traitlets
 @pytest.mark.network
 @tm.network
-@pytest.mark.filterwarnings("ignore")
 def test_seaborn():
 
     seaborn = import_module("seaborn")
@@ -214,8 +195,6 @@ def test_pandas_datareader():
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
-# Cython import warning
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module("pyarrow")

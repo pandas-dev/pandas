@@ -924,9 +924,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         tm.assert_frame_equal(df, expected)
     else:
         msg = "got an unexpected keyword argument 'day_first'"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             parser.read_csv(
                 StringIO(data),
                 names=["time", "Q", "NTU"],
@@ -2052,7 +2050,7 @@ def test_parse_dot_separated_dates(all_parsers):
             name="a",
         )
         warn = UserWarning
-    msg = "when dayfirst=False was specified"
+    msg = r"when dayfirst=False \(the default\) was specified"
     result = parser.read_csv_check_warnings(
         warn, msg, StringIO(data), parse_dates=True, index_col=0
     )
