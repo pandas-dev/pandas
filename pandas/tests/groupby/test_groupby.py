@@ -132,7 +132,9 @@ def test_inconsistent_return_type():
 
     result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
-    e.loc["Tiger"] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        # TODO is this right? Should it warn when setting new column?
+        e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
     def f_2(grp):
@@ -141,7 +143,8 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     result = df.groupby("A").apply(f_2)[["B"]]
-    e = expected.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    e = expected.copy().astype({"B": "float"})
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
