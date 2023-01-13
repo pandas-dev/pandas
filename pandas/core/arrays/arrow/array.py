@@ -653,6 +653,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
         null_encoding = "mask" if use_na_sentinel else "encode"
+
+        pa_type = self._data.type
+        if pa.types.is_duration(pa_type):
+            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
+            arr = cast(ArrowExtensionArray, self.astype("int64[pyarrow]"))
+            indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+            uniques = uniques.astype(self.dtype)
+            return indices, uniques
+
         encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
@@ -849,6 +858,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
+        if pa.types.is_duration(self._data.type):
+            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
+            arr = cast(ArrowExtensionArrayT, self.astype("int64[pyarrow]"))
+            result = arr.unique()
+            return cast(ArrowExtensionArrayT, result.astype(self.dtype))
+
         return type(self)(pc.unique(self._data))
 
     def value_counts(self, dropna: bool = True) -> Series:
@@ -868,6 +883,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
+        if pa.types.is_duration(self._data.type):
+            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
+            arr = cast(ArrowExtensionArray, self.astype("int64[pyarrow]"))
+            result = arr.value_counts()
+            result.index = result.index.astype(self.dtype)
+            return result
+
         from pandas import (
             Index,
             Series,
