@@ -404,7 +404,7 @@ class ToNumpy:
 class Replace:
 
     param_names = ["num_to_replace"]
-    params = [100, 10000, 1_000_000]
+    params = [100, 1000]
 
     def setup(self, num_to_replace):
         N = 1_000_000
@@ -418,13 +418,16 @@ class Replace:
 
         self.replace_dict = dict(zip(self.to_replace_list, self.values_list))
 
-    def time_replace_dict(self):
+    def time_replace_dict(self, num_to_replace):
         self.ser.replace(self.replace_dict)
 
-    def peakmem_replace_dict(self):
+    def peakmem_replace_dict(self, num_to_replace):
         self.ser.replace(self.replace_dict)
 
-    def time_replace_list(self):
+    def time_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
+
+    def peakmem_replace_list(self, num_to_replace):
         self.ser.replace(self.to_replace_list, self.values_list)
 
 

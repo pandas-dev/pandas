@@ -663,16 +663,15 @@ class Block(PandasObject):
         if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(values)
+            na_mask = ~isna(values)
             masks = (
                 extract_bool_array(
-                    compare_or_regex_search(values, s[0], regex=regex, mask=mask)
+                    compare_or_regex_search(values, s[0], regex=regex, mask=na_mask)
                 )
                 for s in pairs
             )
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            # masks = [missing.mask_missing(values, s[0]) for s in pairs]
             masks = (
                 extract_bool_array(missing.mask_missing(values, s[0])) for s in pairs
             )
@@ -681,7 +680,6 @@ class Block(PandasObject):
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
         # ndarray]"
         # masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
-
         rb = [self if inplace else self.copy()]
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
