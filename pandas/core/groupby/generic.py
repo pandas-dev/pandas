@@ -644,11 +644,14 @@ class SeriesGroupBy(GroupBy[Series]):
         bins=None,
         dropna: bool = True,
     ) -> Series:
+        name = "proportion" if normalize else "count"
+
         if bins is None:
             result = self._value_counts(
                 normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
             )
             assert isinstance(result, Series)
+            result.name = name
             return result
 
         from pandas.core.reshape.merge import get_join_indexers
@@ -658,7 +661,6 @@ class SeriesGroupBy(GroupBy[Series]):
         val = self.obj._values
 
         index_names = self.grouper.names + [self.obj.name]
-        name = "proportion" if normalize else "count"
 
         if is_categorical_dtype(val.dtype) or (
             bins is not None and not np.iterable(bins)

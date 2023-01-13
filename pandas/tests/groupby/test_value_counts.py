@@ -220,7 +220,7 @@ def test_series_groupby_value_counts_no_sort():
         codes=[[0, 1, 0, 1, 1], [0, 0, 1, 0, 1], [0, 1, 2, 0, 2]],
         names=["country", "gender", "education"],
     )
-    expected = Series([1, 1, 1, 2, 1], index=index, name="education")
+    expected = Series([1, 1, 1, 2, 1], index=index, name="count")
     tm.assert_series_equal(result, expected)
 
 
