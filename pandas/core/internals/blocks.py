@@ -11,7 +11,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -36,7 +35,6 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
@@ -46,7 +44,6 @@ from pandas.core.dtypes.cast import (
     find_result_type,
     maybe_downcast_to_dtype,
     np_can_hold_element,
-    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -59,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
     PeriodDtype,
@@ -70,13 +66,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
 )
 
+from pandas.core import missing
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
@@ -104,16 +100,15 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
 from pandas.core.indexers import check_setitem_lengths
-import pandas.core.missing as missing
 
 if TYPE_CHECKING:
-    from pandas import (
+    from pandas.core.api import (
         Float64Index,
         Index,
     )
@@ -177,24 +172,12 @@ class Block(PandasObject):
         return dtype._can_hold_na
 
     @final
-    @cache_readonly
-    def is_categorical(self) -> bool:
-        warnings.warn(
-            "Block.is_categorical is deprecated and will be removed in a "
-            "future version.  Use isinstance(block.values, Categorical) "
-            "instead. See https://github.com/pandas-dev/pandas/issues/40226",
-            DeprecationWarning,
-            stacklevel=find_stack_level(),
-        )
-        return isinstance(self.values, Categorical)
-
-    @final
     @property
     def is_bool(self) -> bool:
         """
         We can be bool if a) we are bool dtype or b) object dtype with bool objects.
         """
-        return is_inferred_bool_dtype(self.values)
+        return self.values.dtype == np.dtype(bool)
 
     @final
     def external_values(self):
@@ -241,23 +224,10 @@ class Block(PandasObject):
         self, values, placement: BlockPlacement | None = None
     ) -> Block:
         """Wrap given values in a block of same type as self."""
+        # Pre-2.0 we called ensure_wrapped_if_datetimelike because fastparquet
+        #  relied on it, as of 2.0 the caller is responsible for this.
         if placement is None:
             placement = self._mgr_locs
-
-        if values.dtype.kind in ["m", "M"]:
-
-            new_values = ensure_wrapped_if_datetimelike(values)
-            if new_values is not values:
-                # TODO(2.0): remove once fastparquet has stopped relying on it
-                warnings.warn(
-                    "In a future version, Block.make_block_same_class will "
-                    "assume that datetime64 and timedelta64 ndarrays have "
-                    "already been cast to DatetimeArray and TimedeltaArray, "
-                    "respectively.",
-                    DeprecationWarning,
-                    stacklevel=find_stack_level(),
-                )
-            values = new_values
 
         # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
@@ -355,17 +325,13 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
-    def reduce(self, func, ignore_failures: bool = False) -> list[Block]:
+    @final
+    def reduce(self, func) -> list[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
 
-        try:
-            result = func(self.values)
-        except (TypeError, NotImplementedError):
-            if ignore_failures:
-                return []
-            raise
+        result = func(self.values)
 
         if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
@@ -463,9 +429,7 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
-                [blk.convert(datetime=True, numeric=False) for blk in blocks]
-            )
+            return extend_blocks([blk.convert() for blk in blocks])
 
         if downcast is None:
             return blocks
@@ -485,10 +449,8 @@ class Block(PandasObject):
 
     def convert(
         self,
+        *,
         copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
@@ -572,7 +534,6 @@ class Block(PandasObject):
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
         #  go through replace_list
-
         values = self.values
 
         if isinstance(values, Categorical):
@@ -605,13 +566,16 @@ class Block(PandasObject):
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(numeric=False, copy=False)
+                blocks = blk.convert(copy=False)
             else:
                 blocks = [blk]
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            blk = self.coerce_to_target_dtype(value)
+            if value is None:
+                blk = self.astype(np.dtype(object))
+            else:
+                blk = self.coerce_to_target_dtype(value)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
@@ -674,7 +638,7 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return block.convert(numeric=False, copy=False)
+        return block.convert(copy=False)
 
     @final
     def replace_list(
@@ -744,9 +708,7 @@ class Block(PandasObject):
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks(
-                        [b.convert(numeric=False, copy=True) for b in result]
-                    )
+                    result = extend_blocks([b.convert(copy=True) for b in result])
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -1353,11 +1315,48 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
 
-    def delete(self, loc) -> Block:
+    def delete(self, loc) -> list[Block]:
+        """Deletes the locs from the block.
+
+        We split the block to avoid copying the underlying data. We create new
+        blocks for every connected segment of the initial block that is not deleted.
+        The new blocks point to the initial array.
         """
-        Return a new Block with the given loc(s) deleted.
-        """
-        raise AbstractMethodError(self)
+        if not is_list_like(loc):
+            loc = [loc]
+
+        if self.ndim == 1:
+            values = cast(np.ndarray, self.values)
+            values = np.delete(values, loc)
+            mgr_locs = self._mgr_locs.delete(loc)
+            return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+
+        if np.max(loc) >= self.values.shape[0]:
+            raise IndexError
+
+        # Add one out-of-bounds indexer as maximum to collect
+        # all columns after our last indexer if any
+        loc = np.concatenate([loc, [self.values.shape[0]]])
+        mgr_locs_arr = self._mgr_locs.as_array
+        new_blocks: list[Block] = []
+
+        previous_loc = -1
+        for idx in loc:
+
+            if idx == previous_loc + 1:
+                # There is no column between current and last idx
+                pass
+            else:
+                # No overload variant of "__getitem__" of "ExtensionArray" matches
+                # argument type "Tuple[slice, slice]"
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa
+                locs = mgr_locs_arr[previous_loc + 1 : idx]
+                nb = type(self)(values, placement=BlockPlacement(locs), ndim=self.ndim)
+                new_blocks.append(nb)
+
+            previous_loc = idx
+
+        return new_blocks
 
     @property
     def is_view(self) -> bool:
@@ -1513,6 +1512,8 @@ class EABackedBlock(Block):
         See Block.putmask.__doc__
         """
         mask = extract_bool_array(mask)
+        if new is lib.no_default:
+            new = self.fill_value
 
         values = self.values
         if values.ndim == 2:
@@ -1568,40 +1569,13 @@ class EABackedBlock(Block):
 
         return [self]
 
-    def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-        # Caller is responsible for validating limit; if int it is strictly positive
-
-        if self.dtype.kind == "m":
-            try:
-                res_values = self.values.fillna(value, limit=limit)
-            except (ValueError, TypeError):
-                # GH#45746
-                warnings.warn(
-                    "The behavior of fillna with timedelta64[ns] dtype and "
-                    f"an incompatible value ({type(value)}) is deprecated. "
-                    "In a future version, this will cast to a common dtype "
-                    "(usually object) instead of raising, matching the "
-                    "behavior of other dtypes.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                raise
-            else:
-                res_blk = self.make_block(res_values)
-                return [res_blk]
-
-        # TODO: since this now dispatches to super, which in turn dispatches
-        #  to putmask, it may *actually* respect 'inplace=True'. If so, add
-        #  tests for this.
-        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
-
-    def delete(self, loc) -> Block:
+    def delete(self, loc) -> list[Block]:
         # This will be unnecessary if/when __array_function__ is implemented
-        values = self.values.delete(loc)
-        mgr_locs = self._mgr_locs.delete(loc)
-        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
+        if self.ndim == 1:
+            values = self.values.delete(loc)
+            mgr_locs = self._mgr_locs.delete(loc)
+            return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+        return super().delete(loc)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
@@ -1646,7 +1620,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     Notes
     -----
     This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks, CategoricalBlock.
+    parent class for our internal extension types' blocks.
 
     ExtensionArrays are limited to 1-D.
     """
@@ -1656,6 +1630,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     is_extension = True
 
     values: ExtensionArray
+
+    def fillna(
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+        if is_interval_dtype(self.dtype):
+            # Block.fillna handles coercion (test_fillna_interval)
+            return super().fillna(
+                value=value, limit=limit, inplace=inplace, downcast=downcast
+            )
+        new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values)
+        return nb._maybe_downcast([nb], downcast)
 
     @cache_readonly
     def shape(self) -> Shape:
@@ -1678,7 +1664,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             col, loc = i
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
-            elif isinstance(col, slice):
+            if isinstance(col, slice):
                 # the is_null_slice check above assures that col is slice(None)
                 #  so what we want is a view on all our columns and row loc
                 if loc < 0:
@@ -1904,11 +1890,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
     def values_for_json(self) -> np.ndarray:
         return self.values
 
-    def delete(self, loc) -> Block:
-        values = np.delete(self.values, loc, 0)
-        mgr_locs = self._mgr_locs.delete(loc)
-        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
-
 
 class NumericBlock(NumpyBlock):
     __slots__ = ()
@@ -1974,15 +1955,11 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     which will no longer be raised in version.2.0.
     """
     if isinstance(err, ValueError):
-        # TODO(2.0): once DTA._validate_setitem_value deprecation
-        #  is enforced, stop catching ValueError here altogether
         if isinstance(err, IncompatibleFrequency):
             pass
         elif "'value.closed' is" in str(err):
             # IntervalDtype mismatched 'closed'
             pass
-        elif "Timezones don't match" not in str(err):
-            raise err
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
@@ -2016,62 +1993,37 @@ class ObjectBlock(NumpyBlock):
     is_object = True
 
     @maybe_split
-    def reduce(self, func, ignore_failures: bool = False) -> list[Block]:
-        """
-        For object-dtype, we operate column-wise.
-        """
-        assert self.ndim == 2
-
-        try:
-            res = func(self.values)
-        except TypeError:
-            if not ignore_failures:
-                raise
-            return []
-
-        assert isinstance(res, np.ndarray)
-        assert res.ndim == 1
-        res = res.reshape(1, -1)
-        return [self.make_block_same_class(res)]
-
-    @maybe_split
     def convert(
         self,
+        *,
         copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        if self.dtype != _dtype_obj:
+            # GH#50067 this should be impossible in ObjectBlock, but until
+            #  that is fixed, we short-circuit here.
+            return [self]
+
         values = self.values
         if values.ndim == 2:
             # maybe_split ensures we only get here with values.shape[0] == 1,
             # avoid doing .ravel as that might make a copy
             values = values[0]
 
-        res_values = soft_convert_objects(
+        res_values = lib.maybe_convert_objects(
             values,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
-            copy=copy,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
+            convert_interval=True,
         )
+        if copy and res_values is values:
+            res_values = values.copy()
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
-
-
-class CategoricalBlock(ExtensionBlock):
-    # this Block type is kept for backwards-compatibility
-    __slots__ = ()
-
-    # GH#43232, GH#43334 self.values.dtype can be changed inplace until 2.0,
-    #  so this cannot be cached
-    @property
-    def dtype(self) -> DtypeObj:
-        return self.values.dtype
 
 
 # -----------------------------------------------------------------
@@ -2129,8 +2081,6 @@ def get_block_type(dtype: DtypeObj):
     if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif isinstance(dtype, CategoricalDtype):
-        cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif isinstance(dtype, PeriodDtype):
@@ -2198,7 +2148,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
             f"values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
-    elif not is_1d_only_ea_dtype(values.dtype):
+    if not is_1d_only_ea_dtype(values.dtype):
         # TODO(EA2D): special case not needed with 2D EAs
         if values.ndim != ndim:
             raise ValueError(
@@ -2371,7 +2321,7 @@ def external_values(values: ArrayLike) -> ArrayLike:
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
-        return values._data
+        # Avoid raising in .astype in casting from dt64tz to dt64
+        return values._ndarray
     else:
         return values

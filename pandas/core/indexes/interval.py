@@ -44,6 +44,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -236,6 +237,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_breaks"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -266,6 +272,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_arrays"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -297,6 +308,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_tuples"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -325,8 +341,11 @@ class IntervalIndex(ExtensionIndex):
     # "Union[IndexEngine, ExtensionEngine]" in supertype "Index"
     @cache_readonly
     def _engine(self) -> IntervalTree:  # type: ignore[override]
+        # IntervalTree does not supports numpy array unless they are 64 bit
         left = self._maybe_convert_i8(self.left)
+        left = maybe_upcast_numeric_to_64bit(left)
         right = self._maybe_convert_i8(self.right)
+        right = maybe_upcast_numeric_to_64bit(right)
         return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key: Any) -> bool:
@@ -503,12 +522,12 @@ class IntervalIndex(ExtensionIndex):
             The original key if no conversion occurred, int if converted scalar,
             Int64Index if converted list-like.
         """
-        original = key
         if is_list_like(key):
             key = ensure_index(key)
+            key = maybe_upcast_numeric_to_64bit(key)
 
         if not self._needs_i8_conversion(key):
-            return original
+            return key
 
         scalar = is_scalar(key)
         if is_interval_dtype(key) or isinstance(key, Interval):
@@ -580,19 +599,13 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(
-        self, key, method: str | None = None, tolerance=None
-    ) -> int | slice | np.ndarray:
+    def get_loc(self, key) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None}, optional
-            * default: matches where the label is within an interval only.
-
-            .. deprecated:: 1.4
 
         Returns
         -------
@@ -623,7 +636,6 @@ class IntervalIndex(ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_indexing_method(method)
         self._check_indexing_error(key)
 
         if isinstance(key, Interval):
@@ -645,7 +657,7 @@ class IntervalIndex(ExtensionIndex):
         matches = mask.sum()
         if matches == 0:
             raise KeyError(key)
-        elif matches == 1:
+        if matches == 1:
             return mask.argmax()
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
@@ -764,19 +776,19 @@ class IntervalIndex(ExtensionIndex):
         "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
     )
 
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
             # GH#31658 if label-based, we require step == 1,
             #  if positional, we disallow float start/stop
             msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
             if kind == "loc":
                 raise ValueError(msg)
-            elif kind == "getitem":
+            if kind == "getitem":
                 if not is_valid_positional_slice(key):
                     # i.e. this cannot be interpreted as a positional slice
                     raise ValueError(msg)
 
-        return super()._convert_slice_indexer(key, kind, is_frame=is_frame)
+        return super()._convert_slice_indexer(key, kind)
 
     @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
@@ -786,8 +798,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+    def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -831,7 +842,7 @@ class IntervalIndex(ExtensionIndex):
     def _format_data(self, name=None) -> str:
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
-        return self._data._format_data() + "," + self._format_space()
+        return f"{self._data._format_data()},{self._format_space()}"
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -1061,7 +1072,7 @@ def interval_range(
 
     if not _is_valid_endpoint(start):
         raise ValueError(f"start must be numeric or datetime-like, got {start}")
-    elif not _is_valid_endpoint(end):
+    if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
     if is_float(periods):

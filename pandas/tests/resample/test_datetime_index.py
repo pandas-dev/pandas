@@ -32,7 +32,7 @@ from pandas.core.resample import (
     _get_timestamp_range_edges,
 )
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
@@ -700,8 +700,7 @@ def test_asfreq_non_unique():
 
     msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            ts.asfreq("B")
+        ts.asfreq("B")
 
 
 def test_resample_axis1():

@@ -170,7 +170,9 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: str) -> int | None:
+def find_valid_index(
+    values, *, how: str, is_valid: npt.NDArray[np.bool_]
+) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -179,6 +181,8 @@ def find_valid_index(values, *, how: str) -> int | None:
     values : ndarray or ExtensionArray
     how : {'first', 'last'}
         Use this parameter to change between the first or last valid index.
+    is_valid: np.ndarray
+        Mask to find na_values.
 
     Returns
     -------
@@ -188,8 +192,6 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if len(values) == 0:  # early stop
         return None
-
-    is_valid = ~isna(values)
 
     if values.ndim == 2:
         is_valid = is_valid.any(axis=1)  # reduce axis 1
@@ -204,7 +206,9 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if not chk_notna:
         return None
-    return idxpos
+    # Incompatible return value type (got "signedinteger[Any]",
+    # expected "Optional[int]")
+    return idxpos  # type: ignore[return-value]
 
 
 def interpolate_array_2d(
@@ -258,7 +262,6 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return
 
 
 def _interpolate_2d_with_fill(
@@ -341,7 +344,6 @@ def _interpolate_2d_with_fill(
     # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
     # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
     np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
-    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -402,12 +404,12 @@ def _interpolate_1d(
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
 
-    first_valid_index = find_valid_index(yvalues, how="first")
+    first_valid_index = find_valid_index(yvalues, how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
     start_nans = set(range(first_valid_index))
 
-    last_valid_index = find_valid_index(yvalues, how="last")
+    last_valid_index = find_valid_index(yvalues, how="last", is_valid=valid)
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
     end_nans = set(range(1 + last_valid_index, len(valid)))
@@ -740,12 +742,13 @@ def _interpolate_with_limit_area(
     """
 
     invalid = isna(values)
+    is_valid = ~invalid
 
     if not invalid.all():
-        first = find_valid_index(values, how="first")
+        first = find_valid_index(values, how="first", is_valid=is_valid)
         if first is None:
             first = 0
-        last = find_valid_index(values, how="last")
+        last = find_valid_index(values, how="last", is_valid=is_valid)
         if last is None:
             last = len(values)
 
@@ -761,8 +764,6 @@ def _interpolate_with_limit_area(
             invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
-
-    return
 
 
 def interpolate_2d(

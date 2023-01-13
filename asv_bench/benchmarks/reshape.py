@@ -15,12 +15,17 @@ from pandas.api.types import CategoricalDtype
 
 
 class Melt:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 3), columns=["A", "B", "C"])
-        self.df["id1"] = np.random.randint(0, 10, 10000)
-        self.df["id2"] = np.random.randint(100, 1000, 10000)
+    params = ["float64", "Float64"]
+    param_names = ["dtype"]
 
-    def time_melt_dataframe(self):
+    def setup(self, dtype):
+        self.df = DataFrame(
+            np.random.randn(100_000, 3), columns=["A", "B", "C"], dtype=dtype
+        )
+        self.df["id1"] = pd.Series(np.random.randint(0, 10, 10000))
+        self.df["id2"] = pd.Series(np.random.randint(100, 1000, 10000))
+
+    def time_melt_dataframe(self, dtype):
         melt(self.df, id_vars=["id1", "id2"])
 
 
@@ -36,7 +41,7 @@ class Pivot:
         self.df = DataFrame(data)
 
     def time_reshape_pivot_time_series(self):
-        self.df.pivot("date", "variable", "value")
+        self.df.pivot(index="date", columns="variable", values="value")
 
 
 class SimpleReshape:
@@ -112,9 +117,7 @@ class Unstack:
             values = np.take(list(string.ascii_letters), indices)
             values = [pd.Categorical(v) for v in values.T]
 
-            self.df = DataFrame(
-                {i: cat for i, cat in enumerate(values)}, index, columns
-            )
+            self.df = DataFrame(dict(enumerate(values)), index, columns)
 
         self.df2 = self.df.iloc[:-1]
 
@@ -212,7 +215,7 @@ class PivotTable:
         )
 
     def time_pivot_table_margins_only_column(self):
-        self.df.pivot_table(columns=["key2", "key3"], margins=True)
+        self.df.pivot_table(columns=["key1", "key2", "key3"], margins=True)
 
 
 class Crosstab:

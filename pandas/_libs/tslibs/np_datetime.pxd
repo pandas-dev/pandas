@@ -95,6 +95,8 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    format: str | None = *,
+    bint exact = *
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
@@ -104,6 +106,7 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
     bint round_ok=*,
+    bint is_coerce=*,
 )
 cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
 
@@ -118,3 +121,9 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
+
+cdef extern from "src/datetime/np_datetime_strings.h":
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT

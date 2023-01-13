@@ -14,7 +14,6 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
-    Series,
     Timedelta,
     Timestamp,
     array,
@@ -580,19 +579,6 @@ class TestPutmask:
         result = idx.putmask(mask, idx[-1])
         expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
-
-
-class TestGetValue:
-    @pytest.mark.parametrize("key", [[5], (2, 3)])
-    def test_get_value_non_scalar_errors(self, key):
-        # GH#31117
-        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
-        ser = Series(range(len(idx)), index=idx)
-
-        msg = str(key)
-        with pytest.raises(InvalidIndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                idx.get_value(ser, key)
 
 
 class TestContains:

@@ -12,19 +12,13 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
-
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
 
 
 @pytest.fixture
@@ -498,7 +492,7 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_boxplot_series(self, ts):
         _, ax = self.plt.subplots()
         ax = ts.plot.box(logy=True, ax=ax)
@@ -652,7 +646,7 @@ class TestSeriesPlots(TestPlotBase):
         assert result == [c] * 3
 
     def test_standard_colors_all(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors
 
         from pandas.plotting._matplotlib.style import get_standard_colors
 
@@ -813,7 +807,7 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh", "hist"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
@@ -824,6 +818,9 @@ class TestSeriesPlots(TestPlotBase):
         if kind == "barh":
             assert ax.get_xlabel() == ""
             assert ax.get_ylabel() == old_label
+        elif kind == "hist":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == "Frequency"
         else:
             assert ax.get_ylabel() == ""
             assert ax.get_xlabel() == old_label

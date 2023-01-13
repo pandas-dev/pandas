@@ -96,10 +96,7 @@ class TestRolling:
             "mean",
             "min",
             "max",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "kurt",
             "skew",
         ],
@@ -280,11 +277,11 @@ class TestRolling:
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
-        def foo(x):
+        def isnumpyarray(x):
             return int(isinstance(x, np.ndarray))
 
         df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
-        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        result = df.groupby("id").value.rolling(1).apply(isnumpyarray, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
             index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
@@ -1128,13 +1125,6 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            expected = df.groupby("A", group_keys=True).apply(
-                lambda x: getattr(x.ewm(com=1.0), method)()
-            )
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "method, expected_data",
         [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
@@ -1163,9 +1153,9 @@ class TestEWM:
     def test_times(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        # GH#42738
+        times = times_frame.pop("C")
+        result = times_frame.groupby("A").ewm(halflife=halflife, times=times).mean()
         expected = DataFrame(
             {
                 "B": [
@@ -1199,25 +1189,13 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_times_vs_apply(self, times_frame):
-        # GH 40951
-        halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-            expected = times_frame.groupby("A", group_keys=True).apply(
-                lambda x: x.ewm(halflife=halflife, times="C").mean()
-            )
-        tm.assert_frame_equal(result, expected)
-
     def test_times_array(self, times_frame):
         # GH 40951
         halflife = "23 days"
+        times = times_frame.pop("C")
         gb = times_frame.groupby("A")
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = gb.ewm(halflife=halflife, times="C").mean()
-            expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
+        result = gb.ewm(halflife=halflife, times=times).mean()
+        expected = gb.ewm(halflife=halflife, times=times.values).mean()
         tm.assert_frame_equal(result, expected)
 
     def test_dont_mutate_obj_after_slicing(self):

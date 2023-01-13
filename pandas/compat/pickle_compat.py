@@ -7,11 +7,7 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import (
-    TYPE_CHECKING,
-    Generator,
-)
-import warnings
+from typing import Generator
 
 import numpy as np
 
@@ -25,12 +21,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import BlockManager
-
-if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
 
 
 def load_reduce(self):
@@ -68,49 +58,6 @@ def load_reduce(self):
         raise
 
 
-_sparse_msg = """\
-
-Loading a saved '{cls}' as a {new} with sparse values.
-'{cls}' is now removed. You should re-save this dataset in its new format.
-"""
-
-
-class _LoadSparseSeries:
-    # To load a SparseSeries as a Series[Sparse]
-
-    # https://github.com/python/mypy/issues/1020
-    # error: Incompatible return type for "__new__" (returns "Series", but must return
-    # a subtype of "_LoadSparseSeries")
-    def __new__(cls) -> Series:  # type: ignore[misc]
-        from pandas import Series
-
-        warnings.warn(
-            _sparse_msg.format(cls="SparseSeries", new="Series"),
-            FutureWarning,
-            stacklevel=6,
-        )
-
-        return Series(dtype=object)
-
-
-class _LoadSparseFrame:
-    # To load a SparseDataFrame as a DataFrame[Sparse]
-
-    # https://github.com/python/mypy/issues/1020
-    # error: Incompatible return type for "__new__" (returns "DataFrame", but must
-    # return a subtype of "_LoadSparseFrame")
-    def __new__(cls) -> DataFrame:  # type: ignore[misc]
-        from pandas import DataFrame
-
-        warnings.warn(
-            _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
-            FutureWarning,
-            stacklevel=6,
-        )
-
-        return DataFrame()
-
-
 # If classes are moved, provide compat here.
 _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
@@ -144,14 +91,6 @@ _class_locations_map = {
         "pandas.core.arrays.sparse",
         "SparseArray",
     ),
-    ("pandas.sparse.series", "SparseSeries"): (
-        "pandas.compat.pickle_compat",
-        "_LoadSparseSeries",
-    ),
-    ("pandas.sparse.frame", "SparseDataFrame"): (
-        "pandas.core.sparse.frame",
-        "_LoadSparseFrame",
-    ),
     ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
     ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
     ("pandas.indexes.numeric", "Int64Index"): (
@@ -182,14 +121,6 @@ _class_locations_map = {
     ("pandas.indexes.numeric", "Float64Index"): (
         "pandas.core.indexes.numeric",
         "Float64Index",
-    ),
-    ("pandas.core.sparse.series", "SparseSeries"): (
-        "pandas.compat.pickle_compat",
-        "_LoadSparseSeries",
-    ),
-    ("pandas.core.sparse.frame", "SparseDataFrame"): (
-        "pandas.compat.pickle_compat",
-        "_LoadSparseFrame",
     ),
 }
 

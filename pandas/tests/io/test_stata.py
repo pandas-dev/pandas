@@ -20,7 +20,6 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.core.indexes.api import ensure_index
 from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv
@@ -72,6 +71,19 @@ class TestStata:
             empty_ds.to_stata(path, write_index=False, version=version)
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
+
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_read_index_col_none(self, version):
+        df = DataFrame({"a": range(5), "b": ["b1", "b2", "b3", "b4", "b5"]})
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=False, version=version)
+            read_df = read_stata(path)
+
+        assert isinstance(read_df.index, pd.RangeIndex)
+        expected = df.copy()
+        expected["a"] = expected["a"].astype(np.int32)
+        tm.assert_frame_equal(read_df, expected, check_index_type=True)
 
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
@@ -443,19 +455,13 @@ class TestStata:
         parsed = self.read_dta(file)
         parsed.index.name = "index"
 
-        expected = self.read_csv(datapath("io", "data", "stata", "stata5.csv"))
-        cols = ["byte_", "int_", "long_", "float_", "double_"]
-        for col in cols:
-            expected[col] = expected[col]._convert(datetime=True, numeric=True)
-        expected["float_"] = expected["float_"].astype(np.float32)
-        expected["date_td"] = pd.to_datetime(expected["date_td"], errors="coerce")
-
         tm.assert_frame_equal(parsed_114, parsed)
 
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, convert_dates={"date_td": "td"}, version=version)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
+
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
 
     @pytest.mark.parametrize(
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
@@ -774,15 +780,15 @@ class TestStata:
         mm = [0, 0, 59, 0, 0, 0]
         ss = [0, 0, 59, 0, 0, 0]
         expected = []
-        for i in range(len(yr)):
+        for year, month, day, hour, minute, second in zip(yr, mo, dd, hr, mm, ss):
             row = []
             for j in range(7):
                 if j == 0:
-                    row.append(datetime(yr[i], mo[i], dd[i], hr[i], mm[i], ss[i]))
+                    row.append(datetime(year, month, day, hour, minute, second))
                 elif j == 6:
-                    row.append(datetime(yr[i], 1, 1))
+                    row.append(datetime(year, 1, 1))
                 else:
-                    row.append(datetime(yr[i], mo[i], dd[i]))
+                    row.append(datetime(year, month, day))
             expected.append(row)
         expected.append([pd.NaT] * 7)
         columns = [
@@ -816,8 +822,7 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         with tm.ensure_clean() as path:
             expected.index.name = "index"
-            with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
-                expected.to_stata(path, date_conversion)
+            expected.to_stata(path, convert_dates=date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
                 written_and_read_again.set_index("index"),
@@ -1055,7 +1060,7 @@ class TestStata:
         parsed = parsed.sort_values("srh", na_position="first")
 
         # Don't sort index
-        parsed.index = np.arange(parsed.shape[0])
+        parsed.index = pd.RangeIndex(len(parsed))
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
         cat = pd.Categorical.from_codes(
@@ -1138,7 +1143,7 @@ class TestStata:
             if is_categorical_dtype(ser.dtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = ensure_index(cat.categories._values)
+                    categories = pd.Index._with_infer(cat.categories._values)
                     cat = cat.set_categories(categories)
                 from_frame[col] = cat
         return from_frame

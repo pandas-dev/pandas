@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
@@ -17,9 +14,6 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-
-if TYPE_CHECKING:
-    from xlsxwriter import Workbook
 
 
 class _XlsxStyler:
@@ -223,14 +217,6 @@ class XlsxWriter(ExcelWriter):
         This attribute can be used to access engine-specific features.
         """
         return self._book
-
-    @book.setter
-    def book(self, other: Workbook) -> None:
-        """
-        Set book instance. Class type will depend on the engine used.
-        """
-        self._deprecate_set_book()
-        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:

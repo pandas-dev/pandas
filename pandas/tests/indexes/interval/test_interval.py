@@ -22,7 +22,7 @@ from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
+@pytest.fixture(params=[None, "foo"])
 def name(request):
     return request.param
 
@@ -415,27 +415,36 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "breaks",
-        [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
+        "make_key",
+        [lambda breaks: breaks, list],
+        ids=["lambda", "list"],
     )
+    def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
+        # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
+        index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
+
+        result = index._maybe_convert_i8(key)
+        expected = Index(key)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "make_key",
         [
             IntervalIndex.from_breaks,
             lambda breaks: Interval(breaks[0], breaks[1]),
-            lambda breaks: breaks,
             lambda breaks: breaks[0],
-            list,
         ],
-        ids=["IntervalIndex", "Interval", "Index", "scalar", "list"],
+        ids=["IntervalIndex", "Interval", "scalar"],
     )
-    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+    def test_maybe_convert_i8_numeric_identical(self, make_key, any_real_numpy_dtype):
         # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
-        # no conversion occurs for numeric
+        # test if _maybe_convert_i8 won't change key if an Interval or IntervalIndex
         result = index._maybe_convert_i8(key)
         assert result is key
 
@@ -537,7 +546,7 @@ class TestIntervalIndex:
         result = index.isin(other.tolist())
         tm.assert_numpy_array_equal(result, expected)
 
-        for other_closed in {"right", "left", "both", "neither"}:
+        for other_closed in ["right", "left", "both", "neither"]:
             other = self.create_index(closed=other_closed)
             expected = np.repeat(closed == other_closed, len(index))
             result = index.isin(other)
@@ -790,6 +799,13 @@ class TestIntervalIndex:
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
+
+        # intervals with duplicate left values
+        a = [10, 15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85]
+        b = [15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+        index = IntervalIndex.from_arrays(a, b, closed="right")
+        result = index.is_overlapping
+        assert result is False
 
     @pytest.mark.parametrize(
         "tuples",

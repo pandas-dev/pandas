@@ -27,7 +27,7 @@ _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
 class Timestamp(datetime):
-    _reso: int
+    _creso: int
     min: ClassVar[Timestamp]
     max: ClassVar[Timestamp]
 
@@ -37,9 +37,6 @@ class Timestamp(datetime):
     def __new__(  # type: ignore[misc]
         cls: type[_DatetimeT],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
-        freq: int | None | str | BaseOffset = ...,
-        tz: str | _tzinfo | None | int = ...,
-        unit: str | int | None = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -47,12 +44,13 @@ class Timestamp(datetime):
         minute: int | None = ...,
         second: int | None = ...,
         microsecond: int | None = ...,
-        nanosecond: int | None = ...,
         tzinfo: _tzinfo | None = ...,
         *,
+        nanosecond: int | None = ...,
+        tz: str | _tzinfo | None | int = ...,
+        unit: str | int | None = ...,
         fold: int | None = ...,
     ) -> _DatetimeT | NaTType: ...
-    def _set_freq(self, freq: BaseOffset | None) -> None: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _tzinfo | None
@@ -72,6 +70,8 @@ class Timestamp(datetime):
     @property
     def microsecond(self) -> int: ...
     @property
+    def nanosecond(self) -> int: ...
+    @property
     def tzinfo(self) -> _tzinfo | None: ...
     @property
     def tz(self) -> _tzinfo | None: ...
@@ -89,7 +89,6 @@ class Timestamp(datetime):
     def fromordinal(
         cls: type[_DatetimeT],
         ordinal: int,
-        freq: str | BaseOffset | None = ...,
         tz: _tzinfo | str | None = ...,
     ) -> _DatetimeT: ...
     @classmethod
@@ -176,7 +175,7 @@ class Timestamp(datetime):
     def is_year_end(self) -> bool: ...
     def to_pydatetime(self, warn: bool = ...) -> datetime: ...
     def to_datetime64(self) -> np.datetime64: ...
-    def to_period(self, freq: BaseOffset | str | None = ...) -> Period: ...
+    def to_period(self, freq: BaseOffset | str = ...) -> Period: ...
     def to_julian_date(self) -> np.float64: ...
     @property
     def asm8(self) -> np.datetime64: ...
@@ -223,5 +222,5 @@ class Timestamp(datetime):
     @property
     def daysinmonth(self) -> int: ...
     @property
-    def _unit(self) -> str: ...
-    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...
+    def unit(self) -> str: ...
+    def as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...

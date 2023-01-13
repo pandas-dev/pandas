@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
-    Iterator,
     Literal,
     cast,
 )
@@ -15,17 +14,14 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     AlignJoin,
     DtypeObj,
     F,
     Scalar,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_nonkeyword_arguments,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -242,19 +238,6 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self) -> Iterator:
-        warnings.warn(
-            "Columnar iteration over characters will be deprecated in future releases.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        i = 0
-        g = self.get(i)
-        while g.notna().any():
-            yield g
-            i += 1
-            g = self.get(i)
-
     def _wrap_result(
         self,
         result,
@@ -336,7 +319,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index._with_infer(result, name=name)
+                return Index(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.
@@ -473,7 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -854,14 +836,13 @@ class StringMethods(NoNewAttributesMixin):
     """,
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
         pat: str | re.Pattern | None = None,
+        *,
         n=-1,
         expand: bool = False,
-        *,
         regex: bool | None = None,
     ):
         if regex is False and is_re(pat):
@@ -886,9 +867,8 @@ class StringMethods(NoNewAttributesMixin):
             "regex_examples": "",
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand: bool = False):
+    def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -1342,7 +1322,7 @@ class StringMethods(NoNewAttributesMixin):
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
-        regex: bool | None = None,
+        regex: bool = False,
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1370,15 +1350,13 @@ class StringMethods(NoNewAttributesMixin):
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
-        regex : bool, default True
+        regex : bool, default False
             Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -1463,20 +1441,6 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        if regex is None:
-            if isinstance(pat, str) and any(c in pat for c in ".+*|^$?[](){}\\"):
-                # warn only in cases where regex behavior would differ from literal
-                msg = (
-                    "The default value of regex will change from True to False "
-                    "in a future version."
-                )
-                if len(pat) == 1:
-                    msg += (
-                        " In addition, single character regular expressions will "
-                        "*not* be treated as literal strings when regex=True."
-                    )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
@@ -1494,14 +1458,6 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
-
-        # The current behavior is to treat single character patterns as literal strings,
-        # even when ``regex`` is set to ``True``.
-        if isinstance(pat, str) and len(pat) == 1:
-            regex = False
-
-        if regex is None:
-            regex = True
 
         if case is None:
             case = True
@@ -1645,7 +1601,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    filled : Series/Index of objects.
+    Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1924,7 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        encoded : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2811,7 +2767,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        normalized : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
@@ -3021,7 +2977,7 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["casefold"] = {
         "type": "be casefolded",
         "method": "casefold",
-        "version": "\n    .. versionadded:: 0.25.0\n",
+        "version": "",
     }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])

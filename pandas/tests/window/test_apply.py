@@ -16,7 +16,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 def f(x):
@@ -163,7 +163,7 @@ def test_invalid_raw_numba():
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
 def test_rolling_apply_args_kwargs(args_kwargs):
     # GH 33433
-    def foo(x, par):
+    def numpysum(x, par):
         return np.sum(x + par)
 
     df = DataFrame({"gr": [1, 1], "a": [1, 2]})
@@ -171,7 +171,7 @@ def test_rolling_apply_args_kwargs(args_kwargs):
     idx = Index(["gr", "a"])
     expected = DataFrame([[11.0, 11.0], [11.0, 12.0]], columns=idx)
 
-    result = df.rolling(1).apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
+    result = df.rolling(1).apply(numpysum, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_frame_equal(result, expected)
 
     midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
@@ -179,7 +179,7 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
     gb_rolling = df.groupby("gr")["a"].rolling(1)
 
-    result = gb_rolling.apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
+    result = gb_rolling.apply(numpysum, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_series_equal(result, expected)
 
 

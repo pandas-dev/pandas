@@ -4,10 +4,7 @@ Provide basic components for groupby.
 from __future__ import annotations
 
 import dataclasses
-from typing import (
-    Hashable,
-    Literal,
-)
+from typing import Hashable
 
 
 @dataclasses.dataclass(order=True, frozen=True)
@@ -36,12 +33,10 @@ reduction_kernels = frozenset(
         "idxmax",
         "idxmin",
         "last",
-        "mad",
         "max",
         "mean",
         "median",
         "min",
-        "nth",
         "nunique",
         "prod",
         # as long as `quantile`'s signature accepts only
@@ -62,18 +57,8 @@ reduction_kernels = frozenset(
 # produces a result that has the same shape as the group.
 
 
-# TODO(2.0) Remove after pad/backfill deprecation enforced
-def maybe_normalize_deprecated_kernels(kernel) -> Literal["bfill", "ffill"]:
-    if kernel == "backfill":
-        kernel = "bfill"
-    elif kernel == "pad":
-        kernel = "ffill"
-    return kernel
-
-
 transformation_kernels = frozenset(
     [
-        "backfill",
         "bfill",
         "cumcount",
         "cummax",
@@ -84,11 +69,9 @@ transformation_kernels = frozenset(
         "ffill",
         "fillna",
         "ngroup",
-        "pad",
         "pct_change",
         "rank",
         "shift",
-        "tshift",
     ]
 )
 
@@ -116,6 +99,7 @@ groupby_other_methods = frozenset(
         "indices",
         "ndim",
         "ngroups",
+        "nth",
         "ohlc",
         "pipe",
         "plot",

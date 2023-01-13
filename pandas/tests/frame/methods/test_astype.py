@@ -301,7 +301,7 @@ class TestAstype:
         d = {"A": list("abbc"), "B": list("bccd"), "C": list("cdde")}
         df = DataFrame(d)
         result = df.astype(dtype)
-        expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
+        expected = DataFrame({k: Categorical(v, dtype=dtype) for k, v in d.items()})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
@@ -377,6 +377,32 @@ class TestAstype:
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
 
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_datetime_unit(self, unit):
+        vals = [
+            ["2015-01-01", "2015-01-02", "2015-01-03"],
+            ["2017-01-01", "2017-01-02", "2017-02-03"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        with pytest.raises(TypeError, match="Cannot cast"):
+            df.astype(f"M8[{unit}]")
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_timedelta_unit(self, unit):
+        vals = [
+            ["1 Day", "2 Days", "3 Days"],
+            ["4 Days", "5 Days", "6 Days"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # TODO: this is ValueError while for DatetimeArray it is TypeError;
+            #  get these consistent
+            df.astype(f"m8[{unit}]")
+
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_from_datetimelike_to_object(self, dtype, unit):
@@ -418,52 +444,45 @@ class TestAstype:
         idx = pd.Index(ser)
         dta = ser._values
 
-        result = df.astype(dtype)
-
         if unit in ["ns", "us", "ms", "s"]:
             # GH#48928
-            exp_dtype = dtype
+            result = df.astype(dtype)
         else:
-            # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
-            #  of nanos
-            exp_dtype = "M8[ns]"
-        # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
-        #  can simplify this
-        exp_values = arr.astype(exp_dtype)
-        exp_dta = pd.core.arrays.DatetimeArray._simple_new(
-            exp_values, dtype=exp_values.dtype
-        )
-        exp_df = DataFrame(exp_dta)
-        assert (exp_df.dtypes == exp_dtype).all()
-
-        tm.assert_frame_equal(result, exp_df)
-
-        # TODO(2.0): make Series/DataFrame raise like Index and DTA?
-        res_ser = ser.astype(dtype)
-        exp_ser = exp_df.iloc[:, 0]
-        assert exp_ser.dtype == exp_dtype
-        tm.assert_series_equal(res_ser, exp_ser)
-
-        if unit in ["ns", "us", "ms", "s"]:
-            exp_dta = exp_ser._values
-
-            res_index = idx.astype(dtype)
-            # TODO(2.0): should be able to just call pd.Index(exp_ser)
-            exp_index = pd.DatetimeIndex._simple_new(exp_dta, name=idx.name)
-            assert exp_index.dtype == exp_dtype
-            tm.assert_index_equal(res_index, exp_index)
-
-            res_dta = dta.astype(dtype)
-            assert exp_dta.dtype == exp_dtype
-            tm.assert_extension_array_equal(res_dta, exp_dta)
-        else:
-            msg = rf"Cannot cast DatetimeIndex to dtype datetime64\[{unit}\]"
-            with pytest.raises(TypeError, match=msg):
-                idx.astype(dtype)
-
+            # we use the nearest supported dtype (i.e. M8[s])
             msg = rf"Cannot cast DatetimeArray to dtype datetime64\[{unit}\]"
             with pytest.raises(TypeError, match=msg):
+                df.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
+                ser.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg.replace("Array", "Index")):
+                idx.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
                 dta.astype(dtype)
+
+            return
+
+        exp_df = DataFrame(arr.astype(dtype))
+        assert (exp_df.dtypes == dtype).all()
+        tm.assert_frame_equal(result, exp_df)
+
+        res_ser = ser.astype(dtype)
+        exp_ser = exp_df.iloc[:, 0]
+        assert exp_ser.dtype == dtype
+        tm.assert_series_equal(res_ser, exp_ser)
+
+        exp_dta = exp_ser._values
+
+        res_index = idx.astype(dtype)
+        exp_index = pd.Index(exp_ser)
+        assert exp_index.dtype == dtype
+        tm.assert_index_equal(res_index, exp_index)
+
+        res_dta = dta.astype(dtype)
+        assert exp_dta.dtype == dtype
+        tm.assert_extension_array_equal(res_dta, exp_dta)
 
     @pytest.mark.parametrize("unit", ["ns"])
     def test_astype_to_timedelta_unit_ns(self, unit):
@@ -484,16 +503,35 @@ class TestAstype:
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
-        result = df.astype(dtype)
+        ser = df.iloc[:, 0]
+        tdi = pd.Index(ser)
+        tda = tdi._values
 
-        if unit in ["m", "h", "D"]:
-            # We don't support these, so we use the old logic to convert to float
-            expected = DataFrame(df.values.astype(dtype).astype(float))
+        if unit in ["us", "ms", "s"]:
+            assert (df.dtypes == dtype).all()
+            result = df.astype(dtype)
         else:
-            tda = pd.core.arrays.TimedeltaArray._simple_new(arr, dtype=arr.dtype)
-            expected = DataFrame(tda)
-            assert (expected.dtypes == dtype).all()
+            # We get the nearest supported unit, i.e. "s"
+            assert (df.dtypes == "m8[s]").all()
 
+            msg = (
+                rf"Cannot convert from timedelta64\[s\] to timedelta64\[{unit}\]. "
+                "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            )
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tdi.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tda.astype(dtype)
+
+            return
+
+        result = df.astype(dtype)
+        # The conversion is a no-op, so we just get a copy
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -542,6 +580,18 @@ class TestAstype:
             df.astype(np.float64, errors=True)
 
         df.astype(np.int8, errors="ignore")
+
+    def test_astype_invalid_conversion(self):
+        # GH#47571
+        df = DataFrame({"a": [1, 2, "text"], "b": [1, 2, 3]})
+
+        msg = (
+            "invalid literal for int() with base 10: 'text': "
+            "Error while type casting for column 'a'"
+        )
+
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            df.astype({"a": int})
 
     def test_astype_arg_for_errors_dictlist(self):
         # GH#25905
@@ -594,27 +644,10 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-aware dtype to timezone-"
+        with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
-            result = timezone_frame.astype("datetime64[ns]")
-        expected = DataFrame(
-            {
-                "A": date_range("20130101", periods=3),
-                "B": (
-                    date_range("20130101", periods=3, tz="US/Eastern")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-                "C": (
-                    date_range("20130101", periods=3, tz="CET")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-            }
-        )
-        expected.iloc[1, 1] = NaT
-        expected.iloc[1, 2] = NaT
-        tm.assert_frame_equal(result, expected)
+            timezone_frame.astype("datetime64[ns]")
 
     def test_astype_dt64tz_to_str(self, timezone_frame):
         # str formatting
@@ -664,7 +697,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),

@@ -9,10 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from pandas._libs.tslibs.offsets import QuarterOffset
-
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -47,9 +44,7 @@ def test_on_offset(offset):
         assert res == slow_version
 
 
-class TestBQuarterBegin(Base):
-    _offset: type[QuarterOffset] = BQuarterBegin
-
+class TestBQuarterBegin:
     def test_repr(self):
         expected = "<BusinessQuarterBegin: startingMonth=3>"
         assert repr(BQuarterBegin()) == expected
@@ -172,9 +167,7 @@ class TestBQuarterBegin(Base):
             assert_offset_equal(offset, base, expected)
 
 
-class TestBQuarterEnd(Base):
-    _offset: type[QuarterOffset] = BQuarterEnd
-
+class TestBQuarterEnd:
     def test_repr(self):
         expected = "<BusinessQuarterEnd: startingMonth=3>"
         assert repr(BQuarterEnd()) == expected

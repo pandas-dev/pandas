@@ -48,14 +48,8 @@ class TestMultiIndexSorted:
         df2 = df.set_index(["col1", "col2"])
         df2_original = df2.copy()
 
-        with tm.assert_produces_warning(FutureWarning):
-            return_value = df2.index.set_levels(
-                ["b", "d", "a"], level="col1", inplace=True
-            )
-        assert return_value is None
-        with tm.assert_produces_warning(FutureWarning):
-            return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
-        assert return_value is None
+        df2.index = df2.index.set_levels(["b", "d", "a"], level="col1")
+        df2.index = df2.index.set_codes([0, 1, 0, 2], level="col1")
         assert not df2.index.is_monotonic_increasing
 
         assert df2_original.index.equals(df2.index)

@@ -147,7 +147,6 @@ def test_indexer_accepts_rolling_args():
         ),
     ],
 )
-@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_rolling_forward_window(
     frame_or_series, func, np_func, expected, np_kwargs, step
 ):

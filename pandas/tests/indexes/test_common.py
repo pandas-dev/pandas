@@ -3,6 +3,10 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+from copy import (
+    copy,
+    deepcopy,
+)
 import re
 
 import numpy as np
@@ -10,7 +14,6 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    pa_version_under2p0,
     pa_version_under7p0,
 )
 from pandas.errors import PerformanceWarning
@@ -24,7 +27,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
@@ -134,11 +136,6 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import (
-            copy,
-            deepcopy,
-        )
-
         index = index_flat
 
         for func in (copy, deepcopy):
@@ -230,12 +227,7 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0
-            and getattr(index_flat.dtype, "storage", "") == "pyarrow",
-        ):
-            result = idx.unique()
+        result = idx.unique()
         tm.assert_index_equal(result, idx_unique)
 
         # nans:
@@ -255,13 +247,7 @@ class TestCommon:
 
         expected = idx_unique_nan
         for pos, i in enumerate([idx_nan, idx_unique_nan]):
-            with tm.maybe_produces_warning(
-                PerformanceWarning,
-                pa_version_under2p0
-                and getattr(index_flat.dtype, "storage", "") == "pyarrow"
-                and pos == 0,
-            ):
-                result = i.unique()
+            result = i.unique()
             tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat, request):
@@ -434,16 +420,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
 
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans

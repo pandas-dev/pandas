@@ -43,20 +43,19 @@ def constructor(request):
 
 class TestPandasDelegate:
     class Delegator:
-        _properties = ["foo"]
-        _methods = ["bar"]
+        _properties = ["prop"]
+        _methods = ["test_method"]
 
-        def _set_foo(self, value):
-            self.foo = value
+        def _set_prop(self, value):
+            self.prop = value
 
-        def _get_foo(self):
-            return self.foo
+        def _get_prop(self):
+            return self.prop
 
-        foo = property(_get_foo, _set_foo, doc="foo property")
+        prop = property(_get_prop, _set_prop, doc="foo property")
 
-        def bar(self, *args, **kwargs):
-            """a test bar method"""
-            pass
+        def test_method(self, *args, **kwargs):
+            """a test method"""
 
     class Delegate(PandasDelegate, PandasObject):
         def __init__(self, obj) -> None:
@@ -78,17 +77,17 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo
+            delegate.prop
 
-        msg = "The property foo cannot be set"
+        msg = "The property prop cannot be set"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo = 5
+            delegate.prop = 5
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo()
+            delegate.prop
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
@@ -146,9 +145,9 @@ class TestConstruction:
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            msg = "Out of bounds"
-            with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-                constructor(a)
+            # Can't fit in nanosecond bounds -> get the nearest supported unit
+            result = constructor(a)
+            assert result.dtype == "M8[s]"
         else:
             result = constructor(a)
             assert result.dtype == "object"
@@ -162,7 +161,10 @@ class TestConstruction:
 
     def test_constructor_datetime_nonns(self, constructor):
         arr = np.array(["2020-01-01T00:00:00.000000"], dtype="datetime64[us]")
-        expected = constructor(pd.to_datetime(["2020-01-01"]))
+        dta = pd.core.arrays.DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        expected = constructor(dta)
+        assert expected.dtype == arr.dtype
+
         result = constructor(arr)
         tm.assert_equal(result, expected)
 

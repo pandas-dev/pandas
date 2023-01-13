@@ -30,9 +30,11 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.computation import pytables
+from pandas.core.computation import (
+    expr,
+    pytables,
+)
 from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -351,7 +353,7 @@ class TestEval:
             expected = _eval_single_bin(middle, "**", rhs, engine)
             tm.assert_almost_equal(result, expected)
 
-    def check_single_invert_op(self, lhs, engine, parser):
+    def test_check_single_invert_op(self, lhs, engine, parser):
         # simple
         try:
             elb = lhs.astype(bool)
@@ -858,19 +860,6 @@ class TestAlignment:
     def test_basic_series_frame_alignment(
         self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
-        if (
-            engine == "numexpr"
-            and parser == "pandas"
-            and index_name == "index"
-            and r_idx_type == "i"
-            and c_idx_type == "s"
-        ):
-            reason = (
-                f"Flaky column ordering when engine={engine}, "
-                f"parser={parser}, index_name={index_name}, "
-                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
-            )
-            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -1104,40 +1093,6 @@ class TestOperations:
         df = DataFrame(np.random.randn(10, 2))
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
-
-    def test_truediv(self):
-        s = np.array([1])  # noqa:F841
-        ex = "s / 1"
-
-        # FutureWarning: The `truediv` parameter in pd.eval is deprecated and will be
-        # removed in a future version.
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=False)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=True)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa:F841
@@ -1407,7 +1362,6 @@ class TestOperations:
         tm.assert_dict_equal(df, expected)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2], np.array([]), (1, 3)])
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1859,23 +1813,6 @@ def test_inf(engine, parser):
     assert result == expected
 
 
-def test_truediv_deprecated(engine, parser):
-    # GH#29182
-    match = "The `truediv` parameter in pd.eval is deprecated"
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=True)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=False)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
-
-
 @pytest.mark.parametrize("column", ["Temp(°C)", "Capacitance(μF)"])
 def test_query_token(engine, column):
     # See: https://github.com/pandas-dev/pandas/pull/42826
@@ -1923,7 +1860,6 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 def test_set_inplace(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual

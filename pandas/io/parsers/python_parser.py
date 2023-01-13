@@ -20,11 +20,10 @@ from typing import (
     Sequence,
     cast,
 )
-import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     ReadCsvBuffer,
@@ -34,11 +33,14 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
+from pandas.io.common import (
+    dedup_names,
+    is_potential_multi_index,
+)
 from pandas.io.parsers.base_parser import (
     ParserBase,
     parser_defaults,
@@ -261,7 +263,14 @@ class PythonParser(ParserBase):
         columns: Sequence[Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
-            names = self._maybe_dedup_names(self.orig_names)
+            # error: Cannot determine type of 'index_col'
+            names = dedup_names(
+                self.orig_names,
+                is_potential_multi_index(
+                    self.orig_names,
+                    self.index_col,  # type: ignore[has-type]
+                ),
+            )
             # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
@@ -295,7 +304,14 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
-        names = self._maybe_dedup_names(self.orig_names)
+        # error: Cannot determine type of 'index_col'
+        names = dedup_names(
+            self.orig_names,
+            is_potential_multi_index(
+                self.orig_names,
+                self.index_col,  # type: ignore[has-type]
+            ),
+        )
 
         offset = 0
         if self._implicit_index:
@@ -426,7 +442,7 @@ class PythonParser(ParserBase):
                     else:
                         this_columns.append(c)
 
-                if not have_mi_columns and self.mangle_dupe_cols:
+                if not have_mi_columns:
                     counts: DefaultDict = defaultdict(int)
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
@@ -436,6 +452,7 @@ class PythonParser(ParserBase):
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
+                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
                     for i in col_loop_order:
                         col = this_columns[i]
                         old_col = col
@@ -536,10 +553,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
 
             if not names:
-                if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
-                else:
-                    columns = [list(range(ncols))]
+                columns = [list(range(ncols))]
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
                 )
@@ -595,11 +609,9 @@ class PythonParser(ParserBase):
                     col for col in self.usecols if col >= num_original_columns
                 ]
                 if missing_usecols:
-                    warnings.warn(
-                        "Defining usecols with out of bounds indices is deprecated "
-                        "and will raise a ParserError in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
+                    raise ParserError(
+                        "Defining usecols without of bounds indices is not allowed. "
+                        f"{missing_usecols} are out of bounds.",
                     )
                 col_indices = self.usecols
 
@@ -704,7 +716,7 @@ class PythonParser(ParserBase):
                         self._is_line_empty(self.data[self.pos - 1]) or line
                     ):
                         break
-                    elif self.skip_blank_lines:
+                    if self.skip_blank_lines:
                         ret = self._remove_empty_lines([line])
                         if ret:
                             line = ret[0]
@@ -763,7 +775,7 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
@@ -788,9 +800,9 @@ class PythonParser(ParserBase):
             assert isinstance(line, list)
             return line
         except csv.Error as e:
-            if (
-                self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+            if self.on_bad_lines in (
+                self.BadLineHandleMethod.ERROR,
+                self.BadLineHandleMethod.WARN,
             ):
                 msg = str(e)
 
@@ -1005,17 +1017,17 @@ class PythonParser(ParserBase):
             content_len = len(content)
             content = []
 
-            for (i, l) in iter_content:
-                actual_len = len(l)
+            for (i, _content) in iter_content:
+                actual_len = len(_content)
 
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
-                        new_l = self.on_bad_lines(l)
+                        new_l = self.on_bad_lines(_content)
                         if new_l is not None:
                             content.append(new_l)
-                    elif (
-                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                    elif self.on_bad_lines in (
+                        self.BadLineHandleMethod.ERROR,
+                        self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
@@ -1023,7 +1035,7 @@ class PythonParser(ParserBase):
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
-                    content.append(l)
+                    content.append(_content)
 
             for row_num, actual_len in bad_lines:
                 msg = (

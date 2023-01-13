@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
   pull_request:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
     paths-ignore:
       - "doc/**"
 
@@ -19,7 +17,7 @@ permissions:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -40,7 +38,8 @@ jobs:
           /opt/python/cp38-cp38/bin/python -m venv ~/virtualenvs/pandas-dev && \
           . ~/virtualenvs/pandas-dev/bin/activate && \
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
-          pip install cython numpy python-dateutil pytz pytest pytest-xdist pytest-asyncio>=0.17 hypothesis && \
+          python -m pip install versioneer[toml] && \
+          python -m pip install cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.34.2 && \
           python setup.py build_ext -q -j1 && \
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
           python -m pip list && \
