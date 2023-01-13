@@ -214,3 +214,18 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
     df.iloc[0, 0] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+def test_putmask(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2})
+    view = df[:]
+    df_orig = df.copy()
+    df[df == df] = 5
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        # Without CoW the original will be modified
+        assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        assert view.iloc[0, 0] == 5

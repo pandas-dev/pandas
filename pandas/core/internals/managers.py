@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -393,10 +393,8 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if (
-            _using_copy_on_write()
-            and self.refs is not None
-            and not all(ref is None for ref in self.refs)
+        if _using_copy_on_write() and any(
+            not self._has_no_reference_block(i) for i in range(len(self.blocks))
         ):
             # some reference -> copy full dataframe
             # TODO(CoW) this could be optimized to only copy the blocks that would
@@ -2429,5 +2427,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
+_mode_options = _global_config["mode"]
+
+
 def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+    return _mode_options["copy_on_write"]

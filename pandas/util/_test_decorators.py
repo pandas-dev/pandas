@@ -94,6 +94,13 @@ def safe_import(mod_name: str, min_version: str | None = None):
             mod = __import__(mod_name)
         except ImportError:
             return False
+        except SystemError:
+            # TODO: numba is incompatible with numpy 1.24+.
+            # Once that's fixed, this block should be removed.
+            if mod_name == "numba":
+                return False
+            else:
+                raise
 
     if not min_version:
         return mod
