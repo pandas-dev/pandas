@@ -830,6 +830,21 @@ def test_squeeze(using_copy_on_write):
         assert df.loc[0, "a"] == 0
 
 
+def test_putmask(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2})
+    view = df[:]
+    df_orig = df.copy()
+    df[df == df] = 5
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        # Without CoW the original will be modified
+        assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        assert view.iloc[0, 0] == 5
+
+
 def test_isetitem(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
