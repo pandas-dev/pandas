@@ -99,6 +99,7 @@ from pandas.compat.numpy import (
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -3844,7 +3845,7 @@ class DataFrame(NDFrame, OpsMixin):
     def __setitem__(self, key, value):
         if using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+                raise ChainedAssignmentError(_chained_assignment_msg)
 
         key = com.apply_if_callable(key, self)
 

@@ -1127,7 +1127,7 @@ class TestDataFrameSetItemBooleanMask:
 
 
 class TestDataFrameSetitemCopyViewSemantics:
-    def test_setitem_always_copy(self, float_frame, using_copy_on_write):
+    def test_setitem_always_copy(self, float_frame):
         assert "E" not in float_frame.columns
         s = float_frame["A"].copy()
         float_frame["E"] = s

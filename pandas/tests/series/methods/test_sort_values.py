@@ -80,7 +80,6 @@ class TestSeriesSortValues:
         # Series.sort_values operating on a view
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0]
-        s_orig_sorted = s.copy().sort_values()
 
         msg = (
             "This Series is a view of some other array, to sort in-place "

@@ -72,6 +72,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1077,7 +1078,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if using_copy_on_write():
             # print("Series.__getitem__ refcount: ", sys.getrefcount(self))
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+                raise ChainedAssignmentError(_chained_assignment_msg)
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)

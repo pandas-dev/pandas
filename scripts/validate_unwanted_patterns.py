@@ -53,6 +53,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "__version__",  # check np.__version__ in compat.numpy.function
     "_arrow_dtype_mapping",
     "_global_config",
+    "_chained_assignment_msg",
 }
 
 
@@ -130,6 +131,9 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
             if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
                 continue
         except AttributeError:
+            continue
+
+        if node.args[0].id == "ChainedAssignmentError":
             continue
 
         if not node.keywords:

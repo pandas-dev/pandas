@@ -27,6 +27,7 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import doc
 
@@ -837,7 +838,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if using_copy_on_write():
             # print("_LocationIndexer.__setitem__ refcount: ",sys.getrefcount(self.obj))
             if sys.getrefcount(self.obj) <= 2:
-                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+                raise ChainedAssignmentError(_chained_assignment_msg)
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):

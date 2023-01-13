@@ -298,28 +298,6 @@ class SettingWithCopyError(ValueError):
     """
 
 
-class ChainedAssignmentError(ValueError):
-    """
-    Exception raised when trying to set on a copied slice from a ``DataFrame``.
-
-    The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
-    happen unintentionally when chained indexing.
-
-    For more information on eveluation order,
-    see :ref:`the user guide<indexing.evaluation_order>`.
-
-    For more information on view vs. copy,
-    see :ref:`the user guide<indexing.view_versus_copy>`.
-
-    Examples
-    --------
-    >>> pd.options.mode.chained_assignment = 'raise'
-    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
-    ... # SettingWithCopyError: A value is trying to be set on a copy of a...
-    """
-
-
 class SettingWithCopyWarning(Warning):
     """
     Warning raised when trying to set on a copied slice from a ``DataFrame``.
@@ -340,6 +318,42 @@ class SettingWithCopyWarning(Warning):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
+
+
+class ChainedAssignmentError(ValueError):
+    """
+    Exception raised when trying to set using chained assignment.
+
+    When the ``mode.copy_on_write`` option is enabled, chained assignment can
+    never work. In such a situation, we are always setting into a temporary
+    object that is the result of indexing (getitem), which under Copy-on-Write
+    always behaves as a copy. Thus, assigning through a chain can never
+    update the original Series or DataFrame.
+
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
+
+    Examples
+    --------
+    >>> pd.options.mode.copy_on_write = True
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df["A"][0:3] = 10 # doctest: +SKIP
+    ... # ChainedAssignmentError: ...
+    """
+
+
+_chained_assignment_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment.\n"
+    "When using the Copy-on-Write mode, such chained assignment never works "
+    "to update the original DataFrame or Series, because the intermediate "
+    "object on which we are setting values always behaves as a copy.\n\n"
+    "Try using '.loc[row_indexer, col_indexer] = value' instead, to perform "
+    "the assignment in a single step.\n\n"
+    "See the caveats in the documentation: "
+    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
+    "indexing.html#returning-a-view-versus-a-copy"
+)
 
 
 class NumExprClobberingError(NameError):

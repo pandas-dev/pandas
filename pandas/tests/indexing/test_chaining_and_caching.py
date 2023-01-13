@@ -591,7 +591,7 @@ class TestChaining:
             index=range(5),
         )
         df["f"] = 0
-        # TODO(CoW)
+        # TODO(CoW) protect underlying values of being written to?
         df.f.values[3] = 1
 
         df.f.values[3] = 2
