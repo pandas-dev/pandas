@@ -32,9 +32,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:an integer is required (got type float)*:DeprecationWarning"
-)
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
