@@ -442,10 +442,11 @@ class BaseBlockManager(DataManager):
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self: T, copy: bool | None) -> T:
-        if not copy and using_copy_on_write():
-            copy = False
-        elif copy is None:
-            copy = True
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
 
         if self.is_single_block:
             original_blocks = [self.blocks[0]] * self.shape[0]
