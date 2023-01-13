@@ -295,7 +295,7 @@ def _concat_managers_axis0(
 
         offset += len(mgr.items)
 
-    result = BlockManager(tuple(blocks), axes)
+    result = BlockManager(tuple(blocks), axes, parent=parents, refs=refs)
     result.parent = parents if parents else None
     result.refs = refs if refs else None
     return result
