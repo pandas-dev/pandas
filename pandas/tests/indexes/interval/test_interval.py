@@ -47,9 +47,9 @@ class TestIntervalIndex:
         assert index.size == 10
         assert index.shape == (10,)
 
-        tm.assert_index_equal(index.left, Index(np.arange(10)))
-        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
-        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
+        tm.assert_index_equal(index.left, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11, dtype=np.int64)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5, dtype=np.float64)))
 
         assert index.closed == closed
 
@@ -160,7 +160,8 @@ class TestIntervalIndex:
         )
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
+        breaks = np.arange(1, 11, dtype=np.int64)
+        expected = IntervalIndex.from_breaks(breaks, closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
@@ -415,27 +416,38 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "breaks",
-        [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
+        "make_key",
+        [lambda breaks: breaks, list],
+        ids=["lambda", "list"],
     )
+    def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
+        # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
+        index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
+
+        result = index._maybe_convert_i8(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "make_key",
         [
             IntervalIndex.from_breaks,
             lambda breaks: Interval(breaks[0], breaks[1]),
-            lambda breaks: breaks,
             lambda breaks: breaks[0],
-            list,
         ],
-        ids=["IntervalIndex", "Interval", "Index", "scalar", "list"],
+        ids=["IntervalIndex", "Interval", "scalar"],
     )
-    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+    def test_maybe_convert_i8_numeric_identical(self, make_key, any_real_numpy_dtype):
         # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
-        # no conversion occurs for numeric
+        # test if _maybe_convert_i8 won't change key if an Interval or IntervalIndex
         result = index._maybe_convert_i8(key)
         assert result is key
 

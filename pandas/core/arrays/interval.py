@@ -46,7 +46,10 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import (
+    LossySetitemError,
+    maybe_upcast_numeric_to_64bit,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -304,7 +307,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         from pandas.core.indexes.base import ensure_index
 
         left = ensure_index(left, copy=copy)
+        left = maybe_upcast_numeric_to_64bit(left)
+
         right = ensure_index(right, copy=copy)
+        right = maybe_upcast_numeric_to_64bit(right)
 
         if closed is None and isinstance(dtype, IntervalDtype):
             closed = dtype.closed
@@ -1787,5 +1793,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         values = extract_array(values, extract_numpy=True)
 
     if not hasattr(values, "dtype"):
-        return np.asarray(values)
+        values = np.asarray(values)
+        if is_integer_dtype(values) and values.dtype != np.int64:
+            values = values.astype(np.int64)
     return values

@@ -27,7 +27,9 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in the Copy-on-Write implementation losing track of views when indexing a :class:`DataFrame` with another :class:`DataFrame` (:issue:`50630`)
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug in :meth:`Series.quantile` emitting warning from NumPy when :class:`Series` has only ``NA`` values (:issue:`50681`)
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
 -
@@ -37,6 +39,13 @@ Bug fixes
 
 Other
 ~~~~~
+
+.. note::
+
+    If you are using :meth:`DataFrame.to_sql`, :func:`read_sql`, :func:`read_sql_table`, or :func:`read_sql_query` with SQLAlchemy 1.4.46 or greater,
+    you may see a ``sqlalchemy.exc.RemovedIn20Warning``. These warnings can be safely ignored for the SQLAlchemy 1.4.x releases
+    as pandas works toward compatibility with SQLAlchemy 2.0.
+
 - Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
 -
 

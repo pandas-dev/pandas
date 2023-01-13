@@ -18,7 +18,6 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize("dtype", [np.uint8, bool])
     def test_sort_values_sparse_no_warning(self, dtype):
         # GH#45618
-        # TODO(2.0): test will be unnecessary
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
         df = pd.get_dummies(ser, dtype=dtype, sparse=True)
 
@@ -330,10 +329,21 @@ class TestDataFrameSortValues:
         df2 = df.sort_values(by=["C", "B"])
         tm.assert_frame_equal(df1, df2)
 
-    def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
+    def test_sort_values_frame_column_inplace_sort_exception(
+        self, float_frame, using_copy_on_write
+    ):
         s = float_frame["A"]
-        with pytest.raises(ValueError, match="This Series is a view"):
+        float_frame_orig = float_frame.copy()
+        if using_copy_on_write:
+            # INFO(CoW) Series is a new object, so can be changed inplace
+            # without modifying original datafame
             s.sort_values(inplace=True)
+            tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
+            # column in dataframe is not changed
+            tm.assert_frame_equal(float_frame, float_frame_orig)
+        else:
+            with pytest.raises(ValueError, match="This Series is a view"):
+                s.sort_values(inplace=True)
 
         cp = s.copy()
         cp.sort_values()  # it works!
@@ -608,6 +618,14 @@ class TestDataFrameSortValues:
         df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
 
         tm.assert_frame_equal(df, expected)
+
+    def test_sort_values_no_by_inplace(self):
+        # GH#50643
+        df = DataFrame({"a": [1, 2, 3]})
+        expected = df.copy()
+        result = df.sort_values(by=[], inplace=True)
+        tm.assert_frame_equal(df, expected)
+        assert result is None
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
