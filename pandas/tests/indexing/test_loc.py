@@ -382,7 +382,10 @@ class TestLocBaseIndependent:
         df2 = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         ix = df1["a"] == 1
         newb2 = df2.loc[ix, "b"]
-        df1.loc[ix, "b"] = newb2
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df1.loc[ix, "b"] = newb2
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
@@ -869,7 +872,10 @@ class TestLocBaseIndependent:
         # elementwisely, not using "setter('A', ['Z'])".
 
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        df.loc[0, indexer] = value
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
         assert is_scalar(result) and result == "Z"
@@ -1415,8 +1421,11 @@ class TestLocBaseIndependent:
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
-        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
-        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+            df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
     def test_loc_setitem_single_row_categorical(self):
@@ -1537,11 +1546,17 @@ class TestLocBaseIndependent:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            ser.loc[range(2)] = data
+            with tm.assert_produces_warning(
+                FutureWarning, match="item of incompatible dtype"
+            ):
+                ser.loc[range(2)] = data
 
         msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,?\)"
         with pytest.raises(ValueError, match=msg):
-            ser.loc[:] = data
+            with tm.assert_produces_warning(
+                FutureWarning, match="item of incompatible dtype"
+            ):
+                ser.loc[:] = data
 
     def test_loc_getitem_interval_index(self):
         # GH#19977
@@ -1607,7 +1622,10 @@ class TestLocBaseIndependent:
         # dtype conversion on setting
         df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
         df["event"] = np.nan
-        df.loc[10, "event"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[10, "event"] = "foo"
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 3 + [np.dtype("object")],
@@ -2910,7 +2928,8 @@ def test_loc_setitem_uint8_upcast(value):
     # GH#26049
 
     df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
-    df.loc[2, "col1"] = value  # value that can't be held in uint8
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        df.loc[2, "col1"] = value  # value that can't be held in uint8
 
     expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
     tm.assert_frame_equal(df, expected)
