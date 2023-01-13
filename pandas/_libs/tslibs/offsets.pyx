@@ -2496,6 +2496,7 @@ cdef class Week(SingleConstructorOffset):
     ----------
     weekday : int or None, default None
         Always generate specific day of week. 0 for Monday and 6 for Sunday.
+
     Examples
     ---------
     >>> date_format = "%Y-%m-%d"
