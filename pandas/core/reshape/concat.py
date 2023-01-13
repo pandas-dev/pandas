@@ -14,6 +14,7 @@ from typing import (
     cast,
     overload,
 )
+import weakref
 
 import numpy as np
 
@@ -602,7 +603,8 @@ class _Concatenator:
                     typ=get_option("mode.data_manager"),
                 )
                 if using_copy_on_write() and not self.copy:
-                    mgr = mgr.copy(deep=False)
+                    mgr.parent = [obj._mgr for obj in self.objs]
+                    mgr.refs = [weakref.ref(obj._mgr.blocks[0]) for obj in self.objs]
                 df = cons(mgr, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
