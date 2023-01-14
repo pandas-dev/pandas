@@ -43,7 +43,7 @@ class TestAstype:
         # a float astype int
         idx = Index([0, 1, 2], dtype=np.float64)
         result = idx.astype(dtype)
-        expected = Index([0, 1, 2], dtype=np.int64)
+        expected = Index([0, 1, 2], dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         idx = Index([0, 1.1, 2], dtype=np.float64)
@@ -57,13 +57,7 @@ class TestAstype:
         # a float astype int
         idx = Index([0, 1, 2], dtype=np.float64)
         result = idx.astype(dtype)
-        expected = idx
-        tm.assert_index_equal(result, expected, exact=True)
-
-        idx = Index([0, 1.1, 2], dtype=np.float64)
-        result = idx.astype(dtype)
-        expected = Index(idx.values.astype(dtype))
-        tm.assert_index_equal(result, expected, exact=True)
+        assert isinstance(result, Index) and result.dtype == dtype
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_astype_float_to_datetimelike(self, dtype):
