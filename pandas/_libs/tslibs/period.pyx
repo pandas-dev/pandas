@@ -88,7 +88,7 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
-from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -764,7 +764,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
 
     Parameters
     ----------
-    dts: npy_datetimestruct*
+    dts : npy_datetimestruct*
     freq : int
 
     Returns
@@ -2589,7 +2589,9 @@ class Period(_Period):
 
                 value = str(value)
             value = value.upper()
-            dt, reso = parse_time_string(value, freq)
+
+            freqstr = freq.rule_code if freq is not None else None
+            dt, reso = parse_datetime_string_with_reso(value, freqstr)
             try:
                 ts = Timestamp(value)
             except ValueError:

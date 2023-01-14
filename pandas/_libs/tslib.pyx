@@ -546,9 +546,6 @@ cpdef array_to_datetime(
                 else:
                     # coerce
                     # we now need to parse this as if unit='ns'
-                    # we can ONLY accept integers at this point
-                    # if we have previously (or in future accept
-                    # datetimes/strings, then we must coerce)
                     try:
                         iresult[i] = cast_from_unit(val, "ns")
                     except OverflowError:
@@ -773,6 +770,15 @@ cdef _array_to_datetime_object(
                 oresult[i] = "NaT"
                 cnp.PyArray_MultiIter_NEXT(mi)
                 continue
+            elif val == "now":
+                oresult[i] = datetime.now()
+                cnp.PyArray_MultiIter_NEXT(mi)
+                continue
+            elif val == "today":
+                oresult[i] = datetime.today()
+                cnp.PyArray_MultiIter_NEXT(mi)
+                continue
+
             try:
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                    yearfirst=yearfirst)
