@@ -47,14 +47,14 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_orc`
 * :func:`to_numeric`
 
-To simplify a global opt-in a new option ``nullable_dtypes`` was added that allows to set
+To simplify the global opt-in a new option ``nullable_dtypes`` was added that allows to set
 the keyword argument globally to ``True`` if not specified directly. The option can be enabled
 through:
 
 .. ipython:: python
     pd.options.mode.nullable_dtypes = True
 
-The option will work only in context with the keyword ``use_nullable_dtypes``.
+The option will only work in context with the keyword ``use_nullable_dtypes``.
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
