@@ -1877,7 +1877,8 @@ class TestPandasContainer:
         "orient", ["split", "records", "values", "index", "columns"]
     )
     def test_read_json_nullable(self, string_storage, dtype_backend, orient):
-        # GH#
+        # GH#50750
+        pa = pytest.importorskip("pyarrow")
         df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -1896,7 +1897,6 @@ class TestPandasContainer:
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
 
         else:
-            pa = pytest.importorskip("pyarrow")
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
 
@@ -1919,7 +1919,6 @@ class TestPandasContainer:
         )
 
         if dtype_backend == "pyarrow":
-            import pyarrow as pa
 
             from pandas.arrays import ArrowExtensionArray
 
