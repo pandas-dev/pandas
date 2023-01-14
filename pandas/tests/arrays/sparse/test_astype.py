@@ -9,6 +9,8 @@ from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 
 
 class TestAstype:
@@ -131,3 +133,14 @@ class TestAstype:
         arr3 = SparseArray(values, dtype=dtype)
         result3 = arr3.astype("int64")
         tm.assert_numpy_array_equal(result3, expected)
+
+
+def test_dtype_sparse_with_specified_fill_value():
+    # GH 49987
+    # specify fill_value which not present in data
+    df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
+    result = df["A"].astype(SparseDtype("category", fill_value="c"))
+    expected = Series(
+        ["a", "b", "b"], name="A", dtype=SparseDtype("object", fill_value="c")
+    )
+    tm.assert_series_equal(result, expected)
