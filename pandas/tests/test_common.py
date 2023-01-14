@@ -229,3 +229,12 @@ def test_temp_setattr(with_exception):
                 raise ValueError("Inside exception raised")
         raise ValueError("Outside exception raised")
     assert ser.name == "first"
+def test_tocsv_https_writing():
+    sample_https = ["https://pandas.pydata.org/","https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#writing-tests"]
+    for url in sample_https:
+        try:
+            data = {"col1": [1, 2], "col2": [3, 4]}
+            df = pd.DataFrame(data=data)            
+            df.to_csv(url)
+        except NotImplementedError as e:
+            assert type(e) == NotImplementedError
