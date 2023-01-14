@@ -871,7 +871,7 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -1115,7 +1115,7 @@ def read_xml(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 

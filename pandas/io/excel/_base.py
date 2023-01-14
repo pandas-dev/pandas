@@ -462,7 +462,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -477,7 +477,7 @@ def read_excel(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 

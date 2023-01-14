@@ -37,7 +37,7 @@ from pandas.io.common import get_handle
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -92,7 +92,7 @@ def read_orc(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 

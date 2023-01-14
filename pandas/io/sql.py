@@ -261,7 +261,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
@@ -326,7 +326,7 @@ def read_sql_table(
     """
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 
@@ -389,7 +389,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query into a DataFrame.
@@ -456,7 +456,7 @@ def read_sql_query(
     """
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 
@@ -512,7 +512,7 @@ def read_sql(
     parse_dates=None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
@@ -637,7 +637,7 @@ def read_sql(
     """
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 

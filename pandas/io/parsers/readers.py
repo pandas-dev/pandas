@@ -882,7 +882,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
@@ -1205,7 +1205,7 @@ def read_table(
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -1234,7 +1234,7 @@ def read_fwf(
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1299,7 +1299,7 @@ def read_fwf(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 
@@ -1985,7 +1985,7 @@ def _refine_defaults_read(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
     kwds["use_nullable_dtypes"] = use_nullable_dtypes

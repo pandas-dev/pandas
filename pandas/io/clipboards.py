@@ -19,7 +19,7 @@ from pandas import (
 
 def read_clipboard(
     sep: str = r"\s+",
-    use_nullable_dtypes: bool | lib.NoDefault = lib.NoDefault,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ):  # pragma: no cover
     r"""
@@ -63,7 +63,7 @@ def read_clipboard(
 
     use_nullable_dtypes = (
         use_nullable_dtypes
-        if use_nullable_dtypes is not lib.NoDefault
+        if use_nullable_dtypes is not lib.no_default
         else using_nullable_dtypes()
     )
 

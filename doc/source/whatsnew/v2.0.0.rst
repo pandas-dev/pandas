@@ -52,6 +52,7 @@ the keyword argument globally to ``True`` if not specified directly. The option 
 through:
 
 .. ipython:: python
+
     pd.options.mode.nullable_dtypes = True
 
 The option will only work in context with the keyword ``use_nullable_dtypes``.
