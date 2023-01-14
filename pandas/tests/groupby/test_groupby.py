@@ -652,7 +652,7 @@ def test_groupby_as_index_select_column_sum_empty_df():
     left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
 
     expected = DataFrame(columns=df.columns[:2], index=range(0))
-    # GH#?? - Columns after selection shouldn't retain names
+    # GH#50744 - Columns after selection shouldn't retain names
     expected.columns.names = [None]
     tm.assert_frame_equal(left, expected)
 
