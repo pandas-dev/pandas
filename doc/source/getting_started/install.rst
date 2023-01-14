@@ -201,6 +201,22 @@ Installing from source
 
 See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment.
 
+Installing the development version of pandas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installing a nightly build is the quickest way to:
+
+* Try a new feature that will be shipped in the next release (that is, a feature from a pull-request that was recently merged to the main branch).
+* Check whether a bug you encountered has been fixed since the last release.
+
+You can install the nightly build of pandas using the scipy-wheels-nightly index from the PyPI registry of anaconda.org with the following command::
+
+    pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas
+
+Note that first uninstalling pandas might be required to be able to install nightly builds::
+
+    pip uninstall pandas -y
+
 Running the test suite
 ----------------------
 
@@ -208,8 +224,8 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.13.0, then run:
+<https://docs.pytest.org/en/latest/>`__ >= 7.0 and `Hypothesis
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.34.2, then run:
 
 ::
 
