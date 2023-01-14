@@ -1220,83 +1220,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    leftover_blocks = tuple(blk.delete(blk_locs))
-                    vals = np.broadcast_to(
-                        value_getitem(val_locs), blk.values[blk_locs].shape
-                    )
-
-                    # Fill before the first leftover block
-                    nbs = []
-                    leftover_start_i = leftover_blocks[0].mgr_locs.as_slice.start
-
-                    if leftover_start_i != 0:
-                        nbs.append(
-                            new_block_2d(
-                                vals[:leftover_start_i],
-                                placement=BlockPlacement(slice(0, leftover_start_i)),
-                            )
-                        )
-
-                    # Every hole in between leftover blocks is where we need to insert
-                    # a new block
-                    curr_idx = leftover_start_i
-                    for i in range(len(leftover_blocks) - 1):
-                        curr_block = leftover_blocks[i]
-                        next_block = leftover_blocks[i + 1]
-
-                        curr_end = curr_block.mgr_locs.as_slice.stop
-                        next_start = next_block.mgr_locs.as_slice.start
-
-                        num_to_fill = next_start - curr_end
-                        nb = new_block_2d(
-                            vals[curr_idx : curr_idx + num_to_fill],
-                            placement=BlockPlacement(
-                                slice(curr_end, curr_end + num_to_fill)
-                            ),
-                        )
-                        nbs.append(nb)
-                        curr_idx += num_to_fill
-
-                    # Fill after the last leftover block
-                    last_del_loc = blk_locs[-1] + 1
-                    last_leftover_loc = leftover_blocks[-1].mgr_locs.as_slice.stop
-                    if last_del_loc > last_leftover_loc:
-                        diff = last_del_loc - last_leftover_loc
-                        nbs.append(
-                            new_block_2d(
-                                vals[curr_idx : curr_idx + diff],
-                                placement=BlockPlacement(
-                                    slice(last_leftover_loc, last_del_loc)
-                                ),
-                            )
-                        )
-                    # Add new block where old block was and remaining blocks at
-                    # the end to avoid updating all block numbers
-                    old_blocks = self.blocks
-                    nbs = tuple(nbs)
-                    nb = nbs[0]
-                    new_blocks = (
-                        old_blocks[:blkno_l]
-                        + (nb,)
-                        + old_blocks[blkno_l + 1 :]
-                        + leftover_blocks
-                        + tuple(nbs[1:])
+                    nbs_tup = tuple(blk.delete(blk_locs))
+                    first_nb = new_block_2d(
+                        value_getitem(val_locs), BlockPlacement(blk.mgr_locs[blk_locs])
                     )
                     if self.refs is not None:
-                        prev_refs = self.refs[blkno_l]
-                        extra_refs = [prev_refs] * len(leftover_blocks)
-                        self.refs[blkno_l] = None
-                        self.refs += extra_refs
-                        if len(blk_locs) > 1:
-                            # Add the refs for the other deleted blocks
-                            self.refs += [None] * (len(blk_locs) - 1)
-                    self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                    for i, nb in enumerate(leftover_blocks + nbs[1:]):
-                        self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                        self._blknos[nb.mgr_locs.indexer] = i + len(old_blocks)
-                    self.blocks = new_blocks
+                        self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
+                    continue
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1304,25 +1236,26 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # If all block items are unfit, schedule the block for removal.
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
+                    continue
                 else:
                     nbs = blk.delete(blk_locs)
                     # Add first block where old block was and remaining blocks at
                     # the end to avoid updating all block numbers
                     first_nb = nbs[0]
                     nbs_tup = tuple(nbs[1:])
-                    nr_blocks = len(self.blocks)
-                    blocks_tup = (
-                        self.blocks[:blkno_l]
-                        + (first_nb,)
-                        + self.blocks[blkno_l + 1 :]
-                        + nbs_tup
-                    )
-                    self.blocks = blocks_tup
-                    self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+            nr_blocks = len(self.blocks)
+            blocks_tup = (
+                self.blocks[:blkno_l]
+                + (first_nb,)
+                + self.blocks[blkno_l + 1 :]
+                + nbs_tup
+            )
+            self.blocks = blocks_tup
+            self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
-                    for i, nb in enumerate(nbs_tup):
-                        self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                        self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
+            for i, nb in enumerate(nbs_tup):
+                self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+                self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
