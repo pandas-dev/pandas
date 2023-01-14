@@ -98,6 +98,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_interval_dtype,
     is_iterator,
     is_list_like,
@@ -2492,8 +2493,8 @@ class Index(IndexOpsMixin, PandasObject):
             Use `pandas.api.types.infer_dtype` instead
         """
         warnings.warn(
-            f"{type(self).__name__}.holds_integer is deprecated."
-            "Use pandas.api.types.infer_dtype instead",
+            f"{type(self).__name__}.holds_integer is deprecated. "
+            "Use pandas.api.types.infer_dtype instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
