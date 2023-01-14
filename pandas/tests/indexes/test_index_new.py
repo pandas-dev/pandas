@@ -10,8 +10,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -86,12 +84,7 @@ class TestIndexConstructorInference:
     )
     def test_constructor_int_dtype_float(self, dtype):
         # GH#18400
-        if is_unsigned_integer_dtype(dtype):
-            expected_dtype = np.uint64
-        else:
-            expected_dtype = np.int64
-
-        expected = NumericIndex([0, 1, 2, 3], dtype=expected_dtype)
+        expected = NumericIndex([0, 1, 2, 3], dtype=dtype)
         result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
         tm.assert_index_equal(result, expected)
 

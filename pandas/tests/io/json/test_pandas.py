@@ -32,9 +32,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:an integer is required (got type float)*:DeprecationWarning"
-)
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
@@ -422,12 +419,12 @@ class TestPandasContainer:
             left = read_json(inp, orient=orient, convert_axes=False)
             tm.assert_frame_equal(left, right)
 
-        right.index = np.arange(len(df))
+        right.index = pd.RangeIndex(len(df))
         inp = df.to_json(orient="records")
         left = read_json(inp, orient="records", convert_axes=False)
         tm.assert_frame_equal(left, right)
 
-        right.columns = np.arange(df.shape[1])
+        right.columns = pd.RangeIndex(df.shape[1])
         inp = df.to_json(orient="values")
         left = read_json(inp, orient="values", convert_axes=False)
         tm.assert_frame_equal(left, right)

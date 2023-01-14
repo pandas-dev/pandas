@@ -24,6 +24,16 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_string_invalid_raises(self):
+        # dateutil (weirdly) parses "200622-12-31" as
+        #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
+        #  which besides being mis-parsed, is a tzoffset that will cause
+        #  str(ts) to raise ValueError.  Ensure we raise in the constructor
+        #  instead.
+        # see test_to_datetime_malformed_raise for analogous to_datetime test
+        with pytest.raises(ValueError, match="gives an invalid tzoffset"):
+            Timestamp("200622-12-31")
+
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")
