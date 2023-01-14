@@ -46,7 +46,7 @@ Other
     you may see a ``sqlalchemy.exc.RemovedIn20Warning``. These warnings can be safely ignored for the SQLAlchemy 1.4.x releases
     as pandas works toward compatibility with SQLAlchemy 2.0.
 
--
+- Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
 -
 
 .. ---------------------------------------------------------------------------
