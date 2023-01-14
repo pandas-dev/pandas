@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -98,11 +100,6 @@ class TestDataFrameUnaryOperators:
     @pytest.mark.parametrize(
         "df",
         [
-            # numpy changing behavior in the future
-            pytest.param(
-                pd.DataFrame({"a": ["a", "b"]}),
-                marks=[pytest.mark.filterwarnings("ignore")],
-            ),
             pd.DataFrame({"a": np.array([-1, 2], dtype=object)}),
             pd.DataFrame({"a": [Decimal("-1.0"), Decimal("2.0")]}),
         ],
@@ -111,6 +108,25 @@ class TestDataFrameUnaryOperators:
         # GH#21380
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pytest.param(
+                pd.DataFrame({"a": ["a", "b"]}),
+                marks=[pytest.mark.filterwarnings("ignore")],
+            ),
+        ],
+    )
+    def test_pos_object_raises(self, df):
+        # GH#21380
+        if is_numpy_dev:
+            with pytest.raises(
+                TypeError, match=r"^bad operand type for unary \+: \'str\'$"
+            ):
+                tm.assert_frame_equal(+df, df)
+        else:
+            tm.assert_series_equal(+df["a"], df["a"])
 
     @pytest.mark.parametrize(
         "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]
