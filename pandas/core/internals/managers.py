@@ -1224,6 +1224,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
                     leftover_blocks = tuple(blk.delete(blk_locs))
+                    vals = np.broadcast_to(
+                        value_getitem(val_locs), blk.values[blk_locs].shape
+                    )
 
                     # Fill before the first leftover block
                     nbs = []
@@ -1232,13 +1235,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     if leftover_start_i != 0:
                         nbs.append(
                             new_block_2d(
-                                np.tile(value, (leftover_start_i, 1)),
+                                vals[:leftover_start_i],
                                 placement=BlockPlacement(slice(0, leftover_start_i)),
                             )
                         )
 
                     # Every hole in between leftover blocks is where we need to insert
                     # a new block
+                    curr_idx = leftover_start_i
                     for i in range(len(leftover_blocks) - 1):
                         curr_block = leftover_blocks[i]
                         next_block = leftover_blocks[i + 1]
@@ -1246,14 +1250,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         curr_end = curr_block.mgr_locs.as_slice.stop
                         next_start = next_block.mgr_locs.as_slice.start
 
-                        num_to_fill = next_start - (curr_end - 1)
+                        num_to_fill = next_start - curr_end
                         nb = new_block_2d(
-                            np.tile(value, (num_to_fill, 1)),
+                            vals[curr_idx : curr_idx + num_to_fill],
                             placement=BlockPlacement(
                                 slice(curr_end, curr_end + num_to_fill)
                             ),
                         )
                         nbs.append(nb)
+                        curr_idx += num_to_fill
 
                     # Fill after the last leftover block
                     last_del_loc = blk_locs[-1] + 1
@@ -1262,7 +1267,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         diff = last_del_loc - last_leftover_loc
                         nbs.append(
                             new_block_2d(
-                                np.tile(value, (diff, 1)),
+                                vals[curr_idx : curr_idx + diff],
                                 placement=BlockPlacement(
                                     slice(last_leftover_loc, last_del_loc)
                                 ),
@@ -1271,6 +1276,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Add new block where old block was and remaining blocks at
                     # the end to avoid updating all block numbers
                     old_blocks = self.blocks
+                    nbs = tuple(nbs)
                     nb = nbs[0]
                     new_blocks = (
                         old_blocks[:blkno_l]
@@ -1288,7 +1294,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                             # Add the refs for the other deleted blocks
                             self.refs += [None] * (len(blk_locs) - 1)
                     self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                    for i, nb in enumerate(leftover_blocks):
+                    for i, nb in enumerate(leftover_blocks + nbs[1:]):
                         self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
                         self._blknos[nb.mgr_locs.indexer] = i + len(old_blocks)
                     self.blocks = new_blocks
