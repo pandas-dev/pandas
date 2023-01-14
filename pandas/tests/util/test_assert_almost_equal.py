@@ -458,3 +458,87 @@ Iterable values are different \\(50\\.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal([1, 2], [1, 3])
+
+
+subarr = np.empty(2, dtype=object)
+subarr[:] = [np.array([None, "b"], dtype=object), np.array(["c", "d"], dtype=object)]
+
+NESTED_CASES = [
+    # nested array
+    (
+        np.array([np.array([50, 70, 90]), np.array([20, 30])], dtype=object),
+        np.array([np.array([50, 70, 90]), np.array([20, 30])], dtype=object),
+    ),
+    # >1 level of nesting
+    (
+        np.array(
+            [
+                np.array([np.array([50, 70]), np.array([90])], dtype=object),
+                np.array([np.array([20, 30])], dtype=object),
+            ],
+            dtype=object,
+        ),
+        np.array(
+            [
+                np.array([np.array([50, 70]), np.array([90])], dtype=object),
+                np.array([np.array([20, 30])], dtype=object),
+            ],
+            dtype=object,
+        ),
+    ),
+    # lists
+    (
+        np.array([[50, 70, 90], [20, 30]], dtype=object),
+        np.array([[50, 70, 90], [20, 30]], dtype=object),
+    ),
+    # mixed array/list
+    (
+        np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object),
+        np.array([[1, 2, 3], [4, 5]], dtype=object),
+    ),
+    (
+        np.array(
+            [
+                np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object),
+                np.array(
+                    [np.array([6]), np.array([7, 8]), np.array([9])], dtype=object
+                ),
+            ],
+            dtype=object,
+        ),
+        np.array([[[1, 2, 3], [4, 5]], [[6], [7, 8], [9]]], dtype=object),
+    ),
+    # same-length lists
+    (
+        np.array([subarr, None], dtype=object),
+        np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object),
+    ),
+    # dicts
+    (
+        np.array([{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object),
+        np.array([{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object),
+    ),
+    (
+        np.array([{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object),
+        np.array([{"f1": 1, "f2": ["a", "b"]}], dtype=object),
+    ),
+    # array/list of dicts
+    (
+        np.array(
+            [
+                np.array(
+                    [{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object
+                ),
+                np.array([], dtype=object),
+            ],
+            dtype=object,
+        ),
+        np.array([[{"f1": 1, "f2": ["a", "b"]}], []], dtype=object),
+    ),
+]
+
+
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
+@pytest.mark.parametrize("a,b", NESTED_CASES)
+def test_assert_almost_equal_array_nested(a, b):
+    _assert_almost_equal_both(a, b)
