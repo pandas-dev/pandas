@@ -37,7 +37,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
+from pandas.api.types import (
+    is_bool_dtype,
+    is_scalar,
+)
 from pandas.core.api import Float64Index
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
@@ -276,8 +279,9 @@ class TestLocBaseIndependent:
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
         # GH#20684
         """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        parse_datetime_string_with_reso return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_datetime_string_with_reso
+        as a tuple.
         If first argument is Period and a tuple has 3 items,
         process go on not raise exception
         """
@@ -436,7 +440,7 @@ class TestLocBaseIndependent:
         )
 
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -454,7 +458,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -470,7 +474,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -487,7 +491,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[3\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -504,12 +508,11 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                "\"None of [Int64Index([3], dtype='int64')] are in the [index]\""
-            ),
-        ):
+        msg = (
+            f"\"None of [NumericIndex([3], dtype='{np.int_().dtype}')] "
+            'are in the [index]"'
+        )
+        with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
         # a non-match and a match
@@ -1099,7 +1102,10 @@ class TestLocBaseIndependent:
 
         # These should not return copies
         df = DataFrame(np.random.randn(10, 4))
-        assert df[0] is df.loc[:, 0]
+        if using_copy_on_write:
+            assert df[0] is not df.loc[:, 0]
+        else:
+            assert df[0] is df.loc[:, 0]
 
         # Same tests for Series
         original_series = Series([1, 2, 3, 4, 5, 6])
@@ -1196,7 +1202,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+            rf"None of \[NumericIndex\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
@@ -1655,7 +1661,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and obj.index.is_boolean():
+        if indexer is tm.loc and is_bool_dtype(obj.index):
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return

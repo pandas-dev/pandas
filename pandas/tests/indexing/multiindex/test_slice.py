@@ -729,7 +729,7 @@ class TestMultiIndexSlicers:
     def test_multiindex_slice_first_level(self):
         # GH 12697
         freq = ["a", "b", "c", "d"]
-        idx = MultiIndex.from_product([freq, np.arange(500)])
+        idx = MultiIndex.from_product([freq, range(500)])
         df = DataFrame(list(range(2000)), index=idx, columns=["Test"])
         df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
         result = df_slice.loc["a"]

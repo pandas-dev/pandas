@@ -32,7 +32,10 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    array_equal_fast,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -423,10 +426,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
+                if using_copy_on_write():
+                    data = data._mgr.copy(deep=False)
+                else:
+                    data = data._mgr
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
-            data = data._mgr
+                data = data._mgr
         elif is_dict_like(data):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
@@ -879,6 +886,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
+
+        if (
+            indices.ndim == 1
+            and using_copy_on_write()
+            and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype))
+        ):
+            return self.copy(deep=None)
+
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 
@@ -910,7 +925,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1231,6 +1246,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Set the _cacher attribute on the calling object with a weakref to
         cacher.
         """
+        if using_copy_on_write():
+            return
         self._cacher = (item, weakref.ref(cacher))
 
     def _clear_item_cache(self) -> None:
@@ -1254,6 +1271,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         See NDFrame._maybe_update_cacher.__doc__
         """
+        # for CoW, we never want to update the parent DataFrame cache
+        # if the Series changed, but don't keep track of any cacher
+        if using_copy_on_write():
+            return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
             assert self.ndim == 1
@@ -1263,13 +1284,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # a copy
             if ref is None:
                 del self._cacher
-            # for CoW, we never want to update the parent DataFrame cache
-            # if the Series changed, and always pop the cached item
-            elif (
-                not using_copy_on_write()
-                and len(self) == len(ref)
-                and self.name in ref.columns
-            ):
+            elif len(self) == len(ref) and self.name in ref.columns:
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
@@ -3550,6 +3565,13 @@ Keep all original rows and also all original values
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
+        if array_equal_fast(
+            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
+        ):
+            if inplace:
+                return self._update_inplace(self)
+            return self.copy(deep=None)
+
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
         )
@@ -5567,7 +5589,7 @@ Keep all original rows and also all original values
                 return result
         else:
             if not inplace:
-                return self.copy()
+                return self.copy(deep=None)
         return None
 
     # ----------------------------------------------------------------------

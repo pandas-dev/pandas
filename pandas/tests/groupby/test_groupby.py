@@ -92,7 +92,9 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     result = grouped.sum()
 
     expected = mframe.groupby(key.astype("O")).sum()
-    tm.assert_frame_equal(result, expected)
+    assert result.index.dtype == np.int8
+    assert expected.index.dtype == np.int64
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
@@ -227,6 +229,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
+    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -797,7 +800,7 @@ def test_groupby_as_index_cython(df):
         data.groupby(["A"]).mean()
     expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
     # multi-key
@@ -808,7 +811,7 @@ def test_groupby_as_index_cython(df):
     arrays = list(zip(*expected.index.values))
     expected.insert(0, "A", arrays[0])
     expected.insert(1, "B", arrays[1])
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
 
@@ -1018,8 +1021,12 @@ def test_groupby_level_mapper(mframe):
     result0 = mframe.groupby(mapper0, level=0).sum()
     result1 = mframe.groupby(mapper1, level=1).sum()
 
-    mapped_level0 = np.array([mapper0.get(x) for x in deleveled["first"]])
-    mapped_level1 = np.array([mapper1.get(x) for x in deleveled["second"]])
+    mapped_level0 = np.array(
+        [mapper0.get(x) for x in deleveled["first"]], dtype=np.int64
+    )
+    mapped_level1 = np.array(
+        [mapper1.get(x) for x in deleveled["second"]], dtype=np.int64
+    )
     expected0 = mframe.groupby(mapped_level0).sum()
     expected1 = mframe.groupby(mapped_level1).sum()
     expected0.index.name, expected1.index.name = "first", "second"
@@ -2471,7 +2478,7 @@ def test_groupby_duplicate_columns():
     ).astype(object)
     df.columns = ["A", "B", "B"]
     result = df.groupby([0, 0, 0, 0]).min()
-    expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    expected = DataFrame([["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -2772,7 +2779,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").sum()
     expected = DataFrame(
         {"b": [val * 2]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2784,7 +2791,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").prod()
     expected = DataFrame(
         {"b": [val * val]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
