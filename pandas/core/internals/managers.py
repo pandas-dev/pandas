@@ -1226,6 +1226,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     )
                     if self.refs is not None:
                         self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
+                    self._clear_reference_block(blkno)
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
