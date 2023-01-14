@@ -100,15 +100,15 @@ def test_switch_options():
 @pytest.mark.parametrize(
     "locs, arr",
     [
-        ([0], np.array([-1, -2, -3])),
-        ([1], np.array([-1, -2, -3])),
-        ([5], np.array([-1, -2, -3])),
-        ([0, 1], np.array([-1, -2, -3])),
-        ([0, 2], np.array([-1, -2, -3])),
-        ([0, 1, 2], np.array([-1, -2, -3])),
-        ([1, 2], np.array([-1, -2, -3])),
-        ([1, 3], np.array([-1, -2, -3])),
-        ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
+        ([0], np.array([-1, -2, -3], dtype=np.intp)),
+        ([1], np.array([-1, -2, -3], dtype=np.intp)),
+        ([5], np.array([-1, -2, -3], dtype=np.intp)),
+        ([0, 1], np.array([-1, -2, -3], dtype=np.intp)),
+        ([0, 2], np.array([-1, -2, -3], dtype=np.intp)),
+        ([0, 1, 2], np.array([-1, -2, -3], dtype=np.intp)),
+        ([1, 2], np.array([-1, -2, -3], dtype=np.intp)),
+        ([1, 3], np.array([-1, -2, -3], dtype=np.intp)),
+        ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]], dtype=np.intp).T),
     ],
 )
 def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr):
@@ -122,9 +122,10 @@ def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr):
             "c": [7, 8, 9],
             "d": [10, 11, 12],
             "e": [13, 14, 15],
-            "f": ["foo", "bar", "baz"],
-        }
+        },
+        dtype=np.intp,
     )
+    df["f"] = ["a", "b", "c"]
     df_orig = df.copy()
     df2 = df.copy(deep=None)  # Trigger a CoW (if enabled, otherwise makes copy)
     df2._mgr.iset(locs, arr, inplace=True)
