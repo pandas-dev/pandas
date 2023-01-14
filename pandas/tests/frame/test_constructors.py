@@ -2457,6 +2457,32 @@ class TestDataFrameConstructors:
         expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_large_size_frame(self):
+        class LargeFrame(DataFrame):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                for col in self.columns:
+                    if self.dtypes[col] == "O":
+                        self[col] = pd.to_numeric(self[col], errors="ignore")
+
+            @property
+            def _constructor(self):
+                return type(self)
+
+        def get_frame(N):
+            return LargeFrame(
+                data=np.vstack(
+                    [
+                        np.where(np.random.rand(N) > 0.36, np.random.rand(N), np.nan)
+                        for _ in range(2)
+                    ]
+                ).T
+            )
+
+        frame = get_frame(1000000)
+        # check that dropna() doesn't fall into an infinite loop
+        frame.dropna()
+
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
         self,
