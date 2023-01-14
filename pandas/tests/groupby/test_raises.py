@@ -6,7 +6,10 @@ import datetime
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    Categorical,
+    DataFrame,
+)
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -167,6 +170,118 @@ def test_groupby_raises_datetime_udf(how):
             "a": [1, 1, 1, 2, 2],
             "b": range(5),
             "c": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
+        }
+    )
+    gb = df.groupby("a")
+
+    def func(x):
+        raise TypeError("Test error message")
+
+    with pytest.raises(TypeError, match="Test error message"):
+        getattr(gb, how)(func)
+
+
+@pytest.mark.parametrize("how", ["method", "agg", "transform"])
+def test_groupby_raises_category(how, groupby_func, as_index, sort):
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 2, 2],
+            "b": range(5),
+            "c": Categorical(
+                ["a", "a", "b", "c", "c"], categories=["a", "b", "c", "d"], ordered=True
+            ),
+        }
+    )
+    args = get_groupby_method_args(groupby_func, df)
+    gb = df.groupby("a", as_index=as_index, sort=sort)
+
+    klass, msg = {
+        "all": (None, ""),
+        "any": (None, ""),
+        "bfill": (None, ""),
+        "corrwith": (
+            TypeError,
+            r"unsupported operand type\(s\) for \*: 'Categorical' and 'int'",
+        ),
+        "count": (None, ""),
+        "cumcount": (None, ""),
+        "cummax": (NotImplementedError, "category dtype not supported"),
+        "cummin": (NotImplementedError, "category dtype not supported"),
+        "cumprod": (TypeError, "category type does not support cumprod operations"),
+        "cumsum": (TypeError, "category type does not support cumsum operations"),
+        "diff": (
+            TypeError,
+            r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
+        ),
+        "ffill": (None, ""),
+        "fillna": (
+            TypeError,
+            r"Cannot setitem on a Categorical with a new category \(0\), set the categories first",
+        ),
+        "first": (None, ""),
+        "idxmax": (None, ""),
+        "idxmin": (None, ""),
+        "last": (None, ""),
+        "max": (None, ""),
+        "mean": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'mean'",
+        ),
+        "median": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'median'",
+        ),
+        "min": (None, ""),
+        "ngroup": (None, ""),
+        "nunique": (None, ""),
+        "pct_change": (
+            TypeError,
+            r"unsupported operand type\(s\) for /: 'Categorical' and 'Categorical'",
+        ),
+        "prod": (TypeError, "category type does not support prod operations"),
+        "quantile": (TypeError, "No matching signature found"),
+        "rank": (None, ""),
+        "sem": (ValueError, "Cannot cast object dtype to float64"),
+        "shift": (None, ""),
+        "size": (None, ""),
+        "skew": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'skew'",
+        ),
+        "std": (ValueError, "Cannot cast object dtype to float64"),
+        "sum": (TypeError, "category type does not support sum operations"),
+        "var": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'var'",
+        ),
+    }[groupby_func]
+
+    if klass is None:
+        if how == "method":
+            getattr(gb, groupby_func)(*args)
+        elif how == "agg":
+            gb.agg(groupby_func, *args)
+        else:
+            gb.transform(groupby_func, *args)
+    else:
+        with pytest.raises(klass, match=msg):
+            if how == "method":
+                getattr(gb, groupby_func)(*args)
+            elif how == "agg":
+                gb.agg(groupby_func, *args)
+            else:
+                gb.transform(groupby_func, *args)
+
+
+@pytest.mark.parametrize("how", ["agg", "transform"])
+def test_groupby_raises_category_udf(how):
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 2, 2],
+            "b": range(5),
+            "c": Categorical(
+                ["a", "a", "b", "c", "c"], categories=["a", "b", "c", "d"], ordered=True
+            ),
         }
     )
     gb = df.groupby("a")
