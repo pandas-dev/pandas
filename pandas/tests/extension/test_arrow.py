@@ -528,6 +528,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
     ):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
@@ -770,6 +771,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         super().test_value_counts(all_data, dropna)
 
     def test_value_counts_with_normalize(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
@@ -869,6 +871,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
