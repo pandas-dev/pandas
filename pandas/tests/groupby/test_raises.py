@@ -216,7 +216,12 @@ def test_groupby_raises_category(how, groupby_func, as_index, sort):
         "ffill": (None, ""),
         "fillna": (
             TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), set the categories first",
+            ", ".join(
+                [
+                    r"Cannot setitem on a Categorical with a new category \(0\)",
+                    "set the categories first",
+                ]
+            ),
         ),
         "first": (None, ""),
         "idxmax": (None, ""),
