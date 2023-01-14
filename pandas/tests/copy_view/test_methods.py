@@ -934,6 +934,10 @@ def test_replace(using_copy_on_write, replace_kwargs):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df_replaced, "c"), get_array(df, "a"))
 
+    if "a" in replace_kwargs:
+        arr = get_array(df_replaced, "a")
+        df_replaced.loc[0, "a"] = 100
+        assert np.shares_memory(get_array(df_replaced, "a"), arr)
     tm.assert_frame_equal(df, df_orig)
 
 
