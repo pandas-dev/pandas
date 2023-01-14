@@ -354,6 +354,8 @@ def _get_filepath_or_buffer(
         fsspec_mode += "b"
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        if "w" in mode:
+            raise NotImplementedError("Writing to http urls not supported")
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
