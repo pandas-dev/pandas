@@ -201,7 +201,7 @@ class TestFeather:
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     def test_read_json_nullable(self, string_storage, dtype_backend):
-        # GH#
+        # GH#50765
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
