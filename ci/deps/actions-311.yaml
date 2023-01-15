@@ -34,6 +34,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib>=3.6.1
+  # - numba  not compatible with 3.11
   - numexpr
   - openpyxl
   - odfpy
