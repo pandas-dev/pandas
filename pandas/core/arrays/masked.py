@@ -621,6 +621,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op_name = op.__name__
         omask = None
 
+        if not hasattr(other, "dtype") and is_list_like(other):
+            # Try inferring masked dtype instead of casting to object
+            inferred_dtype = lib.infer_dtype(other, skipna=True)
+            if inferred_dtype == "integer":
+                from pandas.core.arrays import IntegerArray
+
+                other = IntegerArray._from_sequence(other)
+            elif inferred_dtype in ["floating", "mixed-integer-float"]:
+                from pandas.core.arrays import FloatingArray
+
+                other = FloatingArray._from_sequence(other)
+
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
