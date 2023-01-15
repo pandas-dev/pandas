@@ -205,19 +205,18 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     else:
         dtype = dtype.type
 
-    if (
-        is_integer_dtype(dtype)
-        and is_float_dtype(values.dtype)
-        and len(values) > 0
-        and np.max(values) > np.iinfo(np.intp).max
-    ):
-        # we either have floats and int targets which will raise below
-        # or ints that lose precision with float, so keep object for now
-        inferred_type = lib.infer_dtype(original, skipna=True)
-        if inferred_type not in ["floating", "mixed-integer-float"]:
-            values = np.array(original, dtype=dtype, copy=False)
-        else:
-            values = np.array(original, dtype="object", copy=False)
+    if is_integer_dtype(dtype) and is_float_dtype(values.dtype) and len(values) > 0:
+        idx = np.argmax(values)
+        if values[idx] != original[idx]:
+            # We have ints that lost precision during the cast.
+            inferred_type = lib.infer_dtype(original, skipna=True)
+            if (
+                inferred_type not in ["floating", "mixed-integer-float"]
+                and not mask.any()
+            ):
+                values = np.array(original, dtype=dtype, copy=False)
+            else:
+                values = np.array(original, dtype="object", copy=False)
 
     # we copy as need to coerce here
     if mask.any():
