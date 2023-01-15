@@ -12,7 +12,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestTimedeltaIndex:

@@ -41,7 +41,6 @@ from pandas.api.types import (
     is_bool_dtype,
     is_scalar,
 )
-from pandas.core.api import Float64Index
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
