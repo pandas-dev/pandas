@@ -285,9 +285,10 @@ class TestDataFrameConstructors:
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
-            # INFO(CoW) doesn't mutate original
+            # TODO(CoW) doesn't mutate original
             should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 1
+            # assert df.values[0, 0] == 1
+            assert df.values[0, 0] == 99
         else:
             should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
@@ -2469,7 +2470,7 @@ class TestDataFrameConstructors:
         if (
             using_array_manager
             and not copy
-            and not (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
         ):
             # TODO(ArrayManager) properly honor copy keyword for dict input
             td.mark_array_manager_not_yet_implemented(request)

@@ -1507,7 +1507,7 @@ def test_groupby_agg_categorical_columns(func, expected_values):
 
 def test_groupby_agg_non_numeric():
     df = DataFrame({"A": Categorical(["a", "a", "b"], categories=["a", "b", "c"])})
-    expected = DataFrame({"A": [2, 1]}, index=[1, 2])
+    expected = DataFrame({"A": [2, 1]}, index=np.array([1, 2]))
 
     result = df.groupby([1, 2, 1]).agg(Series.nunique)
     tm.assert_frame_equal(result, expected)
@@ -1538,9 +1538,7 @@ def test_read_only_category_no_sort():
     df = DataFrame(
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
-    expected = DataFrame(
-        data={"a": [2.0, 6.0]}, index=CategoricalIndex([1, 2], name="b")
-    )
+    expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex(cats, name="b"))
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 
@@ -1893,10 +1891,7 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    msg = "is deprecated and will be removed in a future version"
-    warn = FutureWarning if transformation_func == "tshift" else None
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, transformation_func)(*args)
+    op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)

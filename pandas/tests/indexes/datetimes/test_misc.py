@@ -281,8 +281,9 @@ class TestDatetime64:
 
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
+        expected = Index(np.arange(10, dtype=np.int32))
 
-        tm.assert_index_equal(dti.nanosecond, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(dti.nanosecond, expected)
 
 
 def test_iter_readonly():
