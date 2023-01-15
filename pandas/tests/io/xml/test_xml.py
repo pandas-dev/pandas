@@ -1314,17 +1314,35 @@ def test_string_error(parser):
         )
 
 
-def test_file_like_error(datapath, parser, mode):
+def test_file_like_iterparse(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with pytest.raises(
-        ParserError, match=("iterparse is designed for large XML files")
-    ):
-        with open(filename) as f:
-            read_xml(
-                f,
+    with open(filename, "rb") as f:
+        df_filelike = read_xml(
+            f,
+            parser=parser,
+            iterparse={"book": ["category", "title", "year", "author", "price"]},
+        )
+
+    with open(filename, "rb") as f:
+        with BytesIO(f.read()) as b:
+            df_fileio = read_xml(
+                b,
                 parser=parser,
                 iterparse={"book": ["category", "title", "year", "author", "price"]},
             )
+
+    df_expected = DataFrame(
+        {
+            "category": ["cooking", "children", "web"],
+            "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
+            "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
+            "year": [2005, 2005, 2003],
+            "price": [30.00, 29.99, 39.95],
+        }
+    )
+
+    tm.assert_frame_equal(df_filelike, df_expected)
+    tm.assert_frame_equal(df_fileio, df_expected)
 
 
 @pytest.mark.network

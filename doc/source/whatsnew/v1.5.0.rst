@@ -964,6 +964,7 @@ I/O
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
 - Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
 - Bug in :meth:`DataFrame.to_json` where ``PeriodDtype`` would not make the serialization roundtrip when read back with :meth:`read_json` (:issue:`44720`)
+- Bug in :meth:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
 
 Period
 ^^^^^^
