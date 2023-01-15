@@ -3369,7 +3369,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype: int64
         """
         with self._group_selection_context():
-            index = self._selected_obj.index
+            index = self._selected_obj._get_axis(self.axis)
             comp_ids = self.grouper.group_info[0]
 
             dtype: type

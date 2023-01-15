@@ -164,10 +164,6 @@ def test_transform_broadcast(tsframe, ts):
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
 
-    if transformation_func == "ngroup":
-        msg = "ngroup fails with axis=1: #45986"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
     result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
