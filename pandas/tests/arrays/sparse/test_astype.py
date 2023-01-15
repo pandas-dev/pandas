@@ -135,9 +135,8 @@ class TestAstype:
         tm.assert_numpy_array_equal(result3, expected)
 
 
-def test_dtype_sparse_with_specified_fill_value():
+def test_dtype_sparse_with_fill_value_not_prsent_in_data():
     # GH 49987
-    # specify fill_value which not present in data
     df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
     result = df["A"].astype(SparseDtype("category", fill_value="c"))
     expected = Series(
