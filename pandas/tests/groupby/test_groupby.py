@@ -2848,10 +2848,20 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("method, n", [("head", 1), ("nth", 0)])
-def test_groupby_method_drop_na(method, n):
+@pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
+def test_groupby_method_drop_na(method):
     # GH 21755
     df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
-    result = df.groupby("A").agg(method, n=n)
-    expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+
+    if method == "nth":
+        result = df.groupby("A").agg(method, n=0)
+    else:
+        result = df.groupby("A").agg(method)
+
+    if method in ["first", "last"]:
+        expected = DataFrame({"B": [0, 2, 4]})
+        index = Series(["a", "b", "c"], name="A")
+        expected.set_index(index, inplace=True)
+    else:
+        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
     tm.assert_frame_equal(result, expected)
