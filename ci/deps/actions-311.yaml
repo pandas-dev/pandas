@@ -40,7 +40,7 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pymysql
-  - pytables>=3.8.0
+  - pytables>=3.8.0  # first version that supports 3.11
   - pyarrow
   - pyreadstat
   - python-snappy
