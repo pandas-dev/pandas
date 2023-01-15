@@ -286,12 +286,12 @@ static int is_null_obj(PyObject* obj) {
     } else if (obj == Py_None || object_is_na_type(obj)) {
         is_null = 1;
     } else if (object_is_decimal_type(obj)) {
-        PyObject *is_null_obj = PyObject_CallMethod(item,
+        PyObject *is_null_obj = PyObject_CallMethod(obj,
                                                     "is_nan",
                                                     NULL);
         is_null = (is_null_obj == Py_True);
         if (!is_null_obj) {
-            goto INVALID;
+            return -1;
         }
         Py_DECREF(is_null_obj);
     }
@@ -1371,6 +1371,11 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
             // NA values need special handling
             is_null = is_null_obj(item);
+            if (is_null == -1) {
+                // Something errored
+                // Return to let the error surface
+                return 0;
+            }
             if (!is_null) {
                 // Otherwise, fallback to string representation
                 // Replace item with the string to keep it alive.
