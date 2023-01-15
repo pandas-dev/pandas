@@ -2225,7 +2225,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             f"{type(self).__name__}.is_boolean is deprecated. "
-            "Use pandas.api.types.is_bool_type instead",
+            "Use pandas.api.types.is_bool_type instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2320,8 +2320,8 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_floating is deprecated."
-            "Use pandas.api.types.is_float_dtype instead",
+            f"{type(self).__name__}.is_floating is deprecated. "
+            "Use pandas.api.types.is_float_dtype instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
