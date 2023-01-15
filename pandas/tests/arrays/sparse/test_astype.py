@@ -3,14 +3,16 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 
-from pandas import Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
-from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 
 
 class TestAstype:
@@ -135,7 +137,7 @@ class TestAstype:
         tm.assert_numpy_array_equal(result3, expected)
 
 
-def test_dtype_sparse_with_fill_value_not_prsent_in_data():
+def test_dtype_sparse_with_fill_value_not_present_in_data():
     # GH 49987
     df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
     result = df["A"].astype(SparseDtype("category", fill_value="c"))
