@@ -276,6 +276,27 @@ static int is_simple_frame(PyObject *obj) {
     Py_DECREF(mgr);
     return ret;
 }
+/* TODO: Consider unifying with checknull and co.
+   in missing.pyx */
+static int is_null_obj(PyObject* obj) {
+    int is_null = 0;
+    if (PyFloat_Check(obj)) {
+        double fval = PyFloat_AS_DOUBLE(obj);
+        is_null = npy_isnan(fval);
+    } else if (obj == Py_None || object_is_na_type(obj)) {
+        is_null = 1;
+    } else if (object_is_decimal_type(obj)) {
+        PyObject *is_null_obj = PyObject_CallMethod(item,
+                                                    "is_nan",
+                                                    NULL);
+        is_null = (is_null_obj == Py_True);
+        if (!is_null_obj) {
+            goto INVALID;
+        }
+        Py_DECREF(is_null_obj);
+    }
+    return is_null;
+}
 
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
     // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
@@ -1349,21 +1370,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             }
         } else {
             // NA values need special handling
-            if (PyFloat_Check(item)) {
-                double fval = PyFloat_AS_DOUBLE(item);
-                is_null = npy_isnan(fval);
-            } else if (item == Py_None || object_is_na_type(item)) {
-                is_null = 1;
-            } else if (object_is_decimal_type(item)) {
-                PyObject *is_null_obj = PyObject_CallMethod(item,
-                                                            "is_nan",
-                                                            NULL);
-                is_null = (is_null_obj == Py_True);
-                if (!is_null_obj) {
-                    goto INVALID;
-                }
-                Py_DECREF(is_null);
-            } else {
+            is_null = is_null_obj(item);
+            if (!is_null) {
                 // Otherwise, fallback to string representation
                 // Replace item with the string to keep it alive.
                 Py_SETREF(item, PyObject_Str(item));
@@ -1539,14 +1547,14 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PyObject *is_null_obj = PyObject_CallMethod(obj,
                                                     "is_nan",
                                                     NULL);
+        if (!is_null_obj) {
+            goto INVALID;
+        }
         if (is_null_obj == Py_False) {
             GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
             tc->type = JT_DOUBLE;
         } else {
             tc->type = JT_NULL;
-        }
-        if (!is_null_obj) {
-            goto INVALID;
         }
         Py_DECREF(is_null_obj);
         return;
