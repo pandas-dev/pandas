@@ -1,4 +1,4 @@
-name: pandas-dev-test
+name: pandas-dev
 channels:
   - conda-forge
 dependencies:
@@ -40,7 +40,7 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pymysql
-  - pytables>=3.8.0  # first version that supports 3.11
+  # - pytables>=3.8.0  # first version that supports 3.11
   - pyarrow
   - pyreadstat
   - python-snappy
