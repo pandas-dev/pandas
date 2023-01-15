@@ -2225,7 +2225,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             f"{type(self).__name__}.is_boolean is deprecated. "
-            "Use pandas.api.types.is_bool_type instead",
+            "Use pandas.api.types.is_bool_type instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2320,8 +2320,8 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_floating is deprecated."
-            "Use pandas.api.types.is_float_dtype instead",
+            f"{type(self).__name__}.is_floating is deprecated. "
+            "Use pandas.api.types.is_float_dtype instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2487,11 +2487,27 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["interval"]
 
     @final
-    def holds_integer(self) -> bool:
+    def _holds_integer(self) -> bool:
         """
         Whether the type is an integer type.
         """
         return self.inferred_type in ["integer", "mixed-integer"]
+
+    @final
+    def holds_integer(self) -> bool:
+        """
+        Whether the type is an integer type.
+
+        .. deprecated:: 2.0.0
+            Use `pandas.api.types.infer_dtype` instead
+        """
+        warnings.warn(
+            f"{type(self).__name__}.holds_integer is deprecated. "
+            "Use pandas.api.types.infer_dtype instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._holds_integer()
 
     @cache_readonly
     def inferred_type(self) -> str_t:
@@ -5537,7 +5553,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer()
+        return not self._holds_integer()
 
     _index_shared_docs[
         "get_indexer_non_unique"
