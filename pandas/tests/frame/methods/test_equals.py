@@ -36,7 +36,8 @@ class TestEquals:
         df1["start"] = date_range("2000-1-1", periods=10, freq="T")
         df1["end"] = date_range("2000-1-1", periods=10, freq="D")
         df1["diff"] = df1["end"] - df1["start"]
-        df1["bool"] = np.arange(10) % 3 == 0
+        # Explicitly cast to object, to avoid implicit cast when setting np.nan
+        df1["bool"] = (np.arange(10) % 3 == 0).astype(object)
         df1.loc[::2] = np.nan
         df2 = df1.copy()
         assert df1["text"].equals(df2["text"])

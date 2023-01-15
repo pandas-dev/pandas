@@ -545,18 +545,120 @@ def test_array_equivalent_str(dtype):
     )
 
 
-def test_array_equivalent_nested():
+@pytest.mark.parametrize(
+    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
+)
+def test_array_equivalent_nested(strict_nan):
     # reached in groupby aggregations, make sure we use np.any when checking
     #  if the comparison is truthy
-    left = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
-    right = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
+    left = np.array([np.array([50, 70, 90]), np.array([20, 30])], dtype=object)
+    right = np.array([np.array([50, 70, 90]), np.array([20, 30])], dtype=object)
 
-    assert array_equivalent(left, right, strict_nan=True)
-    assert not array_equivalent(left, right[::-1], strict_nan=True)
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
 
-    left = np.array([np.array([50, 50, 50]), np.array([40, 40, 40])], dtype=object)
+    left = np.empty(2, dtype=object)
+    left[:] = [np.array([50, 70, 90]), np.array([20, 30, 40])]
+    right = np.empty(2, dtype=object)
+    right[:] = [np.array([50, 70, 90]), np.array([20, 30, 40])]
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    left = np.array([np.array([50, 50, 50]), np.array([40, 40])], dtype=object)
     right = np.array([50, 40])
-    assert not array_equivalent(left, right, strict_nan=True)
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize(
+    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
+)
+def test_array_equivalent_nested2(strict_nan):
+    # more than one level of nesting
+    left = np.array(
+        [
+            np.array([np.array([50, 70]), np.array([90])], dtype=object),
+            np.array([np.array([20, 30])], dtype=object),
+        ],
+        dtype=object,
+    )
+    right = np.array(
+        [
+            np.array([np.array([50, 70]), np.array([90])], dtype=object),
+            np.array([np.array([20, 30])], dtype=object),
+        ],
+        dtype=object,
+    )
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    left = np.array([np.array([np.array([50, 50, 50])], dtype=object)], dtype=object)
+    right = np.array([50])
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize(
+    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
+)
+def test_array_equivalent_nested_list(strict_nan):
+    left = np.array([[50, 70, 90], [20, 30]], dtype=object)
+    right = np.array([[50, 70, 90], [20, 30]], dtype=object)
+
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    left = np.array([[50, 50, 50], [40, 40]], dtype=object)
+    right = np.array([50, 40])
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+
+
+@pytest.mark.xfail(reason="failing")
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nested_mixed_list(strict_nan):
+    # mixed arrays / lists in left and right
+    # https://github.com/pandas-dev/pandas/issues/50360
+    left = np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object)
+    right = np.array([[1, 2, 3], [4, 5]], dtype=object)
+
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    # multiple levels of nesting
+    left = np.array(
+        [
+            np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object),
+            np.array([np.array([6]), np.array([7, 8]), np.array([9])], dtype=object),
+        ],
+        dtype=object,
+    )
+    right = np.array([[[1, 2, 3], [4, 5]], [[6], [7, 8], [9]]], dtype=object)
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    # same-length lists
+    subarr = np.empty(2, dtype=object)
+    subarr[:] = [
+        np.array([None, "b"], dtype=object),
+        np.array(["c", "d"], dtype=object),
+    ]
+    left = np.array([subarr, None], dtype=object)
+    right = np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object)
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+
+@pytest.mark.xfail(reason="failing")
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nested_dicts(strict_nan):
+    left = np.array([{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object)
+    right = np.array(
+        [{"f1": 1, "f2": np.array(["a", "b"], dtype=object)}], dtype=object
+    )
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
+
+    right2 = np.array([{"f1": 1, "f2": ["a", "b"]}], dtype=object)
+    assert array_equivalent(left, right2, strict_nan=strict_nan)
+    assert not array_equivalent(left, right2[::-1], strict_nan=strict_nan)
 
 
 def test_array_equivalent_index_with_tuples():

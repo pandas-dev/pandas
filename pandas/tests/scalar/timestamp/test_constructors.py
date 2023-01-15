@@ -24,6 +24,16 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_string_invalid_raises(self):
+        # dateutil (weirdly) parses "200622-12-31" as
+        #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
+        #  which besides being mis-parsed, is a tzoffset that will cause
+        #  str(ts) to raise ValueError.  Ensure we raise in the constructor
+        #  instead.
+        # see test_to_datetime_malformed_raise for analogous to_datetime test
+        with pytest.raises(ValueError, match="gives an invalid tzoffset"):
+            Timestamp("200622-12-31")
+
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")
@@ -415,12 +425,13 @@ class TestTimestampConstructors:
                 nanosecond=1,
                 tz="UTC",
             ),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, None, nanosecond=1),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=pytz.UTC, nanosecond=1),
         ],
     )
     def test_constructor_nanosecond(self, result):
         # GH 18898
+        # As of 2.0 (GH 49416), nanosecond should not be accepted positionally
         expected = Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), tz=result.tz)
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
@@ -428,7 +439,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = "could not convert string to Timestamp"
+        msg = f"Unknown string format: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 
