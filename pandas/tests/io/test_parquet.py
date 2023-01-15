@@ -641,6 +641,7 @@ class TestBasic(Base):
         tm.assert_frame_equal(result2, expected)
 
     def test_use_nullable_dtypes_option(self, engine, request):
+        # GH#50748
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
