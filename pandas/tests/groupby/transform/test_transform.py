@@ -1046,6 +1046,16 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_transform_dtype():
+    # GH 22243
+    df = DataFrame({"a": [1], "val": [1.35]})
+    result = df.groupby("a")["val"].transform(lambda x: x.map("+{}".format)).dtype
+    original = df["val"].dtype
+    expected = df["val"].transform(lambda x: x.map("+{}".format)).dtype
+    assert result != original
+    assert result == expected
+
+
 @pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
 def test_transform_absent_categories(func):
     # GH 16771
