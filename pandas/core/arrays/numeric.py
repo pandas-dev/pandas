@@ -207,7 +207,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
 
     if is_integer_dtype(dtype) and is_float_dtype(values.dtype) and len(values) > 0:
         idx = np.argmax(values)
-        if values[idx] != original[idx]:
+        if int(values[idx]) != original[idx]:
             # We have ints that lost precision during the cast.
             inferred_type = lib.infer_dtype(original, skipna=True)
             if (
