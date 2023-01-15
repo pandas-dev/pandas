@@ -25,6 +25,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -43,7 +44,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
-    is_list_like,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -233,12 +233,17 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     elif isinstance(values, ABCIndex):
         return values._values
 
-    if isinstance(values, list) and (
-        dtype in [np.object_, object] or any(is_list_like(val) for val in values)
-    ):
+    if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    try:
+        with warnings.catch_warnings():
+            # Can remove warning filter once NumPy 1.24 is min version
+            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            result = np.asarray(values, dtype=dtype)
+    except ValueError:
+        # More performant than checking is_list_like over each element
+        return construct_1d_object_array_from_listlike(values)
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
