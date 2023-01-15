@@ -583,7 +583,7 @@ class TestDataFrameAnalytics:
     def test_mode_empty_df(self):
         df = DataFrame([], columns=["a", "b"])
         result = df.mode()
-        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=int))
+        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):

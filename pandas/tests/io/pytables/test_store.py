@@ -33,9 +33,6 @@ from pandas.tests.io.pytables.common import (
 )
 
 _default_compressor = "blosc"
-ignore_natural_naming_warning = pytest.mark.filterwarnings(
-    "ignore:object name:tables.exceptions.NaturalNameWarning"
-)
 
 from pandas.io.pytables import (
     HDFStore,
@@ -156,7 +153,6 @@ def test_repr(setup_path):
         str(s)
 
 
-@pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
 def test_contains(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -600,9 +596,6 @@ def test_overwrite_node(setup_path):
         tm.assert_series_equal(store["a"], ts)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
-)
 def test_coordinates(setup_path):
     df = tm.makeTimeDataFrame()
 
@@ -972,9 +965,6 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     # GH#10055 make sure read_hdf call does not alter cols2load inplace
     read_hdf(path, "df", columns=cols2load)
     assert cols2load_original == cols2load
-
-
-pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
 
 
 def test_to_hdf_with_object_column_names(tmp_path, setup_path):

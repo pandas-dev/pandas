@@ -797,6 +797,12 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
+    def test_is_boolean_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_boolean()
+
     def test_is_floating_is_deprecated(self, simple_index):
         # GH50042
         idx = simple_index
@@ -862,11 +868,7 @@ class NumericBase(Base):
 
         result = index.insert(0, index[0])
 
-        cls = type(index)
-        if cls is RangeIndex:
-            cls = Int64Index
-
-        expected = cls([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0]] + list(index), dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -877,7 +879,7 @@ class NumericBase(Base):
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
         else:
-            expected = Float64Index([index[0], np.nan] + list(index[1:]))
+            expected = Index([index[0], np.nan] + list(index[1:]))
 
             if index._is_backward_compat_public_numeric_index:
                 # GH#43921 we preserve NumericIndex
