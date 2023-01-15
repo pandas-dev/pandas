@@ -701,3 +701,14 @@ class TestSeriesReplace:
 
         ser.replace(to_replace=1, value=2, inplace=True)
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("val", [0, 0.5])
+    def test_replace_numeric_column_with_na(self, val):
+        # GH#50758
+        ser = pd.Series([val, 1])
+        expected = pd.Series([val, pd.NA])
+        result = ser.replace(to_replace=1, value=pd.NA)
+        tm.assert_series_equal(result, expected)
+
+        ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        tm.assert_series_equal(ser, expected)
