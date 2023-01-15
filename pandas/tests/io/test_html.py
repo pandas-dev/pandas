@@ -197,7 +197,7 @@ class TestReadHtml:
         tm.assert_frame_equal(result, expected)
 
     def test_use_nullable_dtypes_option(self):
-        # GH#99999
+        # GH#50748
         df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
 
         out = df.to_html(index=False)

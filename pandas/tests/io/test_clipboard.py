@@ -471,7 +471,7 @@ y,2,5.0,,,,,False,"""
     def test_read_clipboard_nullable_dtypes_option(
         self, request, mock_clipboard, engine
     ):
-        # GH#99999
+        # GH#50748
 
         text = """a
 1

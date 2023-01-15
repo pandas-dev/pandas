@@ -983,7 +983,7 @@ def test_use_nullable_dtypes(string_storage):
 
 
 def test_use_nullable_dtypes_option():
-    # GH#99999
+    # GH#50748
 
     data = """a
 1

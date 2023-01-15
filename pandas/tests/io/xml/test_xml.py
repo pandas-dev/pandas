@@ -1782,7 +1782,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
 
 
 def test_use_nullable_dtypes_option(parser):
-    # GH#99999
+    # GH#50748
 
     data = """<?xml version='1.0' encoding='utf-8'?>
     <data xmlns="http://example.com">

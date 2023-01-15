@@ -832,7 +832,7 @@ def test_to_numeric_use_nullable_dtypes_na(val, dtype):
 
 
 def test_to_numeric_use_nullable_dtypes_option():
-    # GH#99999
+    # GH#50748
     ser = Series([1, None], dtype=object)
     with pd.option_context("mode.nullable_dtypes", True):
         result = to_numeric(ser)

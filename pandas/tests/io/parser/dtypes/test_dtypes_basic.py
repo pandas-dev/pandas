@@ -531,7 +531,7 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_use_nullable_dtypes_option(all_parsers):
-    # GH#99999
+    # GH#50748
 
     parser = all_parsers
 

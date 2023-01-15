@@ -387,7 +387,7 @@ def test_orc_use_nullable_dtypes_pandas_backend():
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_use_nullable_dtypes_option():
-    # GH#99999
+    # GH#50748
     df = pd.DataFrame({"int": list(range(1, 4))})
 
     bytes_data = df.copy().to_orc()
