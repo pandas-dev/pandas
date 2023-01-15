@@ -292,6 +292,8 @@ def _concat_managers_axis0(
         if not made_copy and not copy and using_copy_on_write():
             refs.extend([weakref.ref(blk) for blk in mgr.blocks])
             parents.append(mgr)
+        elif using_copy_on_write():
+            refs.extend([None] * len(mgr.blocks))
 
         offset += len(mgr.items)
 
