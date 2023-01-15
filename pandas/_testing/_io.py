@@ -113,12 +113,13 @@ def optional_args(decorator):
     return wrapper
 
 
-@optional_args
+# error: Untyped decorator makes function "network" untyped
+@optional_args  # type: ignore[misc]
 def network(
     t,
-    url="https://www.google.com",
-    raise_on_error=False,
-    check_before_test=False,
+    url: str = "https://www.google.com",
+    raise_on_error: bool = False,
+    check_before_test: bool = False,
     error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,
@@ -242,10 +243,7 @@ def network(
 
             if not isinstance(err, error_classes) or raise_on_error:
                 raise
-            else:
-                pytest.skip(
-                    f"Skipping test due to lack of connectivity and error {err}"
-                )
+            pytest.skip(f"Skipping test due to lack of connectivity and error {err}")
 
     return wrapper
 
@@ -368,7 +366,7 @@ def round_trip_localpath(writer, reader, path: str | None = None):
     return obj
 
 
-def write_to_compressed(compression, path, data, dest="test"):
+def write_to_compressed(compression, path, data, dest: str = "test"):
     """
     Write data to a compressed file.
 

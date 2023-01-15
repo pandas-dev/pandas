@@ -11,7 +11,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    intp_t,
     ndarray,
 )
 
@@ -33,7 +32,6 @@ from .np_datetime cimport (
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
-from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc
@@ -57,7 +55,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     ndarray[int64]
     """
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.size
 
@@ -96,8 +94,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 def ints_to_pydatetime(
     ndarray stamps,
     tzinfo tz=None,
-    BaseOffset freq=None,
-    bint fold=False,
     str box="datetime",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
@@ -110,15 +106,6 @@ def ints_to_pydatetime(
     stamps : array of i8
     tz : str, optional
          convert to this timezone
-    freq : BaseOffset, optional
-         freq to convert
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-        .. versionadded:: 1.1.0
     box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
         * If datetime, convert to datetime.datetime
         * If date, convert to datetime.date
@@ -132,15 +119,16 @@ def ints_to_pydatetime(
     ndarray[object] of type specified by box
     """
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
         npy_datetimestruct dts
         tzinfo new_tz
-        bint use_date = False, use_time = False, use_ts = False, use_pydt = False
+        bint use_date = False, use_ts = False, use_pydt = False
         object res_val
+        bint fold = 0
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -155,11 +143,9 @@ def ints_to_pydatetime(
         use_date = True
     elif box == "timestamp":
         use_ts = True
-    elif box == "time":
-        use_time = True
     elif box == "datetime":
         use_pydt = True
-    else:
+    elif box != "time":
         raise ValueError(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
@@ -175,7 +161,7 @@ def ints_to_pydatetime(
 
         else:
 
-            local_val = info.utc_val_to_local_val(utc_val, &pos)
+            local_val = info.utc_val_to_local_val(utc_val, &pos, &fold)
             if info.use_pytz:
                 # find right representation of dst etc in pytz timezone
                 new_tz = tz._tzinfos[tz._transition_info[pos]]
@@ -184,7 +170,7 @@ def ints_to_pydatetime(
 
             if use_ts:
                 res_val = create_timestamp_from_ts(
-                    utc_val, dts, new_tz, freq, fold, reso=reso
+                    utc_val, dts, new_tz, fold, reso=reso
                 )
             elif use_pydt:
                 res_val = datetime(
@@ -212,7 +198,7 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 
-cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
+cdef c_Resolution _reso_stamp(npy_datetimestruct *dts):
     if dts.ps != 0:
         return c_Resolution.RESO_NS
     elif dts.us != 0:
@@ -235,7 +221,7 @@ def get_resolution(
 ) -> Resolution:
     # stamps is int64_t, any ndim
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -287,7 +273,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val, res_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -334,7 +320,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -365,7 +351,7 @@ def dt64arr_to_periodarr(
 ):
     # stamps is int64_t, arbitrary ndim
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val

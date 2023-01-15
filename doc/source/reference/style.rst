@@ -41,6 +41,7 @@ Style application
    Styler.applymap_index
    Styler.format
    Styler.format_index
+   Styler.relabel_index
    Styler.hide
    Styler.concat
    Styler.set_td_classes

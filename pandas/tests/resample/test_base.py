@@ -68,7 +68,8 @@ def test_asfreq_fill_value(series, create_index):
     expected = ser.reindex(new_index)
     tm.assert_series_equal(result, expected)
 
-    frame = ser.to_frame("value")
+    # Explicit cast to float to avoid implicit cast when setting None
+    frame = ser.astype("float").to_frame("value")
     frame.iloc[1] = None
     result = frame.resample("1H").asfreq(fill_value=4.0)
     new_index = create_index(frame.index[0], frame.index[-1], freq="1H")
@@ -90,7 +91,7 @@ def test_raises_on_non_datetimelike_index():
     xp = DataFrame()
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
-        "but got an instance of 'Index'"
+        "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
         xp.resample("A").mean()
@@ -169,13 +170,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=object)
+        expected = Series([], dtype=np.int64)
 
     expected.index = _asfreq_compat(df.index, freq)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_almost_equal(result, expected, check_dtype=False)
+    tm.assert_almost_equal(result, expected)
 
     # test size for GH13212 (currently stays as df)
 

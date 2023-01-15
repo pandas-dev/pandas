@@ -9,7 +9,6 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -179,13 +178,6 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#33385 deprecated
-            assert is_categorical(s.dtype)
-            assert is_categorical(s)
-            assert not is_categorical(np.dtype("float64"))
-            assert not is_categorical(1.0)
-
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
         result = CategoricalDtype(categories)
@@ -268,7 +260,7 @@ class TestDatetimeTZDtype(Base):
     def test_construction_non_nanosecond(self):
         res = DatetimeTZDtype("ms", "US/Eastern")
         assert res.unit == "ms"
-        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
 
@@ -577,30 +569,21 @@ class TestIntervalDtype(Base):
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
     def test_construction(self, subtype):
-        i = IntervalDtype(subtype, inclusive="right")
+        i = IntervalDtype(subtype, closed="right")
         assert i.subtype == np.dtype("int64")
-        assert is_interval_dtype(i)
-
-    @pytest.mark.parametrize(
-        "subtype", ["interval[int64, right]", "Interval[int64, right]"]
-    )
-    def test_construction_string_regex(self, subtype):
-        i = IntervalDtype(subtype=subtype)
-        assert i.subtype == np.dtype("int64")
-        assert i.inclusive == "right"
         assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
-    def test_construction_allows_inclusive_none(self, subtype):
+    def test_construction_allows_closed_none(self, subtype):
         # GH#38394
         dtype = IntervalDtype(subtype)
 
-        assert dtype.inclusive is None
+        assert dtype.closed is None
 
-    def test_inclusive_mismatch(self):
-        msg = "'inclusive' keyword does not match value specified in dtype string"
+    def test_closed_mismatch(self):
+        msg = "'closed' keyword does not match value specified in dtype string"
         with pytest.raises(ValueError, match=msg):
             IntervalDtype("interval[int64, left]", "right")
 
@@ -638,16 +621,16 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
-    def test_inclusive_must_match(self):
+    def test_closed_must_match(self):
         # GH#37933
         dtype = IntervalDtype(np.float64, "left")
 
-        msg = "dtype.inclusive and 'inclusive' do not match"
+        msg = "dtype.closed and 'closed' do not match"
         with pytest.raises(ValueError, match=msg):
-            IntervalDtype(dtype, inclusive="both")
+            IntervalDtype(dtype, closed="both")
 
-    def test_inclusive_invalid(self):
-        with pytest.raises(ValueError, match="inclusive must be one of"):
+    def test_closed_invalid(self):
+        with pytest.raises(ValueError, match="closed must be one of"):
             IntervalDtype(np.float64, "foo")
 
     def test_construction_from_string(self, dtype):
@@ -747,8 +730,8 @@ class TestIntervalDtype(Base):
     )
     def test_equality_generic(self, subtype):
         # GH 18980
-        inclusive = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, inclusive=inclusive)
+        closed = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, closed=closed)
         assert is_dtype_equal(dtype, "interval")
         assert is_dtype_equal(dtype, IntervalDtype())
 
@@ -766,9 +749,9 @@ class TestIntervalDtype(Base):
     )
     def test_name_repr(self, subtype):
         # GH 18980
-        inclusive = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, inclusive=inclusive)
-        expected = f"interval[{subtype}, {inclusive}]"
+        closed = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, closed=closed)
+        expected = f"interval[{subtype}, {closed}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 
@@ -822,28 +805,13 @@ class TestIntervalDtype(Base):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
 
-    def test_unpickling_without_inclusive(self):
+    def test_unpickling_without_closed(self):
         # GH#38394
         dtype = IntervalDtype("interval")
 
-        assert dtype._inclusive is None
+        assert dtype._closed is None
 
         tm.round_trip_pickle(dtype)
-
-    def test_interval_dtype_error_and_warning(self):
-        # GH 40245
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            IntervalDtype("int64", closed="right", inclusive="right")
-
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            IntervalDtype("int64", closed="right")
 
 
 class TestCategoricalDtypeParametrized:

@@ -67,15 +67,385 @@ static PyMethodDef ujsonMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-static PyModuleDef moduledef = {
-    .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "_libjson",
-    .m_methods = ujsonMethods
-};
+typedef struct {
+    PyObject *type_decimal;
+    PyObject *type_dataframe;
+    PyObject *type_series;
+    PyObject *type_index;
+    PyObject *type_nat;
+    PyObject *type_na;
+} modulestate;
 
+#define modulestate(o) ((modulestate *)PyModule_GetState(o))
+
+static int module_traverse(PyObject *m, visitproc visit, void *arg);
+static int module_clear(PyObject *m);
+static void module_free(void *module);
+
+static struct PyModuleDef moduledef = {.m_base = PyModuleDef_HEAD_INIT,
+                                       .m_name = "_libjson",
+                                       .m_methods = ujsonMethods,
+                                       .m_size = sizeof(modulestate),
+                                       .m_traverse = module_traverse,
+                                       .m_clear = module_clear,
+                                       .m_free = module_free};
+
+#ifndef PYPY_VERSION
+/* Used in objToJSON.c */
+int object_is_decimal_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_decimal = state->type_decimal;
+    if (type_decimal == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_decimal);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_dataframe_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_dataframe = state->type_dataframe;
+    if (type_dataframe == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_dataframe);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_series_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_series = state->type_series;
+    if (type_series == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_series);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_index_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_index = state->type_index;
+    if (type_index == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_index);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_nat_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_nat = state->type_nat;
+    if (type_nat == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_nat);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_na_type(PyObject *obj) {
+    PyObject *module = PyState_FindModule(&moduledef);
+    if (module == NULL)
+        return 0;
+    modulestate *state = modulestate(module);
+    if (state == NULL)
+        return 0;
+    PyObject *type_na = state->type_na;
+    if (type_na == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_na);
+    if (result == -1) {
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+#else
+    /* Used in objToJSON.c */
+int object_is_decimal_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("decimal");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_decimal = PyObject_GetAttrString(module, "Decimal");
+    if (type_decimal == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_decimal);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_decimal);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_dataframe_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("pandas");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_dataframe = PyObject_GetAttrString(module, "DataFrame");
+    if (type_dataframe == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_dataframe);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_dataframe);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_series_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("pandas");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_series = PyObject_GetAttrString(module, "Series");
+    if (type_series == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_series);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_series);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_index_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("pandas");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_index = PyObject_GetAttrString(module, "Index");
+    if (type_index == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_index);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_index);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_nat_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("pandas._libs.tslibs.nattype");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_nat = PyObject_GetAttrString(module, "NaTType");
+    if (type_nat == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_nat);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_nat);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+int object_is_na_type(PyObject *obj) {
+    PyObject *module = PyImport_ImportModule("pandas._libs.missing");
+    if (module == NULL) {
+        PyErr_Clear();
+        return 0;
+    }
+    PyObject *type_na = PyObject_GetAttrString(module, "NAType");
+    if (type_na == NULL) {
+        Py_DECREF(module);
+        PyErr_Clear();
+        return 0;
+    }
+    int result = PyObject_IsInstance(obj, type_na);
+    if (result == -1) {
+        Py_DECREF(module);
+        Py_DECREF(type_na);
+        PyErr_Clear();
+        return 0;
+    }
+    return result;
+}
+
+#endif
+
+static int module_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(modulestate(m)->type_decimal);
+    Py_VISIT(modulestate(m)->type_dataframe);
+    Py_VISIT(modulestate(m)->type_series);
+    Py_VISIT(modulestate(m)->type_index);
+    Py_VISIT(modulestate(m)->type_nat);
+    Py_VISIT(modulestate(m)->type_na);
+    return 0;
+}
+
+static int module_clear(PyObject *m) {
+    Py_CLEAR(modulestate(m)->type_decimal);
+    Py_CLEAR(modulestate(m)->type_dataframe);
+    Py_CLEAR(modulestate(m)->type_series);
+    Py_CLEAR(modulestate(m)->type_index);
+    Py_CLEAR(modulestate(m)->type_nat);
+    Py_CLEAR(modulestate(m)->type_na);
+    return 0;
+}
+
+static void module_free(void *module) { module_clear((PyObject *)module); }
 
 PyMODINIT_FUNC PyInit_json(void) {
-  import_array()
-  initObjToJSON();  // TODO(username): clean up, maybe via tp_free?
-  return PyModuleDef_Init(&moduledef);
+    import_array()
+    PyObject *module;
+
+#ifndef PYPY_VERSION
+    // This function is not supported in PyPy.
+    if ((module = PyState_FindModule(&moduledef)) != NULL) {
+        Py_INCREF(module);
+        return module;
+    }
+#endif
+
+    module = PyModule_Create(&moduledef);
+    if (module == NULL) {
+        return NULL;
+    }
+
+#ifndef PYPY_VERSION
+    PyObject *mod_decimal = PyImport_ImportModule("decimal");
+    if (mod_decimal) {
+        PyObject *type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
+        assert(type_decimal != NULL);
+        modulestate(module)->type_decimal = type_decimal;
+        Py_DECREF(mod_decimal);
+    }
+
+    PyObject *mod_pandas = PyImport_ImportModule("pandas");
+    if (mod_pandas) {
+        PyObject *type_dataframe =
+            PyObject_GetAttrString(mod_pandas, "DataFrame");
+        assert(type_dataframe != NULL);
+        modulestate(module)->type_dataframe = type_dataframe;
+
+        PyObject *type_series = PyObject_GetAttrString(mod_pandas, "Series");
+        assert(type_series != NULL);
+        modulestate(module)->type_series = type_series;
+
+        PyObject *type_index = PyObject_GetAttrString(mod_pandas, "Index");
+        assert(type_index != NULL);
+        modulestate(module)->type_index = type_index;
+
+        Py_DECREF(mod_pandas);
+    }
+
+    PyObject *mod_nattype =
+        PyImport_ImportModule("pandas._libs.tslibs.nattype");
+    if (mod_nattype) {
+        PyObject *type_nat = PyObject_GetAttrString(mod_nattype, "NaTType");
+        assert(type_nat != NULL);
+        modulestate(module)->type_nat = type_nat;
+
+        Py_DECREF(mod_nattype);
+    }
+
+    PyObject *mod_natype = PyImport_ImportModule("pandas._libs.missing");
+    if (mod_natype) {
+        PyObject *type_na = PyObject_GetAttrString(mod_natype, "NAType");
+        assert(type_na != NULL);
+        modulestate(module)->type_na = type_na;
+
+        Py_DECREF(mod_natype);
+    } else {
+        PyErr_Clear();
+    }
+#endif
+
+    /* Not vendored for now
+    JSONDecodeError = PyErr_NewException("ujson.JSONDecodeError",
+    PyExc_ValueError, NULL); Py_XINCREF(JSONDecodeError); if
+    (PyModule_AddObject(module, "JSONDecodeError", JSONDecodeError) < 0)
+    {
+      Py_XDECREF(JSONDecodeError);
+      Py_CLEAR(JSONDecodeError);
+      Py_DECREF(module);
+      return NULL;
+    }
+    */
+
+    return module;
 }

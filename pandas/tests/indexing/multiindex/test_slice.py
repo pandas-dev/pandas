@@ -1,3 +1,8 @@
+from datetime import (
+    datetime,
+    timedelta,
+)
+
 import numpy as np
 import pytest
 
@@ -35,7 +40,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -49,8 +54,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3")
-                and (c == "C1" or c == "C2" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C2", "C3")
             ]
         ]
         result = df.loc[(slice("A1", "A3"), slice(None), slice("C1", "C3")), :]
@@ -121,7 +125,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in s.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_series_equal(result, expected)
@@ -249,12 +253,7 @@ class TestMultiIndexSlicers:
 
         # GH 7429
         # buggy/inconsistent behavior when slicing with datetime-like
-        import datetime
-
-        dates = [
-            datetime.datetime(2012, 1, 1, 12, 12, 12) + datetime.timedelta(days=i)
-            for i in range(6)
-        ]
+        dates = [datetime(2012, 1, 1, 12, 12, 12) + timedelta(days=i) for i in range(6)]
         freq = [1, 2]
         index = MultiIndex.from_product([dates, freq], names=["date", "frequency"])
 
@@ -416,7 +415,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -433,7 +432,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (c == "C1" or c == "C3")
+                if c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -494,7 +493,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -509,7 +508,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (c == "C1" or c == "C3")
+                if c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -730,7 +729,7 @@ class TestMultiIndexSlicers:
     def test_multiindex_slice_first_level(self):
         # GH 12697
         freq = ["a", "b", "c", "d"]
-        idx = MultiIndex.from_product([freq, np.arange(500)])
+        idx = MultiIndex.from_product([freq, range(500)])
         df = DataFrame(list(range(2000)), index=idx, columns=["Test"])
         df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
         result = df_slice.loc["a"]

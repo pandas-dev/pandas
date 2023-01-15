@@ -101,15 +101,8 @@ def to_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-        if handles.compression["method"] in ("bz2", "xz") and protocol >= 5:
-            # some weird TypeError GH#39002 with pickle 5: fallback to letting
-            # pickle create the entire object and then write it to the buffer.
-            # "zip" would also be here if pandas.io.common._BytesZipFile
-            # wouldn't buffer write calls
-            handles.handle.write(pickle.dumps(obj, protocol=protocol))
-        else:
-            # letting pickle write directly to the buffer is more memory-efficient
-            pickle.dump(obj, handles.handle, protocol=protocol)
+        # letting pickle write directly to the buffer is more memory-efficient
+        pickle.dump(obj, handles.handle, protocol=protocol)
 
 
 @doc(
@@ -148,7 +141,7 @@ def read_pickle(
 
     Returns
     -------
-    unpickled : same type as object stored in file
+    same type as object stored in file
 
     See Also
     --------
@@ -160,11 +153,14 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3.
+    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3
+    provided the object was serialized with to_pickle.
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ...    )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -182,7 +178,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """  # noqa: E501
+    """
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,

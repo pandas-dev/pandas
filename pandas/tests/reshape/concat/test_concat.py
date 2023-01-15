@@ -2,7 +2,9 @@ from collections import (
     abc,
     deque,
 )
+from datetime import datetime
 from decimal import Decimal
+from typing import Iterator
 from warnings import (
     catch_warnings,
     simplefilter,
@@ -29,7 +31,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 
 
@@ -343,11 +344,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
         # 12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
@@ -463,7 +460,7 @@ class TestConcatenate:
         tm.assert_frame_equal(concat(CustomIterator1(), ignore_index=True), expected)
 
         class CustomIterator2(abc.Iterable):
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 yield df1
                 yield df2
 
@@ -504,22 +501,21 @@ class TestConcatenate:
             concat([df1, df2], axis=1)
 
 
-@pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
-def test_concat_no_unnecessary_upcast(dt, pdt):
+def test_concat_no_unnecessary_upcast(dt, frame_or_series):
     # GH 13247
-    dims = pdt(dtype=object).ndim
+    dims = frame_or_series(dtype=object).ndim
 
     dfs = [
-        pdt(np.array([1], dtype=dt, ndmin=dims)),
-        pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-        pdt(np.array([5], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([1], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([np.nan], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([5], dtype=dt, ndmin=dims)),
     ]
     x = concat(dfs)
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [create_series_with_explicit_dtype, DataFrame])
+@pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
@@ -697,21 +693,6 @@ def test_concat_multiindex_with_empty_rangeindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_posargs_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame([[1, 2, 3]], index=["a"])
-    df2 = DataFrame([[4, 5, 6]], index=["b"])
-
-    msg = (
-        "In a future version of pandas all arguments of concat "
-        "except for the argument 'objs' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df, df2], 0)
-    expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "data",
     [
@@ -761,7 +742,7 @@ def test_concat_retain_attrs(data):
 @td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
-def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
+def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)

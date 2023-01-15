@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
   pull_request:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
 
 env:
   ENV_FILE: environment.yml
@@ -20,7 +20,7 @@ permissions:
 jobs:
   pre_commit:
     name: pre-commit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
@@ -30,16 +30,18 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Install Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.9.7'
+        python-version: '3.9'
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
+      with:
+        extra_args: --verbose --all-files
 
-  typing_and_docstring_validation:
-    name: Docstring and typing validation
-    runs-on: ubuntu-latest
+  docstring_typing_manual_hooks:
+    name: Docstring validation, typing, and other manual pre-commit hooks
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -79,6 +81,10 @@ jobs:
       run: ci/code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' && always() }}
 
+    - name: Run check of documentation notebooks
+      run: ci/code_checks.sh notebooks
+      if: ${{ steps.build.outcome == 'success' && always() }}
+
     - name: Use existing environment for type checking
       run: |
         echo $PATH >> $GITHUB_PATH
@@ -86,10 +92,10 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing
+    - name: Typing + pylint
       uses: pre-commit/action@v2.0.3
       with:
-        extra_args: --hook-stage manual --all-files
+        extra_args: --verbose --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
@@ -98,7 +104,7 @@ jobs:
 
   asv-benchmarks:
     name: ASV Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -129,7 +135,7 @@ jobs:
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
@@ -151,9 +157,12 @@ jobs:
       - name: Build image
         run: docker build --pull --no-cache --tag pandas-dev-env .
 
+      - name: Show environment
+        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
+
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -168,7 +177,7 @@ jobs:
 
       - name: Setup Python
         id: setup_python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
           cache: 'pip'

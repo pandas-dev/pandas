@@ -1,5 +1,6 @@
 """ test orc compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 
@@ -11,12 +12,11 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
+from pandas.core.arrays import StringArray
 
 pytest.importorskip("pyarrow.orc")
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
+import pyarrow as pa
 
 
 @pytest.fixture
@@ -99,8 +99,6 @@ def test_orc_reader_basic(dirpath):
 
 
 def test_orc_reader_decimal(dirpath):
-    from decimal import Decimal
-
     # Only testing the first 10 rows of data
     data = {
         "_col0": np.array(
@@ -305,3 +303,83 @@ def test_orc_writer_dtypes_not_supported(df_not_supported):
     msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
         df_not_supported.to_orc()
+
+
+@td.skip_if_no("pyarrow", min_version="7.0.0")
+def test_orc_use_nullable_dtypes_pyarrow_backend():
+    df = pd.DataFrame(
+        {
+            "string": list("abc"),
+            "string_with_nan": ["a", np.nan, "c"],
+            "string_with_none": ["a", None, "c"],
+            "bytes": [b"foo", b"bar", None],
+            "int": list(range(1, 4)),
+            "float": np.arange(4.0, 7.0, dtype="float64"),
+            "float_with_nan": [2.0, np.nan, 3.0],
+            "bool": [True, False, True],
+            "bool_with_na": [True, False, None],
+            "datetime": pd.date_range("20130101", periods=3),
+            "datetime_with_nat": [
+                pd.Timestamp("20130101"),
+                pd.NaT,
+                pd.Timestamp("20130103"),
+            ],
+        }
+    )
+
+    bytes_data = df.copy().to_orc()
+    with pd.option_context("mode.dtype_backend", "pyarrow"):
+        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+
+    expected = pd.DataFrame(
+        {
+            col: pd.arrays.ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+            for col in df.columns
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow", min_version="7.0.0")
+def test_orc_use_nullable_dtypes_pandas_backend():
+    # GH#50503
+    df = pd.DataFrame(
+        {
+            "string": list("abc"),
+            "string_with_nan": ["a", np.nan, "c"],
+            "string_with_none": ["a", None, "c"],
+            "int": list(range(1, 4)),
+            "int_with_nan": pd.Series([1, pd.NA, 3], dtype="Int64"),
+            "na_only": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+            "float": np.arange(4.0, 7.0, dtype="float64"),
+            "float_with_nan": [2.0, np.nan, 3.0],
+            "bool": [True, False, True],
+            "bool_with_na": [True, False, None],
+        }
+    )
+
+    bytes_data = df.copy().to_orc()
+    with pd.option_context("mode.dtype_backend", "pandas"):
+        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+
+    expected = pd.DataFrame(
+        {
+            "string": StringArray(np.array(["a", "b", "c"], dtype=np.object_)),
+            "string_with_nan": StringArray(
+                np.array(["a", pd.NA, "c"], dtype=np.object_)
+            ),
+            "string_with_none": StringArray(
+                np.array(["a", pd.NA, "c"], dtype=np.object_)
+            ),
+            "int": pd.Series([1, 2, 3], dtype="Int64"),
+            "int_with_nan": pd.Series([1, pd.NA, 3], dtype="Int64"),
+            "na_only": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+            "float": pd.Series([4.0, 5.0, 6.0], dtype="Float64"),
+            "float_with_nan": pd.Series([2.0, pd.NA, 3.0], dtype="Float64"),
+            "bool": pd.Series([True, False, True], dtype="boolean"),
+            "bool_with_na": pd.Series([True, False, pd.NA], dtype="boolean"),
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)

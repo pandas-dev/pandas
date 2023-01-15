@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import re
 from textwrap import dedent
@@ -272,8 +273,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         styler.to_html()
 
     excl = [
-        "na_rep",  # deprecated
-        "precision",  # deprecated
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -333,8 +332,6 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
-        "precision",  # deprecated
-        "na_rep",  # deprecated
         "template_latex",  # render templates are class level
         "template_html",
         "template_html_style",
@@ -352,7 +349,7 @@ def test_clear(mi_styler_comp):
 
     # test vars have same vales on obj and clean copy after clearing
     styler.clear()
-    for attr in [a for a in styler.__dict__ if not (callable(a))]:
+    for attr in [a for a in styler.__dict__ if not callable(a)]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
         assert all(res) if hasattr(res, "__iter__") else res
 
@@ -657,10 +654,10 @@ class TestStyler:
     )
     @pytest.mark.parametrize("axis", [0, 1])
     def test_apply_subset(self, slice_, axis, df):
-        def h(x, foo="bar"):
-            return Series(f"color: {foo}", index=x.index, name=x.name)
+        def h(x, color="bar"):
+            return Series(f"color: {color}", index=x.index, name=x.name)
 
-        result = df.style.apply(h, axis=axis, subset=slice_, foo="baz")._compute().ctx
+        result = df.style.apply(h, axis=axis, subset=slice_, color="baz")._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
@@ -705,26 +702,26 @@ class TestStyler:
     def test_applymap_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
-        warn = None
-        msg = "indexing on a MultiIndex with a nested sequence of labels"
         if (
             isinstance(slice_[-1], tuple)
             and isinstance(slice_[-1][-1], list)
             and "C" in slice_[-1][-1]
         ):
-            warn = FutureWarning
+            ctx = pytest.raises(KeyError, match="C")
         elif (
             isinstance(slice_[0], tuple)
             and isinstance(slice_[0][1], list)
             and 3 in slice_[0][1]
         ):
-            warn = FutureWarning
+            ctx = pytest.raises(KeyError, match="3")
+        else:
+            ctx = contextlib.nullcontext()
 
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
 
-        with tm.assert_produces_warning(warn, match=msg):
+        with ctx:
             df.style.applymap(lambda x: "color: red;", subset=slice_).to_html()
 
     def test_applymap_subset_multiindex_code(self):
@@ -1394,7 +1391,7 @@ class TestStyler:
             IndexSlice[:, IndexSlice["a", :, "e"]],
             IndexSlice[:, IndexSlice[:, "c", "e"]],
             IndexSlice[:, IndexSlice["a", ["c", "d"], :]],  # check list
-            IndexSlice[:, IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
+            IndexSlice[:, IndexSlice["a", ["c", "d", "-"], :]],  # don't allow missing
             IndexSlice[:, IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
             # check rows
             IndexSlice[IndexSlice[["U"]], :],  # inferred deeper need list
@@ -1403,7 +1400,7 @@ class TestStyler:
             IndexSlice[IndexSlice["U", :, "Y"], :],
             IndexSlice[IndexSlice[:, "W", "Y"], :],
             IndexSlice[IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
-            IndexSlice[IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
+            IndexSlice[IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # don't allow missing
             IndexSlice[IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
             # check simultaneous
             IndexSlice[IndexSlice[:, "W", "Y"], IndexSlice["a", "c", :]],
@@ -1415,21 +1412,18 @@ class TestStyler:
         idxs = MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
-        msg = "indexing on a MultiIndex with a nested sequence of labels"
-        warn = None
         for lvl in [0, 1]:
             key = slice_[lvl]
             if isinstance(key, tuple):
                 for subkey in key:
                     if isinstance(subkey, list) and "-" in subkey:
-                        # not present in the index level, ignored, will raise in future
-                        warn = FutureWarning
+                        # not present in the index level, raises KeyError since 2.0
+                        with pytest.raises(KeyError, match="-"):
+                            df.loc[slice_]
+                        return
 
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = df.loc[slice_]
-
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.loc[non_reducing_slice(slice_)]
+        expected = df.loc[slice_]
+        result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
 
 

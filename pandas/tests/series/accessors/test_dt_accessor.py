@@ -107,8 +107,7 @@ class TestSeriesDatetimeValues:
 
         for prop in ok_for_dt:
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -146,8 +145,7 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -231,14 +229,14 @@ class TestSeriesDatetimeValues:
         dti = date_range("20140204", periods=3, freq="s")
         ser = Series(dti, index=index, name="xxx")
         exp = Series(
-            np.array([2014, 2014, 2014], dtype="int64"), index=index, name="xxx"
+            np.array([2014, 2014, 2014], dtype="int32"), index=index, name="xxx"
         )
         tm.assert_series_equal(ser.dt.year, exp)
 
-        exp = Series(np.array([2, 2, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([2, 2, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.month, exp)
 
-        exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
         exp = Series([ser[0]] * 3, index=index, name="xxx")
@@ -279,7 +277,7 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self):
+    def test_dt_accessor_not_writeable(self, using_copy_on_write):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
@@ -288,8 +286,12 @@ class TestSeriesDatetimeValues:
         # trying to set a copy
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(SettingWithCopyError, match=msg):
+            if using_copy_on_write:
+                # TODO(CoW) it would be nice to keep a warning/error for this case
                 ser.dt.hour[0] = 5
+            else:
+                with pytest.raises(SettingWithCopyError, match=msg):
+                    ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",
@@ -384,7 +386,7 @@ class TestSeriesDatetimeValues:
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)
         ser = Series(pd.Categorical(dti), name="foo")
         result = ser.dt.year
-        expected = Series([2017, 2017, 2018, 2018], name="foo")
+        expected = Series([2017, 2017, 2018, 2018], dtype="int32", name="foo")
         tm.assert_series_equal(result, expected)
 
     def test_dt_tz_localize_categorical(self, tz_aware_fixture):
@@ -428,7 +430,7 @@ class TestSeriesDatetimeValues:
 
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + (tm.get_locales() or [])  # type: ignore[operator]
+        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -618,13 +620,18 @@ class TestSeriesDatetimeValues:
         expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data", [DatetimeIndex([pd.NaT]), PeriodIndex([pd.NaT], dtype="period[D]")]
+    )
+    def test_strftime_all_nat(self, data):
+        # https://github.com/pandas-dev/pandas/issues/45858
+        ser = Series(data)
+        with tm.assert_produces_warning(None):
+            result = ser.dt.strftime("%Y-%m-%d")
+        expected = Series([np.nan], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_valid_dt_with_missing_values(self):
-
-        from datetime import (
-            date,
-            time,
-        )
-
         # GH 8689
         ser = Series(date_range("20130101", periods=5, freq="D"))
         ser.iloc[2] = pd.NaT
@@ -718,7 +725,6 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(
@@ -735,6 +741,7 @@ class TestSeriesDatetimeValues:
         result = dt_series.dt.hour
         expected = Series(
             [0, 1, 2, 3, 4],
+            dtype="int32",
             index=[2, 6, 7, 8, 11],
         )
         tm.assert_series_equal(result, expected)
@@ -777,15 +784,6 @@ class TestSeriesPeriodValuesDtAccessor:
         expected = Series([input_vals], dtype="Period[D]")
         result = Series([input_vals], dtype="datetime64[ns]").dt.to_period("D")
         tm.assert_series_equal(result, expected)
-
-
-def test_week_and_weekofyear_are_deprecated():
-    # GH#33595 Deprecate week and weekofyear
-    series = pd.to_datetime(Series(["2020-01-01"]))
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.week
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.weekofyear
 
 
 def test_normalize_pre_epoch_dates():

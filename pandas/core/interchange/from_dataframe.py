@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 import pandas as pd
+from pandas.core.interchange.column import PandasColumn
 from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     Column,
@@ -27,7 +28,7 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
+def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
@@ -52,7 +53,7 @@ def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy=True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
@@ -131,7 +132,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
         buffers.append(buf)
 
     pandas_df = pd.DataFrame(columns)
-    pandas_df.attrs["_EXCHANGE_PROTOCOL_BUFFERS"] = buffers
+    pandas_df.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"] = buffers
     return pandas_df
 
 
@@ -154,7 +155,7 @@ def primitive_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     buffers = col.get_buffers()
 
     data_buff, data_dtype = buffers["data"]
-    data = buffer_to_ndarray(data_buff, data_dtype, col.offset, col.size)
+    data = buffer_to_ndarray(data_buff, data_dtype, col.offset, col.size())
 
     data = set_nulls(data, col, buffers["validity"])
     return data, buffers
@@ -179,13 +180,14 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    mapping = categorical["mapping"]
-    assert isinstance(mapping, dict), "Categorical mapping must be a dict"
-    categories = np.array(tuple(mapping[k] for k in sorted(mapping)))
+    cat_column = categorical["categories"]
+    # for mypy/pyright
+    assert isinstance(cat_column, PandasColumn), "categories must be a PandasColumn"
+    categories = np.array(cat_column._col)
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
-    codes = buffer_to_ndarray(codes_buff, codes_dtype, col.offset, col.size)
+    codes = buffer_to_ndarray(codes_buff, codes_dtype, col.offset, col.size())
 
     # Doing module in order to not get ``IndexError`` for
     # out-of-bounds sentinel values in `codes`
@@ -242,29 +244,29 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
         Endianness.NATIVE,
     )
     # Specify zero offset as we don't want to chunk the string data
-    data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=col.size)
+    data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=col.size())
 
     # Retrieve the offsets buffer containing the index offsets demarcating
     # the beginning and the ending of each string
     offset_buff, offset_dtype = buffers["offsets"]
     # Offsets buffer contains start-stop positions of strings in the data buffer,
-    # meaning that it has more elements than in the data buffer, do `col.size + 1` here
-    # to pass a proper offsets buffer size
+    # meaning that it has more elements than in the data buffer, do `col.size() + 1`
+    # here to pass a proper offsets buffer size
     offsets = buffer_to_ndarray(
-        offset_buff, offset_dtype, col.offset, length=col.size + 1
+        offset_buff, offset_dtype, col.offset, length=col.size() + 1
     )
 
     null_pos = None
     if null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
         assert buffers["validity"], "Validity buffers cannot be empty for masks"
         valid_buff, valid_dtype = buffers["validity"]
-        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size)
+        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size())
         if sentinel_val == 0:
             null_pos = ~null_pos
 
     # Assemble the strings from the code units
-    str_list: list[None | float | str] = [None] * col.size
-    for i in range(col.size):
+    str_list: list[None | float | str] = [None] * col.size()
+    for i in range(col.size()):
         # Check for missing values
         if null_pos is not None and null_pos[i]:
             str_list[i] = np.nan
@@ -347,7 +349,7 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
             Endianness.NATIVE,
         ),
         col.offset,
-        col.size,
+        col.size(),
     )
 
     data = parse_datetime_format_str(format_str, data)
@@ -495,11 +497,11 @@ def set_nulls(
     null_pos = None
 
     if null_kind == ColumnNullType.USE_SENTINEL:
-        null_pos = data == sentinel_val
+        null_pos = pd.Series(data) == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
         assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
-        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size)
+        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size())
         if sentinel_val == 0:
             null_pos = ~null_pos
     elif null_kind in (ColumnNullType.NON_NULLABLE, ColumnNullType.USE_NAN):

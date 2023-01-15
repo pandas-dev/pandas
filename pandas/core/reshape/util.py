@@ -55,7 +55,15 @@ def cartesian_product(X) -> list[np.ndarray]:
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+    # error: Argument of type "int_" cannot be assigned to parameter "num" of
+    # type "int" in function "tile_compat"
+    return [
+        tile_compat(
+            np.repeat(x, b[i]),
+            np.product(a[i]),  # pyright: ignore[reportGeneralTypeIssues]
+        )
+        for i, x in enumerate(X)
+    ]
 
 
 def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:

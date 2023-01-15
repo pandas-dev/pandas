@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
@@ -23,19 +21,17 @@ from pandas._libs.tslibs.fields import (
     month_position_check,
 )
 from pandas._libs.tslibs.offsets import (
-    BaseOffset,
     DateOffset,
     Day,
-    _get_offset,
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
+    is_numeric_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
 )
@@ -102,30 +98,11 @@ def get_period_alias(offset_str: str) -> str | None:
     return _offset_to_period_map.get(offset_str, None)
 
 
-def get_offset(name: str) -> BaseOffset:
-    """
-    Return DateOffset object associated with rule name.
-
-    .. deprecated:: 1.0.0
-
-    Examples
-    --------
-    get_offset('EOM') --> BMonthEnd(1)
-    """
-    warnings.warn(
-        "get_offset is deprecated and will be removed in a future version, "
-        "use to_offset instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return _get_offset(name)
-
-
 # ---------------------------------------------------------------------
 # Period codes
 
 
-def infer_freq(index, warn: bool = True) -> str | None:
+def infer_freq(index) -> str | None:
     """
     Infer the most likely frequency given the input index.
 
@@ -133,8 +110,6 @@ def infer_freq(index, warn: bool = True) -> str | None:
     ----------
     index : DatetimeIndex or TimedeltaIndex
       If passed a Series will use the values of the series (NOT THE INDEX).
-    warn : bool, default True
-      .. deprecated:: 1.5.0
 
     Returns
     -------
@@ -156,9 +131,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
     """
     from pandas.core.api import (
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
     )
 
     if isinstance(index, ABCSeries):
@@ -185,20 +158,20 @@ def infer_freq(index, warn: bool = True) -> str | None:
         )
     elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
-        inferer = _TimedeltaFrequencyInferer(index, warn=warn)
+        inferer = _TimedeltaFrequencyInferer(index)
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if isinstance(index, (Int64Index, Float64Index)):
+        if is_numeric_dtype(index):
             raise TypeError(
-                f"cannot infer freq from a non-convertible index type {type(index)}"
+                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
         index = index._values
 
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
 
-    inferer = _FrequencyInferer(index, warn=warn)
+    inferer = _FrequencyInferer(index)
     return inferer.get_freq()
 
 
@@ -207,7 +180,7 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn: bool = True) -> None:
+    def __init__(self, index) -> None:
         self.index = index
         self.i8values = index.asi8
 
@@ -216,27 +189,20 @@ class _FrequencyInferer:
         if isinstance(index, ABCIndex):
             # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"
-            self._reso = get_unit_from_dtype(
+            self._creso = get_unit_from_dtype(
                 index._data._ndarray.dtype  # type: ignore[union-attr]
             )
         else:
             # otherwise we have DTA/TDA
-            self._reso = get_unit_from_dtype(index._ndarray.dtype)
+            self._creso = get_unit_from_dtype(index._ndarray.dtype)
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tz_convert_from_utc(self.i8values, index.tz)
-
-        if warn is not True:
-            warnings.warn(
-                "warn is deprecated (and never implemented) and "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=3,
-            )
-        self.warn = warn
+                self.i8values = tz_convert_from_utc(
+                    self.i8values, index.tz, reso=self._creso
+                )
 
         if len(index) < 3:
             raise ValueError("Need at least 3 dates to infer frequency")
@@ -276,7 +242,7 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         if delta and _is_multiple(delta, ppd):
             return self._infer_daily_rule()
 
@@ -315,17 +281,17 @@ class _FrequencyInferer:
 
     @cache_readonly
     def day_deltas(self) -> list[int]:
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         return [x / ppd for x in self.deltas]
 
     @cache_readonly
     def hour_deltas(self) -> list[int]:
-        pph = periods_per_day(self._reso) // 24
+        pph = periods_per_day(self._creso) // 24
         return [x / pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
-        return build_field_sarray(self.i8values, reso=self._reso)
+        return build_field_sarray(self.i8values, reso=self._creso)
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
@@ -376,7 +342,7 @@ class _FrequencyInferer:
         return None
 
     def _get_daily_rule(self) -> str | None:
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         days = self.deltas[0] / ppd
         if days % 7 == 0:
             # Weekly
@@ -431,8 +397,8 @@ class _FrequencyInferer:
 
         # probably business daily, but need to confirm
         first_weekday = self.index[0].weekday()
-        shifts = np.diff(self.index.asi8)
-        ppd = periods_per_day(self._reso)
+        shifts = np.diff(self.i8values)
+        ppd = periods_per_day(self._creso)
         shifts = np.floor_divide(shifts, ppd)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
 
@@ -641,7 +607,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "M" or rule == "BM"
+    return rule in ("M", "BM")
 
 
 def _is_weekly(rule: str) -> bool:
@@ -651,7 +617,6 @@ def _is_weekly(rule: str) -> bool:
 
 __all__ = [
     "Day",
-    "get_offset",
     "get_period_alias",
     "infer_freq",
     "is_subperiod",

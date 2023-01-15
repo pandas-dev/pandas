@@ -6,8 +6,8 @@ from typing import (
     Hashable,
 )
 
+from matplotlib import patches
 import matplotlib.lines as mlines
-import matplotlib.patches as patches
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -201,7 +201,7 @@ def radviz(
             ax.text(
                 xy[0] - 0.025, xy[1] - 0.025, name, ha="right", va="top", size="small"
             )
-        elif xy[0] < 0.0 and xy[1] >= 0.0:
+        elif xy[0] < 0.0 <= xy[1]:
             ax.text(
                 xy[0] - 0.025,
                 xy[1] + 0.025,
@@ -210,7 +210,7 @@ def radviz(
                 va="bottom",
                 size="small",
             )
-        elif xy[0] >= 0.0 and xy[1] < 0.0:
+        elif xy[1] < 0.0 <= xy[0]:
             ax.text(
                 xy[0] + 0.025, xy[1] - 0.025, name, ha="left", va="top", size="small"
             )
@@ -387,7 +387,7 @@ def parallel_coordinates(
     elif xticks is not None:
         if not np.all(np.isreal(xticks)):
             raise ValueError("xticks specified must be numeric")
-        elif len(xticks) != ncols:
+        if len(xticks) != ncols:
             raise ValueError("Length of xticks must match number of columns")
         x = xticks
     else:
@@ -479,7 +479,6 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwds) -> Axes
 
 def unpack_single_str_list(keys):
     # GH 42795
-    if isinstance(keys, list):
-        if len(keys) == 1 and isinstance(keys[0], str):
-            keys = keys[0]
+    if isinstance(keys, list) and len(keys) == 1:
+        keys = keys[0]
     return keys

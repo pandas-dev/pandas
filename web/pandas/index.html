@@ -44,12 +44,12 @@
                 <section>
                     <h5>With the support of:</h5>
                     {% for row in sponsors.active | batch(6, "") %}
-                        <div class="row h-100">
+                        <div class="row mx-auto h-100">
                             {% for company in row %}
-                                <div class="col-sm-6 col-md-2 my-auto">
+                                <div class="col-6 col-md-2">
                                     {% if company %}
                                         <a href="{{ company.url }}" target="_blank">
-                                            <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                            <img class="img-fluid img-thumnail py-5 mx-auto" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
                                         </a>
                                     {% endif %}
                                 </div>
@@ -66,7 +66,6 @@
                         <li><a href="docs/whatsnew/v{{ releases[0].name }}.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
                         <li><a href="{{ base_url}}/docs/">Documentation (web)</a></li>
-                        <li><a href="{{ base_url }}/docs/pandas.pdf">Documentation (pdf)</a></li>
                         <li><a href="{{ releases[0].url }}">Download source code</a></li>
                     </ul>
                 {% endif %}
@@ -88,7 +87,7 @@
                 </div>
 				<h4>Get the book</h4>
 				<p class="book">
-					<a href="https://amzn.to/2KI5JJw">
+					<a href="https://amzn.to/3DyLaJc">
 						<img class="img-fluid" alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
 					</a>
 				</p>
@@ -100,7 +99,6 @@
                                 {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/pandas.pdf">pdf</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}
@@ -116,7 +114,6 @@
                                 {{ release.name }} ({{ release.published.strftime("%Y-%m-%d") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/pandas.pdf">pdf</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}

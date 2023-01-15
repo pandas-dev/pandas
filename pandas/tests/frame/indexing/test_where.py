@@ -363,7 +363,7 @@ class TestDataFrameIndexingWhere:
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
-    def test_where_datetime(self, using_array_manager):
+    def test_where_datetime(self):
 
         # GH 3311
         df = DataFrame(
@@ -384,10 +384,7 @@ class TestDataFrameIndexingWhere:
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
 
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected.loc[:, "C"] = np.nan
+        expected.loc[:, "C"] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -461,7 +458,7 @@ class TestDataFrameIndexingWhere:
         df[df.abs() >= 5] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_where_axis(self, using_array_manager):
+    def test_where_axis(self):
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
@@ -515,7 +512,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_multiple_dtypes(self, using_array_manager):
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -553,7 +550,8 @@ class TestDataFrameIndexingWhere:
 
         # DataFrame vs DataFrame
         d1 = df.copy().drop(1, axis=0)
-        expected = df.copy()
+        # Explicit cast to avoid implicit cast when setting value to np.nan
+        expected = df.copy().astype("float")
         expected.loc[1, :] = np.nan
 
         result = df.where(mask, d1)
@@ -571,10 +569,7 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected.loc[:, 1] = np.nan
+        expected.loc[:, 1] = np.nan
 
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
@@ -647,7 +642,8 @@ class TestDataFrameIndexingWhere:
     @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
-        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        data = np.arange(2 * 3, dtype=np.int64).reshape(2, 3)
+        df = DataFrame(data, columns=list("ABC"))
         mask = np.array([[True, False, False], [False, False, True]])
 
         # change type to category
@@ -675,7 +671,8 @@ class TestDataFrameIndexingWhere:
         df["b"] = df["b"].astype("category")
 
         result = df.where(df["a"] > 0)
-        expected = df.copy()
+        # Explicitly cast to 'float' to avoid implicit cast when setting np.nan
+        expected = df.copy().astype({"a": "float"})
         expected.loc[0, :] = np.nan
 
         tm.assert_equal(result, expected)
@@ -762,17 +759,6 @@ class TestDataFrameIndexingWhere:
         # unlike where, Block.putmask does not downcast
         df.mask(~mask2, 4, inplace=True)
         tm.assert_frame_equal(df, expected.astype(object))
-
-
-def test_where_try_cast_deprecated(frame_or_series):
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
-
-    mask = obj > 0
-
-    with tm.assert_produces_warning(FutureWarning):
-        # try_cast keyword deprecated
-        obj.where(mask, -1, try_cast=False)
 
 
 def test_where_int_downcasting_deprecated():
@@ -872,20 +858,6 @@ def test_where_duplicate_axes_mixed_dtypes():
     tm.assert_frame_equal(a.astype("f8"), b.astype("f8"))
     tm.assert_frame_equal(b.astype("f8"), c.astype("f8"))
     tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
-
-
-def test_where_non_keyword_deprecation(frame_or_series):
-    # GH 41485
-    obj = frame_or_series(range(5))
-    msg = (
-        "In a future version of pandas all arguments of "
-        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
-        "and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = obj.where(obj > 1, 10, False)
-    expected = frame_or_series([10, 10, 2, 3, 4])
-    tm.assert_equal(expected, result)
 
 
 def test_where_columns_casting():
@@ -1034,15 +1006,23 @@ def test_where_dt64_2d():
     _check_where_equivalences(df, mask, other, expected)
 
 
-def test_where_mask_deprecated(frame_or_series):
-    # GH 47728
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
+def test_where_producing_ea_cond_for_np_dtype():
+    # GH#44014
+    df = DataFrame({"a": Series([1, pd.NA, 2], dtype="Int64"), "b": [1, 2, 3]})
+    result = df.where(lambda x: x.apply(lambda y: y > 1, axis=1))
+    expected = DataFrame(
+        {"a": Series([pd.NA, pd.NA, 2], dtype="Int64"), "b": [np.nan, 2, 3]}
+    )
+    tm.assert_frame_equal(result, expected)
 
-    mask = obj > 0
 
-    with tm.assert_produces_warning(FutureWarning):
-        obj.where(mask, -1, errors="raise")
+@pytest.mark.parametrize(
+    "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
+)
+def test_where_int_overflow(replacement):
+    # GH 31687
+    df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
+    result = df.where(pd.notnull(df), replacement)
+    expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 
-    with tm.assert_produces_warning(FutureWarning):
-        obj.mask(mask, -1, errors="raise")
+    tm.assert_frame_equal(result, expected)

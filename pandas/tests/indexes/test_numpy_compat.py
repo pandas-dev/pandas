@@ -10,10 +10,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    NumericIndex,
-)
+from pandas.api.types import is_complex_dtype
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
@@ -77,12 +75,22 @@ def test_numpy_ufuncs_basic(index, func):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
-            exp = Index(func(index.values), name=index.name)
+            arr_result = func(index.values)
+            if arr_result.dtype == np.float16:
+                arr_result = arr_result.astype(np.float32)
+            exp = Index(arr_result, name=index.name)
 
         tm.assert_index_equal(result, exp)
         if type(index) is not Index or index.dtype == bool:
-            # i.e NumericIndex
-            assert isinstance(result, Float64Index)
+            assert type(result) is NumericIndex
+            if is_complex_dtype(index):
+                assert result.dtype == "complex64"
+            elif index.dtype in ["bool", "int8", "uint8"]:
+                assert result.dtype in ["float16", "float32"]
+            elif index.dtype in ["int16", "uint16", "float32"]:
+                assert result.dtype == "float32"
+            else:
+                assert result.dtype == "float64"
         else:
             # e.g. np.exp with Int64 -> Float64
             assert type(result) is Index
@@ -178,3 +186,16 @@ def test_numpy_ufuncs_reductions(index, func, request):
         assert isna(expected)
     else:
         assert result == expected
+
+
+@pytest.mark.parametrize("func", [np.bitwise_and, np.bitwise_or, np.bitwise_xor])
+def test_numpy_ufuncs_bitwise(func):
+    # https://github.com/pandas-dev/pandas/issues/46769
+    idx1 = Index([1, 2, 3, 4], dtype="int64")
+    idx2 = Index([3, 4, 5, 6], dtype="int64")
+
+    with tm.assert_produces_warning(None):
+        result = func(idx1, idx2)
+
+    expected = Index(func(idx1.values, idx2.values))
+    tm.assert_index_equal(result, expected)

@@ -522,7 +522,7 @@ class HTMLFormatter:
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
-                for ix_col in range(len(fmt_values)):
+                for ix_col in fmt_values:
                     fmt_values[ix_col].insert(ins_row, "...")
                 nrows += 1
 

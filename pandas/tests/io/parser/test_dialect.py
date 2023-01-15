@@ -97,9 +97,9 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
 
     # arg=None tests when we pass in the dialect without any other arguments.
     if arg is not None:
-        if "value" == "dialect":  # No conflict --> no warning.
+        if value == "dialect":  # No conflict --> no warning.
             kwds[arg] = dialect_kwargs[arg]
-        elif "value" == "default":  # Default --> no warning.
+        elif value == "default":  # Default --> no warning.
             from pandas.io.parsers.base_parser import parser_defaults
 
             kwds[arg] = parser_defaults[arg]
@@ -108,9 +108,14 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
             kwds[arg] = "blah"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
-        with tm.assert_produces_warning(warning_klass):
-            result = parser.read_csv(StringIO(data), dialect=dialect_name, **kwds)
-            tm.assert_frame_equal(result, expected)
+        result = parser.read_csv_check_warnings(
+            warning_klass,
+            "Conflicting values for",
+            StringIO(data),
+            dialect=dialect_name,
+            **kwds,
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -141,6 +146,11 @@ def test_dialect_conflict_delimiter(all_parsers, custom_dialect, kwargs, warning
     data = "a:b\n1:2"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
-        with tm.assert_produces_warning(warning_klass):
-            result = parser.read_csv(StringIO(data), dialect=dialect_name, **kwargs)
-            tm.assert_frame_equal(result, expected)
+        result = parser.read_csv_check_warnings(
+            warning_klass,
+            "Conflicting values for 'delimiter'",
+            StringIO(data),
+            dialect=dialect_name,
+            **kwargs,
+        )
+        tm.assert_frame_equal(result, expected)

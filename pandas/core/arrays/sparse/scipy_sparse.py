@@ -177,7 +177,7 @@ def coo_to_sparse_series(
     A: scipy.sparse.coo_matrix, dense_index: bool = False
 ) -> Series:
     """
-    Convert a scipy.sparse.coo_matrix to a SparseSeries.
+    Convert a scipy.sparse.coo_matrix to a Series with type sparse.
 
     Parameters
     ----------

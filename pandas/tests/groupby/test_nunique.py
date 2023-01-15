@@ -172,7 +172,7 @@ def test_nunique_preserves_column_level_names():
     # GH 23222
     test = DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
     result = test.groupby([0, 0, 0]).nunique()
-    expected = DataFrame([2], columns=test.columns)
+    expected = DataFrame([2], index=np.array([0]), columns=test.columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -181,4 +181,17 @@ def test_nunique_transform_with_datetime():
     df = DataFrame(date_range("2008-12-31", "2009-01-02"), columns=["date"])
     result = df.groupby([0, 0, 1])["date"].transform("nunique")
     expected = Series([2, 2, 1], name="date")
+    tm.assert_series_equal(result, expected)
+
+
+def test_empty_categorical(observed):
+    # GH#21334
+    cat = Series([1]).astype("category")
+    ser = cat[:0]
+    gb = ser.groupby(ser, observed=observed)
+    result = gb.nunique()
+    if observed:
+        expected = Series([], index=cat[:0], dtype="int64")
+    else:
+        expected = Series([0], index=cat, dtype="int64")
     tm.assert_series_equal(result, expected)

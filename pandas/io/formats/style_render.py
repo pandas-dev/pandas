@@ -22,7 +22,10 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Level
+from pandas._typing import (
+    Axis,
+    Level,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -95,7 +98,7 @@ class StylerRenderer:
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
-        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+        if not isinstance(uuid_len, int) or uuid_len < 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
         self.uuid_len = len(self.uuid)
@@ -116,7 +119,7 @@ class StylerRenderer:
             "blank": "blank",
             "foot": "foot",
         }
-        self.concatenated: StylerRenderer | None = None
+        self.concatenated: list[StylerRenderer] = []
         # add rendering variables
         self.hide_index_names: bool = False
         self.hide_column_names: bool = False
@@ -158,27 +161,34 @@ class StylerRenderer:
         stylers for use within `_translate_latex`
         """
         self._compute()
-        dx = None
-        if self.concatenated is not None:
-            self.concatenated.hide_index_ = self.hide_index_
-            self.concatenated.hidden_columns = self.hidden_columns
-            self.concatenated.css = {
+        dxs = []
+        ctx_len = len(self.index)
+        for i, concatenated in enumerate(self.concatenated):
+            concatenated.hide_index_ = self.hide_index_
+            concatenated.hidden_columns = self.hidden_columns
+            foot = f"{self.css['foot']}{i}"
+            concatenated.css = {
                 **self.css,
-                "data": f"{self.css['foot']}_{self.css['data']}",
-                "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
-                "row": f"{self.css['foot']}_{self.css['row']}",
-                "foot": self.css["foot"],
+                "data": f"{foot}_data",
+                "row_heading": f"{foot}_row_heading",
+                "row": f"{foot}_row",
+                "foot": f"{foot}_foot",
             }
-            dx = self.concatenated._render(
+            dx = concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+            dxs.append(dx)
 
-            for (r, c), v in self.concatenated.ctx.items():
-                self.ctx[(r + len(self.index), c)] = v
-            for (r, c), v in self.concatenated.ctx_index.items():
-                self.ctx_index[(r + len(self.index), c)] = v
+            for (r, c), v in concatenated.ctx.items():
+                self.ctx[(r + ctx_len, c)] = v
+            for (r, c), v in concatenated.ctx_index.items():
+                self.ctx_index[(r + ctx_len, c)] = v
 
-        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
+            ctx_len += len(concatenated.index)
+
+        d = self._translate(
+            sparse_index, sparse_columns, max_rows, max_cols, blank, dxs
+        )
         return d
 
     def _render_html(
@@ -255,7 +265,7 @@ class StylerRenderer:
         max_rows: int | None = None,
         max_cols: int | None = None,
         blank: str = "&nbsp;",
-        dx: dict | None = None,
+        dxs: list[dict] | None = None,
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -275,8 +285,8 @@ class StylerRenderer:
             Specific max rows and cols. max_elements always take precedence in render.
         blank : str
             Entry to top-left blank cells.
-        dx : dict
-            The render dict of the concatenated Styler.
+        dxs : list[dict]
+            The render dicts of the concatenated Stylers.
 
         Returns
         -------
@@ -284,6 +294,8 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
+        if dxs is None:
+            dxs = []
         self.css["blank_value"] = blank
 
         # construct render dict
@@ -337,10 +349,12 @@ class StylerRenderer:
             ]
             d.update({k: map})
 
-        if dx is not None:  # self.concatenated is not None
+        for dx in dxs:  # self.concatenated is not empty
             d["body"].extend(dx["body"])  # type: ignore[union-attr]
             d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
-            d["cellstyle_index"].extend(dx["cellstyle"])  # type: ignore[union-attr]
+            d["cellstyle_index"].extend(  # type: ignore[union-attr]
+                dx["cellstyle_index"]
+            )
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):
@@ -396,11 +410,11 @@ class StylerRenderer:
         for r, hide in enumerate(self.hide_columns_):
             if hide or not clabels:
                 continue
-            else:
-                header_row = self._generate_col_header_row(
-                    (r, clabels), max_cols, col_lengths
-                )
-                head.append(header_row)
+
+            header_row = self._generate_col_header_row(
+                (r, clabels), max_cols, col_lengths
+            )
+            head.append(header_row)
 
         # 2) index names
         if (
@@ -618,13 +632,13 @@ class StylerRenderer:
 
     def _check_trim(
         self,
-        count,
-        max,
-        obj,
-        element,
-        css=None,
-        value="...",
-    ):
+        count: int,
+        max: int,
+        obj: list,
+        element: str,
+        css: str | None = None,
+        value: str = "...",
+    ) -> bool:
         """
         Indicates whether to break render loops and append a trimming indicator
 
@@ -844,23 +858,27 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
 
-        def concatenated_visible_rows(obj, n, row_indices):
+        def _concatenated_visible_rows(obj, n, row_indices):
             """
             Extract all visible row indices recursively from concatenated stylers.
             """
             row_indices.extend(
                 [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
             )
-            return (
-                row_indices
-                if obj.concatenated is None
-                else concatenated_visible_rows(
-                    obj.concatenated, n + len(obj.index), row_indices
-                )
-            )
+            n += len(obj.index)
+            for concatenated in obj.concatenated:
+                n = _concatenated_visible_rows(concatenated, n, row_indices)
+            return n
+
+        def concatenated_visible_rows(obj):
+            row_indices: list[int] = []
+            _concatenated_visible_rows(obj, 0, row_indices)
+            # TODO try to consolidate the concat visible rows
+            # methods to a single function / recursion for simplicity
+            return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self, 0, []), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"]):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
@@ -901,7 +919,7 @@ class StylerRenderer:
                 f"`clines` value of {clines} is invalid. Should either be None or one "
                 f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
             )
-        elif clines is not None:
+        if clines is not None:
             data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)
@@ -984,7 +1002,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1107,8 +1125,8 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
-        >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
-        ...  # doctest: +SKIP
+        >>> filename = "formatted_file.xlsx"
+        >>> df.style.applymap(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1154,7 +1172,7 @@ class StylerRenderer:
     def format_index(
         self,
         formatter: ExtFormatter | None = None,
-        axis: int | str = 0,
+        axis: Axis = 0,
         level: Level | list[Level] | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
@@ -1200,7 +1218,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1339,10 +1357,168 @@ class StylerRenderer:
 
         return self
 
+    def relabel_index(
+        self,
+        labels: Sequence | Index,
+        axis: Axis = 0,
+        level: Level | list[Level] | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Relabel the index, or column header, keys to display a set of specified values.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        labels : list-like or Index
+            New labels to display. Must have same length as the underlying values not
+            hidden.
+        axis : {"index", 0, "columns", 1}
+            Apply to the index or columns.
+        level : int, str, list, optional
+            The level(s) over which to apply the new labels. If `None` will apply
+            to all levels of an Index or MultiIndex which are not hidden.
+
+        Returns
+        -------
+        Styler
+
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index or column headers.
+        Styler.hide: Hide the index, column headers, or specified data from display.
+
+        Notes
+        -----
+        As part of Styler, this method allows the display of an index to be
+        completely user-specified without affecting the underlying DataFrame data,
+        index, or column headers. This means that the flexibility of indexing is
+        maintained whilst the final display is customisable.
+
+        Since Styler is designed to be progressively constructed with method chaining,
+        this method is adapted to react to the **currently specified hidden elements**.
+        This is useful because it means one does not have to specify all the new
+        labels if the majority of an index, or column headers, have already been hidden.
+        The following produce equivalent display (note the length of ``labels`` in
+        each case).
+
+        .. code-block:: python
+
+            # relabel first, then hide
+            df = pd.DataFrame({"col": ["a", "b", "c"]})
+            df.style.relabel_index(["A", "B", "C"]).hide([0,1])
+            # hide first, then relabel
+            df = pd.DataFrame({"col": ["a", "b", "c"]})
+            df.style.hide([0,1]).relabel_index(["C"])
+
+        This method should be used, rather than :meth:`Styler.format_index`, in one of
+        the following cases (see examples):
+
+          - A specified set of labels are required which are not a function of the
+            underlying index keys.
+          - The function of the underlying index keys requires a counter variable,
+            such as those available upon enumeration.
+
+        Examples
+        --------
+        Basic use
+
+        >>> df = pd.DataFrame({"col": ["a", "b", "c"]})
+        >>> df.style.relabel_index(["A", "B", "C"])  # doctest: +SKIP
+             col
+        A      a
+        B      b
+        C      c
+
+        Chaining with pre-hidden elements
+
+        >>> df.style.hide([0,1]).relabel_index(["C"])  # doctest: +SKIP
+             col
+        C      c
+
+        Using a MultiIndex
+
+        >>> midx = pd.MultiIndex.from_product([[0, 1], [0, 1], [0, 1]])
+        >>> df = pd.DataFrame({"col": list(range(8))}, index=midx)
+        >>> styler = df.style  # doctest: +SKIP
+                  col
+        0  0  0     0
+              1     1
+           1  0     2
+              1     3
+        1  0  0     4
+              1     5
+           1  0     6
+              1     7
+        >>> styler.hide((midx.get_level_values(0)==0)|(midx.get_level_values(1)==0))
+        ...  # doctest: +SKIP
+        >>> styler.hide(level=[0,1])  # doctest: +SKIP
+        >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
+                  col
+        binary6     6
+        binary7     7
+
+        We can also achieve the above by indexing first and then re-labeling
+
+        >>> styler = df.loc[[(1,1,0), (1,1,1)]].style
+        >>> styler.hide(level=[0,1]).relabel_index(["binary6", "binary7"])
+        ...  # doctest: +SKIP
+                  col
+        binary6     6
+        binary7     7
+
+        Defining a formatting function which uses an enumeration counter. Also note
+        that the value of the index key is passed in the case of string labels so it
+        can also be inserted into the label, using curly brackets (or double curly
+        brackets if the string if pre-formatted),
+
+        >>> df = pd.DataFrame({"samples": np.random.rand(10)})
+        >>> styler = df.loc[np.random.randint(0,10,3)].style
+        >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
+        ...  # doctest: +SKIP
+                         samples
+        sample1 (5)     0.315811
+        sample2 (0)     0.495941
+        sample3 (2)     0.067946
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+            hidden_labels, hidden_lvls = self.hidden_rows, self.hide_index_
+        else:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+            hidden_labels, hidden_lvls = self.hidden_columns, self.hide_columns_
+        visible_len = len(obj) - len(set(hidden_labels))
+        if len(labels) != visible_len:
+            raise ValueError(
+                "``labels`` must be of length equal to the number of "
+                f"visible labels along ``axis`` ({visible_len})."
+            )
+
+        if level is None:
+            level = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
+        levels_ = refactor_levels(level, obj)
+
+        def alias_(x, value):
+            if isinstance(value, str):
+                return value.format(x)
+            return value
+
+        for ai, i in enumerate([i for i in range(len(obj)) if i not in hidden_labels]):
+            if len(levels_) == 1:
+                idx = (i, levels_[0]) if axis == 0 else (levels_[0], i)
+                display_funcs_[idx] = partial(alias_, value=labels[ai])
+            else:
+                for aj, lvl in enumerate(levels_):
+                    idx = (i, lvl) if axis == 0 else (lvl, i)
+                    display_funcs_[idx] = partial(alias_, value=labels[ai][aj])
+
+        return self
+
 
 def _element(
     html_element: str,
-    html_class: str,
+    html_class: str | None,
     value: Any,
     is_visible: bool,
     **kwargs,
@@ -1367,7 +1543,7 @@ def _get_trimming_maximums(
     max_elements,
     max_rows=None,
     max_cols=None,
-    scaling_factor=0.8,
+    scaling_factor: float = 0.8,
 ) -> tuple[int, int]:
     """
     Recursively reduce the number of rows and columns to satisfy max elements.
@@ -2067,14 +2243,14 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     """
 
     def font_weight(value, arg):
-        if value == "bold" or value == "bolder":
+        if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
     def font_style(value, arg):
         if value == "italic":
             return "itshape", f"{arg}"
-        elif value == "oblique":
+        if value == "oblique":
             return "slshape", f"{arg}"
         return None
 
@@ -2123,7 +2299,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         if isinstance(value, str) and "--latex" in value:
             # return the style without conversion but drop '--latex'
             latex_styles.append((attribute, value.replace("--latex", "")))
-        if attribute in CONVERTED_ATTRIBUTES.keys():
+        if attribute in CONVERTED_ATTRIBUTES:
             arg = ""
             for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
                 if x in str(value):

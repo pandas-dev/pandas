@@ -188,13 +188,16 @@ class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
-        result = getattr(s, op_name)(skipna=skipna)
-        if not skipna and s.isna().any():
-            expected = pd.NA
+        if op_name == "count":
+            result = getattr(s, op_name)()
+            expected = getattr(s.dropna().astype(s.dtype.numpy_dtype), op_name)()
         else:
+            result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(s.dropna().astype(s.dtype.numpy_dtype), op_name)(
                 skipna=skipna
             )
+            if not skipna and s.isna().any():
+                expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
 
@@ -211,5 +214,12 @@ class TestParsing(base.BaseParsingTests):
     pass
 
 
+@pytest.mark.filterwarnings("ignore:overflow encountered in reduce:RuntimeWarning")
 class Test2DCompat(base.Dim2CompatTests):
     pass
+
+
+class TestAccumulation(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass

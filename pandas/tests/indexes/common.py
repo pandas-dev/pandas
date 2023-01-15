@@ -285,7 +285,7 @@ class Base:
         if index.inferred_type == "object":
             assert result3 > result2
 
-    def test_argsort(self, request, index):
+    def test_argsort(self, index):
         # separately tested
         if isinstance(index, CategoricalIndex):
             return
@@ -610,8 +610,10 @@ class Base:
 
         idx = simple_index
         if isinstance(idx, CategoricalIndex):
-            # TODO(2.0): see if we can avoid skipping once
-            #  CategoricalIndex.reindex is removed.
+            # FIXME: this fails with CategoricalIndex bc it goes through
+            # Categorical.map which ends up calling get_indexer with
+            #  non-unique values, which raises.  This _should_ work fine for
+            #  CategoricalIndex.
             pytest.skip(f"skipping tests for {type(idx)}")
 
         identity = mapper(idx.values, idx)
@@ -699,20 +701,16 @@ class Base:
     def test_getitem_2d_deprecated(self, simple_index):
         # GH#30588, GH#31479
         idx = simple_index
-        msg = "Support for multi-dimensional indexing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = idx[:, None]
-
-        assert isinstance(res, np.ndarray), type(res)
+        msg = "Multi-dimensional indexing"
+        with pytest.raises(ValueError, match=msg):
+            idx[:, None]
 
         if not isinstance(idx, RangeIndex):
-            # GH#44051 RangeIndex already raises
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                res = idx[True]
-            assert isinstance(res, np.ndarray), type(res)
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                res = idx[False]
-            assert isinstance(res, np.ndarray), type(res)
+            # GH#44051 RangeIndex already raised pre-2.0 with a different message
+            with pytest.raises(ValueError, match=msg):
+                idx[True]
+            with pytest.raises(ValueError, match=msg):
+                idx[False]
         else:
             msg = "only integers, slices"
             with pytest.raises(IndexError, match=msg):
@@ -799,6 +797,31 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
+    def test_is_boolean_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_boolean()
+
+    def test_is_floating_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_floating()
+
+    def test_is_integer_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_integer()
+
+    def test_holds_integer_deprecated(self, simple_index):
+        # GH50243
+        idx = simple_index
+        msg = f"{type(idx).__name__}.holds_integer is deprecated. "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx.holds_integer()
+
 
 class NumericBase(Base):
     """
@@ -822,6 +845,19 @@ class NumericBase(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_view(self, dtype):
+        index_cls = self._index_cls
+
+        idx = index_cls([], dtype=dtype, name="Foo")
+        idx_view = idx.view()
+        assert idx_view.name == "Foo"
+
+        idx_view = idx.view(dtype)
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+
+        idx_view = idx.view(index_cls)
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+
     def test_format(self, simple_index):
         # GH35439
         idx = simple_index
@@ -839,11 +875,7 @@ class NumericBase(Base):
 
         result = index.insert(0, index[0])
 
-        cls = type(index)
-        if cls is RangeIndex:
-            cls = Int64Index
-
-        expected = cls([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0]] + list(index), dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -854,7 +886,7 @@ class NumericBase(Base):
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
         else:
-            expected = Float64Index([index[0], np.nan] + list(index[1:]))
+            expected = Index([index[0], np.nan] + list(index[1:]))
 
             if index._is_backward_compat_public_numeric_index:
                 # GH#43921 we preserve NumericIndex
@@ -900,3 +932,9 @@ class NumericBase(Base):
         msg = rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
         with pytest.raises(ValueError, match=msg):
             self._index_cls([1, 2, 3], dtype=dtype)
+
+    @pytest.mark.parametrize("complex_dtype", [np.complex64, np.complex128])
+    def test_astype_to_complex(self, complex_dtype, simple_index):
+        result = simple_index.astype(complex_dtype)
+
+        assert type(result) is Index and result.dtype == complex_dtype

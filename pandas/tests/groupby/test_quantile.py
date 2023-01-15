@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._libs import lib
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -63,7 +61,8 @@ def test_quantile(interpolation, a_vals, b_vals, q, request):
 def test_quantile_array():
     # https://github.com/pandas-dev/pandas/issues/27526
     df = DataFrame({"A": [0, 1, 2, 3, 4]})
-    result = df.groupby([0, 0, 1, 1, 1]).quantile([0.25])
+    key = np.array([0, 0, 1, 1, 1], dtype=np.int64)
+    result = df.groupby(key).quantile([0.25])
 
     index = pd.MultiIndex.from_product([[0, 1], [0.25]])
     expected = DataFrame({"A": [0.25, 2.50]}, index=index)
@@ -72,7 +71,8 @@ def test_quantile_array():
     df = DataFrame({"A": [0, 1, 2, 3], "B": [4, 5, 6, 7]})
     index = pd.MultiIndex.from_product([[0, 1], [0.25, 0.75]])
 
-    result = df.groupby([0, 0, 1, 1]).quantile([0.25, 0.75])
+    key = np.array([0, 0, 1, 1], dtype=np.int64)
+    result = df.groupby(key).quantile([0.25, 0.75])
     expected = DataFrame(
         {"A": [0.25, 0.75, 2.25, 2.75], "B": [4.25, 4.75, 6.25, 6.75]}, index=index
     )
@@ -81,9 +81,8 @@ def test_quantile_array():
 
 def test_quantile_array2():
     # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
-    df = DataFrame(
-        np.random.RandomState(0).randint(0, 5, size=(10, 3)), columns=list("ABC")
-    )
+    arr = np.random.RandomState(0).randint(0, 5, size=(10, 3), dtype=np.int64)
+    df = DataFrame(arr, columns=list("ABC"))
     result = df.groupby("A").quantile([0.3, 0.7])
     expected = DataFrame(
         {
@@ -99,14 +98,15 @@ def test_quantile_array2():
 
 def test_quantile_array_no_sort():
     df = DataFrame({"A": [0, 1, 2], "B": [3, 4, 5]})
-    result = df.groupby([1, 0, 1], sort=False).quantile([0.25, 0.5, 0.75])
+    key = np.array([1, 0, 1], dtype=np.int64)
+    result = df.groupby(key, sort=False).quantile([0.25, 0.5, 0.75])
     expected = DataFrame(
         {"A": [0.5, 1.0, 1.5, 1.0, 1.0, 1.0], "B": [3.5, 4.0, 4.5, 4.0, 4.0, 4.0]},
         index=pd.MultiIndex.from_product([[1, 0], [0.25, 0.5, 0.75]]),
     )
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby([1, 0, 1], sort=False).quantile([0.75, 0.25])
+    result = df.groupby(key, sort=False).quantile([0.75, 0.25])
     expected = DataFrame(
         {"A": [1.5, 0.5, 1.0, 1.0], "B": [4.5, 3.5, 4.0, 4.0]},
         index=pd.MultiIndex.from_product([[1, 0], [0.75, 0.25]]),
@@ -137,7 +137,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
     nrow, ncol = frame_size
     df = DataFrame(np.array([ncol * [_ % 4] for _ in range(nrow)]), columns=range(ncol))
 
-    idx_levels = [list(range(min(nrow, 4)))] * len(groupby) + [q]
+    idx_levels = [np.arange(min(nrow, 4))] * len(groupby) + [q]
     idx_codes = [[x for x in range(min(nrow, 4)) for _ in q]] * len(groupby) + [
         list(range(len(q))) * min(nrow, 4)
     ]
@@ -160,10 +160,7 @@ def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
     with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid columns"
-        ):
-            df.groupby("key").quantile()
+        df.groupby("key").quantile()
 
 
 def test_quantile_out_of_bounds_q_raises():
@@ -237,21 +234,16 @@ def test_groupby_quantile_nullable_array(values, q):
         idx = Index(["x", "y"], name="a")
         true_quantiles = [0.5]
 
-    expected = pd.Series(true_quantiles * 2, index=idx, name="b")
+    expected = pd.Series(true_quantiles * 2, index=idx, name="b", dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
-@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
-def test_groupby_quantile_skips_invalid_dtype(q, numeric_only):
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
-
-    if numeric_only is lib.no_default or numeric_only:
-        warn = FutureWarning if numeric_only is lib.no_default else None
-        msg = "The default value of numeric_only in DataFrameGroupBy.quantile"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.groupby("a").quantile(q, numeric_only=numeric_only)
-
+    if numeric_only:
+        result = df.groupby("a").quantile(q, numeric_only=numeric_only)
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
@@ -266,14 +258,21 @@ def test_groupby_quantile_NA_float(any_float_dtype):
     df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
-    expected = pd.Series([0.2], dtype=float, index=exp_index, name="y")
-    tm.assert_series_equal(expected, result)
+
+    if any_float_dtype in ["Float32", "Float64"]:
+        expected_dtype = any_float_dtype
+    else:
+        expected_dtype = None
+
+    expected = pd.Series([0.2], dtype=expected_dtype, index=exp_index, name="y")
+    tm.assert_series_equal(result, expected)
 
     result = df.groupby("x")["y"].quantile([0.5, 0.75])
     expected = pd.Series(
         [0.2] * 2,
         index=pd.MultiIndex.from_product((exp_index, [0.5, 0.75]), names=["x", None]),
         name="y",
+        dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
@@ -283,12 +282,68 @@ def test_groupby_quantile_NA_int(any_int_ea_dtype):
     df = DataFrame({"x": [1, 1], "y": [2, 5]}, dtype=any_int_ea_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [3.5], dtype=float, index=Index([1], name="x", dtype=any_int_ea_dtype), name="y"
+        [3.5],
+        dtype="Float64",
+        index=Index([1], name="x", dtype=any_int_ea_dtype),
+        name="y",
     )
     tm.assert_series_equal(expected, result)
 
     result = df.groupby("x").quantile(0.5)
-    expected = DataFrame({"y": 3.5}, index=Index([1], name="x", dtype=any_int_ea_dtype))
+    expected = DataFrame(
+        {"y": 3.5}, dtype="Float64", index=Index([1], name="x", dtype=any_int_ea_dtype)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "interpolation, val1, val2", [("lower", 2, 2), ("higher", 2, 3), ("nearest", 2, 2)]
+)
+def test_groupby_quantile_all_na_group_masked(
+    interpolation, val1, val2, any_numeric_ea_dtype
+):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 1, 2], "b": [1, 2, 3, pd.NA]}, dtype=any_numeric_ea_dtype
+    )
+    result = df.groupby("a").quantile(q=[0.5, 0.7], interpolation=interpolation)
+    expected = DataFrame(
+        {"b": [val1, val2, pd.NA, pd.NA]},
+        dtype=any_numeric_ea_dtype,
+        index=pd.MultiIndex.from_arrays(
+            [pd.Series([1, 1, 2, 2], dtype=any_numeric_ea_dtype), [0.5, 0.7, 0.5, 0.7]],
+            names=["a", None],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("interpolation", ["midpoint", "linear"])
+def test_groupby_quantile_all_na_group_masked_interp(
+    interpolation, any_numeric_ea_dtype
+):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 1, 2], "b": [1, 2, 3, pd.NA]}, dtype=any_numeric_ea_dtype
+    )
+    result = df.groupby("a").quantile(q=[0.5, 0.75], interpolation=interpolation)
+
+    if any_numeric_ea_dtype == "Float32":
+        expected_dtype = any_numeric_ea_dtype
+    else:
+        expected_dtype = "Float64"
+
+    expected = DataFrame(
+        {"b": [2.0, 2.5, pd.NA, pd.NA]},
+        dtype=expected_dtype,
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Series([1, 1, 2, 2], dtype=any_numeric_ea_dtype),
+                [0.5, 0.75, 0.5, 0.75],
+            ],
+            names=["a", None],
+        ),
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -298,7 +353,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=float, index=Index([1.0], dtype=dtype), name="y"
+        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)

@@ -17,6 +17,7 @@ from io import BytesIO
 import os
 import struct
 import sys
+from types import TracebackType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -41,10 +42,17 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.errors import (
+    CategoricalConversionWarning,
+    InvalidColumnName,
+    PossiblePrecisionLoss,
+    ValueLabelTypeMismatch,
+)
 from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -332,8 +340,10 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     has_bad_values = False
     if bad_locs.any():
         has_bad_values = True
-        data_col = Series(dates)
-        data_col[bad_locs] = 1.0  # Replace with NaT
+        # reset cache to avoid SettingWithCopy checks (we own the DataFrame and the
+        # `dates` Series is used to overwrite itself in the DataFramae)
+        dates._reset_cacher()
+        dates[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
     if fmt.startswith(("%tc", "tc")):  # Delta ms relative to base
@@ -342,7 +352,10 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
 
-        warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        warnings.warn(
+            "Encountered %tC format. Leaving in Stata Internal Format.",
+            stacklevel=find_stack_level(),
+        )
         conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
@@ -399,11 +412,13 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     NS_PER_DAY = 24 * 3600 * 1000 * 1000 * 1000
     US_PER_DAY = NS_PER_DAY / 1000
 
-    def parse_dates_safe(dates, delta=False, year=False, days=False):
+    def parse_dates_safe(
+        dates, delta: bool = False, year: bool = False, days: bool = False
+    ):
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - stata_epoch
+                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -456,7 +471,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = parse_dates_safe(dates, delta=True)
         conv_dates = d.delta / 1000
     elif fmt in ["%tC", "tC"]:
-        warnings.warn("Stata Internal Format tC not supported.")
+        warnings.warn(
+            "Stata Internal Format tC not supported.",
+            stacklevel=find_stack_level(),
+        )
         conv_dates = dates
     elif fmt in ["%td", "td"]:
         d = parse_dates_safe(dates, delta=True)
@@ -493,18 +511,10 @@ characters.  Column '{0}' does not satisfy this restriction. Use the
 """
 
 
-class PossiblePrecisionLoss(Warning):
-    pass
-
-
 precision_loss_doc: Final = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
-
-
-class ValueLabelTypeMismatch(Warning):
-    pass
 
 
 value_label_mismatch_doc: Final = """
@@ -512,10 +522,6 @@ Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
 """
-
-
-class InvalidColumnName(Warning):
-    pass
 
 
 invalid_name_doc: Final = """
@@ -530,11 +536,7 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
-class CategoricalConversionWarning(Warning):
-    pass
-
-
-categorical_conversion_warning = """
+categorical_conversion_warning: Final = """
 One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
@@ -652,7 +654,11 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
                 data.loc[orig_missing, col] = sentinel
     if ws:
-        warnings.warn(ws, PossiblePrecisionLoss)
+        warnings.warn(
+            ws,
+            PossiblePrecisionLoss,
+            stacklevel=find_stack_level(),
+        )
 
     return data
 
@@ -707,6 +713,7 @@ class StataValueLabel:
                 warnings.warn(
                     value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
+                    stacklevel=find_stack_level(),
                 )
             category = category.encode(self._encoding)
             offsets.append(self.text_len)
@@ -1172,7 +1179,12 @@ class StataReader(StataParser, abc.Iterator):
         """enter context manager"""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         """exit context manager"""
         self.close()
 
@@ -1516,7 +1528,11 @@ One or more strings in the dta file could not be decoded using {encoding}, and
 so the fallback encoding of latin-1 is being used.  This can happen when a file
 has been incorrectly encoded by Stata or some other software. You should verify
 the string values returned are correct."""
-            warnings.warn(msg, UnicodeWarning)
+            warnings.warn(
+                msg,
+                UnicodeWarning,
+                stacklevel=find_stack_level(),
+            )
             return s.decode("latin-1")
 
     def _read_value_labels(self) -> None:
@@ -1709,7 +1725,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
@@ -1836,8 +1852,8 @@ the string values returned are correct."""
             replacements[colname] = replacement
 
         if replacements:
-            for col in replacements:
-                data[col] = replacements[col]
+            for col, value in replacements.items():
+                data[col] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -1912,7 +1928,9 @@ the string values returned are correct."""
                     if self._using_iterator:
                         # warn is using an iterator
                         warnings.warn(
-                            categorical_conversion_warning, CategoricalConversionWarning
+                            categorical_conversion_warning,
+                            CategoricalConversionWarning,
+                            stacklevel=find_stack_level(),
                         )
                     initial_categories = None
                 cat_data = Categorical(
@@ -1931,9 +1949,8 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    # error: Incompatible types in assignment (expression has
-                    # type "List[str]", variable has type "Index")
-                    cat_data.categories = categories  # type: ignore[assignment]
+                    # TODO: if we get a non-copying rename_categories, use that
+                    cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
@@ -1993,6 +2010,7 @@ The repeated labels are:
 @Appender(_read_stata_doc)
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2159,7 +2177,7 @@ def _dtype_to_default_stata_fmt(
         return "%9.0g"
     elif dtype == np.int32:
         return "%12.0g"
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype in (np.int8, np.int16):
         return "%8.0g"
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
@@ -2399,7 +2417,6 @@ class StataWriter(StataParser):
 
     def _update_strl_names(self) -> None:
         """No-op, forward compatibility"""
-        pass
 
     def _validate_variable_name(self, name: str) -> str:
         """
@@ -2493,7 +2510,11 @@ class StataWriter(StataParser):
                 conversion_warning.append(msg)
 
             ws = invalid_name_doc.format("\n    ".join(conversion_warning))
-            warnings.warn(ws, InvalidColumnName)
+            warnings.warn(
+                ws,
+                InvalidColumnName,
+                stacklevel=find_stack_level(),
+            )
 
         self._converted_names = converted_names
         self._update_strl_names()
@@ -2660,6 +2681,7 @@ supported types."""
                             f"This save was not successful but {self._fname} could not "
                             "be deleted. This file is not valid.",
                             ResourceWarning,
+                            stacklevel=find_stack_level(),
                         )
                 raise exc
 
@@ -2678,19 +2700,15 @@ supported types."""
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_file_close_tag(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_characteristics(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_strls(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_expansion_fields(self) -> None:
         """Write 5 zeros for expansion fields"""
@@ -3415,7 +3433,6 @@ class StataWriter117(StataWriter):
 
     def _write_expansion_fields(self) -> None:
         """No-op in dta 117+"""
-        pass
 
     def _write_value_labels(self) -> None:
         self._update_map("value_labels")

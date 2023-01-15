@@ -77,6 +77,34 @@ Or for gdb
 
 Once the process launches, simply type ``run`` and the test suite will begin, stopping at any segmentation fault that may occur.
 
+Improve debugger printing
+=========================
+
+By default your debug will simply print the type and memory address of a PyObject. Assuming we passed a list containing ``["a", "b"]`` as an argument to a Cython-generated function with parameter ``obj``, debugging that object would look as follows:
+
+.. code-block:: sh
+
+   (gdb) p __pyx_v_obj
+   $1 = (PyObject *) 0x5555558b91e0
+
+Dereferencing this will yield the standard PyObject struct members of the object, which provides some more visibility
+
+.. code-block:: sh
+
+   (gdb) p *__pyx_v_obj
+   $2 = {ob_refcnt = 1, ob_type = 0x5555558b91e0 <PyList_Type>}
+
+If you are using gdb, CPython provides an extension that prints out more useful information about the object you are inspecting. The extension can be found in `cpython/Tools/gdb/libpython.py <https://github.com/python/cpython/blob/main/Tools/gdb/libpython.py>`_; for best results be sure to use the gdb extension from the CPython branch that matches the version of your interpreter.
+
+To activate the extension you will need to execute ``source <path_to_cpython_source>/Tools/gdb/libpython.py`` from an actively-running gdb session. After loading you will get more detailed information about the Python object you are inspecting.
+
+.. code-block:: sh
+
+   (gdb) p __pyx_v_obj
+   $3 = ['a', 'b']
+
+If you do not wish to explicitly source this file on every gdb run, you can alternately add it as a start up command to your `gdbinit <https://sourceware.org/gdb/onlinedocs/gdb/gdbinit-man.html>`_ file.
+
 Checking memory leaks with valgrind
 ===================================
 
@@ -91,3 +119,13 @@ Note that code execution under valgrind will take much longer than usual. While 
 .. note::
 
    For best results, you should run use a Python installation configured with Valgrind support (--with-valgrind)
+
+
+Easier code navigation
+======================
+
+Generating a ``compile_commands.json`` file may make it easier to navigate the C extensions, as this allows your code editor to list references, jump to definitions, etc... To make this work with setuptools you can use `Bear <https://github.com/rizsotto/Bear>`_.
+
+.. code-block:: sh
+
+   bear -- python setup.py build_ext --inplace -j4 --with-debugging-symbols

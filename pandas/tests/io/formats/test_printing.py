@@ -1,3 +1,5 @@
+import string
+
 import numpy as np
 import pytest
 
@@ -5,8 +7,8 @@ import pandas._config.config as cf
 
 import pandas as pd
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 
 def test_adjoin():
@@ -19,8 +21,6 @@ def test_adjoin():
 
 
 def test_repr_binary_type():
-    import string
-
     letters = string.ascii_letters
     try:
         raw = bytes(letters, encoding=cf.get_option("display.encoding"))
