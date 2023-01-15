@@ -2846,3 +2846,12 @@ def test_sum_of_booleans(n):
     result = df.groupby("groupby_col").sum()
     expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method, n", [("head", 1), ("nth", 0)])
+def test_groupby_method_drop_na(method, n):
+    # GH 21755
+    df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
+    result = df.groupby("A").agg(method, n=n)
+    expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+    tm.assert_frame_equal(result, expected)
