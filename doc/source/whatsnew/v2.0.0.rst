@@ -942,6 +942,7 @@ Conversion
 - Bug in :meth:`Series.to_numpy` converting to NumPy array before applying ``na_value`` (:issue:`48951`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
+- Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising for extension array dtypes (:issue:`29618`, :issue:`50261`)
 -
 
 Strings

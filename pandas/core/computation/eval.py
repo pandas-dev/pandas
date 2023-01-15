@@ -9,6 +9,8 @@ import warnings
 
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
 from pandas.core.computation.engines import ENGINES
 from pandas.core.computation.expr import (
     PARSERS,
@@ -332,6 +334,9 @@ def eval(
         )
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
+
+        if is_extension_array_dtype(parsed_expr.terms.return_type):
+            engine = "python"
 
         # construct the engine and evaluate the parsed expression
         eng = ENGINES[engine]

@@ -1273,3 +1273,43 @@ class TestDataFrameQueryBacktickQuoting:
 
         with pytest.raises(TypeError, match="Only named functions are supported"):
             df.eval("@funcs[0].__call__()")
+
+    def test_ea_dtypes(self):
+        # GH#29618
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        result = df.eval("c = b - a")
+        expected = DataFrame(
+            [[1, 2, 1], [3, 4, 1]], columns=["a", "b", "c"], dtype="Float64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_ea_dtypes_and_scalar(self):
+        # GH#29618
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        result = df.eval("c = b - 1")
+        expected = DataFrame(
+            [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_ea_dtypes_and_scalar_operation(self):
+        # GH#29618
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        result = df.eval("c = 2 - 1")
+        expected = DataFrame(
+            {
+                "a": Series([1, 3], dtype="Float64"),
+                "b": Series([2, 4], dtype="Float64"),
+                "c": 1,
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_query_ea_dtypes(self, dtype):
+        # GH#50261
+        df = DataFrame({"a": Series([1, 2], dtype=dtype)})
+        ref = {2}  # noqa:F841
+        result = df.query("a in @ref")
+        expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
+        tm.assert_frame_equal(result, expected)
