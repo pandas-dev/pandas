@@ -536,6 +536,7 @@ class _Concatenator:
                     )
 
                 else:
+                    original_obj = obj
                     name = new_name = getattr(obj, "name", None)
                     if ignore_index or name is None:
                         new_name = current_column
@@ -548,6 +549,11 @@ class _Concatenator:
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
                     obj = sample._constructor(obj, columns=[name], copy=False)
+                    if using_copy_on_write():
+                        # TODO(CoW): Remove when ref tracking in constructors works
+                        obj._mgr.parent = original_obj
+                        obj._mgr.refs = [weakref.ref(original_obj._mgr.blocks[0])]
+
                     obj.columns = [new_name]
 
                 self.objs.append(obj)
