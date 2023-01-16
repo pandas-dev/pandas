@@ -408,7 +408,6 @@ dependency which needs to be installed, since rendering is based upon jinja2 tem
 
 The pandas options below are no longer used and will be removed in future releases.
 The alternative options giving similar functionality are indicated below:
-  
   - ``display.latex.escape``: replaced with ``styler.format.escape``,
   - ``display.latex.longtable``: replaced with ``styler.latex.environment``,
   - ``display.latex.multicolumn``, ``display.latex.multicolumn_format`` and
