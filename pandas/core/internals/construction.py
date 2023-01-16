@@ -557,11 +557,13 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
+def _homogenize(
+    data, index: Index, dtype: DtypeObj | None
+) -> tuple[list[ArrayLike], list[Any] | None]:
     oindex = None
     homogenized = []
     # if the original array-like in `data` is a Series, keep track of this Series
-    parents = []
+    parents: list[Any] = []
 
     for val in data:
         if isinstance(val, ABCSeries):
@@ -600,10 +602,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             homogenized.append(val)
             parents.append(None)
 
-    if com.all_none(*parents):
-        parents = None
-
-    return homogenized, parents
+    return homogenized, None if com.all_none(*parents) else parents
 
 
 def _extract_index(data) -> Index:
