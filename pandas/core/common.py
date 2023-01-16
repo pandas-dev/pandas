@@ -243,7 +243,9 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # More performant than checking is_list_like over each element
-        return construct_1d_object_array_from_listlike(values)
+        # error: Argument 1 to "construct_1d_object_array_from_listlike"
+        # has incompatible type "Iterable[Any]"; expected "Sized"
+        return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
