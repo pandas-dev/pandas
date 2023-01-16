@@ -90,7 +90,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
-    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
@@ -107,7 +106,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
     validate_all_hashable,
@@ -125,7 +123,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -392,11 +389,6 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes: list[str] = ["name"]
     _can_hold_strings: bool = True
 
-    # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
-    # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
-    # associated code in pandas 2.0.
-    _is_backward_compat_public_numeric_index: bool = False
-
     @property
     def _engine_type(
         self,
@@ -446,13 +438,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
 
-        # index-like
-        elif (
-            isinstance(data, Index)
-            and data._is_backward_compat_public_numeric_index
-            and dtype is None
-        ):
-            return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -981,34 +966,6 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values = astype_array(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
-        if not self._is_backward_compat_public_numeric_index and not isinstance(
-            self, ABCRangeIndex
-        ):
-            # this block is needed so e.g. Int64Index.astype("int32") returns
-            # Int64Index and not a NumericIndex with dtype int32.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if (
-                isinstance(dtype, np.dtype)
-                and is_numeric_dtype(dtype)
-                and not is_complex_dtype(dtype)
-            ):
-                from pandas.core.api import (
-                    Float64Index,
-                    Int64Index,
-                    UInt64Index,
-                )
-
-                klass: type[Index]
-                if is_signed_integer_dtype(dtype):
-                    klass = Int64Index
-                elif is_unsigned_integer_dtype(dtype):
-                    klass = UInt64Index
-                elif is_float_dtype(dtype):
-                    klass = Float64Index
-                else:
-                    klass = Index
-                return klass(new_values, name=self.name, dtype=dtype, copy=False)
-
         return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
@@ -2192,6 +2149,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index only consists of booleans.
 
+        .. deprecated:: 2.0.0
+            Use `pandas.api.types.is_bool_dtype` instead.
+
         Returns
         -------
         bool
@@ -2220,6 +2180,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_boolean()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_boolean is deprecated. "
+            "Use pandas.api.types.is_bool_type instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.inferred_type in ["boolean"]
 
     @final
@@ -2237,11 +2203,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2285,11 +2251,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2311,8 +2277,8 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_floating is deprecated."
-            "Use pandas.api.types.is_float_dtype instead",
+            f"{type(self).__name__}.is_floating is deprecated. "
+            "Use pandas.api.types.is_float_dtype instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2330,11 +2296,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2373,11 +2339,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2406,6 +2372,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index holds categorical data.
 
+        .. deprecated:: 2.0.0
+              Use :meth:`pandas.api.types.is_categorical_dtype` instead.
+
         Returns
         -------
         bool
@@ -2414,7 +2383,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         CategoricalIndex : Index for categorical data.
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
@@ -2442,6 +2411,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> s.index.is_categorical()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_categorical is deprecated."
+            "Use pandas.api.types.is_categorical_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         return self.inferred_type in ["categorical"]
 
     @final
@@ -2457,12 +2433,12 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         IntervalIndex : Index for Interval objects.
-        is_boolean : Check if the Index only consists of booleans.
+        is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
 
         Examples
         --------
@@ -2478,11 +2454,27 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["interval"]
 
     @final
-    def holds_integer(self) -> bool:
+    def _holds_integer(self) -> bool:
         """
         Whether the type is an integer type.
         """
         return self.inferred_type in ["integer", "mixed-integer"]
+
+    @final
+    def holds_integer(self) -> bool:
+        """
+        Whether the type is an integer type.
+
+        .. deprecated:: 2.0.0
+            Use `pandas.api.types.infer_dtype` instead
+        """
+        warnings.warn(
+            f"{type(self).__name__}.holds_integer is deprecated. "
+            "Use pandas.api.types.infer_dtype instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._holds_integer()
 
     @cache_readonly
     def inferred_type(self) -> str_t:
@@ -5008,7 +5000,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        if self.is_object() or is_string_dtype(self.dtype) or self.is_categorical():
+        if (
+            self.is_object()
+            or is_string_dtype(self.dtype)
+            or is_categorical_dtype(self.dtype)
+        ):
             return name in self
         return False
 
@@ -5049,10 +5045,6 @@ class Index(IndexOpsMixin, PandasObject):
         to_concat_vals = [x._values for x in to_concat]
 
         result = concat_compat(to_concat_vals)
-
-        is_numeric = result.dtype.kind in ["i", "u", "f"]
-        if self._is_backward_compat_public_numeric_index and is_numeric:
-            return type(self)._simple_new(result, name=name)
 
         return Index._with_infer(result, name=name)
 
@@ -5528,7 +5520,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer()
+        return not self._holds_integer()
 
     _index_shared_docs[
         "get_indexer_non_unique"
@@ -5874,8 +5866,8 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (other.is_boolean() and self.is_numeric()) or (
-            self.is_boolean() and other.is_numeric()
+        if (is_bool_dtype(other) and self.is_numeric()) or (
+            is_bool_dtype(self) and other.is_numeric()
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
@@ -6451,12 +6443,7 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        if self._typ == "numericindex":
-            # Use self._constructor instead of Index to retain NumericIndex GH#43921
-            # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor(new_values, name=self.name)
-        else:
-            return Index._with_infer(new_values, name=self.name)
+        return Index._with_infer(new_values, name=self.name)
 
     def drop(
         self,
