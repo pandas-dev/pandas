@@ -827,8 +827,7 @@ class Base:
         idx = simple_index
         with tm.assert_produces_warning(
             FutureWarning,
-            match="Index.is_categorical is deprecated."
-            "Use pandas.api.types.is_categorical_dtype instead",
+            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
         ):
             idx.is_categorical()
 
