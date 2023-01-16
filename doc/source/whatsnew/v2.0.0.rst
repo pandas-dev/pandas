@@ -418,7 +418,6 @@ The alternative options giving similar functionality are indicated below:
   - ``display.max_rows`` and ``display.max_columns``: replace with
     ``styler.render.max_rows``, ``styler.render.max_columns`` and
     ``styler.render.max_elements``.
-    
 Note that the behaviour of ``_repr_latex_`` is also changed. Previously
 setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
 JupyterNotebook, and not when the user is running the notebook. Now the
