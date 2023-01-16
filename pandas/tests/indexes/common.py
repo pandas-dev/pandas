@@ -828,6 +828,7 @@ class Base:
         with tm.assert_produces_warning(FutureWarning):
             idx.is_numeric()
 
+
 class NumericBase(Base):
     """
     Base class for numeric index (incl. RangeIndex) sub-class tests.
