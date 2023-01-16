@@ -827,6 +827,15 @@ class Base:
         idx = simple_index
         with tm.assert_produces_warning(FutureWarning):
             idx.is_numeric()
+            
+    def test_is_categorical_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
+        ):
+            idx.is_categorical()
 
 
 class NumericBase(Base):
