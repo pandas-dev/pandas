@@ -246,7 +246,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return _convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -463,9 +463,9 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     return obj
 
 
-cdef _TSObject _convert_str_to_tsobject(str ts, tzinfo tz, str unit,
-                                        bint dayfirst=False,
-                                        bint yearfirst=False):
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+                                       bint dayfirst=False,
+                                       bint yearfirst=False):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
