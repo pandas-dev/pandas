@@ -633,6 +633,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
                 other = FloatingArray._from_sequence(other)
 
+            elif inferred_dtype in ["boolean"]:
+                from pandas.core.arrays import BooleanArray
+
+                other = BooleanArray._from_sequence(other)
+
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
