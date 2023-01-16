@@ -1080,7 +1080,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Fix :meth:`~pandas.io.formats.style.Styler.background_gradient` for nullable dtype :class:`Series` with ``NA`` values (:issue:`50712`)
 -
 
 Metadata
