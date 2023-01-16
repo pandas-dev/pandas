@@ -2859,9 +2859,9 @@ def test_groupby_method_drop_na(method):
         result = df.groupby("A").agg(method)
 
     if method in ["first", "last"]:
-        expected = DataFrame({"B": [0, 2, 4]})
-        index = Series(["a", "b", "c"], name="A")
-        expected.set_index(index, inplace=True)
+        expected = DataFrame({"B": [0, 2, 4]}).set_index(
+            Series(["a", "b", "c"], name="A")
+        )
     else:
         expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
     tm.assert_frame_equal(result, expected)
