@@ -1353,20 +1353,50 @@ def test_string_error(parser):
 
 def test_file_like_iterparse(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, "rb") as f:
-        df_filelike = read_xml(
-            f,
-            parser=parser,
-            iterparse={"book": ["category", "title", "year", "author", "price"]},
-        )
 
-    with open(filename, "rb") as f:
-        with BytesIO(f.read()) as b:
-            df_fileio = read_xml(
-                b,
+    with open(filename, mode) as f:
+        if mode == "r" and parser == "lxml":
+            with pytest.raises(
+                TypeError, match=("reading file objects must return bytes objects")
+            ):
+                read_xml(
+                    f,
+                    parser=parser,
+                    iterparse={
+                        "book": ["category", "title", "year", "author", "price"]
+                    },
+                )
+            return None
+        else:
+            df_filelike = read_xml(
+                f,
                 parser=parser,
                 iterparse={"book": ["category", "title", "year", "author", "price"]},
             )
+
+    IOfunc = StringIO if mode == "r" else BytesIO
+    with open(filename, mode) as f:
+        with IOfunc(f.read()) as b:
+            if mode == "r" and parser == "lxml":
+                with pytest.raises(
+                    TypeError, match=("reading file objects must return bytes objects")
+                ):
+                    read_xml(
+                        b,
+                        parser=parser,
+                        iterparse={
+                            "book": ["category", "title", "year", "author", "price"]
+                        },
+                    )
+                return None
+            else:
+                df_fileio = read_xml(
+                    b,
+                    parser=parser,
+                    iterparse={
+                        "book": ["category", "title", "year", "author", "price"]
+                    },
+                )
 
     df_expected = DataFrame(
         {

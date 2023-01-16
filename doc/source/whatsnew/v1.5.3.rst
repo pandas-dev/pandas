@@ -33,7 +33,6 @@ Bug fixes
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
 - Bug in :func:`pandas.testing.assert_series_equal` (and equivalent ``assert_`` functions) when having nested data and using numpy >= 1.25 (:issue:`50360`)
-- Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
 -
 
 .. ---------------------------------------------------------------------------
