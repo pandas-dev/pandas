@@ -2786,26 +2786,27 @@ cdef class Week(SingleConstructorOffset):
 
     See Also
     --------
-    pd.tseries.offsets.WeekOfMonth : Describes monthly dates like "the Tuesday of the 2nd week of each month".
+    pd.tseries.offsets.WeekOfMonth : Describes monthly dates like
+    "the Tuesday of the 2nd week of each month".
 
     Examples
     ---------
 
     >>> date_object = pd.Timestamp("2023-01-13")
     >>> date_object
-    2023-01-13 00:00:00
+    Timestamp('2023-01-13 00:00:00')
 
     >>> date_plus_one_week = date_object + pd.tseries.offsets.Week(n=1)
     >>> date_plus_one_week
-    2023-01-20 00:00:00
+    Timestamp('2023-01-20 00:00:00')
 
     >>> date_next_monday = date_object + pd.tseries.offsets.Week(weekday=0)
     >>> date_next_monday
-    2023-01-16 00:00:00
+    Timestamp('2023-01-16 00:00:00')
 
     >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
     >>> date_next_sunday
-    2023-01-15 00:00:00
+    Timestamp('2023-01-15 00:00:00')
     """
 
     _inc = timedelta(weeks=1)
