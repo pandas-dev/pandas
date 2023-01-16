@@ -9,6 +9,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -66,6 +67,11 @@ def test_copy_shallow(using_copy_on_write):
         # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
+        # lambda df, copy: df.infer_objects(copy=copy)
+        lambda df, copy: df.to_timestamp(copy=copy),
+        lambda df, copy: df.to_period(freq="D", copy=copy),
+        lambda df, copy: df.tz_localize("US/Central", copy=copy),
+        lambda df, copy: df.tz_convert("US/Central", copy=copy),
     ],
     ids=[
         "rename",
@@ -77,12 +83,27 @@ def test_copy_shallow(using_copy_on_write):
         # "astype",  # CoW not yet implemented
         # "swaplevel",  # only series
         "truncate",
+        # "infer_objects",  # CoW not yet implemented
+        "to_timestamp",
+        "to_period",
+        "tz_localize",
+        "tz_convert",
     ],
 )
 def test_methods_copy_keyword(
     request, method, copy, using_copy_on_write, using_array_manager
 ):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    index = None
+    if "to_timestamp" in request.node.callspec.id:
+        index = period_range("2012-01-01", freq="D", periods=3)
+    elif "to_period" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_localize" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_convert" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
+
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
     df2 = method(df, copy=copy)
 
     share_memory = (using_copy_on_write and copy is not True) or copy is False
