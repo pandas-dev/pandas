@@ -58,6 +58,21 @@ cdef class IntervalMixin:
         -------
         bool
             True if the Interval is closed on the left-side.
+
+        See Also
+        --------
+        Interval.closed_right : Check if the interval is closed on the right side.
+        Interval.open_left : Boolean inverse of closed_left.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5, closed='left')
+        >>> iv.closed_left
+        True
+
+        >>> iv = pd.Interval(0, 5, closed='right')
+        >>> iv.closed_left
+        False
         """
         return self.closed in ("left", "both")
 
@@ -72,6 +87,21 @@ cdef class IntervalMixin:
         -------
         bool
             True if the Interval is closed on the left-side.
+
+        See Also
+        --------
+        Interval.closed_left : Check if the interval is closed on the left side.
+        Interval.open_right : Boolean inverse of closed_right.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5, closed='both')
+        >>> iv.closed_right
+        True
+
+        >>> iv = pd.Interval(0, 5, closed='left')
+        >>> iv.closed_right
+        False
         """
         return self.closed in ("right", "both")
 
@@ -86,6 +116,21 @@ cdef class IntervalMixin:
         -------
         bool
             True if the Interval is not closed on the left-side.
+
+        See Also
+        --------
+        Interval.open_right : Check if the interval is open on the right side.
+        Interval.closed_left : Boolean inverse of open_left.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5, closed='neither')
+        >>> iv.open_left
+        True
+
+        >>> iv = pd.Interval(0, 5, closed='both')
+        >>> iv.open_left
+        False
         """
         return not self.closed_left
 
@@ -100,6 +145,21 @@ cdef class IntervalMixin:
         -------
         bool
             True if the Interval is not closed on the left-side.
+
+        See Also
+        --------
+        Interval.open_left : Check if the interval is open on the left side.
+        Interval.closed_right : Boolean inverse of open_right.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5, closed='left')
+        >>> iv.open_right
+        True
+
+        >>> iv = pd.Interval(0, 5)
+        >>> iv.open_right
+        False
         """
         return not self.closed_right
 
@@ -107,6 +167,12 @@ cdef class IntervalMixin:
     def mid(self):
         """
         Return the midpoint of the Interval.
+
+        Examples
+        --------
+        >>> iv = pd.Interval(0, 5)
+        >>> iv.mid
+        2.5
         """
         try:
             return 0.5 * (self.left + self.right)
@@ -118,6 +184,10 @@ cdef class IntervalMixin:
     def length(self):
         """
         Return the length of the Interval.
+
+        See Also
+        --------
+        Interval.is_empty : Indicates if an interval contains no points.
         """
         return self.right - self.left
 
@@ -133,6 +203,10 @@ cdef class IntervalMixin:
             boolean ``ndarray`` positionally indicating if an ``Interval`` in
             an :class:`~arrays.IntervalArray` or :class:`IntervalIndex` is
             empty.
+
+        See Also
+        --------
+        Interval.length : Return the length of the Interval.
 
         Examples
         --------

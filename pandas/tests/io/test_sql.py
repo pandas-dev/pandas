@@ -665,7 +665,22 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 
 def test_execute_typeerror(sqlite_iris_engine):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        sql.execute("select * from iris", sqlite_iris_engine)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="`pandas.io.sql.execute` is deprecated and "
+            "will be removed in the future version.",
+        ):
+            sql.execute("select * from iris", sqlite_iris_engine)
+
+
+def test_execute_deprecated(sqlite_buildin_iris):
+    # GH50185
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+    ):
+        sql.execute("select * from iris", sqlite_buildin_iris)
 
 
 class MixInBase:
@@ -2842,7 +2857,7 @@ class TestXSQLite:
 
         frame["txt"] = ["a"] * len(frame)
         frame2 = frame.copy()
-        new_idx = Index(np.arange(len(frame2))) + 10
+        new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
         frame2["Idx"] = new_idx.copy()
         assert (
             sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False)

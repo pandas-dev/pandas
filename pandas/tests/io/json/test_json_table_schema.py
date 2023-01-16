@@ -260,9 +260,6 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_to_json(self, df_table):
         df = df_table
         df.index.name = "idx"
@@ -439,9 +436,6 @@ class TestTableOrient:
 
         assert result == expected
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_date_format_raises(self, df_table):
         msg = (
             "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
@@ -785,9 +779,6 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_comprehensive(self):
         df = DataFrame(
             {
