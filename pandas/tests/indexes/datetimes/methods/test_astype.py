@@ -43,11 +43,6 @@ class TestDatetimeIndex:
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = Index(
-            np.array([946684800000000000, 946771200000000000], dtype="uint64"),
-            name="idx",
-        )
-        tm.assert_index_equal(arr.astype("uint64"), expected)
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
