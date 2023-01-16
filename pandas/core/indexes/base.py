@@ -389,10 +389,6 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes: list[str] = ["name"]
     _can_hold_strings: bool = True
 
-    # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
-    # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
-    # associated code in pandas 2.0.
-
     @property
     def _engine_type(
         self,
