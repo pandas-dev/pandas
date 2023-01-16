@@ -6096,7 +6096,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    1
         1    2
         dtype: category
-        Categories (2, int64): [1, 2]
+        Categories (2, int32): [1, 2]
 
         Convert to ordered categorical type with custom ordering:
 
@@ -9908,7 +9908,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

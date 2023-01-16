@@ -244,6 +244,77 @@ def test_filter(using_copy_on_write, filter_kwargs):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_shift_no_op(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df_orig = df.copy()
+    df2 = df.shift(periods=0)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    tm.assert_frame_equal(df2, df_orig)
+
+
+def test_shift_index(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df2 = df.shift(periods=1, axis=0)
+
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+
+def test_shift_rows_freq(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df_orig = df.copy()
+    df_orig.index = date_range("2020-01-02", "2020-01-04")
+    df2 = df.shift(periods=1, freq="1D")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    tm.assert_frame_equal(df2, df_orig)
+
+
+def test_shift_columns(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]], columns=date_range("2020-01-01", "2020-01-02")
+    )
+    df2 = df.shift(periods=1, axis=1)
+
+    assert np.shares_memory(get_array(df2, "2020-01-02"), get_array(df, "2020-01-01"))
+    df.iloc[0, 1] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(
+            get_array(df2, "2020-01-02"), get_array(df, "2020-01-01")
+        )
+    expected = DataFrame(
+        [[np.nan, 1], [np.nan, 3], [np.nan, 5]],
+        columns=date_range("2020-01-01", "2020-01-02"),
+    )
+    tm.assert_frame_equal(df2, expected)
+
+
 def test_pop(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
@@ -503,6 +574,40 @@ def test_add_suffix(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("axis, val", [(0, 5.5), (1, np.nan)])
+def test_dropna(using_copy_on_write, axis, val):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, val, 6], "c": "d"})
+    df_orig = df.copy()
+    df2 = df.dropna(axis=axis)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("val", [5, 5.5])
+def test_dropna_series(using_copy_on_write, val):
+    ser = Series([1, val, 4])
+    ser_orig = ser.copy()
+    ser2 = ser.dropna()
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser2.values, ser.values)
+    else:
+        assert not np.shares_memory(ser2.values, ser.values)
+
+    ser2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
+
+
 @pytest.mark.parametrize(
     "method",
     [
@@ -642,6 +747,45 @@ def test_sort_index(using_copy_on_write):
     ser2.iloc[0] = 0
     assert not np.shares_memory(ser2.values, ser.values)
     tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize(
+    "obj, kwargs",
+    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+)
+def test_sort_values(using_copy_on_write, obj, kwargs):
+    obj_orig = obj.copy()
+    obj2 = obj.sort_values(**kwargs)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    else:
+        assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+
+    # mutating df triggers a copy-on-write for the column / block
+    obj2.iloc[0] = 0
+    assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
+    tm.assert_equal(obj, obj_orig)
+
+
+@pytest.mark.parametrize(
+    "obj, kwargs",
+    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+)
+def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manager):
+    obj_orig = obj.copy()
+    view = obj[:]
+    obj.sort_values(inplace=True, **kwargs)
+
+    assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
+
+    # mutating obj triggers a copy-on-write for the column / block
+    obj.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
+        tm.assert_equal(view, obj_orig)
+    else:
+        assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
 
 
 def test_reorder_levels(using_copy_on_write):

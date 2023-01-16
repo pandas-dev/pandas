@@ -403,8 +403,8 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
-            r"in the \[index\]\""
+            rf"\"None of \[NumericIndex\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]
@@ -484,7 +484,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
+            rf"\"None of \[NumericIndex\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
