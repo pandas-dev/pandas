@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
+    is_complex_dtype,
     is_datetime64_dtype,
     is_dict_like,
     is_dtype_equal,
@@ -56,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -595,7 +597,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if dtype.categories.is_numeric():
+            if dtype.categories:
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
@@ -1763,7 +1765,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif self.categories.is_numeric():
+        elif (
+            is_numeric_dtype(self.categories)
+            and not is_complex_dtype(self.categories)
+            and not is_bool_dtype(self.categories)
+        ):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
