@@ -26,6 +26,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    PY311,
     is_ci_environment,
     is_platform_windows,
     pa_version_under6p0,
@@ -34,6 +35,8 @@ from pandas.compat import (
     pa_version_under9p0,
 )
 from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.common import is_any_int_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -47,7 +50,7 @@ from pandas.api.types import (
 )
 from pandas.tests.extension import base
 
-pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+pa = pytest.importorskip("pyarrow", minversion="6.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
@@ -285,7 +288,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Nanosecond time parsing not supported.",
@@ -506,13 +509,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
@@ -523,15 +519,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_transform(data_for_grouping)
 
@@ -539,15 +530,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
@@ -561,15 +547,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_agg(as_index, data_for_grouping)
 
@@ -788,27 +769,14 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
-        pa_dtype = all_data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"value_count has no kernel for {pa_dtype}",
-                )
-            )
         super().test_value_counts(all_data, dropna)
 
     def test_value_counts_with_normalize(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"value_count has no pyarrow kernel for {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_value_counts_with_normalize(data)
 
@@ -886,17 +854,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype) and not ascending:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"unique has no pyarrow kernel "
-                        f"for {pa_dtype} when ascending={ascending}"
-                    ),
-                )
-            )
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
@@ -916,72 +873,22 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"dictionary_encode has no pyarrow kernel "
-                        f"for {pa_dtype} when ascending={ascending}"
-                    ),
-                )
-            )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
+            check_stacklevel=False,
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"unique has no pyarrow kernel for {pa_dtype}.",
-                )
-            )
-        super().test_unique(data, box, method)
-
     def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        elif pa.types.is_boolean(pa_dtype):
+        if pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
         super().test_factorize(data_for_grouping)
-
-    def test_factorize_equivalence(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        super().test_factorize_equivalence(data_for_grouping)
-
-    def test_factorize_empty(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        super().test_factorize_empty(data)
 
     @pytest.mark.xfail(
         reason="result dtype pyarrow[bool] better than expected dtype object"
@@ -1457,6 +1364,15 @@ def test_is_integer_dtype(data):
         assert is_integer_dtype(data)
     else:
         assert not is_integer_dtype(data)
+
+
+def test_is_any_integer_dtype(data):
+    # GH 50667
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_type):
+        assert is_any_int_dtype(data)
+    else:
+        assert not is_any_int_dtype(data)
 
 
 def test_is_signed_integer_dtype(data):

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_float_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
     NumericArray,

@@ -1117,7 +1117,6 @@ def _make_date_converter(
                     parsing.try_parse_dates(
                         parsing.concat_date_cols(date_cols),
                         parser=date_parser,
-                        dayfirst=dayfirst,
                     ),
                     errors="ignore",
                 )

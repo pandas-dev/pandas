@@ -35,6 +35,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*,
                                             NPY_DATETIMEUNIT reso=*)
 
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+                                       bint dayfirst=*,
+                                       bint yearfirst=*)
+
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, tzinfo tz)
@@ -52,7 +56,7 @@ cdef tzinfo convert_timezone(
 )
 
 cdef int64_t parse_pydatetime(
-    object val,
+    datetime val,
     npy_datetimestruct *dts,
     bint utc_convert,
 ) except? -1

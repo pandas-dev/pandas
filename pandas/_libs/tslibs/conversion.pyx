@@ -246,7 +246,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return _convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -413,8 +413,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     Parameters
     ----------
-    dts: npy_datetimestruct
-    tzoffset: int
+    dts : npy_datetimestruct
+    tzoffset : int
     tz : tzinfo or None
         timezone for the timezone-aware output.
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
@@ -463,9 +463,9 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     return obj
 
 
-cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
-                                        bint dayfirst=False,
-                                        bint yearfirst=False):
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+                                       bint dayfirst=False,
+                                       bint yearfirst=False):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -499,7 +499,6 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         NPY_DATETIMEUNIT out_bestunit, reso
 
     if len(ts) == 0 or ts in nat_strings:
-        ts = NaT
         obj = _TSObject()
         obj.value = NPY_NAT
         obj.tzinfo = tz
@@ -727,16 +726,16 @@ cdef tzinfo convert_timezone(
 
 
 cdef int64_t parse_pydatetime(
-        object val,
-        npy_datetimestruct *dts,
-        bint utc_convert,
+    datetime val,
+    npy_datetimestruct *dts,
+    bint utc_convert,
 ) except? -1:
     """
     Convert pydatetime to datetime64.
 
     Parameters
     ----------
-    val
+    val : datetime
         Element being processed.
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.
