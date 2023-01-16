@@ -87,7 +87,6 @@ class NumericIndex(Index):
         "numeric type",
     )
     _can_hold_strings = False
-    _is_backward_compat_public_numeric_index: bool = True
 
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -214,12 +213,7 @@ class NumericIndex(Index):
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
 
-        if cls._is_backward_compat_public_numeric_index:
-            # dtype for NumericIndex
-            return dtype
-        else:
-            # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
-            return cls._default_dtype
+        return dtype
 
     # ----------------------------------------------------------------
     # Indexing Methods
@@ -415,7 +409,6 @@ class Float64Index(NumericIndex):
     _typ = "float64index"
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
-    _is_backward_compat_public_numeric_index: bool = False
 
     @property
     def _engine_type(self) -> type[libindex.Float64Engine]:
