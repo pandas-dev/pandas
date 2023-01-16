@@ -3,6 +3,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.errors import UndefinedVariableError
 import pandas.util._test_decorators as td
 
@@ -1300,7 +1301,9 @@ class TestDataFrameQueryBacktickQuoting:
             {
                 "a": Series([1, 3], dtype="Float64"),
                 "b": Series([2, 4], dtype="Float64"),
-                "c": Series([1, 1], dtype=np.intp),
+                "c": Series(
+                    [1, 1], dtype="int64" if not is_platform_windows() else "int32"
+                ),
             }
         )
         tm.assert_frame_equal(result, expected)
