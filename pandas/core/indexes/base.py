@@ -3256,7 +3256,11 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
-                if self.is_numeric():
+                if (
+                    is_numeric_dtype(self)
+                    and not is_complex_dtype(self)
+                    and not is_complex_dtype(self)
+                ):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
                     res = algos.unique1d(res_indexer)
