@@ -146,7 +146,8 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        msg = "pivot_table dropped a column because it failed to aggregate"
+        # GH#50538
+        msg = "The operation <function sum.*failed"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs = df.pivot_table(columns="cols", aggfunc=np.sum)
             xp = df.pivot_table(index="cols", aggfunc=np.sum).T
@@ -907,7 +908,8 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        msg = "pivot_table dropped a column because it failed to aggregate"
+        # GH#50538
+        msg = "The operation <function mean.*failed"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             table = self.data.pivot_table(
                 index=["AA", "BB"], margins=True, aggfunc=np.mean
@@ -916,6 +918,7 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
+        msg = "pivot_table dropped a column because it failed to aggregate"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             table = self.data.pivot_table(
                 index=["AA", "BB"], margins=True, aggfunc="mean"
@@ -975,7 +978,11 @@ class TestPivotTable:
             }
         )
 
-        msg = "pivot_table dropped a column because it failed to aggregate"
+        if aggfunc == "sum":
+            msg = "pivot_table dropped a column because it failed to aggregate"
+        else:
+            # GH#50538
+            msg = "The operation <function mean.*failed"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)

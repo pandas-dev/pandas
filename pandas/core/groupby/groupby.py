@@ -8,7 +8,10 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+    nullcontext,
+)
 import datetime
 from functools import (
     partial,
@@ -64,7 +67,10 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -1508,7 +1514,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
-
+        # GH#50538
+        is_np_func = func in com._cython_table and func not in com._builtin_table
+        orig_func = func
         func = com.is_builtin_func(func)
 
         if isinstance(func, str):
@@ -1546,7 +1554,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
-                result = self._python_apply_general(f, self._selected_obj)
+                # GH#50538
+                old_msg = "The default value of numeric_only"
+                new_msg = (
+                    f"The operation {orig_func} failed on a column. If any error is "
+                    f"raised, this will raise an exception in a future version "
+                    f"of pandas. Drop these columns to avoid this warning."
+                )
+                with rewrite_warning(
+                    old_msg, FutureWarning, new_msg
+                ) if is_np_func else nullcontext():
+                    result = self._python_apply_general(f, self._selected_obj)
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -1557,7 +1575,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # on a string grouper column
 
                 with self._group_selection_context():
-                    return self._python_apply_general(f, self._selected_obj)
+                    # GH#50538
+                    old_msg = "The default value of numeric_only"
+                    new_msg = (
+                        f"The operation {orig_func} failed on a column. If any error "
+                        f"is raised, this will raise an exception in a future version "
+                        f"of pandas. Drop these columns to avoid this warning."
+                    )
+                    with rewrite_warning(
+                        old_msg, FutureWarning, new_msg
+                    ) if is_np_func else nullcontext():
+                        return self._python_apply_general(f, self._selected_obj)
 
         return result
 

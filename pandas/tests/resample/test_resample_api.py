@@ -938,3 +938,24 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(numeric_only=numeric_only)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["agg", "apply", "transform"])
+def test_numeric_only_warning_numpy(method):
+    # GH#50538
+    resampled = _test_frame.assign(D="x").resample("H")
+    if method == "transform":
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            getattr(resampled, method)(np.mean)
+        # Ensure users can pass numeric_only
+        result = getattr(resampled, method)(np.mean, numeric_only=True)
+        expected = resampled.transform("mean", numeric_only=True)
+        tm.assert_frame_equal(result, expected)
+    else:
+        msg = "The operation <function mean.*failed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            getattr(resampled, method)(np.mean)
+        # Ensure users can't pass numeric_only
+        with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+            getattr(resampled, method)(np.mean, numeric_only=True)
