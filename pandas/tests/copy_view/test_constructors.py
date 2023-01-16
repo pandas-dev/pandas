@@ -1,6 +1,11 @@
 import numpy as np
 
-from pandas import Series
+from pandas import (
+    DataFrame,
+    Series,
+)
+import pandas._testing as tm
+from pandas.tests.copy_view.util import get_array
 
 # -----------------------------------------------------------------------------
 # Copy/view behaviour for Series / DataFrame constructors
@@ -73,3 +78,35 @@ def test_series_from_series_with_reindex(using_copy_on_write):
     assert not np.shares_memory(ser.values, result.values)
     if using_copy_on_write:
         assert result._mgr.refs is None or result._mgr.refs[0] is None
+
+
+def test_dataframe_from_dict_of_series(using_copy_on_write):
+    # Case: constructing a DataFrame from Series objects with copy=False
+    # has to do a lazy following CoW rules
+    # (the default for DataFrame(dict) is still to copy to ensure consolidation)
+    s1 = Series([1, 2, 3])
+    s2 = Series([4, 5, 6])
+    s1_orig = s1.copy()
+    expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    result = DataFrame({"a": s1, "b": s2}, copy=False)
+
+    # the shallow copy still shares memory
+    assert np.shares_memory(get_array(result, "a"), s1.values)
+
+    # mutating the new dataframe doesn't mutate original
+    result.iloc[0, 0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), s1.values)
+        tm.assert_series_equal(s1, s1_orig)
+    else:
+        assert s1.iloc[0] == 10
+
+    # the same when modifying the parent series
+    result = DataFrame({"a": s1, "b": s2}, copy=False)
+    s1.iloc[0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), s1.values)
+        tm.assert_frame_equal(result, expected)
+    else:
+        assert result.iloc[0, 0] == 10

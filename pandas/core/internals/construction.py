@@ -116,7 +116,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays = _homogenize(arrays, index, dtype)
+        arrays, parents = _homogenize(arrays, index, dtype)
         # _homogenize ensures
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
@@ -125,7 +125,8 @@ def arrays_to_mgr(
 
     else:
         index = ensure_index(index)
-        arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        # arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        parents = None
 
         # Reached via DataFrame._from_arrays; we do validation here
         for arr in arrays:
@@ -148,7 +149,10 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays, axes, consolidate=consolidate
+            arrays,
+            axes,
+            consolidate=consolidate,
+            parents=parents,
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])
@@ -550,17 +554,22 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
 def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
     oindex = None
     homogenized = []
+    # if the original array-like in `data` is a Series, keep track of this Series
+    parents = []
 
     for val in data:
         if isinstance(val, ABCSeries):
+            hval = val
             if dtype is not None:
-                val = val.astype(dtype, copy=False)
-            if val.index is not index:
+                hval = hval.astype(dtype, copy=False)
+            if hval.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
-                val = val.reindex(index, copy=False)
-
-            val = val._values
+                hval = hval.reindex(index, copy=False)
+            if hval is val:
+                hval = val.copy(deep=False)
+            homogenized.append(hval._values)
+            parents.append(hval)
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
@@ -578,10 +587,13 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
+            homogenized.append(val)
+            parents.append(None)
 
-        homogenized.append(val)
+    if com.all_none(*parents):
+        parents = None
 
-    return homogenized
+    return homogenized, parents
 
 
 def _extract_index(data) -> Index:

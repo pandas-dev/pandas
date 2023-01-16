@@ -2125,6 +2125,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool = True,
+    parents: list | None = None,
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2139,7 +2140,30 @@ def create_block_manager_from_column_arrays(
 
     try:
         blocks = _form_blocks(arrays, consolidate)
-        mgr = BlockManager(blocks, axes, verify_integrity=False)
+        refs = None
+        parent = None
+        if parents is not None and using_copy_on_write():
+            # elements in `parents` are Series objects *if* the original input
+            # for the column was a Series, or otherwise None
+            # -> in case of a Series, keep track of its refs if it has those
+            # (this Series is already a view on the original one, so we can
+            # directly use its ref instead of creating a new ref to this Series)
+            refs = []
+            parent = []
+            for ser in parents:
+                if (
+                    ser is not None
+                    and ser._mgr.refs is not None
+                    and (ref := ser._mgr.refs[0]) is not None
+                ):
+                    refs.append(ref)
+                    parent.append(ser)
+                else:
+                    refs.append(None)
+
+        mgr = BlockManager(
+            blocks, axes, refs=refs, parent=parent, verify_integrity=False
+        )
     except ValueError as e:
         raise_construction_error(len(arrays), arrays[0].shape, axes, e)
     if consolidate:
