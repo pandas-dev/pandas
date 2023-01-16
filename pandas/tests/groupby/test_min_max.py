@@ -81,7 +81,8 @@ def test_min_date_with_nans():
 def test_max_inat():
     # GH#40767 dont interpret iNaT as NaN
     ser = Series([1, iNaT])
-    gb = ser.groupby([1, 1])
+    key = np.array([1, 1], dtype=np.int64)
+    gb = ser.groupby(key)
 
     result = gb.max(min_count=2)
     expected = Series({1: 1}, dtype=np.int64)
@@ -107,6 +108,7 @@ def test_max_inat_not_all_na():
 
     # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
     expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
+    expected.index = expected.index.astype(np.int_)
     tm.assert_series_equal(result, expected, check_exact=True)
 
 

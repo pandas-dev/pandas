@@ -3,10 +3,7 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -40,13 +37,7 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    with catch_warnings():
-        # `np.bool` is a deprecated alias...
-        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
-        # accessing pd.Int64Index in pd namespace
-        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
-
-        import fastparquet
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
@@ -829,6 +820,7 @@ class TestParquetPyArrow(Base):
 
         # GH #35791
         if partition_col:
+            expected_df = expected_df.astype(dict.fromkeys(partition_col, np.int32))
             partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(

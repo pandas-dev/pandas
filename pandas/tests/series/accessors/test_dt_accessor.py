@@ -229,14 +229,14 @@ class TestSeriesDatetimeValues:
         dti = date_range("20140204", periods=3, freq="s")
         ser = Series(dti, index=index, name="xxx")
         exp = Series(
-            np.array([2014, 2014, 2014], dtype="int64"), index=index, name="xxx"
+            np.array([2014, 2014, 2014], dtype="int32"), index=index, name="xxx"
         )
         tm.assert_series_equal(ser.dt.year, exp)
 
-        exp = Series(np.array([2, 2, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([2, 2, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.month, exp)
 
-        exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
         exp = Series([ser[0]] * 3, index=index, name="xxx")
@@ -386,7 +386,7 @@ class TestSeriesDatetimeValues:
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)
         ser = Series(pd.Categorical(dti), name="foo")
         result = ser.dt.year
-        expected = Series([2017, 2017, 2018, 2018], name="foo")
+        expected = Series([2017, 2017, 2018, 2018], dtype="int32", name="foo")
         tm.assert_series_equal(result, expected)
 
     def test_dt_tz_localize_categorical(self, tz_aware_fixture):
@@ -741,6 +741,7 @@ class TestSeriesDatetimeValues:
         result = dt_series.dt.hour
         expected = Series(
             [0, 1, 2, 3, 4],
+            dtype="int32",
             index=[2, 6, 7, 8, 11],
         )
         tm.assert_series_equal(result, expected)
