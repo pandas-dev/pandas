@@ -675,7 +675,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             uniques = type(self)(encoded.chunk(0).dictionary)
 
         if pa.types.is_duration(pa_type):
-            uniques = uniques.astype(self.dtype)
+            uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
