@@ -9908,7 +9908,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
