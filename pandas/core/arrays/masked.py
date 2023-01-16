@@ -621,7 +621,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op_name = op.__name__
         omask = None
 
-        if not hasattr(other, "dtype") and is_list_like(other):
+        if (
+            not hasattr(other, "dtype")
+            and is_list_like(other)
+            and len(other) == len(self)
+        ):
             # Try inferring masked dtype instead of casting to object
             inferred_dtype = lib.infer_dtype(other, skipna=True)
             if inferred_dtype == "integer":
