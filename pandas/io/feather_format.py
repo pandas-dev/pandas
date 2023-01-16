@@ -153,23 +153,21 @@ def read_feather(
 
         dtype_backend = get_option("mode.dtype_backend")
 
+        pa_table = feather.read_table(
+            handles.handle, columns=columns, use_threads=bool(use_threads)
+        )
+
         if dtype_backend == "pandas":
             from pandas.io._util import _arrow_dtype_mapping
 
-            pa_table = feather.read_table(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
-            )
             return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
 
         elif dtype_backend == "pyarrow":
-            result = feather.read_table(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
-            )
             return DataFrame(
                 {
                     col_name: arrays.ArrowExtensionArray(pa_col)
                     for col_name, pa_col in zip(
-                        result.column_names, result.itercolumns()
+                        pa_table.column_names, pa_table.itercolumns()
                     )
                 }
             )
