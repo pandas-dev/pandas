@@ -2041,6 +2041,17 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_series_constructor_ea_all_na(self):
+        # GH#38798
+        result = Series([np.nan, np.nan], dtype="UInt64")
+        expected = Series(
+            IntegerArray(
+                np.array([1, 1], dtype="uint64"),
+                np.array([1, 1], dtype=np.bool_),
+            )
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
