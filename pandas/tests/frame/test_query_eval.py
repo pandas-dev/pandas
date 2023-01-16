@@ -1300,7 +1300,7 @@ class TestDataFrameQueryBacktickQuoting:
             {
                 "a": Series([1, 3], dtype="Float64"),
                 "b": Series([2, 4], dtype="Float64"),
-                "c": 1,
+                "c": Series([1, 1], dtype=np.intp),
             }
         )
         tm.assert_frame_equal(result, expected)
