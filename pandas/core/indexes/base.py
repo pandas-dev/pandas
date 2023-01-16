@@ -2372,7 +2372,7 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-            f"{type(self).__name__}.is_numeric is deprecated."
+            f"{type(self).__name__}.is_numeric is deprecated. "
             "Use pandas.api.types.is_numeric_dtype instead",
             FutureWarning,
             stacklevel=find_stack_level(),
