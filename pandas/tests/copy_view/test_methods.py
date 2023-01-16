@@ -932,7 +932,7 @@ def test_replace(using_copy_on_write, replace_kwargs):
     # mutating squeezed df triggers a copy-on-write for that column/block
     df_replaced.loc[0, "c"] = -1
     if using_copy_on_write:
-        assert not np.shares_memory(get_array(df_replaced, "c"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
 
     if "a" in replace_kwargs["to_replace"]:
         arr = get_array(df_replaced, "a")
