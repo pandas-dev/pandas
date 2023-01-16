@@ -429,11 +429,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 codes, categories = factorize(values, sort=True)
             except TypeError as err:
                 codes, categories = factorize(values, sort=False)
-                if (
-                    is_numeric_dtype(dtype.categories)
-                    and not is_bool_dtype(dtype.categories)
-                    and not is_complex_dtype(dtype.categories)
-                ):
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError(
@@ -601,7 +597,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if dtype.categories:
+            if (
+                is_numeric_dtype(dtype.categories)
+                and not is_bool_dtype(dtype.categories)
+                and not is_complex_dtype(dtype.categories)
+            ):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
