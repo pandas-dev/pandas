@@ -454,7 +454,7 @@ class TestAstypeString:
     def test_astype_string_to_extension_dtype_roundtrip(
         self, data, dtype, request, nullable_string_dtype
     ):
-        if dtype == "boolean":
+        if dtype == "boolean" or (dtype == "timedelta64[ns]" and NaT in data):
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
