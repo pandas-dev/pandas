@@ -72,6 +72,7 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.to_period(freq="D", copy=copy),
         lambda df, copy: df.tz_localize("US/Central", copy=copy),
         lambda df, copy: df.tz_convert("US/Central", copy=copy),
+        lambda df, copy: df.set_flags(allows_duplicate_labels=False, copy=copy),
     ],
     ids=[
         "rename",
@@ -88,6 +89,7 @@ def test_copy_shallow(using_copy_on_write):
         "to_period",
         "tz_localize",
         "tz_convert",
+        "set_flags",
     ],
 )
 def test_methods_copy_keyword(
