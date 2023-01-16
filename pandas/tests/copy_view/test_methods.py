@@ -59,11 +59,25 @@ def test_copy_shallow(using_copy_on_write):
     [
         lambda df, copy: df.rename(columns=str.lower, copy=copy),
         lambda df, copy: df.reindex(columns=["a", "c"], copy=copy),
+        lambda df, copy: df.reindex_like(df, copy=copy),
         lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
         lambda df, copy: df.rename_axis(index="test", copy=copy),
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
+        # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
+        # lambda df, copy: df.swaplevel(0, 0, copy=copy),
+        lambda df, copy: df.truncate(0, 5, copy=copy),
     ],
-    ids=["rename", "reindex", "set_axis", "rename_axis0", "rename_axis1"],
+    ids=[
+        "rename",
+        "reindex",
+        "reindex_like",
+        "set_axis",
+        "rename_axis0",
+        "rename_axis1",
+        # "astype",  # CoW not yet implemented
+        # "swaplevel",  # only series
+        "truncate",
+    ],
 )
 def test_methods_copy_keyword(
     request, method, copy, using_copy_on_write, using_array_manager
@@ -73,7 +87,7 @@ def test_methods_copy_keyword(
 
     share_memory = (using_copy_on_write and copy is not True) or copy is False
 
-    if request.node.callspec.id.startswith("reindex"):
+    if request.node.callspec.id.startswith("reindex-"):
         # TODO copy=False without CoW still returns a copy in this case
         if not using_copy_on_write and not using_array_manager and copy is False:
             share_memory = False
