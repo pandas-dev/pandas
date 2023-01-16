@@ -5913,9 +5913,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         if (
-            is_bool_dtype(other) and is_numeric_dtype(self) and not is_bool_dtype(self)
+            is_bool_dtype(other)
+            and is_numeric_dtype(self)
+            and not is_bool_dtype(self)
+            and not is_complex_dtype(self)
         ) or (
-            is_bool_dtype(self) and is_numeric_dtype(other) and not is_bool_dtype(other)
+            is_bool_dtype(self)
+            and is_numeric_dtype(other)
+            and not is_bool_dtype(other)
+            and not is_complex_dtype(other)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
