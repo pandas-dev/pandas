@@ -797,6 +797,12 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
+    def test_is_boolean_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_boolean()
+
     def test_is_floating_is_deprecated(self, simple_index):
         # GH50042
         idx = simple_index
@@ -808,6 +814,13 @@ class Base:
         idx = simple_index
         with tm.assert_produces_warning(FutureWarning):
             idx.is_integer()
+
+    def test_holds_integer_deprecated(self, simple_index):
+        # GH50243
+        idx = simple_index
+        msg = f"{type(idx).__name__}.holds_integer is deprecated. "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx.holds_integer()
 
 
 class NumericBase(Base):
