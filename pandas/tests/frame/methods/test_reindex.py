@@ -808,8 +808,7 @@ class TestDataFrameSelectReindex:
         # reindex fails
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(index=list(range(len(df))))
+            df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
 
@@ -819,11 +818,9 @@ class TestDataFrameSelectReindex:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar"])
+            df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar", "foo"])
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -840,14 +837,12 @@ class TestDataFrameSelectReindex:
         result = df.reindex([0, 1, 3], axis="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex_positional_warns(self):
+    def test_reindex_positional_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
+        # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        expected = DataFrame({"A": [1.0, 2], "B": [4.0, 5], "C": [np.nan, np.nan]})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex([0, 1], ["A", "B", "C"])
-
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match=r".* is ambiguous."):
+            df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -914,9 +909,7 @@ class TestDataFrameSelectReindex:
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-        with tm.assert_produces_warning(FutureWarning) as m:
-            res1 = df.reindex(["b", "a"], ["e", "d"])
-        assert "reindex" in str(m[0].message)
+        res1 = df.reindex(index=["b", "a"], columns=["e", "d"])
         res2 = df.reindex(columns=["e", "d"], index=["b", "a"])
         res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
         for res in [res2, res3]:
@@ -1095,8 +1088,7 @@ class TestDataFrameSelectReindex:
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df2.reindex(["a", "b"])
+            df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"

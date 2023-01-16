@@ -1325,8 +1325,15 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
 
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
-    df = DataFrame(np.random.randn(15, 4), index=mi)
-    df[1] = df[1].astype(np.int64)
+    df = DataFrame(
+        {
+            0: np.random.randn(15),
+            1: np.random.randn(15).astype(np.int64),
+            2: np.random.randn(15),
+            3: np.random.randn(15),
+        },
+        index=mi,
+    )
     if not using_array_manager:
         assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
 
