@@ -32,6 +32,11 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_numeric_dtype,
+)
 from pandas.core.api import NumericIndex
 from pandas.core.indexes.api import (
     Index,
@@ -657,7 +662,11 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert index.is_numeric() is expected
+        assert (
+            is_numeric_dtype(index)
+            and not is_bool_dtype(index)
+            and not is_complex_dtype(index)
+        ) is expected
 
     @pytest.mark.parametrize(
         "index, expected",

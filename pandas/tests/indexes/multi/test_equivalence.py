@@ -8,6 +8,11 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_numeric_dtype,
+)
 
 
 def test_equals(idx):
@@ -253,7 +258,9 @@ def test_is_all_dates(idx):
 
 def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not idx.is_numeric()
+    assert not (
+        is_numeric_dtype(idx) and not is_bool_dtype(idx) and not is_complex_dtype(idx)
+    )
 
 
 def test_multiindex_compare():
