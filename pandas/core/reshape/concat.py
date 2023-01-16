@@ -551,8 +551,8 @@ class _Concatenator:
                     obj = sample._constructor(obj, columns=[name], copy=False)
                     if using_copy_on_write():
                         # TODO(CoW): Remove when ref tracking in constructors works
-                        obj._mgr.parent = original_obj
-                        obj._mgr.refs = [weakref.ref(original_obj._mgr.blocks[0])]
+                        obj._mgr.parent = original_obj  # type: ignore[union-attr]
+                        obj._mgr.refs = [weakref.ref(original_obj._mgr.blocks[0])]  # type: ignore[union-attr]  # noqa: E501
 
                     obj.columns = [new_name]
 
