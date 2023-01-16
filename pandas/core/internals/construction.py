@@ -10,9 +10,12 @@ from typing import (
     Hashable,
     Sequence,
 )
+import weakref
 
 import numpy as np
 from numpy import ma
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -56,6 +59,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
+    PandasArray,
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -125,7 +129,9 @@ def arrays_to_mgr(
 
     else:
         index = ensure_index(index)
-        # arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        arrays = [
+            arr.to_numpy() if isinstance(arr, PandasArray) else arr for arr in arrays
+        ]
         parents = None
 
         # Reached via DataFrame._from_arrays; we do validation here
@@ -562,6 +568,10 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             hval = val
             if dtype is not None:
                 hval = hval.astype(dtype, copy=False)
+                if using_copy_on_write() and hval.values is val.values:
+                    # TODO(CoW) remove when astype() has implemented CoW
+                    hval._mgr.refs = [weakref.ref(val._mgr._block)]
+                    hval._mgr.parent = val._mgr
             if hval.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
