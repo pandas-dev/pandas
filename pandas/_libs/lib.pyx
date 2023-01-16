@@ -15,6 +15,10 @@ from cpython.datetime cimport (
     import_datetime,
 )
 from cpython.iterator cimport PyIter_Check
+from cpython.mem cimport (
+    PyMem_Free,
+    PyMem_Malloc,
+)
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
@@ -2124,6 +2128,56 @@ cpdef bint is_interval_array(ndarray values):
         return False
     return True
 
+ctypedef fused maybe_convert_ret:
+    float64_t
+    uint8_t
+    uint64_t
+    int64_t
+    complex128_t
+
+cdef union NonComplexNumeric:
+    uint8_t bool_t
+    uint64_t uint_t
+    int64_t int_t
+    float64_t float_t
+
+cdef enum MaskVal:
+    bool_t = 0
+    null_t = 1
+    uint_t = 2
+    int_t = 3
+    float_t = 4
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void convert_union_arr_to_ndarray(NonComplexNumeric* arr,
+                                       Py_ssize_t n,
+                                       uint8_t[:] mask,
+                                       maybe_convert_ret[:] out):
+    cdef:
+        Py_ssize_t i
+        uint8_t maskval
+        maybe_convert_ret val
+
+    for i in range(n):
+        maskval = mask[i]
+        if maskval == MaskVal.bool_t:
+            val = <maybe_convert_ret>arr[i].bool_t
+        elif maskval == MaskVal.uint_t:
+            val = <maybe_convert_ret>arr[i].uint_t
+        elif maskval == MaskVal.int_t:
+            val = <maybe_convert_ret>arr[i].int_t
+        else:
+            # float or null case
+            val = <maybe_convert_ret>arr[i].float_t
+
+        out[i] = val
+
+        # Reset the mask to only mark nulls again
+        if maskval != MaskVal.null_t:
+            mask[i] = 0
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -2189,23 +2243,25 @@ def maybe_convert_numeric(
         int maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_FLOAT64, 0
-        )
+        # Okay to have this since it won't get allocated
+        # until a write happens
         ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_COMPLEX128, 0
         )
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_INT64, 0
-        )
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT64, 0
-        )
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
+        # We need to convert everything to complex before this
+        Py_ssize_t first_complex_idx = -1
+        # Keeps track of what element type is stored in each index
+        # Also tracks nulls for masked arrays
+        # (We'll fix mask if convert_to_masked_nullable=True)
+        # See convert_union_arr_to_ndarray
+        ndarray[uint8_t, ndim=1] mask = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT8, 0
         )
-        ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
+        NonComplexNumeric *arr = <NonComplexNumeric *>PyMem_Malloc(
+            n * sizeof(NonComplexNumeric)
+        )
         float64_t fval
+        ndarray out
         bint allow_null_in_int = convert_to_masked_nullable
 
     for i in range(n):
@@ -2219,67 +2275,71 @@ def maybe_convert_numeric(
         if val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
-                mask[i] = 1
             else:
-                if convert_to_masked_nullable:
-                    mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            arr[i] = NonComplexNumeric(float_t=NaN)
+            mask[i] = MaskVal.null_t
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
                 seen.null_ = True
                 if allow_null_in_int:
-                    mask[i] = 1
+                    mask[i] = MaskVal.null_t
                 else:
                     if convert_to_masked_nullable:
-                        mask[i] = 1
+                        mask[i] = MaskVal.null_t
                     seen.float_ = True
             else:
                 seen.float_ = True
-            floats[i] = complexes[i] = fval
+            arr[i] = NonComplexNumeric(float_t=fval)
+            mask[i] = MaskVal.float_t
         elif util.is_integer_object(val):
-            floats[i] = complexes[i] = val
-
             val = int(val)
             seen.saw_int(val)
 
             if val >= 0:
                 if val <= oUINT64_MAX:
-                    uints[i] = val
+                    arr[i] = NonComplexNumeric(uint_t=val)
+                    mask[i] = MaskVal.uint_t
                 else:
+                    arr[i] = NonComplexNumeric(float_t=val)
+                    mask[i] = MaskVal.float_t
                     seen.float_ = True
 
             if oINT64_MIN <= val <= oINT64_MAX:
-                ints[i] = val
+                arr[i] = NonComplexNumeric(int_t=val)
+                mask[i] = MaskVal.int_t
 
             if val < oINT64_MIN or (seen.sint_ and seen.uint_):
+                arr[i] = NonComplexNumeric(float_t=val)
+                mask[i] = MaskVal.float_t
                 seen.float_ = True
-
         elif util.is_bool_object(val):
-            floats[i] = uints[i] = ints[i] = bools[i] = val
+            arr[i] = NonComplexNumeric(bool_t=val)
+            mask[i] = MaskVal.bool_t
             seen.bool_ = True
         elif val is None or val is C_NA:
             if allow_null_in_int:
                 seen.null_ = True
-                mask[i] = 1
             else:
-                if convert_to_masked_nullable:
-                    mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            arr[i] = NonComplexNumeric(float_t=NaN)
+            mask[i] = MaskVal.null_t
         elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                floats[i] = complexes[i] = NaN
-                mask[i] = 1
+                arr[i] = NonComplexNumeric(float_t=NaN)
+                mask[i] = MaskVal.null_t
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
             complexes[i] = val
+            if first_complex_idx == -1:
+                first_complex_idx = 1
             seen.complex_ = True
         elif is_decimal(val):
-            floats[i] = complexes[i] = val
+            arr[i] = NonComplexNumeric(float_t=val)
+            mask[i] = MaskVal.float_t
             seen.float_ = True
         else:
             try:
@@ -2287,20 +2347,21 @@ def maybe_convert_numeric(
 
                 if fval in na_values:
                     seen.saw_null()
-                    floats[i] = complexes[i] = NaN
-                    mask[i] = 1
+                    fval = NaN
+                    mask[i] = MaskVal.null_t
                 else:
                     if fval != fval:
                         seen.null_ = True
-                        mask[i] = 1
+                        mask[i] = MaskVal.null_t
 
-                    floats[i] = fval
+                    arr[i] = NonComplexNumeric(float_t=fval)
+                    mask[i] = MaskVal.float_t
 
                 if maybe_int:
                     as_int = int(val)
 
                     if as_int in na_values:
-                        mask[i] = 1
+                        mask[i] = MaskVal.null_t
                         seen.null_ = True
                         if not allow_null_in_int:
                             seen.float_ = True
@@ -2310,26 +2371,31 @@ def maybe_convert_numeric(
                     if as_int not in na_values:
                         if as_int < oINT64_MIN or as_int > oUINT64_MAX:
                             if seen.coerce_numeric:
+                                arr[i] = NonComplexNumeric(float_t=fval)
+                                mask[i] = MaskVal.float_t
                                 seen.float_ = True
                             else:
                                 raise ValueError("Integer out of range.")
                         else:
-                            if as_int >= 0:
-                                uints[i] = as_int
-
                             if as_int <= oINT64_MAX:
-                                ints[i] = as_int
+                                arr[i] = NonComplexNumeric(int_t=as_int)
+                                mask[i] = MaskVal.int_t
+                            else:
+                                arr[i] = NonComplexNumeric(uint_t=as_int)
+                                mask[i] = MaskVal.uint_t
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
+                    arr[i] = NonComplexNumeric(float_t=fval)
+                    mask[i] = MaskVal.float_t
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
                 seen.saw_null()
-                floats[i] = NaN
-                mask[i] = 1
+                arr[i] = NonComplexNumeric(float_t=NaN)
+                mask[i] = MaskVal.null_t
 
     if seen.check_uint64_conflict():
         return (values, None)
@@ -2340,28 +2406,61 @@ def maybe_convert_numeric(
         seen.float_ = True
 
     if seen.complex_:
-        return (complexes, None)
+        out = np.empty(n, dtype=np.complex128)
+        # Only need to convert to the first complex idx
+        convert_union_arr_to_ndarray[complex128_t](arr, first_complex_idx, mask, out)
+
+        return (out, None)
     elif seen.float_:
+        # Cast data pointer to memoryview so that func can be called
+        out = np.empty(n, dtype=np.float64)
+        convert_union_arr_to_ndarray[float64_t](arr, n, mask, out)
+        PyMem_Free(arr)
         if seen.null_ and convert_to_masked_nullable:
-            return (floats, mask.view(np.bool_))
-        return (floats, None)
+            return (out, mask.view(np.bool_))
+        return (out, None)
     elif seen.int_:
         if seen.null_ and convert_to_masked_nullable:
+            # Replace all NaNs with a random integer
+            # Doesn't matter since we have the mask
             if seen.uint_:
-                return (uints, mask.view(np.bool_))
+                out = np.empty(n, dtype=np.uint64)
+                convert_union_arr_to_ndarray[uint64_t](arr, n, mask, out)
+                PyMem_Free(arr)
+                return (out, mask.view(np.bool_))
             else:
-                return (ints, mask.view(np.bool_))
+                out = np.empty(n, dtype=np.int64)
+                convert_union_arr_to_ndarray[int64_t](arr, n, mask, out)
+                PyMem_Free(arr)
+                return (out, mask.view(np.bool_))
         if seen.uint_:
-            return (uints, None)
+            out = np.empty(n, dtype=np.uint64)
+            convert_union_arr_to_ndarray[uint64_t](arr, n, mask, out)
+            PyMem_Free(arr)
+            return (out, None)
         else:
-            return (ints, None)
+            out = np.empty(n, dtype=np.int64)
+            convert_union_arr_to_ndarray[int64_t](arr, n, mask, out)
+            PyMem_Free(arr)
+            return (out, None)
     elif seen.bool_:
+        out = np.empty(n, dtype=np.uint8)
         if allow_null_in_int:
-            return (bools.view(np.bool_), mask.view(np.bool_))
-        return (bools.view(np.bool_), None)
+            convert_union_arr_to_ndarray[uint8_t](arr, n, mask, out)
+            PyMem_Free(arr)
+            return (out.view(np.bool_), mask.view(np.bool_))
+        convert_union_arr_to_ndarray[uint8_t](arr, n, mask, out)
+        PyMem_Free(arr)
+        return (out.view(np.bool_), None)
     elif seen.uint_:
-        return (uints, None)
-    return (ints, None)
+        out = np.empty(n, dtype=np.uint64)
+        convert_union_arr_to_ndarray[uint64_t](arr, n, mask, out)
+        PyMem_Free(arr)
+        return (out, None)
+    out = np.empty(n, dtype=np.int64)
+    convert_union_arr_to_ndarray[int64_t](arr, n, mask, out)
+    PyMem_Free(arr)
+    return (out, None)
 
 
 @cython.boundscheck(False)

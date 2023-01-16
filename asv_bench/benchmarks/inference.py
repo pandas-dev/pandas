@@ -43,6 +43,15 @@ class ToNumeric:
     def time_from_str(self, errors):
         to_numeric(self.str, errors=errors)
 
+    def peakmem_from_float(self, errors):
+        to_numeric(self.float, errors=errors)
+
+    def peakmem_from_numeric_str(self, errors):
+        to_numeric(self.numstr, errors=errors)
+
+    def peakmem_from_str(self, errors):
+        to_numeric(self.str, errors=errors)
+
 
 class ToNumericDowncast:
 
@@ -84,16 +93,27 @@ class MaybeConvertNumeric:
     # maybe_convert_numeric depends _exclusively_ on _libs, could
     #  go in benchmarks/libs.py
 
-    def setup_cache(self):
-        N = 10**6
-        arr = np.repeat([2**63], N) + np.arange(N).astype("uint64")
-        data = arr.astype(object)
-        data[1::2] = arr[1::2].astype(str)
-        data[-1] = -1
-        return data
+    param_names = ["dtype"]
+    params = ["int64", "uint64", "float64", "complex128"]
 
-    def time_convert(self, data):
-        lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
+    def setup(self, dtype):
+        N = 10**7
+        # Just under int64
+        arr = np.repeat([2**63 - 1], N) + np.arange(N)
+        arr = arr.astype(dtype)
+        if dtype == "uint64":
+            # Make vals not storable as int64
+            arr += 1
+        self.data = arr.astype(object)
+        if dtype != "complex128":
+            # Prevent fastpath from being triggered by stringifying first element
+            self.data[0] = str(self.data[0])
+
+    def time_convert(self, dtype):
+        lib.maybe_convert_numeric(self.data, set(), coerce_numeric=False)
+
+    def peakmem_convert(self, dtype):
+        lib.maybe_convert_numeric(self.data, set(), coerce_numeric=False)
 
 
 class MaybeConvertObjects:

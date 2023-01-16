@@ -205,6 +205,9 @@ def to_numeric(
                 coerce_numeric=coerce_numeric,
                 convert_to_masked_nullable=use_nullable_dtypes,
             )
+            #print(f"Values is {values}")
+            #print(f"Values dtype is {values.dtype}")
+            #print(f"Mask is {new_mask}")
         except (ValueError, TypeError):
             if errors == "raise":
                 raise

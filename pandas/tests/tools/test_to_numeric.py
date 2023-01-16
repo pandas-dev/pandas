@@ -84,6 +84,9 @@ def test_series(last_val):
         [1.0, 3.0, 4.0, 5.0],
         # Bool is regarded as numeric.
         [True, False, True, True],
+        [1 + 2j, 2 + 3j, 3 + 4j, 4 + 5j],
+        [1 + 2j, 2 + 3j, None, 4 + 5j],
+        [1 + 2j, 2, None, 3.14],
     ],
 )
 def test_series_numeric(data):
