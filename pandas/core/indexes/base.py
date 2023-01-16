@@ -2041,13 +2041,21 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if the values are equal or increasing.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.is_monotonic_decreasing : Check if the values are equal or decreasing.
+
         Examples
         --------
-        >>> Index([1, 2, 3]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 3]).is_monotonic_increasing
         True
-        >>> Index([1, 2, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 2]).is_monotonic_increasing
         True
-        >>> Index([1, 3, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
         return self._engine.is_monotonic_increasing
@@ -2057,13 +2065,21 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if the values are equal or decreasing.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.is_monotonic_increasing : Check if the values are equal or increasing.
+
         Examples
         --------
-        >>> Index([3, 2, 1]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 1]).is_monotonic_decreasing
         True
-        >>> Index([3, 2, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 2]).is_monotonic_decreasing
         True
-        >>> Index([3, 1, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
         return self._engine.is_monotonic_decreasing
@@ -2108,6 +2124,34 @@ class Index(IndexOpsMixin, PandasObject):
     def is_unique(self) -> bool:
         """
         Return if the index has unique values.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.has_duplicates : Inverse method that checks if it has duplicate values.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 5, 7, 7])
+        >>> idx.is_unique
+        False
+
+        >>> idx = pd.Index([1, 5, 7])
+        >>> idx.is_unique
+        True
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_unique
+        False
+
+        >>> idx = pd.Index(["Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_unique
+        True
         """
         return self._engine.is_unique
 
@@ -2121,6 +2165,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         bool
             Whether or not the Index has duplicate values.
+
+        See Also
+        --------
+        Index.is_unique : Inverse method that checks if it has unique values.
 
         Examples
         --------
@@ -2547,6 +2595,10 @@ class Index(IndexOpsMixin, PandasObject):
         Return True if there are any NaNs.
 
         Enables various performance speedups.
+
+        Returns
+        -------
+        bool
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
