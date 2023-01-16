@@ -2589,6 +2589,7 @@ class Period(_Period):
 
                 value = str(value)
             value = value.upper()
+
             freqstr = freq.rule_code if freq is not None else None
             dt, reso = parse_datetime_string_with_reso(value, freqstr)
             if reso == "nanosecond":
