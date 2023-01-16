@@ -11,8 +11,6 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas._config import using_copy_on_write
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -999,7 +997,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             assert len(result)
 
 
-@pytest.mark.skipif(using_copy_on_write(), reason="strides buggy with cow")
 def test_hdfstore_strides(setup_path):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
