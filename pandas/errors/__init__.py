@@ -326,9 +326,9 @@ class ChainedAssignmentError(ValueError):
 
     When the ``mode.copy_on_write`` option is enabled, chained assignment can
     never work. In such a situation, we are always setting into a temporary
-    object that is the result of indexing (getitem), which under Copy-on-Write
-    always behaves as a copy. Thus, assigning through a chain can never
-    update the original Series or DataFrame.
+    object that is the result of an indexing operation (getitem), which under
+    Copy-on-Write always behaves as a copy. Thus, assigning through a chain
+    can never update the original Series or DataFrame.
 
     For more information on view vs. copy,
     see :ref:`the user guide<indexing.view_versus_copy>`.

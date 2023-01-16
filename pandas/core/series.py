@@ -1080,7 +1080,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if using_copy_on_write():
-            # print("Series.__getitem__ refcount: ", sys.getrefcount(self))
             if sys.getrefcount(self) <= 3:
                 raise ChainedAssignmentError(_chained_assignment_msg)
 

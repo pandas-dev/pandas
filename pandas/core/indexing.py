@@ -836,7 +836,6 @@ class _LocationIndexer(NDFrameIndexerBase):
     @final
     def __setitem__(self, key, value) -> None:
         if using_copy_on_write():
-            # print("_LocationIndexer.__setitem__ refcount: ",sys.getrefcount(self.obj))
             if sys.getrefcount(self.obj) <= 2:
                 raise ChainedAssignmentError(_chained_assignment_msg)
 
