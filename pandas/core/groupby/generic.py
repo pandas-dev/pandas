@@ -594,7 +594,7 @@ class SeriesGroupBy(GroupBy[Series]):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna: bool = True) -> Series:
+    def nunique(self, dropna: bool = True) -> Series | DataFrame:
         """
         Return number of unique elements in the group.
 
@@ -646,7 +646,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 # GH#21334s
                 res[ids[idx]] = out
 
-        result = self.obj._constructor(res, index=ri, name=self.obj.name)
+        result: Series | DataFrame = self.obj._constructor(
+            res, index=ri, name=self.obj.name
+        )
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))

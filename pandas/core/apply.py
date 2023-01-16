@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ContextManager,
     DefaultDict,
     Dict,
     Hashable,
@@ -318,6 +319,7 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
             # and adjust index after
@@ -403,6 +405,7 @@ class Apply(metaclass=abc.ABCMeta):
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
             # and adjust index after
