@@ -3577,6 +3577,10 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             The transposed DataFrame.
 
+        See Also
+        --------
+        DataFrame.transpose : Transpose index and columns.
+
         Examples
         --------
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
@@ -3589,11 +3593,6 @@ class DataFrame(NDFrame, OpsMixin):
               0  1
         col1  1  2
         col2  3  4
-
-
-        See Also
-        --------
-        DataFrame.transpose : Transpose index and columns.
         """
         return self.transpose()
 
