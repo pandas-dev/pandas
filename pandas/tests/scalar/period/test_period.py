@@ -400,6 +400,7 @@ class TestPeriodConstruction:
         assert isinstance(result, Period)
 
     def test_parse_week_str_roundstrip(self):
+        # GH#50803
         per = Period("2017-01-23/2017-01-29")
         assert per.freq.freqstr == "W-SUN"
 

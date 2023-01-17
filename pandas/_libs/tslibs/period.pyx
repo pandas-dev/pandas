@@ -2684,10 +2684,7 @@ cdef parse_weekly_str(value, BaseOffset freq):
     datetime-parsing logic.  This ensures that we can round-trip with
     Period.__str__ with weekly freq.
     """
-    match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
-    if not match:
-        raise ValueError("Could not parse as weekly-freq Period")
-
+    # GH#50803
     start, end = value.split("/")
     start = Timestamp(start)
     end = Timestamp(end)
