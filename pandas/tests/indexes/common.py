@@ -624,14 +624,10 @@ class Base:
 
         # empty mappable
         dtype = None
-        if idx._is_backward_compat_public_numeric_index:
-            new_index_cls = NumericIndex
-            if idx.dtype.kind == "f":
-                dtype = idx.dtype
-        else:
-            new_index_cls = Float64Index
+        if idx.dtype.kind == "f":
+            dtype = idx.dtype
 
-        expected = new_index_cls([np.nan] * len(idx), dtype=dtype)
+        expected = Index([np.nan] * len(idx), dtype=dtype)
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
@@ -822,6 +818,15 @@ class Base:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             idx.holds_integer()
 
+    def test_is_categorical_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
+        ):
+            idx.is_categorical()
+
 
 class NumericBase(Base):
     """
@@ -887,13 +892,9 @@ class NumericBase(Base):
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
         else:
             expected = Index([index[0], np.nan] + list(index[1:]))
-
-            if index._is_backward_compat_public_numeric_index:
-                # GH#43921 we preserve NumericIndex
-                if index.dtype.kind == "f":
-                    expected = NumericIndex(expected, dtype=index.dtype)
-                else:
-                    expected = NumericIndex(expected)
+            # GH#43921 we preserve float dtype
+            if index.dtype.kind == "f":
+                expected = Index(expected, dtype=index.dtype)
 
         result = index.insert(1, na_val)
         tm.assert_index_equal(result, expected, exact=True)
