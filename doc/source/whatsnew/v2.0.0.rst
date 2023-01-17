@@ -94,10 +94,9 @@ Copy-on-Write improvements
   was added to the following methods:
 
   - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
-  - :meth:`DataFrame.set_index` / :meth:`Series.set_index`
+  - :meth:`DataFrame.set_index`
   - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
   - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
-  - :meth:`DataFrame.rename_columns`
   - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
   - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
   - :meth:`DataFrame.assign`
