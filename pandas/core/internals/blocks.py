@@ -501,7 +501,8 @@ class Block(PandasObject):
                 f"({newb.dtype.name} [{newb.shape}])"
             )
         if using_copy_on_write():
-            if not copy and values is new_values:
+            if not copy:
+                # This tracks more references than necessary.
                 newb._ref = weakref.ref(self)
         return newb
 
