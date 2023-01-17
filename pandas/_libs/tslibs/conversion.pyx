@@ -538,16 +538,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                 maybe_localize_tso(obj, tz, obj.creso)
                 return obj
 
-        try:
-            dt = parse_datetime_string(
-                ts, dayfirst=dayfirst, yearfirst=yearfirst
-            )
-        except ValueError as err:
-            if "out of range for month" in str(err):
-                # dateutil raised when constructing a datetime object,
-                #  let's give a nicer exception message
-                raise ValueError("could not convert string to Timestamp") from err
-            raise
+        dt = parse_datetime_string(
+            ts, dayfirst=dayfirst, yearfirst=yearfirst
+        )
 
     return convert_datetime_to_tsobject(dt, tz)
 

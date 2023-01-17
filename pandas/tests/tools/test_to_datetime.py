@@ -2791,7 +2791,7 @@ class TestDaysInMonth:
             assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "could not convert string to Timestamp"
+        msg = "day is out of range for month: 2015-02-29, at position 0"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
