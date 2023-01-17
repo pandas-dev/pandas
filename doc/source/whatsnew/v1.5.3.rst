@@ -48,7 +48,7 @@ Other
     as pandas works toward compatibility with SQLAlchemy 2.0.
 
 - Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
-- A ``FutureWarning`` raised when attempting to set values inplace with `:meth:`DataFrame.loc` or `:meth:`DataFrame.loc`` has been changed to a ``DeprecationWarning`` (:issue:`48673`)
+- A ``FutureWarning`` raised when attempting to set values inplace with :meth:`DataFrame.loc` or :meth:`DataFrame.loc` has been changed to a ``DeprecationWarning`` (:issue:`48673`)
 -
 
 .. ---------------------------------------------------------------------------
