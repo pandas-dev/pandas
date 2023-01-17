@@ -1196,7 +1196,11 @@ class SelectN:
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
         """
-        return is_complex_dtype(dtype) if is_numeric_dtype(dtype) else needs_i8_conversion(dtype)
+        return (
+            is_complex_dtype(dtype)
+            if is_numeric_dtype(dtype)
+            else needs_i8_conversion(dtype)
+        )
 
 
 class SelectNSeries(SelectN):
