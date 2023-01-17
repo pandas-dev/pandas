@@ -20,6 +20,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -202,6 +203,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = bool(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
+    elif value is NA:
+        value = None
     return value
 
 
