@@ -3211,3 +3211,11 @@ class TestLocSeries:
         index = pd.period_range(start="2000", periods=20, freq="B")
         series = Series(range(20), index=index)
         assert series.loc["2000-01-14"] == 9
+
+    def test_deprecation_warnings_raised_loc(self):
+        # GH#48673
+        with tm.assert_produces_warning(DeprecationWarning):
+            values = np.arange(4).reshape(2, 2)
+            df = DataFrame(values, columns=["a", "b"])
+            new = np.array([10, 11]).astype(np.int16)
+            df.loc[:, "a"] = new
