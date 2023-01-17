@@ -974,6 +974,44 @@ def test_squeeze(using_copy_on_write):
         assert df.loc[0, "a"] == 0
 
 
+@pytest.mark.parametrize(
+    "replace_kwargs",
+    [
+        {"to_replace": {"a": 1, "b": 4}, "value": -1},
+        # Test CoW splits blocks to avoid copying unchanged columns
+        {"to_replace": {"a": 1}, "value": -1},
+        {"to_replace": {"b": 4}, "value": -1},
+        {"to_replace": {"b": {4: 1}}},
+        # TODO: Add these in a further optimization
+        # We would need to see which columns got replaced in the mask
+        # which could be expensive
+        # {"to_replace": {"b": 1}},
+        # 1
+    ],
+)
+def test_replace(using_copy_on_write, replace_kwargs):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["foo", "bar", "baz"]})
+    df_orig = df.copy()
+
+    df_replaced = df.replace(**replace_kwargs)
+
+    if using_copy_on_write:
+        if (df_replaced["b"] == df["b"]).all():
+            assert np.shares_memory(get_array(df_replaced, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+
+    # mutating squeezed df triggers a copy-on-write for that column/block
+    df_replaced.loc[0, "c"] = -1
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+
+    if "a" in replace_kwargs["to_replace"]:
+        arr = get_array(df_replaced, "a")
+        df_replaced.loc[0, "a"] = 100
+        assert np.shares_memory(get_array(df_replaced, "a"), arr)
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_putmask(using_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 2})
     view = df[:]
