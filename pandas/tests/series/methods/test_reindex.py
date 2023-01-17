@@ -126,7 +126,7 @@ def test_reindex_pad():
     reindexed2 = s2.reindex(s.index, method="ffill")
     tm.assert_series_equal(reindexed, reindexed2)
 
-    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
     # GH4604

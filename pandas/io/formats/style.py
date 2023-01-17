@@ -2253,7 +2253,7 @@ class Styler(StylerRenderer):
                         "props": props + "top:0px; z-index:2;",
                     }
                 ]
-                if not self.index.names[0] is None:
+                if self.index.names[0] is not None:
                     styles[0]["props"] = (
                         props + f"top:0px; z-index:2; height:{pixel_size}px;"
                     )
@@ -3619,7 +3619,7 @@ def _background_gradient(
     Color background in a range according to the data or a gradient map
     """
     if gmap is None:  # the data is used the gmap
-        gmap = data.to_numpy(dtype=float)
+        gmap = data.to_numpy(dtype=float, na_value=np.nan)
     else:  # else validate gmap against the underlying data
         gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
 

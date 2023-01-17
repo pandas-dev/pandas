@@ -505,6 +505,32 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
         tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
 
+    @pytest.mark.parametrize(
+        "data, expected_codes, expected_uniques",
+        [
+            (
+                Index(Categorical(["a", "a", "b"])),
+                np.array([0, 0, 1], dtype=np.intp),
+                CategoricalIndex(["a", "b"], categories=["a", "b"], dtype="category"),
+            ),
+            (
+                Series(Categorical(["a", "a", "b"])),
+                np.array([0, 0, 1], dtype=np.intp),
+                CategoricalIndex(["a", "b"], categories=["a", "b"], dtype="category"),
+            ),
+            (
+                Series(DatetimeIndex(["2017", "2017"], tz="US/Eastern")),
+                np.array([0, 0], dtype=np.intp),
+                DatetimeIndex(["2017"], tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_factorize_mixed_values(self, data, expected_codes, expected_uniques):
+        # GH 19721
+        codes, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_index_equal(uniques, expected_uniques)
+
 
 class TestUnique:
     def test_ints(self):
@@ -1776,7 +1802,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([5, 10])
-        new = Index(np.arange(5))
+        new = Index(np.arange(5, dtype=np.int64))
         filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -2163,8 +2189,7 @@ def test_int64_add_overflow():
             b_mask=np.array([False, True]),
         )
     with pytest.raises(OverflowError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
+        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
 
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just

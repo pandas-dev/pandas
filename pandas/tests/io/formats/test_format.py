@@ -134,7 +134,7 @@ def has_horizontally_truncated_repr(df):
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
-    for ix, l in enumerate(r.splitlines()):
+    for ix, _ in enumerate(r.splitlines()):
         if not r.split()[cand_col] == "...":
             return False
     return True
@@ -193,7 +193,8 @@ class TestDataFrameFormatting:
     )
     def test_show_counts(self, row, columns, show_counts, result):
 
-        df = DataFrame(1, columns=range(10), index=range(10))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
         df.iloc[1, 1] = np.nan
 
         with option_context(
@@ -1328,7 +1329,6 @@ class TestDataFrameFormatting:
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
-            index=np.arange(200),
         )
 
         biggie.loc[:20, "A"] = np.nan

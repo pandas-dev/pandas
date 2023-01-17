@@ -3,6 +3,10 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+from copy import (
+    copy,
+    deepcopy,
+)
 import re
 
 import numpy as np
@@ -19,7 +23,6 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -132,11 +135,6 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import (
-            copy,
-            deepcopy,
-        )
-
         index = index_flat
 
         for func in (copy, deepcopy):
@@ -390,14 +388,7 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if (
-            isinstance(index, DatetimeIndex)
-            and index.tz is not None
-            and dtype == "datetime64[ns]"
-        ):
-            # This astype is deprecated in favor of tz_localize
-            warn = FutureWarning
-        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
             warn = np.ComplexWarning
 

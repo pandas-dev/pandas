@@ -30,9 +30,13 @@ import weakref
 
 import numpy as np
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_copy_on_write,
+)
 
 from pandas._libs import lib
+from pandas._libs.lib import array_equal_fast
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -158,8 +162,10 @@ from pandas.core.internals import (
     BlockManager,
     SingleArrayManager,
 )
-from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.internals.managers import using_copy_on_write
+from pandas.core.internals.construction import (
+    mgr_to_mgr,
+    ndarray_to_mgr,
+)
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -761,7 +767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def swapaxes(
-        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool_t = True
+        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool_t | None = None
     ) -> NDFrameT:
         """
         Interchange axes and swap values axes appropriately.
@@ -774,15 +780,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if copy:
-                return self.copy()
-            return self
+            if copy is False and not using_copy_on_write():
+                return self
+            return self.copy(deep=copy)
 
         mapping = {i: j, j: i}
 
-        new_axes = (self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN))
+        new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self.values.swapaxes(i, j)
-        if copy:
+        if (
+            using_copy_on_write()
+            and self._mgr.is_single_block
+            and isinstance(self._mgr, BlockManager)
+        ):
+            # This should only get hit in case of having a single block, otherwise a
+            # copy is made, we don't have to set up references.
+            new_mgr = ndarray_to_mgr(
+                new_values,
+                new_axes[0],
+                new_axes[1],
+                dtype=None,
+                copy=False,
+                typ="block",
+            )
+            assert isinstance(new_mgr, BlockManager)
+            assert isinstance(self._mgr, BlockManager)
+            new_mgr.parent = self._mgr
+            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+
+        elif (copy or copy is None) and self._mgr.is_single_block:
             new_values = new_values.copy()
 
         return self._constructor(
@@ -2008,43 +2035,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
-
-    def __array_wrap__(
-        self,
-        result: np.ndarray,
-        context: tuple[Callable, tuple[Any, ...], int] | None = None,
-    ):
-        """
-        Gets called after a ufunc and other functions.
-
-        Parameters
-        ----------
-        result: np.ndarray
-            The result of the ufunc or other function called on the NumPy array
-            returned by __array__
-        context: tuple of (func, tuple, int)
-            This parameter is returned by ufuncs as a 3-element tuple: (name of the
-            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
-            other numpy functions.q
-
-        Notes
-        -----
-        Series implements __array_ufunc_ so this not called for ufunc on Series.
-        """
-        # Note: at time of dask 2022.01.0, this is still used by dask
-        warnings.warn(
-            "The __array_wrap__ method of DataFrame and Series will be removed in "
-            "a future version",
-            DeprecationWarning,
-            stacklevel=find_stack_level(),
-        )
-        res = lib.item_from_zerodim(result)
-        if is_scalar(res):
-            # e.g. we get here with np.ptp(series)
-            # ptp also requires the item_from_zerodim
-            return res
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(res, **d).__finalize__(self, method="__array_wrap__")
 
     @final
     def __array_ufunc__(
@@ -3829,6 +3819,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
+        if using_copy_on_write():
+            return
 
         if verify_is_copy:
             self._check_setitem_copy(t="referent")
@@ -3932,6 +3924,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
+        if not isinstance(indices, slice):
+            indices = np.asarray(indices, dtype=np.intp)
+            if (
+                axis == 0
+                and indices.ndim == 1
+                and using_copy_on_write()
+                and array_equal_fast(
+                    indices,
+                    np.arange(0, len(self), dtype=np.intp),
+                )
+            ):
+                return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indices,
@@ -4203,10 +4207,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if (
-            config.get_option("mode.copy_on_write")
-            and config.get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             return
 
         # return early if the check is not needed
@@ -5914,6 +5915,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
         """
+        if using_copy_on_write():
+            return common.pipe(self.copy(deep=None), func, *args, **kwargs)
         return common.pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
@@ -6236,7 +6239,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    1
         1    2
         dtype: category
-        Categories (2, int64): [1, 2]
+        Categories (2, int32): [1, 2]
 
         Convert to ordered categorical type with custom ordering:
 
@@ -7186,6 +7189,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                # TODO: Consider copy-on-write for non-replaced columns's here
                 if isinstance(self, ABCDataFrame):
                     from pandas import Series
 
@@ -7245,7 +7249,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy()
+                return self.copy(deep=None)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -10048,7 +10052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
@@ -10989,7 +10993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             return self.T._accum_func(
-                name, func, axis=0, skipna=skipna, *args, **kwargs
+                name, func, axis=0, skipna=skipna, *args, **kwargs  # noqa: B026
             ).T
 
         def block_accum_func(blk_values):
@@ -11085,7 +11089,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None | lib.NoDefault = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11097,30 +11101,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
-        if axis is None and self.ndim > 1:
-            # user must have explicitly passed axis=None
-            # GH#21597
-            warnings.warn(
-                f"In a future version, DataFrame.{name}(axis=None) will return a "
-                f"scalar {name} over the entire DataFrame. To retain the old "
-                f"behavior, use 'frame.{name}(axis=0)' or just 'frame.{name}()'",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if axis is lib.no_default:
-            axis = None
-
-        if axis is None:
-            axis = self._stat_axis_number
-
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
 
     def min(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11136,7 +11123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def max(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11152,7 +11139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def mean(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11163,7 +11150,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11174,7 +11161,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11185,7 +11172,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         **kwargs,
@@ -11507,7 +11494,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def mean(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11528,7 +11515,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def skew(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11552,7 +11539,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def kurt(
             self,
-            axis: Axis | None | lib.NoDefault = lib.no_default,
+            axis: Axis | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11574,7 +11561,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def median(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11597,7 +11584,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def max(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11620,7 +11607,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def min(
             self,
-            axis: AxisInt | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None = 0,
             skipna: bool_t = True,
             numeric_only: bool_t = False,
             **kwargs,
@@ -11849,6 +11836,12 @@ Parameters
 axis : {axis_descr}
     Axis for the function to be applied on.
     For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 numeric_only : bool, default False
@@ -11860,7 +11853,7 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or {name2} (if level specified)\
+{name1} or scalar\
 {see_also}\
 {examples}
 """

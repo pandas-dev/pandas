@@ -37,6 +37,10 @@ from pandas.errors import (
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
+from pandas.io.common import (
+    dedup_names,
+    is_potential_multi_index,
+)
 from pandas.io.parsers.base_parser import (
     ParserBase,
     parser_defaults,
@@ -259,7 +263,14 @@ class PythonParser(ParserBase):
         columns: Sequence[Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
-            names = self._dedup_names(self.orig_names)
+            # error: Cannot determine type of 'index_col'
+            names = dedup_names(
+                self.orig_names,
+                is_potential_multi_index(
+                    self.orig_names,
+                    self.index_col,  # type: ignore[has-type]
+                ),
+            )
             # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
@@ -293,7 +304,14 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
-        names = self._dedup_names(self.orig_names)
+        # error: Cannot determine type of 'index_col'
+        names = dedup_names(
+            self.orig_names,
+            is_potential_multi_index(
+                self.orig_names,
+                self.index_col,  # type: ignore[has-type]
+            ),
+        )
 
         offset = 0
         if self._implicit_index:
@@ -434,6 +452,7 @@ class PythonParser(ParserBase):
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
+                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
                     for i in col_loop_order:
                         col = this_columns[i]
                         old_col = col
@@ -998,12 +1017,12 @@ class PythonParser(ParserBase):
             content_len = len(content)
             content = []
 
-            for (i, l) in iter_content:
-                actual_len = len(l)
+            for (i, _content) in iter_content:
+                actual_len = len(_content)
 
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
-                        new_l = self.on_bad_lines(l)
+                        new_l = self.on_bad_lines(_content)
                         if new_l is not None:
                             content.append(new_l)
                     elif self.on_bad_lines in (
@@ -1016,7 +1035,7 @@ class PythonParser(ParserBase):
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
-                    content.append(l)
+                    content.append(_content)
 
             for row_num, actual_len in bad_lines:
                 msg = (
