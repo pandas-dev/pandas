@@ -6011,7 +6011,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def astype(
-        self: NDFrameT, dtype, copy: bool_t = True, errors: IgnoreRaise = "raise"
+        self: NDFrameT, dtype, copy: bool_t | None = None, errors: IgnoreRaise = "raise"
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -6159,7 +6159,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for i, (col_name, col) in enumerate(self.items()):
                 cdt = dtype_ser.iat[i]
                 if isna(cdt):
-                    res_col = col.copy() if copy else col
+                    if using_copy_on_write():
+                        # Make a shallow copy even if copy=False for CoW
+                        res_col = col.copy(deep=copy)
+                    else:
+                        res_col = col if copy is False else col.copy()
                 else:
                     try:
                         res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
@@ -6186,7 +6190,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 33113: handle empty frame or series
         if not results:
-            return self.copy()
+            return self.copy(deep=None)
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)

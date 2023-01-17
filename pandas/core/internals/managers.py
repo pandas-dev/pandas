@@ -435,8 +435,20 @@ class BaseBlockManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
-        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
+    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
+
+        result = self.apply("astype", dtype=dtype, copy=copy, errors=errors)
+        if using_copy_on_write() and not copy:
+            refs = [blk._ref for blk in result.blocks]
+            if any(ref is not None for ref in refs):
+                result.refs = refs
+                result.parent = self
+        return result
 
     def convert(self: T, copy: bool) -> T:
         return self.apply(

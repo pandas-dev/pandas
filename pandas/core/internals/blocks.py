@@ -11,8 +11,11 @@ from typing import (
     cast,
     final,
 )
+import weakref
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     Timestamp,
@@ -152,6 +155,7 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
+    _ref = None
 
     @final
     @cache_readonly
@@ -496,6 +500,9 @@ class Block(PandasObject):
                 f"({self.dtype.name} [{self.shape}]) to different shape "
                 f"({newb.dtype.name} [{newb.shape}])"
             )
+        if using_copy_on_write():
+            if not copy and values is new_values:
+                newb._ref = weakref.ref(self)
         return newb
 
     @final
