@@ -2395,7 +2395,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             tm.assert_frame_equal(result, expected)
 
     def test_read_sql_dtype(self):
-        # GH#50048
+        # GH#50797
         table = "test"
         df = DataFrame({"a": [1, 2, 3], "b": 5})
         df.to_sql(table, self.conn, index=False, if_exists="replace")
