@@ -1897,7 +1897,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         try:
             on_freq = cls._generate_range(
-                start=index[0], end=None, periods=len(index), freq=freq, **kwargs
+                start=index[0],
+                end=None,
+                periods=len(index),
+                freq=freq,
+                unit=index.unit,
+                **kwargs,
             )
             if not np.array_equal(index.asi8, on_freq.asi8):
                 raise ValueError
