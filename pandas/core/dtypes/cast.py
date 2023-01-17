@@ -20,7 +20,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+    NAType,
+)
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -177,7 +180,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     return value
 
 
-def maybe_box_native(value: Scalar) -> Scalar:
+def maybe_box_native(value: Scalar | None | NAType) -> Scalar | None | NAType:
     """
     If passed a scalar cast the scalar to a python native type.
 
