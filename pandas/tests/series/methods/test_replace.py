@@ -690,3 +690,25 @@ class TestSeriesReplace:
         df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
         df["Test"] = df["Test"].fillna(np.nan)
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["object", "Int64"])
+    def test_replace_na_in_obj_column(self, dtype):
+        # GH#47480
+        ser = pd.Series([0, 1, pd.NA], dtype=dtype)
+        expected = pd.Series([0, 2, pd.NA], dtype=dtype)
+        result = ser.replace(to_replace=1, value=2)
+        tm.assert_series_equal(result, expected)
+
+        ser.replace(to_replace=1, value=2, inplace=True)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("val", [0, 0.5])
+    def test_replace_numeric_column_with_na(self, val):
+        # GH#50758
+        ser = pd.Series([val, 1])
+        expected = pd.Series([val, pd.NA])
+        result = ser.replace(to_replace=1, value=pd.NA)
+        tm.assert_series_equal(result, expected)
+
+        ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        tm.assert_series_equal(ser, expected)

@@ -26,6 +26,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    PY311,
     is_ci_environment,
     is_platform_windows,
     pa_version_under6p0,
@@ -49,7 +50,7 @@ from pandas.api.types import (
 )
 from pandas.tests.extension import base
 
-pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+pa = pytest.importorskip("pyarrow", minversion="6.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
@@ -287,7 +288,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Nanosecond time parsing not supported.",
@@ -353,20 +354,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         self.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(
-        self, data, all_numeric_accumulations, skipna, request
-    ):
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         pa_type = data.dtype.pyarrow_dtype
         if (
             (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
             and all_numeric_accumulations == "cumsum"
             and not pa_version_under9p0
         ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} implemented for {pa_type}"
-                )
-            )
+            pytest.skip("These work, are tested by test_accumulate_series.")
+
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
 
@@ -376,6 +372,26 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
         pa_type = data.dtype.pyarrow_dtype
+        op_name = all_numeric_accumulations
+        ser = pd.Series(data)
+
+        do_skip = False
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                do_skip = True
+        elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                do_skip = True
+        elif pa.types.is_duration(pa_type):
+            if op_name == "cumprod":
+                do_skip = True
+
+        if do_skip:
+            pytest.skip(
+                "These should *not* work, we test in test_accumulate_series_raises "
+                "that these correctly raise."
+            )
+
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -383,14 +399,16 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
                     raises=NotImplementedError,
                 )
             )
-        elif not (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)):
+        elif all_numeric_accumulations == "cumsum" and (
+            pa.types.is_duration(pa_type) or pa.types.is_boolean(pa_type)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented for {pa_type}"
+                    reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
+                    raises=NotImplementedError,
                 )
             )
-        op_name = all_numeric_accumulations
-        ser = pd.Series(data)
+
         self.check_accumulate(ser, op_name, skipna)
 
 
@@ -417,6 +435,47 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
+        opname = all_numeric_reductions
+
+        ser = pd.Series(data)
+
+        should_work = True
+        if pa.types.is_temporal(pa_dtype) and opname in [
+            "sum",
+            "var",
+            "skew",
+            "kurt",
+            "prod",
+        ]:
+            if pa.types.is_duration(pa_dtype) and opname in ["sum"]:
+                # summing timedeltas is one case that *is* well-defined
+                pass
+            else:
+                should_work = False
+        elif (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ) and opname in [
+            "sum",
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "kurt",
+        ]:
+            should_work = False
+
+        if not should_work:
+            # matching the non-pyarrow versions, these operations *should* not
+            #  work for these dtypes
+            msg = f"does not support reduction '{opname}'"
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser, opname)(skipna=skipna)
+
+            return
+
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
             reason=(
@@ -448,24 +507,16 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                     ),
                 )
             )
-        elif (
-            not (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_boolean(pa_dtype)
-            )
-            and not (
-                all_numeric_reductions in {"min", "max"}
-                and (
-                    (
-                        pa.types.is_temporal(pa_dtype)
-                        and not pa.types.is_duration(pa_dtype)
-                    )
-                    or pa.types.is_string(pa_dtype)
-                    or pa.types.is_binary(pa_dtype)
-                )
-            )
-            and not all_numeric_reductions == "count"
+
+        elif all_numeric_reductions in [
+            "mean",
+            "median",
+            "std",
+            "sem",
+        ] and pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions in ["sum", "min", "max"] and pa.types.is_duration(
+            pa_dtype
         ):
             request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
@@ -508,13 +559,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
@@ -523,13 +567,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
         with tm.maybe_produces_warning(
@@ -543,13 +580,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
@@ -565,13 +595,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 pytest.mark.xfail(
                     raises=ValueError,
                     reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
         with tm.maybe_produces_warning(
@@ -796,25 +819,10 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
-        pa_dtype = all_data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"value_count has no kernel for {pa_dtype}",
-                )
-            )
         super().test_value_counts(all_data, dropna)
 
     def test_value_counts_with_normalize(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"value_count has no pyarrow kernel for {pa_dtype}",
-                )
-            )
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
@@ -896,17 +904,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype) and not ascending:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"unique has no pyarrow kernel "
-                        f"for {pa_dtype} when ascending={ascending}"
-                    ),
-                )
-            )
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
@@ -926,16 +923,6 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"dictionary_encode has no pyarrow kernel "
-                        f"for {pa_dtype} when ascending={ascending}"
-                    ),
-                )
-            )
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
@@ -943,57 +930,15 @@ class TestBaseMethods(base.BaseMethodsTests):
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"unique has no pyarrow kernel for {pa_dtype}.",
-                )
-            )
-        super().test_unique(data, box, method)
-
     def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        elif pa.types.is_boolean(pa_dtype):
+        if pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
         super().test_factorize(data_for_grouping)
-
-    def test_factorize_equivalence(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        super().test_factorize_equivalence(data_for_grouping)
-
-    def test_factorize_empty(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
-                )
-            )
-        super().test_factorize_empty(data)
 
     @pytest.mark.xfail(
         reason="result dtype pyarrow[bool] better than expected dtype object"

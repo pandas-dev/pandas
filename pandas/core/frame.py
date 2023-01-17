@@ -48,6 +48,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
+    array_equal_fast,
     no_default,
 )
 from pandas._typing import (
@@ -722,6 +723,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
+                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -730,6 +732,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     typ=manager,
+                    copy=_copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -3568,6 +3571,31 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def T(self) -> DataFrame:
+        """
+        The transpose of the DataFrame.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        DataFrame.transpose : Transpose index and columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df.T
+              0  1
+        col1  1  2
+        col2  3  4
+        """
         return self.transpose()
 
     # ----------------------------------------------------------------------
@@ -5529,7 +5557,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
         """
         # Operate column-wise
-        res = self if inplace else self.copy()
+        res = self if inplace else self.copy(deep=None)
         ax = self.columns
 
         for i, ax_value in enumerate(ax):
@@ -6345,7 +6373,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
-            result = self.copy()
+            result = self.copy(deep=None)
         else:
             result = self.loc(axis=axis)[mask]
 
@@ -6695,7 +6723,16 @@ class DataFrame(NDFrame, OpsMixin):
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            return self.copy()
+            if inplace:
+                return self._update_inplace(self)
+            else:
+                return self.copy(deep=None)
+
+        if array_equal_fast(indexer, np.arange(0, len(indexer), dtype=indexer.dtype)):
+            if inplace:
+                return self._update_inplace(self)
+            else:
+                return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False

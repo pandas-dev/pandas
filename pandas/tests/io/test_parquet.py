@@ -842,6 +842,7 @@ class TestParquetPyArrow(Base):
 
         # GH #35791
         if partition_col:
+            expected_df = expected_df.astype(dict.fromkeys(partition_col, np.int32))
             partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(

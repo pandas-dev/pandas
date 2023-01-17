@@ -1561,12 +1561,14 @@ class TestToDatetime:
     def test_to_datetime_malformed_raise(self):
         # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
+        msg = (
+            'Parsed string "200622-12-31" gives an invalid tzoffset, which must '
+            r"be between -timedelta\(hours=24\) and timedelta\(hours=24\), "
+            "at position 0"
+        )
         with pytest.raises(
             ValueError,
-            match=(
-                r"^offset must be a timedelta strictly between "
-                r"-timedelta\(hours=24\) and timedelta\(hours=24\)., at position 0$"
-            ),
+            match=msg,
         ):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -1623,10 +1625,14 @@ class TestToDatetime:
             "2015-03-14T16:15:14.123-08:00",
             "2019-03-04T21:56:32.620-07:00",
             None,
+            "today",
+            "now",
         ]
         ser = Series(vals)
         assert all(ser[i] is vals[i] for i in range(len(vals)))  # GH#40111
 
+        now = Timestamp("now")
+        today = Timestamp("today")
         mixed = to_datetime(ser)
         expected = Series(
             [
@@ -1638,7 +1644,11 @@ class TestToDatetime:
             ],
             dtype=object,
         )
-        tm.assert_series_equal(mixed, expected)
+        tm.assert_series_equal(mixed[:-2], expected)
+        # we'll check mixed[-1] and mixed[-2] match now and today to within
+        # call-timing tolerances
+        assert (now - mixed.iloc[-1]).total_seconds() <= 0.1
+        assert (today - mixed.iloc[-2]).total_seconds() <= 0.1
 
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
             to_datetime(mixed)
@@ -2781,7 +2791,7 @@ class TestDaysInMonth:
             assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "day is out of range for month"
+        msg = "could not convert string to Timestamp"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -2901,7 +2911,9 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
+        result1, _ = parsing.parse_datetime_string_with_reso(
+            date_str, yearfirst=yearfirst
+        )
         with tm.assert_produces_warning(warning, match="Could not infer format"):
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
@@ -2937,7 +2949,7 @@ class TestDatetimeParsingWrappers:
 
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
-        result1, _ = parsing.parse_time_string("NaT")
+        result1, _ = parsing.parse_datetime_string_with_reso("NaT")
         result2 = to_datetime("NaT")
         result3 = Timestamp("NaT")
         result4 = DatetimeIndex(["NaT"])[0]
@@ -3008,7 +3020,7 @@ class TestDatetimeParsingWrappers:
         dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
         assert dateutil_result == expected
 
-        result1, _ = parsing.parse_time_string(
+        result1, _ = parsing.parse_datetime_string_with_reso(
             date_str, dayfirst=dayfirst, yearfirst=yearfirst
         )
 
@@ -3036,7 +3048,7 @@ class TestDatetimeParsingWrappers:
         # must be the same as dateutil result
         exp_now = parse(date_str)
 
-        result1, _ = parsing.parse_time_string(date_str)
+        result1, _ = parsing.parse_datetime_string_with_reso(date_str)
         with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
