@@ -90,6 +90,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
+    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,

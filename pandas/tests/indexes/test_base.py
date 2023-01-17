@@ -18,7 +18,6 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
-
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
