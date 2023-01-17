@@ -465,16 +465,18 @@ dependency which needs to be installed, since rendering is based upon jinja2 tem
 
 The pandas options below are no longer used and will be removed in future releases.
 The alternative options giving similar functionality are indicated below:
-  - ``display.latex.escape``: replaced with ``styler.format.escape``,
-  - ``display.latex.longtable``: replaced with ``styler.latex.environment``,
-  - ``display.latex.multicolumn``, ``display.latex.multicolumn_format`` and
-    ``display.latex.multirow``: replaced with ``styler.sparse.rows``,
-    ``styler.sparse.columns``, ``styler.latex.multirow_align`` and
-    ``styler.latex.multicol_align``,
-  - ``display.latex.repr``: replaced with ``styler.render.repr``,
-  - ``display.max_rows`` and ``display.max_columns``: replace with
-    ``styler.render.max_rows``, ``styler.render.max_columns`` and
-    ``styler.render.max_elements``.
+
+- ``display.latex.escape``: replaced with ``styler.format.escape``,
+- ``display.latex.longtable``: replaced with ``styler.latex.environment``,
+- ``display.latex.multicolumn``, ``display.latex.multicolumn_format`` and
+  ``display.latex.multirow``: replaced with ``styler.sparse.rows``,
+  ``styler.sparse.columns``, ``styler.latex.multirow_align`` and
+  ``styler.latex.multicol_align``,
+- ``display.latex.repr``: replaced with ``styler.render.repr``,
+- ``display.max_rows`` and ``display.max_columns``: replace with
+  ``styler.render.max_rows``, ``styler.render.max_columns`` and
+  ``styler.render.max_elements``.
+
 Note that the behaviour of ``_repr_latex_`` is also changed. Previously
 setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
 JupyterNotebook, and not when the user is running the notebook. Now the
