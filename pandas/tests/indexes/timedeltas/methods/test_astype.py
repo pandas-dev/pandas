@@ -70,8 +70,6 @@ class TestTimedeltaIndex:
 
     def test_astype_uint(self):
         arr = timedelta_range("1H", periods=2)
-        expected = Index(np.array([3600000000000, 90000000000000], dtype="uint64"))
-        tm.assert_index_equal(arr.astype("uint64"), expected)
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
