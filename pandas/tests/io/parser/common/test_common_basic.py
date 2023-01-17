@@ -862,3 +862,27 @@ def test_read_seek(all_parsers):
             actual = parser.read_csv(file)
         expected = parser.read_csv(StringIO(content))
     tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow
+def test_read_csv_skip_blank_rows(all_parsers):
+    # GH22693
+    parser = all_parsers
+    csv_f = StringIO(
+        """A, B, C, D
+                        FOO, 1, 2, 3
+                        FOO, 4, 5, 6
+                        , , ,
+                        FOO, 7, 8, 9
+                        , 10, 11, 12
+                        , , ,
+                     """
+    )
+
+    result = parser.read_csv(csv_f, skip_blank_lines=True)
+    expected = DataFrame(
+        [["FOO", 1, 2, 3], ["FOO", 4, 5, 6], ["FOO", 7, 8, 9], [np.nan, 10, 11, 12]],
+        columns=["A", "B", "C", "D"],
+    )
+
+    tm.assert_frame_equal(result, expected)
