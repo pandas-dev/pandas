@@ -2031,7 +2031,6 @@ class _iLocIndexer(_LocationIndexer):
                 )
                 # TODO: how to get future behavior?
                 # TODO: what if we got here indirectly via loc?
-                pass
         return
 
     def _setitem_single_block(self, indexer, value, name: str):
