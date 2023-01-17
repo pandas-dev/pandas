@@ -1247,18 +1247,25 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_type = self._data.type
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
-            dtype = f"int{nbits}[pyarrow]"
-            obj = cast(ArrowExtensionArrayT, self.astype(dtype, copy=False))
-            result = obj._mode(dropna=dropna)
-            out = result.astype(self.dtype, copy=False)
-            return cast(ArrowExtensionArrayT, out)
+            if nbits == 32:
+                data = self._data.cast(pa.int32())
+            elif nbits == 64:
+                data = self._data.cast(pa.int64())
+            else:
+                raise NotImplementedError(pa_type)
+        else:
+            data = self._data
 
-        modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
+        modes = pc.mode(data, pc.count_distinct(data).as_py())
         values = modes.field(0)
         counts = modes.field(1)
         # counts sorted descending i.e counts[0] = max
         mask = pc.equal(counts, counts[0])
         most_common = values.filter(mask)
+
+        if pa.types.is_temporal(pa_type):
+            most_common = most_common.cast(pa_type)
+
         return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):
