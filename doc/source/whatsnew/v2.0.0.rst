@@ -869,6 +869,7 @@ Performance improvements
 - Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
 - Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
+- Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -981,6 +982,8 @@ Missing
 - Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 - Bug in :class:`NA` raising a ``TypeError`` instead of return :class:`NA` when performing a binary operation with a ``bytes`` object (:issue:`49108`)
 - Bug in :meth:`DataFrame.update` with ``overwrite=False`` raising ``TypeError`` when ``self`` has column with ``NaT`` values and column not present in ``other`` (:issue:`16713`)
+- Bug in :meth:`Series.replace` raising ``RecursionError`` when replacing value in object-dtype :class:`Series` containing ``NA`` (:issue:`47480`)
+- Bug in :meth:`Series.replace` raising ``RecursionError`` when replacing value in numeric :class:`Series` with ``NA`` (:issue:`50758`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1018,7 +1021,7 @@ Period
 ^^^^^^
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising ``UnicodeDecodeError`` when a locale-specific directive was passed (:issue:`46319`)
 - Bug in adding a :class:`Period` object to an array of :class:`DateOffset` objects incorrectly raising ``TypeError`` (:issue:`50162`)
--
+- Bug in :class:`Period` where passing a string with finer resolution than nanosecond would result in a ``KeyError`` instead of dropping the extra precision (:issue:`50417`)
 
 Plotting
 ^^^^^^^^
