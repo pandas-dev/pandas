@@ -29,9 +29,13 @@ import weakref
 
 import numpy as np
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_copy_on_write,
+)
 
 from pandas._libs import lib
+from pandas._libs.lib import array_equal_fast
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -157,8 +161,10 @@ from pandas.core.internals import (
     BlockManager,
     SingleArrayManager,
 )
-from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.internals.managers import using_copy_on_write
+from pandas.core.internals.construction import (
+    mgr_to_mgr,
+    ndarray_to_mgr,
+)
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -761,7 +767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def swapaxes(
-        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool_t = True
+        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool_t | None = None
     ) -> NDFrameT:
         """
         Interchange axes and swap values axes appropriately.
@@ -774,15 +780,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if copy:
-                return self.copy()
-            return self
+            if copy is False and not using_copy_on_write():
+                return self
+            return self.copy(deep=copy)
 
         mapping = {i: j, j: i}
 
-        new_axes = (self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN))
+        new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self.values.swapaxes(i, j)
-        if copy:
+        if (
+            using_copy_on_write()
+            and self._mgr.is_single_block
+            and isinstance(self._mgr, BlockManager)
+        ):
+            # This should only get hit in case of having a single block, otherwise a
+            # copy is made, we don't have to set up references.
+            new_mgr = ndarray_to_mgr(
+                new_values,
+                new_axes[0],
+                new_axes[1],
+                dtype=None,
+                copy=False,
+                typ="block",
+            )
+            assert isinstance(new_mgr, BlockManager)
+            assert isinstance(self._mgr, BlockManager)
+            new_mgr.parent = self._mgr
+            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+
+        elif (copy or copy is None) and self._mgr.is_single_block:
             new_values = new_values.copy()
 
         return self._constructor(
@@ -3649,6 +3676,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
+        if using_copy_on_write():
+            return
 
         if verify_is_copy:
             self._check_setitem_copy(t="referent")
@@ -3752,6 +3781,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
+        if not isinstance(indices, slice):
+            indices = np.asarray(indices, dtype=np.intp)
+            if (
+                axis == 0
+                and indices.ndim == 1
+                and using_copy_on_write()
+                and array_equal_fast(
+                    indices,
+                    np.arange(0, len(self), dtype=np.intp),
+                )
+            ):
+                return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indices,
@@ -4023,10 +4064,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if (
-            config.get_option("mode.copy_on_write")
-            and config.get_option("mode.data_manager") == "block"
-        ):
+        if using_copy_on_write():
             return
 
         # return early if the check is not needed
@@ -6058,7 +6096,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    1
         1    2
         dtype: category
-        Categories (2, int64): [1, 2]
+        Categories (2, int32): [1, 2]
 
         Convert to ordered categorical type with custom ordering:
 
@@ -7008,6 +7046,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                # TODO: Consider copy-on-write for non-replaced columns's here
                 if isinstance(self, ABCDataFrame):
                     from pandas import Series
 
@@ -7067,7 +7106,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy()
+                return self.copy(deep=None)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -9870,7 +9909,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

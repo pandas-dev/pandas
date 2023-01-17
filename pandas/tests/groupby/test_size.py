@@ -36,6 +36,9 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     expected = Series(counts, dtype="int64")
     if sort:
         expected = expected.sort_index()
+    if tm.is_integer_dtype(expected.index) and not any(x is None for x in by):
+        expected.index = expected.index.astype(np.int_)
+
     grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()
     tm.assert_series_equal(result, expected)

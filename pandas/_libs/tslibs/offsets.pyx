@@ -389,7 +389,6 @@ cdef class BaseOffset:
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
     _adjust_dst = True
-    _deprecations = frozenset(["isAnchored", "onOffset"])
 
     # cdef readonly:
     #    int64_t n

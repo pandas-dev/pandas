@@ -610,8 +610,10 @@ class Base:
 
         idx = simple_index
         if isinstance(idx, CategoricalIndex):
-            # TODO(2.0): see if we can avoid skipping once
-            #  CategoricalIndex.reindex is removed.
+            # FIXME: this fails with CategoricalIndex bc it goes through
+            # Categorical.map which ends up calling get_indexer with
+            #  non-unique values, which raises.  This _should_ work fine for
+            #  CategoricalIndex.
             pytest.skip(f"skipping tests for {type(idx)}")
 
         identity = mapper(idx.values, idx)
@@ -622,14 +624,10 @@ class Base:
 
         # empty mappable
         dtype = None
-        if idx._is_backward_compat_public_numeric_index:
-            new_index_cls = NumericIndex
-            if idx.dtype.kind == "f":
-                dtype = idx.dtype
-        else:
-            new_index_cls = Float64Index
+        if idx.dtype.kind == "f":
+            dtype = idx.dtype
 
-        expected = new_index_cls([np.nan] * len(idx), dtype=dtype)
+        expected = Index([np.nan] * len(idx), dtype=dtype)
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
@@ -795,6 +793,40 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
+    def test_is_boolean_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_boolean()
+
+    def test_is_floating_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_floating()
+
+    def test_is_integer_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_integer()
+
+    def test_holds_integer_deprecated(self, simple_index):
+        # GH50243
+        idx = simple_index
+        msg = f"{type(idx).__name__}.holds_integer is deprecated. "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx.holds_integer()
+
+    def test_is_categorical_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
+        ):
+            idx.is_categorical()
+
 
 class NumericBase(Base):
     """
@@ -848,11 +880,7 @@ class NumericBase(Base):
 
         result = index.insert(0, index[0])
 
-        cls = type(index)
-        if cls is RangeIndex:
-            cls = Int64Index
-
-        expected = cls([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0]] + list(index), dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -863,14 +891,10 @@ class NumericBase(Base):
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
         else:
-            expected = Float64Index([index[0], np.nan] + list(index[1:]))
-
-            if index._is_backward_compat_public_numeric_index:
-                # GH#43921 we preserve NumericIndex
-                if index.dtype.kind == "f":
-                    expected = NumericIndex(expected, dtype=index.dtype)
-                else:
-                    expected = NumericIndex(expected)
+            expected = Index([index[0], np.nan] + list(index[1:]))
+            # GH#43921 we preserve float dtype
+            if index.dtype.kind == "f":
+                expected = Index(expected, dtype=index.dtype)
 
         result = index.insert(1, na_val)
         tm.assert_index_equal(result, expected, exact=True)

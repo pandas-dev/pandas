@@ -370,9 +370,9 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.nan
 
             if isna(result):
-                result = np.datetime64("NaT", "ns")
+                result = np.datetime64("NaT", "ns").astype(dtype)
             else:
-                result = np.int64(result).view("datetime64[ns]")
+                result = np.int64(result).view(dtype)
             # retain original unit
             result = result.astype(dtype, copy=False)
         else:
@@ -752,7 +752,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             return np.nan
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings("ignore", "All-NaN slice encountered")
+            warnings.filterwarnings(
+                "ignore", "All-NaN slice encountered", RuntimeWarning
+            )
             res = np.nanmedian(x[mask])
         return res
 
@@ -780,7 +782,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                 # fastpath for the skipna case
                 with warnings.catch_warnings():
                     # Suppress RuntimeWarning about All-NaN slice
-                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    warnings.filterwarnings(
+                        "ignore", "All-NaN slice encountered", RuntimeWarning
+                    )
                     res = np.nanmedian(values, axis)
 
         else:
@@ -1711,53 +1715,11 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         np.minimum.accumulate: (np.inf, np.nan),
     }[accum_func]
 
+    # This should go through ea interface
+    assert values.dtype.kind not in ["m", "M"]
+
     # We will be applying this function to block values
-    if values.dtype.kind in ["m", "M"]:
-        # GH#30460, GH#29058
-        # numpy 1.18 started sorting NaTs at the end instead of beginning,
-        #  so we need to work around to maintain backwards-consistency.
-        orig_dtype = values.dtype
-
-        # We need to define mask before masking NaTs
-        mask = isna(values)
-
-        y = values.view("i8")
-        # Note: the accum_func comparison fails as an "is" comparison
-        changed = accum_func == np.minimum.accumulate
-
-        try:
-            if changed:
-                y[mask] = lib.i8max
-
-            result = accum_func(y, axis=0)
-        finally:
-            if changed:
-                # restore NaT elements
-                y[mask] = iNaT
-
-        if skipna:
-            result[mask] = iNaT
-        elif accum_func == np.minimum.accumulate:
-            # Restore NaTs that we masked previously
-            nz = (~np.asarray(mask)).nonzero()[0]
-            if len(nz):
-                # everything up to the first non-na entry stays NaT
-                result[: nz[0]] = iNaT
-
-        if isinstance(values.dtype, np.dtype):
-            result = result.view(orig_dtype)
-        else:
-            # DatetimeArray/TimedeltaArray
-            # TODO: have this case go through a DTA method?
-            # For DatetimeTZDtype, view result as M8[ns]
-            npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
-            # Item "type" of "Union[Type[ExtensionArray], Type[ndarray[Any, Any]]]"
-            # has no attribute "_simple_new"
-            result = type(values)._simple_new(  # type: ignore[union-attr]
-                result.view(npdtype), dtype=orig_dtype
-            )
-
-    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+    if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
         mask = isna(vals)
         vals[mask] = mask_a

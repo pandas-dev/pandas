@@ -87,7 +87,6 @@ class NumericIndex(Index):
         "numeric type",
     )
     _can_hold_strings = False
-    _is_backward_compat_public_numeric_index: bool = True
 
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -214,12 +213,7 @@ class NumericIndex(Index):
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
 
-        if cls._is_backward_compat_public_numeric_index:
-            # dtype for NumericIndex
-            return dtype
-        else:
-            # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
-            return cls._default_dtype
+        return dtype
 
     # ----------------------------------------------------------------
     # Indexing Methods
@@ -231,13 +225,11 @@ class NumericIndex(Index):
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
-        # TODO(2.0): once #45324 deprecation is enforced we should be able
+        # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
-            # TODO: can we write this as a condition based on
-            #  e.g. _should_fallback_to_positional?
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
@@ -417,7 +409,6 @@ class Float64Index(NumericIndex):
     _typ = "float64index"
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
-    _is_backward_compat_public_numeric_index: bool = False
 
     @property
     def _engine_type(self) -> type[libindex.Float64Engine]:
