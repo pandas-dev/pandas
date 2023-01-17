@@ -262,7 +262,6 @@ def array_with_unit_to_datetime(
         bint is_coerce = errors=="coerce"
         bint is_raise = errors=="raise"
         ndarray[int64_t] iresult
-        ndarray[object] oresult
         object tz = None
         bint is_ym
         float fval
@@ -283,10 +282,10 @@ def array_with_unit_to_datetime(
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
 
-    try:
-        for i in range(n):
-            val = values[i]
+    for i in range(n):
+        val = values[i]
 
+        try:
             if checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
 
@@ -297,26 +296,17 @@ def array_with_unit_to_datetime(
                 else:
                     if is_ym and is_float_object(val) and not val.is_integer():
                         # Analogous to GH#47266 for Timestamp
-                        if is_raise:
-                            raise ValueError(
-                                f"Conversion of non-round float with unit={unit} "
-                                "is ambiguous"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
+                        raise ValueError(
+                            f"Conversion of non-round float with unit={unit} "
+                            "is ambiguous"
+                        )
 
                     try:
                         iresult[i] = cast_from_unit(val, unit)
                     except OverflowError:
-                        if is_raise:
-                            raise OutOfBoundsDatetime(
-                                f"cannot convert input {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
+                        raise OutOfBoundsDatetime(
+                            f"cannot convert input {val} with the unit '{unit}'"
+                        )
 
             elif isinstance(val, str):
                 if len(val) == 0 or val in nat_strings:
@@ -327,65 +317,56 @@ def array_with_unit_to_datetime(
                     try:
                         fval = float(val)
                     except ValueError:
-                        if is_raise:
-                            raise ValueError(
-                                f"non convertible value {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
+                        raise ValueError(
+                            f"non convertible value {val} with the unit '{unit}'"
+                        )
 
                     if is_ym and not fval.is_integer():
                         # Analogous to GH#47266 for Timestamp
-                        if is_raise:
-                            raise ValueError(
-                                f"Conversion of non-round float with unit={unit} "
-                                "is ambiguous"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
+                        raise ValueError(
+                            f"Conversion of non-round float with unit={unit} "
+                            "is ambiguous"
+                        )
 
                     try:
                         iresult[i] = cast_from_unit(fval, unit)
                     except ValueError:
-                        if is_raise:
-                            raise ValueError(
-                                f"non convertible value {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
+                        raise ValueError(
+                            f"non convertible value {val} with the unit '{unit}'"
+                        )
                     except OverflowError:
-                        if is_raise:
-                            raise OutOfBoundsDatetime(
-                                f"cannot convert input {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
+                        raise OutOfBoundsDatetime(
+                            f"cannot convert input {val} with the unit '{unit}'"
+                        )
 
             else:
+                # TODO: makes more sense as TypeError, but that would be an
+                #  API change.
+                raise ValueError(
+                    f"unit='{unit}' not valid with non-numerical val='{val}'"
+                )
 
-                if is_raise:
-                    raise ValueError(
-                        f"unit='{unit}' not valid with non-numerical val='{val}'"
-                    )
-                if is_ignore:
-                    raise AssertionError
-
+        except (ValueError, OutOfBoundsDatetime, TypeError) as err:
+            if is_raise:
+                err.args = (f"{err}, at position {i}",)
+                raise
+            elif is_ignore:
+                # we have hit an exception
+                # and are in ignore mode
+                # redo as object
+                return _array_with_unit_to_datetime_object_fallback(values, unit)
+            else:
+                # is_coerce
                 iresult[i] = NPY_NAT
 
-        return result, tz
+    return result, tz
 
-    except AssertionError:
-        pass
 
-    # we have hit an exception
-    # and are in ignore mode
-    # redo as object
+cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] oresult
+        object tz = None
 
     # TODO: fix subtle differences between this and no-unit code
     oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
