@@ -286,16 +286,10 @@ def parse_datetime_string(
     except ValueError:
         pass
 
-    try:
-        dt, _ = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
-                               dayfirst=dayfirst, yearfirst=yearfirst,
-                               ignoretz=False)
-    except OverflowError as err:
-        # with e.g. "08335394550" dateutil raises when trying to pass
-        #  year=8335394550 to datetime.replace
-        raise OutOfBoundsDatetime(
-            f'Parsing "{date_string}" to datetime overflows'
-            ) from err
+    dt, _ = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
+                           dayfirst=dayfirst, yearfirst=yearfirst,
+                           ignoretz=False)
+
     if dt.tzinfo is not None:
         # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
         #  bounds, which is invalid (can be constructed, but raises if we call
@@ -410,13 +404,9 @@ def parse_datetime_string_with_reso(
     except ValueError:
         pass
 
-    try:
-        parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
-                                      dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False)
-    except (ValueError, OverflowError) as err:
-        # e.g. "day is out of range for month" raised in default.replace
-        raise DateParseError(err) from err
+    parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
+                                  dayfirst=dayfirst, yearfirst=yearfirst,
+                                  ignoretz=False)
     return parsed, reso
 
 
@@ -467,8 +457,6 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-# TODO: declaring date_string as str (and avoiding assertion below)
-#  breaks tests, not clear why
 cdef object _parse_dateabbr_string(object date_string, datetime default,
                                    str freq=None):
     cdef:
@@ -616,7 +604,7 @@ cdef dateutil_parse(
         str attr
         datetime ret
         object res
-        object reso = None
+        str reso = None
         dict repl = {}
 
     res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
@@ -645,8 +633,15 @@ cdef dateutil_parse(
     try:
         ret = default.replace(**repl)
     except ValueError as err:
+        # e.g. "day is out of range for month"
         # we re-raise to match dateutil's exception message
-        raise ValueError(str(err) + ": " + timestr) from err
+        raise DateParseError(str(err) + ": " + timestr) from err
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{timestr}" to datetime overflows'
+        ) from err
 
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
