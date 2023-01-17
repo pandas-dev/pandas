@@ -831,7 +831,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
@@ -894,7 +894,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
 
         expected = expected.set_index(["id", "year"])
         expected.index = expected.index.set_levels([0, 1], level=0)

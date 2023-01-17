@@ -22,6 +22,7 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
@@ -109,10 +110,7 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
-    from pandas.core.api import (
-        Float64Index,
-        Index,
-    )
+    from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
@@ -581,7 +579,7 @@ class Block(PandasObject):
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            if value is None:
+            if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
                 blk = self.coerce_to_target_dtype(value)
@@ -1290,7 +1288,7 @@ class Block(PandasObject):
     @final
     def quantile(
         self,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         interpolation: QuantileInterpolation = "linear",
         axis: AxisInt = 0,
     ) -> Block:

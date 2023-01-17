@@ -6096,7 +6096,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    1
         1    2
         dtype: category
-        Categories (2, int64): [1, 2]
+        Categories (2, int32): [1, 2]
 
         Convert to ordered categorical type with custom ordering:
 
@@ -7046,6 +7046,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                # TODO: Consider copy-on-write for non-replaced columns's here
                 if isinstance(self, ABCDataFrame):
                     from pandas import Series
 
@@ -7105,7 +7106,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy()
+                return self.copy(deep=None)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -9908,7 +9909,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

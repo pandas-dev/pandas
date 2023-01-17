@@ -445,7 +445,8 @@ def test_groupby_agg_ea_method(monkeypatch):
     result = df.groupby("id")["decimals"].agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
     s = pd.Series(DecimalArray(data))
-    result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
+    grouper = np.array([0, 0, 0, 1, 1], dtype=np.int64)
+    result = s.groupby(grouper).agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
 
 
