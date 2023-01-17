@@ -18,6 +18,12 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_numeric_dtype,
+)
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -32,11 +38,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_numeric_dtype,
-)
 from pandas.core.api import NumericIndex
 from pandas.core.indexes.api import (
     Index,
