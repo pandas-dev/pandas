@@ -2057,7 +2057,9 @@ class IndexCol:
 
         # values is a recarray
         if values.dtype.fields is not None:
-            values = values[self.cname]
+            # Copy, otherwise values will be a view
+            # preventing the original recarry from being free'ed
+            values = values[self.cname].copy()
 
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
@@ -3205,7 +3207,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1)
+            out = concat(dfs, axis=1, copy=True)
             out = out.reindex(columns=items, copy=False)
             return out
 

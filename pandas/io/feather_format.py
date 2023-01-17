@@ -17,7 +17,7 @@ from pandas.util._decorators import doc
 
 from pandas.core.api import (
     DataFrame,
-    Int64Index,
+    NumericIndex,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -62,7 +62,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not isinstance(df.index, (Int64Index, RangeIndex)):
+    if not (isinstance(df.index, NumericIndex) and df.index.dtype == "int64"):
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "

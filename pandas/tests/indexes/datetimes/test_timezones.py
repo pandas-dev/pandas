@@ -119,28 +119,28 @@ class TestDatetimeIndexTimezones:
         ts = ["2008-05-12 09:50:00", "2008-12-12 09:50:35", "2009-05-12 09:50:32"]
         tt = DatetimeIndex(ts).tz_localize("US/Eastern")
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13])
+        expected = Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # sorted case UTC -> US/Eastern
         ts = ["2008-05-12 13:50:00", "2008-12-12 14:50:35", "2009-05-12 13:50:32"]
         tt = DatetimeIndex(ts).tz_localize("UTC")
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9])
+        expected = Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case US/Eastern -> UTC
         ts = ["2008-05-12 09:50:00", "2008-12-12 09:50:35", "2008-05-12 09:50:32"]
         tt = DatetimeIndex(ts).tz_localize("US/Eastern")
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13])
+        expected = Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case UTC -> US/Eastern
         ts = ["2008-05-12 13:50:00", "2008-12-12 14:50:35", "2008-05-12 13:50:32"]
         tt = DatetimeIndex(ts).tz_localize("UTC")
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9])
+        expected = Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -155,7 +155,7 @@ class TestDatetimeIndexTimezones:
         ]
         tt = DatetimeIndex(ts)
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13])
+        expected = Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # sorted case UTC -> US/Eastern
@@ -166,7 +166,7 @@ class TestDatetimeIndexTimezones:
         ]
         tt = DatetimeIndex(ts)
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9])
+        expected = Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case US/Eastern -> UTC
@@ -177,7 +177,7 @@ class TestDatetimeIndexTimezones:
         ]
         tt = DatetimeIndex(ts)
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13])
+        expected = Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case UTC -> US/Eastern
@@ -188,7 +188,7 @@ class TestDatetimeIndexTimezones:
         ]
         tt = DatetimeIndex(ts)
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9])
+        expected = Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
     @pytest.mark.parametrize("freq, n", [("H", 1), ("T", 60), ("S", 3600)])
@@ -200,7 +200,7 @@ class TestDatetimeIndexTimezones:
         idx = idx.tz_convert("Europe/Moscow")
 
         expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
-        tm.assert_index_equal(idx.hour, Index(expected))
+        tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
     def test_dti_tz_convert_dst(self):
         for freq, n in [("H", 1), ("T", 60), ("S", 3600)]:
@@ -213,7 +213,7 @@ class TestDatetimeIndexTimezones:
                 np.array([18, 19, 20, 21, 22, 23, 0, 1, 3, 4, 5]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected))
+            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
             idx = date_range(
                 "2014-03-08 18:00", "2014-03-09 05:00", freq=freq, tz="US/Eastern"
@@ -223,7 +223,7 @@ class TestDatetimeIndexTimezones:
                 np.array([23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected))
+            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
             # End DST
             idx = date_range(
@@ -234,7 +234,7 @@ class TestDatetimeIndexTimezones:
                 np.array([19, 20, 21, 22, 23, 0, 1, 1, 2, 3, 4]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected))
+            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
             idx = date_range(
                 "2014-11-01 18:00", "2014-11-02 05:00", freq=freq, tz="US/Eastern"
@@ -244,30 +244,30 @@ class TestDatetimeIndexTimezones:
                 np.array([22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
                 np.array([n, n, n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected))
+            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
         # daily
         # Start DST
         idx = date_range("2014-03-08 00:00", "2014-03-09 00:00", freq="D", tz="UTC")
         idx = idx.tz_convert("US/Eastern")
-        tm.assert_index_equal(idx.hour, Index([19, 19]))
+        tm.assert_index_equal(idx.hour, Index([19, 19], dtype=np.int32))
 
         idx = date_range(
             "2014-03-08 00:00", "2014-03-09 00:00", freq="D", tz="US/Eastern"
         )
         idx = idx.tz_convert("UTC")
-        tm.assert_index_equal(idx.hour, Index([5, 5]))
+        tm.assert_index_equal(idx.hour, Index([5, 5], dtype=np.int32))
 
         # End DST
         idx = date_range("2014-11-01 00:00", "2014-11-02 00:00", freq="D", tz="UTC")
         idx = idx.tz_convert("US/Eastern")
-        tm.assert_index_equal(idx.hour, Index([20, 20]))
+        tm.assert_index_equal(idx.hour, Index([20, 20], dtype=np.int32))
 
         idx = date_range(
             "2014-11-01 00:00", "2014-11-02 000:00", freq="D", tz="US/Eastern"
         )
         idx = idx.tz_convert("UTC")
-        tm.assert_index_equal(idx.hour, Index([4, 4]))
+        tm.assert_index_equal(idx.hour, Index([4, 4], dtype=np.int32))
 
     def test_tz_convert_roundtrip(self, tz_aware_fixture):
         tz = tz_aware_fixture
@@ -1125,7 +1125,7 @@ class TestDatetimeIndexTimezones:
             "2011-10-02 00:00", freq="h", periods=10, tz=prefix + "America/Atikokan"
         )
 
-        expected = Index(np.arange(10, dtype=np.int64))
+        expected = Index(np.arange(10, dtype=np.int32))
         tm.assert_index_equal(dr.hour, expected)
 
     @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
