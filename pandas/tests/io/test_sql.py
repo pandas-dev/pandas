@@ -2394,6 +2394,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         ):
             tm.assert_frame_equal(result, expected)
 
+    def test_read_sql_dtype(self):
+        # GH#50048
+        table = "test"
+        df = DataFrame({"a": [1, 2, 3], "b": 5})
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        result = pd.read_sql(
+            f"Select * from {table}", self.conn, dtype={"a": np.float64}
+        )
+        expected = DataFrame({"a": Series([1, 2, 3], dtype=np.float64), "b": 5})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
