@@ -357,7 +357,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq, ambiguous=ambiguous, unit=result.unit)
+            cls._validate_frequency(result, freq, ambiguous=ambiguous)
 
         elif freq_infer:
             # Set _freq directly to bypass duplicative _validate_frequency
