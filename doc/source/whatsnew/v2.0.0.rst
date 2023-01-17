@@ -870,6 +870,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
+- Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
