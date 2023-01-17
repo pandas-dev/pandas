@@ -173,7 +173,7 @@ _apply_docs = {
 
     Returns
     -------
-    applied : Series or DataFrame
+    Series or DataFrame
 
     See Also
     --------
