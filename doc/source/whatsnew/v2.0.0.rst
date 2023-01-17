@@ -41,10 +41,12 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
+* :func:`read_json`
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
 * :func:`read_orc`
+* :func:`read_feather`
 * :func:`to_numeric`
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
@@ -55,8 +57,10 @@ to select the nullable dtypes implementation.
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
+* :func:`read_json`
 * :func:`read_parquet`
 * :func:`read_orc`
+* :func:`read_feather`
 
 
 And the following methods will also utilize the ``mode.dtype_backend`` option.
@@ -931,6 +935,7 @@ Numeric
 - Bug in arithmetic operations on :class:`Series` not propagating mask when combining masked dtypes and numpy dtypes (:issue:`45810`, :issue:`42630`)
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
+- Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
 
 Conversion
 ^^^^^^^^^^
@@ -949,6 +954,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.dtypes.is_string_dtype` that would not return ``True`` for :class:`StringDtype` (:issue:`15585`)
+- Bug in converting string dtypes to "datetime64[ns]" or "timedelta64[ns]" incorrectly raising ``TypeError`` (:issue:`36153`)
 -
 
 Interval
