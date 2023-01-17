@@ -572,8 +572,9 @@ def _homogenize(
                 hval = hval.astype(dtype, copy=False)
                 if using_copy_on_write() and hval.values is val.values:
                     # TODO(CoW) remove when astype() has implemented CoW
-                    hval._mgr.refs = [weakref.ref(val._mgr._block)]
-                    hval._mgr.parent = val._mgr
+                    refs = [weakref.ref(val._mgr._block)]  # type: ignore[union-attr]
+                    hval._mgr.refs = refs  # type: ignore[union-attr]
+                    hval._mgr.parent = val._mgr  # type: ignore[union-attr]
             if hval.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
