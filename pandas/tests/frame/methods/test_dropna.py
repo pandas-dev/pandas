@@ -221,7 +221,7 @@ class TestDataFrameMissingData:
         df.iloc[0, 0] = np.nan
         df.iloc[1, 1] = np.nan
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.iloc[:, 3] = np.nan
         expected = df.dropna(subset=["A", "B", "C"], how="all")
         expected.columns = ["A", "A", "B", "C"]
