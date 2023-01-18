@@ -4,8 +4,6 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
-from pandas.compat import is_platform_arm
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -755,13 +753,7 @@ def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected
         ([1.0, 1.1], "Float64", "signed", "Float64"),
         ([1, pd.NA], "Int64", "signed", "Int8"),
         ([450, -300], "Int64", "signed", "Int16"),
-        pytest.param(
-            [np.iinfo(np.uint64).max - 1, 1],
-            "UInt64",
-            "signed",
-            "UInt64",
-            marks=pytest.mark.xfail(not is_platform_arm(), reason="GH38798"),
-        ),
+        ([np.iinfo(np.uint64).max - 1, 1], "UInt64", "signed", "UInt64"),
         ([1, 1], "Int64", "unsigned", "UInt8"),
         ([1.0, 1.0], "Float32", "unsigned", "UInt8"),
         ([1.0, 1.1], "Float64", "unsigned", "Float64"),
