@@ -9123,7 +9123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        (left, right) : ({klass}, type of other)
+        tuple of ({klass}, type of other)
             Aligned objects.
 
         Examples
