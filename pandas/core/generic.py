@@ -49,7 +49,6 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    ColspaceArgType,
     CompressionOptions,
     Dtype,
     DtypeArg,
@@ -3146,7 +3145,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3174,7 +3172,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3202,7 +3199,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        col_space: ColspaceArgType | None = None,
         header: bool_t | Sequence[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
@@ -3417,8 +3413,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             formatters_ = formatters
             float_columns = self.select_dtypes(include="float").columns
-            for col in [c for c in float_columns if c not in formatters.keys()]:
-                formatters_.update({col: float_format_})
+            for col in float_columns:
+                if col not in formatters.keys():
+                    formatters_.update({col: float_format_})
         elif formatters is None and float_format is not None:
             formatters_ = partial(_wrap, alt_format_=lambda v: v)
         format_index_ = [index_format_, column_format_]
@@ -3479,7 +3476,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         relabel_index: dict | list[dict] | None = None,
         format: dict | list[dict] | None = None,
         format_index: dict | list[dict] | None = None,
-        render_kwargs: dict = {},
+        render_kwargs: dict | None = None,
     ):
         """
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3532,6 +3529,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     getattr(styler, kw_name)(**sub_kw)
 
         # bold_rows is not a direct kwarg of Styler.to_latex
+        render_kwargs = {} if render_kwargs is None else render_kwargs
         if render_kwargs.pop("bold_rows"):
             styler.applymap_index(lambda v: "textbf:--rwrap;")
 
