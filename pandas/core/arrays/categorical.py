@@ -2273,24 +2273,42 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return algorithms.isin(self.codes, code_values)
 
     def _replace(self, *, to_replace, value, inplace: bool = False):
-        from pandas import (
-            Index,
-            Series,
-        )
-
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
-        ser = Series(cat.categories, copy=True)
-        ser = ser.replace(to_replace=to_replace, value=value)
+        # other cases, like if both to_replace and value are list-like or if
+        # to_replace is a dict, are handled separately in NDFrame
+        if not is_list_like(to_replace):
+            to_replace = [to_replace]
 
-        all_values = Index(ser)
-        new_categories = Index(ser.dropna().drop_duplicates(keep="first"))
-        new_codes = recode_for_categories(
-            cat._codes, all_values, new_categories, copy=False
-        )
-        new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
-        NDArrayBacked.__init__(cat, new_codes, new_dtype)
+        categories = cat.categories.tolist()
+        removals = set()
+        for replace_value in to_replace:
+            if value == replace_value:
+                continue
+            if replace_value not in cat.categories:
+                continue
+            if isna(value):
+                removals.add(replace_value)
+                continue
+
+            index = categories.index(replace_value)
+
+            if value in cat.categories:
+                value_index = categories.index(value)
+                cat._codes[cat._codes == index] = value_index
+                removals.add(replace_value)
+            else:
+                categories[index] = value
+                cat._set_categories(categories)
+
+        if len(removals):
+            new_categories = [c for c in categories if c not in removals]
+            new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
+            codes = recode_for_categories(
+                cat.codes, cat.categories, new_dtype.categories
+            )
+            NDArrayBacked.__init__(cat, codes, new_dtype)
 
         if not inplace:
             return cat
