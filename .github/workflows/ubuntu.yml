@@ -77,7 +77,7 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             error_on_warnings: "0"
         exclude:
           - env_file: actions-38.yaml

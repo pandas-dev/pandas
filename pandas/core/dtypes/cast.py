@@ -1590,7 +1590,15 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     try:
         if not isinstance(arr, np.ndarray):
-            casted = np.array(arr, dtype=dtype, copy=False)
+            with warnings.catch_warnings():
+                # We already disallow dtype=uint w/ negative numbers
+                # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
+                warnings.filterwarnings(
+                    "ignore",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
+                    DeprecationWarning,
+                )
+                casted = np.array(arr, dtype=dtype, copy=False)
         else:
             casted = arr.astype(dtype, copy=False)
     except OverflowError as err:

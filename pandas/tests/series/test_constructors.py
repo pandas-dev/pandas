@@ -14,10 +14,6 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat import (
-    IS64,
-    is_numpy_dev,
-)
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -764,14 +760,11 @@ class TestSeriesConstructors:
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
         msg = "Values are too large to be losslessly converted"
-        numpy_warning = DeprecationWarning if is_numpy_dev or not IS64 else None
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
-                Series([1, 200, 923442], dtype="int8")
+            Series([1, 200, 923442], dtype="int8")
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(numpy_warning, check_stacklevel=False):
-                Series([1, 200, 923442], dtype="uint8")
+            Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
         "values",
