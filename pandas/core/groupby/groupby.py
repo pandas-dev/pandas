@@ -726,7 +726,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
-                return self.obj[self._group_selection]
+                return self.obj._take(self._group_selection, axis=1, convert_indices=False)
             return self.obj
         else:
             return self.obj[self._selection]
@@ -939,18 +939,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
-        with self._group_selection_context():
-            so = self._selected_obj
-            # if self.ndim == 2 and so.ndim == 1:
-            #     so = so.to_frame()
-            owe = self._obj_with_exclusions
-            import pandas._testing as tm
-            print('---')
-            print(owe.head())
-            print('---')
-            print(so.head())
-            print('---')
-            tm.assert_equal(owe, so)
+        # with self._group_selection_context():
+        #     so = self._selected_obj
+        #     # if self.ndim == 2 and so.ndim == 1:
+        #     #     so = so.to_frame()
+        #     owe = self._obj_with_exclusions
+        #     import pandas._testing as tm
+        #     print('---')
+        #     print(owe.head())
+        #     print('---')
+        #     print(so.head())
+        #     print('---')
+        #     tm.assert_equal(owe, so)
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -1037,6 +1037,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
+            self._group_selection = [idx for idx, label in enumerate(ax) if label not in groupers]
             self._reset_cache("_selected_obj")
 
     @final
