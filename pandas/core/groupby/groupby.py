@@ -1025,7 +1025,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
-            self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._group_selection = [
                 idx for idx, label in enumerate(ax) if label not in groupers
             ]
