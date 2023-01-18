@@ -746,7 +746,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     2.0
     """
 
-    def get_median(x, _mask):
+    def get_median(x, _mask=None):
         if _mask is None:
             _mask = notna(x)
         else:
