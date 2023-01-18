@@ -561,6 +561,7 @@ def read_sql(
         The argument is ignored if a table is passed instead of a query.
 
         .. versionadded:: 2.0.0
+
     Returns
     -------
     DataFrame or Iterator[DataFrame]
