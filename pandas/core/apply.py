@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from contextlib import nullcontext
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ContextManager,
     DefaultDict,
     Dict,
     Hashable,
@@ -292,6 +294,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -312,26 +318,36 @@ class Apply(metaclass=abc.ABCMeta):
         results = []
         keys = []
 
-        # degenerate case
-        if selected_obj.ndim == 1:
-            for a in arg:
-                colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                new_res = colg.aggregate(a)
-                results.append(new_res)
-
-                # make sure we find a good name
-                name = com.get_callable_name(a) or a
-                keys.append(name)
-
-        # multiples
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            indices = []
-            for index, col in enumerate(selected_obj):
-                colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                new_res = colg.aggregate(arg)
-                results.append(new_res)
-                indices.append(index)
-            keys = selected_obj.columns.take(indices)
+            context_manager = nullcontext()
+        with context_manager:
+            # degenerate case
+            if selected_obj.ndim == 1:
+
+                for a in arg:
+                    colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+                    new_res = colg.aggregate(a)
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
+
+            # multiples
+            else:
+                indices = []
+                for index, col in enumerate(selected_obj):
+                    colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+                    new_res = colg.aggregate(arg)
+                    results.append(new_res)
+                    indices.append(index)
+                keys = selected_obj.columns.take(indices)
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
@@ -366,6 +382,10 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation.
         """
         from pandas import Index
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -384,15 +404,24 @@ class Apply(metaclass=abc.ABCMeta):
 
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
-        if selected_obj.ndim == 1:
-            # key only used for output
-            colg = obj._gotitem(selection, ndim=1)
-            results = {key: colg.agg(how) for key, how in arg.items()}
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            # key used for column selection and output
-            results = {
-                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-            }
+            context_manager = nullcontext()
+        with context_manager:
+            if selected_obj.ndim == 1:
+                # key only used for output
+                colg = obj._gotitem(selection, ndim=1)
+                results = {key: colg.agg(how) for key, how in arg.items()}
+            else:
+                # key used for column selection and output
+                results = {
+                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                }
 
         # set the final keys
         keys = list(arg.keys())
