@@ -212,11 +212,15 @@ cdef class _TSObject:
         self.fold = 0
         self.creso = NPY_FR_ns  # default value
 
-    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso) except? -1:
+    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso, str val=None) except? -1:
         if self.creso != creso:
             try:
                 self.value = convert_reso(self.value, self.creso, creso, False)
             except OverflowError as err:
+                if val is not None:
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from err
                 raise OutOfBoundsDatetime from err
 
             self.creso = creso
