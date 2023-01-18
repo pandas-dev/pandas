@@ -49,7 +49,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_feather`
 * :func:`to_numeric`
 
-To simplify the global opt-in a new option ``nullable_dtypes`` was added that allows to set
+To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
 the keyword argument globally to ``True`` if not specified directly. The option can be enabled
 through:
 
