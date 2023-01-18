@@ -234,6 +234,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     @property
     def value(self) -> int:
+        1/0
         return convert_reso(self._value, self._creso, NPY_FR_ns, False)
 
     @property
@@ -2219,7 +2220,7 @@ default 'raise'
             ts_input, tzobj, nanos=dts.ps // 1000, reso=self._creso
         )
         return create_timestamp_from_ts(
-            ts._value, dts, tzobj, fold, reso=self._creso
+            ts.value, dts, tzobj, fold, reso=self._creso
         )
 
     def to_julian_date(self) -> np.float64:

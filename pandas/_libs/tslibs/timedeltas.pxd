@@ -15,7 +15,7 @@ cdef object ensure_td64ns(object ts)
 
 cdef class _Timedelta(timedelta):
     cdef readonly:
-        int64_t value      # nanoseconds
+        int64_t _value      # nanoseconds
         bint _is_populated  # are my components populated
         int64_t _d, _h, _m, _s, _ms, _us, _ns
         NPY_DATETIMEUNIT _creso

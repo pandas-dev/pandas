@@ -814,7 +814,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = _dtype_obj
         else:
             dtype = np.dtype("m8[ns]")
-            val = np.timedelta64(val.value, "ns")
+            val = np.timedelta64(val._value, "ns")
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
