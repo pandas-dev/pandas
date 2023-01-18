@@ -95,7 +95,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 	    pandas.api.extensions.ExtensionArray.dropna \
 	    pandas.api.extensions.ExtensionArray.isna \
 	    pandas.api.extensions.ExtensionArray.repeat \
-	    pandas.api.extensions.ExtensionArray.unique \
+	    pandas.api.extensions.ExtensionArray.unique
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

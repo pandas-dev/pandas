@@ -11018,7 +11018,7 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame:
+        DataFrame
             The DataFrame has a PeriodIndex.
 
         Examples
