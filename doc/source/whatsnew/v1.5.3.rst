@@ -1,7 +1,7 @@
 .. _whatsnew_153:
 
-What's new in 1.5.3 (December ??, 2022)
----------------------------------------
+What's new in 1.5.3 (January 18, 2023)
+--------------------------------------
 
 These are the changes in pandas 1.5.3. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -20,7 +20,6 @@ Fixed regressions
 - Fixed regression in :meth:`.SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
 - Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
 - Fixed regression in :func:`to_datetime` raising ``ValueError`` when parsing array of ``float`` containing ``np.nan`` (:issue:`50237`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.bug_fixes:
@@ -48,7 +47,6 @@ Other
     as pandas works toward compatibility with SQLAlchemy 2.0.
 
 - Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.contributors:
