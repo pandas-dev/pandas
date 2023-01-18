@@ -6,7 +6,10 @@ import warnings
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_box_native
-from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+    is_object_dtype,
+)
 
 from pandas import DataFrame
 from pandas.core import common as com
@@ -88,16 +91,18 @@ def to_dict(
         # GH46470 Return quickly if orient series to avoid creating dtype objects
         return into_c((k, v) for k, v in df.items())
 
-    object_dtype_indices = [
-        i for i, col_dtype in enumerate(df.dtypes.values) if is_object_dtype(col_dtype)
+    box_native_indices = [
+        i
+        for i, col_dtype in enumerate(df.dtypes.values)
+        if is_object_dtype(col_dtype) or is_extension_array_dtype(col_dtype)
     ]
-    are_all_object_dtype_cols = len(object_dtype_indices) == len(df.dtypes)
+    are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
     if orient == "dict":
         return into_c((k, v.to_dict(into)) for k, v in df.items())
 
     elif orient == "list":
-        object_dtype_indices_as_set = set(object_dtype_indices)
+        object_dtype_indices_as_set = set(box_native_indices)
         return into_c(
             (
                 k,
@@ -110,7 +115,7 @@ def to_dict(
 
     elif orient == "split":
         data = df._create_data_for_split_and_tight_to_dict(
-            are_all_object_dtype_cols, object_dtype_indices
+            are_all_object_dtype_cols, box_native_indices
         )
 
         return into_c(
@@ -123,7 +128,7 @@ def to_dict(
 
     elif orient == "tight":
         data = df._create_data_for_split_and_tight_to_dict(
-            are_all_object_dtype_cols, object_dtype_indices
+            are_all_object_dtype_cols, box_native_indices
         )
 
         return into_c(
@@ -155,8 +160,8 @@ def to_dict(
             data = [
                 into_c(zip(columns, t)) for t in df.itertuples(index=False, name=None)
             ]
-            if object_dtype_indices:
-                object_dtype_indices_as_set = set(object_dtype_indices)
+            if box_native_indices:
+                object_dtype_indices_as_set = set(box_native_indices)
                 object_dtype_cols = {
                     col
                     for i, col in enumerate(df.columns)
@@ -176,8 +181,8 @@ def to_dict(
                 (t[0], dict(zip(df.columns, map(maybe_box_native, t[1:]))))
                 for t in df.itertuples(name=None)
             )
-        elif object_dtype_indices:
-            object_dtype_indices_as_set = set(object_dtype_indices)
+        elif box_native_indices:
+            object_dtype_indices_as_set = set(box_native_indices)
             is_object_dtype_by_index = [
                 i in object_dtype_indices_as_set for i in range(len(df.columns))
             ]

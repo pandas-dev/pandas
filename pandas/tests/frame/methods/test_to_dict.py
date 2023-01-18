@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -458,3 +459,29 @@ class TestDataFrameToDict:
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
         result = df.to_dict(orient=orient, index=False)
         tm.assert_dict_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("dict", {"a": {0: 1, 1: None}}),
+            ("list", {"a": [1, None]}),
+            ("split", {"index": [0, 1], "columns": ["a"], "data": [[1], [None]]}),
+            (
+                "tight",
+                {
+                    "index": [0, 1],
+                    "columns": ["a"],
+                    "data": [[1], [None]],
+                    "index_names": [None],
+                    "column_names": [None],
+                },
+            ),
+            ("records", [{"a": 1}, {"a": None}]),
+            ("index", {0: {"a": 1}, 1: {"a": None}}),
+        ],
+    )
+    def test_to_dict_na_to_none(self, orient, expected):
+        # GH#50795
+        df = DataFrame({"a": [1, NA]}, dtype="Int64")
+        result = df.to_dict(orient=orient)
+        assert result == expected
