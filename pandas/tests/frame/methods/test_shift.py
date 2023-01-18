@@ -372,7 +372,7 @@ class TestDataFrameShift:
 
         warn = None
         if using_array_manager:
-            warn = FutureWarning
+            warn = DeprecationWarning
 
         shifted = []
         for columns in column_lists:

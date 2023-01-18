@@ -23,7 +23,7 @@ from pandas.core.reshape import reshape as reshape_lib
 
 class TestDataFrameReshape:
     def test_stack_unstack(self, float_frame, using_array_manager):
-        warn = FutureWarning if using_array_manager else None
+        warn = DeprecationWarning if using_array_manager else None
         msg = "will attempt to set the values inplace"
 
         df = float_frame.copy()

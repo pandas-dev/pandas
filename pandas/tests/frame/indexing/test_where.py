@@ -384,7 +384,7 @@ class TestDataFrameIndexingWhere:
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
 
-        warn = FutureWarning if using_array_manager else None
+        warn = DeprecationWarning if using_array_manager else None
         msg = "will attempt to set the values inplace"
         with tm.assert_produces_warning(warn, match=msg):
             expected.loc[:, "C"] = np.nan
@@ -571,7 +571,7 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        warn = FutureWarning if using_array_manager else None
+        warn = DeprecationWarning if using_array_manager else None
         msg = "will attempt to set the values inplace"
         with tm.assert_produces_warning(warn, match=msg):
             expected.loc[:, 1] = np.nan
