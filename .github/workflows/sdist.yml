@@ -63,6 +63,14 @@ jobs:
         name: ${{matrix.python-version}}-sdist.gz
         path: dist/*.gz
 
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
+      with:
+        environment-file: false
+        environment-name: pandas-sdist
+        extra-specs: |
+          python =${{ matrix.python-version }}
+
     - name: Install pandas from sdist
       run: |
         pip list
