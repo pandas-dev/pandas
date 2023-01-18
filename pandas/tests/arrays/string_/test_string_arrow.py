@@ -172,7 +172,6 @@ def test_setitem(multiple_chunks, key, value, expected):
 
     result[key] = value
     tm.assert_equal(result, expected)
-    assert result._data.num_chunks == expected._data.num_chunks
 
 
 @skip_if_no_pyarrow

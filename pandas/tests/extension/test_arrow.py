@@ -1526,8 +1526,8 @@ def test_setitem_invalid_dtype(data):
     pa_type = data._data.type
     if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
         fill_value = 123
-        err = pa.ArrowTypeError
-        msg = "Expected bytes"
+        err = TypeError
+        msg = "Invalid value '123' for dtype"
     elif (
         pa.types.is_integer(pa_type)
         or pa.types.is_floating(pa_type)
@@ -1538,8 +1538,8 @@ def test_setitem_invalid_dtype(data):
         msg = "Could not convert"
     else:
         fill_value = "foo"
-        err = pa.ArrowTypeError
-        msg = "cannot be converted"
+        err = TypeError
+        msg = "Invalid value 'foo' for dtype"
     with pytest.raises(err, match=msg):
         data[:] = fill_value
 

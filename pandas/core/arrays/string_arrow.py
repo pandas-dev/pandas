@@ -170,7 +170,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             for v in value:
                 if not (v is None or isinstance(v, str)):
                     raise ValueError("Scalar must be NA or str")
-        return value
+        return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         value_set = [

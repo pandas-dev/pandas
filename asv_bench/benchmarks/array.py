@@ -93,7 +93,7 @@ class ArrowStringArray:
             self.array[i] = "foo"
 
     def time_setitem_list(self, multiple_chunks):
-        indexer = list(range(0, 50)) + list(range(-50, 0))
+        indexer = list(range(0, 50)) + list(range(-1000, 0, 50))
         self.array[indexer] = ["foo"] * len(indexer)
 
     def time_setitem_slice(self, multiple_chunks):
