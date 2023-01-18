@@ -1316,3 +1316,18 @@ class TestDataFrameQueryBacktickQuoting:
         result = df.query("a in @ref")
         expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_query_ea_equality_compariso(self, dtype):
+        # GH#50261
+        df = DataFrame(
+            {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
+        )
+        result = df.query("A == B")
+        expected = DataFrame(
+            {
+                "A": Series([1, 2], dtype="Int64", index=[0, 2]),
+                "B": Series([1, 2], dtype=dtype, index=[0, 2]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)

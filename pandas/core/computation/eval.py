@@ -335,7 +335,9 @@ def eval(
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
-        if is_extension_array_dtype(parsed_expr.terms.return_type):
+        if is_extension_array_dtype(parsed_expr.terms.return_type) or any(
+            is_extension_array_dtype(elem) for elem in parsed_expr.terms.operand_types
+        ):
             engine = "python"
 
         # construct the engine and evaluate the parsed expression
