@@ -2029,7 +2029,7 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_series_constructor_overflow_int_with_nan(self):
+    def test_series_constructor_overflow_uint_with_nan(self):
         # GH#38798
         max_val = np.iinfo(np.uint64).max - 1
         result = Series([max_val, np.nan], dtype="UInt64")
