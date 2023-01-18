@@ -47,10 +47,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.numeric import (
-    Int64Index,
-    NumericIndex,
-)
+from pandas.core.indexes.numeric import NumericIndex
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -63,8 +60,8 @@ class RangeIndex(NumericIndex):
     """
     Immutable Index implementing a monotonic integer range.
 
-    RangeIndex is a memory-saving special case of Int64Index limited to
-    representing monotonic ranges. Using RangeIndex may in some instances
+    RangeIndex is a memory-saving special case of an Index limited to representing
+    monotonic ranges with a 64-bit dtype. Using RangeIndex may in some instances
     improve computing speed.
 
     This is the default index type used
@@ -96,7 +93,6 @@ class RangeIndex(NumericIndex):
     See Also
     --------
     Index : The base pandas Index type.
-    Int64Index : Index of int64 data.
     """
 
     _typ = "rangeindex"
@@ -184,7 +180,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    # error: Return type "Type[Int64Index]" of "_constructor" incompatible with return
+    # error: Return type "Type[NumericIndex]" of "_constructor" incompatible with return
     # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
     def _constructor(self) -> type[NumericIndex]:  # type: ignore[override]
@@ -330,7 +326,7 @@ class RangeIndex(NumericIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    @doc(Int64Index.get_loc)
+    @doc(NumericIndex.get_loc)
     def get_loc(self, key):
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
@@ -376,18 +372,18 @@ class RangeIndex(NumericIndex):
     def tolist(self) -> list[int]:
         return list(self._range)
 
-    @doc(Int64Index.__iter__)
+    @doc(NumericIndex.__iter__)
     def __iter__(self) -> Iterator[int]:
         yield from self._range
 
-    @doc(Int64Index._shallow_copy)
+    @doc(NumericIndex._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
         if values.dtype.kind == "f":
             return NumericIndex(values, name=name, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
-        # more memory-compact RangeIndex instead of Int64Index
+        # more memory-compact RangeIndex instead of Index with 64-bit dtype
         unique_diffs = unique_deltas(values)
         if len(unique_diffs) == 1 and unique_diffs[0] != 0:
             diff = unique_diffs[0]
@@ -401,7 +397,7 @@ class RangeIndex(NumericIndex):
         result._cache = self._cache
         return result
 
-    @doc(Int64Index.copy)
+    @doc(NumericIndex.copy)
     def copy(self, name: Hashable = None, deep: bool = False):
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
@@ -516,7 +512,6 @@ class RangeIndex(NumericIndex):
         # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
-            # Int64Index
             return super()._intersection(other, sort=sort)
 
         first = self._range[::-1] if self.step < 0 else self._range
@@ -603,10 +598,10 @@ class RangeIndex(NumericIndex):
         sort : False or None, default None
             Whether to sort (monotonically increasing) the resulting index.
             ``sort=None`` returns a ``RangeIndex`` if possible or a sorted
-            ``Int64Index`` if not.
+            ``Index`` with a int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
-            an unsorted ``Int64Index``
+            an unsorted ``Index`` with an int64 dtype.
 
         Returns
         -------
@@ -818,9 +813,9 @@ class RangeIndex(NumericIndex):
         Overriding parent method for the case of all RangeIndex instances.
 
         When all members of "indexes" are of type RangeIndex: result will be
-        RangeIndex if possible, Int64Index otherwise. E.g.:
+        RangeIndex if possible, Index with a int64 dtype otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
-        indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+        indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
