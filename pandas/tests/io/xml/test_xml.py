@@ -1374,9 +1374,25 @@ def test_file_like_iterparse(datapath, parser, mode):
                 iterparse={"book": ["category", "title", "year", "author", "price"]},
             )
 
-    IOfunc = StringIO if mode == "r" else BytesIO
+    df_expected = DataFrame(
+        {
+            "category": ["cooking", "children", "web"],
+            "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
+            "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
+            "year": [2005, 2005, 2003],
+            "price": [30.00, 29.99, 39.95],
+        }
+    )
+
+    tm.assert_frame_equal(df_filelike, df_expected)
+
+
+def test_file_io_iterparse(datapath, parser, mode):
+    filename = datapath("io", "data", "xml", "books.xml")
+
+    funcIO = StringIO if mode == "r" else BytesIO
     with open(filename, mode) as f:
-        with IOfunc(f.read()) as b:
+        with funcIO(f.read()) as b:
             if mode == "r" and parser == "lxml":
                 with pytest.raises(
                     TypeError, match=("reading file objects must return bytes objects")
@@ -1408,7 +1424,6 @@ def test_file_like_iterparse(datapath, parser, mode):
         }
     )
 
-    tm.assert_frame_equal(df_filelike, df_expected)
     tm.assert_frame_equal(df_fileio, df_expected)
 
 
