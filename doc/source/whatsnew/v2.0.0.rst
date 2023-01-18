@@ -57,7 +57,7 @@ through:
 
     pd.options.mode.nullable_dtypes = True
 
-The option will only work in context with the keyword ``use_nullable_dtypes``.
+The option will only work for functions with the keyword ``use_nullable_dtypes``.
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
