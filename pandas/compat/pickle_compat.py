@@ -120,7 +120,20 @@ _class_locations_map = {
     ),
     ("pandas.indexes.numeric", "Float64Index"): (
         "pandas.core.indexes.numeric",
-        "Float64Index",
+        "Index",  # updated in 50775
+    ),
+    # 50775, remove Int64Index, UInt64Index & Float64Index from codabase
+    ("pandas.core.indexes.numeric", "Int64Index"): (
+        "pandas.core.indexes.base",
+        "Index",
+    ),
+    ("pandas.core.indexes.numeric", "UInt64Index"): (
+        "pandas.core.indexes.base",
+        "Index",
+    ),
+    ("pandas.core.indexes.numeric", "Float64Index"): (
+        "pandas.core.indexes.base",
+        "Index",
     ),
 }
 

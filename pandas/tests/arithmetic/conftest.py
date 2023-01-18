@@ -4,11 +4,7 @@ import pytest
 import pandas as pd
 from pandas import RangeIndex
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 from pandas.core.computation import expressions as expr
 
 
@@ -90,9 +86,10 @@ def zero(request):
 
 @pytest.fixture(
     params=[
-        Float64Index(np.arange(5, dtype="float64")),
-        Int64Index(np.arange(5, dtype="int64")),
-        UInt64Index(np.arange(5, dtype="uint64")),
+        # TODO: add more  dtypes here
+        NumericIndex(np.arange(5, dtype="float64")),
+        NumericIndex(np.arange(5, dtype="int64")),
+        NumericIndex(np.arange(5, dtype="uint64")),
         RangeIndex(5),
     ],
     ids=lambda x: type(x).__name__,
