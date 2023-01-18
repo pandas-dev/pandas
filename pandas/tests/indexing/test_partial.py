@@ -312,7 +312,7 @@ class TestPartialSetting:
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 

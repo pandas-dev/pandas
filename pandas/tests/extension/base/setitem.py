@@ -400,7 +400,7 @@ class BaseSetitemTests(BaseExtensionTests):
         warn = None
         if has_can_hold_element and not isinstance(data.dtype, PandasDtype):
             # PandasDtype excluded because it isn't *really* supported.
-            warn = FutureWarning
+            warn = DeprecationWarning
 
         with tm.assert_produces_warning(warn, match=msg):
             df.iloc[:] = df

@@ -785,7 +785,7 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        warn = FutureWarning if using_array_manager else None
+        warn = DeprecationWarning if using_array_manager else None
         msg = "will attempt to set the values inplace"
         with tm.assert_produces_warning(warn, match=msg):
             cp.loc[1.0:5.0] = 0

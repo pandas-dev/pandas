@@ -550,7 +550,7 @@ class TestFancy:
 
         df = df_orig.copy()
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
@@ -558,7 +558,7 @@ class TestFancy:
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
@@ -567,7 +567,7 @@ class TestFancy:
 
         # GH5702 (loc)
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
@@ -575,7 +575,7 @@ class TestFancy:
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
@@ -586,13 +586,13 @@ class TestFancy:
         # full replacements / no nans
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.iloc[:, 0] = df["A"].astype(np.int64)
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, "A"] = df["A"].astype(np.int64)
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)

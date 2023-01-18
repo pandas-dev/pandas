@@ -368,7 +368,7 @@ class TestLocBaseIndependent:
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
         cols = ["a", "b", "c"]
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
         expected = DataFrame(
@@ -633,11 +633,11 @@ class TestLocBaseIndependent:
         df = DataFrame(values, index=mi, columns=cols)
 
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, ("Respondent", "StartDate")] = to_datetime(
                 df.loc[:, ("Respondent", "StartDate")]
             )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, ("Respondent", "EndDate")] = to_datetime(
                 df.loc[:, ("Respondent", "EndDate")]
             )
@@ -720,7 +720,7 @@ class TestLocBaseIndependent:
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
@@ -732,7 +732,7 @@ class TestLocBaseIndependent:
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
         expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
@@ -909,7 +909,7 @@ class TestLocBaseIndependent:
 
         warn = None
         if isinstance(index[0], slice) and index[0] == slice(None):
-            warn = FutureWarning
+            warn = DeprecationWarning
 
         msg = "will attempt to set the values inplace instead"
         with tm.assert_produces_warning(warn, match=msg):
@@ -1425,7 +1425,7 @@ class TestLocBaseIndependent:
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
 
         msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
@@ -3211,3 +3211,11 @@ class TestLocSeries:
         index = pd.period_range(start="2000", periods=20, freq="B")
         series = Series(range(20), index=index)
         assert series.loc["2000-01-14"] == 9
+
+    def test_deprecation_warnings_raised_loc(self):
+        # GH#48673
+        with tm.assert_produces_warning(DeprecationWarning):
+            values = np.arange(4).reshape(2, 2)
+            df = DataFrame(values, columns=["a", "b"])
+            new = np.array([10, 11]).astype(np.int16)
+            df.loc[:, "a"] = new

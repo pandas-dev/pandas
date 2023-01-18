@@ -2026,7 +2026,7 @@ class _iLocIndexer(_LocationIndexer):
                     "array. To retain the old behavior, use either "
                     "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
                     "`df.isetitem(i, newvals)`",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
                 # TODO: how to get future behavior?

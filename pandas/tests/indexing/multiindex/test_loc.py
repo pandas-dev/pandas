@@ -541,9 +541,9 @@ def test_loc_setitem_single_column_slice():
     )
     expected = df.copy()
     msg = "will attempt to set the values inplace instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         df.loc[:, "B"] = np.arange(4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
 
