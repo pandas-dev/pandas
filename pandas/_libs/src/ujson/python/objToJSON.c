@@ -350,13 +350,15 @@ static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
 static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-    return int64ToIso(GET_TC(tc)->longValue, base, len);
+    GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, base, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                        JSONTypeContext *tc, size_t *len) {
-    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback */
