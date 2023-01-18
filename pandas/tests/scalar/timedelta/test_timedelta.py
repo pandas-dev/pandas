@@ -33,7 +33,7 @@ class TestAsUnit:
 
         res = td.as_unit("us")
         assert res._value == td._value // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_us._value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
 
         rt = res.as_unit("ns")
         assert rt._value == td._value
@@ -41,7 +41,7 @@ class TestAsUnit:
 
         res = td.as_unit("ms")
         assert res._value == td._value // 1_000_000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms._value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
         rt = res.as_unit("ns")
         assert rt._value == td._value
@@ -58,7 +58,7 @@ class TestAsUnit:
     def test_as_unit_overflows(self):
         # microsecond that would be just out of bounds for nano
         us = 9223372800000000
-        td = Timedelta._from_value_and_reso(us, NpyDatetimeUnit.NPY_FR_us._value)
+        td = Timedelta._from_value_and_reso(us, NpyDatetimeUnit.NPY_FR_us.value)
 
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
@@ -66,7 +66,7 @@ class TestAsUnit:
 
         res = td.as_unit("ms")
         assert res._value == us // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms._value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     def test_as_unit_rounding(self):
         td = Timedelta(microseconds=1500)
@@ -75,7 +75,7 @@ class TestAsUnit:
         expected = Timedelta(milliseconds=1)
         assert res == expected
 
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms._value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res._value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):
@@ -108,7 +108,7 @@ class TestNonNano:
     def unit(self, unit_str):
         # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
         attr = f"NPY_FR_{unit_str}"
-        return getattr(NpyDatetimeUnit, attr)._value
+        return getattr(NpyDatetimeUnit, attr).value
 
     @pytest.fixture
     def val(self, unit):
@@ -362,9 +362,9 @@ class TestTimedeltas:
     def test_rounding_on_int_unit_construction(self, unit, value, expected):
         # GH 12690
         result = Timedelta(value, unit=unit)
-        assert result.value == expected
+        assert result._value == expected
         result = Timedelta(str(value) + unit)
-        assert result.value == expected
+        assert result._value == expected
 
     def test_total_seconds_scalar(self):
         # see gh-10939
@@ -383,10 +383,10 @@ class TestTimedeltas:
             assert td == pydt
             assert isinstance(pydt, timedelta) and not isinstance(pydt, Timedelta)
 
-            assert td == np.timedelta64(td.value, "ns")
+            assert td == np.timedelta64(td._value, "ns")
             td64 = td.to_timedelta64()
 
-            assert td64 == np.timedelta64(td.value, "ns")
+            assert td64 == np.timedelta64(td._value, "ns")
             assert td == td64
 
             assert isinstance(td64, np.timedelta64)
@@ -425,8 +425,8 @@ class TestTimedeltas:
         assert abs(td) == Timedelta("13:48:48")
         assert str(td) == "-1 days +10:11:12"
         assert -td == Timedelta("0 days 13:48:48")
-        assert -Timedelta("-1 days, 10:11:12").value == 49728000000000
-        assert Timedelta("-1 days, 10:11:12").value == -49728000000000
+        assert -Timedelta("-1 days, 10:11:12")._value == 49728000000000
+        assert Timedelta("-1 days, 10:11:12")._value == -49728000000000
 
         rng = to_timedelta("-1 days, 10:11:12.100123456")
         assert rng.days == -1
@@ -882,8 +882,8 @@ class TestTimedeltas:
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        assert min_td.value == iNaT + 1
-        assert max_td.value == lib.i8max
+        assert min_td._value == iNaT + 1
+        assert max_td._value == lib.i8max
 
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
