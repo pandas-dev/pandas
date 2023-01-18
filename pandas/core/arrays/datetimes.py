@@ -476,8 +476,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
             i8values = (
-                np.linspace(0, end.value - start.value, periods, dtype="int64")
-                + start.value
+                np.linspace(0, end._value - start._value, periods, dtype="int64")
+                + start._value
             )
             if i8values.dtype != "i8":
                 # 2022-01-09 I (brock) am not sure if it is possible for this
