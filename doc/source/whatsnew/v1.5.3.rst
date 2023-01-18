@@ -1,7 +1,7 @@
 .. _whatsnew_153:
 
-What's new in 1.5.3 (December ??, 2022)
----------------------------------------
+What's new in 1.5.3 (January 18, 2023)
+--------------------------------------
 
 These are the changes in pandas 1.5.3. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -20,7 +20,7 @@ Fixed regressions
 - Fixed regression in :meth:`.SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
 - Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
 - Fixed regression in the methods ``apply``, ``agg``, and ``transform`` when used with NumPy functions that informed users to supply ``numeric_only=True`` if the operation failed on non-numeric dtypes; such columns must be dropped prior to using these methods (:issue:`50538`)
--
+- Fixed regression in :func:`to_datetime` raising ``ValueError`` when parsing array of ``float`` containing ``np.nan`` (:issue:`50237`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.bug_fixes:
@@ -49,7 +49,6 @@ Other
 
 - Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
 - A ``FutureWarning`` raised when attempting to set values inplace with :meth:`DataFrame.loc` or :meth:`DataFrame.iloc` has been changed to a ``DeprecationWarning`` (:issue:`48673`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.contributors:
