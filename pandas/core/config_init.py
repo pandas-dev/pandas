@@ -564,7 +564,7 @@ with cf.config_prefix("mode"):
 nullable_dtypes_doc = """
 : bool
     If nullable dtypes should be returned. This is only applicable to functions
-    where ``use_nullable_dtypes`` is implemented.
+    where the ``use_nullable_dtypes`` keyword is implemented.
 """
 
 with cf.config_prefix("mode"):
