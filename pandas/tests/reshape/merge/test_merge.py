@@ -2143,13 +2143,12 @@ class TestMergeOnIndexes:
 
 @pytest.mark.parametrize(
     "index",
-    [
-        Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES
-    ] + [
+    [Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES]
+    + [
         CategoricalIndex(["A", "B"], categories=["A", "B"], name="index_col"),
         RangeIndex(start=0, stop=2, name="index_col"),
         DatetimeIndex(["2018-01-01", "2018-01-02"], name="index_col"),
-    ]
+    ],
     ids=lambda x: f"{type(x).__name__}[{x.dtype}]",
 )
 def test_merge_index_types(index):
