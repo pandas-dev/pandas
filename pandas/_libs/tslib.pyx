@@ -35,7 +35,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
-    pydatetime_to_dt64,
     string_to_dts,
 )
 from pandas._libs.tslibs.strptime cimport parse_today_now
@@ -46,7 +45,6 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -542,13 +540,7 @@ cpdef array_to_datetime(
                 _ts = convert_str_to_tsobject(
                     val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
                 )
-                try:
-                    _ts.ensure_reso(NPY_FR_ns)
-                except OutOfBoundsDatetime as err:
-                    # re-raise with better exception message
-                    raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
-                    ) from err
+                _ts.ensure_reso(NPY_FR_ns, val)
 
                 iresult[i] = _ts.value
 
@@ -698,6 +690,7 @@ cdef _array_to_datetime_object(
         ndarray[object] oresult
         npy_datetimestruct dts
         cnp.broadcast mi
+        _TSObject tsobj
 
     assert is_raise or is_ignore or is_coerce
 
@@ -735,10 +728,18 @@ cdef _array_to_datetime_object(
                 continue
 
             try:
-                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                   yearfirst=yearfirst)
-                pydatetime_to_dt64(oresult[i], &dts)
-                check_dts_bounds(&dts)
+                tsobj = convert_str_to_tsobject(
+                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                )
+                tsobj.ensure_reso(NPY_FR_ns, val)
+
+                dts = tsobj.dts
+                oresult[i] = datetime(
+                    dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
+                    tzinfo=tsobj.tzinfo,
+                    fold=tsobj.fold,
+                )
+
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:
