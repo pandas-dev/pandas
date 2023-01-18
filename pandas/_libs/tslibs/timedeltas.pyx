@@ -1021,6 +1021,11 @@ cdef class _Timedelta(timedelta):
     resolution = MinMaxReso("resolution")
 
     @property
+    def value(self):
+        1/0
+        pass
+
+    @property
     def _unit(self) -> str:
         """
         The abbreviation associated with self._creso.
