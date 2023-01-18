@@ -536,10 +536,12 @@ class Block(PandasObject):
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
-            # GH49404
             blk = self if inplace else self.copy()
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=to_replace, value=value, inplace=True)
+            # error: Item "ExtensionArray" of "Union[ndarray[Any, Any],
+            # ExtensionArray]" has no attribute "_replace"
+            blk.values._replace(  # type: ignore[union-attr]
+                to_replace=to_replace, value=value, inplace=True
+            )
             return [blk]
 
         if not self._can_hold_element(to_replace):
@@ -648,14 +650,6 @@ class Block(PandasObject):
         See BlockManager.replace_list docstring.
         """
         values = self.values
-
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self if inplace else self.copy()
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=src_list, value=dest_list, inplace=True)
-            return [blk]
 
         # Exclude anything that we know we won't contain
         pairs = [
