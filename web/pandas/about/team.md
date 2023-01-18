@@ -9,7 +9,8 @@ If you want to support pandas development, you can find information in the [dona
 ## Active maintainers
 
 <div class="card-group maintainers">
-    {% for person in maintainers.active_with_github_info %}
+    {% for username in maintainers.active %}
+        {% set person = maintainers.github_info.get(username) %}
         <div class="card">
             <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
             <div class="card-body">
@@ -67,7 +68,8 @@ The project governance is available in the [project governance page](governance.
 ## Inactive maintainers
 
 <ul>
-    {% for person in maintainers.inactive_with_github_info %}
+    {% for username in maintainers.inactive %}
+        {% set person = maintainers.github_info.get(username) %}
         <li>
             <a href="{{ person.blog or person.html_url }}">
                 {{ person.name or person.login }}

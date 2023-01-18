@@ -354,20 +354,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         self.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(
-        self, data, all_numeric_accumulations, skipna, request
-    ):
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         pa_type = data.dtype.pyarrow_dtype
         if (
             (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
             and all_numeric_accumulations == "cumsum"
             and not pa_version_under9p0
         ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} implemented for {pa_type}"
-                )
-            )
+            pytest.skip("These work, are tested by test_accumulate_series.")
+
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
 
@@ -377,6 +372,26 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
         pa_type = data.dtype.pyarrow_dtype
+        op_name = all_numeric_accumulations
+        ser = pd.Series(data)
+
+        do_skip = False
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                do_skip = True
+        elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                do_skip = True
+        elif pa.types.is_duration(pa_type):
+            if op_name == "cumprod":
+                do_skip = True
+
+        if do_skip:
+            pytest.skip(
+                "These should *not* work, we test in test_accumulate_series_raises "
+                "that these correctly raise."
+            )
+
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -384,14 +399,16 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
                     raises=NotImplementedError,
                 )
             )
-        elif not (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)):
+        elif all_numeric_accumulations == "cumsum" and (
+            pa.types.is_duration(pa_type) or pa.types.is_boolean(pa_type)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented for {pa_type}"
+                    reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
+                    raises=NotImplementedError,
                 )
             )
-        op_name = all_numeric_accumulations
-        ser = pd.Series(data)
+
         self.check_accumulate(ser, op_name, skipna)
 
 
@@ -418,6 +435,47 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
+        opname = all_numeric_reductions
+
+        ser = pd.Series(data)
+
+        should_work = True
+        if pa.types.is_temporal(pa_dtype) and opname in [
+            "sum",
+            "var",
+            "skew",
+            "kurt",
+            "prod",
+        ]:
+            if pa.types.is_duration(pa_dtype) and opname in ["sum"]:
+                # summing timedeltas is one case that *is* well-defined
+                pass
+            else:
+                should_work = False
+        elif (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ) and opname in [
+            "sum",
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "kurt",
+        ]:
+            should_work = False
+
+        if not should_work:
+            # matching the non-pyarrow versions, these operations *should* not
+            #  work for these dtypes
+            msg = f"does not support reduction '{opname}'"
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser, opname)(skipna=skipna)
+
+            return
+
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
             reason=(
@@ -449,24 +507,16 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                     ),
                 )
             )
-        elif (
-            not (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_boolean(pa_dtype)
-            )
-            and not (
-                all_numeric_reductions in {"min", "max"}
-                and (
-                    (
-                        pa.types.is_temporal(pa_dtype)
-                        and not pa.types.is_duration(pa_dtype)
-                    )
-                    or pa.types.is_string(pa_dtype)
-                    or pa.types.is_binary(pa_dtype)
-                )
-            )
-            and not all_numeric_reductions == "count"
+
+        elif all_numeric_reductions in [
+            "mean",
+            "median",
+            "std",
+            "sem",
+        ] and pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions in ["sum", "min", "max"] and pa.types.is_duration(
+            pa_dtype
         ):
             request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {

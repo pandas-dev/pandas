@@ -41,10 +41,12 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
+* :func:`read_json`
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
 * :func:`read_orc`
+* :func:`read_feather`
 * :func:`to_numeric`
 
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
@@ -55,8 +57,10 @@ to select the nullable dtypes implementation.
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
+* :func:`read_json`
 * :func:`read_parquet`
 * :func:`read_orc`
+* :func:`read_feather`
 
 
 And the following methods will also utilize the ``mode.dtype_backend`` option.
@@ -90,10 +94,9 @@ Copy-on-Write improvements
   was added to the following methods:
 
   - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
-  - :meth:`DataFrame.set_index` / :meth:`Series.set_index`
+  - :meth:`DataFrame.set_index`
   - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
   - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
-  - :meth:`DataFrame.rename_columns`
   - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
   - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
   - :meth:`DataFrame.assign`
@@ -173,8 +176,8 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_200.notable_bug_fixes.cumsum_cumprod_overflow:
 
-:meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`.DataFrameGroupBy.cumsum` and :meth:`.DataFrameGroupBy.cumprod` overflow instead of lossy casting to float
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions we cast to float when applying ``cumsum`` and ``cumprod`` which
 lead to incorrect results even if the result could be hold by ``int64`` dtype.
@@ -820,7 +823,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.DataFrameGroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`.DataFrameGroupBy.all`, :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.all`, and :meth:`.SeriesGroupBy.any` for object dtype (:issue:`50623`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
@@ -931,6 +934,7 @@ Numeric
 - Bug in arithmetic operations on :class:`Series` not propagating mask when combining masked dtypes and numpy dtypes (:issue:`45810`, :issue:`42630`)
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
+- Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
 
 Conversion
 ^^^^^^^^^^
@@ -949,6 +953,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.dtypes.is_string_dtype` that would not return ``True`` for :class:`StringDtype` (:issue:`15585`)
+- Bug in converting string dtypes to "datetime64[ns]" or "timedelta64[ns]" incorrectly raising ``TypeError`` (:issue:`36153`)
 -
 
 Interval
@@ -1015,6 +1020,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` ignoring float formatter for extension arrays (:issue:`39336`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
+- Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 
 Period
@@ -1080,6 +1086,7 @@ ExtensionArray
 - Bug in :meth:`array.PandasArray.to_numpy` raising with ``NA`` value when ``na_value`` is specified (:issue:`40638`)
 - Bug in :meth:`api.types.is_numeric_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``_is_numeric`` returned ``True`` (:issue:`50563`)
 - Bug in :meth:`api.types.is_integer_dtype`, :meth:`api.types.is_unsigned_integer_dtype`, :meth:`api.types.is_signed_integer_dtype`, :meth:`api.types.is_float_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``kind`` returned the corresponding NumPy type (:issue:`50667`)
+- Bug in :class:`Series` constructor unnecessarily overflowing for nullable unsigned integer dtypes (:issue:`38798`, :issue:`25880`)
 
 Styler
 ^^^^^^
