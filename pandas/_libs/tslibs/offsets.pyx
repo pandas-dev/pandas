@@ -3469,7 +3469,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         else:
             tdelta = Timedelta(0)
 
-        # Note: we always have tdelta.value >= 0
+        # Note: we always have tdelta._value>= 0
         return start, num_qtrs, tdelta
 
     @apply_wraps
@@ -3481,7 +3481,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         prev_year_end, num_qtrs, tdelta = self._rollback_to_year(other)
         res = prev_year_end
         n += num_qtrs
-        if self.n <= 0 and tdelta.value > 0:
+        if self.n <= 0 and tdelta._value > 0:
             n += 1
 
         # Possible speedup by handling years first.

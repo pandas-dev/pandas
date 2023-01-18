@@ -357,7 +357,7 @@ class NaTType(_NaT):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
+        base.value= NPY_NAT
 
         return base
 
