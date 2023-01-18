@@ -442,7 +442,12 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
+def nargminmax(
+    values: ExtensionArray,
+    method: str,
+    axis: AxisInt = 0,
+    mask: npt.NDArray[np.bool_] | None = None,
+):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -452,6 +457,7 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     values : ExtensionArray
     method : {"argmax", "argmin"}
     axis : int, default 0
+    mask : npt.NDArray[np.bool_], optional
 
     Returns
     -------
@@ -460,7 +466,8 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     assert method in {"argmax", "argmin"}
     func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(isna(values))
+    if mask is None:
+        mask = np.asarray(isna(values))
     arr_values = values._values_for_argsort()
 
     if arr_values.ndim > 1:

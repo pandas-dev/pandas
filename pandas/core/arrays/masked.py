@@ -36,7 +36,10 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -83,6 +86,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -1377,6 +1381,54 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    def argmin(self, skipna: bool = True) -> int:
+        """
+        Return the index of minimum value.
+
+        In case of multiple occurrences of the minimum value, the index
+        corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        BaseMaskedArray.argmax
+        """
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return nargminmax(self, "argmin", mask=self._mask)
+
+    def argmax(self, skipna: bool = True) -> int:
+        """
+        Return the index of maximum value.
+
+        In case of multiple occurrences of the maximum value, the index
+        corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        BaseMaskedArray.argmin
+        """
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return nargminmax(self, "argmax", self._mask)
 
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
