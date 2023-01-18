@@ -34,6 +34,7 @@ Bug fixes
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
 - Bug in :func:`pivot_table` with NumPy 1.24 or greater when the :class:`DataFrame` columns has nested elements (:issue:`50342`)
 - Bug in :func:`pandas.testing.assert_series_equal` (and equivalent ``assert_`` functions) when having nested data and using numpy >= 1.25 (:issue:`50360`)
+- Bug in :meth:`DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.other:
