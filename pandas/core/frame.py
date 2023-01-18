@@ -962,12 +962,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
 
-    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
-    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
     @property
-    def _values(  # type: ignore[override]
-        self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
+    def _values(self) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
