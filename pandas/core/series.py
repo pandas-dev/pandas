@@ -89,6 +89,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_dict_like,
+    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -1832,7 +1833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self):
+        if is_object_dtype(self) or is_extension_array_dtype(self):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default

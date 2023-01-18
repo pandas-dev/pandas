@@ -1020,6 +1020,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` ignoring float formatter for extension arrays (:issue:`39336`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
+- Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 
 Period
