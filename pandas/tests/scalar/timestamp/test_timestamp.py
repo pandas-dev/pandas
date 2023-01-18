@@ -1104,3 +1104,15 @@ def test_utctimetuple():
     result = ts.utctimetuple()
     expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
     assert result == expected
+
+
+def test_negative_dates():
+    # https://github.com/pandas-dev/pandas/issues/50787
+    ts = Timestamp("-2000-01-01")
+    msg = (
+        "^strftime not yet supported on Timestamps which are outside the range of "
+        "Python's standard library. For now, please call the components you need "
+        r"\(such as `.year` and `.month`\) and construct your string from there.$"
+    )
+    with pytest.raises(NotImplementedError, match=msg):
+        ts.strftime("%Y")
