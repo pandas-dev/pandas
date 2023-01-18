@@ -228,7 +228,7 @@ def _format_argument_list(allow_args: list[str]) -> str:
 
     Returns
     -------
-    s : str
+    str
         The substring describing the argument list in best way to be
         inserted to the warning message.
 
