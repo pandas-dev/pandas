@@ -983,7 +983,7 @@ class TestNonNano:
     def test_min(self, ts):
         assert ts.min <= ts
         assert ts.min._creso == ts._creso
-        assert ts.min.value == NaT.value + 1
+        assert ts.min.value == NaT._value + 1
 
     def test_max(self, ts):
         assert ts.max >= ts
@@ -1000,7 +1000,7 @@ class TestNonNano:
 def test_timestamp_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
     #  to nanoseconds
-    assert Timestamp.min == Timestamp(NaT.value + 1)
+    assert Timestamp.min == Timestamp(NaT._value + 1)
     assert Timestamp.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
     assert Timestamp.max == Timestamp(np.iinfo(np.int64).max)

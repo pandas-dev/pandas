@@ -2113,7 +2113,7 @@ class _AsOfMerge(_OrderedMerge):
             right_values = right_values.view("i8")
             if tolerance is not None:
                 tolerance = Timedelta(tolerance)
-                tolerance = tolerance.value
+                tolerance = tolerance._value
 
         # a "by" parameter requires special handling
         if self.left_by is not None:

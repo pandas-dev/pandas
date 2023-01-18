@@ -73,7 +73,7 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_oob_non_nano(self):
-        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[m]")
+        arr = np.array([pd.NaT._value + 1], dtype="timedelta64[m]")
 
         msg = (
             "Cannot convert -9223372036854775807 minutes to "
