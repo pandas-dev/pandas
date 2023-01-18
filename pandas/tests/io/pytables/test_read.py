@@ -214,6 +214,20 @@ def test_read_hdf_open_store(tmp_path, setup_path):
         assert store.is_open
 
 
+def test_read_hdf_index_not_view(tmp_path, setup_path):
+    # GH 37441
+    # Ensure that the index of the DataFrame is not a view
+    # into the original recarray that pytables reads in
+    df = DataFrame(np.random.rand(4, 5), index=[0, 1, 2, 3], columns=list("ABCDE"))
+
+    path = tmp_path / setup_path
+    df.to_hdf(path, "df", mode="w", format="table")
+
+    df2 = read_hdf(path, "df")
+    assert df2.index._data.base is None
+    tm.assert_frame_equal(df, df2)
+
+
 def test_read_hdf_iterator(tmp_path, setup_path):
     df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
     df.index.name = "letters"

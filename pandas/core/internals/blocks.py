@@ -21,6 +21,7 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
@@ -535,12 +536,10 @@ class Block(PandasObject):
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
+            # GH49404
             blk = self if inplace else self.copy()
-            # error: Item "ExtensionArray" of "Union[ndarray[Any, Any],
-            # ExtensionArray]" has no attribute "_replace"
-            blk.values._replace(  # type: ignore[union-attr]
-                to_replace=to_replace, value=value, inplace=True
-            )
+            values = cast(Categorical, blk.values)
+            values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
 
         if not self._can_hold_element(to_replace):
@@ -569,7 +568,7 @@ class Block(PandasObject):
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            if value is None:
+            if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
                 blk = self.coerce_to_target_dtype(value)
@@ -649,6 +648,14 @@ class Block(PandasObject):
         See BlockManager.replace_list docstring.
         """
         values = self.values
+
+        if isinstance(values, Categorical):
+            # TODO: avoid special-casing
+            # GH49404
+            blk = self if inplace else self.copy()
+            values = cast(Categorical, blk.values)
+            values._replace(to_replace=src_list, value=dest_list, inplace=True)
+            return [blk]
 
         # Exclude anything that we know we won't contain
         pairs = [
