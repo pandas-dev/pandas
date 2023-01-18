@@ -27,7 +27,7 @@ from pandas.io.common import get_handle
 
 class TestDataFrameToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"index_col": 0, "parse_dates": True}
+        params = {"index_col": 0}
         params.update(**kwargs)
 
         return read_csv(path, **params)
@@ -46,24 +46,24 @@ class TestDataFrameToCSV:
             # freq does not roundtrip
             datetime_frame.index = datetime_frame.index._with_freq(None)
             datetime_frame.to_csv(path)
-            recons = self.read_csv(path)
+            recons = self.read_csv(path, parse_dates=True)
             tm.assert_frame_equal(datetime_frame, recons)
 
             datetime_frame.to_csv(path, index_label="index")
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
 
             assert len(recons.columns) == len(datetime_frame.columns) + 1
 
             # no index
             datetime_frame.to_csv(path, index=False)
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
             tm.assert_almost_equal(datetime_frame.values, recons.values)
 
             # corner case
             dm = DataFrame(
                 {
-                    "s1": Series(range(3), index=np.arange(3)),
-                    "s2": Series(range(2), index=np.arange(2)),
+                    "s1": Series(range(3), index=np.arange(3, dtype=np.int64)),
+                    "s2": Series(range(2), index=np.arange(2, dtype=np.int64)),
                 }
             )
             dm.to_csv(path)
@@ -388,7 +388,7 @@ class TestDataFrameToCSV:
 
     @pytest.mark.slow
     def test_to_csv_empty(self):
-        df = DataFrame(index=np.arange(10))
+        df = DataFrame(index=np.arange(10, dtype=np.int64))
         result, expected = self._return_result_expected(df, 1000)
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
@@ -486,7 +486,7 @@ class TestDataFrameToCSV:
 
         frame = float_frame
         old_index = frame.index
-        arrays = np.arange(len(old_index) * 2).reshape(2, -1)
+        arrays = np.arange(len(old_index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
@@ -510,11 +510,14 @@ class TestDataFrameToCSV:
             # try multiindex with dates
             tsframe = datetime_frame
             old_index = tsframe.index
-            new_index = [old_index, np.arange(len(old_index))]
+            new_index = [old_index, np.arange(len(old_index), dtype=np.int64)]
             tsframe.index = MultiIndex.from_arrays(new_index)
 
             tsframe.to_csv(path, index_label=["time", "foo"])
-            recons = self.read_csv(path, index_col=[0, 1])
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                recons = self.read_csv(path, index_col=[0, 1], parse_dates=True)
 
             # TODO to_csv drops column name
             tm.assert_frame_equal(tsframe, recons, check_names=False)
@@ -1056,7 +1059,7 @@ class TestDataFrameToCSV:
 
             # test NaTs
             nat_index = to_datetime(
-                ["NaT"] * 10 + ["2000-01-01", "1/1/2000", "1-1-2000"]
+                ["NaT"] * 10 + ["2000-01-01", "2000-01-01", "2000-01-01"]
             )
             nat_frame = DataFrame({"A": nat_index}, index=nat_index)
             nat_frame.to_csv(path, date_format="%Y-%m-%d")

@@ -103,7 +103,6 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
-    _is_backward_compat_public_numeric_index: bool = False
 
     @property
     def _engine_type(self) -> type[libindex.Int64Engine]:
@@ -167,8 +166,13 @@ class RangeIndex(NumericIndex):
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
+    #  error: Argument 1 of "_simple_new" is incompatible with supertype "Index";
+    #  supertype defines the argument type as
+    #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
-    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
+    def _simple_new(  # type: ignore[override]
+        cls, values: range, name: Hashable = None
+    ) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -184,9 +188,9 @@ class RangeIndex(NumericIndex):
     # error: Return type "Type[Int64Index]" of "_constructor" incompatible with return
     # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[Int64Index]:  # type: ignore[override]
+    def _constructor(self) -> type[NumericIndex]:  # type: ignore[override]
         """return the class to use for construction"""
-        return Int64Index
+        return NumericIndex
 
     # error: Signature of "_data" incompatible with supertype "Index"
     @cache_readonly

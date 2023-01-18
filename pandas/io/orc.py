@@ -58,16 +58,17 @@ def read_orc(
         If True, use dtypes that use ``pd.NA`` as missing value indicator
         for the resulting DataFrame.
 
-        The nullable dtype implementation can be configured by setting the global
-        ``io.nullable_backend`` configuration option to ``"pandas"`` to use
-        numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
-        nullable dtypes (using ``pd.ArrowDtype``).
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0
 
         .. note
 
-            Currently only ``io.nullable_backend`` set to ``"pyarrow"`` is supported.
+            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -89,19 +90,21 @@ def read_orc(
         orc_file = orc.ORCFile(handles.handle)
         pa_table = orc_file.read(columns=columns, **kwargs)
     if use_nullable_dtypes:
-        nullable_backend = get_option("io.nullable_backend")
-        if nullable_backend != "pyarrow":
-            raise NotImplementedError(
-                f"io.nullable_backend set to {nullable_backend} is not implemented."
+        dtype_backend = get_option("mode.dtype_backend")
+        if dtype_backend == "pyarrow":
+            df = DataFrame(
+                {
+                    col_name: ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
             )
-        df = DataFrame(
-            {
-                col_name: ArrowExtensionArray(pa_col)
-                for col_name, pa_col in zip(
-                    pa_table.column_names, pa_table.itercolumns()
-                )
-            }
-        )
+        else:
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping()
+            df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
         return pa_table.to_pandas()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from datetime import timedelta
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -90,7 +89,6 @@ from pandas.tseries.frequencies import (
 )
 from pandas.tseries.offsets import (
     Day,
-    Nano,
     Tick,
 )
 
@@ -374,7 +372,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        transformed : Series
+        Series
 
         Examples
         --------
@@ -989,6 +987,12 @@ class Resampler(BaseGroupBy, PandasObject):
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
+
+        # If the result is a non-empty DataFrame we stack to get a Series
+        # GH 46826
+        if isinstance(result, ABCDataFrame) and not result.empty:
+            result = result.stack()
+
         if not len(self.ax):
             from pandas import Series
 
@@ -1709,7 +1713,7 @@ class TimeGrouper(Grouper):
             name=ax.name,
             ambiguous=True,
             nonexistent="shift_forward",
-        )
+        ).as_unit(ax.unit)
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
@@ -1745,7 +1749,11 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 bin_edges = binner.tz_localize(None)
-                bin_edges = bin_edges + timedelta(1) - Nano(1)
+                bin_edges = (
+                    bin_edges
+                    + Timedelta(days=1, unit=bin_edges.unit).as_unit(bin_edges.unit)
+                    - Timedelta(1, unit=bin_edges.unit).as_unit(bin_edges.unit)
+                )
                 bin_edges = bin_edges.tz_localize(binner.tz).asi8
             else:
                 bin_edges = binner.asi8
@@ -2085,7 +2093,7 @@ def _adjust_dates_anchored(
     elif origin == "start":
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.value
+        origin_nanos = origin.as_unit("ns").value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
         sub_freq_times = (origin_last.value - first.value) // freq.nanos

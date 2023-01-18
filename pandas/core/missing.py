@@ -32,6 +32,7 @@ from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
     is_numeric_v_string_like,
+    is_object_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
@@ -83,6 +84,12 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     # _DTypeDict, Tuple[Any, Any]]]"
     values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
+    potential_na = False
+    if is_object_dtype(arr):
+        # pre-compute mask to avoid comparison to NA
+        potential_na = True
+        arr_mask = ~isna(arr)
+
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
@@ -93,10 +100,15 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
-            if not isinstance(new_mask, np.ndarray):
-                # usually BooleanArray
-                new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+            if potential_na:
+                new_mask = np.zeros(arr.shape, dtype=np.bool_)
+                new_mask[arr_mask] = arr[arr_mask] == x
+            else:
+                new_mask = arr == x
+
+                if not isinstance(new_mask, np.ndarray):
+                    # usually BooleanArray
+                    new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
             mask |= new_mask
 
     if na_mask.any():
@@ -170,7 +182,9 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: str) -> int | None:
+def find_valid_index(
+    values, *, how: str, is_valid: npt.NDArray[np.bool_]
+) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -179,6 +193,8 @@ def find_valid_index(values, *, how: str) -> int | None:
     values : ndarray or ExtensionArray
     how : {'first', 'last'}
         Use this parameter to change between the first or last valid index.
+    is_valid: np.ndarray
+        Mask to find na_values.
 
     Returns
     -------
@@ -188,8 +204,6 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if len(values) == 0:  # early stop
         return None
-
-    is_valid = ~isna(values)
 
     if values.ndim == 2:
         is_valid = is_valid.any(axis=1)  # reduce axis 1
@@ -204,7 +218,9 @@ def find_valid_index(values, *, how: str) -> int | None:
 
     if not chk_notna:
         return None
-    return idxpos
+    # Incompatible return value type (got "signedinteger[Any]",
+    # expected "Optional[int]")
+    return idxpos  # type: ignore[return-value]
 
 
 def interpolate_array_2d(
@@ -400,12 +416,12 @@ def _interpolate_1d(
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
 
-    first_valid_index = find_valid_index(yvalues, how="first")
+    first_valid_index = find_valid_index(yvalues, how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
     start_nans = set(range(first_valid_index))
 
-    last_valid_index = find_valid_index(yvalues, how="last")
+    last_valid_index = find_valid_index(yvalues, how="last", is_valid=valid)
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
     end_nans = set(range(1 + last_valid_index, len(valid)))
@@ -738,12 +754,13 @@ def _interpolate_with_limit_area(
     """
 
     invalid = isna(values)
+    is_valid = ~invalid
 
     if not invalid.all():
-        first = find_valid_index(values, how="first")
+        first = find_valid_index(values, how="first", is_valid=is_valid)
         if first is None:
             first = 0
-        last = find_valid_index(values, how="last")
+        last = find_valid_index(values, how="last", is_valid=is_valid)
         if last is None:
             last = len(values)
 

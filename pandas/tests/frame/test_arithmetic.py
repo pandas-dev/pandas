@@ -1,5 +1,8 @@
 from collections import deque
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from enum import Enum
 import functools
 import operator
@@ -7,7 +10,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -1065,7 +1067,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
 
         skip = {
             (operator.truediv, "bool"),
@@ -1097,10 +1099,14 @@ class TestFrameArithmetic:
                 msg = None
             elif dtype == "complex128":
                 msg = "ufunc 'remainder' not supported for the input types"
-                warn = UserWarning  # "evaluating in Python space because ..."
             elif op is operator.sub:
                 msg = "numpy boolean subtract, the `-` operator, is "
-                warn = UserWarning  # "evaluating in Python space because ..."
+                if (
+                    dtype == "bool"
+                    and expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                ):
+                    warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1209,10 +1215,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
         result = df_moscow + df
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
@@ -1534,7 +1540,10 @@ class TestFrameArithmeticUnsorted:
         result3 = func(float_frame, 0)
         tm.assert_numpy_array_equal(result3.values, func(float_frame.values, 0))
 
-        msg = "Can only compare identically-labeled DataFrame"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
@@ -1927,15 +1936,19 @@ def test_dataframe_blockwise_slicelike():
     # GH#34367
     arr = np.random.randint(0, 1000, (100, 10))
     df1 = DataFrame(arr)
-    df2 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df2 = df1.copy().astype({1: "float", 3: "float", 7: "float"})
     df2.iloc[0, [1, 3, 7]] = np.nan
 
-    df3 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df3 = df1.copy().astype({5: "float"})
     df3.iloc[0, [5]] = np.nan
 
-    df4 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df4 = df1.copy().astype({2: "float", 3: "float", 4: "float"})
     df4.iloc[0, np.arange(2, 5)] = np.nan
-    df5 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df5 = df1.copy().astype({4: "float", 5: "float", 6: "float"})
     df5.iloc[0, np.arange(4, 7)] = np.nan
 
     for left, right in [(df1, df2), (df2, df3), (df4, df5)]:

@@ -7,7 +7,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -556,6 +556,24 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(pd.Series([1, 2]))
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
 
+    class MyNumericDType(ExtensionDtype):
+        @property
+        def type(self):
+            return str
+
+        @property
+        def name(self):
+            raise NotImplementedError
+
+        @classmethod
+        def construct_array_type(cls):
+            raise NotImplementedError
+
+        def _is_numeric(self) -> bool:
+            return True
+
+    assert com.is_numeric_dtype(MyNumericDType())
+
 
 def test_is_float_dtype():
     assert not com.is_float_dtype(str)
@@ -715,62 +733,21 @@ def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
 
 
-@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
-@pytest.mark.parametrize("typ", [np.int64])
-def test_astype_nansafe(val, typ):
-    arr = np.array([val])
-
-    typ = np.dtype(typ)
-
-    msg = "Cannot convert NaT values to integer"
-    with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
-
-
 def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     # GH#34457 use astype, not view
     arr = np.array([1, 2, 3], dtype=any_int_numpy_dtype)
 
     dtype = np.dtype("float64")
-    result = astype_nansafe(arr, dtype, copy=False)
+    result = astype_array(arr, dtype, copy=False)
 
     expected = np.array([1.0, 2.0, 3.0], dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
-@pytest.mark.parametrize(
-    "to_type",
-    [
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.int8,
-        np.int16,
-        np.int32,
-        np.float16,
-        np.float32,
-    ],
-)
-def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
-    arr = np.array([from_type("2018")])
-
-    to_type = np.dtype(to_type)
-
-    msg = "|".join(
-        [
-            "cannot astype a timedelta",
-            "cannot astype a datetimelike",
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
-        astype_nansafe(arr, dtype=to_type)
-
-
-@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
     arr = np.array([from_type("NaT", "ns")])
-    result = astype_nansafe(arr, dtype=np.dtype("object"))
+    result = astype_array(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]
 

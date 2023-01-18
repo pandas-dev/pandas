@@ -1601,7 +1601,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    filled : Series/Index of objects.
+    Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1880,7 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        encoded : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2247,7 +2247,7 @@ class StringMethods(NoNewAttributesMixin):
         This is also available on Index
 
         >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
-        Int64Index([0, 0, 2, 1], dtype='int64')
+        NumericIndex([0, 0, 2, 1], dtype='int64')
         """
         result = self._data.array._str_count(pat, flags)
         return self._wrap_result(result, returns_string=False)
@@ -2767,7 +2767,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        normalized : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)

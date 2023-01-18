@@ -281,7 +281,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
@@ -454,9 +454,7 @@ class TestAstypeString:
     def test_astype_string_to_extension_dtype_roundtrip(
         self, data, dtype, request, nullable_string_dtype
     ):
-        if dtype == "boolean" or (
-            dtype in ("datetime64[ns]", "timedelta64[ns]") and NaT in data
-        ):
+        if dtype == "boolean" or (dtype == "timedelta64[ns]" and NaT in data):
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )

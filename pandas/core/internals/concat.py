@@ -7,6 +7,7 @@ from typing import (
     Sequence,
     cast,
 )
+import weakref
 
 import numpy as np
 
@@ -61,7 +62,10 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
 )
-from pandas.core.internals.managers import BlockManager
+from pandas.core.internals.managers import (
+    BlockManager,
+    using_copy_on_write,
+)
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -193,12 +197,21 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
+    # Assertions disabled for performance
+    # for tup in mgrs_indexers:
+    #    # caller is responsible for ensuring this
+    #    indexers = tup[1]
+    #    assert concat_axis not in indexers
+
+    if concat_axis == 0:
+        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]
-    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    concat_plan = _combine_concat_plans(concat_plans)
     blocks = []
 
     for placement, join_units in concat_plan:
@@ -229,7 +242,7 @@ def concatenate_managers(
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            values = _concatenate_join_units(join_units, copy=copy)
             fastpath = False
 
         if fastpath:
@@ -242,6 +255,54 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
+def _concat_managers_axis0(
+    mgrs_indexers, axes: list[Index], copy: bool
+) -> BlockManager:
+    """
+    concat_managers specialized to concat_axis=0, with reindexing already
+    having been done in _maybe_reindex_columns_na_proxy.
+    """
+    had_reindexers = {
+        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
+    }
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
+
+    mgrs = [x[0] for x in mgrs_indexers]
+
+    offset = 0
+    blocks = []
+    refs: list[weakref.ref | None] = []
+    parents: list = []
+    for i, mgr in enumerate(mgrs):
+        # If we already reindexed, then we definitely don't need another copy
+        made_copy = had_reindexers[i]
+
+        for blk in mgr.blocks:
+            if made_copy:
+                nb = blk.copy(deep=False)
+            elif copy:
+                nb = blk.copy()
+            else:
+                # by slicing instead of copy(deep=False), we get a new array
+                #  object, see test_concat_copy
+                nb = blk.getitem_block(slice(None))
+            nb._mgr_locs = nb._mgr_locs.add(offset)
+            blocks.append(nb)
+
+        if not made_copy and not copy and using_copy_on_write():
+            refs.extend([weakref.ref(blk) for blk in mgr.blocks])
+            parents.append(mgr)
+        elif using_copy_on_write():
+            refs.extend([None] * len(mgr.blocks))
+
+        offset += len(mgr.items)
+
+    result_parents = parents if parents else None
+    result_ref = refs if refs else None
+    result = BlockManager(tuple(blocks), axes, parent=result_parents, refs=result_ref)
+    return result
+
+
 def _maybe_reindex_columns_na_proxy(
     axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
 ) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
@@ -252,25 +313,22 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers = []
-    for mgr, indexers in mgrs_indexers:
-        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
-        if 0 in indexers:
-            new_mgr = mgr.reindex_indexer(
-                axes[0],
-                indexers[0],
-                axis=0,
-                copy=False,
-                only_slice=True,
-                allow_dups=True,
-                use_na_proxy=True,
-            )
-            new_indexers = indexers.copy()
-            del new_indexers[0]
-            new_mgrs_indexers.append((new_mgr, new_indexers))
-        else:
-            new_mgrs_indexers.append((mgr, indexers))
+    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
 
+    for mgr, indexers in mgrs_indexers:
+        # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
+        #  is a cheap reindexing.
+        for i, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(
+                axes[i],
+                indexers[i],
+                axis=i,
+                copy=False,
+                only_slice=True,  # only relevant for i==0
+                allow_dups=True,
+                use_na_proxy=True,  # only relevant for i==0
+            )
+        new_mgrs_indexers.append((mgr, {}))
     return new_mgrs_indexers
 
 
@@ -288,7 +346,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
     plan : list of (BlockPlacement, JoinUnit) tuples
 
     """
-    # Calculate post-reindex shape , save for item axis which will be separate
+    assert len(indexers) == 0
+
+    # Calculate post-reindex shape, save for item axis which will be separate
     # for each block anyway.
     mgr_shape_list = list(mgr.shape)
     for ax, indexer in indexers.items():
@@ -523,16 +583,10 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
-) -> ArrayLike:
+def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
     """
-    Concatenate values from several join units along selected axis.
+    Concatenate values from several join units along axis=1.
     """
-    if concat_axis == 0 and len(join_units) > 1:
-        # Concatenating join units along ax0 is handled in _merge_blocks.
-        raise AssertionError("Concatenating join units along axis0")
-
     empty_dtype = _get_empty_dtype(join_units)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
@@ -573,7 +627,7 @@ def _concatenate_join_units(
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=1)
 
     return concat_values
 
@@ -701,27 +755,17 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis: AxisInt):
+def _combine_concat_plans(plans):
     """
     Combine multiple concatenation plans into one.
 
     existing_plan is updated in-place.
+
+    We only get here with concat_axis == 1.
     """
     if len(plans) == 1:
         for p in plans[0]:
             yield p[0], [p[1]]
-
-    elif concat_axis == 0:
-        offset = 0
-        for plan in plans:
-            last_plc = None
-
-            for plc, unit in plan:
-                yield plc.add(offset), [unit]
-                last_plc = plc
-
-            if last_plc is not None:
-                offset += last_plc.as_slice.stop
 
     else:
         # singleton list so we can modify it as a side-effect within _next_or_none

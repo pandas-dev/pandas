@@ -239,6 +239,7 @@ class MultiIndex(Index):
     codes
     nlevels
     levshape
+    dtypes
 
     Methods
     -------
@@ -255,7 +256,12 @@ class MultiIndex(Index):
     swaplevel
     reorder_levels
     remove_unused_levels
+    get_level_values
+    get_indexer
+    get_loc
     get_locs
+    get_loc_level
+    drop
 
     See Also
     --------
@@ -1604,7 +1610,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        values : Index
+        Index
             Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
@@ -1678,7 +1684,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        DataFrame : a DataFrame containing the original MultiIndex data.
+        DataFrame
 
         See Also
         --------
@@ -2147,12 +2153,12 @@ class MultiIndex(Index):
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
-        Make new MultiIndex with passed list of codes deleted
+        Make new MultiIndex with passed list of codes deleted.
 
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples when level is not specified
+            Must be a list of tuples when level is not specified.
         level : int or level name, default None
         errors : str, default 'raise'
 
@@ -2744,7 +2750,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        loc : int, slice object or boolean mask
+        int, slice object or boolean mask
             If the key is past the lexsort depth, the return may be a
             boolean mask array, otherwise it is always a slice or int.
 
@@ -2862,10 +2868,13 @@ class MultiIndex(Index):
 
         Returns
         -------
-        loc : A 2-tuple where the elements are:
-              Element 0: int, slice object or boolean array
-              Element 1: The resulting sliced multiindex/index. If the key
-              contains all levels, this will be ``None``.
+        tuple
+            A 2-tuple where the elements :
+
+            Element 0: int, slice object or boolean array.
+
+            Element 1: The resulting sliced multiindex/index. If the key
+            contains all levels, this will be ``None``.
 
         See Also
         --------
@@ -3376,7 +3385,7 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
-                new_order = np.ones((n,))[indexer]
+                new_order = np.ones((n,), dtype=np.intp)[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
@@ -3500,12 +3509,8 @@ class MultiIndex(Index):
 
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-        if (
-            any(-1 in code for code in self.codes)
-            and any(-1 in code for code in other.codes)
-            or other.has_duplicates
-        ):
-            # This is only necessary if both sides have nans or other has dups,
+        if other.has_duplicates:
+            # This is only necessary if other has dupes,
             # otherwise difference is faster
             result = super()._union(other, sort)
 

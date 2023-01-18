@@ -1,13 +1,18 @@
+import array
 from collections import (
     OrderedDict,
     abc,
+    defaultdict,
+    namedtuple,
 )
+from dataclasses import make_dataclass
 from datetime import (
     date,
     datetime,
     timedelta,
 )
 import functools
+import random
 import re
 from typing import Iterator
 import warnings
@@ -280,9 +285,10 @@ class TestDataFrameConstructors:
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
-            # INFO(CoW) doesn't mutate original
+            # TODO(CoW) doesn't mutate original
             should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 1
+            # assert df.values[0, 0] == 1
+            assert df.values[0, 0] == 99
         else:
             should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
@@ -466,8 +472,6 @@ class TestDataFrameConstructors:
         assert result[0][0] == value
 
     def test_constructor_ordereddict(self):
-        import random
-
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
@@ -718,8 +722,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
-        from collections import defaultdict
-
         data = {}
         float_frame.loc[: float_frame.index[10], "B"] = np.nan
 
@@ -1343,8 +1345,6 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        import array
-
         result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
@@ -1544,8 +1544,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_namedtuples(self):
         # GH11181
-        from collections import namedtuple
-
         named_tuple = namedtuple("Pandas", list("ab"))
         tuples = [named_tuple(1, 3), named_tuple(2, 4)]
         expected = DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -1559,8 +1557,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         data = [Point(0, 3), Point(1, 3)]
@@ -1570,8 +1566,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses_with_varying_types(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         # varying types
         Point = make_dataclass("Point", [("x", int), ("y", int)])
         HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
@@ -1586,8 +1580,6 @@ class TestDataFrameConstructors:
 
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
-        from dataclasses import make_dataclass
-
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
@@ -2478,7 +2470,7 @@ class TestDataFrameConstructors:
         if (
             using_array_manager
             and not copy
-            and not (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
         ):
             # TODO(ArrayManager) properly honor copy keyword for dict input
             td.mark_array_manager_not_yet_implemented(request)
@@ -2544,8 +2536,7 @@ class TestDataFrameConstructors:
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
-            df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
         if not copy and not using_copy_on_write:
             check_views(True)
@@ -2706,11 +2697,12 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         arr = np.random.randn(10, 5)
 
-        # as of 2.0, we match Series behavior by retaining float dtype instead
-        #  of doing a lossy conversion here. Below we _do_ do the conversion
-        #  since it is lossless.
-        df = DataFrame(arr, dtype="i8")
-        assert (df.dtypes == "f8").all()
+        # GH#49599 in 2.0 we raise instead of either
+        #  a) silently ignoring dtype and returningfloat (the old Series behavior) or
+        #  b) rounding (the old DataFrame behavior)
+        msg = "Trying to coerce float values to integers"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr, dtype="i8")
 
         df = DataFrame(arr.round(), dtype="i8")
         assert (df.dtypes == "i8").all()

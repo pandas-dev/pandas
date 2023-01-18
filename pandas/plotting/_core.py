@@ -282,7 +282,7 @@ figsize : A tuple (width, height) in inches
     The size of the figure to create in matplotlib.
 layout : tuple (rows, columns), optional
     For example, (3, 5) will display the subplots
-    using 3 columns and 5 rows, starting from the top-left.
+    using 3 rows and 5 columns, starting from the top-left.
 return_type : {'axes', 'dict', 'both'} or None, default 'axes'
     The kind of object to return. The default is ``axes``.
 
@@ -662,6 +662,7 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
+
           .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
@@ -939,7 +940,7 @@ class PlotAccessor(PandasObject):
                         f"{kind} requires either y column or 'subplots=True'"
                     )
                 if y is not None:
-                    if is_integer(y) and not data.columns.holds_integer():
+                    if is_integer(y) and not data.columns._holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
                     data = data[y].copy()
@@ -947,7 +948,7 @@ class PlotAccessor(PandasObject):
         elif isinstance(data, ABCDataFrame):
             data_cols = data.columns
             if x is not None:
-                if is_integer(x) and not data.columns.holds_integer():
+                if is_integer(x) and not data.columns._holds_integer():
                     x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
@@ -956,7 +957,7 @@ class PlotAccessor(PandasObject):
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
                 int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and not data.columns.holds_integer():
+                if int_y_arg and not data.columns._holds_integer():
                     y = data_cols[y]
 
                 label_kw = kwargs["label"] if "label" in kwargs else False

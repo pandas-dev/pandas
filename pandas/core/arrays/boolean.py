@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.array_algos import masked_accumulations
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -320,17 +321,17 @@ class BooleanArray(BaseMaskedArray):
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s):
-            if isna(s):
-                return s
-            elif s in true_values_union:
+        def map_string(s) -> bool:
+            if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
-        scalars = [map_string(x) for x in strings]
+        scalars = np.array(strings, dtype=object)
+        mask = isna(scalars)
+        scalars[~mask] = list(map(map_string, scalars[~mask]))
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
@@ -378,3 +379,19 @@ class BooleanArray(BaseMaskedArray):
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArray:
+        data = self._data
+        mask = self._mask
+        if name in ("cummin", "cummax"):
+            op = getattr(masked_accumulations, name)
+            data, mask = op(data, mask, skipna=skipna, **kwargs)
+            return type(self)(data, mask, copy=False)
+        else:
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(data.astype(int), mask)._accumulate(
+                name, skipna=skipna, **kwargs
+            )

@@ -19,6 +19,7 @@ from typing import (
 )
 
 from pandas._typing import (
+    BaseBuffer,
     FilePath,
     ReadBuffer,
 )
@@ -130,9 +131,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(
-    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes], encoding: str | None
-) -> str | bytes:
+def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -150,13 +149,7 @@ def _read(
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        # error: Argument 1 to "get_handle" has incompatible type "Union[str, bytes,
-        # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]";
-        # expected "Union[PathLike[str], Union[str, Union[IO[Any], RawIOBase,
-        # BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]]"
-        with get_handle(
-            obj, "r", encoding=encoding  # type: ignore[arg-type]
-        ) as handles:
+        with get_handle(obj, "r", encoding=encoding) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
@@ -1043,6 +1036,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    use_nullable_dtypes: bool = False,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1143,6 +1137,19 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     dfs
@@ -1218,4 +1225,5 @@ def read_html(
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
         extract_links=extract_links,
+        use_nullable_dtypes=use_nullable_dtypes,
     )

@@ -4,18 +4,17 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 import locale
+import time
 import unicodedata
 
 from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import (
-    timezone,
-    utc,
-)
+from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -204,15 +203,24 @@ class TestTimestampProperties:
 
     def test_resolution(self):
         # GH#21336, GH#21365
-        dt = Timestamp("2100-01-01 00:00:00")
+        dt = Timestamp("2100-01-01 00:00:00.000000000")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib datetime behavior
         assert Timestamp.resolution == Timedelta(nanoseconds=1)
 
+        assert dt.as_unit("us").resolution == Timedelta(microseconds=1)
+        assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
+        assert dt.as_unit("s").resolution == Timedelta(seconds=1)
+
 
 class TestTimestamp:
+    def test_default_to_stdlib_utc(self):
+        assert Timestamp.utcnow().tz is timezone.utc
+        assert Timestamp.now("UTC").tz is timezone.utc
+        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+
     def test_tz(self):
         tstr = "2014-02-01 09:00"
         ts = Timestamp(tstr)
@@ -233,7 +241,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
         np.random.seed(7_960_929)
@@ -251,7 +259,7 @@ class TestTimestamp:
             assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
@@ -376,7 +384,7 @@ class TestTimestamp:
 
         # test value to string and back conversions
         # further test accessors
-        base = Timestamp("20140101 00:00:00")
+        base = Timestamp("20140101 00:00:00").as_unit("ns")
 
         result = Timestamp(base.value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
@@ -518,7 +526,7 @@ class TestTimestampToJulianDate:
 class TestTimestampConversion:
     def test_conversion(self):
         # GH#9255
-        ts = Timestamp("2000-01-01")
+        ts = Timestamp("2000-01-01").as_unit("ns")
 
         result = ts.to_pydatetime()
         expected = datetime(2000, 1, 1)
@@ -1004,7 +1012,8 @@ def test_timestamp_class_min_max_resolution():
 
 class TestAsUnit:
     def test_as_unit(self):
-        ts = Timestamp("1970-01-01")
+        ts = Timestamp("1970-01-01").as_unit("ns")
+        assert ts.unit == "ns"
 
         assert ts.as_unit("ns") is ts
 
@@ -1079,3 +1088,31 @@ class TestAsUnit:
             == res.nanosecond
             == 0
         )
+
+
+def test_delimited_date():
+    # https://github.com/pandas-dev/pandas/issues/50231
+    with tm.assert_produces_warning(None):
+        result = Timestamp("13-01-2000")
+    expected = Timestamp(2000, 1, 13)
+    assert result == expected
+
+
+def test_utctimetuple():
+    # GH 32174
+    ts = Timestamp("2000-01-01", tz="UTC")
+    result = ts.utctimetuple()
+    expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
+    assert result == expected
+
+
+def test_negative_dates():
+    # https://github.com/pandas-dev/pandas/issues/50787
+    ts = Timestamp("-2000-01-01")
+    msg = (
+        "^strftime not yet supported on Timestamps which are outside the range of "
+        "Python's standard library. For now, please call the components you need "
+        r"\(such as `.year` and `.month`\) and construct your string from there.$"
+    )
+    with pytest.raises(NotImplementedError, match=msg):
+        ts.strftime("%Y")

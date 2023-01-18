@@ -88,7 +88,7 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
-from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -764,7 +764,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
 
     Parameters
     ----------
-    dts: npy_datetimestruct*
+    dts : npy_datetimestruct*
     freq : int
 
     Returns
@@ -1741,6 +1741,11 @@ cdef class _Period(PeriodMixin):
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
                             f"and '{oname}'")
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self + x for x in other], dtype=object)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -1767,11 +1772,22 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self - x for x in other], dtype=object)
+
         return NotImplemented
 
     def __rsub__(self, other):
         if other is NaT:
             return NaT
+
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([x - self for x in other], dtype=object)
+
         return NotImplemented
 
     def asfreq(self, freq, how="E") -> "Period":
@@ -2573,19 +2589,16 @@ class Period(_Period):
 
                 value = str(value)
             value = value.upper()
-            dt, reso = parse_time_string(value, freq)
-            try:
-                ts = Timestamp(value)
-            except ValueError:
-                nanosecond = 0
-            else:
-                nanosecond = ts.nanosecond
-                if nanosecond != 0:
-                    reso = "nanosecond"
+
+            freqstr = freq.rule_code if freq is not None else None
+            dt, reso = parse_datetime_string_with_reso(value, freqstr)
+            if reso == "nanosecond":
+                nanosecond = dt.nanosecond
             if dt is NaT:
                 ordinal = NPY_NAT
 
-            if freq is None:
+            if freq is None and ordinal != NPY_NAT:
+                # Skip NaT, since it doesn't have a resolution
                 try:
                     freq = attrname_to_abbrevs[reso]
                 except KeyError:

@@ -22,14 +22,20 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     lib,
     properties,
     reshape,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    array_equal_fast,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -83,6 +89,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_dict_like,
+    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -420,10 +427,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
+                if using_copy_on_write():
+                    data = data._mgr.copy(deep=False)
+                else:
+                    data = data._mgr
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
-            data = data._mgr
+                data = data._mgr
         elif is_dict_like(data):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
@@ -856,7 +867,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # coercion
     __float__ = _coerce_method(float)
-    __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
@@ -877,6 +887,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
+
+        if (
+            indices.ndim == 1
+            and using_copy_on_write()
+            and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype))
+        ):
+            return self.copy(deep=None)
+
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 
@@ -908,7 +926,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1229,6 +1247,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Set the _cacher attribute on the calling object with a weakref to
         cacher.
         """
+        if using_copy_on_write():
+            return
         self._cacher = (item, weakref.ref(cacher))
 
     def _clear_item_cache(self) -> None:
@@ -1252,6 +1272,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         See NDFrame._maybe_update_cacher.__doc__
         """
+        # for CoW, we never want to update the parent DataFrame cache
+        # if the Series changed, but don't keep track of any cacher
+        if using_copy_on_write():
+            return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
             assert self.ndim == 1
@@ -1261,16 +1285,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # a copy
             if ref is None:
                 del self._cacher
-            # for CoW, we never want to update the parent DataFrame cache
-            # if the Series changed, and always pop the cached item
-            elif (
-                not (
-                    get_option("mode.copy_on_write")
-                    and get_option("mode.data_manager") == "block"
-                )
-                and len(self) == len(ref)
-                and self.name in ref.columns
-            ):
+            elif len(self) == len(ref) and self.name in ref.columns:
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
@@ -1818,7 +1833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self):
+        if is_object_dtype(self) or is_extension_array_dtype(self):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -1978,6 +1993,8 @@ Name: Max Speed, dtype: float64
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+        if not as_index:
+            raise TypeError("as_index=False only valid with DataFrame")
         axis = self._get_axis_number(axis)
 
         return SeriesGroupBy(
@@ -3549,6 +3566,13 @@ Keep all original rows and also all original values
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
+        if array_equal_fast(
+            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
+        ):
+            if inplace:
+                return self._update_inplace(self)
+            return self.copy(deep=None)
+
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
         )
@@ -4071,7 +4095,9 @@ Keep all original rows and also all original values
         dtype: object"""
         ),
     )
-    def swaplevel(self, i: Level = -2, j: Level = -1, copy: bool = True) -> Series:
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | None = None
+    ) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
 
@@ -4091,10 +4117,9 @@ Keep all original rows and also all original values
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        new_index = self.index.swaplevel(i, j)
-        return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self, method="swaplevel"
-        )
+        result = self.copy(deep=copy)
+        result.index = self.index.swaplevel(i, j)
+        return result
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
         """
@@ -4114,7 +4139,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
         assert isinstance(result.index, MultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
@@ -4591,15 +4616,18 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
+        self,
+        new_index: Index | None,
+        indexer: npt.NDArray[np.intp] | None,
+        copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
-            if copy:
-                return self.copy()
+            if copy or copy is None:
+                return self.copy(deep=copy)
             return self
 
         new_values = algorithms.take_nd(
@@ -4626,7 +4654,7 @@ Keep all original rows and also all original values
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -4809,7 +4837,7 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> Series:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -5410,6 +5438,7 @@ Keep all original rows and also all original values
                 input_series = input_series.copy()
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
+            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
@@ -5417,6 +5446,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
                 infer_objects,
+                dtype_backend,
             )
             result = input_series.astype(inferred_dtype)
         else:
@@ -5560,7 +5590,7 @@ Keep all original rows and also all original values
                 return result
         else:
             if not inplace:
-                return self.copy()
+                return self.copy(deep=None)
         return None
 
     # ----------------------------------------------------------------------
@@ -5618,7 +5648,7 @@ Keep all original rows and also all original values
         self,
         freq=None,
         how: Literal["s", "e", "start", "end"] = "start",
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> Series:
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
@@ -5637,18 +5667,15 @@ Keep all original rows and also all original values
         -------
         Series with DatetimeIndex
         """
-        new_values = self._values
-        if copy:
-            new_values = new_values.copy()
-
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_timestamp(freq=freq, how=how)
-        return self._constructor(new_values, index=new_index).__finalize__(
-            self, method="to_timestamp"
-        )
 
-    def to_period(self, freq: str | None = None, copy: bool = True) -> Series:
+        new_obj = self.copy(deep=copy)
+        new_index = self.index.to_timestamp(freq=freq, how=how)
+        setattr(new_obj, "index", new_index)
+        return new_obj
+
+    def to_period(self, freq: str | None = None, copy: bool | None = None) -> Series:
         """
         Convert Series from DatetimeIndex to PeriodIndex.
 
@@ -5664,16 +5691,13 @@ Keep all original rows and also all original values
         Series
             Series with index converted to PeriodIndex.
         """
-        new_values = self._values
-        if copy:
-            new_values = new_values.copy()
-
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
+
+        new_obj = self.copy(deep=copy)
         new_index = self.index.to_period(freq=freq)
-        return self._constructor(new_values, index=new_index).__finalize__(
-            self, method="to_period"
-        )
+        setattr(new_obj, "index", new_index)
+        return new_obj
 
     @overload
     def ffill(

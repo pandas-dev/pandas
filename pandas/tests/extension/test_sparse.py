@@ -480,5 +480,10 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            with tm.assert_produces_warning(FutureWarning, match="astype from"):
-                super().test_EA_types(engine, data)
+            super().test_EA_types(engine, data)
+
+
+class TestNoNumericAccumulations(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
+        pass

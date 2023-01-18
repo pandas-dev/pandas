@@ -115,12 +115,15 @@ class TestCaching:
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
 
-    def test_altering_series_clears_parent_cache(self):
+    def test_altering_series_clears_parent_cache(self, using_copy_on_write):
         # GH #33675
         df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
         ser = df["A"]
 
-        assert "A" in df._item_cache
+        if using_copy_on_write:
+            assert "A" not in df._item_cache
+        else:
+            assert "A" in df._item_cache
 
         # Adding a new entry to ser swaps in a new array, so "A" needs to
         #  be removed from df._item_cache
@@ -360,8 +363,9 @@ class TestChaining:
         assert df._is_copy is not None
         df.loc[:, "letters"] = df["letters"].apply(str.lower)
 
-        # Should be ok even though it's a copy!
-        assert df._is_copy is None
+        # with the enforcement of #45333 in 2.0, the .loc[:, letters] setting
+        #  is inplace, so df._is_copy remains non-None.
+        assert df._is_copy is not None
 
         df["letters"] = df["letters"].apply(str.lower)
         assert df._is_copy is None

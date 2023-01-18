@@ -80,20 +80,12 @@ def test_builtins_apply(keys, f):
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
-    npfunc = getattr(np, fname)  # numpy's equivalent function
-    if f in [max, min]:
-        warn = FutureWarning
-    else:
-        warn = None
-    msg = "scalar (max|min) over the entire DataFrame"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        # stacklevel can be thrown off because (i think) the stack
-        #  goes through some of numpy's C code.
-        expected = gb.apply(npfunc)
+    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
+    expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
-        expected2 = gb.apply(lambda x: npfunc(x, axis=0))
+        expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 
     if f != sum:
@@ -101,7 +93,7 @@ def test_builtins_apply(keys, f):
         expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
+    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
 
 
 class TestNumericOnly:
@@ -166,8 +158,6 @@ class TestNumericOnly:
             ],
         )
 
-        with pytest.raises(TypeError, match="[Cc]ould not convert"):
-            getattr(gb, method)()
         result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -316,21 +306,6 @@ class TestGroupByNonCythonPaths:
     def gni(self, df):
         gni = df.groupby("A", as_index=False)
         return gni
-
-    # TODO: non-unique columns, as_index=False
-    def test_idxmax_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmax()
-
-    def test_idxmin_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
@@ -697,7 +672,8 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(StringIO(raw), parse_dates=[0])
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()
@@ -794,16 +770,20 @@ def test_nsmallest():
     "data, groups",
     [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
 )
+@pytest.mark.parametrize("dtype", [None, *tm.ALL_INT_NUMPY_DTYPES])
 @pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
-def test_nlargest_and_smallest_noop(data, groups, method):
+def test_nlargest_and_smallest_noop(data, groups, dtype, method):
     # GH 15272, GH 16345, GH 29129
     # Test nlargest/smallest when it results in a noop,
     # i.e. input is sorted and group size <= n
+    if dtype is not None:
+        data = np.array(data, dtype=dtype)
     if method == "nlargest":
         data = list(reversed(data))
     ser = Series(data, name="a")
     result = getattr(ser.groupby(groups), method)(n=2)
-    expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
+    expidx = np.array(groups, dtype=np.int_) if isinstance(groups, list) else groups
+    expected = Series(data, index=MultiIndex.from_arrays([expidx, ser.index]), name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -850,6 +830,8 @@ def test_cummin(dtypes_for_minmax):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
+    # Explicit cast to float to avoid implicit cast when setting nan
+    base_df = base_df.astype({"B": "float"})
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = DataFrame({"B": [np.nan, 4, np.nan, 2, np.nan, 3, np.nan, 1]})
     result = base_df.groupby("A").cummin()
@@ -915,6 +897,8 @@ def test_cummax(dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
+    # Explicit cast to float to avoid implicit cast when setting nan
+    base_df = base_df.astype({"B": "float"})
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()

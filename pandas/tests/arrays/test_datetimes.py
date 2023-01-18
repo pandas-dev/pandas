@@ -16,7 +16,6 @@ from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
     tz_compare,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -33,15 +32,6 @@ class TestNonNano:
     def unit(self, request):
         """Fixture returning parametrized time units"""
         return request.param
-
-    @pytest.fixture
-    def reso(self, unit):
-        """Fixture returning datetime resolution for a given time unit"""
-        return {
-            "s": NpyDatetimeUnit.NPY_FR_s.value,
-            "ms": NpyDatetimeUnit.NPY_FR_ms.value,
-            "us": NpyDatetimeUnit.NPY_FR_us.value,
-        }[unit]
 
     @pytest.fixture
     def dtype(self, unit, tz_naive_fixture):
@@ -71,19 +61,19 @@ class TestNonNano:
         dta, dti = dta_dti
         return dta
 
-    def test_non_nano(self, unit, reso, dtype):
+    def test_non_nano(self, unit, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
         assert dta.dtype == dtype
-        assert dta[0]._creso == reso
+        assert dta[0].unit == unit
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
-    def test_fields(self, unit, reso, field, dtype, dta_dti):
+    def test_fields(self, unit, field, dtype, dta_dti):
         dta, dti = dta_dti
 
         assert (dti == dta).all()
@@ -166,7 +156,7 @@ class TestNonNano:
         expected = getattr(dti, meth)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_format_native_types(self, unit, reso, dtype, dta_dti):
+    def test_format_native_types(self, unit, dtype, dta_dti):
         # In this case we should get the same formatted values with our nano
         #  version dti._data as we do with the non-nano dta
         dta, dti = dta_dti
@@ -387,20 +377,13 @@ class TestDatetimeArray:
     def test_astype_int(self, dtype):
         arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
 
-        if np.dtype(dtype).kind == "u":
-            expected_dtype = np.dtype("uint64")
-        else:
-            expected_dtype = np.dtype("int64")
-        expected = arr.astype(expected_dtype)
+        if np.dtype(dtype) != np.int64:
+            with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+                arr.astype(dtype)
+            return
 
-        warn = None
-        if dtype != expected_dtype:
-            warn = FutureWarning
-        msg = " will return exactly the specified dtype"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = arr.astype(dtype)
-
-        assert result.dtype == expected_dtype
+        result = arr.astype(dtype)
+        expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_to_sparse_dt64(self):

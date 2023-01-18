@@ -73,17 +73,7 @@ def test_setitem_with_scalar_string(dtype):
     tm.assert_extension_array_equal(arr, expected)
 
 
-def test_astype_roundtrip(dtype, request):
-    if dtype.storage == "pyarrow":
-        reason = "ValueError: Could not convert object to NumPy datetime"
-        mark = pytest.mark.xfail(reason=reason, raises=ValueError)
-        request.node.add_marker(mark)
-    else:
-        mark = pytest.mark.xfail(
-            reason="GH#36153 casting from StringArray to dt64 fails", raises=ValueError
-        )
-        request.node.add_marker(mark)
-
+def test_astype_roundtrip(dtype):
     ser = pd.Series(pd.date_range("2000", periods=12))
     ser[0] = None
 

@@ -1,7 +1,10 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-from typing import Literal
+from typing import (
+    Literal,
+    _GenericAlias,
+)
 
 cimport cython
 from cpython.datetime cimport (
@@ -47,6 +50,7 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int32_t,
     int64_t,
     intp_t,
     ndarray,
@@ -639,6 +643,34 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
     return True
 
 
+ctypedef fused int6432_t:
+    int64_t
+    int32_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equal_fast(
+    ndarray[int6432_t, ndim=1] left, ndarray[int6432_t, ndim=1] right,
+) -> bool:
+    """
+    Perform an element by element comparison on 1-d integer arrays, meant for indexer
+    comparisons
+    """
+    cdef:
+        Py_ssize_t i, n = left.size
+
+    if left.size != right.size:
+        return False
+
+    for i in range(n):
+
+        if left[i] != right[i]:
+            return False
+
+    return True
+
+
 ctypedef fused ndarr_object:
     ndarray[object, ndim=1]
     ndarray[object, ndim=2]
@@ -1119,7 +1151,8 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         # equiv: `isinstance(obj, abc.Iterable)`
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
-        and not isinstance(obj, (str, bytes))
+        # exclude Generic types that have __iter__
+        and not isinstance(obj, (str, bytes, _GenericAlias))
         # exclude zero-dimensional duck-arrays, effectively scalars
         and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
@@ -1478,7 +1511,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return val
 
     if values.descr.type_num != NPY_OBJECT:
-        # i.e. values.dtype != np.object
+        # i.e. values.dtype != np.object_
         # This should not be reached
         values = values.astype(object)
 
@@ -2239,6 +2272,7 @@ def maybe_convert_numeric(
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
+                mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
@@ -2295,6 +2329,7 @@ def maybe_convert_numeric(
 
                 seen.saw_null()
                 floats[i] = NaN
+                mask[i] = 1
 
     if seen.check_uint64_conflict():
         return (values, None)

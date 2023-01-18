@@ -18,6 +18,8 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
+from pandas.core.dtypes.common import is_numeric_dtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -554,7 +556,7 @@ class TestIndex(Base):
 
     def test_map_tseries_indices_accsr_return_index(self):
         date_index = tm.makeDateIndex(24, freq="h", name="hourly")
-        expected = Index(list(range(24)), dtype=np.int64, name="hourly")
+        expected = Index(range(24), dtype="int32", name="hourly")
         tm.assert_index_equal(expected, date_index.map(lambda x: x.hour), exact=True)
 
     @pytest.mark.parametrize(
@@ -587,17 +589,15 @@ class TestIndex(Base):
             # Cannot map duplicated index
             return
 
-        rng = np.arange(len(index), 0, -1)
+        rng = np.arange(len(index), 0, -1, dtype=np.int64)
 
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif index._is_backward_compat_public_numeric_index:
+        elif is_numeric_dtype(index.dtype):
             expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(rng, dtype=index.dtype)
-        elif index.dtype.kind == "u":
             expected = Index(rng, dtype=index.dtype)
         else:
             expected = Index(rng)
@@ -891,7 +891,6 @@ class TestIndex(Base):
         "index",
         [
             Index(["qux", "baz", "foo", "bar"]),
-            # float64 Index overrides isin, so must be checked separately
             NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
@@ -1214,10 +1213,16 @@ class TestIndex(Base):
         expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("dt_conv", [pd.to_datetime, pd.to_timedelta])
-    def test_dt_conversion_preserves_name(self, dt_conv):
+    @pytest.mark.parametrize(
+        "dt_conv, arg",
+        [
+            (pd.to_datetime, ["2000-01-01", "2000-01-02"]),
+            (pd.to_timedelta, ["01:02:03", "01:02:04"]),
+        ],
+    )
+    def test_dt_conversion_preserves_name(self, dt_conv, arg):
         # GH 10875
-        index = Index(["01:02:03", "01:02:04"], name="label")
+        index = Index(arg, name="label")
         assert index.name == dt_conv(index).name
 
     def test_cached_properties_not_settable(self):
@@ -1598,14 +1603,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(list(range(2000, 2005)), **extra_kwargs)
     tm.assert_index_equal(result, expected, exact=True)
-
-
-def test_get_attributes_dict_deprecated():
-    # https://github.com/pandas-dev/pandas/pull/44028
-    idx = Index([1, 2, 3, 1])
-    with tm.assert_produces_warning(DeprecationWarning):
-        attrs = idx._get_attributes_dict()
-    assert attrs == {"name": None}
 
 
 @pytest.mark.parametrize("op", [operator.lt, operator.gt])

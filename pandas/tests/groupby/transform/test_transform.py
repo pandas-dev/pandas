@@ -57,7 +57,7 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
     def demean(arr):
-        return arr - arr.mean()
+        return arr - arr.mean(axis=0)
 
     people = DataFrame(
         np.random.randn(5, 5),
@@ -144,7 +144,7 @@ def test_transform_broadcast(tsframe, ts):
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     for _, gp in grouped:
-        agged = gp.mean()
+        agged = gp.mean(axis=0)
         res = result.reindex(gp.index)
         for col in tsframe:
             assert_fp_equal(res[col], agged[col])
@@ -185,8 +185,6 @@ def test_transform_axis_1_reducer(request, reduction_func):
     # GH#45715
     if reduction_func in (
         "corrwith",
-        "idxmax",
-        "idxmin",
         "ngroup",
         "nth",
     ):
@@ -216,7 +214,7 @@ def test_transform_axis_ts(tsframe):
     ts = tso
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: x - x.mean())
+    expected = grouped.apply(lambda x: x - x.mean(axis=0))
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
@@ -229,7 +227,7 @@ def test_transform_axis_ts(tsframe):
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: x - x.mean())
+    expected = grouped.apply(lambda x: x - x.mean(axis=0))
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
@@ -307,7 +305,7 @@ def test_transform_datetime_to_numeric():
         lambda x: x.dt.dayofweek - x.dt.dayofweek.min()
     )
 
-    expected = Series([0, 1], name="b")
+    expected = Series([0, 1], dtype=np.int32, name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -426,11 +424,7 @@ def test_transform_nuisance_raises(df):
 
 
 def test_transform_function_aliases(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform("mean")
     result = df.groupby("A").transform("mean", numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform(np.mean)
     expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
@@ -483,15 +477,8 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
 
-    # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
-    #  which not gives a scalar instead of Series
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = g.transform(lambda x: np.mean(x))
+    result = g.transform(lambda x: np.mean(x, axis=0))
     tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(None):
-        result2 = g.transform(lambda x: np.mean(x, axis=0))
-    tm.assert_frame_equal(result2, expected)
 
 
 def test_groupby_transform_with_int():
@@ -508,8 +495,6 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
         )
@@ -554,8 +539,6 @@ def test_groupby_transform_with_int():
     tm.assert_frame_equal(result, expected)
 
     # int doesn't get downcasted
-    with pytest.raises(TypeError, match="unsupported operand type"):
-        df.groupby("A").transform(lambda x: x * 2 / 2)
     result = df.groupby("A")[["B", "C"]].transform(lambda x: x * 2 / 2)
     expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
@@ -748,14 +731,8 @@ def test_cython_transform_frame(op, args, targop):
 
             expected = expected.sort_index(axis=1)
 
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    gb.transform(op, *args).sort_index(axis=1)
             result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    getattr(gb, op)(*args).sort_index(axis=1)
             result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
             # individual columns
@@ -1067,6 +1044,26 @@ def test_groupby_transform_with_datetimes(func, values):
     expected = Series(data=pd.to_datetime(values), index=dates, name="price")
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_transform_dtype():
+    # GH 22243
+    df = DataFrame({"a": [1], "val": [1.35]})
+
+    result = df["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    expected1 = Series(["+1.35"], name="val", dtype="object")
+    tm.assert_series_equal(result, expected1)
+
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    tm.assert_series_equal(result, expected1)
+
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+({y})"))
+    expected2 = Series(["+(1.35)"], name="val", dtype="object")
+    tm.assert_series_equal(result, expected2)
+
+    df["val"] = df["val"].astype(object)
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    tm.assert_series_equal(result, expected1)
 
 
 @pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
@@ -1385,10 +1382,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
-    msg = f"{transformation_func} is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
@@ -1434,7 +1428,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_str_transformer_series(request, dropna, transformation_func):
+def test_null_group_str_transformer_series(dropna, transformation_func):
     # GH 17093
     ser = Series([1, 2, 2], index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, ser)
@@ -1455,9 +1449,7 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
 
-    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
-    msg = f"{transformation_func} is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
+    with tm.assert_produces_warning(None):
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)

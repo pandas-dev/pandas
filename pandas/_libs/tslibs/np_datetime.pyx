@@ -53,7 +53,8 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
-                                const char *format, int format_len, int exact)
+                                const char *format, int format_len,
+                                FormatRequirement exact)
 
 
 # ----------------------------------------------------------------------
@@ -286,17 +287,20 @@ cdef int string_to_dts(
         const char* buf
         Py_ssize_t format_length
         const char* format_buf
+        FormatRequirement format_requirement
 
     buf = get_c_string_buf_and_size(val, &length)
     if format is None:
         format_buf = b""
         format_length = 0
-        exact = False
+        format_requirement = INFER_FORMAT
     else:
         format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
-                                   format_buf, format_length, exact)
+                                   format_buf, format_length,
+                                   format_requirement)
 
 
 cpdef ndarray astype_overflowsafe(
@@ -304,6 +308,7 @@ cpdef ndarray astype_overflowsafe(
     cnp.dtype dtype,
     bint copy=True,
     bint round_ok=True,
+    bint is_coerce=False,
 ):
     """
     Convert an ndarray with datetime64[X] to datetime64[Y]
@@ -312,10 +317,10 @@ cpdef ndarray astype_overflowsafe(
     """
     if values.descr.type_num == dtype.type_num == cnp.NPY_DATETIME:
         # i.e. dtype.kind == "M"
-        pass
+        dtype_name = "datetime64"
     elif values.descr.type_num == dtype.type_num == cnp.NPY_TIMEDELTA:
         # i.e. dtype.kind == "m"
-        pass
+        dtype_name = "timedelta64"
     else:
         raise TypeError(
             "astype_overflowsafe values.dtype and dtype must be either "
@@ -326,14 +331,14 @@ cpdef ndarray astype_overflowsafe(
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
         NPY_DATETIMEUNIT to_unit = get_unit_from_dtype(dtype)
 
-    if (
-        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    ):
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        raise TypeError(f"{dtype_name} values must have a unit specified")
+
+    if to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function [...] returned a result with an error
         raise ValueError(
-            "datetime64/timedelta64 values and dtype must have a unit specified"
+            f"{dtype_name} dtype must have a unit specified"
         )
 
     if from_unit == to_unit:
@@ -381,7 +386,9 @@ cpdef ndarray astype_overflowsafe(
             try:
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
-                if is_td:
+                if is_coerce:
+                    new_value = NPY_DATETIME_NAT
+                elif is_td:
                     from_abbrev = np.datetime_data(values.dtype)[0]
                     np_val = np.timedelta64(value, from_abbrev)
                     msg = (
@@ -391,8 +398,8 @@ cpdef ndarray astype_overflowsafe(
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
                     raise
-
-            new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+            else:
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value

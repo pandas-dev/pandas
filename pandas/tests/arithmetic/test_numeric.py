@@ -7,7 +7,6 @@ from collections import abc
 from datetime import timedelta
 from decimal import Decimal
 import operator
-from typing import Any
 
 import numpy as np
 import pytest
@@ -72,15 +71,10 @@ def compare_op(series, other, op):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: list[Any] = [Series, Index]
-lefts: list[Any] = [RangeIndex(10, 40, 10)]
-lefts.extend(
-    [
-        cls([10, 20, 30], dtype=dtype)
-        for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
-        for cls in ser_or_index
-    ]
-)
+_ldtypes = ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
+lefts: list[Index | Series] = [RangeIndex(10, 40, 10)]
+lefts.extend([Series([10, 20, 30], dtype=dtype) for dtype in _ldtypes])
+lefts.extend([Index([10, 20, 30], dtype=dtype) for dtype in _ldtypes if dtype != "f2"])
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -183,10 +177,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = "Cannot divide"
+        # (true_) needed for min-versions build 2022-12-26
+        msg = "ufunc '(true_)?divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left / right
 
+        msg = "ufunc 'floor_divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left // right
 
@@ -320,6 +316,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
                 "can only perform ops with numeric values",
                 "cannot subtract DatetimeArray from ndarray",
+                # pd.Timedelta(1) + Index([0, 1, 2])
+                "Cannot add or subtract Timedelta from integers",
             ]
         )
         assert_invalid_addsub_type(left, other, msg)
@@ -379,7 +377,7 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if isinstance(numeric_idx, UInt64Index):
+        if numeric_idx.dtype == np.uint64:
             return
         idx = numeric_idx - 3
 
@@ -671,7 +669,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
+        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -679,7 +677,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
+        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
@@ -716,7 +714,7 @@ class TestMultiplicationDivision:
         # test power calculations both ways, GH#14973
         box = box_with_array
         idx = numeric_idx
-        expected = Float64Index(op(idx.values, 2.0))
+        expected = Index(op(idx.values, 2.0))
 
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, box)
@@ -1218,7 +1216,7 @@ class TestNumericArithmeticUnsorted:
         idx1 = idx1._rename("foo")
         idx2 = idx2._rename("bar")
         result = op(idx1, idx2)
-        expected = op(Int64Index(idx1), Int64Index(idx2))
+        expected = op(Index(idx1.to_numpy()), Index(idx2.to_numpy()))
         tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize(
@@ -1254,7 +1252,7 @@ class TestNumericArithmeticUnsorted:
         idx1 = idx1._rename("foo")
         idx2 = idx2._rename("bar")
         result = pow(idx1, idx2)
-        expected = pow(Int64Index(idx1), Int64Index(idx2))
+        expected = pow(Index(idx1.to_numpy()), Index(idx2.to_numpy()))
         tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize("idx", [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)])
@@ -1332,7 +1330,7 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx**2
-        expected = Int64Index(idx._values) ** 2
+        expected = Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
     @pytest.mark.parametrize(
@@ -1465,3 +1463,17 @@ def test_empty_str_comparison(power, string_size):
     result = right == left
     expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
     tm.assert_frame_equal(result, expected)
+
+
+def test_series_add_sub_with_UInt64():
+    # GH 22023
+    series1 = Series([1, 2, 3])
+    series2 = Series([2, 1, 3], dtype="UInt64")
+
+    result = series1 + series2
+    expected = Series([3, 3, 6], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    result = series1 - series2
+    expected = Series([-1, 1, 0], dtype="Float64")
+    tm.assert_series_equal(result, expected)

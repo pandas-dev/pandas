@@ -332,22 +332,33 @@ static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
     return PyBytes_AS_STRING(obj);
 }
 
-static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
+static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
                              size_t *_outLen) {
-    return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
+    char *encoded = (char *)PyUnicode_AsUTF8AndSize(_obj,
+                                                    (Py_ssize_t *)_outLen);
+    if (encoded == NULL) {
+        /* Something went wrong.
+          Set errorMsg(to tell encoder to stop),
+          and let Python exception propagate. */
+        JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
+        enc->errorMsg = "Encoding failed.";
+    }
+    return encoded;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-    return int64ToIso(GET_TC(tc)->longValue, base, len);
+    GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, base, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                        JSONTypeContext *tc, size_t *len) {
-    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback */

@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    DefaultDict,
     Hashable,
     Iterable,
     List,
@@ -48,11 +47,10 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -89,6 +87,8 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
+
+from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -130,13 +130,11 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.infer_datetime_format = kwds.pop("infer_datetime_format", False)
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
             dayfirst=self.dayfirst,
-            infer_datetime_format=self.infer_datetime_format,
             cache_dates=self.cache_dates,
         )
 
@@ -337,38 +335,13 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
-        names = list(names)  # so we can index
-        counts: DefaultDict[Hashable, int] = defaultdict(int)
-        is_potential_mi = _is_potential_multi_index(names, self.index_col)
-
-        for i, col in enumerate(names):
-            cur_count = counts[col]
-
-            while cur_count > 0:
-                counts[col] = cur_count + 1
-
-                if is_potential_mi:
-                    # for mypy
-                    assert isinstance(col, tuple)
-                    col = col[:-1] + (f"{col[-1]}.{cur_count}",)
-                else:
-                    col = f"{col}.{cur_count}"
-                cur_count = counts[col]
-
-            names[i] = col
-            counts[col] = cur_count + 1
-
-        return names
-
-    @final
     def _maybe_make_multi_index_columns(
         self,
         columns: Sequence[Hashable],
         col_names: Sequence[Hashable] | None = None,
     ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
-        if _is_potential_multi_index(columns):
+        if is_potential_multi_index(columns):
             list_columns = cast(List[Tuple], columns)
             return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
@@ -715,7 +688,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("io.nullable_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -773,7 +746,7 @@ class ParserBase:
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and nullable_backend == "pyarrow":
+        if use_nullable_dtypes and dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
@@ -801,17 +774,13 @@ class ParserBase:
         -------
         converted : ndarray or ExtensionArray
         """
-        if is_categorical_dtype(cast_type):
-            known_cats = (
-                isinstance(cast_type, CategoricalDtype)
-                and cast_type.categories is not None
-            )
+        if isinstance(cast_type, CategoricalDtype):
+            known_cats = cast_type.categories is not None
 
             if not is_object_dtype(values.dtype) and not known_cats:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-
                 values = lib.ensure_string_array(
                     values, skipna=False, convert_na_value=False
                 )
@@ -844,9 +813,16 @@ class ParserBase:
 
         elif isinstance(values, ExtensionArray):
             values = values.astype(cast_type, copy=False)
+        elif issubclass(cast_type.type, str):
+            # TODO: why skipna=True here and False above? some tests depend
+            #  on it here, but nothing fails if we change it above
+            #  (as no tests get there as of 2022-12-06)
+            values = lib.ensure_string_array(
+                values, skipna=True, convert_na_value=False
+            )
         else:
             try:
-                values = astype_nansafe(values, cast_type, copy=True, skipna=True)
+                values = astype_array(values, cast_type, copy=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
@@ -1115,27 +1091,19 @@ class ParserBase:
 def _make_date_converter(
     date_parser=None,
     dayfirst: bool = False,
-    infer_datetime_format: bool = False,
     cache_dates: bool = True,
 ):
     def converter(*date_cols):
         if date_parser is None:
             strs = parsing.concat_date_cols(date_cols)
 
-            try:
-                return tools.to_datetime(
-                    ensure_object(strs),
-                    utc=False,
-                    dayfirst=dayfirst,
-                    errors="ignore",
-                    infer_datetime_format=infer_datetime_format,
-                    cache=cache_dates,
-                ).to_numpy()
-
-            except ValueError:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(strs, dayfirst=dayfirst), cache=cache_dates
-                )
+            return tools.to_datetime(
+                ensure_object(strs),
+                utc=False,
+                dayfirst=dayfirst,
+                errors="ignore",
+                cache=cache_dates,
+            ).to_numpy()
         else:
             try:
                 result = tools.to_datetime(
@@ -1149,7 +1117,6 @@ def _make_date_converter(
                     parsing.try_parse_dates(
                         parsing.concat_date_cols(date_cols),
                         parser=date_parser,
-                        dayfirst=dayfirst,
                     ),
                     errors="ignore",
                 )
@@ -1192,7 +1159,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
@@ -1333,35 +1299,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
             return set(), set()
     else:
         return na_values, na_fvalues
-
-
-def _is_potential_multi_index(
-    columns: Sequence[Hashable] | MultiIndex,
-    index_col: bool | Sequence[int] | None = None,
-) -> bool:
-    """
-    Check whether or not the `columns` parameter
-    could be converted into a MultiIndex.
-
-    Parameters
-    ----------
-    columns : array-like
-        Object which may or may not be convertible into a MultiIndex
-    index_col : None, bool or list, optional
-        Column or columns to use as the (possibly hierarchical) index
-
-    Returns
-    -------
-    bool : Whether or not columns could become a MultiIndex
-    """
-    if index_col is None or isinstance(index_col, bool):
-        index_col = []
-
-    return bool(
-        len(columns)
-        and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
-    )
 
 
 def _validate_parse_dates_arg(parse_dates):

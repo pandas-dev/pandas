@@ -55,9 +55,11 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
     is_dtype_equal,
     is_list_like,
     is_scalar,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -133,6 +135,7 @@ class ExtensionArray:
     tolist
     unique
     view
+    _accumulate
     _concat_same_type
     _formatter
     _from_factorized
@@ -182,8 +185,9 @@ class ExtensionArray:
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
-    One can implement methods to handle array reductions.
+    One can implement methods to handle array accumulations or reductions.
 
+    * _accumulate
     * _reduce
 
     One can implement methods to handle parsing from strings that will be used
@@ -346,7 +350,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set one or more values inplace.
 
@@ -577,6 +581,16 @@ class ExtensionArray:
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
+
+        elif is_datetime64_dtype(dtype):
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
+
+        elif is_timedelta64_dtype(dtype):
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
         return np.array(self, dtype=dtype, copy=copy)
 
@@ -1368,6 +1382,38 @@ class ExtensionArray:
     def _can_hold_na(self) -> bool:
         return self.dtype._can_hold_na
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ExtensionArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
@@ -1542,8 +1588,6 @@ class ExtensionArray:
         if axis != 0:
             raise NotImplementedError
 
-        # TODO: we only have tests that get here with dt64 and td64
-        # TODO: all tests that get here use the defaults for all the kwds
         return rank(
             self,
             axis=axis,

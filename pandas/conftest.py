@@ -92,10 +92,6 @@ if compat.PY39:
     except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
         zoneinfo = None
 
-# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
-suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
-    "ignore:Promotion of numbers and bools:FutureWarning"
-)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -171,7 +167,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-        item.add_marker(suppress_npdev_promotion_warning)
 
         for (mark, kwd, skip_if_found, arg_name) in marks:
             if kwd in item.keywords:
@@ -1123,6 +1118,17 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
@@ -1260,9 +1266,7 @@ def string_dtype(request):
 @pytest.fixture(
     params=[
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1278,7 +1282,7 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1321,9 +1325,7 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1479,7 +1481,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
