@@ -178,7 +178,9 @@ class TestRename:
 
         # TODO(CoW) this also shouldn't warn in case of CoW, but the heuristic
         # checking if the array shares memory doesn't work if CoW happened
-        with tm.assert_produces_warning(FutureWarning if using_copy_on_write else None):
+        with tm.assert_produces_warning(
+            DeprecationWarning if using_copy_on_write else None
+        ):
             # This loc setitem already happens inplace, so no warning
             #  that this will change in the future
             renamed.loc[:, "foo"] = 1.0
