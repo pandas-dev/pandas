@@ -1,10 +1,10 @@
 main:
   templates_path: _templates
   base_template: "layout.html"
+  production_url: "https://pandas.pydata.org/"
   ignore:
   - _templates/layout.html
   - config.yml
-  - try.md  # the binder page will be added later
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.current_year

@@ -43,12 +43,6 @@ import markdown
 import requests
 import yaml
 
-api_token = os.environ.get("GITHUB_TOKEN")
-if api_token is not None:
-    GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
-else:
-    GITHUB_API_HEADERS = {}
-
 
 class Preprocessors:
     """
@@ -164,37 +158,39 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
-        timestamp = time.time()
-
-        cache_file = pathlib.Path("maintainers.json")
-        if cache_file.is_file():
-            with open(cache_file) as f:
-                context["maintainers"] = json.load(f)
-            # refresh cache after 1 hour
-            if (timestamp - context["maintainers"]["timestamp"]) < 3_600:
-                return context
-
-        context["maintainers"]["timestamp"] = timestamp
-
         repeated = set(context["maintainers"]["active"]) & set(
             context["maintainers"]["inactive"]
         )
         if repeated:
             raise ValueError(f"Maintainers {repeated} are both active and inactive")
 
-        for kind in ("active", "inactive"):
-            context["maintainers"][f"{kind}_with_github_info"] = []
-            for user in context["maintainers"][kind]:
-                resp = requests.get(
-                    f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+        maintainers_info = {}
+        for user in (
+            context["maintainers"]["active"] + context["maintainers"]["inactive"]
+        ):
+            resp = requests.get(f"https://api.github.com/users/{user}")
+            if resp.status_code == 403:
+                sys.stderr.write(
+                    "WARN: GitHub API quota exceeded when fetching maintainers\n"
                 )
-                if context["ignore_io_errors"] and resp.status_code == 403:
-                    return context
-                resp.raise_for_status()
-                context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
+                # if we exceed github api quota, we use the github info
+                # of maintainers saved with the website
+                resp_bkp = requests.get(
+                    context["main"]["production_url"] + "maintainers.json"
+                )
+                resp_bkp.raise_for_status()
+                maintainers_info = resp_bkp.json()
+                break
 
-        with open(cache_file, "w") as f:
-            json.dump(context["maintainers"], f)
+            resp.raise_for_status()
+            maintainers_info[user] = resp.json()
+
+        context["maintainers"]["github_info"] = maintainers_info
+
+        # save the data fetched from github to use it in case we exceed
+        # git github api quota in the future
+        with open(pathlib.Path(context["target_path"]) / "maintainers.json", "w") as f:
+            json.dump(maintainers_info, f)
 
         return context
 
@@ -203,15 +199,20 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(
-            f"https://api.github.com/repos/{github_repo_url}/releases",
-            headers=GITHUB_API_HEADERS,
-        )
-        if context["ignore_io_errors"] and resp.status_code == 403:
-            return context
-        resp.raise_for_status()
+        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        if resp.status_code == 403:
+            sys.stderr.write("WARN: GitHub API quota exceeded when fetching releases\n")
+            resp_bkp = requests.get(context["main"]["production_url"] + "releases.json")
+            resp_bkp.raise_for_status()
+            releases = resp_bkp.json()
+        else:
+            resp.raise_for_status()
+            releases = resp.json()
 
-        for release in resp.json():
+        with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
+            json.dump(releases, f, default=datetime.datetime.isoformat)
+
+        for release in releases:
             if release["prerelease"]:
                 continue
             published = datetime.datetime.strptime(
@@ -229,6 +230,7 @@ class Preprocessors:
                     ),
                 }
             )
+
         return context
 
     @staticmethod
@@ -273,15 +275,22 @@ class Preprocessors:
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
-            headers=GITHUB_API_HEADERS,
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
         )
-        if context["ignore_io_errors"] and resp.status_code == 403:
-            return context
-        resp.raise_for_status()
+        if resp.status_code == 403:
+            sys.stderr.write("WARN: GitHub API quota exceeded when fetching pdeps\n")
+            resp_bkp = requests.get(context["main"]["production_url"] + "pdeps.json")
+            resp_bkp.raise_for_status()
+            pdeps = resp_bkp.json()
+        else:
+            resp.raise_for_status()
+            pdeps = resp.json()
 
-        for pdep in resp.json()["items"]:
-            context["pdeps"]["under_discussion"].append(
+        with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
+            json.dump(pdeps, f)
+
+        for pdep in pdeps["items"]:
+            context["pdeps"]["Under discussion"].append(
                 {"title": pdep["title"], "url": pdep["url"]}
             )
 
@@ -314,7 +323,7 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: str, ignore_io_errors: bool, **kwargs):
+def get_context(config_fname: str, **kwargs):
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -323,7 +332,6 @@ def get_context(config_fname: str, ignore_io_errors: bool, **kwargs):
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
-    context["ignore_io_errors"] = ignore_io_errors
     context.update(kwargs)
 
     preprocessors = (
@@ -361,7 +369,9 @@ def extend_base_template(content: str, base_template: str) -> str:
 
 
 def main(
-    source_path: str, target_path: str, base_url: str, ignore_io_errors: bool
+    source_path: str,
+    target_path: str,
+    base_url: str,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -375,7 +385,7 @@ def main(
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, ignore_io_errors, base_url=base_url)
+    context = get_context(config_fname, base_url=base_url, target_path=target_path)
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
@@ -419,15 +429,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--base-url", default="", help="base url where the website is served from"
     )
-    parser.add_argument(
-        "--ignore-io-errors",
-        action="store_true",
-        help="do not fail if errors happen when fetching "
-        "data from http sources, and those fail "
-        "(mostly useful to allow GitHub quota errors "
-        "when running the script locally)",
-    )
     args = parser.parse_args()
-    sys.exit(
-        main(args.source_path, args.target_path, args.base_url, args.ignore_io_errors)
-    )
+    sys.exit(main(args.source_path, args.target_path, args.base_url))
