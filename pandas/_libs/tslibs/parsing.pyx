@@ -377,7 +377,11 @@ def parse_datetime_string_with_reso(
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns or out_local:
+        timestamp_units = {NPY_DATETIMEUNIT.NPY_FR_ns,
+                           NPY_DATETIMEUNIT.NPY_FR_ps,
+                           NPY_DATETIMEUNIT.NPY_FR_fs,
+                           NPY_DATETIMEUNIT.NPY_FR_as}
+        if out_bestunit in timestamp_units or out_local:
             # TODO: the not-out_local case we could do without Timestamp;
             #  avoid circular import
             from pandas import Timestamp
@@ -389,9 +393,7 @@ def parse_datetime_string_with_reso(
         # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
         # The new resolution will just be nano
         # GH 50417
-        if out_bestunit in {NPY_DATETIMEUNIT.NPY_FR_ps,
-                            NPY_DATETIMEUNIT.NPY_FR_fs,
-                            NPY_DATETIMEUNIT.NPY_FR_as}:
+        if out_bestunit in timestamp_units:
             out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",

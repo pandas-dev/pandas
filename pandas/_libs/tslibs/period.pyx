@@ -2592,18 +2592,13 @@ class Period(_Period):
 
             freqstr = freq.rule_code if freq is not None else None
             dt, reso = parse_datetime_string_with_reso(value, freqstr)
-            try:
-                ts = Timestamp(value)
-            except ValueError:
-                nanosecond = 0
-            else:
-                nanosecond = ts.nanosecond
-                if nanosecond != 0:
-                    reso = "nanosecond"
+            if reso == "nanosecond":
+                nanosecond = dt.nanosecond
             if dt is NaT:
                 ordinal = NPY_NAT
 
-            if freq is None:
+            if freq is None and ordinal != NPY_NAT:
+                # Skip NaT, since it doesn't have a resolution
                 try:
                     freq = attrname_to_abbrevs[reso]
                 except KeyError:

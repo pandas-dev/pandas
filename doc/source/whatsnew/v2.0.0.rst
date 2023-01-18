@@ -868,6 +868,7 @@ Performance improvements
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
+- Performance improvement in :class:`Period` constructor when constructing from a string or integer (:issue:`38312`)
 - Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
 - Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
 - Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
