@@ -195,7 +195,8 @@ _shared_doc_kwargs = {
     "optional_labels": "",
     "optional_index": "",
     "optional_columns": "",
-    "optional_axis": "",
+    "optional_axis": """axis : int or str, optional
+            Unused.""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -4848,7 +4849,6 @@ Keep all original rows and also all original values
     @doc(
         NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
         optional_index=_shared_doc_kwargs["optional_index"],
         optional_columns=_shared_doc_kwargs["optional_columns"],
@@ -4858,6 +4858,7 @@ Keep all original rows and also all original values
         self,
         index=None,
         *,
+        axis: Axis | None = None,
         method: str | None = None,
         copy: bool | None = None,
         level: Level | None = None,

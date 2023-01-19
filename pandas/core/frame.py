@@ -4997,7 +4997,6 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(
         NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
         optional_index=_shared_doc_kwargs["optional_index"],
         optional_columns=_shared_doc_kwargs["optional_columns"],

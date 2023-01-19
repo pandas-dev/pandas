@@ -4967,7 +4967,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
         optional_labels="",
         optional_index="",
         optional_columns="",
