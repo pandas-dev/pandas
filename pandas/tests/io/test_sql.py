@@ -2394,16 +2394,28 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         ):
             tm.assert_frame_equal(result, expected)
 
-    def test_read_sql_dtype(self):
+    @pytest.mark.parametrize("use_nullable_dtypes", [True, False])
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+    def test_read_sql_dtype(self, func, use_nullable_dtypes):
         # GH#50797
         table = "test"
         df = DataFrame({"a": [1, 2, 3], "b": 5})
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
-        result = pd.read_sql(
-            f"Select * from {table}", self.conn, dtype={"a": np.float64}
+        result = getattr(pd, func)(
+            f"Select * from {table}",
+            self.conn,
+            dtype={"a": np.float64},
+            use_nullable_dtypes=use_nullable_dtypes,
         )
-        expected = DataFrame({"a": Series([1, 2, 3], dtype=np.float64), "b": 5})
+        expected = DataFrame(
+            {
+                "a": Series([1, 2, 3], dtype=np.float64),
+                "b": Series(
+                    [5, 5, 5], dtype="int64" if not use_nullable_dtypes else "Int64"
+                ),
+            }
+        )
         tm.assert_frame_equal(result, expected)
 
 
