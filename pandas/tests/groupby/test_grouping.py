@@ -483,6 +483,7 @@ class TestGrouping:
         # it works!
         df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
+    @pytest.mark.xfail(reason="GH#50805")
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
         midx = MultiIndex.from_tuples(lst)

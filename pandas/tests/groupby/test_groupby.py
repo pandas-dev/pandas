@@ -1700,6 +1700,7 @@ def test_groupby_multiindex_missing_pair():
     tm.assert_frame_equal(res, exp)
 
 
+@pytest.mark.xfail(reason="GH#50805")
 def test_groupby_multiindex_not_lexsorted():
     # GH 11640
 

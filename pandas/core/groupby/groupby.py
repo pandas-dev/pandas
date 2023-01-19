@@ -941,6 +941,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
+        with self._group_selection_context():
+            so = self._selected_obj
+        owe = self._obj_with_exclusions
+        import pandas._testing as tm
+        tm.assert_equal(so, owe)
+
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
