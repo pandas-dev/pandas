@@ -285,7 +285,7 @@ class NumericArray(BaseMaskedArray):
     ) -> T:
         from pandas.core.tools.numeric import to_numeric
 
-        scalars = to_numeric(strings, errors="raise")
+        scalars = to_numeric(strings, errors="raise", use_nullable_dtypes=True)
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
