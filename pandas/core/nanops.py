@@ -746,27 +746,30 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     2.0
     """
 
-    def get_median(x):
-        mask = notna(x)
-        if not skipna and not mask.all():
+    def get_median(x, _mask=None):
+        if _mask is None:
+            _mask = notna(x)
+        else:
+            _mask = ~_mask
+        if not skipna and not _mask.all():
             return np.nan
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
             )
-            res = np.nanmedian(x[mask])
+            res = np.nanmedian(x[_mask])
         return res
 
-    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
+    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask, fill_value=0)
     if not is_float_dtype(values.dtype):
         try:
             values = values.astype("f8")
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
             raise TypeError(str(err)) from err
-        if mask is not None:
-            values[mask] = np.nan
+    if mask is not None:
+        values[mask] = np.nan
 
     notempty = values.size
 
@@ -796,7 +799,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     else:
         # otherwise return a scalar value
-        res = get_median(values) if notempty else np.nan
+        res = get_median(values, mask) if notempty else np.nan
     return _wrap_results(res, dtype)
 
 
@@ -1040,8 +1043,11 @@ def nansem(
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
 
+    if not skipna and mask is not None and mask.any():
+        return np.nan
+
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
+    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)
 
@@ -1222,6 +1228,8 @@ def nanskew(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
@@ -1310,6 +1318,8 @@ def nankurt(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:

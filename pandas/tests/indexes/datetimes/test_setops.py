@@ -16,7 +16,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 from pandas.tseries.offsets import (
     BMonthEnd,
@@ -184,7 +183,7 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(df.index, exp)
 
     def test_union_with_DatetimeIndex(self, sort):
-        i1 = Int64Index(np.arange(0, 20, 2))
+        i1 = Index(np.arange(0, 20, 2, dtype=np.int64))
         i2 = date_range(start="2012-01-03 00:00:00", periods=10, freq="D")
         # Works
         i1.union(i2, sort=sort)
