@@ -123,14 +123,18 @@ class Apply(metaclass=abc.ABCMeta):
         self.result_type = result_type
 
         # curry if needed
-        if (
-            (kwargs or args)
-            and not isinstance(func, (np.ufunc, str))
-            and not is_list_like(func)
-        ):
+        if (kwargs or args) and not isinstance(func, (np.ufunc, str)):
+            if not is_list_like(func):
 
-            def f(x):
-                return func(x, *args, **kwargs)
+                def f(x):
+                    return func(x, *args, **kwargs)
+
+            else:
+                # GH 50624
+                # only explicit arg passing is supported temporarily
+                # eg. df.agg([foo], a=1)
+                # df.agg([foo], 1) is not supported
+                f = _recreate_func(func, kwargs)
 
         else:
             f = func
@@ -1506,3 +1510,62 @@ def validate_func_kwargs(
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
+
+
+def _check_arg(callable: Callable, arg: str) -> bool:
+    # GH 50624
+    """To check if arg is a valid argument for callable.
+
+    Parameters
+    ----------
+    callable : Callable
+    arg : str
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> def func(x, a=1, b=2):
+    ...     pass
+    >>> _check_arg(func, 'a')
+    True
+    """
+    argspec = inspect.getfullargspec(callable)
+    args_names = argspec.args + argspec.kwonlyargs
+    return arg in args_names
+
+
+def _recreate_func(callable_list: list[Callable], kwargs: dict) -> list[partial[Any]]:
+    # GH 50624
+    """Recreate callable with kwargs.
+
+    Parameters
+    ----------
+    callable_list : list[Callable]
+    kwargs : dict
+
+    Returns
+    -------
+    list[[partial[Any]]
+
+    Examples
+    --------
+    >>> def func(x, a=1, b=2):
+    ...     pass
+    >>> _recreate_func([func], {'a': 3, 'b': 4})
+    [<functools.partial object at 0x...>, a=3, b=4]
+    """
+    func_kwargs = {}
+    for single_func in callable_list:
+        single_func_kwargs = {
+            k: v for k, v in kwargs.items() if _check_arg(single_func, k)
+        }
+        func_kwargs[single_func] = single_func_kwargs
+
+        f = [
+            partial(single_func, **kwargs)
+            for single_func, kwargs in func_kwargs.items()
+        ]
+    return f

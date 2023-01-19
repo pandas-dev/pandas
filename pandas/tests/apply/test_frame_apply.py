@@ -1623,3 +1623,22 @@ def test_any_apply_keyword_non_zero_axis_regression():
 
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_arg():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3]})
+
+    def foo1(x, a=1, b=2):
+        return x + a + b
+
+    def foo2(x, c=3, d=4):
+        return x + c + d
+
+    result = df.agg([foo1, foo2], 0, a=5, b=6, c=7, d=8)
+    expected = DataFrame(
+        [[12, 16], [13, 17], [14, 18]],
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        index=[0, 1, 2],
+    )
+    tm.assert_frame_equal(result, expected)
