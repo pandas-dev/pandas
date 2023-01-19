@@ -389,7 +389,6 @@ cdef class BaseOffset:
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
     _adjust_dst = True
-    _deprecations = frozenset(["isAnchored", "onOffset"])
 
     # cdef readonly:
     #    int64_t n
@@ -2783,13 +2782,33 @@ cdef class Week(SingleConstructorOffset):
     Parameters
     ----------
     weekday : int or None, default None
-        Always generate specific day of week. 0 for Monday.
+        Always generate specific day of week.
+        0 for Monday and 6 for Sunday.
+
+    See Also
+    --------
+    pd.tseries.offsets.WeekOfMonth :
+     Describes monthly dates like, the Tuesday of the
+     2nd week of each month.
 
     Examples
-    --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.Week()
-    Timestamp('2022-01-08 00:00:00')
+    ---------
+
+    >>> date_object = pd.Timestamp("2023-01-13")
+    >>> date_object
+    Timestamp('2023-01-13 00:00:00')
+
+    >>> date_plus_one_week = date_object + pd.tseries.offsets.Week(n=1)
+    >>> date_plus_one_week
+    Timestamp('2023-01-20 00:00:00')
+
+    >>> date_next_monday = date_object + pd.tseries.offsets.Week(weekday=0)
+    >>> date_next_monday
+    Timestamp('2023-01-16 00:00:00')
+
+    >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
+    >>> date_next_sunday
+    Timestamp('2023-01-15 00:00:00')
     """
 
     _inc = timedelta(weeks=1)

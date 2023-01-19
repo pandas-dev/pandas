@@ -297,7 +297,7 @@ class _XMLFrameParser:
         TypeError
             * If `iterparse` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical, decompressed file on disk.
+            * If `path_or_buffer` is not a physical file on disk or file-like object.
             * If no data is returned from selected items in `iterparse`.
 
         Notes
@@ -322,7 +322,7 @@ class _XMLFrameParser:
                 "for value in iterparse"
             )
 
-        if (
+        if (not hasattr(self.path_or_buffer, "read")) and (
             not isinstance(self.path_or_buffer, str)
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)

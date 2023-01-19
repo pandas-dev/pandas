@@ -1409,7 +1409,18 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
         """
-        return datetime.strftime(self, format)
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "strftime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.strftime(format)
 
     # Issue 25016.
     @classmethod

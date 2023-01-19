@@ -20,6 +20,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import (
+    NA,
+    NAType,
+)
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -176,7 +180,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     return value
 
 
-def maybe_box_native(value: Scalar) -> Scalar:
+def maybe_box_native(value: Scalar | None | NAType) -> Scalar | None | NAType:
     """
     If passed a scalar cast the scalar to a python native type.
 
@@ -202,6 +206,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = bool(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
+    elif value is NA:
+        value = None
     return value
 
 
@@ -793,8 +799,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             val = val.to_datetime64()
             dtype = val.dtype
-            # TODO(2.0): this should be dtype = val.dtype
-            #  to get the correct M8 resolution
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
             if pandas_dtype:
@@ -1592,7 +1596,15 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     try:
         if not isinstance(arr, np.ndarray):
-            casted = np.array(arr, dtype=dtype, copy=False)
+            with warnings.catch_warnings():
+                # We already disallow dtype=uint w/ negative numbers
+                # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
+                warnings.filterwarnings(
+                    "ignore",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
+                    DeprecationWarning,
+                )
+                casted = np.array(arr, dtype=dtype, copy=False)
         else:
             casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
@@ -1677,8 +1689,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO(2.0): stop catching ValueError for tzaware, see
-                #  _catch_deprecated_value_error
+                # TODO: re-use _catch_deprecated_value_error to ensure we are
+                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of

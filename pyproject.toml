@@ -356,7 +356,7 @@ disable = [
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion =  "6.0"
+minversion = "7.0"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
@@ -369,6 +369,15 @@ doctest_optionflags = [
 filterwarnings = [
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
+  "ignore:.*urllib3:DeprecationWarning:botocore",
+  "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
+  # https://github.com/PyTables/PyTables/issues/822
+  "ignore:a closed node found in the registry:UserWarning:tables",
+  "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
+  "ignore:tostring:DeprecationWarning:tables",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
 ]
 junit_family = "xunit2"
 markers = [

@@ -15,6 +15,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     DatetimeIndex,
     Series,
@@ -22,6 +23,10 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
@@ -32,9 +37,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:an integer is required (got type float)*:DeprecationWarning"
-)
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
@@ -422,12 +424,12 @@ class TestPandasContainer:
             left = read_json(inp, orient=orient, convert_axes=False)
             tm.assert_frame_equal(left, right)
 
-        right.index = np.arange(len(df))
+        right.index = pd.RangeIndex(len(df))
         inp = df.to_json(orient="records")
         left = read_json(inp, orient="records", convert_axes=False)
         tm.assert_frame_equal(left, right)
 
-        right.columns = np.arange(df.shape[1])
+        right.columns = pd.RangeIndex(df.shape[1])
         inp = df.to_json(orient="values")
         left = read_json(inp, orient="values", convert_axes=False)
         tm.assert_frame_equal(left, right)
@@ -964,21 +966,22 @@ class TestPandasContainer:
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        s = Series([timedelta(23), timedelta(seconds=5)])
-        assert s.dtype == "timedelta64[ns]"
+        ser = Series([timedelta(23), timedelta(seconds=5)])
+        assert ser.dtype == "timedelta64[ns]"
 
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
-        s = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
-        assert s.dtype == "timedelta64[ns]"
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        ser = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
+        assert ser.dtype == "timedelta64[ns]"
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         assert frame[0].dtype == "timedelta64[ns]"
         tm.assert_frame_equal(frame, read_json(frame.to_json()).apply(converter))
 
+    def test_timedelta2(self):
         frame = DataFrame(
             {
                 "a": [timedelta(days=23), timedelta(seconds=5)],
@@ -1865,3 +1868,88 @@ class TestPandasContainer:
         df = DataFrame(data={"col1": [13342205958987758245, 12388075603347835679]})
         result = df.to_json(orient="split")
         assert result == expected
+
+    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "values", "index", "columns"]
+    )
+    def test_read_json_nullable(self, string_storage, dtype_backend, orient):
+        # GH#50750
+        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+        if string_storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_json(orient=orient)
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = read_json(out, use_nullable_dtypes=True, orient=orient)
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        if orient == "values":
+            expected.columns = list(range(0, 8))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+    @pytest.mark.parametrize("orient", ["split", "records", "index"])
+    def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
+        # GH#50750
+        pa = pytest.importorskip("pyarrow")
+        ser = Series([1, np.nan, 3], dtype="Int64")
+
+        out = ser.to_json(orient=orient)
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = read_json(
+                    out, use_nullable_dtypes=True, orient=orient, typ="series"
+                )
+
+        expected = Series([1, np.nan, 3], dtype="Int64")
+
+        if dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
+
+        tm.assert_series_equal(result, expected)
