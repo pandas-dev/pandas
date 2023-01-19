@@ -4,6 +4,7 @@ from pandas import (
     Index,
     RangeIndex,
 )
+from pandas.core.dtypes.common import is_int64_dtype
 import pandas._testing as tm
 
 
@@ -29,7 +30,7 @@ class TestJoin:
             dtype=np.intp,
         )
 
-        assert isinstance(res, Index) and res.dtype == np.int64
+        assert isinstance(res, Index) and is_int64_dtype(res.dtype)
         assert not isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres, exact=True)
         tm.assert_numpy_array_equal(lidx, elidx)
