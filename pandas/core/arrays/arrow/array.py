@@ -1026,7 +1026,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 zero = Timedelta(0)
             else:
                 zero = 0
-            result = (self != zero)._reduce(name, skipna=skipna, **kwargs)
+
+            not_eq = pc.not_equal(self._data, zero)
+            result = not_eq._reduce(name, skipna=skipna, **kwargs)
             if isinstance(result, np.bool_):
                 # need to rule out pd.NA
                 result = bool(result)
