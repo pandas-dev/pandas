@@ -28,12 +28,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import (  # noqa:F401
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -322,7 +317,9 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        new_index_cls = Int64Index if isinstance(idx, RangeIndex) else idx._constructor
+        new_index_cls = (
+            NumericIndex if isinstance(idx, RangeIndex) else idx._constructor
+        )
         expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
@@ -505,7 +502,6 @@ class Base:
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
-            # For RangeIndex we can convert to Int64Index
             tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_format(self, simple_index):
@@ -596,7 +592,7 @@ class Base:
         idx = simple_index
 
         result = idx.map(lambda x: x)
-        # For RangeIndex we convert to Int64Index
+        # RangeIndex are equivalent to the similar NumericIndex with int64 dtype
         tm.assert_index_equal(result, idx, exact="equiv")
 
     @pytest.mark.parametrize(
@@ -619,7 +615,7 @@ class Base:
         identity = mapper(idx.values, idx)
 
         result = idx.map(identity)
-        # For RangeIndex we convert to Int64Index
+        # RangeIndex are equivalent to the similar NumericIndex with int64 dtype
         tm.assert_index_equal(result, idx, exact="equiv")
 
         # empty mappable
@@ -910,19 +906,19 @@ class NumericBase(Base):
 
         # float conversions
         arr = np.arange(5, dtype="int64") * 3.2
-        expected = Float64Index(arr)
+        expected = NumericIndex(arr, dtype=np.float64)
         fidx = idx * 3.2
         tm.assert_index_equal(fidx, expected)
         fidx = 3.2 * idx
         tm.assert_index_equal(fidx, expected)
 
         # interops with numpy arrays
-        expected = Float64Index(arr)
+        expected = NumericIndex(arr, dtype=np.float64)
         a = np.zeros(5, dtype="float64")
         result = fidx - a
         tm.assert_index_equal(result, expected)
 
-        expected = Float64Index(-arr)
+        expected = NumericIndex(-arr, dtype=np.float64)
         a = np.zeros(5, dtype="float64")
         result = a - fidx
         tm.assert_index_equal(result, expected)

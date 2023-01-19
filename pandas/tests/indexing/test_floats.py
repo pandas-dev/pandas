@@ -531,8 +531,9 @@ class TestFloatIndexers:
         result = indexer_sl(s)[[2.5]]
         tm.assert_series_equal(result, Series([1], index=[2.5]))
 
-    def test_float64index_slicing_bug(self):
+    def test_floatindex_slicing_bug(self, float_numpy_dtype):
         # GH 5557, related to slicing a float index
+        dtype = float_numpy_dtype
         ser = {
             256: 2321.0,
             1: 78.0,
@@ -686,6 +687,7 @@ class TestFloatIndexers:
         }
 
         # smoke test for the repr
-        s = Series(ser)
+        s = Series(ser, dtype=dtype)
         result = s.value_counts()
+        assert result.index.dtype == dtype
         str(result)

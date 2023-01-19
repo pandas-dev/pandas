@@ -15,12 +15,10 @@ from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
     Index,
     MultiIndex,
     RangeIndex,
     Series,
-    TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
@@ -29,11 +27,6 @@ from pandas.api.types import (
     is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
-)
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
 )
 
 
@@ -77,7 +70,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         # idx1 = Index(
         # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
         # )
-        # idx2 = Int64Index([0, 0, 1, 1, 2, 2], dtype='int64')
+        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )
@@ -567,24 +560,15 @@ def test_intersection_duplicates_all_indexes(index):
     assert idx.intersection(idx_non_unique).is_unique
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        CategoricalIndex,
-        lambda x: CategoricalIndex(x, categories=set(x)),
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-        UInt64Index,
-    ],
-)
-def test_union_duplicate_index_subsets_of_each_other(cls):
+def test_union_duplicate_index_subsets_of_each_other(
+    any_numpy_dtype_for_small_pos_integer_indexes,
+):
     # GH#31326
-    a = cls([1, 2, 2, 3])
-    b = cls([3, 3, 4])
-    expected = cls([1, 2, 2, 3, 3, 4])
+    dtype = any_numpy_dtype_for_small_pos_integer_indexes
+    a = Index([1, 2, 2, 3], dtype=dtype)
+    b = Index([3, 3, 4], dtype=dtype)
+
+    expected = Index([1, 2, 2, 3, 3, 4], dtype=dtype)
     if isinstance(a, CategoricalIndex):
         expected = Index([1, 2, 2, 3, 3, 4])
     result = a.union(b)
@@ -593,22 +577,14 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        CategoricalIndex,
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-    ],
-)
-def test_union_with_duplicate_index_and_non_monotonic(cls):
+def test_union_with_duplicate_index_and_non_monotonic(
+    any_numpy_dtype_for_small_pos_integer_indexes,
+):
     # GH#36289
-    a = cls([1, 0, 0])
-    b = cls([0, 1])
-    expected = cls([0, 0, 1])
+    dtype = any_numpy_dtype_for_small_pos_integer_indexes
+    a = Index([1, 0, 0], dtype=dtype)
+    b = Index([0, 1], dtype=dtype)
+    expected = Index([0, 0, 1], dtype=dtype)
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -645,21 +621,16 @@ def test_union_nan_in_both(dup):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-    ],
-)
-def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
+def test_union_with_duplicate_index_not_subset_and_non_monotonic(
+    any_numpy_dtype_for_small_pos_integer_indexes,
+):
     # GH#36289
-    a = cls([1, 0, 2])
-    b = cls([0, 0, 1])
-    expected = cls([0, 0, 1, 2])
+    dtype = any_numpy_dtype_for_small_pos_integer_indexes
+    a = Index([1, 0, 2], dtype=dtype)
+    b = Index([0, 0, 1], dtype=dtype)
+    expected = Index([0, 0, 1, 2], dtype=dtype)
+    if isinstance(a, CategoricalIndex):
+        expected = Index([0, 0, 1, 2])
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)

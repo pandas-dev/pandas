@@ -15,7 +15,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestDatetimeIndex:
@@ -30,7 +29,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index(
+        expected = Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
             name="idx",

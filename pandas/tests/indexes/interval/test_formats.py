@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Interval,
     IntervalIndex,
     Series,
@@ -10,7 +11,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 class TestIntervalIndexRendering:
@@ -54,8 +54,8 @@ class TestIntervalIndexRendering:
                 [
                     Interval(left, right)
                     for left, right in zip(
-                        Float64Index([329.973, 345.137], dtype="float64"),
-                        Float64Index([345.137, 360.191], dtype="float64"),
+                        Index([329.973, 345.137], dtype="float64"),
+                        Index([345.137, 360.191], dtype="float64"),
                     )
                 ]
             ),

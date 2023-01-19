@@ -7,12 +7,12 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
 from pandas import (
+    Index,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_labels_dtypes():
@@ -84,8 +84,8 @@ def test_values_multiindex_periodindex():
     idx = MultiIndex.from_arrays([ints, pidx])
     result = idx.values
 
-    outer = Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Int64Index(ints))
+    outer = Index([x[0] for x in result])
+    tm.assert_index_equal(outer, Index(ints, dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx)
@@ -93,8 +93,8 @@ def test_values_multiindex_periodindex():
     # n_lev > n_lab
     result = idx[:2].values
 
-    outer = Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Int64Index(ints[:2]))
+    outer = Index([x[0] for x in result])
+    tm.assert_index_equal(outer, Index(ints[:2], dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx[:2])
@@ -246,11 +246,11 @@ def test_rangeindex_fallback_coercion_bug():
     tm.assert_frame_equal(df, expected, check_like=True)
 
     result = df.index.get_level_values("fizz")
-    expected = Int64Index(np.arange(10), name="fizz").repeat(10)
+    expected = Index(np.arange(10, dtype=np.int64), name="fizz").repeat(10)
     tm.assert_index_equal(result, expected)
 
     result = df.index.get_level_values("buzz")
-    expected = Int64Index(np.tile(np.arange(10), 10), name="buzz")
+    expected = Index(np.tile(np.arange(10, dtype=np.int64), 10), name="buzz")
     tm.assert_index_equal(result, expected)
 
 

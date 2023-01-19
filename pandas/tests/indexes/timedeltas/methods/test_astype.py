@@ -12,7 +12,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestTimedeltaIndex:
@@ -55,7 +54,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index(
+        expected = Index(
             [100000000000000] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
         )
         tm.assert_index_equal(result, expected)
