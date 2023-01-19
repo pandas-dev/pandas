@@ -263,7 +263,7 @@ by : str or list of str
     "optional_index": """index : array-like, optional
             New labels for the index. Preferably an Index object to avoid
             duplicating data.""",
-    "optional_column": """columns : array-like, optional
+    "optional_columns": """columns : array-like, optional
             New labels for the columns. Preferably an Index object to avoid
             duplicating data.""",
     "optional_axis": """axis : int or str, optional

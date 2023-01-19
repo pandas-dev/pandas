@@ -4969,6 +4969,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass=_shared_doc_kwargs["klass"],
         axes=_shared_doc_kwargs["axes"],
         optional_labels="",
+        optional_index="",
+        optional_columns="",
         optional_axis="",
     )
     def reindex(
