@@ -515,15 +515,9 @@ cpdef array_to_datetime(
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
-                elif is_raise or is_ignore:
-                    iresult[i] = val
                 else:
-                    # coerce
                     # we now need to parse this as if unit='ns'
-                    try:
-                        iresult[i] = cast_from_unit(val, "ns")
-                    except OverflowError:
-                        iresult[i] = NPY_NAT
+                    iresult[i] = cast_from_unit(val, "ns")
 
             elif isinstance(val, str):
                 # string
