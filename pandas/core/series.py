@@ -4881,7 +4881,7 @@ Keep all original rows and also all original values
         method: str | None = None,
         copy: bool | None = None,
         level: Level | None = None,
-        fill_value: Scalar = np.nan,
+        fill_value: Scalar = None,
         limit: int | None = None,
         tolerance=None,
     ) -> Series:
