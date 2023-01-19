@@ -123,21 +123,21 @@ class OpsMixin:
         ...                   index=['elk', 'moose'])
         >>> df
                 height	weight
-        elk	    1.5	    500
+        elk	1.5	    500
         moose	2.6	    800
 
         Adding a scalar affects all rows and columns.
 
         >>> df[['height', 'weight']] + 1.5
                 height	weight
-        elk	    3.0	    501.5
+        elk	3.0	    501.5
         moose	4.1	    801.5
 
         Each element of a list is added to a column of the DataFrame, in order.
 
         >>> df[['height', 'weight']] + [0.5, 1.5]
                 height	weight
-        elk	    2.0	    501.5
+        elk	2.0	    501.5
         moose	3.1	    801.5
 
         Keys of a dictionary are aligned to the DataFrame, based on column names;
@@ -145,7 +145,7 @@ class OpsMixin:
 
         >>> df + {'height': 0.5, 'weight': 1.5}
                 height	weight
-        elk	    2.0	    501.5
+        elk	2.0	    501.5
         moose	3.1	    801.5
 
         When `other` is a :class:`Series`, the index of `other` is aligned with the
@@ -154,7 +154,7 @@ class OpsMixin:
         >>> s1 = pd.Series([0.5, 1.5], index=['weight', 'height'])
         >>> df[['height', 'weight']] + s1
                 height	weight
-        elk	    3.0	    500.5
+        elk	3.0	    500.5
         moose	4.1	    800.5
 
         Even when the index of `other` is the same as the index of the DataFrame,
@@ -164,7 +164,7 @@ class OpsMixin:
         >>> s2 = pd.Series([0.5, 1.5], index=['elk', 'moose'])
         >>> df[['height', 'weight']] + s2
                 elk	    height	moose	weight
-        elk	    NaN	    NaN	    NaN	    NaN
+        elk	NaN	    NaN	    NaN	    NaN
         moose	NaN	    NaN	    NaN	    NaN
 
         >>> df[['height', 'weight']].add(s2, axis='index')
@@ -180,7 +180,7 @@ class OpsMixin:
         >>> df + other
                 height	weight
         deer	NaN	    NaN
-        elk	    1.7	    NaN
+        elk	1.7	    NaN
         moose	3.0	    NaN
         """
         return self._arith_method(other, operator.add)
