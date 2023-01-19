@@ -48,7 +48,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
-    indexer_equal_fast,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -6724,7 +6724,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 return self.copy(deep=None)
 
-        if indexer_equal_fast(indexer, len(indexer)):
+        if is_range_indexer(indexer, len(indexer)):
             if inplace:
                 return self._update_inplace(self)
             else:
