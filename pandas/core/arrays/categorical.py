@@ -1137,14 +1137,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not is_list_like(removals):
             removals = [removals]
 
-        removal_set = set(removals)
-        not_included = removal_set - set(self.dtype.categories)
-        new_categories = [c for c in self.dtype.categories if c not in removal_set]
-
-        # GH 10156
-        if any(isna(removals)):
-            not_included = {x for x in not_included if notna(x)}
-            new_categories = [x for x in new_categories if notna(x)]
+        removals = {x for x in set(removals) if notna(x)}
+        new_categories = self.dtype.categories.difference(removals)
+        not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
             raise ValueError(f"removals must all be in old categories: {not_included}")
@@ -2281,6 +2276,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         mask = isna(np.asarray(value))
         if mask.any():
             removals = np.asarray(to_replace)[mask]
+            removals = cat.categories[cat.categories.isin(removals)]
             new_cat = cat.remove_categories(removals)
             NDArrayBacked.__init__(cat, new_cat.codes, new_cat.dtype)
 
