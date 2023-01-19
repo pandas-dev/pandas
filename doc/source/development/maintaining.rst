@@ -479,7 +479,7 @@ Post-Release
 
 2. If releasing a major or minor release, open a PR in our source code to update
    `web/pandas/versions.json`, to have the desired versions in the documentation
-   drop down menu.
+   dropdown menu.
 
 3. Close the milestone and the issue for the released version.
 
