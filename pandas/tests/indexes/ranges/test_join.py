@@ -1,10 +1,11 @@
 import numpy as np
 
+from pandas.core.dtypes.common import is_int64_dtype
+
 from pandas import (
     Index,
     RangeIndex,
 )
-from pandas.core.dtypes.common import is_int64_dtype
 import pandas._testing as tm
 
 
