@@ -18,6 +18,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
+    IntegerArray,
     StringArray,
 )
 
@@ -542,4 +543,24 @@ def test_use_nullable_dtypes_option(all_parsers):
     with pd.option_context("mode.nullable_dtypes", True):
         result = parser.read_csv(StringIO(data))
     expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_int_avoid_overflow(all_parsers):
+    # GH#32134
+    parser = all_parsers
+    data = """a,b
+1,1
+,1
+1582218195625938945,1
+"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
+    expected = DataFrame(
+        {
+            "a": IntegerArray(
+                np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
+            ),
+            "b": 1,
+        }
+    )
     tm.assert_frame_equal(result, expected)
