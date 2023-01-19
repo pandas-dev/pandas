@@ -746,16 +746,19 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     2.0
     """
 
-    def get_median(x):
-        mask = notna(x)
-        if not skipna and not mask.all():
+    def get_median(x, _mask=None):
+        if _mask is None:
+            _mask = notna(x)
+        else:
+            _mask = ~_mask
+        if not skipna and not _mask.all():
             return np.nan
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
             )
-            res = np.nanmedian(x[mask])
+            res = np.nanmedian(x[_mask])
         return res
 
     values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
@@ -796,7 +799,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     else:
         # otherwise return a scalar value
-        res = get_median(values) if notempty else np.nan
+        res = get_median(values, mask) if notempty else np.nan
     return _wrap_results(res, dtype)
 
 
