@@ -12,7 +12,6 @@ import numpy as np
 from pandas._libs.sparse import IntIndex
 from pandas._typing import NpDtype
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
@@ -242,9 +241,9 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.dtype(bool)
-    dtype = pandas_dtype(dtype)
+    _dtype = pandas_dtype(dtype)
 
-    if is_object_dtype(dtype):
+    if is_object_dtype(_dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
@@ -319,10 +318,11 @@ def _get_dummies_1d(
 
     else:
         # take on axis=1 + transpose to ensure ndarray layout is column-major
-        if isinstance(dtype, ExtensionDtype):
-            eye_dtype = np.bool_
+        eye_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            eye_dtype = _dtype
         else:
-            eye_dtype = dtype
+            eye_dtype = np.bool_
         dummy_mat = np.eye(number_of_cols, dtype=eye_dtype).take(codes, axis=1).T
 
         if not dummy_na:
@@ -333,7 +333,7 @@ def _get_dummies_1d(
             # remove first GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=dtype)
+        return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
 
 def from_dummies(
