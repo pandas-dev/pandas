@@ -610,7 +610,7 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
-    _group_selection: IndexLabel | None = None
+    _group_selection: list[int] | None = None
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
