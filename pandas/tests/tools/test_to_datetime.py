@@ -1704,7 +1704,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
     @pytest.mark.parametrize("item", [150, float(150)])
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item):
-        # We have separate tests that pd.Timestamp gets these right
+        # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
         expected = DatetimeIndex([ts])
 
