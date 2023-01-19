@@ -330,7 +330,6 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
@@ -345,6 +344,8 @@ Look,a snake,🐍"""
         ],
     )
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
+        if writer_name in ["to_latex"]:  # uses Styler implementation
+            pytest.importorskip("jinja2")
         p1 = tm.ensure_clean("string")
         p2 = tm.ensure_clean("fspath")
         df = pd.DataFrame({"A": [1, 2]})
