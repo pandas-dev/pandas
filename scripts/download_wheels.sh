@@ -14,7 +14,7 @@ VERSION=$1
 DIST_DIR="$(realpath $(dirname -- $0)/../dist)"
 
 if [ -z $VERSION ]; then
-    echo "Usage: $0 <version> (where <version> is for example 1.5.3)"
+    printf "Usage:\n\t$0 <version>\n\nWhere <version> is for example 1.5.3"
     exit 1
 fi
 
