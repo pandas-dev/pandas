@@ -515,7 +515,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             mult, _ = precision_from_unit(unit)
 
             mask = np.isnan(arg) | (arg == iNaT)
-            fvalues = (arg * mult).astype("f8")
+            fvalues = (arg * mult).astype("f8", copy=False)
             fvalues[mask] = 0
 
             if (fvalues < Timestamp.min.value).any() or (
