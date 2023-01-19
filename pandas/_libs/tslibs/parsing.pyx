@@ -289,21 +289,6 @@ def parse_datetime_string(
     dt, _ = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                            dayfirst=dayfirst, yearfirst=yearfirst,
                            ignoretz=False)
-
-    if dt.tzinfo is not None:
-        # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
-        #  bounds, which is invalid (can be constructed, but raises if we call
-        #  str(dt)).  Check that and raise here if necessary.
-        try:
-            dt.utcoffset()
-        except ValueError as err:
-            # offset must be a timedelta strictly between -timedelta(hours=24)
-            #  and timedelta(hours=24)
-            raise ValueError(
-                f'Parsed string "{date_string}" gives an invalid tzoffset, '
-                "which must be between -timedelta(hours=24) and timedelta(hours=24)"
-            )
-
     return dt
 
 
@@ -656,6 +641,20 @@ cdef dateutil_parse(
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
+
+            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            #  bounds, which is invalid (can be constructed, but raises if we call
+            #  str(ret)).  Check that and raise here if necessary.
+            try:
+                ret.utcoffset()
+            except ValueError as err:
+                # offset must be a timedelta strictly between -timedelta(hours=24)
+                #  and timedelta(hours=24)
+                raise ValueError(
+                    f'Parsed string "{timestr}" gives an invalid tzoffset, '
+                    "which must be between -timedelta(hours=24) and timedelta(hours=24)"
+                )
+
     return ret, reso
 
 

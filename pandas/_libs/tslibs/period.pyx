@@ -2593,16 +2593,17 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-
             try:
                 dt, reso = parse_datetime_string_with_reso(value, freqstr)
-            except ValueError:
+            except ValueError as err:
                 match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
-                if not match:
-                    raise
-                # Case that cannot be parsed (correctly) by our datetime
-                #  parsing logic
-                dt, freq = parse_weekly_str(value, freq)
+                if match:
+                    # Case that cannot be parsed (correctly) by our datetime
+                    #  parsing logic
+                    dt, freq = _parse_weekly_str(value, freq)
+                else:
+                    raise err
+
             else:
                 if reso == "nanosecond":
                     nanosecond = dt.nanosecond
@@ -2678,7 +2679,7 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     return how
 
 
-cdef parse_weekly_str(value, BaseOffset freq):
+cdef _parse_weekly_str(value, BaseOffset freq):
     """
     Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
     datetime-parsing logic.  This ensures that we can round-trip with
