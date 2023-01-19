@@ -458,8 +458,8 @@ which will be triggered when the tag is pushed.
     git checkout master
     git pull --ff-only upstream master
     git checkout -B RLS-<version>
-    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'<version>'"/' azure/windows.yml azure/posix.yml
-    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'<version>'"/' .travis.yml
+    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'v<version>'"/' azure/windows.yml azure/posix.yml
+    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'v<version>'"/' .travis.yml
     git commit -am "RLS <version>"
     git push -u origin RLS-<version>
 
