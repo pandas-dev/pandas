@@ -203,6 +203,8 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
+  # ruff
+  "RUF",
 ]
 
 ignore = [
@@ -253,6 +255,9 @@ exclude = [
   # exclude asv benchmark environments from linting
   "env",
 ]
+
+[tool.ruff.per-file-ignores]
+"asv_bench/*" = ["RUF", "E402"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
