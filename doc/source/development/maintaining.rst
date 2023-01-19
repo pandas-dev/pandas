@@ -475,10 +475,10 @@ Post-Release
 ````````````
 
 1. Update symlink to stable documentation by logging in to our web server, and
-   editing `/var/www/html/pandas-docs/stable` to point to `version/<latest-version>`.
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``.
 
 2. If releasing a major or minor release, open a PR in our source code to update
-   `web/pandas/versions.json`, to have the desired versions in the documentation
+   ``web/pandas/versions.json``, to have the desired versions in the documentation
    dropdown menu.
 
 3. Close the milestone and the issue for the released version.
