@@ -260,6 +260,12 @@ by : str or list of str
       levels and/or index labels.""",
     "optional_labels": """labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
+    "optional_index": """index : array-like, optional
+            New labels for the index. Preferably an Index object to avoid
+            duplicating data.""",
+    "optional_column": """columns : array-like, optional
+            New labels for the columns. Preferably an Index object to avoid
+            duplicating data.""",
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
@@ -4988,8 +4994,15 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.reindex.__doc__)
+    @doc(
+        NDFrame.reindex,  # type: ignore[has-type]
+        klass=_shared_doc_kwargs["klass"],
+        axes=_shared_doc_kwargs["axes"],
+        optional_labels=_shared_doc_kwargs["optional_labels"],
+        optional_index=_shared_doc_kwargs["optional_index"],
+        optional_columns=_shared_doc_kwargs["optional_columns"],
+        optional_axis=_shared_doc_kwargs["optional_axis"],
+    )
     def reindex(
         self,
         labels=None,
@@ -5004,26 +5017,11 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         tolerance=None,
     ) -> DataFrame:
-        if index is not None and columns is not None and labels is not None:
-            raise TypeError("Cannot specify all of 'labels', 'index', 'columns'.")
-        elif index is not None or columns is not None:
-            if axis is not None:
-                raise TypeError(
-                    "Cannot specify both 'axis' and any of 'index' or 'columns'"
-                )
-            if labels is not None:
-                if index is not None:
-                    columns = labels
-                else:
-                    index = labels
-        else:
-            if axis and self._get_axis_number(axis) == 1:
-                columns = labels
-            else:
-                index = labels
         return super().reindex(
+            labels=labels,
             index=index,
             columns=columns,
+            axis=axis,
             method=method,
             copy=copy,
             level=level,

@@ -193,6 +193,8 @@ _shared_doc_kwargs = {
     "optional_by": "",
     "optional_mapper": "",
     "optional_labels": "",
+    "optional_index": "",
+    "optional_columns": "",
     "optional_axis": "",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
@@ -4848,6 +4850,8 @@ Keep all original rows and also all original values
         klass=_shared_doc_kwargs["klass"],
         axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
+        optional_index=_shared_doc_kwargs["optional_index"],
+        optional_columns=_shared_doc_kwargs["optional_columns"],
         optional_axis=_shared_doc_kwargs["optional_axis"],
     )
     def reindex(
