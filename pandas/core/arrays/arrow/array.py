@@ -528,8 +528,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"arg{method} only implemented for pyarrow version >= 6.0"
             )
 
-        value = getattr(pc, method)(self._data, skip_nulls=skipna)
-        return pc.index(self._data, value).as_py()
+        data = self._data
+        if pa.types.is_duration(data.type):
+            data = data.cast(pa.int64())
+
+        value = getattr(pc, method)(data, skip_nulls=skipna)
+        return pc.index(data, value).as_py()
 
     def argmin(self, skipna: bool = True) -> int:
         return self._argmin_max(skipna, "min")
