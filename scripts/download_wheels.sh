@@ -25,4 +25,4 @@ curl "https://anaconda.org/multibuild-wheels-staging/pandas/files?version=${VERS
     xargs wget -P $DIST_DIR
 
 printf "\nWheels downloaded to $DIST_DIR\nYou can upload them to PyPI using:\n\n"
-printf "\ttwine upload pandas/dist/pandas-${VERSION}*.{whl,tar.gz} --skip-existing"
+printf "\ttwine upload ${DIST_DIR}/pandas-${VERSION}*.{whl,tar.gz} --skip-existing"
