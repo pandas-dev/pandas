@@ -698,7 +698,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)
 - Disallow passing non-keyword arguments to :meth:`Series.sort_values` (:issue:`41505`)
-- Disallow passing 2 non-keyword arguments to :meth:`DataFrame.reindex` (:issue:`17966`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.reindex` except for ``labels`` (:issue:`17966`)
 - Disallow :meth:`Index.reindex` with non-unique :class:`Index` objects (:issue:`42568`)
 - Disallowed constructing :class:`Categorical` with scalar ``data`` (:issue:`38433`)
 - Disallowed constructing :class:`CategoricalIndex` without passing ``data`` (:issue:`38944`)
