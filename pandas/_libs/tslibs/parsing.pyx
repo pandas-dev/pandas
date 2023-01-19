@@ -377,7 +377,11 @@ def parse_datetime_string_with_reso(
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns or out_local:
+        timestamp_units = {NPY_DATETIMEUNIT.NPY_FR_ns,
+                           NPY_DATETIMEUNIT.NPY_FR_ps,
+                           NPY_DATETIMEUNIT.NPY_FR_fs,
+                           NPY_DATETIMEUNIT.NPY_FR_as}
+        if out_bestunit in timestamp_units or out_local:
             # TODO: the not-out_local case we could do without Timestamp;
             #  avoid circular import
             from pandas import Timestamp
@@ -389,9 +393,7 @@ def parse_datetime_string_with_reso(
         # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
         # The new resolution will just be nano
         # GH 50417
-        if out_bestunit in {NPY_DATETIMEUNIT.NPY_FR_ps,
-                            NPY_DATETIMEUNIT.NPY_FR_fs,
-                            NPY_DATETIMEUNIT.NPY_FR_as}:
+        if out_bestunit in timestamp_units:
             out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
@@ -472,16 +474,15 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef object _parse_dateabbr_string(object date_string, datetime default,
+cdef object _parse_dateabbr_string(str date_string, datetime default,
                                    str freq=None):
+    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     cdef:
         datetime ret
         # year initialized to prevent compiler warnings
         int year = -1, quarter = -1, month
         Py_ssize_t date_len
-
-    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    assert isinstance(date_string, str)
+        const char* buf
 
     if date_string in nat_strings:
         return NaT, ""
@@ -498,10 +499,11 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
             pass
 
     if 4 <= date_len <= 7:
+        buf = get_c_string_buf_and_size(date_string, &date_len)
         try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
-                quarter = int(date_string[0])
+                quarter = _parse_1digit(buf)  # i.e. int(date_string[0])
                 if date_len == 4 or (date_len == 5
                                      and date_string[i + 1] == "-"):
                     # r'(\d)Q-?(\d\d)')
@@ -516,7 +518,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 # r'(\d\d)-?Q(\d)'
                 if date_len == 4 or (date_len == 5
                                      and date_string[i - 1] == "-"):
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = 2000 + int(date_string[:2])
                 else:
                     raise ValueError
@@ -524,7 +527,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 if date_len == 6 or (date_len == 7
                                      and date_string[i - 1] == "-"):
                     # r'(\d\d\d\d)-?Q(\d)'
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = int(date_string[:4])
                 else:
                     raise ValueError
