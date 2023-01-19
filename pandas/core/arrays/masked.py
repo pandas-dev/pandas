@@ -1081,12 +1081,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data
         mask = self._mask
 
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        # median, skew, kurt, idxmin, idxmax
+        # median, skew, kurt, sem
         op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
