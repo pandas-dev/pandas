@@ -89,10 +89,7 @@ from pandas.errors import (
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
-from pandas.util._decorators import (
-    doc,
-    rewrite_axis_style_signature,
-)
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
@@ -1077,9 +1074,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t = ...,
         *,
         inplace: Literal[False] = ...,
-        **kwargs,
     ) -> NDFrameT:
         ...
 
@@ -1087,9 +1087,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t = ...,
         *,
         inplace: Literal[True],
-        **kwargs,
     ) -> None:
         ...
 
@@ -1097,19 +1100,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t = ...,
         *,
         inplace: bool_t = ...,
-        **kwargs,
     ) -> NDFrameT | None:
         ...
 
-    @rewrite_axis_style_signature("mapper", [("copy", True)])
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        index=None,
+        columns=None,
+        axis: Axis = 0,
+        copy: bool_t = True,
         *,
         inplace: bool_t = False,
-        **kwargs,
     ) -> NDFrameT | None:
         """
         Set the name of the axis for the index or columns.
@@ -1234,22 +1242,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
-        kwargs["inplace"] = inplace
-        axes, kwargs = self._construct_axes_from_arguments(
-            (), kwargs, sentinel=lib.no_default
-        )
-        copy: bool_t | None = kwargs.pop("copy", None)
+        axes = {"index": index, "columns": columns}
 
-        inplace = kwargs.pop("inplace", False)
-        axis = kwargs.pop("axis", 0)
         if axis is not None:
             axis = self._get_axis_number(axis)
-
-        if kwargs:
-            raise TypeError(
-                "rename_axis() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
-            )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
