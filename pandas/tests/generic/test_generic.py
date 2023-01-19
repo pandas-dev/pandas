@@ -88,6 +88,7 @@ class TestGeneric:
         tm.assert_equal(result, o)
 
         # non-inclusion
+        # https://github.com/pandas-dev/pandas/issues/50862
         result = o._get_bool_data()
         expected = construct(frame_or_series, n, value="empty", **kwargs)
         if isinstance(o, DataFrame):
