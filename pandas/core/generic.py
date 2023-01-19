@@ -1805,14 +1805,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
-            # error: Incompatible types in assignment (expression has type "Union[
-            # ExtensionArray, ndarray[Any, Any]]", variable has type "ndarray[Any,
-            # Any]")
-            values = (
-                self.axes[axis]
-                .get_level_values(key)  # type: ignore[assignment]
-                ._values
-            )
+            values = self.axes[axis].get_level_values(key)._values
         else:
             raise KeyError(key)
 
@@ -5975,7 +5968,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         raise AbstractMethodError(self)
 
     @property
-    def _values(self) -> np.ndarray:
+    def _values(self) -> ArrayLike:
         """internal implementation"""
         raise AbstractMethodError(self)
 
@@ -9123,7 +9116,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        (left, right) : ({klass}, type of other)
+        tuple of ({klass}, type of other)
             Aligned objects.
 
         Examples

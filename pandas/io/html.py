@@ -22,6 +22,7 @@ from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._typing import (
+    BaseBuffer,
     FilePath,
     ReadBuffer,
 )
@@ -133,9 +134,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(
-    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes], encoding: str | None
-) -> str | bytes:
+def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -153,13 +152,7 @@ def _read(
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        # error: Argument 1 to "get_handle" has incompatible type "Union[str, bytes,
-        # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]";
-        # expected "Union[PathLike[str], Union[str, Union[IO[Any], RawIOBase,
-        # BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]]"
-        with get_handle(
-            obj, "r", encoding=encoding  # type: ignore[arg-type]
-        ) as handles:
+        with get_handle(obj, "r", encoding=encoding) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
