@@ -394,13 +394,13 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    engine: JSONEngine = ...,
     lines: bool = ...,
     chunksize: int,
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
     use_nullable_dtypes: bool = ...,
+    engine: JSONEngine = ...,
 ) -> JsonReader[Literal["frame"]]:
     ...
 
@@ -424,8 +424,8 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
-    engine: JSONEngine = ...,
     use_nullable_dtypes: bool = ...,
+    engine: JSONEngine = ...,
 ) -> JsonReader[Literal["series"]]:
     ...
 
@@ -851,7 +851,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if self.engine == "pyarrow":
             self._engine = self._make_engine(filepath_or_buffer)
-        if self.engine == "ujson":
+        elif self.engine == "ujson":
             data = self._get_data_from_filepath(filepath_or_buffer)
             self.data = self._preprocess_data(data)
 
