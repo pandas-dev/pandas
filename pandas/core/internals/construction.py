@@ -568,6 +568,7 @@ def _homogenize(
     for val in data:
         if isinstance(val, ABCSeries):
             hval = val
+            is_copy = False
             if dtype is not None:
                 hval = hval.astype(dtype, copy=False)
                 if using_copy_on_write() and hval.values is val.values:
@@ -575,14 +576,20 @@ def _homogenize(
                     refs = [weakref.ref(val._mgr._block)]  # type: ignore[union-attr]
                     hval._mgr.refs = refs  # type: ignore[union-attr]
                     hval._mgr.parent = val._mgr  # type: ignore[union-attr]
+                if using_copy_on_write():
+                    if hval._mgr.refs is None:  # type: ignore[union-attr]
+                        is_copy = True
             if hval.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 hval = hval.reindex(index, copy=False)
+                if using_copy_on_write():
+                    if hval._mgr.refs is None:  # type: ignore[union-attr]
+                        is_copy = True
             if hval is val:
                 hval = val.copy(deep=False)
             homogenized.append(hval._values)
-            parents.append(hval)
+            parents.append(hval if not is_copy else None)
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
