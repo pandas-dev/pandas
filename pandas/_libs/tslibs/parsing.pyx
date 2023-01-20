@@ -59,7 +59,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     string_to_dts,
 )
-from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
@@ -257,6 +256,10 @@ def parse_datetime_string(
     Returns
     -------
     datetime
+
+    Notes
+    -----
+    Does not handle "today" or "now", which caller is responsible for handling.
     """
 
     cdef:
@@ -273,14 +276,6 @@ def parse_datetime_string(
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
-        return dt
-
-    # Handling special case strings today & now
-    if date_string == "now":
-        dt = datetime.now()
-        return dt
-    elif date_string == "today":
-        dt = datetime.today()
         return dt
 
     try:
@@ -304,20 +299,39 @@ def parse_datetime_string(
         raise OutOfBoundsDatetime(
             f'Parsing "{date_string}" to datetime overflows'
             ) from err
+    if dt.tzinfo is not None:
+        # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+        #  bounds, which is invalid (can be constructed, but raises if we call
+        #  str(dt)).  Check that and raise here if necessary.
+        try:
+            dt.utcoffset()
+        except ValueError as err:
+            # offset must be a timedelta strictly between -timedelta(hours=24)
+            #  and timedelta(hours=24)
+            raise ValueError(
+                f'Parsed string "{date_string}" gives an invalid tzoffset, '
+                "which must be between -timedelta(hours=24) and timedelta(hours=24)"
+            )
 
     return dt
 
 
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+def parse_datetime_string_with_reso(
+    str date_string, str freq=None, dayfirst=None, yearfirst=None
+):
+    # NB: This will break with np.str_ (GH#45580) even though
+    #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
+    #  the argument is *exactly* 'str'
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
 
     Parameters
     ----------
-    arg : str
-    freq : str or DateOffset, default None
+    date_string : str
+    freq : str or None, default None
         Helps with interpreting time string if supplied
+        Corresponds to `offset.rule_code`
     dayfirst : bool, default None
         If None uses default from print_config
     yearfirst : bool, default None
@@ -328,50 +342,21 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime
     str
         Describing resolution of parsed string.
-    """
-    if type(arg) is not str:
-        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
-        #  arg as "str" this raises here
-        if not isinstance(arg, np.str_):
-            raise TypeError(
-                "Argument 'arg' has incorrect type "
-                f"(expected str, got {type(arg).__name__})"
-            )
-        arg = str(arg)
-
-    if is_offset_object(freq):
-        freq = freq.rule_code
-
-    if dayfirst is None:
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        yearfirst = get_option("display.date_yearfirst")
-
-    res = parse_datetime_string_with_reso(arg, freq=freq,
-                                          dayfirst=dayfirst,
-                                          yearfirst=yearfirst)
-    return res
-
-
-cdef parse_datetime_string_with_reso(
-    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
-):
-    """
-    Parse datetime string and try to identify its resolution.
-
-    Returns
-    -------
-    datetime
-    str
-        Inferred resolution of the parsed string.
 
     Raises
     ------
     ValueError : preliminary check suggests string is not datetime
     DateParseError : error within dateutil
     """
+
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
+
     cdef:
-        object parsed, reso
+        datetime parsed
+        str reso
         bint string_to_dts_failed
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
@@ -392,7 +377,11 @@ cdef parse_datetime_string_with_reso(
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        if dts.ps != 0 or out_local:
+        timestamp_units = {NPY_DATETIMEUNIT.NPY_FR_ns,
+                           NPY_DATETIMEUNIT.NPY_FR_ps,
+                           NPY_DATETIMEUNIT.NPY_FR_fs,
+                           NPY_DATETIMEUNIT.NPY_FR_as}
+        if out_bestunit in timestamp_units or out_local:
             # TODO: the not-out_local case we could do without Timestamp;
             #  avoid circular import
             from pandas import Timestamp
@@ -401,6 +390,11 @@ cdef parse_datetime_string_with_reso(
             parsed = datetime(
                 dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
             )
+        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+        # The new resolution will just be nano
+        # GH 50417
+        if out_bestunit in timestamp_units:
+            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
@@ -480,16 +474,15 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef object _parse_dateabbr_string(object date_string, datetime default,
+cdef object _parse_dateabbr_string(str date_string, datetime default,
                                    str freq=None):
+    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     cdef:
-        object ret
+        datetime ret
         # year initialized to prevent compiler warnings
         int year = -1, quarter = -1, month
         Py_ssize_t date_len
-
-    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    assert isinstance(date_string, str)
+        const char* buf
 
     if date_string in nat_strings:
         return NaT, ""
@@ -505,11 +498,12 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         except ValueError:
             pass
 
-    try:
-        if 4 <= date_len <= 7:
+    if 4 <= date_len <= 7:
+        buf = get_c_string_buf_and_size(date_string, &date_len)
+        try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
-                quarter = int(date_string[0])
+                quarter = _parse_1digit(buf)  # i.e. int(date_string[0])
                 if date_len == 4 or (date_len == 5
                                      and date_string[i + 1] == "-"):
                     # r'(\d)Q-?(\d\d)')
@@ -524,7 +518,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 # r'(\d\d)-?Q(\d)'
                 if date_len == 4 or (date_len == 5
                                      and date_string[i - 1] == "-"):
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = 2000 + int(date_string[:2])
                 else:
                     raise ValueError
@@ -532,7 +527,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 if date_len == 6 or (date_len == 7
                                      and date_string[i - 1] == "-"):
                     # r'(\d\d\d\d)-?Q(\d)'
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = int(date_string[:4])
                 else:
                     raise ValueError
@@ -553,10 +549,11 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
             ret = default.replace(year=year, month=month)
             return ret, "quarter"
 
-    except DateParseError:
-        raise
-    except ValueError:
-        pass
+        except DateParseError:
+            raise
+        except ValueError:
+            # e.g. if "Q" is not in date_string and .index raised
+            pass
 
     if date_len == 6 and freq == "M":
         year = int(date_string[:4])
@@ -564,8 +561,9 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         try:
             ret = default.replace(year=year, month=month)
             return ret, "month"
-        except ValueError:
-            pass
+        except ValueError as err:
+            # We can infer that none of the patterns below will match
+            raise ValueError(f"Unable to parse {date_string}") from err
 
     for pat in ["%Y-%m", "%b %Y", "%b-%Y"]:
         try:

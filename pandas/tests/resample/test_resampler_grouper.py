@@ -15,7 +15,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -316,7 +315,7 @@ def test_resample_groupby_with_label():
     result = df.groupby("col0").resample("1W", label="left").sum()
 
     mi = [
-        np.array([0, 0, 1, 2]),
+        np.array([0, 0, 1, 2], dtype=np.int64),
         pd.to_datetime(
             np.array(["1999-12-26", "2000-01-02", "2000-01-02", "2000-01-02"])
         ),
@@ -333,7 +332,7 @@ def test_consistency_with_window():
 
     # consistent return values with window
     df = test_frame
-    expected = Int64Index([1, 2, 3], name="A")
+    expected = Index([1, 2, 3], name="A")
     result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
     tm.assert_index_equal(result.index.levels[0], expected)

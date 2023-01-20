@@ -26,7 +26,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -41,7 +40,7 @@ class TestFancy:
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(np.arange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11), dtype=np.int64))
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
@@ -167,7 +166,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = Float64Index([1, 2, np.inf])
+        expected = Index([1, 2, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
