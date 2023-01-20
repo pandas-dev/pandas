@@ -372,7 +372,7 @@ In order to be able to release a new pandas version, the next permissions are ne
   `pandas-wheels <https://github.com/MacPython/pandas-wheels>`_, and
   `pandas-feedstock <https://github.com/conda-forge/pandas-feedstock/>`_ repositories.
 - Permissions to push to main in the pandas repository, to push the new tags.
-- Write permissions to `PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_
+- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_
 - Access to the social media accounts, to publish the announcements.
 
 Pre-release
