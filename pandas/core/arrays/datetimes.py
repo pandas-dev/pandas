@@ -9,7 +9,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Iterator,
-    Literal,
     cast,
 )
 import warnings
@@ -804,7 +803,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
@@ -893,7 +892,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -1032,7 +1031,7 @@ default 'raise'
 
         if self.tz is not None:
             if tz is None:
-                new_dates = tz_convert_from_utc(self.asi8, self.tz)
+                new_dates = tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1385,7 +1384,7 @@ default 'raise'
         0    2000
         1    2001
         2    2002
-        dtype: int64
+        dtype: int32
         """,
     )
     month = _field_accessor(
@@ -1408,7 +1407,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     day = _field_accessor(
@@ -1431,7 +1430,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     hour = _field_accessor(
@@ -1454,7 +1453,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     minute = _field_accessor(
@@ -1477,7 +1476,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     second = _field_accessor(
@@ -1500,7 +1499,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     microsecond = _field_accessor(
@@ -1523,7 +1522,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     nanosecond = _field_accessor(
@@ -1546,7 +1545,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     _dayofweek_doc = """
@@ -1581,7 +1580,7 @@ default 'raise'
     2017-01-06    4
     2017-01-07    5
     2017-01-08    6
-    Freq: D, dtype: int64
+    Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
     dayofweek = day_of_week
@@ -1678,7 +1677,7 @@ default 'raise'
         See Also
         --------
         quarter : Return the quarter of the date.
-        is_quarter_end : Similar property for indicating the quarter start.
+        is_quarter_end : Similar property for indicating the quarter end.
 
         Examples
         --------
@@ -2149,16 +2148,13 @@ def objects_to_datetime64ns(
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
 
-    flags = data.flags
-    order: Literal["F", "C"] = "F" if flags.f_contiguous else "C"
     result, tz_parsed = tslib.array_to_datetime(
-        data.ravel("K"),
+        data,
         errors=errors,
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
     )
-    result = result.reshape(data.shape, order=order)
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
@@ -2186,8 +2182,8 @@ def objects_to_datetime64ns(
 
 def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     """
-    Convert data based on dtype conventions, issuing deprecation warnings
-    or errors where appropriate.
+    Convert data based on dtype conventions, issuing
+    errors where appropriate.
 
     Parameters
     ----------

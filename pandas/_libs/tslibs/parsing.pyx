@@ -59,7 +59,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     string_to_dts,
 )
-from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
@@ -209,7 +208,7 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
-cdef bint does_string_look_like_time(str parse_string):
+cdef bint _does_string_look_like_time(str parse_string):
     """
     Checks whether given string is a time: it has to start either from
     H:MM or from HH:MM, and hour and minute values must be valid.
@@ -249,7 +248,6 @@ def parse_datetime_string(
     str date_string,
     bint dayfirst=False,
     bint yearfirst=False,
-    **kwargs,
 ) -> datetime:
     """
     Parse datetime string, only returns datetime.
@@ -258,6 +256,10 @@ def parse_datetime_string(
     Returns
     -------
     datetime
+
+    Notes
+    -----
+    Does not handle "today" or "now", which caller is responsible for handling.
     """
 
     cdef:
@@ -266,22 +268,14 @@ def parse_datetime_string(
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
-    if does_string_look_like_time(date_string):
+    if _does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst, **kwargs)
+                      yearfirst=yearfirst)
         return dt
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
-        return dt
-
-    # Handling special case strings today & now
-    if date_string == "now":
-        dt = datetime.now()
-        return dt
-    elif date_string == "today":
-        dt = datetime.today()
         return dt
 
     try:
@@ -294,7 +288,7 @@ def parse_datetime_string(
 
     try:
         dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+                      dayfirst=dayfirst, yearfirst=yearfirst)
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
@@ -305,20 +299,39 @@ def parse_datetime_string(
         raise OutOfBoundsDatetime(
             f'Parsing "{date_string}" to datetime overflows'
             ) from err
+    if dt.tzinfo is not None:
+        # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+        #  bounds, which is invalid (can be constructed, but raises if we call
+        #  str(dt)).  Check that and raise here if necessary.
+        try:
+            dt.utcoffset()
+        except ValueError as err:
+            # offset must be a timedelta strictly between -timedelta(hours=24)
+            #  and timedelta(hours=24)
+            raise ValueError(
+                f'Parsed string "{date_string}" gives an invalid tzoffset, '
+                "which must be between -timedelta(hours=24) and timedelta(hours=24)"
+            )
 
     return dt
 
 
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+def parse_datetime_string_with_reso(
+    str date_string, str freq=None, dayfirst=None, yearfirst=None
+):
+    # NB: This will break with np.str_ (GH#45580) even though
+    #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
+    #  the argument is *exactly* 'str'
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
 
     Parameters
     ----------
-    arg : str
-    freq : str or DateOffset, default None
+    date_string : str
+    freq : str or None, default None
         Helps with interpreting time string if supplied
+        Corresponds to `offset.rule_code`
     dayfirst : bool, default None
         If None uses default from print_config
     yearfirst : bool, default None
@@ -329,50 +342,21 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime
     str
         Describing resolution of parsed string.
-    """
-    if type(arg) is not str:
-        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
-        #  arg as "str" this raises here
-        if not isinstance(arg, np.str_):
-            raise TypeError(
-                "Argument 'arg' has incorrect type "
-                f"(expected str, got {type(arg).__name__})"
-            )
-        arg = str(arg)
-
-    if is_offset_object(freq):
-        freq = freq.rule_code
-
-    if dayfirst is None:
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        yearfirst = get_option("display.date_yearfirst")
-
-    res = parse_datetime_string_with_reso(arg, freq=freq,
-                                          dayfirst=dayfirst,
-                                          yearfirst=yearfirst)
-    return res
-
-
-cdef parse_datetime_string_with_reso(
-    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
-):
-    """
-    Parse datetime string and try to identify its resolution.
-
-    Returns
-    -------
-    datetime
-    str
-        Inferred resolution of the parsed string.
 
     Raises
     ------
     ValueError : preliminary check suggests string is not datetime
     DateParseError : error within dateutil
     """
+
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
+
     cdef:
-        object parsed, reso
+        datetime parsed
+        str reso
         bint string_to_dts_failed
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
@@ -393,7 +377,11 @@ cdef parse_datetime_string_with_reso(
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        if dts.ps != 0 or out_local:
+        timestamp_units = {NPY_DATETIMEUNIT.NPY_FR_ns,
+                           NPY_DATETIMEUNIT.NPY_FR_ps,
+                           NPY_DATETIMEUNIT.NPY_FR_fs,
+                           NPY_DATETIMEUNIT.NPY_FR_as}
+        if out_bestunit in timestamp_units or out_local:
             # TODO: the not-out_local case we could do without Timestamp;
             #  avoid circular import
             from pandas import Timestamp
@@ -402,6 +390,11 @@ cdef parse_datetime_string_with_reso(
             parsed = datetime(
                 dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
             )
+        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+        # The new resolution will just be nano
+        # GH 50417
+        if out_bestunit in timestamp_units:
+            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
@@ -481,16 +474,15 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef object _parse_dateabbr_string(object date_string, datetime default,
+cdef object _parse_dateabbr_string(str date_string, datetime default,
                                    str freq=None):
+    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     cdef:
-        object ret
+        datetime ret
         # year initialized to prevent compiler warnings
         int year = -1, quarter = -1, month
         Py_ssize_t date_len
-
-    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    assert isinstance(date_string, str)
+        const char* buf
 
     if date_string in nat_strings:
         return NaT, ""
@@ -506,11 +498,12 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         except ValueError:
             pass
 
-    try:
-        if 4 <= date_len <= 7:
+    if 4 <= date_len <= 7:
+        buf = get_c_string_buf_and_size(date_string, &date_len)
+        try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
-                quarter = int(date_string[0])
+                quarter = _parse_1digit(buf)  # i.e. int(date_string[0])
                 if date_len == 4 or (date_len == 5
                                      and date_string[i + 1] == "-"):
                     # r'(\d)Q-?(\d\d)')
@@ -525,7 +518,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 # r'(\d\d)-?Q(\d)'
                 if date_len == 4 or (date_len == 5
                                      and date_string[i - 1] == "-"):
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = 2000 + int(date_string[:2])
                 else:
                     raise ValueError
@@ -533,7 +527,8 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
                 if date_len == 6 or (date_len == 7
                                      and date_string[i - 1] == "-"):
                     # r'(\d\d\d\d)-?Q(\d)'
-                    quarter = int(date_string[-1])
+                    # i.e. quarter = int(date_string[-1])
+                    quarter = _parse_1digit(buf + date_len - 1)
                     year = int(date_string[:4])
                 else:
                     raise ValueError
@@ -554,10 +549,11 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
             ret = default.replace(year=year, month=month)
             return ret, "quarter"
 
-    except DateParseError:
-        raise
-    except ValueError:
-        pass
+        except DateParseError:
+            raise
+        except ValueError:
+            # e.g. if "Q" is not in date_string and .index raised
+            pass
 
     if date_len == 6 and freq == "M":
         year = int(date_string[:4])
@@ -565,8 +561,9 @@ cdef object _parse_dateabbr_string(object date_string, datetime default,
         try:
             ret = default.replace(year=year, month=month)
             return ret, "month"
-        except ValueError:
-            pass
+        except ValueError as err:
+            # We can infer that none of the patterns below will match
+            raise ValueError(f"Unable to parse {date_string}") from err
 
     for pat in ["%Y-%m", "%b %Y", "%b-%Y"]:
         try:
@@ -667,9 +664,7 @@ cdef dateutil_parse(
 # Parsing for type-inference
 
 
-def try_parse_dates(
-    object[:] values, parser, bint dayfirst=False, default=None,
-) -> np.ndarray:
+def try_parse_dates(object[:] values, parser) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[::1] result
@@ -701,47 +696,6 @@ def try_parse_year_month_day(
 
     for i in range(n):
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
-
-    return result.base  # .base to access underlying ndarray
-
-
-def try_parse_datetime_components(object[:] years,
-                                  object[:] months,
-                                  object[:] days,
-                                  object[:] hours,
-                                  object[:] minutes,
-                                  object[:] seconds) -> np.ndarray:
-
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-        int secs
-        double float_secs
-        double micros
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if (
-        months.shape[0] != n
-        or days.shape[0] != n
-        or hours.shape[0] != n
-        or minutes.shape[0] != n
-        or seconds.shape[0] != n
-    ):
-        raise ValueError("Length of all datetime components must be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        float_secs = float(seconds[i])
-        secs = int(float_secs)
-
-        micros = float_secs - secs
-        if micros > 0:
-            micros = micros * 1000000
-
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), secs,
-                             int(micros))
 
     return result.base  # .base to access underlying ndarray
 
@@ -848,7 +802,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     # attr name, format, padding (if any)
     datetime_attrs_to_format = [
+        (("year", "month", "day", "hour", "minute", "second"), "%Y%m%d%H%M%S", 0),
+        (("year", "month", "day", "hour", "minute"), "%Y%m%d%H%M", 0),
+        (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
+        (("hour", "minute", "second"), "%H%M%S", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
@@ -996,6 +955,7 @@ cdef str _fill_token(token: str, padding: int):
         token_filled = f"{seconds}.{nanoseconds}"
     return token_filled
 
+
 cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
@@ -1057,16 +1017,13 @@ cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
+def concat_date_cols(tuple date_cols) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 
     Parameters
     ----------
     date_cols : tuple[ndarray]
-    keep_trivial_numbers : bool, default True
-        if True and len(date_cols) == 1, then
-        conversion (to string from integer/float zero) is not performed
 
     Returns
     -------
@@ -1105,8 +1062,7 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
         it = <flatiter>PyArray_IterNew(array)
         for row_idx in range(rows_count):
             item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            result_view[row_idx] = convert_to_unicode(item,
-                                                      keep_trivial_numbers)
+            result_view[row_idx] = convert_to_unicode(item, True)
             PyArray_ITER_NEXT(it)
     else:
         # create fixed size list - more efficient memory allocation

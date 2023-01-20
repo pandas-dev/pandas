@@ -579,7 +579,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_start(self) -> bool:
         """
-        Return True if date is first day of month.
+        Check if the date is the first day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the first day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_end : Similar property indicating the last day of the month.
 
         Examples
         --------
@@ -596,7 +605,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_end(self) -> bool:
         """
-        Return True if date is last day of month.
+        Check if the date is the last day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the last day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_start : Similar property indicating month start.
 
         Examples
         --------
@@ -613,7 +631,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_start(self) -> bool:
         """
-        Return True if date is first day of the quarter.
+        Check if the date is the first day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is first day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_end : Similar property indicating the quarter end.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -630,7 +658,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_end(self) -> bool:
         """
-        Return True if date is last day of the quarter.
+        Check if date is last day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is last day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_start : Similar property indicating the quarter start.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -1371,7 +1409,18 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
         """
-        return datetime.strftime(self, format)
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "strftime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.strftime(format)
 
     # Issue 25016.
     @classmethod

@@ -239,6 +239,7 @@ class MultiIndex(Index):
     codes
     nlevels
     levshape
+    dtypes
 
     Methods
     -------
@@ -255,7 +256,12 @@ class MultiIndex(Index):
     swaplevel
     reorder_levels
     remove_unused_levels
+    get_level_values
+    get_indexer
+    get_loc
     get_locs
+    get_loc_level
+    drop
 
     See Also
     --------
@@ -3379,7 +3385,7 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
-                new_order = np.ones((n,))[indexer]
+                new_order = np.ones((n,), dtype=np.intp)[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]

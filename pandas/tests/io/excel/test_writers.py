@@ -737,7 +737,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(xp, rs.to_period("M"))
 
     def test_to_excel_multiindex(self, merge_cells, frame, path):
-        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
+        arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
@@ -763,7 +763,7 @@ class TestExcelWriter:
     # sure they are handled correctly for either setting of
     # merge_cells
     def test_to_excel_multiindex_cols(self, merge_cells, frame, path):
-        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
+        arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
@@ -786,7 +786,7 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_dates(self, merge_cells, tsframe, path):
         # try multiindex with dates
-        new_index = [tsframe.index, np.arange(len(tsframe.index))]
+        new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
         tsframe.index.names = ["time", "foo"]

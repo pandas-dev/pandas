@@ -15,9 +15,13 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
+from pandas import (
+    arrays,
+    get_option,
+)
 from pandas.core.api import (
     DataFrame,
-    Int64Index,
+    NumericIndex,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -62,7 +66,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not isinstance(df.index, (Int64Index, RangeIndex)):
+    if not (isinstance(df.index, NumericIndex) and df.index.dtype == "int64"):
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "
@@ -99,6 +103,7 @@ def read_feather(
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ):
     """
     Load a feather-format object from the file path.
@@ -118,6 +123,19 @@ def read_feather(
 
         .. versionadded:: 1.2.0
 
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     type of object stored in file
@@ -128,7 +146,28 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
+        if not use_nullable_dtypes:
+            return feather.read_feather(
+                handles.handle, columns=columns, use_threads=bool(use_threads)
+            )
 
-        return feather.read_feather(
+        dtype_backend = get_option("mode.dtype_backend")
+
+        pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)
         )
+
+        if dtype_backend == "pandas":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
+
+        elif dtype_backend == "pyarrow":
+            return DataFrame(
+                {
+                    col_name: arrays.ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
+            )

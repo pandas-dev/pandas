@@ -377,7 +377,7 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if isinstance(numeric_idx, UInt64Index):
+        if numeric_idx.dtype == np.uint64:
             return
         idx = numeric_idx - 3
 
@@ -669,7 +669,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
+        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -677,7 +677,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
+        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
@@ -714,7 +714,7 @@ class TestMultiplicationDivision:
         # test power calculations both ways, GH#14973
         box = box_with_array
         idx = numeric_idx
-        expected = Float64Index(op(idx.values, 2.0))
+        expected = Index(op(idx.values, 2.0))
 
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, box)
@@ -1216,7 +1216,7 @@ class TestNumericArithmeticUnsorted:
         idx1 = idx1._rename("foo")
         idx2 = idx2._rename("bar")
         result = op(idx1, idx2)
-        expected = op(Int64Index(idx1), Int64Index(idx2))
+        expected = op(Index(idx1.to_numpy()), Index(idx2.to_numpy()))
         tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize(
@@ -1252,7 +1252,7 @@ class TestNumericArithmeticUnsorted:
         idx1 = idx1._rename("foo")
         idx2 = idx2._rename("bar")
         result = pow(idx1, idx2)
-        expected = pow(Int64Index(idx1), Int64Index(idx2))
+        expected = pow(Index(idx1.to_numpy()), Index(idx2.to_numpy()))
         tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize("idx", [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)])
@@ -1330,7 +1330,7 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx**2
-        expected = Int64Index(idx._values) ** 2
+        expected = Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
     @pytest.mark.parametrize(
@@ -1463,3 +1463,17 @@ def test_empty_str_comparison(power, string_size):
     result = right == left
     expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
     tm.assert_frame_equal(result, expected)
+
+
+def test_series_add_sub_with_UInt64():
+    # GH 22023
+    series1 = Series([1, 2, 3])
+    series2 = Series([2, 1, 3], dtype="UInt64")
+
+    result = series1 + series2
+    expected = Series([3, 3, 6], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    result = series1 - series2
+    expected = Series([-1, 1, 0], dtype="Float64")
+    tm.assert_series_equal(result, expected)

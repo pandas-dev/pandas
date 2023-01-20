@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 class TestSeriesSortValues:
-    def test_sort_values(self, datetime_series):
+    def test_sort_values(self, datetime_series, using_copy_on_write):
 
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
@@ -85,8 +85,12 @@ class TestSeriesSortValues:
             "This Series is a view of some other array, to sort in-place "
             "you must create a copy"
         )
-        with pytest.raises(ValueError, match=msg):
+        if using_copy_on_write:
             s.sort_values(inplace=True)
+            tm.assert_series_equal(s, df.iloc[:, 0].sort_values())
+        else:
+            with pytest.raises(ValueError, match=msg):
+                s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
 
