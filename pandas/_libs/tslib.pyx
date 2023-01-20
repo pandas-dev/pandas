@@ -273,7 +273,7 @@ def array_with_unit_to_datetime(
         bint is_coerce = errors=="coerce"
         bint is_raise = errors=="raise"
         ndarray[int64_t] iresult
-        object tz = None
+        tzinfo tz = None
         float fval
 
     assert is_ignore or is_coerce or is_raise
@@ -346,7 +346,7 @@ cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str un
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] oresult
-        object tz = None
+        tzinfo tz = None
 
     # TODO: fix subtle differences between this and no-unit code
     oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
