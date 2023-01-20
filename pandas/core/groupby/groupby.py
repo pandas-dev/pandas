@@ -610,7 +610,7 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
-    _group_selection: list[int] | None = None
+    _group_selection: np.ndarray | None = None
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -1025,9 +1025,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
-            self._group_selection = [
-                idx for idx, label in enumerate(ax) if label not in groupers
-            ]
+            if len(ax) < 2000:
+                # Determined experimentally, after 2000 this is slower than
+                # the NumPy version
+                self._group_selection = np.array(
+                    [idx for idx, label in enumerate(ax) if label not in groupers]
+                )
+            else:
+                indexer = ax.get_indexer_for(list(groupers))
+                self._group_selection = np.delete(np.arange(len(ax)), indexer)
             self._reset_cache("_selected_obj")
 
     @final
