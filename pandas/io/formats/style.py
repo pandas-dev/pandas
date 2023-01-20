@@ -2035,7 +2035,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        styles : dict
+        dict
 
         See Also
         --------
