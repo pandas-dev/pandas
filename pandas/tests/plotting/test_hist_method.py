@@ -413,7 +413,6 @@ class TestDataFramePlots(TestPlotBase):
         axes = _check_plot_works(
             df.hist,
             default_axes=True,
-            filterwarnings="always",
             column="length",
             by="animal",
             bins=5,

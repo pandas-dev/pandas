@@ -8,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Sequence,
 )
-import warnings
 
 import numpy as np
 
@@ -516,7 +515,7 @@ class TestPlotBase:
         return ax._shared_axes["y"]
 
 
-def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
+def _check_plot_works(f, default_axes=False, **kwargs):
     """
     Create plot and ensure that plot return object is valid.
 
@@ -524,9 +523,6 @@ def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
     ----------
     f : func
         Plotting function.
-    filterwarnings : str
-        Warnings filter.
-        See https://docs.python.org/3/library/warnings.html#warning-filter
     default_axes : bool, optional
         If False (default):
             - If `ax` not in `kwargs`, then create subplot(211) and plot there
@@ -554,24 +550,22 @@ def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
         gen_plots = _gen_two_subplots
 
     ret = None
-    with warnings.catch_warnings():
-        warnings.simplefilter(filterwarnings)
-        try:
-            fig = kwargs.get("figure", plt.gcf())
-            plt.clf()
+    try:
+        fig = kwargs.get("figure", plt.gcf())
+        plt.clf()
 
-            for ret in gen_plots(f, fig, **kwargs):
-                tm.assert_is_valid_plot_return_object(ret)
+        for ret in gen_plots(f, fig, **kwargs):
+            tm.assert_is_valid_plot_return_object(ret)
 
-            with tm.ensure_clean(return_filelike=True) as path:
-                plt.savefig(path)
+        with tm.ensure_clean(return_filelike=True) as path:
+            plt.savefig(path)
 
-        except Exception as err:
-            raise err
-        finally:
-            tm.close(fig)
+    except Exception as err:
+        raise err
+    finally:
+        tm.close(fig)
 
-        return ret
+    return ret
 
 
 def _gen_default_plot(f, fig, **kwargs):
