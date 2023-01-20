@@ -485,3 +485,13 @@ class TestDataFrameToDict:
         df = DataFrame({"a": [1, NA]}, dtype="Int64")
         result = df.to_dict(orient=orient)
         assert result == expected
+
+    def test_to_dict_masked_native_python(self):
+        # GH#34665
+        df = DataFrame({"a": Series([1, 2], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int
+
+        df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int
