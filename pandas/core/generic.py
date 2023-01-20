@@ -5119,7 +5119,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method: str | None = None,
         copy: bool_t | None = None,
         level: Level | None = None,
-        fill_value: Scalar = np.nan,
+        fill_value: Scalar | None = np.nan,
         limit: int | None = None,
         tolerance=None,
     ) -> NDFrameT:
@@ -5341,7 +5341,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 columns = labels
             else:
                 index = labels
-        axes = {"index": index, "columns": columns}
+        axes: dict[Literal["index", "columns"], Any] = {
+            "index": index,
+            "columns": columns,
+        }
         method = clean_reindex_fill_method(method)
 
         # if all axes that are requested to reindex are equal, then only copy
@@ -5530,7 +5533,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}
+                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
             )
         elif like:
 

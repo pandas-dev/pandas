@@ -4871,7 +4871,7 @@ Keep all original rows and also all original values
         optional_columns=_shared_doc_kwargs["optional_columns"],
         optional_axis=_shared_doc_kwargs["optional_axis"],
     )
-    def reindex(
+    def reindex(  # type: ignore[override]
         self,
         index=None,
         *,
@@ -4879,7 +4879,7 @@ Keep all original rows and also all original values
         method: str | None = None,
         copy: bool | None = None,
         level: Level | None = None,
-        fill_value: Scalar = None,
+        fill_value: Scalar | None = None,
         limit: int | None = None,
         tolerance=None,
     ) -> Series:

@@ -4995,14 +4995,14 @@ class DataFrame(NDFrame, OpsMixin):
         return super().set_axis(labels, axis=axis, copy=copy)
 
     @doc(
-        NDFrame.reindex,  # type: ignore[has-type]
+        NDFrame.reindex,
         klass=_shared_doc_kwargs["klass"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
         optional_index=_shared_doc_kwargs["optional_index"],
         optional_columns=_shared_doc_kwargs["optional_columns"],
         optional_axis=_shared_doc_kwargs["optional_axis"],
     )
-    def reindex(
+    def reindex(  # type: ignore[override]
         self,
         labels=None,
         *,
@@ -5012,7 +5012,7 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None = None,
         copy: bool | None = None,
         level: Level | None = None,
-        fill_value: Scalar = np.nan,
+        fill_value: Scalar | None = np.nan,
         limit: int | None = None,
         tolerance=None,
     ) -> DataFrame:
