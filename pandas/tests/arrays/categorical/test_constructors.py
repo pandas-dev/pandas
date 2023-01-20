@@ -29,7 +29,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
@@ -74,7 +73,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = Int64Index([1, 2, 3])
+        expected = Index([1, 2, 3], dtype=np.int64)
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):
