@@ -31,6 +31,7 @@ from typing import (
     overload,
 )
 import warnings
+import weakref
 
 import numpy as np
 from numpy import ma
@@ -4043,12 +4044,12 @@ class DataFrame(NDFrame, OpsMixin):
         self._mgr.iset(loc, value, inplace=inplace)
         self._clear_item_cache()
 
-    def _set_item_mgr(self, key, value: ArrayLike) -> None:
+    def _set_item_mgr(self, key, value: ArrayLike, refs=[]) -> None:
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
             # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
+            self._mgr.insert(len(self._info_axis), key, value, ref=refs)
         else:
             self._iset_item_mgr(loc, value)
 
@@ -4078,7 +4079,17 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(value)
+        orig_value = None
+        refs = None
+        copy = True
+        if using_copy_on_write() and isinstance(value, Series):
+            refs = []
+            block = value._mgr.blocks[0]
+            refs.append(weakref.ref(block))
+            orig_value = value
+            copy = False
+
+        value = self._sanitize_column(value, copy=copy)
 
         if (
             key in self.columns
@@ -4091,7 +4102,19 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
-        self._set_item_mgr(key, value)
+        self._set_item_mgr(key, value, refs=refs)
+
+        # Also make a ref back to the DF in the Series so modifying the Series
+        # doesn't change DF (triggers a CoW)
+        # TODO: Make sure the weakref is not dead?
+        if orig_value is not None and not orig_value._mgr.refs:
+            # If the series already has refs (e.g. another DF contains it as a column),
+            # then modifying it will already trigger
+            # a CoW, so we are good
+            loc = self._info_axis.get_loc(key)
+            blkno = self._mgr.blknos[loc]
+            blk = self._mgr.blocks[blkno]
+            orig_value._mgr.refs = [weakref.ref(blk)]
 
     def _set_value(
         self, index: IndexLabel, col, value: Scalar, takeable: bool = False
@@ -4795,14 +4818,17 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value) -> ArrayLike:
+    def _sanitize_column(self, value, copy=False) -> ArrayLike:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
-        always copied and converted into an array.
+        converted into an array.
 
         Parameters
         ----------
         value : scalar, Series, or array-like
+        copy : bool, default False
+            Whether to copy new columns. You would want to turn this off if CoW
+            is on, and instead set refs appropriately.
 
         Returns
         -------
@@ -4815,11 +4841,12 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(value, DataFrame):
             return _reindex_for_setitem(value, self.index)
         elif is_dict_like(value):
-            return _reindex_for_setitem(Series(value), self.index)
+            return _reindex_for_setitem(Series(value), self.index, copy=copy)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True)
+
+        return sanitize_array(value, self.index, copy=copy, allow_2d=True)
 
     @property
     def _series(self):
@@ -11517,11 +11544,16 @@ def _from_nested_dict(data) -> collections.defaultdict:
     return new_data
 
 
-def _reindex_for_setitem(value: DataFrame | Series, index: Index) -> ArrayLike:
+def _reindex_for_setitem(
+    value: DataFrame | Series, index: Index, copy=True
+) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        return value._values.copy()
+        ret_values = value._values
+        if copy:
+            ret_values = ret_values.copy()
+        return ret_values
 
     # GH#4107
     try:

@@ -29,14 +29,13 @@ def test_set_column_with_array():
 def test_set_column_with_series(using_copy_on_write):
     # Case: setting a series as a new column (df[col] = s) copies that data
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    ser = Series([1, 2, 3])
+    ser = Series([1, 2, 3], name="c")
+    ser_orig = ser.copy()
 
     df["c"] = ser
 
     if using_copy_on_write:
-        # TODO(CoW) with CoW we can delay the copy
-        # assert np.shares_memory(df["c"].values, ser.values)
-        assert not np.shares_memory(df["c"].values, ser.values)
+        assert np.shares_memory(df["c"].values, ser.values)
     else:
         # the series data is copied
         assert not np.shares_memory(df["c"].values, ser.values)
@@ -44,7 +43,15 @@ def test_set_column_with_series(using_copy_on_write):
     # and modifying the series does not modify the DataFrame
     ser.iloc[0] = 0
     assert ser.iloc[0] == 0
-    tm.assert_series_equal(df["c"], Series([1, 2, 3], name="c"))
+    tm.assert_series_equal(df["c"], ser_orig)
+
+    # Update ser_orig now, so we can check if ser changed
+    ser_orig.iloc[0] = 0
+
+    # and modifying the DataFrame doesn't modify the Series
+    df.loc[0, "c"] = 10
+    assert df.loc[0, "c"] == 10
+    tm.assert_series_equal(ser, ser_orig)
 
 
 def test_set_column_with_index(using_copy_on_write):
@@ -79,12 +86,12 @@ def test_set_columns_with_dataframe(using_copy_on_write):
     df[["c", "d"]] = df2
 
     if using_copy_on_write:
-        # TODO(CoW) with CoW we can delay the copy
-        # assert np.shares_memory(df["c"].values, df2["c"].values)
-        assert not np.shares_memory(df["c"].values, df2["c"].values)
+        assert np.shares_memory(df["c"].values, df2["c"].values)
+        assert np.shares_memory(df["d"].values, df2["d"].values)
     else:
         # the data is copied
         assert not np.shares_memory(df["c"].values, df2["c"].values)
+        assert not np.shares_memory(df["d"].values, df2["d"].values)
 
     # and modifying the set DataFrame does not modify the original DataFrame
     df2.iloc[0, 0] = 0

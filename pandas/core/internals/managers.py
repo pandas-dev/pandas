@@ -1375,7 +1375,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: Hashable, value: ArrayLike, ref=None) -> None:
         """
         Insert item at selected position.
 
@@ -1384,6 +1384,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         loc : int
         item : hashable
         value : np.ndarray or ExtensionArray
+        ref: weakref.ref or None
+            A weakref pointing to the Block that owns the value or None
         """
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
@@ -1410,9 +1412,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self.axes[0] = new_axis
         self.blocks += (block,)
-        # TODO(CoW) do we always "own" the passed `value`?
-        if self.refs is not None:
-            self.refs += [None]
+
+        if ref:
+            if self.refs is not None:
+                self.refs.append(ref)
+            else:
+                self.refs = [None] * (len(self.blocks) - 1)
+                self.refs += ref
 
         self._known_consolidated = False
 
