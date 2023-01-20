@@ -7,6 +7,7 @@ from datetime import (
     timezone,
 )
 import locale
+import time
 import unicodedata
 
 from dateutil.tz import tzutc
@@ -1095,3 +1096,23 @@ def test_delimited_date():
         result = Timestamp("13-01-2000")
     expected = Timestamp(2000, 1, 13)
     assert result == expected
+
+
+def test_utctimetuple():
+    # GH 32174
+    ts = Timestamp("2000-01-01", tz="UTC")
+    result = ts.utctimetuple()
+    expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
+    assert result == expected
+
+
+def test_negative_dates():
+    # https://github.com/pandas-dev/pandas/issues/50787
+    ts = Timestamp("-2000-01-01")
+    msg = (
+        "^strftime not yet supported on Timestamps which are outside the range of "
+        "Python's standard library. For now, please call the components you need "
+        r"\(such as `.year` and `.month`\) and construct your string from there.$"
+    )
+    with pytest.raises(NotImplementedError, match=msg):
+        ts.strftime("%Y")

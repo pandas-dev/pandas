@@ -60,6 +60,37 @@ is an :class:`ArrowDtype`.
 `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
+The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas.
+Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``
+
+=============================================== ========================== ===================
+PyArrow type                                    pandas extension type      NumPy type
+=============================================== ========================== ===================
+:external+pyarrow:py:func:`pyarrow.bool_`       :class:`BooleanDtype`      ``np.bool_``
+:external+pyarrow:py:func:`pyarrow.int8`        :class:`Int8Dtype`         ``np.int8``
+:external+pyarrow:py:func:`pyarrow.int16`       :class:`Int16Dtype`        ``np.int16``
+:external+pyarrow:py:func:`pyarrow.int32`       :class:`Int32Dtype`        ``np.int32``
+:external+pyarrow:py:func:`pyarrow.int64`       :class:`Int64Dtype`        ``np.int64``
+:external+pyarrow:py:func:`pyarrow.uint8`       :class:`UInt8Dtype`        ``np.uint8``
+:external+pyarrow:py:func:`pyarrow.uint16`      :class:`UInt16Dtype`       ``np.uint16``
+:external+pyarrow:py:func:`pyarrow.uint32`      :class:`UInt32Dtype`       ``np.uint32``
+:external+pyarrow:py:func:`pyarrow.uint64`      :class:`UInt64Dtype`       ``np.uint64``
+:external+pyarrow:py:func:`pyarrow.float32`     :class:`Float32Dtype`      ``np.float32``
+:external+pyarrow:py:func:`pyarrow.float64`     :class:`Float64Dtype`      ``np.float64``
+:external+pyarrow:py:func:`pyarrow.time32`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.time64`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.timestamp`   :class:`DatetimeTZDtype`   ``np.datetime64``
+:external+pyarrow:py:func:`pyarrow.date32`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.date64`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.duration`    (none)                     ``np.timedelta64``
+:external+pyarrow:py:func:`pyarrow.binary`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.string`      :class:`StringDtype`       ``np.str_``
+:external+pyarrow:py:func:`pyarrow.decimal128`  (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.list_`       (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.map_`        (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.dictionary`  :class:`CategoricalDtype`  (none)
+=============================================== ========================== ===================
+
 .. note::
 
     For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated

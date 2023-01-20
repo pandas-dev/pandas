@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 import numpy as np
 import pytest
@@ -10,6 +11,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    RangeIndex,
     Series,
     get_dummies,
 )
@@ -164,8 +166,6 @@ class TestGetDummies:
 
     def test_get_dummies_unicode(self, sparse):
         # See GH 6885 - get_dummies chokes on unicode values
-        import unicodedata
-
         e = "e"
         eacute = unicodedata.lookup("LATIN SMALL LETTER E WITH ACUTE")
         s = [e, eacute, eacute]
@@ -472,7 +472,7 @@ class TestGetDummies:
         s_series = Series(s_list)
         s_series_index = Series(s_list, list("ABC"))
 
-        expected = DataFrame(index=np.arange(3))
+        expected = DataFrame(index=RangeIndex(3))
 
         result = get_dummies(s_list, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
@@ -505,7 +505,7 @@ class TestGetDummies:
         res_just_na = get_dummies(
             [np.nan], dummy_na=True, drop_first=True, sparse=sparse
         )
-        exp_just_na = DataFrame(index=np.arange(1))
+        exp_just_na = DataFrame(index=RangeIndex(1))
         tm.assert_frame_equal(res_just_na, exp_just_na)
 
     def test_dataframe_dummies_drop_first(self, df, sparse):

@@ -646,7 +646,7 @@ def test_selection_api_validation():
     # non DatetimeIndex
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
-        "but got an instance of 'Int64Index'"
+        "but got an instance of 'NumericIndex'"
     )
     with pytest.raises(TypeError, match=msg):
         df.resample("2D", level="v")
