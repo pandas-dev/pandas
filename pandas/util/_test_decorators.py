@@ -77,6 +77,13 @@ def safe_import(mod_name: str, min_version: str | None = None):
             return False
         else:
             raise
+    except AttributeError:
+        # TODO remove once https://github.com/scipy/scipy/issues/17827
+        # is addressed
+        if mod_name == "scipy.stats":
+            return False
+        else:
+            raise
 
     if not min_version:
         return mod
