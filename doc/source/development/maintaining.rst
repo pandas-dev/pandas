@@ -453,7 +453,7 @@ which will be triggered when the tag is pushed.
 6. Packages for supported versions in PyPI are built in the
    `MacPython repo <https://github.com/MacPython/pandas-wheels>`_.
    Open a PR updating the build commit to the released version, and merge it once the
-   CI is green to do this type::
+   CI is green. To do this type::
 
     git checkout master
     git pull --ff-only upstream master
