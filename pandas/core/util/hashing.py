@@ -85,7 +85,7 @@ def hash_pandas_object(
     obj: Index | DataFrame | Series,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: str | None = _default_hash_key,
+    hash_key: str = _default_hash_key,
     categorize: bool = True,
 ) -> Series:
     """
@@ -98,7 +98,7 @@ def hash_pandas_object(
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
-    hash_key : str, default _default_hash_key
+    hash_key : str, default '0123456789123456'
         Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
@@ -109,9 +109,6 @@ def hash_pandas_object(
     Series of uint64, same length as the object
     """
     from pandas import Series
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
