@@ -1029,6 +1029,71 @@ def test_replace(using_copy_on_write, replace_kwargs):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_replace_mask_all_false_second_block(using_copy_on_write):
+    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5, "c": 1, "d": 2})
+    df_orig = df.copy()
+
+    df2 = df.replace(to_replace=1.5, value=55.5)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    else:
+        assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    df2.loc[0, "c"] = 0.5
+    tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+        # TODO: This should split and not copy the whole block
+        # assert np.shares_memory(get_array(df, "d"), get_array(df2, "d"))
+
+
+def test_replace_coerce_single_column(using_copy_on_write):
+    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5})
+    df_orig = df.copy()
+
+    df2 = df.replace(to_replace=1.5, value="a")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    else:
+        assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    if using_copy_on_write:
+        df2.loc[0, "b"] = 0.5
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+
+
+@pytest.mark.parametrize("to_replace", ["xxx", ["xxx"]])
+def test_replace_to_replace_wrong_dtype(using_copy_on_write, to_replace):
+    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5})
+    df_orig = df.copy()
+
+    df2 = df.replace(to_replace=to_replace, value=1.5)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    df2.loc[0, "b"] = 0.5
+    tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+
+
 def test_putmask(using_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 2})
     view = df[:]

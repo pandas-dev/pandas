@@ -449,9 +449,35 @@ class BaseBlockManager(DataManager):
         # NDFrame.replace ensures the not-is_list_likes here
         assert not is_list_like(to_replace)
         assert not is_list_like(value)
-        return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace
+        return self._call_function_and_update_refs(
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
         )
+
+    def _call_function_and_update_refs(self, func, **kwargs):
+        if using_copy_on_write():
+            use_cow = True
+            if self.is_single_block:
+                original_blocks = [self.blocks[0]] * self.shape[0]
+            else:
+                original_blocks = [self.blocks[i] for i in self.blknos]
+        else:
+            use_cow = False
+            original_blocks = []
+
+        mgr = self.apply(
+            func,
+            **kwargs,
+            original_blocks=original_blocks,
+            using_copy_on_write=use_cow,
+        )
+        refs = [getattr(blk, "_ref", None) for blk in mgr.blocks]
+        if any(ref is not None for ref in refs):
+            mgr.refs = refs
+            mgr.parent = self
+        return mgr
 
     def replace_regex(self, **kwargs):
         return self.apply("_replace_regex", **kwargs)
@@ -466,14 +492,15 @@ class BaseBlockManager(DataManager):
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        bm = self.apply(
+        bm = self._call_function_and_update_refs(
             "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
         )
-        bm._consolidate_inplace()
+        if not using_copy_on_write():
+            bm._consolidate_inplace()
         return bm
 
     def to_native_types(self: T, **kwargs) -> T:
