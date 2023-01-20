@@ -133,7 +133,6 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     DatetimeIndex,
-    Float64Index,
     Index,
     MultiIndex,
     PeriodIndex,
@@ -1993,6 +1992,8 @@ Name: Max Speed, dtype: float64
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+        if not as_index:
+            raise TypeError("as_index=False only valid with DataFrame")
         axis = self._get_axis_number(axis)
 
         return SeriesGroupBy(
@@ -2129,22 +2130,32 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: Literal[False] = ...
+        self,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, *, keep: DropKeep = ..., inplace: Literal[True]) -> None:
+    def drop_duplicates(
+        self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
+    ) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: bool = ...
+        self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
     ) -> Series | None:
         ...
 
     def drop_duplicates(
-        self, *, keep: DropKeep = "first", inplace: bool = False
+        self,
+        *,
+        keep: DropKeep = "first",
+        inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2160,6 +2171,11 @@ Name: Max Speed, dtype: float64
 
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
+
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -2223,6 +2239,10 @@ Name: Max Speed, dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
+
+        if ignore_index:
+            result.index = default_index(len(result))
+
         if inplace:
             self._update_inplace(result)
             return None
@@ -2570,7 +2590,8 @@ Name: Max Speed, dtype: float64
 
         if is_list_like(q):
             result.name = self.name
-            return self._constructor(result, index=Float64Index(q), name=self.name)
+            idx = Index(q, dtype=np.float64)
+            return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
             return result.iloc[0]
