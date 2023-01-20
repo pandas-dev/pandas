@@ -883,6 +883,24 @@ class TestBlockManager:
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
 
+    def test_iset_split_block(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, bm.blocks[0], np.array([0]))
+        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0]))
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 0, 0, 1]))
+        assert len(bm.blocks) == 2
+
+    def test_iset_split_block_values(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(
+            0, bm.blocks[0], np.array([0]), np.array([list(range(10))])
+        )
+        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0]))
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 2, 2, 1]))
+        assert len(bm.blocks) == 3
+
 
 def _as_array(mgr):
     if mgr.ndim == 1:
