@@ -566,7 +566,7 @@ class ExtensionArray:
 
         Returns
         -------
-        array : np.ndarray or ExtensionArray
+        np.ndarray or pandas.api.extensions.ExtensionArray
             An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
@@ -600,7 +600,7 @@ class ExtensionArray:
 
         Returns
         -------
-        na_values : Union[np.ndarray, ExtensionArray]
+        numpy.ndarray or pandas.api.extensions.ExtensionArray
             In most cases, this should return a NumPy ndarray. For
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
@@ -819,7 +819,7 @@ class ExtensionArray:
 
         Returns
         -------
-        valid : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
@@ -880,7 +880,7 @@ class ExtensionArray:
 
         Returns
         -------
-        uniques : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
@@ -1088,7 +1088,7 @@ class ExtensionArray:
 
         Returns
         -------
-        repeated_array : %(klass)s
+        %(klass)s
             Newly created %(klass)s with repeated elements.
 
         See Also
