@@ -182,6 +182,20 @@ def to_json(
         indent=indent,
     ).write()
 
+    if orient == "split" and isinstance(obj, DataFrame):
+        if isinstance(obj.columns, MultiIndex):
+            lst = []
+            # backwards of multindex.fromArray
+            for i in range(len(obj.columns[0])):
+                sub = []
+                for j in range(len(obj.columns)):
+                    sub.append(obj.columns[j][i])
+                lst.append(sub)
+            newS = loads(s)
+            # fixes columns to original columns
+            newS["columns"] = lst
+            s = dumps(newS)
+
     if lines:
         s = convert_to_line_delimits(s)
 

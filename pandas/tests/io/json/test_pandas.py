@@ -1529,13 +1529,6 @@ class TestPandasContainer:
             ("columns", "{\"('c', 'd')\":{\"('a', 'b')\":1}}"),
             # TODO: the below have separate encoding procedures
             pytest.param(
-                "split",
-                "",
-                marks=pytest.mark.xfail(
-                    reason="Produces JSON but not in a consistent manner"
-                ),
-            ),
-            pytest.param(
                 "table",
                 "",
                 marks=pytest.mark.xfail(
