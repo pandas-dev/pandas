@@ -153,6 +153,7 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
+    _ref = None
 
     @final
     @cache_readonly
@@ -554,7 +555,7 @@ class Block(PandasObject):
             #  replace_list instead of replace.
             if using_copy_on_write and original_blocks:
                 result = self.copy(deep=False)
-                result._ref = result._ref = weakref.ref(  # type: ignore[attr-defined]
+                result._ref = result._ref = weakref.ref(
                     original_blocks[self.mgr_locs.as_array[0]]
                 )
                 return [result]
@@ -568,7 +569,7 @@ class Block(PandasObject):
             #  bc _can_hold_element is incorrect.
             if using_copy_on_write and original_blocks:
                 result = self.copy(deep=False)
-                result._ref = result._ref = weakref.ref(  # type: ignore[attr-defined]
+                result._ref = result._ref = weakref.ref(
                     original_blocks[self.mgr_locs.as_array[0]]
                 )
                 return [result]
@@ -695,11 +696,11 @@ class Block(PandasObject):
         if not len(pairs):
             # shortcut, nothing to replace
             if using_copy_on_write and original_blocks:
-                result = self.copy(deep=False)
-                result._ref = result._ref = weakref.ref(  # type: ignore[attr-defined]
+                nb = self.copy(deep=False)
+                nb._ref = nb._ref = weakref.ref(
                     original_blocks[self.mgr_locs.as_array[0]]
                 )
-                return [result]
+                return [nb]
             else:
                 return [self] if inplace else [self.copy()]
 
