@@ -36,6 +36,8 @@ import shutil
 import sys
 import time
 import typing
+from packaging import version
+from itertools import groupby
 
 import feedparser
 import jinja2
@@ -223,9 +225,20 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        for release in releases:
+        non_obsolete_releases = []
+
+        # This is necessary for the versions to be properly grouped
+        releases = sorted(releases, key=lambda release:version.parse(release["tag_name"]), reverse=True)
+        
+        for _, group in groupby(releases, key=lambda release: 
+            ((version.parse(release["tag_name"]).major), version.parse(release["tag_name"]).minor)):
+            
+            non_obsolete_releases.append(max(group, key=lambda release: version.parse(release["tag_name"])))
+
+        for release in non_obsolete_releases:
             if release["prerelease"]:
                 continue
+
             published = datetime.datetime.strptime(
                 release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
             )
