@@ -129,13 +129,14 @@ class Apply(metaclass=abc.ABCMeta):
                 def f(x):
                     return func(x, *args, **kwargs)
 
-            else:
+            elif type(func) == list and all(i for i in func if callable(i)):
                 # GH 50624
                 # only explicit arg passing is supported temporarily
                 # eg. df.agg([foo], a=1)
                 # df.agg([foo], 1) is not supported
                 f = _recreate_func(func, kwargs)
-
+            else:
+                f = func
         else:
             f = func
 
@@ -1564,8 +1565,6 @@ def _recreate_func(callable_list: list[Callable], kwargs: dict) -> list[partial[
         }
         func_kwargs[single_func] = single_func_kwargs
 
-        f = [
-            partial(single_func, **kwargs)
-            for single_func, kwargs in func_kwargs.items()
-        ]
-    return f
+    return [
+        partial(single_func, **kwargs) for single_func, kwargs in func_kwargs.items()
+    ]
