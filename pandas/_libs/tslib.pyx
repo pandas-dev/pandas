@@ -1,3 +1,7 @@
+import warnings
+
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 
 from datetime import timezone
@@ -316,6 +320,16 @@ def array_with_unit_to_datetime(
                         raise ValueError(
                             f"non convertible value {val} with the unit '{unit}'"
                         )
+                    warnings.warn(
+                        "The behavior of 'to_datetime' with 'unit' when parsing "
+                        "strings is deprecated. In a future version, strings will "
+                        "be parsed as datetime strings, matching the behavior "
+                        "without a 'unit'. To retain the old behavior, explicitly "
+                        "cast ints or floats to numeric type before calling "
+                        "to_datetime.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
                     iresult[i] = _wrapped_cast_from_unit(fval, unit)
 
