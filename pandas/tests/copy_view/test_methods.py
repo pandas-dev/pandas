@@ -1044,6 +1044,29 @@ def test_putmask(using_copy_on_write):
         assert view.iloc[0, 0] == 5
 
 
+def test_asfreq_noop(using_copy_on_write):
+    df = DataFrame(
+        {
+            "a": Series(
+                [0.0, None, 2.0, 3.0], index=date_range("1/1/2000", periods=4, freq="T")
+            )
+        }
+    )
+    df_orig = df.copy()
+    df2 = df.asfreq(freq="T")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_isetitem(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
