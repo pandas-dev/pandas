@@ -879,7 +879,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         except Exception:
             if self.handles is not None:
                 self.handles.close()
-            raise
+        finally:
+            raise Exception
 
     def _preprocess_data(self, data):
         """
