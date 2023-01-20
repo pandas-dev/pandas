@@ -439,7 +439,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = f"Unknown string format: 2014-11-02 01:00{z}"
+        msg = f"Unknown datetime string format, unable to parse: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 
