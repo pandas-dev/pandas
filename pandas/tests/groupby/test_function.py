@@ -1615,3 +1615,29 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     result = method(*args).index
     expected = df.index
     tm.assert_index_equal(result, expected)
+
+
+def test_duplicate_columns(request, groupby_func, as_index):
+    # GH#50806
+    if groupby_func == "corrwith":
+        msg = "GH#50845 - corrwith fails when there are duplicate columns"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
+    args = get_groupby_method_args(groupby_func, df)
+    gb = df.groupby("a", as_index=as_index)
+    result = getattr(gb, groupby_func)(*args)
+
+    if groupby_func in ("size", "ngroup", "cumcount"):
+        expected = getattr(
+            df.take([0, 1], axis=1).groupby("a", as_index=as_index), groupby_func
+        )(*args)
+        tm.assert_equal(result, expected)
+    else:
+        expected_df = df.copy()
+        expected_df.columns = ["a", "b", "c"]
+        expected_args = get_groupby_method_args(groupby_func, expected_df)
+        expected = getattr(expected_df.groupby("a", as_index=as_index), groupby_func)(
+            *expected_args
+        )
+        expected = expected.rename(columns={"c": "b"})
+        tm.assert_frame_equal(result, expected)

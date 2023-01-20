@@ -175,7 +175,7 @@ _apply_docs = {
 
     Returns
     -------
-    applied : Series or DataFrame
+    Series or DataFrame
 
     See Also
     --------
@@ -610,7 +610,7 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
-    _group_selection: IndexLabel | None = None
+    _group_selection: list[int] | None = None
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -726,7 +726,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
-                return self.obj._take(self._group_selection, axis=1, convert_indices=False)
+                return self.obj._take(
+                    self._group_selection, axis=1, convert_indices=False
+                )
             return self.obj
         else:
             return self.obj[self._selection]
@@ -1036,8 +1038,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
-            self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
-            self._group_selection = [idx for idx, label in enumerate(ax) if label not in groupers]
+            self._group_selection = [
+                idx for idx, label in enumerate(ax) if label not in groupers
+            ]
             self._reset_cache("_selected_obj")
 
     @final

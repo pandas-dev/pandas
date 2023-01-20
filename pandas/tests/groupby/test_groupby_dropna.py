@@ -544,9 +544,12 @@ def test_categorical_reducers(
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
-    expected["x"] = expected["x"].replace(4, None)
+    # Workaround since we can't use replace (GH#50872)
+    mask = expected["x"] == 4
+    expected["x"] = expected["x"].mask(mask, None).cat.remove_categories([4])
     if index_kind == "multi":
-        expected["x2"] = expected["x2"].replace(4, None)
+        mask = expected["x2"] == 4
+        expected["x2"] = expected["x2"].mask(mask, None).cat.remove_categories([4])
     if as_index:
         if index_kind == "multi":
             expected = expected.set_index(["x", "x2"])
@@ -578,6 +581,8 @@ def test_categorical_reducers(
     result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
+    print(result.index.dtype)
+    print(expected.index.dtype)
     tm.assert_equal(result, expected)
 
 

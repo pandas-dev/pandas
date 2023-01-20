@@ -89,6 +89,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_dict_like,
+    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -1832,7 +1833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self):
+        if is_object_dtype(self) or is_extension_array_dtype(self):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -2130,22 +2131,32 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: Literal[False] = ...
+        self,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, *, keep: DropKeep = ..., inplace: Literal[True]) -> None:
+    def drop_duplicates(
+        self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
+    ) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: bool = ...
+        self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
     ) -> Series | None:
         ...
 
     def drop_duplicates(
-        self, *, keep: DropKeep = "first", inplace: bool = False
+        self,
+        *,
+        keep: DropKeep = "first",
+        inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2161,6 +2172,11 @@ Name: Max Speed, dtype: float64
 
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
+
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -2224,6 +2240,10 @@ Name: Max Speed, dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
+
+        if ignore_index:
+            result.index = default_index(len(result))
+
         if inplace:
             self._update_inplace(result)
             return None
