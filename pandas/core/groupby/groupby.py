@@ -1025,9 +1025,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
-            if len(ax) < 2000:
-                # Determined experimentally, after 2000 this is slower than
-                # the NumPy version
+            if len(ax) < 1000:
+                # Determined experimentally, larger is slower than the NumPy version
                 self._group_selection = np.array(
                     [idx for idx, label in enumerate(ax) if label not in groupers]
                 )
