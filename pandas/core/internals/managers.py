@@ -1220,9 +1220,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    self._iset_split_block(
-                        blkno_l, blk, blk_locs, value_getitem(val_locs)
-                    )
+                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
@@ -1235,7 +1233,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     removed_blknos.append(blkno_l)
                     continue
                 else:
-                    self._iset_split_block(blkno_l, blk, blk_locs)
+                    # Defer setting the new values to enable consolidation
+                    self._iset_split_block(blkno_l, blk_locs)
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
@@ -1300,8 +1299,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._known_consolidated = False
 
     def _iset_split_block(
-        self, blkno_l: int, blk: Block, blk_locs, value: ArrayLike | None = None
+        self, blkno_l: int, blk_locs: np.ndarray, value: ArrayLike | None = None
     ):
+        """Removes columns from a block by splitting the block.
+
+        Avoids copying the whole block through slicing and updates the manager
+        after determinint the new block structure. Optionally adds a new block,
+        otherwise has to be done by the caller.
+
+        Parameters
+        ----------
+        blkno_l: The block number to operate on, relevant for updating the manager
+        blk_locs: The locations of our block that should be deleted.
+        value: The value to set as a replacement.
+        """
+        blk = self.blocks[blkno_l]
+
         if self._blklocs is None:
             self._rebuild_blknos_and_blklocs()
 
