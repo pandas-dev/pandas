@@ -63,7 +63,7 @@ class TestReductions:
         if getattr(obj, "tz", None) is not None:
             # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
-            assert result.value == expected
+            assert result._value == expected
         else:
             assert result == expected
 

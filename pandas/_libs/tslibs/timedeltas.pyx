@@ -1022,8 +1022,7 @@ cdef class _Timedelta(timedelta):
 
     @property
     def value(self):
-        1/0
-        pass
+        return convert_reso(self._value, self._creso, NPY_FR_ns, False)
 
     @property
     def _unit(self) -> str:

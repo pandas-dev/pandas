@@ -234,7 +234,6 @@ cdef class _Timestamp(ABCTimestamp):
 
     @property
     def value(self) -> int:
-        1/0
         return convert_reso(self._value, self._creso, NPY_FR_ns, False)
 
     @property
