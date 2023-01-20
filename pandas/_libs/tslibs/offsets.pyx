@@ -183,7 +183,7 @@ def apply_wraps(func):
                     res = result.tz_localize(None)
                 else:
                     res = result
-                value = res.as_unit("ns").value
+                value = res.as_unit("ns")._value
                 result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
