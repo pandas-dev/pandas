@@ -43,7 +43,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
@@ -76,7 +75,7 @@ class TestSeriesConstructors:
     def test_unparseable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
-        msg = "^Unknown string format: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             Series(vals, dtype="datetime64[ns]")
 
@@ -709,7 +708,7 @@ class TestSeriesConstructors:
             timedelta_range("1 day", periods=3),
             period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
-            Int64Index([1, 2, 3]),
+            Index([1, 2, 3]),
             RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import collections
 import datetime as dt
+from functools import partial
 import gc
 from json import loads
 import operator
@@ -35,7 +36,7 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._libs.lib import array_equal_fast
+from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -48,7 +49,6 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    ColspaceArgType,
     CompressionOptions,
     Dtype,
     DtypeArg,
@@ -182,7 +182,6 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats import format as fmt
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -2101,7 +2100,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("display.latex.repr"):
+        if config.get_option("styler.render.repr") == "latex":
             return self.to_latex()
         else:
             return None
@@ -3139,7 +3138,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3167,7 +3165,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3191,12 +3188,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        col_space: ColspaceArgType | None = None,
         header: bool_t | Sequence[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
@@ -3230,14 +3225,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
+        .. versionchanged:: 2.0.0
+           Refactored to use the Styler implementation via jinja2 templating.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
             it is assumed to be aliases for the column names.
@@ -3311,7 +3307,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``\begin{{}}`` in the output.
 
             .. versionadded:: 1.2.0
-        {returns}
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+
         See Also
         --------
         io.formats.style.Styler.to_latex : Render a DataFrame to LaTeX
@@ -3320,30 +3321,35 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
 
+        Notes
+        -----
+        As of v2.0.0 this method has changed to use the Styler implementation as
+        part of :meth:`.Styler.to_latex` via ``jinja2`` templating. This means
+        that ``jinja2`` is a requirement, and needs to be installed, for this method
+        to function. It is advised that users switch to using Styler, since that
+        implementation is more frequently updated and contains much more
+        flexibility with the output.
+
         Examples
         --------
-        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +SKIP
-        \begin{{tabular}}{{lll}}
-         \toprule
-               name &    mask &    weapon \\
-         \midrule
-            Raphael &     red &       sai \\
-          Donatello &  purple &  bo staff \\
-        \bottomrule
-        \end{{tabular}}
-        """
-        msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        Convert a general DataFrame to LaTeX with formatting:
 
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(index=False,
+        ...                   formatters={"name": str.upper},
+        ...                   float_format="{:.1f}".format,
+        ... )  # doctest: +SKIP
+        \begin{tabular}{lrr}
+        \toprule
+        name & age & height \\
+        \midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
+        \bottomrule
+        \end{tabular}
+        """
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -3358,34 +3364,169 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        if column_format is not None and not isinstance(column_format, str):
+            raise ValueError("`column_format` must be str or unicode")
+        length = len(self.columns) if columns is None else len(columns)
+        if isinstance(header, (list, tuple)) and len(header) != length:
+            raise ValueError(f"Writing {length} cols but got {len(header)} aliases")
+
+        # Refactor formatters/float_format/decimal/na_rep/escape to Styler structure
+        base_format_ = {
+            "na_rep": na_rep,
+            "escape": "latex" if escape else None,
+            "decimal": decimal,
+        }
+        index_format_: dict[str, Any] = {"axis": 0, **base_format_}
+        column_format_: dict[str, Any] = {"axis": 1, **base_format_}
+
+        if isinstance(float_format, str):
+            float_format_: Callable | None = lambda x: float_format % x
+        else:
+            float_format_ = float_format
+
+        def _wrap(x, alt_format_):
+            if isinstance(x, (float, complex)) and float_format_ is not None:
+                return float_format_(x)
+            else:
+                return alt_format_(x)
+
+        formatters_: list | tuple | dict | Callable | None = None
+        if isinstance(formatters, list):
+            formatters_ = {
+                c: partial(_wrap, alt_format_=formatters[i])
+                for i, c in enumerate(self.columns)
+            }
+        elif isinstance(formatters, dict):
+            index_formatter = formatters.pop("__index__", None)
+            column_formatter = formatters.pop("__columns__", None)
+            if index_formatter is not None:
+                index_format_.update({"formatter": index_formatter})
+            if column_formatter is not None:
+                column_format_.update({"formatter": column_formatter})
+
+            formatters_ = formatters
+            float_columns = self.select_dtypes(include="float").columns
+            for col in float_columns:
+                if col not in formatters.keys():
+                    formatters_.update({col: float_format_})
+        elif formatters is None and float_format is not None:
+            formatters_ = partial(_wrap, alt_format_=lambda v: v)
+        format_index_ = [index_format_, column_format_]
+
+        # Deal with hiding indexes and relabelling column names
+        hide_: list[dict] = []
+        relabel_index_: list[dict] = []
+        if columns:
+            hide_.append(
+                {
+                    "subset": [c for c in self.columns if c not in columns],
+                    "axis": "columns",
+                }
+            )
+        if header is False:
+            hide_.append({"axis": "columns"})
+        elif isinstance(header, (list, tuple)):
+            relabel_index_.append({"labels": header, "axis": "columns"})
+            format_index_ = [index_format_]  # column_format is overwritten
+
+        if index is False:
+            hide_.append({"axis": "index"})
+        if index_names is False:
+            hide_.append({"names": True, "axis": "index"})
+
+        render_kwargs_ = {
+            "hrules": True,
+            "sparse_index": sparsify,
+            "sparse_columns": sparsify,
+            "environment": "longtable" if longtable else None,
+            "multicol_align": multicolumn_format
+            if multicolumn
+            else f"naive-{multicolumn_format}",
+            "multirow_align": "t" if multirow else "naive",
+            "encoding": encoding,
+            "caption": caption,
+            "label": label,
+            "position": position,
+            "column_format": column_format,
+            "clines": "skip-last;data" if multirow else None,
+            "bold_rows": bold_rows,
+        }
+
+        return self._to_latex_via_styler(
+            buf,
+            hide=hide_,
+            relabel_index=relabel_index_,
+            format={"formatter": formatters_, **base_format_},
+            format_index=format_index_,
+            render_kwargs=render_kwargs_,
+        )
+
+    def _to_latex_via_styler(
+        self,
+        buf=None,
+        *,
+        hide: dict | list[dict] | None = None,
+        relabel_index: dict | list[dict] | None = None,
+        format: dict | list[dict] | None = None,
+        format_index: dict | list[dict] | None = None,
+        render_kwargs: dict | None = None,
+    ):
+        """
+        Render object to a LaTeX tabular, longtable, or nested table.
+
+        Uses the ``Styler`` implementation with the following, ordered, method chaining:
+
+        .. code-block:: python
+           styler = Styler(DataFrame)
+           styler.hide(**hide)
+           styler.relabel_index(**relabel_index)
+           styler.format(**format)
+           styler.format_index(**format_index)
+           styler.to_latex(buf=buf, **render_kwargs)
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        hide : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.hide``. If a list will
+            call the method numerous times.
+        relabel_index : dict, list of dict
+            Keyword args to pass to the method of ``Styler.relabel_index``. If a list
+            will call the method numerous times.
+        format : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format``. If a list will
+            call the method numerous times.
+        format_index : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format_index``. If a
+            list will call the method numerous times.
+        render_kwargs : dict
+            Keyword args to pass to the method call of ``Styler.to_latex``.
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+        """
+        from pandas.io.formats.style import Styler
+
         self = cast("DataFrame", self)
-        formatter = DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
-        )
-        return DataFrameRenderer(formatter).to_latex(
-            buf=buf,
-            column_format=column_format,
-            longtable=longtable,
-            encoding=encoding,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
+        styler = Styler(self, uuid="")
+
+        for kw_name in ["hide", "relabel_index", "format", "format_index"]:
+            kw = vars()[kw_name]
+            if isinstance(kw, dict):
+                getattr(styler, kw_name)(**kw)
+            elif isinstance(kw, list):
+                for sub_kw in kw:
+                    getattr(styler, kw_name)(**sub_kw)
+
+        # bold_rows is not a direct kwarg of Styler.to_latex
+        render_kwargs = {} if render_kwargs is None else render_kwargs
+        if render_kwargs.pop("bold_rows"):
+            styler.applymap_index(lambda v: "textbf:--rwrap;")
+
+        return styler.to_latex(buf=buf, **render_kwargs)
 
     @overload
     def to_csv(
@@ -3780,10 +3921,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis == 0
                 and indices.ndim == 1
                 and using_copy_on_write()
-                and array_equal_fast(
-                    indices,
-                    np.arange(0, len(self), dtype=np.intp),
-                )
+                and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
 
