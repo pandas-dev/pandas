@@ -11,8 +11,11 @@ from typing import (
     cast,
     final,
 )
+import weakref
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     Timestamp,
@@ -549,14 +552,22 @@ class Block(PandasObject):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            return [self] if inplace else [self.copy()]
+            if using_copy_on_write():
+                result = self.copy(deep=False)
+                result._ref = weakref.ref(self)
+            else:
+                return [self] if inplace else [self.copy()]
 
         if mask is None:
             mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            return [self] if inplace else [self.copy()]
+            if using_copy_on_write():
+                result = self.copy(deep=False)
+                result._ref = weakref.ref(self)
+            else:
+                return [self] if inplace else [self.copy()]
 
         elif self._can_hold_element(value):
             blk = self if inplace else self.copy()
