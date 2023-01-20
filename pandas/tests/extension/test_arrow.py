@@ -1279,7 +1279,11 @@ def test_quantile(data, interpolation, quantile, request):
             ser.quantile(q=quantile, interpolation=interpolation)
         return
 
-    if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+        pass
+    elif pa.types.is_temporal(data._data.type) and interpolation in ["lower", "higher"]:
+        pass
+    else:
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=pa.ArrowNotImplementedError,
@@ -1293,10 +1297,10 @@ def test_quantile(data, interpolation, quantile, request):
         assert result == data[0]
     else:
         # Just check the values
-        result = result.astype("float64[pyarrow]")
-        expected = pd.Series(
-            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
-        )
+        expected = pd.Series(data.take([0, 0]), index=[0.5, 0.5])
+        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+            expected = expected.astype("float64[pyarrow]")
+            result = result.astype("float64[pyarrow]")
         tm.assert_series_equal(result, expected)
 
 
