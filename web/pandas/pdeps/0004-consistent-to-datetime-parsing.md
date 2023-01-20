@@ -9,6 +9,7 @@
 ## Abstract
 
 The suggestion is that:
+
 - ``to_datetime`` becomes strict and uses the same datetime format to parse all elements in its input.
   The format will either be inferred from the first non-NaN element (if `format` is not provided by the user), or from
   `format`;
@@ -42,6 +43,7 @@ Out[2]: DatetimeIndex(['2000-12-01', '2000-01-13'], dtype='datetime64[ns]', freq
 ## Detailed Description
 
 Concretely, the suggestion is:
+
 - if no ``format`` is specified, ``pandas`` will guess the format from the first non-NaN row
   and parse the rest of the input according to that format. Errors will be handled
   according to the ``errors`` argument - there will be no silent switching of format;
@@ -66,6 +68,7 @@ dtype: datetime64[ns]
 ## Usage and Impact
 
 My expectation is that the impact would be a net-positive:
+
 - potentially severe bugs in people's code will be caught early;
 - users who actually want mixed formats can still parse them, but now they'd be forced to be
   very explicit about it;
@@ -80,6 +83,7 @@ The whatsnew notes read
 > In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation.
 
 I'd suggest making this change as part of the above, because:
+
 - it would only help prevent bugs, not introduce any;
 - given the severity of bugs that can result from the current behaviour, waiting another 2 years until pandas 3.0.0
   would potentially cause a lot of damage.
