@@ -20,6 +20,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Index,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
@@ -29,11 +30,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -1324,8 +1320,13 @@ class TestMerge:
                     ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT]
                 ),
             ),
-            (Float64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
-            (Int64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
+            *[
+                (
+                    Index([1, 2, 3], dtype=dtyp),
+                    Index([1, 2, 3, None, None, None], dtype=np.float64),
+                )
+                for dtyp in tm.ALL_REAL_NUMPY_DTYPES
+            ],
             (
                 IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
                 IntervalIndex.from_tuples(
@@ -2142,15 +2143,13 @@ class TestMergeOnIndexes:
 
 @pytest.mark.parametrize(
     "index",
-    [
+    [Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES]
+    + [
         CategoricalIndex(["A", "B"], categories=["A", "B"], name="index_col"),
-        Float64Index([1.0, 2.0], name="index_col"),
-        Int64Index([1, 2], name="index_col"),
-        UInt64Index([1, 2], name="index_col"),
         RangeIndex(start=0, stop=2, name="index_col"),
         DatetimeIndex(["2018-01-01", "2018-01-02"], name="index_col"),
     ],
-    ids=lambda x: type(x).__name__,
+    ids=lambda x: f"{type(x).__name__}[{x.dtype}]",
 )
 def test_merge_index_types(index):
     # gh-20777
@@ -2652,11 +2651,11 @@ def test_merge_duplicate_columns_with_suffix_causing_another_duplicate_raises():
 
 def test_merge_string_float_column_result():
     # GH 13353
-    df1 = DataFrame([[1, 2], [3, 4]], columns=pd.Index(["a", 114.0]))
+    df1 = DataFrame([[1, 2], [3, 4]], columns=Index(["a", 114.0]))
     df2 = DataFrame([[9, 10], [11, 12]], columns=["x", "y"])
     result = merge(df2, df1, how="inner", left_index=True, right_index=True)
     expected = DataFrame(
-        [[9, 10, 1, 2], [11, 12, 3, 4]], columns=pd.Index(["x", "y", "a", 114.0])
+        [[9, 10, 1, 2], [11, 12, 3, 4]], columns=Index(["x", "y", "a", 114.0])
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2712,8 +2711,8 @@ def test_merge_outer_with_NaN(dtype):
 
 def test_merge_different_index_names():
     # GH#45094
-    left = DataFrame({"a": [1]}, index=pd.Index([1], name="c"))
-    right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
+    left = DataFrame({"a": [1]}, index=Index([1], name="c"))
+    right = DataFrame({"a": [1]}, index=Index([1], name="d"))
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
