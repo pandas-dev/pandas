@@ -286,19 +286,10 @@ def parse_datetime_string(
     except ValueError:
         pass
 
-    try:
-        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst)
-    except TypeError:
-        # following may be raised from dateutil
-        # TypeError: 'NoneType' object is not iterable
-        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
-    except OverflowError as err:
-        # with e.g. "08335394550" dateutil raises when trying to pass
-        #  year=8335394550 to datetime.replace
-        raise OutOfBoundsDatetime(
-            f'Parsing "{date_string}" to datetime overflows'
-            ) from err
+    dt, _ = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
+                           dayfirst=dayfirst, yearfirst=yearfirst,
+                           ignoretz=False)
+
     if dt.tzinfo is not None:
         # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
         #  bounds, which is invalid (can be constructed, but raises if we call
@@ -415,15 +406,9 @@ def parse_datetime_string_with_reso(
     except ValueError:
         pass
 
-    try:
-        parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
-                                      dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False)
-    except (ValueError, OverflowError) as err:
-        # TODO: allow raise of errors within instead
-        raise DateParseError(err)
-    if parsed is None:
-        raise DateParseError(f"Could not parse {date_string}")
+    parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
+                                  dayfirst=dayfirst, yearfirst=yearfirst,
+                                  ignoretz=False)
     return parsed, reso
 
 
@@ -612,7 +597,7 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
 
 cdef dateutil_parse(
     str timestr,
-    object default,
+    datetime default,
     bint ignoretz=False,
     bint dayfirst=False,
     bint yearfirst=False,
@@ -623,13 +608,15 @@ cdef dateutil_parse(
         str attr
         datetime ret
         object res
-        object reso = None
+        str reso = None
         dict repl = {}
 
     res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
 
     if res is None:
-        raise ValueError(f"Unknown datetime string format, unable to parse: {timestr}")
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {timestr}"
+        )
 
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
@@ -639,7 +626,7 @@ cdef dateutil_parse(
             reso = attr
 
     if reso is None:
-        raise ValueError(f"Unable to parse datetime string: {timestr}")
+        raise DateParseError(f"Unable to parse datetime string: {timestr}")
 
     if reso == "microsecond":
         if repl["microsecond"] == 0:
@@ -647,7 +634,19 @@ cdef dateutil_parse(
         elif repl["microsecond"] % 1000 == 0:
             reso = "millisecond"
 
-    ret = default.replace(**repl)
+    try:
+        ret = default.replace(**repl)
+    except ValueError as err:
+        # e.g. "day is out of range for month"
+        # we re-raise to match dateutil's exception message
+        raise DateParseError(str(err) + ": " + timestr) from err
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{timestr}" to datetime overflows'
+        ) from err
+
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
