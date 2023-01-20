@@ -814,33 +814,66 @@ def test_to_numeric_use_nullable_dtypes(val, dtype):
 
 
 @pytest.mark.parametrize(
-    "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
+    "val, dtype",
+    [
+        (1, "Int64"),
+        (1.5, "Float64"),
+        (True, "boolean"),
+        (1, "int64[pyarrow]"),
+        (1.5, "float64[pyarrow]"),
+        (True, "bool[pyarrow]"),
+    ],
 )
 def test_to_numeric_use_nullable_dtypes_na(val, dtype):
     # GH#50505
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+        dtype_backend = "pyarrow"
+    else:
+        dtype_backend = "pandas"
     ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, use_nullable_dtypes=True)
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True)
     expected = Series([val, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "val, dtype, downcast",
-    [(1, "Int8", "integer"), (1.5, "Float32", "float"), (1, "Int8", "signed")],
+    [
+        (1, "Int8", "integer"),
+        (1.5, "Float32", "float"),
+        (1, "Int8", "signed"),
+        (1, "int8[pyarrow]", "integer"),
+        (1.5, "float[pyarrow]", "float"),
+        (1, "int8[pyarrow]", "signed"),
+    ],
 )
 def test_to_numeric_use_nullable_dtypes_downcasting(val, dtype, downcast):
     # GH#50505
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+        dtype_backend = "pyarrow"
+    else:
+        dtype_backend = "pandas"
     ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, use_nullable_dtypes=True, downcast=downcast)
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True, downcast=downcast)
     expected = Series([val, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_to_numeric_use_nullable_dtypes_downcasting_uint():
+@pytest.mark.parametrize(
+    "smaller, dtype_backend", [["UInt8", "pandas"], ["uint8[pyarrow]", "pyarrow"]]
+)
+def test_to_numeric_use_nullable_dtypes_downcasting_uint(smaller, dtype_backend):
     # GH#50505
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
     ser = Series([1, pd.NA], dtype="UInt64")
-    result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
-    expected = Series([1, pd.NA], dtype="UInt8")
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
+    expected = Series([1, pd.NA], dtype=smaller)
     tm.assert_series_equal(result, expected)
 
 
