@@ -36,7 +36,7 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._libs.lib import array_equal_fast
+from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -3921,10 +3921,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis == 0
                 and indices.ndim == 1
                 and using_copy_on_write()
-                and array_equal_fast(
-                    indices,
-                    np.arange(0, len(self), dtype=np.intp),
-                )
+                and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
 
