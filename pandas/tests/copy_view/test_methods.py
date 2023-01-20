@@ -66,6 +66,7 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
         # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
+        lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
         # lambda df, copy: df.infer_objects(copy=copy)
         lambda df, copy: df.to_timestamp(copy=copy),
@@ -83,6 +84,7 @@ def test_copy_shallow(using_copy_on_write):
         "rename_axis1",
         # "astype",  # CoW not yet implemented
         # "swaplevel",  # only series
+        "swapaxes",
         "truncate",
         # "infer_objects",  # CoW not yet implemented
         "to_timestamp",
