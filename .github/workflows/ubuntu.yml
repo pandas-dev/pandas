@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         pattern: ["not single_cpu", "single_cpu"]
         pyarrow_version: ["7", "8", "9", "10"]
         include:
@@ -77,7 +77,7 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             error_on_warnings: "0"
         exclude:
           - env_file: actions-38.yaml
@@ -91,6 +91,12 @@ jobs:
           - env_file: actions-39.yaml
             pyarrow_version: "8"
           - env_file: actions-39.yaml
+            pyarrow_version: "9"
+          - env_file: actions-311.yaml
+            pyarrow_version: "7"
+          - env_file: actions-311.yaml
+            pyarrow_version: "8"
+          - env_file: actions-311.yaml
             pyarrow_version: "9"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}

@@ -64,7 +64,6 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
-    Float64Index,
     Index,
     ensure_index,
 )
@@ -384,10 +383,8 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if (
-            using_copy_on_write()
-            and self.refs is not None
-            and not all(ref is None for ref in self.refs)
+        if using_copy_on_write() and any(
+            not self._has_no_reference_block(i) for i in range(len(self.blocks))
         ):
             # some reference -> copy full dataframe
             # TODO(CoW) this could be optimized to only copy the blocks that would
@@ -1223,10 +1220,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
+                    nbs_tup = tuple(blk.delete(blk_locs))
+                    first_nb = new_block_2d(
+                        value_getitem(val_locs), BlockPlacement(blk.mgr_locs[blk_locs])
+                    )
+                    if self.refs is not None:
+                        self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
                     self._clear_reference_block(blkno_l)
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
+                    continue
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1234,25 +1237,26 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # If all block items are unfit, schedule the block for removal.
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
+                    continue
                 else:
                     nbs = blk.delete(blk_locs)
                     # Add first block where old block was and remaining blocks at
                     # the end to avoid updating all block numbers
                     first_nb = nbs[0]
                     nbs_tup = tuple(nbs[1:])
-                    nr_blocks = len(self.blocks)
-                    blocks_tup = (
-                        self.blocks[:blkno_l]
-                        + (first_nb,)
-                        + self.blocks[blkno_l + 1 :]
-                        + nbs_tup
-                    )
-                    self.blocks = blocks_tup
-                    self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+            nr_blocks = len(self.blocks)
+            blocks_tup = (
+                self.blocks[:blkno_l]
+                + (first_nb,)
+                + self.blocks[blkno_l + 1 :]
+                + nbs_tup
+            )
+            self.blocks = blocks_tup
+            self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
-                    for i, nb in enumerate(nbs_tup):
-                        self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                        self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
+            for i, nb in enumerate(nbs_tup):
+                self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+                self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
@@ -1544,7 +1548,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def quantile(
         self: T,
         *,
-        qs: Float64Index,
+        qs: Index,  # with dtype float 64
         axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
     ) -> T:
@@ -1572,7 +1576,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert axis == 1  # only ever called this way
 
         new_axes = list(self.axes)
-        new_axes[1] = Float64Index(qs)
+        new_axes[1] = Index(qs, dtype=np.float64)
 
         blocks = [
             blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
@@ -1957,9 +1961,17 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer: slice | npt.NDArray[np.bool_]) -> SingleBlockManager:
+    def getitem_mgr(self, indexer: slice | np.ndarray) -> SingleBlockManager:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
+        if (
+            using_copy_on_write()
+            and isinstance(indexer, np.ndarray)
+            and len(indexer) > 0
+            and com.is_bool_indexer(indexer)
+            and indexer.all()
+        ):
+            return type(self)(blk, self.index, [weakref.ref(blk)], parent=self)
         array = blk._slice(indexer)
         if array.ndim > 1:
             # This will be caught by Series._get_values

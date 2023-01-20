@@ -42,7 +42,6 @@ engine_params = [
         "openpyxl",
         marks=[
             td.skip_if_no("openpyxl"),
-            pytest.mark.filterwarnings("ignore:.*html argument"),
         ],
     ),
     pytest.param(
