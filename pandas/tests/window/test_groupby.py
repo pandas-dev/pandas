@@ -817,9 +817,15 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected_result)
 
-    @pytest.mark.xfail(reason="GH#50805")
     @pytest.mark.parametrize(
-        "columns", [MultiIndex.from_tuples([("A", ""), ("B", "C")]), ["A", "B"]]
+        "columns",
+        [
+            pytest.param(
+                MultiIndex.from_tuples([("A", ""), ("B", "C")]),
+                marks=pytest.mark.xfail(reason="GH#50805"),
+            ),
+            ["A", "B"],
+        ],
     )
     def test_by_column_not_in_values(self, columns):
         # GH 32262
