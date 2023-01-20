@@ -1538,7 +1538,9 @@ def _check_arg(callable: Callable, arg: str) -> bool:
     return arg in args_names
 
 
-def _recreate_func(callable_list: list[Callable], kwargs: dict) -> list[partial[Any]]:
+def _recreate_func(
+    callable_list: list[Callable], kwargs: dict
+) -> list[partial[Any]] | Callable[[Any], Any]:
     # GH 50624
     """Recreate callable with kwargs.
 
@@ -1549,7 +1551,7 @@ def _recreate_func(callable_list: list[Callable], kwargs: dict) -> list[partial[
 
     Returns
     -------
-    list[[partial[Any]]
+    list[partial[Any]] | Callable[[Any], Any]
 
     Examples
     --------
