@@ -565,6 +565,8 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
                                      f"freq: {freq}")
 
             ret = default.replace(year=year, month=month)
+            # Monthly is as close as we can get to a non-existent NPY_FR_Q
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
             is_quarter[0] = 1
             return ret
 
