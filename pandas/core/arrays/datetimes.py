@@ -1067,7 +1067,7 @@ default 'raise'
 
         Returns
         -------
-        datetimes : ndarray[object]
+        numpy.ndarray
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
