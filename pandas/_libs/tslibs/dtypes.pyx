@@ -423,3 +423,15 @@ cdef dict _reso_str_map = {
 }
 
 cdef dict _str_reso_map = {v: k for k, v in _reso_str_map.items()}
+
+cdef dict npy_unit_to_attrname = {
+    NPY_DATETIMEUNIT.NPY_FR_Y: "year",
+    NPY_DATETIMEUNIT.NPY_FR_M: "month",
+    NPY_DATETIMEUNIT.NPY_FR_D: "day",
+    NPY_DATETIMEUNIT.NPY_FR_h: "hour",
+    NPY_DATETIMEUNIT.NPY_FR_m: "minute",
+    NPY_DATETIMEUNIT.NPY_FR_s: "second",
+    NPY_DATETIMEUNIT.NPY_FR_ms: "millisecond",
+    NPY_DATETIMEUNIT.NPY_FR_us: "microsecond",
+    NPY_DATETIMEUNIT.NPY_FR_ns: "nanosecond",
+}
