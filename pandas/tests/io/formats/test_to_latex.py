@@ -1135,7 +1135,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+            a & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
             b & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 4 & 0 & 4 & 0 \\
@@ -1151,7 +1151,7 @@ class TestToLatexMultiindex:
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.set_index(["a", "b"]).to_latex()
+        result = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1172,12 +1172,16 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex(float_format="{:.1f}".format)
+        result = (
+            df.groupby("a")
+            .describe()
+            .to_latex(float_format="{:.1f}".format, escape=True)
+        )
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-             & \multicolumn{8}{l}{c} \\
+             & \multicolumn{8}{r}{c} \\
              & count & mean & std & min & 25\% & 50\% & 75\% & max \\
             a &  &  &  &  &  &  &  &  \\
             \midrule
@@ -1200,7 +1204,7 @@ class TestToLatexMultiindex:
         df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -1221,7 +1225,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-             & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+             & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
              & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 5 & 0 & 5 & 0 \\
@@ -1236,7 +1240,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multicolumn_false(self, multicolumn_frame):
-        result = multicolumn_frame.to_latex(multicolumn=False)
+        result = multicolumn_frame.to_latex(multicolumn=False, multicolumn_format="l")
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
@@ -1347,7 +1351,7 @@ class TestToLatexMultiindex:
         df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
-        observed = df.set_index(["a", "b"]).to_latex()
+        observed = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1369,7 +1373,7 @@ class TestToLatexMultiindex:
     def test_to_latex_non_string_index(self):
         # GH 19981
         df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}

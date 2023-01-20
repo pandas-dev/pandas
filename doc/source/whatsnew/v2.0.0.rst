@@ -481,6 +481,13 @@ The alternative options giving similar functionality are indicated below:
   ``styler.render.max_rows``, ``styler.render.max_columns`` and
   ``styler.render.max_elements``.
 
+Note that due to this change some defaults have also changed:
+
+- ``multirow`` now defaults to *True*.
+- ``multicol_align`` defaults to *"r"* instead of *"l"*.
+- ``multicol_align`` defaults to *"r"* instead of *"l"*.
+- ``escape`` now defaults to *False*.
+
 Note that the behaviour of ``_repr_latex_`` is also changed. Previously
 setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
 JupyterNotebook, and not when the user is running the notebook. Now the
