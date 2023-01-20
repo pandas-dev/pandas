@@ -387,7 +387,7 @@ def test_invalid_index_types_unicode():
     # see gh-10822
     #
     # Odd error message on conversions to datetime for unicode.
-    msg = "Unknown string format"
+    msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
         frequencies.infer_freq(tm.makeStringIndex(10))
@@ -422,7 +422,7 @@ def test_series_invalid_type(end):
 
 def test_series_inconvertible_string():
     # see gh-6407
-    msg = "Unknown string format"
+    msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
         frequencies.infer_freq(Series(["foo", "bar"]))

@@ -259,7 +259,7 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "^Unknown string format: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
