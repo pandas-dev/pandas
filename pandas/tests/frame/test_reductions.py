@@ -1607,7 +1607,12 @@ def test_reduction_axis_none_returns_scalar(method):
     result = getattr(df, method)(axis=None)
     np_arr = df.to_numpy()
     if method in {"skew", "kurt"}:
-        comp_mod = pytest.importorskip("scipy.stats")
+        try:
+            comp_mod = pytest.importorskip("scipy.stats")
+        except AttributeError:
+            # TODO remove this once the following is addressed:
+            # https://github.com/scipy/scipy/issues/17811
+            return
         if method == "kurt":
             method = "kurtosis"
         expected = getattr(comp_mod, method)(np_arr, bias=False, axis=None)

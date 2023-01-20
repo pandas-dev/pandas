@@ -78,8 +78,8 @@ def safe_import(mod_name: str, min_version: str | None = None):
         else:
             raise
     except AttributeError:
-        # TODO remove once https://github.com/scipy/scipy/issues/17827
-        # is addressed
+        # TODO remove this once the following is addressed:
+        # https://github.com/scipy/scipy/issues/17811
         if mod_name == "scipy.stats":
             return False
         else:
