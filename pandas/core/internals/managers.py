@@ -1325,8 +1325,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
 
-        if self.refs is not None:
-            self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
+        if using_copy_on_write():
+            if self.refs is not None:
+                self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
+            else:
+                # This can happen if we have inplace=True
+                new_ref = weakref.ref(self.blocks[blkno_l])
+                self.refs = [None] * len(self.blocks) + [new_ref] * len(nbs_tup)
+                if value is None:
+                    self.refs[blkno_l] = new_ref
 
         if value is not None:
             # Only clear if we set new values
@@ -1337,6 +1344,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
         )
         self.blocks = blocks_tup
+
+        if not nbs_tup and value is not None:
+            # No need to update anything if split did not happen
+            return
 
         self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
@@ -1383,12 +1394,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         if using_copy_on_write() and not self._has_no_reference(loc):
-            # otherwise perform Copy-on-Write and clear the reference
             blkno = self.blknos[loc]
-            blocks = list(self.blocks)
-            blocks[blkno] = blocks[blkno].copy()
-            self.blocks = tuple(blocks)
-            self._clear_reference_block(blkno)
+            # Split blocks to only copy the column we want to modify
+            blk_loc = self.blklocs[loc]
+            # Copy our values
+            values = self.blocks[blkno].values
+            if values.ndim == 1:
+                values = values.copy()
+            else:
+                values = values[[blk_loc]]
+            self._iset_split_block(blkno, [blk_loc], values)
 
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again

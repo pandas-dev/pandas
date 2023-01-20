@@ -883,3 +883,35 @@ def test_dataframe_add_column_from_series():
     df.loc[2, "new"] = 100
     expected_s = Series([0, 11, 12])
     tm.assert_series_equal(s, expected_s)
+
+
+@pytest.mark.parametrize("val", [100, "a"])
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.loc[0, "a"],
+        lambda df: df.iloc[0, 0],
+        lambda df: df.loc[[0], "a"],
+        lambda df: df.iloc[[0], 0],
+        lambda df: df.loc[:, "a"],
+        lambda df: df.iloc[:, 0],
+    ],
+)
+def test_set_value_loc_copy_only_necessary_column(using_copy_on_write, method, val):
+    # Only copy column that is modified, multi-block only for now
+    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1.5})
+    df_orig = df.copy()
+    view = df[:]
+
+    df.loc[0, "a"] = val
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "c"), get_array(view, "c"))
+        if val == "a":
+            assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        else:
+            assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))

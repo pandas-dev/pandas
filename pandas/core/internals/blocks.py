@@ -1328,6 +1328,8 @@ class Block(PandasObject):
             values = np.delete(values, loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+        elif self.values.ndim == 1:
+            return []
 
         if np.max(loc) >= self.values.shape[0]:
             raise IndexError
