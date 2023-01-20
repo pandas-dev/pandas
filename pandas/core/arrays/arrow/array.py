@@ -1017,6 +1017,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         pa_type = self._data.type
 
+        data_to_reduce = self._data
+
         if name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -1032,11 +1034,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 zero = 0
 
             not_eq = pc.not_equal(self._data, zero)
-            result = not_eq._reduce(name, skipna=skipna, **kwargs)
-            if isinstance(result, np.bool_):
-                # need to rule out pd.NA
-                result = bool(result)
-            return result
+            data_to_reduce = not_eq
 
         if name == "sem":
 
@@ -1059,8 +1057,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
         try:
-            result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+            result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
