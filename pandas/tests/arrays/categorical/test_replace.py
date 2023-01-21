@@ -23,8 +23,9 @@ import pandas._testing as tm
         ([1, 4], [5, 2], [5, 2, 3], False),
         # GH49404: overlap between to_replace and value
         ([1, 2, 3], [2, 3, 4], [2, 3, 4], False),
-        # GH50872: replace with null
+        # GH50872, GH46884: replace with null
         (1, None, [None, 2, 3], False),
+        (1, pd.NA, [None, 2, 3], False),
         # check_categorical sorts categories, which crashes on mixed dtypes
         (3, "4", [1, 2, "4"], False),
         ([1, 2, "3"], "5", ["5", "5", 3], True),
