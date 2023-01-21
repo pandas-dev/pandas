@@ -886,17 +886,17 @@ class TestBlockManager:
     def test_iset_split_block(self):
         bm = create_mgr("a,b,c: i8; d: f8")
         bm._iset_split_block(0, np.array([0]))
-        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0]))
+        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0], dtype="int64"))
         # First indexer currently does not have a block associated with it in case
-        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 0, 0, 1]))
+        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 0, 0, 1], dtype="int64"))
         assert len(bm.blocks) == 2
 
     def test_iset_split_block_values(self):
         bm = create_mgr("a,b,c: i8; d: f8")
         bm._iset_split_block(0, np.array([0]), np.array([list(range(10))]))
-        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0]))
+        tm.assert_numpy_array_equal(bm.blklocs, np.array([0, 0, 1, 0], dtype="int64"))
         # First indexer currently does not have a block associated with it in case
-        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 2, 2, 1]))
+        tm.assert_numpy_array_equal(bm.blknos, np.array([0, 2, 2, 1], dtype="int64"))
         assert len(bm.blocks) == 3
 
 
