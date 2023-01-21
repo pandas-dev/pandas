@@ -864,7 +864,7 @@ def test_read_seek(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@pytest.mark.xfail
 def test_read_csv_skip_blank_rows(all_parsers):
     # GH22693
     parser = all_parsers
