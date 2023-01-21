@@ -20,8 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_numeric_dtype,
     is_scalar,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -137,7 +135,6 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
-            orig = data
             if isinstance(data, (list, tuple)):
                 if len(data):
                     data = sanitize_array(data, index=None)
