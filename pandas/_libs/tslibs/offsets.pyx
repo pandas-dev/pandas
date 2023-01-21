@@ -2792,7 +2792,7 @@ cdef class Week(SingleConstructorOffset):
      2nd week of each month.
 
     Examples
-    ---------
+    --------
 
     >>> date_object = pd.Timestamp("2023-01-13")
     >>> date_object

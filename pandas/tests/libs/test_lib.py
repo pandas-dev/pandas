@@ -244,25 +244,22 @@ class TestIndexing:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["int64", "int32"])
-    def test_array_equal_fast(self, dtype):
+    def test_is_range_indexer(self, dtype):
         # GH#50592
-        left = np.arange(1, 100, dtype=dtype)
-        right = np.arange(1, 100, dtype=dtype)
-        assert lib.array_equal_fast(left, right)
+        left = np.arange(0, 100, dtype=dtype)
+        assert lib.is_range_indexer(left, 100)
 
     @pytest.mark.parametrize("dtype", ["int64", "int32"])
-    def test_array_equal_fast_not_equal(self, dtype):
+    def test_is_range_indexer_not_equal(self, dtype):
         # GH#50592
         left = np.array([1, 2], dtype=dtype)
-        right = np.array([2, 2], dtype=dtype)
-        assert not lib.array_equal_fast(left, right)
+        assert not lib.is_range_indexer(left, 2)
 
     @pytest.mark.parametrize("dtype", ["int64", "int32"])
-    def test_array_equal_fast_not_equal_shape(self, dtype):
+    def test_is_range_indexer_not_equal_shape(self, dtype):
         # GH#50592
-        left = np.array([1, 2, 3], dtype=dtype)
-        right = np.array([2, 2], dtype=dtype)
-        assert not lib.array_equal_fast(left, right)
+        left = np.array([0, 1, 2], dtype=dtype)
+        assert not lib.is_range_indexer(left, 2)
 
 
 def test_cache_readonly_preserve_docstrings():

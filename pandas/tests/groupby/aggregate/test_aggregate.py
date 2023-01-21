@@ -137,7 +137,7 @@ def test_agg_apply_corner(ts, tsframe):
     grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
-    # groupby float64 values results in Float64Index
+    # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
     tm.assert_series_equal(grouped.agg(np.sum), exp)
