@@ -1033,8 +1033,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
+        data_to_reduce = self._data
+
+        pa_dtype = self._data.type
+        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_dtype):
+            data_to_reduce = self._data.cast(pa.int64())
+
         try:
-            result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+            result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
@@ -1045,6 +1052,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             raise TypeError(msg) from err
         if pc.is_null(result).as_py():
             return self.dtype.na_value
+
+        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_dtype):
+            result = result.cast(pa_dtype)
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:
