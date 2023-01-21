@@ -75,7 +75,7 @@ def assert_almost_equal(
     right : object
     check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
-        then `RangeIndex` and `NuericIndex` with int64 dtype are also considered
+        then `RangeIndex` and `NumericIndex` with int64 dtype are also considered
         equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
