@@ -1,0 +1,21 @@
+
+[tool.ruff]
+line-length = 88
+update-check = false
+target-version = "py38"
+
+select = [
+  # pyflakes
+  "F",
+  # pycodestyle
+  "E",
+  "W",
+  # flake8-2020
+  "YTT",
+  # flake8-bugbear
+  "B",
+  # flake8-quotes
+  "Q",
+  # pylint
+  "PLE", "PLR", "PLW",
+]
