@@ -443,6 +443,3 @@ repos:
         types: [python]
         files: ^pandas/tests
         language: python
-        exclude: |
-            (?x)
-            ^pandas/tests/generic/test_generic.py  # GH50380
