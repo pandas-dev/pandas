@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -261,7 +263,7 @@ class BaseMethodsTests(BaseExtensionTests):
             data_missing.fillna(data_missing.take([1]))
 
     # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
-    _combine_le_expected_dtype = np.dtype(bool)
+    _combine_le_expected_dtype: Dtype = np.dtype(bool)
 
     def test_combine_le(self, data_repeated):
         # GH 20825
