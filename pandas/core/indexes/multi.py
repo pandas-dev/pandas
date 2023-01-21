@@ -2164,7 +2164,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        dropped : MultiIndex
+        MultiIndex
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
