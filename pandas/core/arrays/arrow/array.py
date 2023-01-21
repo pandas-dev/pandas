@@ -985,7 +985,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pyarrow_meth = getattr(pc, pyarrow_name, None)
         if pyarrow_meth is None:
             return super()._accumulate(name, skipna=skipna, **kwargs)
-        result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+
+        data_to_accum = self._data
+
+        pa_dtype = data_to_accum.type
+        if pa.types.is_duration(pa_dtype):
+            data_to_accum = data_to_accum.cast(pa.int64())
+
+        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+
+        if pa.types.is_duration(pa_dtype):
+            result = result.cast(pa_dtype)
+
         return type(self)(result)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
