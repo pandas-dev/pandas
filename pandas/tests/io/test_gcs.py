@@ -3,6 +3,7 @@ import os
 import tarfile
 import zipfile
 
+import fsspec
 import numpy as np
 import pytest
 
@@ -37,7 +38,8 @@ def gcs_buffer(monkeypatch):
             # needed for pyarrow
             return [{"name": path, "type": "file"}]
 
-    monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
+    # Overwrites the default implementation from gcsfs to our mock class
+    fsspec.register_implementation("gs", MockGCSFileSystem, clobber=True)
 
     return gcs_buffer
 
