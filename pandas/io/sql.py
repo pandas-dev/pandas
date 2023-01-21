@@ -484,6 +484,7 @@ def read_sql(
     columns: list[str] = ...,
     chunksize: None = ...,
     use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame:
     ...
 
@@ -499,6 +500,7 @@ def read_sql(
     columns: list[str] = ...,
     chunksize: int = ...,
     use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype: DtypeArg | None = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -513,6 +515,7 @@ def read_sql(
     columns: list[str] | None = None,
     chunksize: int | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
@@ -566,6 +569,12 @@ def read_sql(
         implementation, even if no nulls are present.
 
         .. versionadded:: 2.0
+    dtype : Type name or dict of columns
+        Data type for data or columns. E.g. np.float64 or
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        The argument is ignored if a table is passed instead of a query.
+
+        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -652,6 +661,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 chunksize=chunksize,
                 use_nullable_dtypes=use_nullable_dtypes,
+                dtype=dtype,
             )
 
         try:
@@ -679,6 +689,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 chunksize=chunksize,
                 use_nullable_dtypes=use_nullable_dtypes,
+                dtype=dtype,
             )
 
 
