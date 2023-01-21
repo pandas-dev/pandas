@@ -10,10 +10,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    Timedelta,
-    lib,
-)
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -1027,13 +1024,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
 
-            zero: int | Timedelta
             if pa.types.is_duration(pa_type):
-                zero = Timedelta(0)
+                data_to_cmp = self._data.cast(pa.int64())
             else:
-                zero = 0
+                data_to_cmp = self._data
 
-            not_eq = pc.not_equal(self._data, zero)
+            not_eq = pc.not_equal(data_to_cmp, 0)
             data_to_reduce = not_eq
 
         if name == "sem":
