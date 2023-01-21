@@ -3,7 +3,6 @@ import os
 import tarfile
 import zipfile
 
-import fsspec
 import numpy as np
 import pytest
 
@@ -23,12 +22,12 @@ from pandas.util import _test_decorators as td
 @pytest.fixture
 def gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
-    from fsspec import AbstractFileSystem
+    import fsspec
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
 
-    class MockGCSFileSystem(AbstractFileSystem):
+    class MockGCSFileSystem(fsspec.AbstractFileSystem):
         @staticmethod
         def open(*args, **kwargs):
             gcs_buffer.seek(0)
