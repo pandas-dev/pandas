@@ -123,6 +123,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     RangeIndex,
+    default_index,
 )
 from pandas.core.internals.blocks import ensure_block_shape
 from pandas.core.series import Series
@@ -174,7 +175,7 @@ _apply_docs = {
 
     Returns
     -------
-    applied : Series or DataFrame
+    Series or DataFrame
 
     See Also
     --------
@@ -910,8 +911,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.level = level
 
         if not as_index:
-            if not isinstance(obj, DataFrame):
-                raise TypeError("as_index=False only valid with DataFrame")
             if axis != 0:
                 raise ValueError("as_index=False only valid for axis=0")
 
@@ -1157,6 +1156,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
+    def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
+        if isinstance(result, Series):
+            result = result.to_frame()
+
+        # zip in reverse so we can always insert at loc 0
+        columns = result.columns
+        for name, lev, in_axis in zip(
+            reversed(self.grouper.names),
+            reversed(self.grouper.get_group_levels()),
+            reversed([grp.in_axis for grp in self.grouper.groupings]),
+        ):
+            # GH #28549
+            # When using .apply(-), name will be in columns already
+            if in_axis and name not in columns:
+                result.insert(0, name, lev)
+
+        return result
+
     def _indexed_output_to_ndframe(
         self, result: Mapping[base.OutputKey, ArrayLike]
     ) -> Series | DataFrame:
@@ -1193,7 +1210,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not self.as_index:
             # `not self.as_index` is only relevant for DataFrameGroupBy,
             #   enforced in __init__
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
             result = result._consolidate()
             index = Index(range(self.grouper.ngroups))
 
@@ -1613,7 +1630,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         res = self._wrap_agged_manager(new_mgr)
         if is_ser:
-            res.index = self.grouper.result_index
+            if self.as_index:
+                res.index = self.grouper.result_index
+            else:
+                res = self._insert_inaxis_grouper(res)
             return self._reindex_output(res)
         else:
             return res
@@ -1887,7 +1907,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._wrap_agged_manager(new_mgr)
 
         if result.ndim == 1:
-            result.index = self.grouper.result_index
+            if self.as_index:
+                result.index = self.grouper.result_index
+            else:
+                result = self._insert_inaxis_grouper(result)
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2622,31 +2645,33 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         exclude=None,
     ) -> NDFrameT:
         with self._group_selection_context():
-            if len(self._selected_obj) == 0:
-                described = self._selected_obj.describe(
+            selected_obj = self._selected_obj
+            if len(selected_obj) == 0:
+                described = selected_obj.describe(
                     percentiles=percentiles, include=include, exclude=exclude
                 )
-                if self._selected_obj.ndim == 1:
+                if selected_obj.ndim == 1:
                     result = described
                 else:
                     result = described.unstack()
                 return result.to_frame().T.iloc[:0]
 
-            result = self._python_apply_general(
-                lambda x: x.describe(
-                    percentiles=percentiles, include=include, exclude=exclude
-                ),
-                self._selected_obj,
-                not_indexed_same=True,
-            )
+            with com.temp_setattr(self, "as_index", True):
+                result = self._python_apply_general(
+                    lambda x: x.describe(
+                        percentiles=percentiles, include=include, exclude=exclude
+                    ),
+                    selected_obj,
+                    not_indexed_same=True,
+                )
             if self.axis == 1:
                 return result.T
 
             # GH#49256 - properly handle the grouping column(s)
-            if self._selected_obj.ndim != 1 or self.as_index:
-                result = result.unstack()
-                if not self.as_index:
-                    self._insert_inaxis_grouper_inplace(result)
+            result = result.unstack()
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
 
             return result
 

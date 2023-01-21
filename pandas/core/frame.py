@@ -48,7 +48,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
-    array_equal_fast,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -723,6 +723,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
+                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -731,6 +732,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     typ=manager,
+                    copy=_copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -960,12 +962,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
 
-    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
-    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
     @property
-    def _values(  # type: ignore[override]
-        self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
+    def _values(self) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -3569,6 +3567,31 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def T(self) -> DataFrame:
+        """
+        The transpose of the DataFrame.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        DataFrame.transpose : Transpose index and columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df.T
+              0  1
+        col1  1  2
+        col2  3  4
+        """
         return self.transpose()
 
     # ----------------------------------------------------------------------
@@ -5530,7 +5553,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
         """
         # Operate column-wise
-        res = self if inplace else self.copy()
+        res = self if inplace else self.copy(deep=None)
         ax = self.columns
 
         for i, ax_value in enumerate(ax):
@@ -6701,7 +6724,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 return self.copy(deep=None)
 
-        if array_equal_fast(indexer, np.arange(0, len(indexer), dtype=indexer.dtype)):
+        if is_range_indexer(indexer, len(indexer)):
             if inplace:
                 return self._update_inplace(self)
             else:
@@ -10991,7 +11014,7 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame:
+        DataFrame
             The DataFrame has a PeriodIndex.
 
         Examples

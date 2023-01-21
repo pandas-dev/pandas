@@ -1341,7 +1341,9 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -
         assert_series_equal(ser[l_slc], expected)
 
 
-def assert_metadata_equivalent(left, right) -> None:
+def assert_metadata_equivalent(
+    left: DataFrame | Series, right: DataFrame | Series | None = None
+) -> None:
     """
     Check that ._metadata attributes are equivalent.
     """

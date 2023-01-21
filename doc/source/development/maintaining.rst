@@ -458,8 +458,8 @@ which will be triggered when the tag is pushed.
     git checkout master
     git pull --ff-only upstream master
     git checkout -B RLS-<version>
-    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'<version>'"/' azure/windows.yml azure/posix.yml
-    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'<version>'"/' .travis.yml
+    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'v<version>'"/' azure/windows.yml azure/posix.yml
+    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'v<version>'"/' .travis.yml
     git commit -am "RLS <version>"
     git push -u origin RLS-<version>
 
@@ -474,14 +474,21 @@ which will be triggered when the tag is pushed.
 Post-Release
 ````````````
 
-1. Close the milestone and the issue for the released version.
+1. Update symlink to stable documentation by logging in to our web server, and
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``.
 
-2. Create a new issue for the next release, with the estimated date or release.
+2. If releasing a major or minor release, open a PR in our source code to update
+   ``web/pandas/versions.json``, to have the desired versions in the documentation
+   dropdown menu.
 
-3. Open a PR with the placeholder for the release notes of the next version. See
+3. Close the milestone and the issue for the released version.
+
+4. Create a new issue for the next release, with the estimated date of release.
+
+5. Open a PR with the placeholder for the release notes of the next version. See
    for example [the PR for 1.5.3](https://github.com/pandas-dev/pandas/pull/49843/files).
 
-4. Announce the new release in the official channels (use previous announcements
+6. Announce the new release in the official channels (use previous announcements
    for reference):
 
     - The pandas-dev and pydata mailing lists
