@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_interval_dtype,
     is_number,
     is_numeric_dtype,
@@ -1335,12 +1336,14 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -
 
     assert_series_equal(ser.loc[l_slc], expected)
 
-    if not ser.index.is_integer():
+    if not is_integer_dtype(ser.index):
         # For integer indices, .loc and plain getitem are position-based.
         assert_series_equal(ser[l_slc], expected)
 
 
-def assert_metadata_equivalent(left, right) -> None:
+def assert_metadata_equivalent(
+    left: DataFrame | Series, right: DataFrame | Series | None = None
+) -> None:
     """
     Check that ._metadata attributes are equivalent.
     """

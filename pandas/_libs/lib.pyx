@@ -650,22 +650,20 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equal_fast(
-    ndarray[int6432_t, ndim=1] left, ndarray[int6432_t, ndim=1] right,
-) -> bool:
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, int n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
     """
     cdef:
-        Py_ssize_t i, n = left.size
+        Py_ssize_t i
 
-    if left.size != right.size:
+    if left.size != n:
         return False
 
     for i in range(n):
 
-        if left[i] != right[i]:
+        if left[i] != i:
             return False
 
     return True
@@ -2272,6 +2270,7 @@ def maybe_convert_numeric(
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
+                mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
@@ -2328,6 +2327,7 @@ def maybe_convert_numeric(
 
                 seen.saw_null()
                 floats[i] = NaN
+                mask[i] = 1
 
     if seen.check_uint64_conflict():
         return (values, None)

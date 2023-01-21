@@ -1561,12 +1561,14 @@ class TestToDatetime:
     def test_to_datetime_malformed_raise(self):
         # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
+        msg = (
+            'Parsed string "200622-12-31" gives an invalid tzoffset, which must '
+            r"be between -timedelta\(hours=24\) and timedelta\(hours=24\), "
+            "at position 0"
+        )
         with pytest.raises(
             ValueError,
-            match=(
-                r"^offset must be a timedelta strictly between "
-                r"-timedelta\(hours=24\) and timedelta\(hours=24\)., at position 0$"
-            ),
+            match=msg,
         ):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -1623,10 +1625,14 @@ class TestToDatetime:
             "2015-03-14T16:15:14.123-08:00",
             "2019-03-04T21:56:32.620-07:00",
             None,
+            "today",
+            "now",
         ]
         ser = Series(vals)
         assert all(ser[i] is vals[i] for i in range(len(vals)))  # GH#40111
 
+        now = Timestamp("now")
+        today = Timestamp("today")
         mixed = to_datetime(ser)
         expected = Series(
             [
@@ -1638,7 +1644,11 @@ class TestToDatetime:
             ],
             dtype=object,
         )
-        tm.assert_series_equal(mixed, expected)
+        tm.assert_series_equal(mixed[:-2], expected)
+        # we'll check mixed[-1] and mixed[-2] match now and today to within
+        # call-timing tolerances
+        assert (now - mixed.iloc[-1]).total_seconds() <= 0.1
+        assert (today - mixed.iloc[-2]).total_seconds() <= 0.1
 
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
             to_datetime(mixed)
@@ -1924,6 +1934,27 @@ class TestToDatetimeUnit:
         )
         result = to_datetime([1, 2, bad_val], unit="D", errors="coerce")
         tm.assert_index_equal(result, expected)
+
+    def test_float_to_datetime_raise_near_bounds(self):
+        # GH50183
+        msg = "cannot convert input with unit 'D'"
+        oneday_in_ns = 1e9 * 60 * 60 * 24
+        tsmax_in_days = 2**63 / oneday_in_ns  # 2**63 ns, in days
+        # just in bounds
+        should_succeed = Series(
+            [0, tsmax_in_days - 0.005, -tsmax_in_days + 0.005], dtype=float
+        )
+        expected = (should_succeed * oneday_in_ns).astype(np.int64)
+        for error_mode in ["raise", "coerce", "ignore"]:
+            result1 = to_datetime(should_succeed, unit="D", errors=error_mode)
+            tm.assert_almost_equal(result1.astype(np.int64), expected, rtol=1e-10)
+        # just out of bounds
+        should_fail1 = Series([0, tsmax_in_days + 0.005], dtype=float)
+        should_fail2 = Series([0, -tsmax_in_days - 0.005], dtype=float)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail1, unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail2, unit="D", errors="raise")
 
 
 class TestToDatetimeDataFrame:
@@ -2467,7 +2498,7 @@ class TestToDatetimeMisc:
         malformed = np.array(["1/100/2000", np.nan], dtype=object)
 
         # GH 10636, default is now 'raise'
-        msg = r"Unknown string format:|day is out of range for month"
+        msg = r"Unknown datetime string format"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -2781,7 +2812,7 @@ class TestDaysInMonth:
             assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "day is out of range for month"
+        msg = "day is out of range for month: 2015-02-29, at position 0"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
@@ -2901,7 +2932,9 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
+        result1, _ = parsing.parse_datetime_string_with_reso(
+            date_str, yearfirst=yearfirst
+        )
         with tm.assert_produces_warning(warning, match="Could not infer format"):
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
@@ -2937,7 +2970,7 @@ class TestDatetimeParsingWrappers:
 
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
-        result1, _ = parsing.parse_time_string("NaT")
+        result1, _ = parsing.parse_datetime_string_with_reso("NaT")
         result2 = to_datetime("NaT")
         result3 = Timestamp("NaT")
         result4 = DatetimeIndex(["NaT"])[0]
@@ -3008,7 +3041,7 @@ class TestDatetimeParsingWrappers:
         dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
         assert dateutil_result == expected
 
-        result1, _ = parsing.parse_time_string(
+        result1, _ = parsing.parse_datetime_string_with_reso(
             date_str, dayfirst=dayfirst, yearfirst=yearfirst
         )
 
@@ -3036,7 +3069,7 @@ class TestDatetimeParsingWrappers:
         # must be the same as dateutil result
         exp_now = parse(date_str)
 
-        result1, _ = parsing.parse_time_string(date_str)
+        result1, _ = parsing.parse_datetime_string_with_reso(date_str)
         with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
@@ -3206,9 +3239,10 @@ class TestOrigin:
 
     def test_incorrect_value_exception(self):
         # GH47495
-        with pytest.raises(
-            ValueError, match="Unknown string format: yesterday, at position 1"
-        ):
+        msg = (
+            "Unknown datetime string format, unable to parse: yesterday, at position 1"
+        )
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(
                 UserWarning, match="Could not infer format"
             ):

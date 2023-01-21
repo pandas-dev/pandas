@@ -201,6 +201,12 @@ def execute(sql, con, params=None):
     -------
     Results Iterable
     """
+    warnings.warn(
+        "`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )  # GH50185
     sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
@@ -464,6 +470,7 @@ def read_sql(
     columns: list[str] = ...,
     chunksize: None = ...,
     use_nullable_dtypes: bool = ...,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame:
     ...
 
@@ -479,6 +486,7 @@ def read_sql(
     columns: list[str] = ...,
     chunksize: int = ...,
     use_nullable_dtypes: bool = ...,
+    dtype: DtypeArg | None = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -493,6 +501,7 @@ def read_sql(
     columns: list[str] | None = None,
     chunksize: int | None = None,
     use_nullable_dtypes: bool = False,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
@@ -546,6 +555,12 @@ def read_sql(
         implementation, even if no nulls are present.
 
         .. versionadded:: 2.0
+    dtype : Type name or dict of columns
+        Data type for data or columns. E.g. np.float64 or
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        The argument is ignored if a table is passed instead of a query.
+
+        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -626,6 +641,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 chunksize=chunksize,
                 use_nullable_dtypes=use_nullable_dtypes,
+                dtype=dtype,
             )
 
         try:
@@ -653,6 +669,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 chunksize=chunksize,
                 use_nullable_dtypes=use_nullable_dtypes,
+                dtype=dtype,
             )
 
 

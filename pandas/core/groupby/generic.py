@@ -75,7 +75,6 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
@@ -86,14 +85,12 @@ from pandas.core.groupby.groupby import (
     _apply_docs,
     _transform_template,
 )
-from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
     default_index,
 )
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -251,7 +248,11 @@ class SeriesGroupBy(GroupBy[Series]):
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
             index = self.grouper.result_index
-            return self.obj._constructor(result.ravel(), index=index, name=data.name)
+            result = self.obj._constructor(result.ravel(), index=index, name=data.name)
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
+            return result
 
         relabeling = func is None
         columns = None
@@ -271,6 +272,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 # columns is not narrowed by mypy from relabeling flag
                 assert columns is not None  # for mypy
                 ret.columns = columns
+            if not self.as_index:
+                ret = self._insert_inaxis_grouper(ret)
+                ret.index = default_index(len(ret))
             return ret
 
         else:
@@ -290,23 +294,24 @@ class SeriesGroupBy(GroupBy[Series]):
 
                 # result is a dict whose keys are the elements of result_index
                 index = self.grouper.result_index
-                return Series(result, index=index)
+                result = Series(result, index=index)
+                if not self.as_index:
+                    result = self._insert_inaxis_grouper(result)
+                    result.index = default_index(len(result))
+                return result
 
     agg = aggregate
 
     def _aggregate_multiple_funcs(self, arg) -> DataFrame:
         if isinstance(arg, dict):
-
-            # show the deprecation, but only if we
-            # have not shown a higher level one
-            # GH 15931
-            raise SpecificationError("nested renamer is not supported")
-
-        if any(isinstance(x, (tuple, list)) for x in arg):
+            if self.as_index:
+                # GH 15931
+                raise SpecificationError("nested renamer is not supported")
+            else:
+                # GH#50684 - This accidentally worked in 1.x
+                arg = list(arg.items())
+        elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
-
-            # indicated column order
-            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
@@ -316,10 +321,13 @@ class SeriesGroupBy(GroupBy[Series]):
             arg = zip(columns, arg)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
-        for idx, (name, func) in enumerate(arg):
+        with com.temp_setattr(self, "as_index", True):
+            # Combine results using the index, need to adjust index after
+            # if as_index=False (GH#50724)
+            for idx, (name, func) in enumerate(arg):
 
-            key = base.OutputKey(label=name, position=idx)
-            results[key] = self.aggregate(func)
+                key = base.OutputKey(label=name, position=idx)
+                results[key] = self.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
@@ -399,12 +407,18 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
+            if not self.as_index and not_indexed_same:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
             return result
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
                 data=values, index=self.grouper.result_index, name=self.obj.name
             )
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
@@ -580,7 +594,7 @@ class SeriesGroupBy(GroupBy[Series]):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna: bool = True) -> Series:
+    def nunique(self, dropna: bool = True) -> Series | DataFrame:
         """
         Return number of unique elements in the group.
 
@@ -632,7 +646,12 @@ class SeriesGroupBy(GroupBy[Series]):
                 # GH#21334s
                 res[ids[idx]] = out
 
-        result = self.obj._constructor(res, index=ri, name=self.obj.name)
+        result: Series | DataFrame = self.obj._constructor(
+            res, index=ri, name=self.obj.name
+        )
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
@@ -646,7 +665,12 @@ class SeriesGroupBy(GroupBy[Series]):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ) -> Series:
+    ) -> Series | DataFrame:
+        if bins is None:
+            result = self._value_counts(
+                normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+            )
+            return result
 
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
@@ -783,7 +807,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi, name=self.obj.name)
+        result = self.obj._constructor(out, index=mi, name=self.obj.name)
+        if not self.as_index:
+            result.name = "proportion" if normalize else "count"
+            result = result.reset_index()
+        return result
 
     def fillna(
         self,
@@ -1271,7 +1299,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         result.columns = result.columns.droplevel(-1)
 
         if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
         return result
@@ -1383,7 +1411,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
                 result = self.obj._constructor(values, columns=[self._selection])
-                self._insert_inaxis_grouper_inplace(result)
+                result = self._insert_inaxis_grouper(result)
                 return result
         else:
             # values are Series
@@ -1440,7 +1468,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
 
         return self._reindex_output(result)
 
@@ -1771,7 +1799,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset,
                 level=self.level,
                 grouper=self.grouper,
+                exclusions=self.exclusions,
                 selection=key,
+                as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
                 observed=self.observed,
@@ -1786,19 +1816,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return obj.T._mgr
         else:
             return obj._mgr
-
-    def _insert_inaxis_grouper_inplace(self, result: DataFrame) -> None:
-        # zip in reverse so we can always insert at loc 0
-        columns = result.columns
-        for name, lev, in_axis in zip(
-            reversed(self.grouper.names),
-            reversed(self.grouper.get_group_levels()),
-            reversed([grp.in_axis for grp in self.grouper.groupings]),
-        ):
-            # GH #28549
-            # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
@@ -1822,7 +1839,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
@@ -1833,7 +1850,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = result.T
 
         # Note: we really only care about inferring numeric dtypes here
-        return self._reindex_output(result).infer_objects()
+        return self._reindex_output(result).infer_objects(copy=False)
 
     def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
@@ -1915,7 +1932,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             results.index = default_index(len(results))
-            self._insert_inaxis_grouper_inplace(results)
+            results = self._insert_inaxis_grouper(results)
 
         return results
 
@@ -2224,122 +2241,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US        0.25
         4    male    medium      FR        0.25
         """
-        if self.axis == 1:
-            raise NotImplementedError(
-                "DataFrameGroupBy.value_counts only handles axis=0"
-            )
-
-        with self._group_selection_context():
-            df = self.obj
-
-            in_axis_names = {
-                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
-            }
-            if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
-            else:
-                unique_cols = set(self._selected_obj.columns)
-                if subset is not None:
-                    subsetted = set(subset)
-                    clashing = subsetted & set(in_axis_names)
-                    if clashing:
-                        raise ValueError(
-                            f"Keys {clashing} in subset cannot be in "
-                            "the groupby column keys."
-                        )
-                    doesnt_exist = subsetted - unique_cols
-                    if doesnt_exist:
-                        raise ValueError(
-                            f"Keys {doesnt_exist} in subset do not "
-                            f"exist in the DataFrame."
-                        )
-                else:
-                    subsetted = unique_cols
-
-                keys = [
-                    # Can't use .values because the column label needs to be preserved
-                    self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
-                ]
-
-            groupings = list(self.grouper.groupings)
-            for key in keys:
-                grouper, _, _ = get_grouper(
-                    df,
-                    key=key,
-                    axis=self.axis,
-                    sort=self.sort,
-                    observed=False,
-                    dropna=dropna,
-                )
-                groupings += list(grouper.groupings)
-
-            # Take the size of the overall columns
-            gb = df.groupby(
-                groupings,
-                sort=self.sort,
-                observed=self.observed,
-                dropna=self.dropna,
-            )
-            result_series = cast(Series, gb.size())
-
-            # GH-46357 Include non-observed categories
-            # of non-grouping columns regardless of `observed`
-            if any(
-                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
-                and not grouping._observed
-                for grouping in groupings
-            ):
-                levels_list = [ping.result_index for ping in groupings]
-                multi_index, _ = MultiIndex.from_product(
-                    levels_list, names=[ping.name for ping in groupings]
-                ).sortlevel()
-                result_series = result_series.reindex(multi_index, fill_value=0)
-
-            if normalize:
-                # Normalize the results by dividing by the original group sizes.
-                # We are guaranteed to have the first N levels be the
-                # user-requested grouping.
-                levels = list(
-                    range(len(self.grouper.groupings), result_series.index.nlevels)
-                )
-                indexed_group_size = result_series.groupby(
-                    result_series.index.droplevel(levels),
-                    sort=self.sort,
-                    dropna=self.dropna,
-                ).transform("sum")
-                result_series /= indexed_group_size
-
-                # Handle groups of non-observed categories
-                result_series = result_series.fillna(0.0)
-
-            if sort:
-                # Sort the values and then resort by the main grouping
-                index_level = range(len(self.grouper.groupings))
-                result_series = result_series.sort_values(
-                    ascending=ascending
-                ).sort_index(level=index_level, sort_remaining=False)
-
-            result: Series | DataFrame
-            if self.as_index:
-                result = result_series
-            else:
-                # Convert to frame
-                name = "proportion" if normalize else "count"
-                index = result_series.index
-                columns = com.fill_missing_names(index.names)
-                if name in columns:
-                    raise ValueError(
-                        f"Column label '{name}' is duplicate of result column"
-                    )
-                result_series.name = name
-                result_series.index = index.set_names(range(len(columns)))
-                result_frame = result_series.reset_index()
-                result_frame.columns = columns + [name]
-                result = result_frame
-            return result.__finalize__(self.obj, method="value_counts")
+        return self._value_counts(subset, normalize, sort, ascending, dropna)
 
     def fillna(
         self,
