@@ -61,6 +61,7 @@ to select the nullable dtypes implementation.
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`to_numeric`
 
 
 And the following methods will also utilize the ``mode.dtype_backend`` option.
