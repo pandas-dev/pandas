@@ -8,7 +8,7 @@ from pathlib import PurePath
 from tempfile import NamedTemporaryFile
 from typing import Any
 
-from pandas.compat._optional import import_optional_dependency
+from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -23,7 +23,12 @@ class __calamine__:
 class CalamineExcelReader(BaseExcelReader):
     book: str
     _sheet_names: list[str] | None = None
-    import_optional_dependency("python_calamine")
+
+    def __init__(
+        self, filepath_or_buffer, storage_options: StorageOptions = None
+    ) -> None:
+        import_optional_dependency("python_calamine")
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self) -> type[__calamine__]:

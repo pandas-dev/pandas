@@ -34,6 +34,7 @@ VERSIONS = {
     "pyarrow": "6.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "7.0.0",
+    "python-calamine": "0.0.6",
     "pyxlsb": "1.0.8",
     "s3fs": "2021.08.0",
     "scipy": "1.7.1",
@@ -48,7 +49,6 @@ VERSIONS = {
     "tzdata": "2022.1",
     "qtpy": "2.2.0",
     "pyqt5": "5.15.1",
-    "python-calamine": "0.0.5",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -62,6 +62,7 @@ INSTALL_MAPPING = {
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
+    "python_calamine": "python-calamine",
     "snappy": "python-snappy",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
