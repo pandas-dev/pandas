@@ -50,10 +50,8 @@ def test_read_csv(cleared_fs, df1):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec import registry
     from fsspec.registry import known_implementations
 
-    registry.target.clear()
     with pytest.raises(ValueError, match="nosuchprotocol"):
         read_csv("nosuchprotocol://test/test.csv")
     err_msg = "test error message"
