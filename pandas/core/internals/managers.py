@@ -1300,7 +1300,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def _iset_split_block(
         self, blkno_l: int, blk_locs: np.ndarray, value: ArrayLike | None = None
-    ):
+    ) -> None:
         """Removes columns from a block by splitting the block.
 
         Avoids copying the whole block through slicing and updates the manager
