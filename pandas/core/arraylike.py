@@ -122,21 +122,21 @@ class OpsMixin:
         >>> df = pd.DataFrame({'height': [1.5, 2.6], 'weight': [500, 800]},
         ...                   index=['elk', 'moose'])
         >>> df
-            height  weight
+               height  weight
         elk       1.5     500
         moose     2.6     800
 
         Adding a scalar affects all rows and columns.
 
         >>> df[['height', 'weight']] + 1.5
-            height  weight
+               height  weight
         elk       3.0   501.5
         moose     4.1   801.5
 
         Each element of a list is added to a column of the DataFrame, in order.
 
         >>> df[['height', 'weight']] + [0.5, 1.5]
-            height  weight
+               height  weight
         elk       2.0   501.5
         moose     3.1   801.5
 
@@ -144,7 +144,7 @@ class OpsMixin:
         each value in the dictionary is added to the corresponding column.
 
         >>> df + {'height': 0.5, 'weight': 1.5}
-            height  weight
+               height  weight
         elk       2.0   501.5
         moose     3.1   801.5
 
@@ -153,7 +153,7 @@ class OpsMixin:
 
         >>> s1 = pd.Series([0.5, 1.5], index=['weight', 'height'])
         >>> df[['height', 'weight']] + s1
-            height  weight
+               height  weight
         elk       3.0   500.5
         moose     4.1   800.5
 
@@ -163,12 +163,12 @@ class OpsMixin:
 
         >>> s2 = pd.Series([0.5, 1.5], index=['elk', 'moose'])
         >>> df[['height', 'weight']] + s2
-            elk  height  moose  weight
+               elk  height  moose  weight
         elk    NaN     NaN    NaN     NaN
         moose  NaN     NaN    NaN     NaN
 
         >>> df[['height', 'weight']].add(s2, axis='index')
-            height  weight
+               height  weight
         elk       2.0   500.5
         moose     4.1   801.5
 
@@ -178,7 +178,7 @@ class OpsMixin:
         >>> other = pd.DataFrame({'height': [0.2, 0.4, 0.6]},
         ...                      index=['elk', 'moose', 'deer'])
         >>> df + other
-            height  weight
+               height  weight
         deer      NaN     NaN
         elk       1.7     NaN
         moose     3.0     NaN
