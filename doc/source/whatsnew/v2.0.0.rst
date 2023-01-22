@@ -54,6 +54,7 @@ to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
 * :func:`read_clipboard` (with ``engine="python"``)
+* :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
@@ -61,6 +62,7 @@ to select the nullable dtypes implementation.
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`to_numeric`
 
 
 And the following methods will also utilize the ``mode.dtype_backend`` option.
@@ -167,6 +169,8 @@ Other enhancements
 - Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
 - Added ``calamine`` as an engine to ``read_excel`` (:issue: ``50395``)
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
+- Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:
