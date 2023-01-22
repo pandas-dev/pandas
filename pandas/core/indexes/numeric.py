@@ -5,10 +5,7 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._typing import (
-    Dtype,
-    npt,
-)
+from pandas._typing import Dtype
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -251,33 +248,3 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    def _format_native_types(
-        self,
-        *,
-        na_rep: str = "",
-        float_format=None,
-        decimal: str = ".",
-        quoting=None,
-        **kwargs,
-    ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        if is_float_dtype(self.dtype):
-            formatter = FloatArrayFormatter(
-                self._values,
-                na_rep=na_rep,
-                float_format=float_format,
-                decimal=decimal,
-                quoting=quoting,
-                fixed_width=False,
-            )
-            return formatter.get_result_as_array()
-
-        return super()._format_native_types(
-            na_rep=na_rep,
-            float_format=float_format,
-            decimal=decimal,
-            quoting=quoting,
-            **kwargs,
-        )
