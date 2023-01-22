@@ -15,7 +15,7 @@ jobs:
       - checkout
       - run: .circleci/setup_env.sh
       - run: PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH ci/run_tests.sh
-  build-aarch:
+  build-aarch64:
     machine:
       image: ubuntu-2004:202101-01
     resource_class: arm.large
