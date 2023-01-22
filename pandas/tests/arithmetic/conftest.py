@@ -75,7 +75,7 @@ def zero(request):
     --------
     arr = RangeIndex(5)
     arr / zeros
-    Float64Index([nan, inf, inf, inf, inf], dtype='float64')
+    NumericIndex([nan, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
 

@@ -61,6 +61,7 @@ to select the nullable dtypes implementation.
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`to_numeric`
 
 
 And the following methods will also utilize the ``mode.dtype_backend`` option.
@@ -165,6 +166,7 @@ Other enhancements
 - Improved error message in :func:`to_datetime` for non-ISO8601 formats, informing users about the position of the first error (:issue:`50361`)
 - Improved error message when trying to align :class:`DataFrame` objects (for example, in :func:`DataFrame.compare`) to clarify that "identically labelled" refers to both index and columns (:issue:`50083`)
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
+- Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -950,6 +952,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
 - Bug in :func:`Timestamp.utctimetuple` raising a ``TypeError`` (:issue:`32174`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
+- Bug in :func:`to_datetime` was incorrectly handling floating-point inputs within 1 ``unit`` of the overflow boundaries (:issue:`50183`)
 
 Timedelta
 ^^^^^^^^^
