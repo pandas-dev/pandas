@@ -37,10 +37,10 @@ jobs:
       - run:
           name: Upload wheels
           command: |
-            if ! [[ -z ${TAG} ]]; then
+            if [[ -n ${TAG} ]]; then
                 export IS_PUSH="true"
             fi
-            if [[ $TRIGGER_SOURCE == "scheduled_pipeline"]]; then
+            if [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
                 export IS_SCHEDULE_DISPATCH="true"
             fi
             source ci/upload_wheels.sh
