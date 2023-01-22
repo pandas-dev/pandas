@@ -108,6 +108,15 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
     if ts is None:
         return m
 
+    if unit in ["Y", "M"] and  is_float_object(ts) and not ts.is_integer():
+        # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+        #  but not clear what 2.5 "M" corresponds to, so we will
+        #  disallow that case.
+        raise ValueError(
+            f"Conversion of non-round float with unit={unit} "
+            "is ambiguous"
+        )
+
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
     base = <int64_t>ts
@@ -287,13 +296,6 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                     # GH#47266 Avoid cast_from_unit, which would give weird results
                     #  e.g. with "Y" and 150.0 we'd get 2120-01-01 09:00:00
                     return convert_to_tsobject(int(ts), tz, unit, False, False)
-                else:
-                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
-                    #  but not clear what 2.5 "M" corresponds to, so we will
-                    #  disallow that case.
-                    raise ValueError(
-                        f"Conversion of non-round float with unit={unit} is ambiguous."
-                    )
 
             ts = cast_from_unit(ts, unit)
             obj.value = ts
@@ -542,16 +544,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                 maybe_localize_tso(obj, tz, obj.creso)
                 return obj
 
-        try:
-            dt = parse_datetime_string(
-                ts, dayfirst=dayfirst, yearfirst=yearfirst
-            )
-        except ValueError as err:
-            if "out of range for month" in str(err):
-                # dateutil raised when constructing a datetime object,
-                #  let's give a nicer exception message
-                raise ValueError("could not convert string to Timestamp") from err
-            raise
+        dt = parse_datetime_string(
+            ts, dayfirst=dayfirst, yearfirst=yearfirst
+        )
 
     return convert_datetime_to_tsobject(dt, tz)
 
