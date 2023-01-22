@@ -4,6 +4,8 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
@@ -190,6 +192,9 @@ def to_numeric(
         values = values._data[~mask]
 
     values_dtype = getattr(values, "dtype", None)
+    if isinstance(values_dtype, pd.ArrowDtype):
+        mask = values.isna()
+        values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
@@ -258,6 +263,7 @@ def to_numeric(
         data[~mask] = values
 
         from pandas.core.arrays import (
+            ArrowExtensionArray,
             BooleanArray,
             FloatingArray,
             IntegerArray,
@@ -271,6 +277,11 @@ def to_numeric(
         else:
             klass = FloatingArray
         values = klass(data, mask)
+
+        if get_option("mode.dtype_backend") == "pyarrow" or isinstance(
+            values_dtype, pd.ArrowDtype
+        ):
+            values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
