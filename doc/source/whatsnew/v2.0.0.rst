@@ -54,6 +54,7 @@ to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
 * :func:`read_clipboard` (with ``engine="python"``)
+* :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
 * :func:`read_xml`
