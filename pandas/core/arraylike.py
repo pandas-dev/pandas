@@ -169,7 +169,7 @@ class OpsMixin:
 
         >>> df[['height', 'weight']].add(s2, axis='index')
                 height	weight
-        elk	    2.0	    500.5
+        elk	2.0	    500.5
         moose	4.1	    801.5
 
         When `other` is a :class:`DataFrame`, both columns names and the
