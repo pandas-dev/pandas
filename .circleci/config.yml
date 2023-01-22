@@ -55,7 +55,7 @@ workflows:
       - test-arm
   build-wheels:
     jobs:
-      - build-aarch64
+      - build-aarch64:
           matrix:
             parameters:
               CIBW_BUILD: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
