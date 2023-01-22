@@ -30,7 +30,7 @@ jobs:
             pip3 install cibuildwheel==2.9.0
             cibuildwheel --output-dir wheelhouse
           environment:
-            CIBW_BUILD: << parameters.CIBW_BUILD >>
+            CIBW_BUILD: << parameters.cibw-build >>
       - run:
           name: Upload wheels
           command: |
@@ -58,4 +58,4 @@ workflows:
       - build-aarch64:
           matrix:
             parameters:
-              CIBW_BUILD: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
+              cibw-build: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
