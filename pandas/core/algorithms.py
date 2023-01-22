@@ -1305,7 +1305,7 @@ class SelectNFrame(SelectN):
 
     def compute(self, method: str) -> DataFrame:
 
-        from pandas.core.api import Int64Index
+        from pandas.core.api import NumericIndex
 
         n = self.n
         frame = self.obj
@@ -1333,7 +1333,7 @@ class SelectNFrame(SelectN):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer = Int64Index([])
+        indexer = NumericIndex([], dtype=np.int64)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].

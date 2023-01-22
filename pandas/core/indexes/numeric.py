@@ -1,16 +1,10 @@
 from __future__ import annotations
 
-from typing import (
-    Callable,
-    Hashable,
-)
+from typing import Callable
 
 import numpy as np
 
-from pandas._libs import (
-    index as libindex,
-    lib,
-)
+from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     npt,
@@ -26,8 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_numeric_dtype,
     is_scalar,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -68,9 +60,6 @@ class NumericIndex(Index):
     See Also
     --------
     Index : The base pandas Index type.
-    Int64Index : Index of purely int64 labels (deprecated).
-    UInt64Index : Index of purely uint64 labels (deprecated).
-    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
@@ -146,17 +135,11 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
-            orig = data
             if isinstance(data, (list, tuple)):
                 if len(data):
                     data = sanitize_array(data, index=None)
                 else:
                     data = np.array([], dtype=np.int64)
-
-            if dtype is None and data.dtype.kind == "f":
-                if cls is UInt64Index and (data >= 0).all():
-                    # https://github.com/numpy/numpy/issues/19146
-                    data = np.asarray(orig, dtype=np.uint64)
 
         dtype = cls._ensure_dtype(dtype)
 
@@ -199,8 +182,6 @@ class NumericIndex(Index):
     @classmethod
     def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
         """
-        Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
-
         Assumes dtype has already been validated.
         """
         if dtype is None:
@@ -242,14 +223,6 @@ class NumericIndex(Index):
         return self._maybe_cast_indexer(label)
 
     # ----------------------------------------------------------------
-
-    @doc(Index._shallow_copy)
-    def _shallow_copy(self, values, name: Hashable = lib.no_default):
-        if not self._can_hold_na and values.dtype.kind == "f":
-            name = self._name if name is lib.no_default else name
-            # Ensure we are not returning an Int64Index with float data:
-            return Float64Index._simple_new(values, name=name)
-        return super()._shallow_copy(values=values, name=name)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = super()._convert_tolerance(tolerance, target)
@@ -308,108 +281,3 @@ class NumericIndex(Index):
             quoting=quoting,
             **kwargs,
         )
-
-
-_num_index_shared_docs = {}
-
-
-_num_index_shared_docs[
-    "class_descr"
-] = """
-    Immutable sequence used for indexing and alignment.
-
-    .. deprecated:: 1.4.0
-        In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
-        %(klass)s will remain fully functional for the duration of pandas 1.x.
-
-    The basic object storing axis labels for all pandas objects.
-    %(klass)s is a special case of `Index` with purely %(ltype)s labels. %(extra)s.
-
-    Parameters
-    ----------
-    data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: %(dtype)s)
-    copy : bool
-        Make a copy of input ndarray.
-    name : object
-        Name to be stored in the index.
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
-
-    See Also
-    --------
-    Index : The base pandas Index type.
-    NumericIndex : Index of numpy int/uint/float data.
-
-    Notes
-    -----
-    An Index instance can **only** contain hashable objects.
-"""
-
-
-class IntegerIndex(NumericIndex):
-    """
-    This is an abstract class for Int64Index, UInt64Index.
-    """
-
-    _is_backward_compat_public_numeric_index: bool = False
-
-
-class Int64Index(IntegerIndex):
-    _index_descr_args = {
-        "klass": "Int64Index",
-        "ltype": "integer",
-        "dtype": "int64",
-        "extra": "",
-    }
-    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
-
-    _typ = "int64index"
-    _default_dtype = np.dtype(np.int64)
-    _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
-
-    @property
-    def _engine_type(self) -> type[libindex.Int64Engine]:
-        return libindex.Int64Engine
-
-
-class UInt64Index(IntegerIndex):
-    _index_descr_args = {
-        "klass": "UInt64Index",
-        "ltype": "unsigned integer",
-        "dtype": "uint64",
-        "extra": "",
-    }
-    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
-
-    _typ = "uint64index"
-    _default_dtype = np.dtype(np.uint64)
-    _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
-
-    @property
-    def _engine_type(self) -> type[libindex.UInt64Engine]:
-        return libindex.UInt64Engine
-
-
-class Float64Index(NumericIndex):
-    _index_descr_args = {
-        "klass": "Float64Index",
-        "dtype": "float64",
-        "ltype": "float",
-        "extra": "",
-    }
-    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
-
-    _typ = "float64index"
-    _default_dtype = np.dtype(np.float64)
-    _dtype_validation_metadata = (is_float_dtype, "float")
-
-    @property
-    def _engine_type(self) -> type[libindex.Float64Engine]:
-        return libindex.Float64Engine

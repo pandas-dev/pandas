@@ -880,7 +880,7 @@ def get_grouper(
             try:
                 items.get_loc(key)
             except (KeyError, TypeError, InvalidIndexError):
-                # TypeError shows up here if we pass e.g. Int64Index
+                # TypeError shows up here if we pass e.g. an Index
                 return False
 
         return True

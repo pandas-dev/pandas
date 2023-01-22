@@ -520,7 +520,7 @@ class IntervalIndex(ExtensionIndex):
         -------
         scalar or list-like
             The original key if no conversion occurred, int if converted scalar,
-            Int64Index if converted list-like.
+            Index with an int64 dtype if converted list-like.
         """
         if is_list_like(key):
             key = ensure_index(key)

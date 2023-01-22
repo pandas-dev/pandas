@@ -10870,11 +10870,7 @@ Parrot 2  Parrot       24.0
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
         if method == "single":
-            # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
-            # "Index"; expected "Float64Index"
-            res = data._mgr.quantile(
-                qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
-            )
+            res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
         elif method == "table":
             valid_interpolation = {"nearest", "lower", "higher"}
             if interpolation not in valid_interpolation:
