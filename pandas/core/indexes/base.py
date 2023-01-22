@@ -1294,7 +1294,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         *,
         na_rep: str_t = "",
-        decimal: str = ".",
+        decimal: str_t = ".",
         float_format=None,
         date_format=None,
         quoting=None,
