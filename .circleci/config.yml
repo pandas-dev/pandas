@@ -15,10 +15,13 @@ jobs:
       - checkout
       - run: .circleci/setup_env.sh
       - run: PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH ci/run_tests.sh
-  build-aarch64-38:
+  build-aarch:
     machine:
       image: ubuntu-2004:202101-01
     resource_class: arm.large
+    environment:
+      TAG = << pipeline.git.tag >>
+      TRIGGER_SOURCE = << pipeline.trigger_source >>
     steps:
       - checkout
       - run:
@@ -27,59 +30,32 @@ jobs:
             pip3 install cibuildwheel==2.9.0
             cibuildwheel --output-dir wheelhouse
           environment:
-            CIBW_BUILD: cp38-manylinux_aarch64
-      - store_artifacts:
-          path: wheelhouse/
-  build-aarch64-39:
-    machine:
-      image: ubuntu-2004:202101-01
-    resource_class: arm.large
-    steps:
-      - checkout
+            CIBW_BUILD: << parameters.CIBW_BUILD >>
       - run:
-          name: Build Aarch64 wheels (3.9)
+          name: Upload wheels
           command: |
-            pip3 install cibuildwheel==2.9.0
-            cibuildwheel --output-dir wheelhouse
-          environment:
-            CIBW_BUILD: cp39-manylinux_aarch64
-      - store_artifacts:
-          path: wheelhouse/
-  build-aarch64-310:
-    machine:
-      image: ubuntu-2004:202101-01
-    resource_class: arm.large
-    steps:
-      - checkout
-      - run:
-          name: Build Aarch64 wheels (3.10)
-          command: |
-            pip3 install cibuildwheel==2.9.0
-            cibuildwheel --output-dir wheelhouse
-          environment:
-            CIBW_BUILD: cp310-manylinux_aarch64
-      - store_artifacts:
-          path: wheelhouse/
-  build-aarch64-311:
-    machine:
-      image: ubuntu-2004:202101-01
-    resource_class: arm.large
-    steps:
-      - checkout
-      - run:
-          name: Build Aarch64 wheels (3.11)
-          command: |
-            pip3 install cibuildwheel==2.9.0
-            cibuildwheel --output-dir wheelhouse
-          environment:
-            CIBW_BUILD: cp311-manylinux_aarch64
+            if ! [[ -z ${TAG} ]]; then
+                export IS_PUSH="true"
+            fi
+            if [[ $TRIGGER_SOURCE == "scheduled_pipeline"]]; then
+                export IS_SCHEDULE_DISPATCH="true"
+            fi
+            source ci/upload_wheels.sh
+            set_upload_vars
+            upload_wheels
       - store_artifacts:
           path: wheelhouse/
 workflows:
   test:
+    # Don't run trigger this one when scheduled pipeline runs
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - test-arm
-      - build-aarch64-38
-      - build-aarch64-39
-      - build-aarch64-310
-      - build-aarch64-311
+  build-wheels:
+    jobs:
+      - build-aarch64
+          matrix:
+            parameters:
+              CIBW_BUILD: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
