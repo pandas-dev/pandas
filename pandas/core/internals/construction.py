@@ -59,7 +59,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
-    PandasArray,
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -128,13 +127,12 @@ def arrays_to_mgr(
         #  - all(type(x) is not PandasArray for x in arrays)
 
     else:
+        # Reached via DataFrame._from_arrays; we do minimal validation here
         index = ensure_index(index)
-        arrays = [
-            arr.to_numpy() if isinstance(arr, PandasArray) else arr for arr in arrays
-        ]
+        arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        # with _from_arrays, the passed arrays should never be Series objects
         parents = None
 
-        # Reached via DataFrame._from_arrays; we do validation here
         for arr in arrays:
             if (
                 not isinstance(arr, (np.ndarray, ExtensionArray))
