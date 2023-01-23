@@ -782,20 +782,10 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_default(self, df_with_symbols):
-        result = df_with_symbols.to_latex()  # default: escape=True
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lll}
-            \toprule
-             & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
-            \midrule
-            a & a & a \\
-            b & b & b \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
+        # gh50871: in v2.0 escape is False by default (styler.format.escape=None)
+        default = df_with_symbols.to_latex()
+        specified_true = df_with_symbols.to_latex(escape=True)
+        assert default != specified_true
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
