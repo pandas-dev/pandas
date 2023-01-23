@@ -203,9 +203,6 @@ def coo_to_sparse_series(
     ser = ser.sort_index()
     ser = ser.astype(SparseDtype(ser.dtype))
     if dense_index:
-        # is there a better constructor method to use here?
-        i = range(A.shape[0])
-        j = range(A.shape[1])
-        ind = MultiIndex.from_product([i, j])
+        ind = MultiIndex.from_product([A.row, A.col])
         ser = ser.reindex(ind)
     return ser
