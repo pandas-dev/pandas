@@ -328,7 +328,7 @@ class BaseBlockManager(DataManager):
 
         aligned_args = {k: kwargs[k] for k in align_keys}
 
-        for b in self.blocks:
+        for i, b in enumerate(self.blocks):
 
             if aligned_args:
 
@@ -348,17 +348,17 @@ class BaseBlockManager(DataManager):
                 applied = b.apply(f, **kwargs)
             else:
                 applied = getattr(b, f)(**kwargs)
-            result_blocks = extend_blocks(applied, result_blocks)
+            result_blocks = extend_blocks(applied, result_blocks, i)
 
         refs = None
         parent = None
         if check_cow:
-            result_blocks, result_is_view = list(zip(*result_blocks))
+            result_blocks, result_is_view, result_index = list(zip(*result_blocks))
             if using_copy_on_write():
                 refs = []
-                for b, is_view in zip(result_blocks, result_is_view):
+                for b, is_view, i in zip(result_blocks, result_is_view, result_index):
                     if is_view:
-                        refs.append(weakref.ref(b))
+                        refs.append(weakref.ref(self.blocks[i]))
                     else:
                         refs.append(None)
 
@@ -463,9 +463,17 @@ class BaseBlockManager(DataManager):
         )
 
     def convert(self: T, copy: bool) -> T:
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
+
         return self.apply(
             "convert",
             copy=copy,
+            check_cow=True,
+            return_is_view=True,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:

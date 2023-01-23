@@ -451,13 +451,20 @@ class Block(PandasObject):
         self,
         *,
         copy: bool = True,
+        return_is_view=False,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
-        return [self.copy()] if copy else [self]
+        if using_copy_on_write():
+            result = self.copy(deep=copy)
+            is_view = True
+        else:
+            result = self.copy() if copy else self
+            is_view = False
+        return [(result, is_view)] if return_is_view else [result]
 
     # ---------------------------------------------------------------------
     # Array-Like Methods
@@ -2012,6 +2019,7 @@ class ObjectBlock(NumpyBlock):
         self,
         *,
         copy: bool = True,
+        return_is_view=False,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -2020,7 +2028,10 @@ class ObjectBlock(NumpyBlock):
         if self.dtype != _dtype_obj:
             # GH#50067 this should be impossible in ObjectBlock, but until
             #  that is fixed, we short-circuit here.
-            return [self]
+            if using_copy_on_write():
+                result = self.copy(deep=False)
+                return [(result, True)] if return_is_view else [result]
+            return [(self, False)] if return_is_view else [self]
 
         values = self.values
         if values.ndim == 2:
@@ -2035,10 +2046,16 @@ class ObjectBlock(NumpyBlock):
             convert_period=True,
             convert_interval=True,
         )
+        is_view = False
         if copy and res_values is values:
             res_values = values.copy()
+        elif res_values is values and using_copy_on_write():
+            is_view = True
         res_values = ensure_block_shape(res_values, self.ndim)
-        return [self.make_block(res_values)]
+        if return_is_view:
+            return [(self.make_block(res_values), is_view)]
+        else:
+            return [self.make_block(res_values)]
 
 
 # -----------------------------------------------------------------
@@ -2202,19 +2219,16 @@ def extract_pandas_array(
 # -----------------------------------------------------------------
 
 
-def extend_blocks(result, blocks=None) -> list[Block]:
+def extend_blocks(result, blocks=None, i=0) -> list[Block]:
     """return a new extended blocks, given the result"""
     if blocks is None:
         blocks = []
     if isinstance(result, list):
         for r in result:
-            if isinstance(r, list):
-                blocks.extend(r)
-            else:
-                blocks.append(r)
+            extend_blocks(r, blocks)
     elif isinstance(result, tuple):
         assert isinstance(result[0], Block), type(result[0])
-        blocks.append(result)
+        blocks.append((result[0], result[1], i))
     else:
         assert isinstance(result, Block), type(result)
         blocks.append(result)

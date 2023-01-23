@@ -1183,3 +1183,50 @@ def test_astype_dict_dtypes(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_infer_objects(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+    df_orig = df.copy()
+    df2 = df.infer_objects()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    df2.iloc[0, 0] = 0
+    df2.iloc[0, 1] = "d"
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_infer_objects2(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": "x", "c": np.array([1, 2], dtype=object)})
+    df_orig = df.copy()
+    df2 = df.infer_objects()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    df2.iloc[0, 0] = 0
+    df2.iloc[0, 1] = "d"
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+    # mutate parent
+    df2 = df.infer_objects()
+    df.iloc[0, 0] = 0
+    assert df2.iloc[0, 0] == 1
