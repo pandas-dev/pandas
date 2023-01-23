@@ -236,7 +236,7 @@ ul.task-bullet > li > p:first-child {
 
 .tutorial-card .card-header {
   cursor: pointer;
-  background-color: white;
+  background-color: transparent;
 }
 
 .tutorial-card .card-body {
