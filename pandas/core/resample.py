@@ -1202,7 +1202,7 @@ class _GroupByMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            if isinstance(key, list) and self.key not in key:
+            if isinstance(key, list) and self.key not in key and self.key is not None:
                 key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
