@@ -92,5 +92,4 @@ jobs:
     - name: Import pandas
       run: |
         cd ..
-        conda list
         python -c "import pandas; pandas.show_versions();"
