@@ -726,10 +726,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        ndarray, Float64Index or Series
+        ndarray, Index or Series
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
-            the return type is a Float64Index. When the calling object
+            the return type is an Index with a float64 dtype. When the calling object
             is a Series, the return type is Series of type `float64` whose
             index is the same as the original.
 
@@ -781,7 +781,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        timedeltas : ndarray[object]
+        numpy.ndarray
         """
         return ints_to_pytimedelta(self._ndarray)
 

@@ -45,7 +45,6 @@ from pandas.core.indexes.datetimes import (
     Index,
 )
 from pandas.core.indexes.extension import inherit_names
-from pandas.core.indexes.numeric import Int64Index
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
@@ -183,18 +182,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @property
     @doc(PeriodArray.hour.fget)
-    def hour(self) -> Int64Index:
-        return Int64Index(self._data.hour, name=self.name)
+    def hour(self) -> Index:
+        return Index(self._data.hour, name=self.name)
 
     @property
     @doc(PeriodArray.minute.fget)
-    def minute(self) -> Int64Index:
-        return Int64Index(self._data.minute, name=self.name)
+    def minute(self) -> Index:
+        return Index(self._data.minute, name=self.name)
 
     @property
     @doc(PeriodArray.second.fget)
-    def second(self) -> Int64Index:
-        return Int64Index(self._data.second, name=self.name)
+    def second(self) -> Index:
+        return Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
