@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import (
     Timestamp,
     internals as libinternals,
@@ -414,7 +416,7 @@ class Block(PandasObject):
         """
         new_dtype = find_result_type(self.values, other)
 
-        return self.astype(new_dtype, copy=False)
+        return self.astype(new_dtype, copy=False)[0]
 
     @final
     def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
@@ -496,7 +498,22 @@ class Block(PandasObject):
                 f"({self.dtype.name} [{self.shape}]) to different shape "
                 f"({newb.dtype.name} [{newb.shape}])"
             )
-        return newb
+
+        is_view = False
+        if using_copy_on_write():
+            if not copy:
+                if (
+                    isinstance(values.dtype, np.dtype)
+                    and isinstance(new_values.dtype, np.dtype)
+                    and values is not new_values
+                ):
+                    # We certainly made a copy
+                    pass
+                else:
+                    # We maybe didn't make a copy
+                    is_view = True
+
+        return newb, is_view
 
     @final
     def to_native_types(self, na_rep: str = "nan", quoting=None, **kwargs) -> Block:
@@ -571,7 +588,7 @@ class Block(PandasObject):
 
         elif self.ndim == 1 or self.shape[0] == 1:
             if value is None or value is NA:
-                blk = self.astype(np.dtype(object))
+                blk = self.astype(np.dtype(object))[0]
             else:
                 blk = self.coerce_to_target_dtype(value)
             return blk.replace(
@@ -753,7 +770,7 @@ class Block(PandasObject):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
-                    nb = self.astype(np.dtype(object), copy=False)
+                    nb = self.astype(np.dtype(object), copy=False)[0]
                     if nb is self and not inplace:
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
@@ -2195,6 +2212,9 @@ def extend_blocks(result, blocks=None) -> list[Block]:
                 blocks.extend(r)
             else:
                 blocks.append(r)
+    elif isinstance(result, tuple):
+        assert isinstance(result[0], Block), type(result[0])
+        blocks.append(result)
     else:
         assert isinstance(result, Block), type(result)
         blocks.append(result)

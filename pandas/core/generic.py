@@ -6142,7 +6142,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def astype(
-        self: NDFrameT, dtype, copy: bool_t = True, errors: IgnoreRaise = "raise"
+        self: NDFrameT, dtype, copy: bool_t = None, errors: IgnoreRaise = "raise"
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -6260,6 +6260,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:

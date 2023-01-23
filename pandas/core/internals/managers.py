@@ -302,6 +302,7 @@ class BaseBlockManager(DataManager):
         self: T,
         f,
         align_keys: list[str] | None = None,
+        check_cow: bool = False,
         **kwargs,
     ) -> T:
         """
@@ -349,7 +350,22 @@ class BaseBlockManager(DataManager):
                 applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
 
-        out = type(self).from_blocks(result_blocks, self.axes)
+        refs = None
+        parent = None
+        if check_cow:
+            result_blocks, result_is_view = list(zip(*result_blocks))
+            if using_copy_on_write():
+                refs = []
+                for b, is_view in zip(result_blocks, result_is_view):
+                    if is_view:
+                        refs.append(weakref.ref(b))
+                    else:
+                        refs.append(None)
+
+                if com.any_not_none(refs):
+                    parent = self
+
+        out = type(self).from_blocks(result_blocks, self.axes, refs, parent)
         return out
 
     def where(self: T, other, cond, align: bool) -> T:
@@ -436,7 +452,15 @@ class BaseBlockManager(DataManager):
         )
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
-        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
+
+        return self.apply(
+            "astype", dtype=dtype, copy=copy, errors=errors, check_cow=True
+        )
 
     def convert(self: T, copy: bool) -> T:
         return self.apply(
