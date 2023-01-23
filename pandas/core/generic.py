@@ -4407,9 +4407,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if inplace:
             self._update_inplace(obj)
-            return None
-        else:
-            return obj
+        elif obj is not self:
+            self._update_inplace(obj)
+
+        return obj
 
     @final
     def _drop_axis(
