@@ -239,7 +239,7 @@ if PYPY:
 else:
     import pytest
 
-    raises_chained_assignment_error = pytest.raises(
+    raises_chained_assignment_error = pytest.raises(  # type: ignore[assignment]
         ChainedAssignmentError,
         match=(
             "A value is trying to be set on a copy of a DataFrame or Series "
