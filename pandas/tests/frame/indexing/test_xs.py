@@ -3,10 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    ChainedAssignmentError,
-    SettingWithCopyError,
-)
+from pandas.errors import SettingWithCopyError
 
 from pandas import (
     DataFrame,
@@ -127,7 +124,7 @@ class TestXS:
         df_orig = dm.copy()
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 dm.xs(2)[:] = 20
             tm.assert_frame_equal(dm, df_orig)
         elif using_array_manager:

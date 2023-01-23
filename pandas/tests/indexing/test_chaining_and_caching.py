@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
-    ChainedAssignmentError,
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
@@ -52,7 +51,7 @@ class TestCaching:
 
             # Assignment to wrong series
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     df["bb"].iloc[0] = 0.17
             else:
                 df["bb"].iloc[0] = 0.17
@@ -105,7 +104,7 @@ class TestCaching:
         for ix, row in df.iterrows():
             v = out[row["C"]][six:eix] + row["D"]
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     out[row["C"]][six:eix] = v
             else:
                 out[row["C"]][six:eix] = v
@@ -153,7 +152,7 @@ class TestChaining:
         df = DataFrame({"response": np.array(data)})
         mask = df.response == "timeout"
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
@@ -164,7 +163,7 @@ class TestChaining:
         df = DataFrame(recarray)
         mask = df.response == "timeout"
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
@@ -175,7 +174,7 @@ class TestChaining:
         df_original = df.copy()
         mask = df.response == "timeout"
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, df_original)
         else:
@@ -186,7 +185,7 @@ class TestChaining:
         expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
         df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": ["foo", "bar", "bah", "foo", "bar"]})
         else:
@@ -197,7 +196,7 @@ class TestChaining:
 
         df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.A.iloc[0] = np.nan
         else:
             df.A.iloc[0] = np.nan
@@ -217,9 +216,9 @@ class TestChaining:
             assert df._is_copy is None
 
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     df["A"][0] = -5
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     df["A"][1] = -6
                 tm.assert_frame_equal(df, df_original)
             else:
@@ -243,9 +242,9 @@ class TestChaining:
         assert df._is_copy is None
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["A"][0] = -5
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["A"][1] = -6
             tm.assert_frame_equal(df, df_original)
         elif not using_array_manager:
@@ -277,7 +276,7 @@ class TestChaining:
         )
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.loc[0]["A"] = -5
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -297,7 +296,7 @@ class TestChaining:
 
         if using_copy_on_write:
             indexer = df.a.str.startswith("o")
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df[indexer]["c"] = 42
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -318,7 +317,7 @@ class TestChaining:
                 df.loc[0]["A"] = 111
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["A"][0] = 111
             tm.assert_frame_equal(df, df_original)
         elif not using_array_manager:
@@ -447,7 +446,7 @@ class TestChaining:
         df_original = df.copy()
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.iloc[0:5]["group"] = "a"
             tm.assert_frame_equal(df, df_original)
         else:
@@ -471,11 +470,11 @@ class TestChaining:
         df_original = df.copy()
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.loc[2]["D"] = "foo"
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.loc[2]["C"] = "foo"
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["C"][2] = "foo"
             tm.assert_frame_equal(df, df_original)
 
@@ -505,7 +504,7 @@ class TestChaining:
         mask = pd.isna(df.c)
 
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df[["c"]][mask] = df[["b"]][mask]
             tm.assert_frame_equal(df, df_original)
         else:
@@ -524,7 +523,7 @@ class TestChaining:
     def test_detect_chained_assignment_warnings_errors(self, using_copy_on_write):
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df.loc[0]["A"] = 111
             return
 
@@ -614,7 +613,7 @@ class TestChaining:
             ck = [True] * len(df)
 
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     df["bb"].iloc[0] = 0.13
             else:
                 df["bb"].iloc[0] = 0.13
@@ -623,7 +622,7 @@ class TestChaining:
             df.iloc[ck]
 
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     df["bb"].iloc[0] = 0.15
             else:
                 df["bb"].iloc[0] = 0.15
@@ -637,7 +636,7 @@ class TestChaining:
         # GH 13569
         df = DataFrame({"a": [10, 20, 30]})
         if using_copy_on_write:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 df["a"].loc[4] = 40
         else:
             df["a"].loc[4] = 40

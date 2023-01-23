@@ -92,6 +92,7 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
     function as nv,
@@ -3867,7 +3868,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
-        if using_copy_on_write():
+        if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 raise ChainedAssignmentError(_chained_assignment_msg)
 

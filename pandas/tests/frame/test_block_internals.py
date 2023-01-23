@@ -7,10 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    ChainedAssignmentError,
-    PerformanceWarning,
-)
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -344,7 +341,7 @@ class TestDataFrameBlockInternals:
             repr(Y)
             Y["e"] = Y["e"].astype("object")
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     Y["g"]["c"] = np.NaN
             else:
                 Y["g"]["c"] = np.NaN

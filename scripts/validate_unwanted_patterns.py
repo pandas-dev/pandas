@@ -133,9 +133,6 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
         except AttributeError:
             continue
 
-        if node.args[0].id == "ChainedAssignmentError":
-            continue
-
         if not node.keywords:
             yield (
                 node.lineno,

@@ -3,7 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
@@ -1253,7 +1252,7 @@ class TestDataFrameSetitemCopyViewSemantics:
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
-            with pytest.raises(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error:
                 for label in df.columns:
                     df[label][label] = 1
             # original dataframe not updated

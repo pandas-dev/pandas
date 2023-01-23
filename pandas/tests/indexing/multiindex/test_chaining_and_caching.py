@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    ChainedAssignmentError,
-    SettingWithCopyError,
-)
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -54,7 +51,7 @@ def test_cache_updating(using_copy_on_write):
     # setting via chained assignment
     # but actually works, since everything is a view
     if using_copy_on_write:
-        with pytest.raises(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error:
             df.loc[0]["z"].iloc[0] = 1.0
         assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
     else:

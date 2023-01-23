@@ -68,6 +68,7 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -1079,7 +1080,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if using_copy_on_write():
+        if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 raise ChainedAssignmentError(_chained_assignment_msg)
 

@@ -21,6 +21,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
 )
+from pandas.compat import PYPY
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -835,7 +836,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if using_copy_on_write():
+        if not PYPY and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
                 raise ChainedAssignmentError(_chained_assignment_msg)
 

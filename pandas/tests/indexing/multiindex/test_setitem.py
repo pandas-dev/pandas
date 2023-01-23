@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    ChainedAssignmentError,
-    SettingWithCopyError,
-)
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -504,7 +501,7 @@ def test_frame_setitem_copy_raises(
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
     if using_copy_on_write:
-        with pytest.raises(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error:
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
@@ -519,7 +516,7 @@ def test_frame_setitem_copy_no_write(
     expected = frame
     df = frame.copy()
     if using_copy_on_write:
-        with pytest.raises(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error:
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"

@@ -12,10 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import (
-    ChainedAssignmentError,
-    SettingWithCopyError,
-)
+from pandas.errors import SettingWithCopyError
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -290,7 +287,7 @@ class TestSeriesDatetimeValues:
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
-                with pytest.raises(ChainedAssignmentError):
+                with tm.raises_chained_assignment_error:
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
