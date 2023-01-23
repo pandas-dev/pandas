@@ -22,7 +22,7 @@ The pandas Community Meeting is a regular sync meeting for the project's
 maintainers which is open to the community. Everyone is welcome to attend and
 contribute to conversations.
 
-The meetings take place on the second Wednesday of each month at 18:00 UTC.
+The meetings take place on the second and fourth Wednesdays of each month at 18:00 UTC.
 
 The minutes of past meetings are available in `this Google Document <https://docs.google.com/document/d/1tGbTiYORHiSPgVMXawiweGJlBw5dOkVJLY-licoBmBU/edit?usp=sharing>`__.
 

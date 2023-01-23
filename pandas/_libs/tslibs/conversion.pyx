@@ -108,6 +108,15 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
     if ts is None:
         return m
 
+    if unit in ["Y", "M"] and  is_float_object(ts) and not ts.is_integer():
+        # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+        #  but not clear what 2.5 "M" corresponds to, so we will
+        #  disallow that case.
+        raise ValueError(
+            f"Conversion of non-round float with unit={unit} "
+            "is ambiguous"
+        )
+
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
     base = <int64_t>ts
@@ -212,11 +221,15 @@ cdef class _TSObject:
         self.fold = 0
         self.creso = NPY_FR_ns  # default value
 
-    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso) except? -1:
+    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso, str val=None) except? -1:
         if self.creso != creso:
             try:
                 self.value = convert_reso(self.value, self.creso, creso, False)
             except OverflowError as err:
+                if val is not None:
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from err
                 raise OutOfBoundsDatetime from err
 
             self.creso = creso
@@ -246,7 +259,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return _convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -283,13 +296,6 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                     # GH#47266 Avoid cast_from_unit, which would give weird results
                     #  e.g. with "Y" and 150.0 we'd get 2120-01-01 09:00:00
                     return convert_to_tsobject(int(ts), tz, unit, False, False)
-                else:
-                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
-                    #  but not clear what 2.5 "M" corresponds to, so we will
-                    #  disallow that case.
-                    raise ValueError(
-                        f"Conversion of non-round float with unit={unit} is ambiguous."
-                    )
 
             ts = cast_from_unit(ts, unit)
             obj.value = ts
@@ -463,9 +469,9 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     return obj
 
 
-cdef _TSObject _convert_str_to_tsobject(str ts, tzinfo tz, str unit,
-                                        bint dayfirst=False,
-                                        bint yearfirst=False):
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+                                       bint dayfirst=False,
+                                       bint yearfirst=False):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -538,16 +544,9 @@ cdef _TSObject _convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                 maybe_localize_tso(obj, tz, obj.creso)
                 return obj
 
-        try:
-            dt = parse_datetime_string(
-                ts, dayfirst=dayfirst, yearfirst=yearfirst
-            )
-        except ValueError as err:
-            if "out of range for month" in str(err):
-                # dateutil raised when constructing a datetime object,
-                #  let's give a nicer exception message
-                raise ValueError("could not convert string to Timestamp") from err
-            raise
+        dt = parse_datetime_string(
+            ts, dayfirst=dayfirst, yearfirst=yearfirst
+        )
 
     return convert_datetime_to_tsobject(dt, tz)
 
