@@ -125,6 +125,10 @@ Copy-on-Write improvements
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
 
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
+  of Series objects and specifying ``copy=False``, will now use_inf_as_null a lazy copy
+  of those Series objects for the columns of the DataFrame (:issue:`50777`)
+
 Copy-on-Write can be enabled through
 
 .. code-block:: python
