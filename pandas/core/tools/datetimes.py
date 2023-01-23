@@ -774,6 +774,7 @@ def to_datetime(
         - If :const:`False`, allow the `format` to match anywhere in the target
           string.
 
+        Note that if ``format='ISO8601'`` then `exact` has no effect.
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
