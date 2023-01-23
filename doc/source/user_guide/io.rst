@@ -1011,7 +1011,7 @@ first read it in as an object dtype and then apply :func:`to_datetime` to each e
    df['date'] = df['date'].apply(pd.to_datetime)
    df
 
-or, if your datetime formats are all ISO8601:
+or, if your datetime formats are all ISO8601 (but possibly not identically-formatted):
 
 .. ipython:: python
 

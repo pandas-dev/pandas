@@ -349,25 +349,40 @@ def array_strptime(
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    raise ValueError(
-                        f"time data \"{val}\" doesn't "
-                        f"match {'(inferred) '*fmt_inferred}format \"{fmt}\""
-                    )
+                    if fmt_inferred:
+                        raise ValueError(
+                            f"time data \"{val}\" doesn't "
+                            f"match (inferred) format \"{fmt}\""
+                        )
+                    else:
+                        raise ValueError(
+                            f"time data \"{val}\" doesn't match format \"{fmt}\""
+                        )
                 if len(val) != found.end():
-                    raise ValueError(
-                        "unconverted data remains when parsing with "
-                        f"{'(inferred) '*fmt_inferred}format \"{fmt}\": "
-                        f'"{val[found.end():]}"'
-                    )
+                    if fmt_inferred:
+                        raise ValueError(
+                            "unconverted data remains when parsing with "
+                            f"(inferred) format \"{fmt}\": \"{val[found.end():]}\""
+                        )
+                    else:
+                        raise ValueError(
+                            "unconverted data remains when parsing with "
+                            f"format \"{fmt}\": \"{val[found.end():]}\""
+                        )
 
             # search
             else:
                 found = format_regex.search(val)
                 if not found:
-                    raise ValueError(
-                        f"time data \"{val}\" doesn't match "
-                        f"{'(inferred) '*fmt_inferred}format \"{fmt}\""
-                    )
+                    if fmt_inferred:
+                        raise ValueError(
+                            f"time data \"{val}\" doesn't match "
+                            f"(inferred) format \"{fmt}\""
+                        )
+                    else:
+                        raise ValueError(
+                            f"time data \"{val}\" doesn't match format \"{fmt}\""
+                        )
 
             iso_year = -1
             year = 1900
