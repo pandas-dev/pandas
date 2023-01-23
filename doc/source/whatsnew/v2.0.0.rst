@@ -484,7 +484,7 @@ The alternative options giving similar functionality are indicated below:
 Note that due to this change some defaults have also changed:
 
 - ``multirow`` now defaults to *True*.
-- ``multicol_align`` defaults to *"r"* instead of *"l"*.
+- ``multirow_align`` defaults to *"r"* instead of *"l"*.
 - ``multicol_align`` defaults to *"r"* instead of *"l"*.
 - ``escape`` now defaults to *False*.
 
