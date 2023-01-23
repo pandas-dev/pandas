@@ -959,7 +959,7 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
 
     @doc(GroupBy.median)
-    def median(self, numeric_only: bool = False, *args, **kwargs):  # type: ignore[misc]
+    def median(self, numeric_only: bool = False, *args, **kwargs):
         nv.validate_resampler_func("median", args, kwargs)
         return self._downsample("median", numeric_only=numeric_only)
 
