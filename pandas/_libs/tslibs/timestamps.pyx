@@ -687,6 +687,14 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_end : Similar property indicating the end of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -703,6 +711,14 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_start : Similar property indicating the start of the year.
 
         Examples
         --------
@@ -785,6 +801,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
 
+        Returns
+        -------
+        bool
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -797,6 +817,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_week(self) -> int:
         """
         Return day of the week.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -811,6 +835,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -823,6 +851,10 @@ cdef class _Timestamp(ABCTimestamp):
     def quarter(self) -> int:
         """
         Return the quarter of the year.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -837,6 +869,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the week number of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -849,6 +885,10 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
