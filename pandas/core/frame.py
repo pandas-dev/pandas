@@ -48,7 +48,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
-    array_equal_fast,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -6726,7 +6726,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 return self.copy(deep=None)
 
-        if array_equal_fast(indexer, np.arange(0, len(indexer), dtype=indexer.dtype)):
+        if is_range_indexer(indexer, len(indexer)):
             if inplace:
                 return self._update_inplace(self)
             else:
@@ -10872,11 +10872,7 @@ Parrot 2  Parrot       24.0
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
         if method == "single":
-            # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
-            # "Index"; expected "Float64Index"
-            res = data._mgr.quantile(
-                qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
-            )
+            res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
         elif method == "table":
             valid_interpolation = {"nearest", "lower", "higher"}
             if interpolation not in valid_interpolation:

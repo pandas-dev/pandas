@@ -528,8 +528,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"arg{method} only implemented for pyarrow version >= 6.0"
             )
 
-        value = getattr(pc, method)(self._data, skip_nulls=skipna)
-        return pc.index(self._data, value).as_py()
+        data = self._data
+        if pa.types.is_duration(data.type):
+            data = data.cast(pa.int64())
+
+        value = getattr(pc, method)(data, skip_nulls=skipna)
+        return pc.index(data, value).as_py()
 
     def argmin(self, skipna: bool = True) -> int:
         return self._argmin_max(skipna, "min")
@@ -1204,7 +1208,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         same type as self
         """
-        result = pc.quantile(self._data, q=qs, interpolation=interpolation)
+        pa_dtype = self._data.type
+
+        data = self._data
+        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+            # https://github.com/apache/arrow/issues/33769 in these cases
+            #  we can cast to ints and back
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                data = data.cast(pa.int32())
+            else:
+                data = data.cast(pa.int64())
+
+        result = pc.quantile(data, q=qs, interpolation=interpolation)
+
+        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+            result = result.cast(pa_dtype)
+
         return type(self)(result)
 
     def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:

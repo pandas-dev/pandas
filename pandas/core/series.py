@@ -33,7 +33,7 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.lib import (
-    array_equal_fast,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -887,7 +887,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if (
             indices.ndim == 1
             and using_copy_on_write()
-            and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype))
+            and is_range_indexer(indices, len(self))
         ):
             return self.copy(deep=None)
 
@@ -3582,9 +3582,7 @@ Keep all original rows and also all original values
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
-        if array_equal_fast(
-            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
-        ):
+        if is_range_indexer(sorted_index, len(sorted_index)):
             if inplace:
                 return self._update_inplace(self)
             return self.copy(deep=None)
