@@ -1150,7 +1150,10 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(axis=1)
+        with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+            # GH#34479
+            result = df.any(axis=1)
+
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
 
@@ -1245,12 +1248,22 @@ class TestDataFrameAnalytics:
             ):
                 getattr(DataFrame(data), func.__name__)(axis=None)
         else:
-            result = func(data)
+            msg = "'(any|all)' with datetime64 dtypes is deprecated"
+            if data.dtypes.apply(lambda x: x.kind == "M").any():
+                warn = FutureWarning
+            else:
+                warn = None
+
+            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+                # GH#34479
+                result = func(data)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
             # method version
-            result = getattr(DataFrame(data), func.__name__)(axis=None)
+            with tm.assert_produces_warning(warn, match=msg):
+                # GH#34479
+                result = getattr(DataFrame(data), func.__name__)(axis=None)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
