@@ -17,6 +17,10 @@ from pandas.tseries import offsets
 
 
 class TestAsFreq:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     def test_asfreq2(self, frame_or_series):
         ts = frame_or_series(
             [0.0, 1.0, 2.0],
@@ -197,3 +201,11 @@ class TestAsFreq:
 
         result = result.asfreq("D")
         tm.assert_equal(result, expected)
+
+    def test_asfreq_after_normalize(self, unit):
+        # https://github.com/pandas-dev/pandas/issues/50727
+        result = DatetimeIndex(
+            date_range("2000", periods=2).as_unit(unit).normalize(), freq="D"
+        )
+        expected = DatetimeIndex(["2000-01-01", "2000-01-02"], freq="D").as_unit(unit)
+        tm.assert_index_equal(result, expected)

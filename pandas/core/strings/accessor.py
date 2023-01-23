@@ -1479,7 +1479,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series or Index of object
+        Series or pandas.Index
             Series or Index of repeated string objects specified by
             input parameter repeats.
 

@@ -2090,7 +2090,7 @@ class _iLocIndexer(_LocationIndexer):
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
-            # that matches in an Int64Index, so
+            # that matches in an int64 Index, so
             # we will not create a duplicate index, rather
             # index to that element
             # e.g. 0.0 -> 0

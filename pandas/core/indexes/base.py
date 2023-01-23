@@ -90,7 +90,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
-    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
@@ -107,7 +106,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
     validate_all_hashable,
@@ -125,7 +123,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -299,9 +296,6 @@ class Index(IndexOpsMixin, PandasObject):
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
     NumericIndex : Index of numpy int/uint/float data.
-    Int64Index : Index of purely int64 labels (deprecated).
-    UInt64Index : Index of purely uint64 labels (deprecated).
-    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
@@ -392,11 +386,6 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes: list[str] = ["name"]
     _can_hold_strings: bool = True
 
-    # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
-    # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
-    # associated code in pandas 2.0.
-    _is_backward_compat_public_numeric_index: bool = False
-
     @property
     def _engine_type(
         self,
@@ -446,13 +435,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
 
-        # index-like
-        elif (
-            isinstance(data, Index)
-            and data._is_backward_compat_public_numeric_index
-            and dtype is None
-        ):
-            return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -513,7 +495,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
-        # _ensure_array _may_ be unnecessary once Int64Index etc are gone
+        # _ensure_array _may_ be unnecessary once NumericIndex etc are gone
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
         return klass._simple_new(arr, name)
 
@@ -981,34 +963,6 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values = astype_array(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
-        if not self._is_backward_compat_public_numeric_index and not isinstance(
-            self, ABCRangeIndex
-        ):
-            # this block is needed so e.g. Int64Index.astype("int32") returns
-            # Int64Index and not a NumericIndex with dtype int32.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if (
-                isinstance(dtype, np.dtype)
-                and is_numeric_dtype(dtype)
-                and not is_complex_dtype(dtype)
-            ):
-                from pandas.core.api import (
-                    Float64Index,
-                    Int64Index,
-                    UInt64Index,
-                )
-
-                klass: type[Index]
-                if is_signed_integer_dtype(dtype):
-                    klass = Int64Index
-                elif is_unsigned_integer_dtype(dtype):
-                    klass = UInt64Index
-                elif is_float_dtype(dtype):
-                    klass = Float64Index
-                else:
-                    klass = Index
-                return klass(new_values, name=self.name, dtype=dtype, copy=False)
-
         return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
@@ -1069,7 +1023,7 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(
                 indices, allow_fill=allow_fill, fill_value=self._na_value
             )
-        # _constructor so RangeIndex->Int64Index
+        # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(taken, name=self.name)
 
     @final
@@ -1140,7 +1094,7 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
 
-        # _constructor so RangeIndex->Int64Index
+        # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(res_values, name=self.name)
 
     # --------------------------------------------------------------------
@@ -2084,13 +2038,21 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if the values are equal or increasing.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.is_monotonic_decreasing : Check if the values are equal or decreasing.
+
         Examples
         --------
-        >>> Index([1, 2, 3]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 3]).is_monotonic_increasing
         True
-        >>> Index([1, 2, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 2, 2]).is_monotonic_increasing
         True
-        >>> Index([1, 3, 2]).is_monotonic_increasing
+        >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
         return self._engine.is_monotonic_increasing
@@ -2100,13 +2062,21 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if the values are equal or decreasing.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.is_monotonic_increasing : Check if the values are equal or increasing.
+
         Examples
         --------
-        >>> Index([3, 2, 1]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 1]).is_monotonic_decreasing
         True
-        >>> Index([3, 2, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 2, 2]).is_monotonic_decreasing
         True
-        >>> Index([3, 1, 2]).is_monotonic_decreasing
+        >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
         return self._engine.is_monotonic_decreasing
@@ -2151,6 +2121,34 @@ class Index(IndexOpsMixin, PandasObject):
     def is_unique(self) -> bool:
         """
         Return if the index has unique values.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Index.has_duplicates : Inverse method that checks if it has duplicate values.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 5, 7, 7])
+        >>> idx.is_unique
+        False
+
+        >>> idx = pd.Index([1, 5, 7])
+        >>> idx.is_unique
+        True
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_unique
+        False
+
+        >>> idx = pd.Index(["Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_unique
+        True
         """
         return self._engine.is_unique
 
@@ -2164,6 +2162,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         bool
             Whether or not the Index has duplicate values.
+
+        See Also
+        --------
+        Index.is_unique : Inverse method that checks if it has unique values.
 
         Examples
         --------
@@ -2590,6 +2592,10 @@ class Index(IndexOpsMixin, PandasObject):
         Return True if there are any NaNs.
 
         Enables various performance speedups.
+
+        Returns
+        -------
+        bool
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
@@ -5089,10 +5095,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = concat_compat(to_concat_vals)
 
-        is_numeric = result.dtype.kind in ["i", "u", "f"]
-        if self._is_backward_compat_public_numeric_index and is_numeric:
-            return type(self)._simple_new(result, name=name)
-
         return Index._with_infer(result, name=name)
 
     def putmask(self, mask, value) -> Index:
@@ -6223,7 +6225,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         # We are a plain index here (sub-class override this method if they
-        # wish to have special treatment for floats/ints, e.g. Float64Index and
+        # wish to have special treatment for floats/ints, e.g. NumericIndex and
         # datetimelike Indexes
         # Special case numeric EA Indexes, since they are not handled by NumericIndex
 
@@ -6437,7 +6439,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             res_values = values.delete(loc)
 
-        # _constructor so RangeIndex->Int64Index
+        # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
@@ -6490,12 +6492,7 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        if self._typ == "numericindex":
-            # Use self._constructor instead of Index to retain NumericIndex GH#43921
-            # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor(new_values, name=self.name)
-        else:
-            return Index._with_infer(new_values, name=self.name)
+        return Index._with_infer(new_values, name=self.name)
 
     def drop(
         self,
@@ -6680,7 +6677,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        any : bool or array-like (if axis is specified)
+        bool or array-like (if axis is specified)
             A single element array-like may be converted to bool.
 
         See Also
@@ -6724,7 +6721,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        all : bool or array-like (if axis is specified)
+        bool or array-like (if axis is specified)
             A single element array-like may be converted to bool.
 
         See Also
