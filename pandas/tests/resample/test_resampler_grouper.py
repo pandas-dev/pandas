@@ -536,3 +536,82 @@ def test_groupby_resample_size_all_index_same():
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys():
+    # GH 50840
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "val": [3, 1, 4, 1, 5, 9, 2, 6],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    result = df.groupby("group").resample("2D")[["val"]].mean()
+    expected = DataFrame(
+        data={
+            "val": [2.0, 2.5, 7.0, 4.0],
+        },
+        index=Index(
+            data=[
+                (0, Timestamp("2016-01-01")),
+                (0, Timestamp("2016-01-03")),
+                (1, Timestamp("2016-01-05")),
+                (1, Timestamp("2016-01-07")),
+            ],
+            name=("group", "date"),
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys_multi_columns():
+    # GH 50876
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "first_val": [3, 1, 4, 1, 5, 9, 2, 6],
+            "second_val": [2, 7, 1, 8, 2, 8, 1, 8],
+            "third_val": [1, 4, 1, 4, 2, 1, 3, 5],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    result = df.groupby("group").resample("2D")[["first_val", "second_val"]].mean()
+    expected = DataFrame(
+        data={
+            "first_val": [2.0, 2.5, 7.0, 4.0],
+            "second_val": [4.5, 4.5, 5.0, 4.5],
+        },
+        index=Index(
+            data=[
+                (0, Timestamp("2016-01-01")),
+                (0, Timestamp("2016-01-03")),
+                (1, Timestamp("2016-01-05")),
+                (1, Timestamp("2016-01-07")),
+            ],
+            name=("group", "date"),
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys_missing_column():
+    # GH 50876
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "val": [3, 1, 4, 1, 5, 9, 2, 6],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    with pytest.raises(KeyError, match="Columns not found"):
+        df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
