@@ -1098,6 +1098,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"idxmin"`` and ``"idxmax"`` arguments (:issue:`45986`)
 - Bug in :class:`.DataFrameGroupBy` would raise when used with an empty DataFrame, categorical grouper, and ``dropna=False`` (:issue:`50634`)
 - Bug in :meth:`.SeriesGroupBy.value_counts` did not respect ``sort=False`` (:issue:`50482`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 -
 
 Reshaping
