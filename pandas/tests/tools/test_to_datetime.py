@@ -136,7 +136,7 @@ class TestTimeConversionFormats:
             ValueError,
             match=(
                 'unconverted data remains when parsing with format "%Y%m%d": ".0", '
-                "at position 0",
+                "at position 0"
             ),
         ):
             # https://github.com/pandas-dev/pandas/issues/50051
@@ -2849,7 +2849,7 @@ class TestDaysInMonth:
             (
                 "2015-02-32",
                 "%Y-%m-%d",
-                '^unconverted data remains when parsing with format "%Y-%d-%m": "2", '
+                '^unconverted data remains when parsing with format "%Y-%m-%d": "2", '
                 "at position 0$",
             ),
             (
