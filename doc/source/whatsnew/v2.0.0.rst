@@ -168,6 +168,7 @@ Other enhancements
 - Improved error message when trying to align :class:`DataFrame` objects (for example, in :func:`DataFrame.compare`) to clarify that "identically labelled" refers to both index and columns (:issue:`50083`)
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
+- :func:`to_datetime` now accepts ``"ISO8601"`` as an argument to ``format``, which will match any ISO8601 string (:issue:`50411`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -558,6 +559,11 @@ to each element individually, e.g. ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      ser.apply(pd.to_datetime)
+
+or, if your formats are all ISO8601, ::
+
+     ser = pd.Series(['2020-01-01', '2020-01-01 03:00'])
+     pd.to_datetime(ser, format='ISO8601')
 
 .. _whatsnew_200.api_breaking.other:
 

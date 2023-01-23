@@ -1011,6 +1011,15 @@ first read it in as an object dtype and then apply :func:`to_datetime` to each e
    df['date'] = df['date'].apply(pd.to_datetime)
    df
 
+or, if your datetime formats are all ISO8601:
+
+.. ipython:: python
+
+   data = io.StringIO("date\n2020-01-01\n2020-01-01 03:00\n")
+   df = pd.read_csv(data)
+   df['date'] = pd.to_datetime(df['date'], format='ISO8601')
+   df
+
 .. ipython:: python
    :suppress:
 

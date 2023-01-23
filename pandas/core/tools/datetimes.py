@@ -442,11 +442,15 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
 
+    format_inferred = False
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+        format_inferred = True
 
     if format is not None:
-        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+        return _array_strptime_with_fallback(
+            arg, name, utc, format, format_inferred, exact, errors
+        )
 
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -471,13 +475,16 @@ def _array_strptime_with_fallback(
     name,
     utc: bool,
     fmt: str,
+    fmt_inferred: bool,
     exact: bool,
     errors: str,
 ) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    result, timezones = array_strptime(
+        arg, fmt, fmt_inferred=fmt_inferred, exact=exact, errors=errors, utc=utc
+    )
     if any(tz is not None for tz in timezones):
         return _return_parsed_timezone_results(result, timezones, utc, name)
 
@@ -759,6 +766,7 @@ def to_datetime(
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices, though
         note that :const:`"%f"` will parse all the way up to nanoseconds.
+        You can also pass "ISO8601" to parse any ISO8601 time string.
     exact : bool, default True
         Control how `format` is used:
 

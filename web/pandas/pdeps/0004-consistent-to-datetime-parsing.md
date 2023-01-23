@@ -4,7 +4,7 @@
 - Status: Accepted
 - Discussion: [#48621](https://github.com/pandas-dev/pandas/pull/48621)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
-- Revision: 1
+- Revision: 2
 
 ## Abstract
 
@@ -64,6 +64,11 @@ Out[3]:
 1   2000-01-13
 dtype: datetime64[ns]
 ```
+or, if their dates are all ISO8601,
+```ipython
+In [4]: pd.to_datetime(['2020-01-01', '2020-01-01 03:00'], format='ISO8601')
+Out[4]: DatetimeIndex(['2020-01-01 00:00:00', '2020-01-01 03:00:00'], dtype='datetime64[ns]', freq=None)
+```
 
 ## Usage and Impact
 
@@ -99,3 +104,4 @@ We could make ``guess_datetime_format`` smarter by using a random sample of elem
 ### PDEP History
 
 - 18 September 2022: Initial draft
+- 23 January 2023: Amended to mention ``format='ISO8601'`` option

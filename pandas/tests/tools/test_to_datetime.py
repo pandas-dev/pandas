@@ -133,7 +133,11 @@ class TestTimeConversionFormats:
         ser2 = ser.apply(str)
         ser2[2] = "nat"
         with pytest.raises(
-            ValueError, match='unconverted data remains: ".0", at position 0'
+            ValueError,
+            match=(
+                'unconverted data remains when parsing with format "%Y%m%d": ".0", '
+                "at position 0",
+            ),
         ):
             # https://github.com/pandas-dev/pandas/issues/50051
             to_datetime(ser2, format="%Y%m%d", cache=cache)
@@ -528,7 +532,8 @@ class TestTimeConversionFormats:
         msg = "|".join(
             [
                 r'^time data ".*" doesn\'t match format ".*", at position 0$',
-                r'^unconverted data remains: ".*", at position 0$',
+                r'^unconverted data remains when parsing with format ".*": ".*", '
+                "at position 0$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1288,7 +1293,10 @@ class TestToDatetime:
             to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(
             ValueError,
-            match=r'^time data "True" doesn\'t match format "%Y%m%d", at position 1$',
+            match=(
+                r'^time data "True" doesn\'t match \(inferred\) format "%Y%m%d", '
+                "at position 1$"
+            ),
         ):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
@@ -1331,7 +1339,8 @@ class TestToDatetime:
             [
                 r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0$',
                 r'^Given date string "a" not likely a datetime, at position 0$',
-                r'^unconverted data remains: "9", at position 0$',
+                r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
+                "at position 0$",
                 r"^second must be in 0..59: 00:01:99, at position 0$",
             ]
         )
@@ -1382,7 +1391,8 @@ class TestToDatetime:
             [
                 r'^Given date string "a" not likely a datetime, at position 0$',
                 r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0$',
-                r'^unconverted data remains: "9", at position 0$',
+                r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
+                "at position 0$",
                 r"^second must be in 0..59: 00:01:99, at position 0$",
             ]
         )
@@ -2143,8 +2153,8 @@ class TestToDatetimeDataFrame:
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
-            r"^cannot assemble the datetimes: unconverted data remains: "
-            r'"1", at position 0$'
+            r"^cannot assemble the datetimes: unconverted data remains when parsing "
+            r'with format ".*": "1", at position 0$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2226,7 +2236,8 @@ class TestToDatetimeMisc:
         # `format` is shorter than the date string, so only fails with `exact=True`
         msg = "|".join(
             [
-                '^unconverted data remains: ".*", at position 0$',
+                '^unconverted data remains when parsing with format ".*": ".*"'
+                ", at position 0$",
                 'time data ".*" doesn\'t match format ".*", at position 0',
             ]
         )
@@ -2360,7 +2371,10 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
-        msg = r'^time data " " doesn\'t match format "%m/%d/%Y", at position 2$'
+        msg = (
+            r'^time data " " doesn\'t match \(inferred\) format "%m/%d/%Y", '
+            "at position 2$"
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
         result_coerce = to_datetime(ser, errors="coerce", cache=cache)
@@ -2624,7 +2638,7 @@ class TestToDatetimeMisc:
         with pytest.raises(
             ValueError,
             match=(
-                r'^time data "03/30/2011" doesn\'t match format '
+                r'^time data "03/30/2011" doesn\'t match \(inferred\) format '
                 r'"%d/%m/%Y", at position 1$'
             ),
         ):
@@ -2695,7 +2709,7 @@ class TestToDatetimeInferFormat:
         data = ["01/01/2011 00:00:00", "01-02-2011 00:00:00", "2011-01-03T00:00:00"]
         ser = Series(np.array(data))
         msg = (
-            r'^time data "01-02-2011 00:00:00" doesn\'t match format '
+            r'^time data "01-02-2011 00:00:00" doesn\'t match \(inferred\) format '
             r'"%m/%d/%Y %H:%M:%S", at position 1$'
         )
         with pytest.raises(ValueError, match=msg):
@@ -2835,7 +2849,8 @@ class TestDaysInMonth:
             (
                 "2015-02-32",
                 "%Y-%m-%d",
-                '^unconverted data remains: "2", at position 0$',
+                '^unconverted data remains when parsing with format "%Y-%d-%m": "2", '
+                "at position 0$",
             ),
             (
                 "2015-32-02",
@@ -3490,3 +3505,31 @@ def test_to_datetime_format_f_parse_nanos():
         nanosecond=789,
     )
     assert result == expected
+
+
+def test_to_datetime_mixed_iso8601():
+    # https://github.com/pandas-dev/pandas/issues/50411
+    result = to_datetime(["2020-01-01", "2020-01-01 05:00:00"], format="ISO8601")
+    expected = DatetimeIndex(["2020-01-01 00:00:00", "2020-01-01 05:00:00"])
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_mixed_not_necessarily_iso8601_raise():
+    # https://github.com/pandas-dev/pandas/issues/50411
+    with pytest.raises(
+        ValueError, match="Time data 01-01-2000 is not ISO8601 format, at position 1"
+    ):
+        to_datetime(["2020-01-01", "01-01-2000"], format="ISO8601")
+
+
+@pytest.mark.parametrize(
+    ("errors", "expected"),
+    [
+        ("coerce", DatetimeIndex(["2020-01-01 00:00:00", NaT])),
+        ("ignore", Index(["2020-01-01", "01-01-2000"])),
+    ],
+)
+def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):
+    # https://github.com/pandas-dev/pandas/issues/50411
+    result = to_datetime(["2020-01-01", "01-01-2000"], format="ISO8601", errors=errors)
+    tm.assert_index_equal(result, expected)
