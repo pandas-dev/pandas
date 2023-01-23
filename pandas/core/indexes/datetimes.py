@@ -63,7 +63,7 @@ from pandas.core.tools.times import to_time
 if TYPE_CHECKING:
     from pandas.core.api import (
         DataFrame,
-        Float64Index,
+        NumericIndex,
         PeriodIndex,
     )
 
@@ -284,11 +284,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
-    def to_julian_date(self) -> Float64Index:
-        from pandas.core.indexes.api import Float64Index
+    def to_julian_date(self) -> NumericIndex:
+        from pandas.core.indexes.api import NumericIndex
 
         arr = self._data.to_julian_date()
-        return Float64Index._simple_new(arr, name=self.name)
+        return NumericIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
     def isocalendar(self) -> DataFrame:
