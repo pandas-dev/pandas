@@ -333,9 +333,6 @@ def array_strptime(
                 iresult[i] = value
                 check_dts_bounds(&dts)
                 continue
-            else:
-                if fmt == "ISO8601":
-                    raise ValueError(f"Time data {val} is not ISO8601 format")
 
             if parse_today_now(val, &iresult[i], utc):
                 continue
