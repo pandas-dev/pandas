@@ -2555,26 +2555,12 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._holds_integer()
 
-    def _inferred_type(self) -> str_t:
-        """
-        Return a string of the type inferred from the values.
-        """
-        try:  # fastpath numeric indexes
-            return {
-                "i": "integer",
-                "u": "integer",
-                "f": "floating",
-                "c": "complex",
-            }[self.dtype.kind]
-        except KeyError:
-            return lib.infer_dtype(self._values, skipna=False)
-
     @cache_readonly
     def inferred_type(self) -> str_t:
         """
         Return a string of the type inferred from the values.
         """
-        try:
+        try:  # fastpath numeric indexes
             return {
                 "i": "integer",
                 "u": "integer",
