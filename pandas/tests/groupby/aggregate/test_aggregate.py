@@ -137,7 +137,7 @@ def test_agg_apply_corner(ts, tsframe):
     grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
-    # groupby float64 values results in Float64Index
+    # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
     tm.assert_series_equal(grouped.agg(np.sum), exp)
@@ -206,6 +206,21 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
             "C": grouped["C"].mean(),
             "D": grouped["D"].sem(),
         }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_std_masked_dtype(any_numeric_ea_dtype):
+    # GH#35516
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 1, 2, 2, 1],
+            "b": Series([pd.NA, 1, 2, 1, 1, 1, 2], dtype="Float64"),
+        }
+    )
+    result = df.groupby("a").std()
+    expected = DataFrame(
+        {"b": [0.57735, 0]}, index=Index([1, 2], name="a"), dtype="Float64"
     )
     tm.assert_frame_equal(result, expected)
 
@@ -658,7 +673,8 @@ def test_agg_split_object_part_datetime():
             "D": ["b"],
             "E": [pd.Timestamp("2000")],
             "F": [1],
-        }
+        },
+        index=np.array([0]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -669,7 +685,7 @@ class TestNamedAggregationSeries:
         gr = df.groupby([0, 0, 1, 1])
         result = gr.agg(a="sum", b="min")
         expected = DataFrame(
-            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=[0, 1]
+            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=np.array([0, 1])
         )
         tm.assert_frame_equal(result, expected)
 
@@ -691,13 +707,13 @@ class TestNamedAggregationSeries:
         # GH28426
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         grouped = gr.agg(a="sum", b="sum")
-        expected = DataFrame({"a": [3, 3], "b": [3, 3]})
+        expected = DataFrame({"a": [3, 3], "b": [3, 3]}, index=np.array([0, 1]))
         tm.assert_frame_equal(expected, grouped)
 
     def test_mangled(self):
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
-        expected = DataFrame({"a": [0, 0], "b": [1, 1]})
+        expected = DataFrame({"a": [0, 0], "b": [1, 1]}, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -998,8 +1014,7 @@ def test_multiindex_custom_func(func):
         (1, 4): {0: 4.0, 1: 7.0},
         (2, 3): {0: 2.0, 1: 1.0},
     }
-    expected = DataFrame(expected_dict)
-    expected.columns = df.columns
+    expected = DataFrame(expected_dict, index=np.array([0, 1]), columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1081,7 +1096,8 @@ class TestLambdaMangling:
     def test_mangle_series_groupby(self):
         gr = Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
         result = gr.agg([lambda x: 0, lambda x: 1])
-        expected = DataFrame({"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]})
+        exp_data = {"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]}
+        expected = DataFrame(exp_data, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
@@ -1369,7 +1385,7 @@ def test_groupby_aggregate_directory(reduction_func):
 def test_group_mean_timedelta_nat():
     # GH43132
     data = Series(["1 day", "3 days", "NaT"], dtype="timedelta64[ns]")
-    expected = Series(["2 days"], dtype="timedelta64[ns]")
+    expected = Series(["2 days"], dtype="timedelta64[ns]", index=np.array([0]))
 
     result = data.groupby([0, 0, 0]).mean()
 
@@ -1392,7 +1408,7 @@ def test_group_mean_timedelta_nat():
 def test_group_mean_datetime64_nat(input_data, expected_output):
     # GH43132
     data = to_datetime(Series(input_data))
-    expected = to_datetime(Series(expected_output))
+    expected = to_datetime(Series(expected_output, index=np.array([0])))
 
     result = data.groupby([0, 0, 0]).mean()
     tm.assert_series_equal(result, expected)

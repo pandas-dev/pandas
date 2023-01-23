@@ -4,7 +4,6 @@ Experimental manager based on storing a collection of 1D arrays
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -93,10 +92,6 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.api import Float64Index
-
 
 T = TypeVar("T", bound="BaseArrayManager")
 
@@ -863,8 +858,6 @@ class ArrayManager(BaseArrayManager):
 
         This is a method on the ArrayManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
-
-
         """
         if not is_integer(loc):
             raise TypeError("The column index should be an integer")
@@ -1015,7 +1008,7 @@ class ArrayManager(BaseArrayManager):
     def quantile(
         self,
         *,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         axis: AxisInt = 0,
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",

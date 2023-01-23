@@ -303,7 +303,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(month=1)
 
-        msg = "Given date string -2000 not likely a datetime"
+        msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "A")
         msg = "day is out of range for month"
@@ -545,6 +545,11 @@ class TestPeriodConstruction:
             (".000000999", 999),
             (".123456789", 789),
             (".999999999", 999),
+            (".999999000", 0),
+            # Test femtoseconds, attoseconds, picoseconds are dropped like Timestamp
+            (".999999001123", 1),
+            (".999999001123456", 1),
+            (".999999001123456789", 1),
         ],
     )
     def test_period_constructor_nanosecond(self, day, hour, sec_float, expected):

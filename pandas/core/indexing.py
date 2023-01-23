@@ -1703,6 +1703,10 @@ class _iLocIndexer(_LocationIndexer):
         # maybe partial set
         take_split_path = not self.obj._mgr.is_single_block
 
+        if not take_split_path and isinstance(value, ABCDataFrame):
+            # Avoid cast of values
+            take_split_path = not value._mgr.is_single_block
+
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
         if not take_split_path and len(self.obj._mgr.arrays) and self.ndim > 1:
@@ -2055,7 +2059,7 @@ class _iLocIndexer(_LocationIndexer):
             value = self._align_series(indexer, Series(value))
 
         elif isinstance(value, ABCDataFrame) and name != "iloc":
-            value = self._align_frame(indexer, value)
+            value = self._align_frame(indexer, value)._values
 
         # check for chained assignment
         self.obj._check_is_chained_assignment_possible()
@@ -2077,7 +2081,7 @@ class _iLocIndexer(_LocationIndexer):
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
-            # that matches in an Int64Index, so
+            # that matches in an int64 Index, so
             # we will not create a duplicate index, rather
             # index to that element
             # e.g. 0.0 -> 0
@@ -2162,7 +2166,7 @@ class _iLocIndexer(_LocationIndexer):
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
-                    df = df.infer_objects()
+                    df = df.infer_objects(copy=False)
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
@@ -2291,7 +2295,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: DataFrame):
+    def _align_frame(self, indexer, df: DataFrame) -> DataFrame:
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -2315,15 +2319,15 @@ class _iLocIndexer(_LocationIndexer):
             if idx is not None and cols is not None:
 
                 if df.index.equals(idx) and df.columns.equals(cols):
-                    val = df.copy()._values
+                    val = df.copy()
                 else:
-                    val = df.reindex(idx, columns=cols)._values
+                    val = df.reindex(idx, columns=cols)
                 return val
 
         elif (isinstance(indexer, slice) or is_list_like_indexer(indexer)) and is_frame:
             ax = self.obj.index[indexer]
             if df.index.equals(ax):
-                val = df.copy()._values
+                val = df.copy()
             else:
 
                 # we have a multi-index and are trying to align
@@ -2338,7 +2342,7 @@ class _iLocIndexer(_LocationIndexer):
                         "specifying the join levels"
                     )
 
-                val = df.reindex(index=ax)._values
+                val = df.reindex(index=ax)
             return val
 
         raise ValueError("Incompatible indexer with DataFrame")

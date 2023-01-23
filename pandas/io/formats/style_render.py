@@ -85,7 +85,7 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple | list | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
     ) -> None:
@@ -1125,7 +1125,8 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
-        >>> df.style.applymap(lambda v: pseudo_css).to_excel("formatted_file.xlsx")
+        >>> filename = "formatted_file.xlsx"
+        >>> df.style.applymap(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """

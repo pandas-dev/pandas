@@ -20,10 +20,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -778,8 +774,8 @@ class TestContains:
         rng = period_range("2007-01", freq="M", periods=10)
 
         assert Period("2007-01", freq="M") in rng
-        assert not Period("2007-01", freq="D") in rng
-        assert not Period("2007-01", freq="2M") in rng
+        assert Period("2007-01", freq="D") not in rng
+        assert Period("2007-01", freq="2M") not in rng
 
     def test_contains_nat(self):
         # see gh-13582
@@ -806,10 +802,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(Int64Index(pi.asi8), mask)
+            pi.asof_locs(pd.Index(pi.asi8, dtype=np.int64), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(Float64Index(pi.asi8), mask)
+            pi.asof_locs(pd.Index(pi.asi8, dtype=np.float64), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

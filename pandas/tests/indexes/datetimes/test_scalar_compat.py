@@ -19,7 +19,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 class TestDatetimeIndexOps:
@@ -38,7 +37,10 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize("data", [["1400-01-01"], [datetime(1400, 1, 1)]])
     def test_dti_date_out_of_range(self, data):
         # GH#1475
-        msg = "Out of bounds .* present at position 0"
+        msg = (
+            "^Out of bounds nanosecond timestamp: "
+            "1400-01-01( 00:00:00)?, at position 0$"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             DatetimeIndex(data)
 
@@ -313,33 +315,33 @@ class TestDateTimeIndexToJulianDate:
         dr = date_range(start=Timestamp("1710-10-01"), periods=5, freq="D")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
-        assert isinstance(r2, Float64Index)
+        assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
         dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="D")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
-        assert isinstance(r2, Float64Index)
+        assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
         dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="H")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
-        assert isinstance(r2, Float64Index)
+        assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
         dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="T")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
-        assert isinstance(r2, Float64Index)
+        assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
         dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="S")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
-        assert isinstance(r2, Float64Index)
+        assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)

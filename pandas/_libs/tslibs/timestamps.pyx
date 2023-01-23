@@ -450,6 +450,7 @@ cdef class _Timestamp(ABCTimestamp):
             # cython semantics, args have been switched and this is __radd__
             # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -580,7 +581,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_start(self) -> bool:
         """
-        Return True if date is first day of month.
+        Check if the date is the first day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the first day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_end : Similar property indicating the last day of the month.
 
         Examples
         --------
@@ -597,7 +607,16 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_month_end(self) -> bool:
         """
-        Return True if date is last day of month.
+        Check if the date is the last day of the month.
+
+        Returns
+        -------
+        bool
+            True if the date is the last day of the month.
+
+        See Also
+        --------
+        Timestamp.is_month_start : Similar property indicating month start.
 
         Examples
         --------
@@ -614,7 +633,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_start(self) -> bool:
         """
-        Return True if date is first day of the quarter.
+        Check if the date is the first day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is first day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_end : Similar property indicating the quarter end.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -631,7 +660,17 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def is_quarter_end(self) -> bool:
         """
-        Return True if date is last day of the quarter.
+        Check if date is last day of the quarter.
+
+        Returns
+        -------
+        bool
+            True if date is last day of the quarter.
+
+        See Also
+        --------
+        Timestamp.is_quarter_start : Similar property indicating the quarter start.
+        Timestamp.quarter : Return the quarter of the date.
 
         Examples
         --------
@@ -650,6 +689,14 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_end : Similar property indicating the end of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -666,6 +713,14 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_start : Similar property indicating the start of the year.
 
         Examples
         --------
@@ -748,6 +803,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
 
+        Returns
+        -------
+        bool
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -760,6 +819,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_week(self) -> int:
         """
         Return day of the week.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -774,6 +837,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -786,6 +853,10 @@ cdef class _Timestamp(ABCTimestamp):
     def quarter(self) -> int:
         """
         Return the quarter of the year.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -800,6 +871,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the week number of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -812,6 +887,10 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -1372,7 +1451,18 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
         """
-        return datetime.strftime(self, format)
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "strftime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.strftime(format)
 
     # Issue 25016.
     @classmethod
@@ -1526,15 +1616,10 @@ class Timestamp(_Timestamp):
         elif is_integer_object(year):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, nanosecond[, tzinfo]]]]]])
+            # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
-
-            if nanosecond is None:
-                # nanosecond was not passed as a keyword, but may have been
-                #  passed positionally see test_constructor_nanosecond
-                nanosecond = microsecond
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
@@ -1562,8 +1647,17 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        to_offset(freq).nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
+
+            # e.g. self.unit == "s" and sub-second freq
+            return self
+
+        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None).value

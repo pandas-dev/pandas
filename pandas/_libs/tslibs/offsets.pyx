@@ -162,7 +162,11 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+        result2 = Timestamp(result).as_unit(other.unit)
+        if result == result2:
+            # i.e. the conversion is non-lossy, not the case for e.g.
+            #  test_milliseconds_combination
+            result = result2
 
         if self._adjust_dst:
             result = result.tz_localize(tz)
@@ -362,6 +366,21 @@ class ApplyTypeError(TypeError):
 cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
+
+    normalize : bool
+        Whether the frequency can align with midnight.
+
+    Examples
+    --------
+    >>> pd.offsets.Hour(5).n
+    5
+    >>> pd.offsets.Hour(5).normalize
+    False
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -370,7 +389,6 @@ cdef class BaseOffset:
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
     _adjust_dst = True
-    _deprecations = frozenset(["isAnchored", "onOffset"])
 
     # cdef readonly:
     #    int64_t n
@@ -380,23 +398,7 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        """
-        Number of multiples of the frequency.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).n
-        5
-        """
         self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).normalize
-        False
-        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
@@ -1844,15 +1846,20 @@ cdef class BusinessHour(BusinessMixin):
         earliest_start = self.start[0]
         latest_start = self.start[-1]
 
+        if self.n == 0:
+            is_same_sign = sign > 0
+        else:
+            is_same_sign = self.n * sign >= 0
+
         if not self.next_bday.is_on_offset(other):
             # today is not business day
             other = other + sign * self.next_bday
-            if self.n * sign >= 0:
+            if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
                 hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0:
+            if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
                     other = other + sign * self.next_bday
@@ -2775,13 +2782,33 @@ cdef class Week(SingleConstructorOffset):
     Parameters
     ----------
     weekday : int or None, default None
-        Always generate specific day of week. 0 for Monday.
+        Always generate specific day of week.
+        0 for Monday and 6 for Sunday.
+
+    See Also
+    --------
+    pd.tseries.offsets.WeekOfMonth :
+     Describes monthly dates like, the Tuesday of the
+     2nd week of each month.
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.Week()
-    Timestamp('2022-01-08 00:00:00')
+
+    >>> date_object = pd.Timestamp("2023-01-13")
+    >>> date_object
+    Timestamp('2023-01-13 00:00:00')
+
+    >>> date_plus_one_week = date_object + pd.tseries.offsets.Week(n=1)
+    >>> date_plus_one_week
+    Timestamp('2023-01-20 00:00:00')
+
+    >>> date_next_monday = date_object + pd.tseries.offsets.Week(weekday=0)
+    >>> date_next_monday
+    Timestamp('2023-01-16 00:00:00')
+
+    >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
+    >>> date_next_sunday
+    Timestamp('2023-01-15 00:00:00')
     """
 
     _inc = timedelta(weeks=1)

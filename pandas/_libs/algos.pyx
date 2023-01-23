@@ -647,40 +647,37 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
                 val = values[j, i]
 
 
-"""
-Backfilling logic for generating fill vector
-
-Diagram of what's going on
-
-Old      New    Fill vector    Mask
-         .        0               1
-         .        0               1
-         .        0               1
-A        A        0               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-B        B        1               1
-         .        2               1
-         .        2               1
-         .        2               1
-C        C        2               1
-         .                        0
-         .                        0
-D
-"""
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
     ndarray[numeric_object_t] old,
     ndarray[numeric_object_t] new,
     limit=None
-) -> ndarray:
-    # -> ndarray[intp_t, ndim=1]
+) -> ndarray:  # -> ndarray[intp_t, ndim=1]
+    """
+    Backfilling logic for generating fill vector
+
+    Diagram of what's going on
+
+    Old      New    Fill vector    Mask
+            .        0               1
+            .        0               1
+            .        0               1
+    A        A        0               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+    B        B        1               1
+            .        2               1
+            .        2               1
+            .        2               1
+    C        C        2               1
+            .                        0
+            .                        0
+    D
+    """
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t, ndim=1] indexer
@@ -1369,7 +1366,7 @@ def rank_2d(
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
-            mask = missing.isnaobj2d(values).view(np.uint8)
+            mask = missing.isnaobj(values).view(np.uint8)
         elif numeric_object_t is float64_t or numeric_object_t is float32_t:
             mask = np.isnan(values).view(np.uint8)
         else:
