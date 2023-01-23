@@ -258,17 +258,18 @@ by : str or list of str
       levels and/or column labels.
     - if `axis` is 1 or `'columns'` then `by` may contain column
       levels and/or index labels.""",
-    "optional_labels": """labels : array-like, optional
-            New labels / index to conform the axis specified by 'axis' to.""",
-    "optional_index": """index : array-like, optional
-            New labels for the index. Preferably an Index object to avoid
-            duplicating data.""",
-    "optional_columns": """columns : array-like, optional
-            New labels for the columns. Preferably an Index object to avoid
-            duplicating data.""",
-    "optional_axis": """axis : int or str, optional
-            Axis to target. Can be either the axis name ('index', 'columns')
-            or number (0, 1).""",
+    "optional_reindex": """
+labels : array-like, optional
+    New labels / index to conform the axis specified by 'axis' to.
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+columns : array-like, optional
+    New labels for the columns. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Axis to target. Can be either the axis name ('index', 'columns')
+    or number (0, 1).""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -4997,10 +4998,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(
         NDFrame.reindex,
         klass=_shared_doc_kwargs["klass"],
-        optional_labels=_shared_doc_kwargs["optional_labels"],
-        optional_index=_shared_doc_kwargs["optional_index"],
-        optional_columns=_shared_doc_kwargs["optional_columns"],
-        optional_axis=_shared_doc_kwargs["optional_axis"],
+        optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
     def reindex(  # type: ignore[override]
         self,

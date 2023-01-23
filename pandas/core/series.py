@@ -191,11 +191,12 @@ _shared_doc_kwargs = {
     "duplicated": "Series",
     "optional_by": "",
     "optional_mapper": "",
-    "optional_labels": "",
-    "optional_index": "",
-    "optional_columns": "",
-    "optional_axis": """axis : int or str, optional
-            Unused.""",
+    "optional_reindex": """
+    index : array-like, optional
+        New labels for the index. Preferably an Index object to avoid
+        duplicating data.
+    axis : int or str, optional
+        Unused""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -4866,10 +4867,7 @@ Keep all original rows and also all original values
     @doc(
         NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
-        optional_labels=_shared_doc_kwargs["optional_labels"],
-        optional_index=_shared_doc_kwargs["optional_index"],
-        optional_columns=_shared_doc_kwargs["optional_columns"],
-        optional_axis=_shared_doc_kwargs["optional_axis"],
+        optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
     def reindex(  # type: ignore[override]
         self,

@@ -5105,10 +5105,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        optional_labels="",
-        optional_index="",
-        optional_columns="",
-        optional_axis="",
+        optional_reindex="",
     )
     def reindex(
         self: NDFrameT,
@@ -5132,10 +5129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        {optional_labels}
-        {optional_index}
-        {optional_columns}
-        {optional_axis}
+        {optional_reindex}
         method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
