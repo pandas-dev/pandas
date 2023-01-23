@@ -11,6 +11,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    is_float_dtype,
+    is_unsigned_integer_dtype,
+)
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
@@ -454,7 +458,7 @@ def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
 
     result = midx.difference(midx.sort_values(ascending=False))
     expected = MultiIndex.from_arrays(
-        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=int)],
+        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=np.int64)],
         names=["a", None],
     )
     tm.assert_index_equal(result, expected)
@@ -632,14 +636,24 @@ def test_union_duplicates(index, request):
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)
 
-    if mi2.levels[0].dtype == np.uint64 and (mi2.get_level_values(0) < 2**63).all():
+    if (
+        is_unsigned_integer_dtype(mi2.levels[0])
+        and (mi2.get_level_values(0) < 2**63).all()
+    ):
         # GH#47294 - union uses lib.fast_zip, converting data to Python integers
         # and loses type information. Result is then unsigned only when values are
         # sufficiently large to require unsigned dtype. This happens only if other
         # has dups or one of both have missing values
         expected = expected.set_levels(
-            [expected.levels[0].astype(int), expected.levels[1]]
+            [expected.levels[0].astype(np.int64), expected.levels[1]]
         )
+    elif is_float_dtype(mi2.levels[0]):
+        # mi2 has duplicates witch is a different path than above, Fix that path
+        # to use correct float dtype?
+        expected = expected.set_levels(
+            [expected.levels[0].astype(float), expected.levels[1]]
+        )
+
     result = mi1.union(mi2)
     tm.assert_index_equal(result, expected)
 
@@ -690,6 +704,43 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
     assert mi_int._lexsort_depth == 2
+
+
+@pytest.mark.parametrize(
+    "a",
+    [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
+)
+@pytest.mark.parametrize(
+    "b",
+    [
+        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
+        pd.Categorical(["a", "b"], categories=["b", "a"]),
+    ],
+)
+def test_intersection_with_non_lex_sorted_categories(a, b):
+    # GH#49974
+    other = ["1", "2"]
+
+    df1 = DataFrame({"x": a, "y": other})
+    df2 = DataFrame({"x": b, "y": other})
+
+    expected = MultiIndex.from_arrays([a, other], names=["x", "y"])
+
+    res1 = MultiIndex.from_frame(df1).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+    res2 = MultiIndex.from_frame(df1).intersection(MultiIndex.from_frame(df2))
+    res3 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2)
+    )
+    res4 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+
+    tm.assert_index_equal(res1, expected)
+    tm.assert_index_equal(res2, expected)
+    tm.assert_index_equal(res3, expected)
+    tm.assert_index_equal(res4, expected)
 
 
 @pytest.mark.parametrize("val", [pd.NA, 100])

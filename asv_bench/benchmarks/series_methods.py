@@ -382,4 +382,23 @@ class Iter:
             pass
 
 
+class ToNumpy:
+    def setup(self):
+        N = 1_000_000
+        self.ser = Series(
+            np.random.randn(
+                N,
+            )
+        )
+
+    def time_to_numpy(self):
+        self.ser.to_numpy()
+
+    def time_to_numpy_double_copy(self):
+        self.ser.to_numpy(dtype="float64", copy=True)
+
+    def time_to_numpy_copy(self):
+        self.ser.to_numpy(copy=True)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

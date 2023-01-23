@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_period_dtype,
 )
+from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
     DataFrame,
@@ -57,10 +58,12 @@ from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
-    _extension_to_compression,
+    dedup_names,
+    extension_to_compression,
     file_exists,
     get_handle,
     is_fsspec_url,
+    is_potential_multi_index,
     is_url,
     stringify_path,
 )
@@ -394,6 +397,7 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> JsonReader[Literal["frame"]]:
     ...
 
@@ -417,6 +421,7 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> JsonReader[Literal["series"]]:
     ...
 
@@ -440,6 +445,7 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> Series:
     ...
 
@@ -463,6 +469,7 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -489,6 +496,7 @@ def read_json(
     compression: CompressionOptions = "infer",
     nrows: int | None = None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | Series | JsonReader:
     """
     Convert a JSON string to pandas object.
@@ -627,6 +635,19 @@ def read_json(
 
         .. versionadded:: 1.2.0
 
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     Series or DataFrame
@@ -738,6 +759,7 @@ def read_json(
         nrows=nrows,
         storage_options=storage_options,
         encoding_errors=encoding_errors,
+        use_nullable_dtypes=use_nullable_dtypes,
     )
 
     if chunksize:
@@ -773,6 +795,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
+        use_nullable_dtypes: bool = False,
     ) -> None:
 
         self.orient = orient
@@ -792,6 +815,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.nrows = nrows
         self.encoding_errors = encoding_errors
         self.handles: IOHandles[str] | None = None
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -854,7 +878,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         elif (
             isinstance(filepath_or_buffer, str)
             and filepath_or_buffer.lower().endswith(
-                (".json",) + tuple(f".json{c}" for c in _extension_to_compression)
+                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
             )
             and not file_exists(filepath_or_buffer)
         ):
@@ -901,7 +925,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     obj = self._get_object_parser(self._combine_lines(data_lines))
             else:
                 obj = self._get_object_parser(self.data)
-        return obj
+        if self.use_nullable_dtypes:
+            return obj.convert_dtypes(infer_objects=False)
+        else:
+            return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
         """
@@ -917,6 +944,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "keep_default_dates": self.keep_default_dates,
             "precise_float": self.precise_float,
             "date_unit": self.date_unit,
+            "use_nullable_dtypes": self.use_nullable_dtypes,
         }
         obj = None
         if typ == "frame":
@@ -975,7 +1003,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.close()
             raise ex
 
-        return obj
+        if self.use_nullable_dtypes:
+            return obj.convert_dtypes(infer_objects=False)
+        else:
+            return obj
 
     def __enter__(self) -> JsonReader[FrameSeriesStrT]:
         return self
@@ -1011,6 +1042,7 @@ class Parser:
         keep_default_dates: bool = False,
         precise_float: bool = False,
         date_unit=None,
+        use_nullable_dtypes: bool = False,
     ) -> None:
         self.json = json
 
@@ -1035,6 +1067,7 @@ class Parser:
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
         self.obj: DataFrame | Series | None = None
+        self.use_nullable_dtypes = use_nullable_dtypes
 
     def check_keys_split(self, decoded) -> None:
         """
@@ -1117,7 +1150,10 @@ class Parser:
             if result:
                 return new_data, True
 
-        if data.dtype == "object":
+        if self.use_nullable_dtypes and not isinstance(data, ABCIndex):
+            # Fall through for conversion later on
+            return data, True
+        elif data.dtype == "object":
 
             # try float
             try:
@@ -1246,6 +1282,14 @@ class FrameParser(Parser):
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
+            orig_names = [
+                (tuple(col) if isinstance(col, list) else col)
+                for col in decoded["columns"]
+            ]
+            decoded["columns"] = dedup_names(
+                orig_names,
+                is_potential_multi_index(orig_names, None),
+            )
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(

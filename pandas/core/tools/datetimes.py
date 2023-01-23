@@ -28,7 +28,9 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
+    get_unit_from_dtype,
     iNaT,
+    is_supported_unit,
     nat_strings,
     parsing,
     timezones as libtimezones,
@@ -50,7 +52,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_float,
     is_integer,
@@ -68,6 +69,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
+    PandasArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
@@ -139,7 +141,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
                 return guessed_format
             warnings.warn(
                 "Could not infer format, so each element will be parsed "
-                "individually by `dateutil`. To ensure parsing is "
+                "individually, falling back to `dateutil`. To ensure parsing is "
                 "consistent and as-expected, please specify a format.",
                 UserWarning,
                 stacklevel=find_stack_level(),
@@ -384,6 +386,8 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
+    elif isinstance(arg, PandasArray):
+        arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
@@ -395,7 +399,17 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
-    elif is_datetime64_ns_dtype(arg_dtype):
+    elif is_datetime64_dtype(arg_dtype):
+        arg_dtype = cast(np.dtype, arg_dtype)
+        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+            # We go to closest supported reso, i.e. "s"
+            arg = astype_overflowsafe(
+                # TODO: looks like we incorrectly raise with errors=="ignore"
+                np.asarray(arg),
+                np.dtype("M8[s]"),
+                is_coerce=errors == "coerce",
+            )
+
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         elif utc:
@@ -500,11 +514,9 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         elif arg.dtype.kind == "f":
             mult, _ = precision_from_unit(unit)
 
-            iresult = arg.astype("i8")
             mask = np.isnan(arg) | (arg == iNaT)
-            iresult[mask] = 0
-
-            fvalues = iresult.astype("f8") * mult
+            fvalues = (arg * mult).astype("f8", copy=False)
+            fvalues[mask] = 0
 
             if (fvalues < Timestamp.min.value).any() or (
                 fvalues > Timestamp.max.value
@@ -514,11 +526,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                     return _to_datetime_with_unit(arg, unit, name, utc, errors)
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            # TODO: is fresult meaningfully different from fvalues?
-            fresult = (arg * mult).astype("f8")
-            fresult[mask] = 0
-
-            arr = fresult.astype("M8[ns]", copy=False)
+            arr = fvalues.astype("M8[ns]", copy=False)
             arr[mask] = np.datetime64("NaT", "ns")
 
             tz_parsed = None

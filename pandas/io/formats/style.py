@@ -52,9 +52,6 @@ from pandas.core.generic import NDFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
-
-jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
@@ -71,20 +68,15 @@ from pandas.io.formats.style_render import (
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-
-    has_mpl = True
-except ImportError:
-    has_mpl = False
-
 
 @contextmanager
 def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
-    if has_mpl:
+    try:
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+
         yield plt, mpl
-    else:
+    except ImportError:
         raise ImportError(f"{func.__name__} requires matplotlib.")
 
 
@@ -237,7 +229,7 @@ class Styler(StylerRenderer):
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple | list | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
@@ -2035,7 +2027,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        styles : dict
+        dict
 
         See Also
         --------
@@ -2173,13 +2165,13 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str | tuple) -> Styler:
+    def set_caption(self, caption: str | tuple | list) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
-        caption : str, tuple
+        caption : str, tuple, list
             For HTML output either the string input is used or the first element of the
             tuple. For LaTeX the string input provides a caption and the additional
             tuple input allows for full captions and short captions, in that order.
@@ -2189,7 +2181,7 @@ class Styler(StylerRenderer):
         Styler
         """
         msg = "`caption` must be either a string or 2-tuple of strings."
-        if isinstance(caption, tuple):
+        if isinstance(caption, (list, tuple)):
             if (
                 len(caption) != 2
                 or not isinstance(caption[0], str)
@@ -2253,7 +2245,7 @@ class Styler(StylerRenderer):
                         "props": props + "top:0px; z-index:2;",
                     }
                 ]
-                if not self.index.names[0] is None:
+                if self.index.names[0] is not None:
                     styles[0]["props"] = (
                         props + f"top:0px; z-index:2; height:{pixel_size}px;"
                     )
@@ -3420,6 +3412,9 @@ class Styler(StylerRenderer):
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
         """
+        jinja2 = import_optional_dependency(
+            "jinja2", extra="DataFrame.style requires jinja2."
+        )
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # mypy doesn't like dynamically-defined classes
@@ -3619,7 +3614,7 @@ def _background_gradient(
     Color background in a range according to the data or a gradient map
     """
     if gmap is None:  # the data is used the gmap
-        gmap = data.to_numpy(dtype=float)
+        gmap = data.to_numpy(dtype=float, na_value=np.nan)
     else:  # else validate gmap against the underlying data
         gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
 

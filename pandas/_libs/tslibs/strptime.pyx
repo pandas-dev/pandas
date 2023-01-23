@@ -1,4 +1,18 @@
 """Strptime-related classes and functions.
+
+TimeRE, _calc_julian_from_U_or_W are vendored
+from the standard library, see
+https://github.com/python/cpython/blob/main/Lib/_strptime.py
+The original module-level docstring follows.
+
+Strptime-related classes and functions.
+CLASSES:
+    LocaleTime -- Discovers and stores locale-specific time information
+    TimeRE -- Creates regexes for pattern matching a string of text containing
+                time information
+FUNCTIONS:
+    _getlang -- Figure out what language is being used for the locale
+    strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
 
@@ -10,10 +24,16 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from _strptime import (
+    TimeRE as _TimeRE,
+    _getlang,
+)
+from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
+import re
 
 import numpy as np
 import pytz
@@ -50,6 +70,7 @@ from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
 )
+
 from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
@@ -60,15 +81,23 @@ cdef bint format_is_iso(f: str):
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
+    iso_regex = re.compile(
+        r"""
+        ^                     # start of string
+        %Y                    # Year
+        (?:([-/ \\.]?)%m      # month with or without separators
+        (?: \1%d              # day with same separator as for year-month
+        (?:[ T]%H             # hour with separator
+        (?:\:%M               # minute with separator
+        (?:\:%S               # second with separator
+        (?:%z|\.%f(?:%z)?     # timezone or fractional second
+        )?)?)?)?)?)?          # optional
+        $                     # end of string
+        """,
+        re.VERBOSE,
+    )
     excluded_formats = ["%Y%m"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                iso_fmt = f"%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}"
-                if iso_fmt.startswith(f) and f not in excluded_formats:
-                    return True
-    return False
+    return re.match(iso_regex, f) is not None and f not in excluded_formats
 
 
 def _test_format_is_iso(f: str) -> bool:
@@ -154,52 +183,51 @@ def array_strptime(
         bint found_naive = False
         bint found_tz = False
         tzinfo tz_out = None
-        bint iso_format = fmt is not None and format_is_iso(fmt)
+        bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
 
     assert is_raise or is_ignore or is_coerce
 
-    if fmt is not None:
-        if "%W" in fmt or "%U" in fmt:
-            if "%Y" not in fmt and "%y" not in fmt:
-                raise ValueError("Cannot use '%W' or '%U' without day and year")
-            if "%A" not in fmt and "%a" not in fmt and "%w" not in fmt:
-                raise ValueError("Cannot use '%W' or '%U' without day and year")
-        elif "%Z" in fmt and "%z" in fmt:
-            raise ValueError("Cannot parse both %Z and %z")
-        elif "%j" in fmt and "%G" in fmt:
-            raise ValueError("Day of the year directive '%j' is not "
-                             "compatible with ISO year directive '%G'. "
-                             "Use '%Y' instead.")
-        elif "%G" in fmt and (
-            "%V" not in fmt
-            or not (
-                "%A" in fmt
-                or "%a" in fmt
-                or "%w" in fmt
-                or "%u" in fmt
-            )
-        ):
-            raise ValueError("ISO year directive '%G' must be used with "
-                             "the ISO week directive '%V' and a weekday "
-                             "directive '%A', '%a', '%w', or '%u'.")
-        elif "%V" in fmt and "%Y" in fmt:
-            raise ValueError("ISO week directive '%V' is incompatible with "
-                             "the year directive '%Y'. Use the ISO year "
-                             "'%G' instead.")
-        elif "%V" in fmt and (
-            "%G" not in fmt
-            or not (
-                "%A" in fmt
-                or "%a" in fmt
-                or "%w" in fmt
-                or "%u" in fmt
-            )
-        ):
-            raise ValueError("ISO week directive '%V' must be used with "
-                             "the ISO year directive '%G' and a weekday "
-                             "directive '%A', '%a', '%w', or '%u'.")
+    if "%W" in fmt or "%U" in fmt:
+        if "%Y" not in fmt and "%y" not in fmt:
+            raise ValueError("Cannot use '%W' or '%U' without day and year")
+        if "%A" not in fmt and "%a" not in fmt and "%w" not in fmt:
+            raise ValueError("Cannot use '%W' or '%U' without day and year")
+    elif "%Z" in fmt and "%z" in fmt:
+        raise ValueError("Cannot parse both %Z and %z")
+    elif "%j" in fmt and "%G" in fmt:
+        raise ValueError("Day of the year directive '%j' is not "
+                         "compatible with ISO year directive '%G'. "
+                         "Use '%Y' instead.")
+    elif "%G" in fmt and (
+        "%V" not in fmt
+        or not (
+            "%A" in fmt
+            or "%a" in fmt
+            or "%w" in fmt
+            or "%u" in fmt
+        )
+    ):
+        raise ValueError("ISO year directive '%G' must be used with "
+                         "the ISO week directive '%V' and a weekday "
+                         "directive '%A', '%a', '%w', or '%u'.")
+    elif "%V" in fmt and "%Y" in fmt:
+        raise ValueError("ISO week directive '%V' is incompatible with "
+                         "the year directive '%Y'. Use the ISO year "
+                         "'%G' instead.")
+    elif "%V" in fmt and (
+        "%G" not in fmt
+        or not (
+            "%A" in fmt
+            or "%a" in fmt
+            or "%w" in fmt
+            or "%u" in fmt
+        )
+    ):
+        raise ValueError("ISO week directive '%V' must be used with "
+                         "the ISO year directive '%G' and a weekday "
+                         "directive '%A', '%a', '%w', or '%u'.")
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -485,29 +513,6 @@ def array_strptime(
             return values, []
 
     return result, result_timezone.base
-
-
-"""
-TimeRE, _calc_julian_from_U_or_W are vendored
-from the standard library, see
-https://github.com/python/cpython/blob/main/Lib/_strptime.py
-The original module-level docstring follows.
-
-Strptime-related classes and functions.
-CLASSES:
-    LocaleTime -- Discovers and stores locale-specific time information
-    TimeRE -- Creates regexes for pattern matching a string of text containing
-                time information
-FUNCTIONS:
-    _getlang -- Figure out what language is being used for the locale
-    strptime -- Calculates the time struct represented by the passed-in string
-"""
-
-from _strptime import (
-    TimeRE as _TimeRE,
-    _getlang,
-)
-from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):

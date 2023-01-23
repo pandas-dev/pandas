@@ -594,7 +594,7 @@ def test_frame_select(setup_path):
         # invalid terms
         df = tm.makeTimeDataFrame()
         store.append("df_time", df)
-        msg = "could not convert string to Timestamp"
+        msg = "day is out of range for month: 0"
         with pytest.raises(ValueError, match=msg):
             store.select("df_time", "index>0")
 
@@ -939,7 +939,10 @@ def test_query_compare_column_type(setup_path):
             v = "a"
             for col in ["int", "float", "real_date"]:
                 query = f"{col} {op} v"
-                msg = "could not convert string to "
+                if col == "real_date":
+                    msg = 'Given date string "a" not likely a datetime'
+                else:
+                    msg = "could not convert string to "
                 with pytest.raises(ValueError, match=msg):
                     store.select("test", where=query)
 

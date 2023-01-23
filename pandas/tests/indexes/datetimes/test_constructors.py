@@ -880,15 +880,8 @@ class TestDatetimeIndex:
         result = date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_with_nonexistent_keyword_arg(self, warsaw, request):
+    def test_constructor_with_nonexistent_keyword_arg(self, warsaw):
         # GH 35297
-        if type(warsaw).__name__ == "ZoneInfo":
-            mark = pytest.mark.xfail(
-                reason="nonexistent-shift not yet implemented for ZoneInfo",
-                raises=NotImplementedError,
-            )
-            request.node.add_marker(mark)
-
         timezone = warsaw
 
         # nonexistent keyword in start
@@ -1044,7 +1037,7 @@ class TestTimeSeries:
 
     def test_datetimeindex_constructor_misc(self):
         arr = ["1/1/2005", "1/2/2005", "Jn 3, 2005", "2005-01-04"]
-        msg = r"(\(')?Unknown string format(:', 'Jn 3, 2005'\))?"
+        msg = r"(\(')?Unknown datetime string format(:', 'Jn 3, 2005'\))?"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(arr)
 

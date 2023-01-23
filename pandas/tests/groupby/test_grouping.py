@@ -1,4 +1,10 @@
-""" test where we are determining what we are grouping, or getting groups """
+"""
+test where we are determining what we are grouping, or getting groups
+"""
+from datetime import (
+    date,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -167,14 +173,8 @@ class TestGrouping:
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
-
         # GH 7885
         # with level and freq specified in a Grouper
-        from datetime import (
-            date,
-            timedelta,
-        )
-
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
         date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
@@ -403,8 +403,9 @@ class TestGrouping:
 
         result = s.groupby(mapping).mean()
         result2 = s.groupby(mapping).agg(np.mean)
-        expected = s.groupby([0, 0, 1, 1]).mean()
-        expected2 = s.groupby([0, 0, 1, 1]).mean()
+        exp_key = np.array([0, 0, 1, 1], dtype=np.int64)
+        expected = s.groupby(exp_key).mean()
+        expected2 = s.groupby(exp_key).mean()
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result, result2)
         tm.assert_series_equal(result, expected2)
@@ -692,7 +693,8 @@ class TestGrouping:
         gr = s.groupby([])
 
         result = gr.mean()
-        tm.assert_series_equal(result, s)
+        expected = s.set_axis(Index([], dtype=np.intp))
+        tm.assert_series_equal(result, expected)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1

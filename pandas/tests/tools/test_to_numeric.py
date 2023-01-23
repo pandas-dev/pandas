@@ -4,13 +4,12 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
-from pandas.compat import is_platform_arm
-
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
     Series,
+    option_context,
     to_numeric,
 )
 import pandas._testing as tm
@@ -755,13 +754,7 @@ def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected
         ([1.0, 1.1], "Float64", "signed", "Float64"),
         ([1, pd.NA], "Int64", "signed", "Int8"),
         ([450, -300], "Int64", "signed", "Int16"),
-        pytest.param(
-            [np.iinfo(np.uint64).max - 1, 1],
-            "UInt64",
-            "signed",
-            "UInt64",
-            marks=pytest.mark.xfail(not is_platform_arm(), reason="GH38798"),
-        ),
+        ([np.iinfo(np.uint64).max - 1, 1], "UInt64", "signed", "UInt64"),
         ([1, 1], "Int64", "unsigned", "UInt8"),
         ([1.0, 1.0], "Float32", "unsigned", "UInt8"),
         ([1.0, 1.1], "Float64", "unsigned", "Float64"),
@@ -806,4 +799,134 @@ def test_to_numeric_large_float_not_downcast_to_float_32(val):
     # GH 19729
     expected = Series([val])
     result = to_numeric(expected, downcast="float")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype", [(1, "Int64"), (1.5, "Float64"), (True, "boolean")]
+)
+def test_to_numeric_use_nullable_dtypes(val, dtype):
+    # GH#50505
+    ser = Series([val], dtype=object)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([val], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype",
+    [
+        (1, "Int64"),
+        (1.5, "Float64"),
+        (True, "boolean"),
+        (1, "int64[pyarrow]"),
+        (1.5, "float64[pyarrow]"),
+        (True, "bool[pyarrow]"),
+    ],
+)
+def test_to_numeric_use_nullable_dtypes_na(val, dtype):
+    # GH#50505
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+        dtype_backend = "pyarrow"
+    else:
+        dtype_backend = "pandas"
+    ser = Series([val, None], dtype=object)
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([val, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, dtype, downcast",
+    [
+        (1, "Int8", "integer"),
+        (1.5, "Float32", "float"),
+        (1, "Int8", "signed"),
+        (1, "int8[pyarrow]", "integer"),
+        (1.5, "float[pyarrow]", "float"),
+        (1, "int8[pyarrow]", "signed"),
+    ],
+)
+def test_to_numeric_use_nullable_dtypes_downcasting(val, dtype, downcast):
+    # GH#50505
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+        dtype_backend = "pyarrow"
+    else:
+        dtype_backend = "pandas"
+    ser = Series([val, None], dtype=object)
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True, downcast=downcast)
+    expected = Series([val, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "smaller, dtype_backend", [["UInt8", "pandas"], ["uint8[pyarrow]", "pyarrow"]]
+)
+def test_to_numeric_use_nullable_dtypes_downcasting_uint(smaller, dtype_backend):
+    # GH#50505
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = Series([1, pd.NA], dtype="UInt64")
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(ser, use_nullable_dtypes=True, downcast="unsigned")
+    expected = Series([1, pd.NA], dtype=smaller)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "UInt64",
+        "Float64",
+        "boolean",
+        "int64[pyarrow]",
+        "uint64[pyarrow]",
+        "float64[pyarrow]",
+        "bool[pyarrow]",
+    ],
+)
+def test_to_numeric_use_nullable_dtypes_already_nullable(dtype):
+    # GH#50505
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    ser = Series([1, pd.NA], dtype=dtype)
+    result = to_numeric(ser, use_nullable_dtypes=True)
+    expected = Series([1, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
+)
+@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
+def test_to_numeric_use_nullable_dtypes_error(
+    use_nullable_dtypes, dtype, dtype_backend
+):
+    # GH#50505
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = Series(["a", "b", ""])
+    expected = ser.copy()
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        with option_context("mode.dtype_backend", dtype_backend):
+            to_numeric(ser, use_nullable_dtypes=use_nullable_dtypes)
+
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(
+            ser, use_nullable_dtypes=use_nullable_dtypes, errors="ignore"
+        )
+    tm.assert_series_equal(result, expected)
+
+    with option_context("mode.dtype_backend", dtype_backend):
+        result = to_numeric(
+            ser, use_nullable_dtypes=use_nullable_dtypes, errors="coerce"
+        )
+    if use_nullable_dtypes and dtype_backend == "pyarrow":
+        dtype = "double[pyarrow]"
+    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
     tm.assert_series_equal(result, expected)

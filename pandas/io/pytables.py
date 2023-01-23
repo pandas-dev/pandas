@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_list_like,
     is_string_dtype,
     is_timedelta64_dtype,
@@ -88,7 +89,7 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.api import Int64Index
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -2057,7 +2058,9 @@ class IndexCol:
 
         # values is a recarray
         if values.dtype.fields is not None:
-            values = values[self.cname]
+            # Copy, otherwise values will be a view
+            # preventing the original recarry from being free'ed
+            values = values[self.cname].copy()
 
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
@@ -2240,13 +2243,13 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self) -> bool:
         return False
 
-    # error: Return type "Tuple[Int64Index, Int64Index]" of "convert"
+    # error: Return type "Tuple[NumericIndex, NumericIndex]" of "convert"
     # incompatible with return type "Union[Tuple[ndarray[Any, Any],
     # ndarray[Any, Any]], Tuple[DatetimeIndex, DatetimeIndex]]" in
     # supertype "IndexCol"
     def convert(  # type: ignore[override]
         self, values: np.ndarray, nan_rep, encoding: str, errors: str
-    ) -> tuple[Int64Index, Int64Index]:
+    ) -> tuple[NumericIndex, NumericIndex]:
         """
         Convert the data from this selection to the appropriate pandas type.
 
@@ -2259,7 +2262,7 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        index = Int64Index(np.arange(len(values)))
+        index = NumericIndex(np.arange(len(values)), dtype=np.int64)
         return index, index
 
     def set_attr(self) -> None:
@@ -3205,7 +3208,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1)
+            out = concat(dfs, axis=1, copy=True)
             out = out.reindex(columns=items, copy=False)
             return out
 
@@ -4862,11 +4865,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     atom = DataIndexableCol._get_atom(converted)
 
     if (
-        isinstance(index, Int64Index)
+        (isinstance(index, NumericIndex) and is_integer_dtype(index))
         or needs_i8_conversion(index.dtype)
         or is_bool_dtype(index.dtype)
     ):
-        # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+        # Includes NumericIndex, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
         return IndexCol(
