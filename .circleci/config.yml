@@ -2,24 +2,25 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
-# See: https://circleci.com/docs/2.0/orb-intro/
-orbs:
-  node: circleci/node@4.1
-  # The Node.js orb contains a set of prepackaged CircleCI configuration you can utilize
-  # See the orb's test job here: https://circleci.com/developer/orbs/orb/circleci/node#jobs-test
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  say-hello:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:stable
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - checkout
+      - run:
+          name: "Say hello"
+          command: "echo Hello, World!"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  say-hello-workflow:
     jobs:
-      - node/test:
-          matrix:
-            parameters:
-              version: ["15.1", "lts", "12.21"]
-          # For more information about matrix testing see the detailed blog post:
-          # https://circleci.com/blog/circleci-matrix-jobs/
-          # or the configuration reference:
-          # https://circleci.com/docs/2.0/configuration-reference/?section=reference#matrix-requires-version-21
+      - say-hello
