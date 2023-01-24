@@ -143,13 +143,17 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
 @delegate_names(
     delegate=ArrowExtensionArray,
-    accessors=[f"_dt_{op}" for op in DatetimeArray._datetimelike_ops],
+    accessors=DatetimeArray._datetimelike_ops,
     typ="property",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
 )
 @delegate_names(
     delegate=ArrowExtensionArray,
-    accessors=[f"_dt_{op}" for op in DatetimeArray._datetimelike_methods],
+    accessors=DatetimeArray._datetimelike_methods,
     typ="method",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
 )
 class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data: Series, orig) -> None:
@@ -163,23 +167,23 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         self._freeze()
 
     def _delegate_property_get(self, name: str):
-        result = getattr(self._parent.array, f"_dt_{name}", None)
+        result = getattr(self._parent.array, f"_dt_{name}", -1)
 
-        if result is None:
+        if result == -1:
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
             )
         elif not is_list_like(result):
             return result
 
-        if self.orig is not None:
-            index = self.orig.index
+        if self._orig is not None:
+            index = self._orig.index
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = type(self._parent)(result, index=index, name=self.name).__finalize__(
-            self._parent
-        )
+        result = type(self._parent)(
+            result, index=index, name=self._parent.name
+        ).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -191,23 +195,23 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def _delegate_method(self, name: str, *args, **kwargs):
-        method = getattr(self._parent.array, f"_dt_{name}", None)
+        method = getattr(self._parent.array, f"_dt_{name}", -1)
 
-        if method is None:
+        if method == -1:
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
             )
 
         result = method(*args, **kwargs)
 
-        if self.orig is not None:
-            index = self.orig.index
+        if self._orig is not None:
+            index = self._orig.index
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = type(self._parent)(result, index=index, name=self.name).__finalize__(
-            self._parent
-        )
+        result = type(self._parent)(
+            result, index=index, name=self._parent.name
+        ).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -221,10 +225,12 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
     def isocalendar(self):
         from pandas import DataFrame
 
-        result = self._parent.array._dt_isocalendaar()._data.combine_chunks()
+        result = self._parent.array._dt_isocalendar()._data.combine_chunks()
         iso_calendar_df = DataFrame(
-            {col: type(self._parent.array)(result.field(i))}
-            for i, col in enumerate(["year", "week", "day"])
+            {
+                col: type(self._parent.array)(result.field(i))
+                for i, col in enumerate(["year", "week", "day"])
+            }
         )
         return iso_calendar_df
 

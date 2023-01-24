@@ -1531,3 +1531,109 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_unsupported_dt(data):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not pa.types.is_temporal(pa_dtype):
+        with pytest.raises(
+            AttributeError, match="Can only use .dt accessor with datetimelike values"
+        ):
+            pd.Series(data).dt
+
+
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ["day", 2],
+        ["day_of_week", 0],
+        ["dayofweek", 0],
+        ["weekday", 0],
+        ["day_of_year", 2],
+        ["dayofyear", 2],
+        ["hour", 3],
+        ["minute", 4],
+        ["is_leap_year", False],
+        ["microsecond", 5],
+        ["month", 1],
+        ["nanosecond", 6],
+        ["quarter", 1],
+        ["second", 7],
+        ["date", date(2023, 1, 2)],
+        ["time", time(3, 4, 7, 5)],
+    ],
+)
+def test_dt_properties(prop, expected):
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2023,
+                month=1,
+                day=2,
+                hour=3,
+                minute=4,
+                second=7,
+                microsecond=5,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = getattr(ser.dt, prop)
+    exp_type = None
+    if isinstance(expected, date):
+        exp_type = pa.date64()
+    elif isinstance(expected, time):
+        exp_type = pa.time64("ns")
+    expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_time_preserve_unit(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.time
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([time(3, 0), None], type=pa.time64(unit)))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+def test_dt_tz(tz):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
+    )
+    result = ser.dt.tz
+    assert result == tz
+
+
+def test_dt_isocalendar():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_strftime():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S")
+    expected = pd.Series(
+        ["2023-01-02T03:00:00.000000000", None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
