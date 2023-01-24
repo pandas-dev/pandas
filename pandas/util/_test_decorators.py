@@ -294,3 +294,8 @@ skip_array_manager_invalid_test = pytest.mark.skipif(
     get_option("mode.data_manager") == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )
+
+skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
+    get_option("mode.copy_on_write"),
+    reason="Not yet implemented/adapted for Copy-on-Write mode",
+)
