@@ -838,6 +838,15 @@ def test_to_numeric_use_nullable_dtypes_na(val, dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_to_numeric_use_nullable_dtypes_option():
+    # GH#50748
+    ser = Series([1, None], dtype=object)
+    with option_context("mode.nullable_dtypes", True):
+        result = to_numeric(ser)
+    expected = Series([1, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "val, dtype, downcast",
     [
