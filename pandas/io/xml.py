@@ -11,6 +11,9 @@ from typing import (
     Sequence,
 )
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     TYPE_CHECKING,
     CompressionOptions,
@@ -868,7 +871,7 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -1109,6 +1112,12 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
     """
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     return _parse(
         path_or_buffer=path_or_buffer,

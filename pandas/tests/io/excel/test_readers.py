@@ -540,7 +540,8 @@ class TestReaders:
         "dtype_backend",
         ["pandas", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
-    def test_use_nullable_dtypes(self, read_ext, dtype_backend):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_use_nullable_dtypes(self, read_ext, dtype_backend, option):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -562,9 +563,13 @@ class TestReaders:
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
             with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = pd.read_excel(
-                    file_path, sheet_name="test", use_nullable_dtypes=True
-                )
+                if not option:
+                    result = pd.read_excel(
+                        file_path, sheet_name="test", use_nullable_dtypes=True
+                    )
+                else:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = pd.read_excel(file_path, sheet_name="test")
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 

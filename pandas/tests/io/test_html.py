@@ -196,6 +196,17 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_use_nullable_dtypes_option(self):
+        # GH#50748
+        df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.nullable_dtypes", True):
+            result = self.read_html(out)[0]
+
+        expected = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.network
     @tm.network(
         url=(

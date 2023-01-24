@@ -4,7 +4,10 @@ from typing import Literal
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -38,7 +41,7 @@ def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ):
     """
     Convert argument to a numeric type.
@@ -157,6 +160,12 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
+    _use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     is_series = False
     is_index = False
     is_scalars = False
@@ -204,11 +213,11 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
+            values, new_mask = lib.maybe_convert_numeric(
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=use_nullable_dtypes,
+                convert_to_masked_nullable=_use_nullable_dtypes,
             )
         except (ValueError, TypeError):
             if errors == "raise":
@@ -218,7 +227,7 @@ def to_numeric(
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif use_nullable_dtypes and new_mask is None:
+    elif _use_nullable_dtypes and new_mask is None:
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
     # attempt downcast only if the data has been successfully converted

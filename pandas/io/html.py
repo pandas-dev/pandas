@@ -18,6 +18,9 @@ from typing import (
     cast,
 )
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     BaseBuffer,
     FilePath,
@@ -1036,7 +1039,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1205,6 +1208,12 @@ def read_html(
             f'"{extract_links}"'
         )
     validate_header_arg(header)
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     io = stringify_path(io)
 

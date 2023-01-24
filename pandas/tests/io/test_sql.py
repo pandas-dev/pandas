@@ -2291,17 +2291,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
+    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_nullable_dtypes(self, string_storage, func):
+    def test_read_sql_nullable_dtypes(self, string_storage, func, option):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = getattr(pd, func)(
-                f"Select * from {table}", self.conn, use_nullable_dtypes=True
-            )
+            if option:
+                with pd.option_context("mode.nullable_dtypes", True):
+                    result = getattr(pd, func)(f"Select * from {table}", self.conn)
+            else:
+                result = getattr(pd, func)(
+                    f"Select * from {table}", self.conn, use_nullable_dtypes=True
+                )
         expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
@@ -2316,15 +2321,20 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func, option):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
+            if option:
+                with pd.option_context("mode.nullable_dtypes", True):
+                    result = getattr(pd, func)(table, self.conn)
+            else:
+                result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
         expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 

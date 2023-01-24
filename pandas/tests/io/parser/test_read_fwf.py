@@ -994,3 +994,16 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
         expected["i"] = ArrowExtensionArray(pa.array([None, None]))
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes_option():
+    # GH#50748
+
+    data = """a
+1
+3"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = read_fwf(StringIO(data))
+
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)

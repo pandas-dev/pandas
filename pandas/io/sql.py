@@ -29,6 +29,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_nullable_dtypes
+
 from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
@@ -230,7 +232,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: None = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -245,7 +247,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: int = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -259,7 +261,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
@@ -322,6 +324,12 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     with pandasSQL_builder(con, schema=schema) as pandas_sql:
         if not pandas_sql.has_table(table_name):
             raise ValueError(f"Table {table_name} not found")
@@ -352,7 +360,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -367,7 +375,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -381,7 +389,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query into a DataFrame.
@@ -446,6 +454,12 @@ def read_sql_query(
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
     """
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
             sql,
@@ -469,7 +483,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: None = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
 ) -> DataFrame:
     ...
@@ -485,7 +499,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: int = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
 ) -> Iterator[DataFrame]:
     ...
@@ -500,7 +514,7 @@ def read_sql(
     parse_dates=None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype: DtypeArg | None = None,
 ) -> DataFrame | Iterator[DataFrame]:
     """
@@ -630,6 +644,12 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
     """
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     with pandasSQL_builder(con) as pandas_sql:
 
         if isinstance(pandas_sql, SQLiteDatabase):

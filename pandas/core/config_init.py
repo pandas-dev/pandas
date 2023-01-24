@@ -560,6 +560,22 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
+
+nullable_dtypes_doc = """
+: bool
+    If nullable dtypes should be returned. This is only applicable to functions
+    where the ``use_nullable_dtypes`` keyword is implemented.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "nullable_dtypes",
+        False,
+        nullable_dtypes_doc,
+        validator=is_bool,
+    )
+
+
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
 : string

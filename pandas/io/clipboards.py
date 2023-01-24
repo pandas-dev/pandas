@@ -4,6 +4,9 @@ from __future__ import annotations
 from io import StringIO
 import warnings
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -15,7 +18,9 @@ from pandas import (
 
 
 def read_clipboard(
-    sep: str = r"\s+", use_nullable_dtypes: bool = False, **kwargs
+    sep: str = r"\s+",
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    **kwargs,
 ):  # pragma: no cover
     r"""
     Read text from clipboard and pass to read_csv.
@@ -55,6 +60,12 @@ def read_clipboard(
     # supports
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv
