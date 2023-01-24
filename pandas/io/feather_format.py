@@ -6,6 +6,9 @@ from typing import (
     Sequence,
 )
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -103,7 +106,7 @@ def read_feather(
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ):
     """
     Load a feather-format object from the file path.
@@ -142,6 +145,12 @@ def read_feather(
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
