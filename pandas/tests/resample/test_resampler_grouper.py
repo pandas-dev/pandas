@@ -316,7 +316,7 @@ def test_resample_groupby_with_label():
     result = df.groupby("col0").resample("1W", label="left").sum()
 
     mi = [
-        np.array([0, 0, 1, 2]),
+        np.array([0, 0, 1, 2], dtype=np.int64),
         pd.to_datetime(
             np.array(["1999-12-26", "2000-01-02", "2000-01-02", "2000-01-02"])
         ),
@@ -515,3 +515,25 @@ def test_resample_empty_Dataframe(keys):
         expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_size_all_index_same():
+    # GH 46826
+    df = DataFrame(
+        {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
+        index=date_range("31/12/2000 18:00", freq="H", periods=12),
+    )
+    result = df.groupby("A").resample("D").size()
+    expected = Series(
+        3,
+        index=pd.MultiIndex.from_tuples(
+            [
+                (1, Timestamp("2000-12-31")),
+                (1, Timestamp("2001-01-01")),
+                (2, Timestamp("2000-12-31")),
+                (2, Timestamp("2001-01-01")),
+            ],
+            names=["A", None],
+        ),
+    )
+    tm.assert_series_equal(result, expected)

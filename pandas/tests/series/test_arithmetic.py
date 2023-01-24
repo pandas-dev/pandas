@@ -1,7 +1,9 @@
 from datetime import (
+    date,
     timedelta,
     timezone,
 )
+from decimal import Decimal
 import operator
 
 import numpy as np
@@ -222,9 +224,6 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from datetime import date
-        from decimal import Decimal
-
         ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
@@ -909,4 +908,12 @@ def test_series_varied_multiindex_alignment():
             names=["xy", "num", "ab"],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rmod_consistent_large_series():
+    # GH 29602
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
+
     tm.assert_series_equal(result, expected)
