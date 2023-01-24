@@ -27,6 +27,8 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
@@ -137,6 +139,94 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         )
 
         return result
+
+
+@delegate_names(
+    delegate=ArrowExtensionArray,
+    accessors=[f"_dt_{op}" for op in DatetimeArray._datetimelike_ops],
+    typ="property",
+)
+@delegate_names(
+    delegate=ArrowExtensionArray,
+    accessors=[f"_dt_{op}" for op in DatetimeArray._datetimelike_methods],
+    typ="method",
+)
+class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    def __init__(self, data: Series, orig) -> None:
+        if not isinstance(data, ABCSeries):
+            raise TypeError(
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
+            )
+
+        self._parent = data
+        self._orig = orig
+        self._freeze()
+
+    def _delegate_property_get(self, name: str):
+        result = getattr(self._parent.array, f"_dt_{name}", None)
+
+        if result is None:
+            raise NotImplementedError(
+                f"dt.{name} is not supported for {self._parent.dtype}"
+            )
+        elif not is_list_like(result):
+            return result
+
+        if self.orig is not None:
+            index = self.orig.index
+        else:
+            index = self._parent.index
+        # return the result as a Series, which is by definition a copy
+        result = type(self._parent)(result, index=index, name=self.name).__finalize__(
+            self._parent
+        )
+
+        # setting this object will show a SettingWithCopyWarning/Error
+        result._is_copy = (
+            "modifications to a property of a datetimelike "
+            "object are not supported and are discarded. "
+            "Change values on the original."
+        )
+
+        return result
+
+    def _delegate_method(self, name: str, *args, **kwargs):
+        method = getattr(self._parent.array, f"_dt_{name}", None)
+
+        if method is None:
+            raise NotImplementedError(
+                f"dt.{name} is not supported for {self._parent.dtype}"
+            )
+
+        result = method(*args, **kwargs)
+
+        if self.orig is not None:
+            index = self.orig.index
+        else:
+            index = self._parent.index
+        # return the result as a Series, which is by definition a copy
+        result = type(self._parent)(result, index=index, name=self.name).__finalize__(
+            self._parent
+        )
+
+        # setting this object will show a SettingWithCopyWarning/Error
+        result._is_copy = (
+            "modifications to a property of a datetimelike "
+            "object are not supported and are discarded. "
+            "Change values on the original."
+        )
+
+        return result
+
+    def isocalendar(self):
+        from pandas import DataFrame
+
+        result = self._parent.array._dt_isocalendaar()._data.combine_chunks()
+        iso_calendar_df = DataFrame(
+            {col: type(self._parent.array)(result.field(i))}
+            for i, col in enumerate(["year", "week", "day"])
+        )
+        return iso_calendar_df
 
 
 @delegate_names(
@@ -472,6 +562,8 @@ class CombinedDatetimelikeProperties(
                 index=orig.index,
             )
 
+        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind in "mM":
+            return ArrowTemporalProperties(data, orig)
         if is_datetime64_dtype(data.dtype):
             return DatetimeProperties(data, orig)
         elif is_datetime64tz_dtype(data.dtype):
