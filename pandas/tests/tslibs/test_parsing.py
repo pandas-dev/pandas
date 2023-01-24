@@ -19,6 +19,7 @@ import pandas.util._test_decorators as td
 import pandas._testing as tm
 
 
+@td.skip_if_windows
 def test_parsing_tzlocal_deprecated():
     # GH#50791
     msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
