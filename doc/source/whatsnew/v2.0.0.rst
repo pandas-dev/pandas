@@ -49,6 +49,16 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_feather`
 * :func:`to_numeric`
 
+To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
+the keyword argument globally to ``True`` if not specified directly. The option can be enabled
+through:
+
+.. ipython:: python
+
+    pd.options.mode.nullable_dtypes = True
+
+The option will only work for functions with the keyword ``use_nullable_dtypes``.
+
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
@@ -124,6 +134,14 @@ Copy-on-Write improvements
 - The :class:`Series` constructor will now create a lazy copy (deferring the copy until
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
+
+- Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
+  will now always raise an exception when Copy-on-Write is enabled. In this mode,
+  chained assignment can never work because we are always setting into a temporary
+  object that is the result of an indexing operation (getitem), which under
+  Copy-on-Write always behaves as a copy. Thus, assigning through a chain
+  can never update the original Series or DataFrame. Therefore, an informative
+  error is raised to the user instead of silently doing nothing (:issue:`49467`)
 
 Copy-on-Write can be enabled through
 
@@ -618,6 +636,7 @@ Deprecations
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
+- :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
