@@ -153,7 +153,7 @@ dropna : bool, default True
 
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
