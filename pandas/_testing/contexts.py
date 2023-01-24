@@ -232,17 +232,19 @@ class RNGContext:
         np.random.set_state(self.start_state)
 
 
-if PYPY:
-    from contextlib import nullcontext
+def raises_chained_assignment_error():
 
-    raises_chained_assignment_error = nullcontext()
-else:
-    import pytest
+    if PYPY:
+        from contextlib import nullcontext
 
-    raises_chained_assignment_error = pytest.raises(  # type: ignore[assignment]
-        ChainedAssignmentError,
-        match=(
-            "A value is trying to be set on a copy of a DataFrame or Series "
-            "through chained assignment"
-        ),
-    )
+        return nullcontext()
+    else:
+        import pytest
+
+        return pytest.raises(
+            ChainedAssignmentError,
+            match=(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            ),
+        )

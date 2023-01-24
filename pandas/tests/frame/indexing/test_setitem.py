@@ -1252,7 +1252,7 @@ class TestDataFrameSetitemCopyViewSemantics:
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
-            with tm.raises_chained_assignment_error:
+            with tm.raises_chained_assignment_error():
                 for label in df.columns:
                     df[label][label] = 1
             # original dataframe not updated

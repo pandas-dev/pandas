@@ -124,7 +124,7 @@ class TestXS:
         df_orig = dm.copy()
 
         if using_copy_on_write:
-            with tm.raises_chained_assignment_error:
+            with tm.raises_chained_assignment_error():
                 dm.xs(2)[:] = 20
             tm.assert_frame_equal(dm, df_orig)
         elif using_array_manager:

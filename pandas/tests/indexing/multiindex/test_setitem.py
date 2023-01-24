@@ -501,7 +501,7 @@ def test_frame_setitem_copy_raises(
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
     if using_copy_on_write:
-        with tm.raises_chained_assignment_error:
+        with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
@@ -516,7 +516,7 @@ def test_frame_setitem_copy_no_write(
     expected = frame
     df = frame.copy()
     if using_copy_on_write:
-        with tm.raises_chained_assignment_error:
+        with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"

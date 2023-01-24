@@ -341,7 +341,7 @@ class TestDataFrameBlockInternals:
             repr(Y)
             Y["e"] = Y["e"].astype("object")
             if using_copy_on_write:
-                with tm.raises_chained_assignment_error:
+                with tm.raises_chained_assignment_error():
                     Y["g"]["c"] = np.NaN
             else:
                 Y["g"]["c"] = np.NaN

@@ -129,7 +129,7 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         if using_copy_on_write:
-            with tm.raises_chained_assignment_error:
+            with tm.raises_chained_assignment_error():
                 df["A"].loc[2000, 4] = 1
             df.loc[(2000, 4), "A"] = 1
         else:
@@ -143,7 +143,7 @@ class TestMultiIndexPartial:
 
         # this works...for now
         if using_copy_on_write:
-            with tm.raises_chained_assignment_error:
+            with tm.raises_chained_assignment_error():
                 df["A"].iloc[14] = 5
             df["A"].iloc[14] == exp["A"].iloc[14]
         else:

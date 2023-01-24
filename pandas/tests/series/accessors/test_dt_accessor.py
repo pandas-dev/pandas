@@ -287,7 +287,7 @@ class TestSeriesDatetimeValues:
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
-                with tm.raises_chained_assignment_error:
+                with tm.raises_chained_assignment_error():
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
