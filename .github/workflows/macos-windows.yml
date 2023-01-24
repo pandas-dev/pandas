@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}

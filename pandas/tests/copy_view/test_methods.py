@@ -9,6 +9,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -51,6 +52,78 @@ def test_copy_shallow(using_copy_on_write):
         assert df.iloc[0, 0] == 0
         # and still shares memory
         assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
+
+
+@pytest.mark.parametrize("copy", [True, None, False])
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df, copy: df.rename(columns=str.lower, copy=copy),
+        lambda df, copy: df.reindex(columns=["a", "c"], copy=copy),
+        lambda df, copy: df.reindex_like(df, copy=copy),
+        lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
+        lambda df, copy: df.rename_axis(index="test", copy=copy),
+        lambda df, copy: df.rename_axis(columns="test", copy=copy),
+        # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
+        # lambda df, copy: df.swaplevel(0, 0, copy=copy),
+        lambda df, copy: df.swapaxes(0, 0, copy=copy),
+        lambda df, copy: df.truncate(0, 5, copy=copy),
+        # lambda df, copy: df.infer_objects(copy=copy)
+        lambda df, copy: df.to_timestamp(copy=copy),
+        lambda df, copy: df.to_period(freq="D", copy=copy),
+        lambda df, copy: df.tz_localize("US/Central", copy=copy),
+        lambda df, copy: df.tz_convert("US/Central", copy=copy),
+        lambda df, copy: df.set_flags(allows_duplicate_labels=False, copy=copy),
+    ],
+    ids=[
+        "rename",
+        "reindex",
+        "reindex_like",
+        "set_axis",
+        "rename_axis0",
+        "rename_axis1",
+        # "astype",  # CoW not yet implemented
+        # "swaplevel",  # only series
+        "swapaxes",
+        "truncate",
+        # "infer_objects",  # CoW not yet implemented
+        "to_timestamp",
+        "to_period",
+        "tz_localize",
+        "tz_convert",
+        "set_flags",
+    ],
+)
+def test_methods_copy_keyword(
+    request, method, copy, using_copy_on_write, using_array_manager
+):
+    index = None
+    if "to_timestamp" in request.node.callspec.id:
+        index = period_range("2012-01-01", freq="D", periods=3)
+    elif "to_period" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_localize" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_convert" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
+
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
+    df2 = method(df, copy=copy)
+
+    share_memory = (using_copy_on_write and copy is not True) or copy is False
+
+    if request.node.callspec.id.startswith("reindex-"):
+        # TODO copy=False without CoW still returns a copy in this case
+        if not using_copy_on_write and not using_array_manager and copy is False:
+            share_memory = False
+        # TODO copy=True with CoW still returns a view
+        if using_copy_on_write:
+            share_memory = True
+
+    if share_memory:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
 # -----------------------------------------------------------------------------
@@ -242,6 +315,77 @@ def test_filter(using_copy_on_write, filter_kwargs):
         df2.iloc[0, 0] = 0
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_shift_no_op(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df_orig = df.copy()
+    df2 = df.shift(periods=0)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    tm.assert_frame_equal(df2, df_orig)
+
+
+def test_shift_index(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df2 = df.shift(periods=1, axis=0)
+
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+
+def test_shift_rows_freq(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=date_range("2020-01-01", "2020-01-03"),
+        columns=["a", "b"],
+    )
+    df_orig = df.copy()
+    df_orig.index = date_range("2020-01-02", "2020-01-04")
+    df2 = df.shift(periods=1, freq="1D")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    tm.assert_frame_equal(df2, df_orig)
+
+
+def test_shift_columns(using_copy_on_write):
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6]], columns=date_range("2020-01-01", "2020-01-02")
+    )
+    df2 = df.shift(periods=1, axis=1)
+
+    assert np.shares_memory(get_array(df2, "2020-01-02"), get_array(df, "2020-01-01"))
+    df.iloc[0, 1] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(
+            get_array(df2, "2020-01-02"), get_array(df, "2020-01-01")
+        )
+    expected = DataFrame(
+        [[np.nan, 1], [np.nan, 3], [np.nan, 5]],
+        columns=date_range("2020-01-01", "2020-01-02"),
+    )
+    tm.assert_frame_equal(df2, expected)
 
 
 def test_pop(using_copy_on_write):
@@ -717,6 +861,23 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manag
         assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
 
 
+def test_round(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": "c"})
+    df2 = df.round()
+    df_orig = df.copy()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    df2.iloc[0, 1] = "d"
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
@@ -901,6 +1062,44 @@ def test_squeeze(using_copy_on_write):
         # Without CoW the original will be modified
         assert np.shares_memory(series.values, get_array(df, "a"))
         assert df.loc[0, "a"] == 0
+
+
+@pytest.mark.parametrize(
+    "replace_kwargs",
+    [
+        {"to_replace": {"a": 1, "b": 4}, "value": -1},
+        # Test CoW splits blocks to avoid copying unchanged columns
+        {"to_replace": {"a": 1}, "value": -1},
+        {"to_replace": {"b": 4}, "value": -1},
+        {"to_replace": {"b": {4: 1}}},
+        # TODO: Add these in a further optimization
+        # We would need to see which columns got replaced in the mask
+        # which could be expensive
+        # {"to_replace": {"b": 1}},
+        # 1
+    ],
+)
+def test_replace(using_copy_on_write, replace_kwargs):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["foo", "bar", "baz"]})
+    df_orig = df.copy()
+
+    df_replaced = df.replace(**replace_kwargs)
+
+    if using_copy_on_write:
+        if (df_replaced["b"] == df["b"]).all():
+            assert np.shares_memory(get_array(df_replaced, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+
+    # mutating squeezed df triggers a copy-on-write for that column/block
+    df_replaced.loc[0, "c"] = -1
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+
+    if "a" in replace_kwargs["to_replace"]:
+        arr = get_array(df_replaced, "a")
+        df_replaced.loc[0, "a"] = 100
+        assert np.shares_memory(get_array(df_replaced, "a"), arr)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_putmask(using_copy_on_write):

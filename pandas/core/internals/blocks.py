@@ -21,6 +21,7 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
@@ -569,7 +570,7 @@ class Block(PandasObject):
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            if value is None:
+            if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
                 blk = self.coerce_to_target_dtype(value)
@@ -1287,8 +1288,8 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        qs : Float64Index
-            List of the quantiles to be computed.
+        qs : Index
+            The quantiles to be computed in float64.
         interpolation : str, default 'linear'
             Type of interpolation.
         axis : int, default 0

@@ -216,6 +216,9 @@ class SelectionMixin(Generic[NDFrameT]):
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj[self._selection_list]
 
+        if isinstance(self.obj, ABCSeries):
+            return self.obj
+
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
             #  but this avoids consolidating and making a copy
@@ -235,17 +238,11 @@ class SelectionMixin(Generic[NDFrameT]):
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
-        elif not getattr(self, "as_index", False):
-            if key not in self.obj.columns:
-                raise KeyError(f"Column not found: {key}")
-            return self._gotitem(key, ndim=2)
-
         else:
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-            subset = self.obj[key]
-            ndim = subset.ndim
-            return self._gotitem(key, ndim=ndim, subset=subset)
+            ndim = self.obj[key].ndim
+            return self._gotitem(key, ndim=ndim)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
@@ -784,6 +781,10 @@ class IndexOpsMixin(OpsMixin):
         Return True if there are any NaNs.
 
         Enables various performance speedups.
+
+        Returns
+        -------
+        bool
         """
         # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
         # has no attribute "any"
