@@ -836,7 +836,7 @@ class TestReaders:
             )
         elif engine == "calamine":
             import python_calamine
-            
+
             error = python_calamine._python_calamine.CalamineError
             msg = "Cannot detect file format"
         else:
@@ -1077,7 +1077,8 @@ class TestReaders:
         if engine in {"calamine", "pyxlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=f"Sheets containing datetimes not supported by {engine} (GH4679)"
+                    reason="Sheets containing datetimes"
+                    f"not supported by {engine} (GH4679)"
                 )
             )
 

@@ -6,9 +6,11 @@ from io import (
 )
 from pathlib import PurePath
 from tempfile import NamedTemporaryFile
-from typing import Any
 
-from pandas._typing import StorageOptions
+from pandas._typing import (
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import (
@@ -73,7 +75,7 @@ class CalamineExcelReader(BaseExcelReader):
         self.raise_if_bad_sheet_by_index(index)
         return index
 
-    def get_sheet_data(self, sheet: int, convert_float: bool) -> list[list[Any]]:
+    def get_sheet_data(self, sheet: int, convert_float: bool) -> list[list[Scalar]]:
         from python_calamine import get_sheet_data
 
         return get_sheet_data(self.book, sheet)
