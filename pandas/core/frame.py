@@ -1346,7 +1346,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.iter : Recommended alternative.
+        DataFrame.items : Recommended alternative.
         DataFrame.iterrows : Iterate over DataFrame rows as
             (index, Series) pairs.
         DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
