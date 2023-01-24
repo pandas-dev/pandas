@@ -1150,9 +1150,8 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
-            # GH#34479
-            result = df.any(axis=1)
+        # GH#50947 deprecates this, but it is not emitting a warning in some builds
+        result = df.any(axis=1)
 
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
