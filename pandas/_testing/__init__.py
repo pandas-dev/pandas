@@ -249,6 +249,9 @@ if not pa_version_under6p0:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+else:
+    FLOAT_PYARROW_DTYPES_STR_REPR = []
+    ALL_INT_PYARROW_DTYPES_STR_REPR = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
