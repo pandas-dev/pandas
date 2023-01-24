@@ -19,6 +19,7 @@ class _NatComparison:
 
 class NaTType:
     value: np.int64
+    _value: np.int64
     @property
     def asm8(self) -> np.datetime64: ...
     def to_datetime64(self) -> np.datetime64: ...
