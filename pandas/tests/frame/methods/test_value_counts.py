@@ -144,3 +144,22 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
     )
 
     tm.assert_series_equal(result, expected)
+
+
+def test_data_frame_value_counts_subset(nulls_fixture):
+    # GH 50829
+    df = pd.DataFrame(
+        {
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
+        },
+    )
+    result = df.value_counts("first_name")
+    expected = pd.Series(
+        data=[2, 1, 1],
+        index=pd.MultiIndex.from_arrays(
+            [["John", "Anne", "Beth"]], names=["first_name"]
+        ),
+    )
+
+    tm.assert_series_equal(result, expected)

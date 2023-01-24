@@ -6932,7 +6932,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : list-like, optional
+        subset : mapping, function, label, list of labels, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -7023,6 +7023,13 @@ class DataFrame(NDFrame, OpsMixin):
         Beth        Louise         1
         John        Smith          1
                     NaN            1
+        dtype: int64
+
+        >>> df.value_counts("first_name")
+        first_name
+        John    2
+        Anne    1
+        Beth    1
         dtype: int64
         """
         if subset is None:
