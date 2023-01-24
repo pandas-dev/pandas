@@ -157,9 +157,7 @@ def test_data_frame_value_counts_subset(nulls_fixture):
     result = df.value_counts("first_name")
     expected = pd.Series(
         data=[2, 1, 1],
-        index=pd.MultiIndex.from_arrays(
-            [["John", "Anne", "Beth"]], names=["first_name"]
-        ),
+        index=pd.Index(["John", "Anne", "Beth"], name="first_name"),
     )
 
     tm.assert_series_equal(result, expected)
