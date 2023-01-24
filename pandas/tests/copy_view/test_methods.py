@@ -1119,11 +1119,8 @@ def test_putmask(using_copy_on_write):
 
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
-        {
-            "a": Series(
-                [0.0, None, 2.0, 3.0], index=date_range("1/1/2000", periods=4, freq="T")
-            )
-        }
+        {"a": [0.0, None, 2.0, 3.0]},
+        index=date_range("1/1/2000", periods=4, freq="T"),
     )
     df_orig = df.copy()
     df2 = df.asfreq(freq="T")
