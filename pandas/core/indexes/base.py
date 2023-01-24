@@ -1291,11 +1291,30 @@ class Index(IndexOpsMixin, PandasObject):
         return header + result
 
     def _format_native_types(
-        self, *, na_rep: str_t = "", quoting=None, **kwargs
+        self,
+        *,
+        na_rep: str_t = "",
+        decimal: str_t = ".",
+        float_format=None,
+        date_format=None,
+        quoting=None,
     ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.
         """
+        from pandas.io.formats.format import FloatArrayFormatter
+
+        if is_float_dtype(self.dtype) and not is_extension_array_dtype(self.dtype):
+            formatter = FloatArrayFormatter(
+                self._values,
+                na_rep=na_rep,
+                float_format=float_format,
+                decimal=decimal,
+                quoting=quoting,
+                fixed_width=False,
+            )
+            return formatter.get_result_as_array()
+
         mask = isna(self)
         if not self.is_object() and not quoting:
             values = np.asarray(self).astype(str)
@@ -6023,15 +6042,13 @@ class Index(IndexOpsMixin, PandasObject):
         Only apply function to one level of the MultiIndex if level is specified.
         """
         if isinstance(self, ABCMultiIndex):
-            if level is not None:
-                # Caller is responsible for ensuring level is positional.
-                items = [
-                    tuple(func(y) if i == level else y for i, y in enumerate(x))
-                    for x in self
-                ]
-            else:
-                items = [tuple(func(y) for y in x) for x in self]
-            return type(self).from_tuples(items, names=self.names)
+            values = [
+                self.get_level_values(i).map(func)
+                if i == level or level is None
+                else self.get_level_values(i)
+                for i in range(self.nlevels)
+            ]
+            return type(self).from_arrays(values)
         else:
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
