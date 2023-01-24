@@ -652,6 +652,24 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         ):
             super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    def test_in_numeric_groupby(self, data_for_grouping):
+        if is_string_dtype(data_for_grouping.dtype):
+            df = pd.DataFrame(
+                {
+                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
+                    "B": data_for_grouping,
+                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
+                }
+            )
+
+            expected = pd.Index(["C"])
+            with pytest.raises(TypeError, match="does not support"):
+                df.groupby("A").sum().columns
+            result = df.groupby("A").sum(numeric_only=True).columns
+            tm.assert_index_equal(result, expected)
+        else:
+            super().test_in_numeric_groupby(data_for_grouping)
+
 
 class TestBaseDtype(base.BaseDtypeTests):
     def test_construct_from_string_own_name(self, dtype, request):
