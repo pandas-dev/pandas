@@ -874,7 +874,7 @@ class TestSeriesReductions:
         result = s.idxmax()
         assert result == 4
 
-        # Float64Index
+        # Index with float64 dtype
         # GH#5914
         s = Series([1, 2, 3], [1.1, 2.1, 3.1])
         result = s.idxmax()
