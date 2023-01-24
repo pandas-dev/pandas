@@ -192,11 +192,11 @@ _shared_doc_kwargs = {
     "optional_by": "",
     "optional_mapper": "",
     "optional_reindex": """
-    index : array-like, optional
-        New labels for the index. Preferably an Index object to avoid
-        duplicating data.
-    axis : int or str, optional
-        Unused""",
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Unused.""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
