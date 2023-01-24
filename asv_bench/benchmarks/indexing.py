@@ -85,6 +85,11 @@ class NumericSeriesIndexing:
 
 
 class NumericMaskedIndexing:
+    monotonic_list = list(range(10**6))
+    non_monotonic_list = (
+        list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
+    )
+
     params = [
         ("Int64", "UInt64", "Float64"),
         (True, False),
@@ -92,12 +97,12 @@ class NumericMaskedIndexing:
     param_names = ["dtype", "monotonic"]
 
     def setup(self, dtype, monotonic):
-        N = 10**6
+
         indices = {
-            True: Index(range(N), dtype=dtype),
-            False: Index(
-                list(range(50)) + [54, 53, 52, 51] + list(range(55, N - 1)), dtype=dtype
-            ).append(Index([NA], dtype=dtype)),
+            True: Index(self.monotonic_list, dtype=dtype),
+            False: Index(self.non_monotonic_list, dtype=dtype).append(
+                Index([NA], dtype=dtype)
+            ),
         }
         self.data = indices[monotonic]
         self.indexer = np.arange(300, 1_000)

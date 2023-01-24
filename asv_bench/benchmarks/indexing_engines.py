@@ -1,5 +1,8 @@
 """
-Benchmarks in this file depend exclusively on code in _libs/
+Benchmarks in this file depend mostly on code in _libs/
+
+We have to created masked arrays to test the masked engine though. The
+array is unpacked on the Cython level.
 
 If a PR does not edit anything in _libs, it is very unlikely that benchmarks
 in this file will be affected.
