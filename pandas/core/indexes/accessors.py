@@ -167,13 +167,13 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         self._freeze()
 
     def _delegate_property_get(self, name: str):
-        result = getattr(self._parent.array, f"_dt_{name}", -1)
-
-        if result == -1:
+        if not hasattr(self._parent.array, f"_dt_{name}"):
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
             )
-        elif not is_list_like(result):
+        result = getattr(self._parent.array, f"_dt_{name}")
+
+        if not is_list_like(result):
             return result
 
         if self._orig is not None:
@@ -195,14 +195,12 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def _delegate_method(self, name: str, *args, **kwargs):
-        method = getattr(self._parent.array, f"_dt_{name}", -1)
-
-        if method == -1:
+        if not hasattr(self._parent.array, f"_dt_{name}"):
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
             )
 
-        result = method(*args, **kwargs)
+        result = getattr(self._parent.array, f"_dt_{name}")(*args, **kwargs)
 
         if self._orig is not None:
             index = self._orig.index
