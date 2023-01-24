@@ -75,8 +75,8 @@ def assert_almost_equal(
     right : object
     check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
-        then `RangeIndex` and `Int64Index` are also considered equivalent
-        when doing type checking.
+        then `RangeIndex` and `NumericIndex` with int64 dtype are also considered
+        equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
 
@@ -197,7 +197,7 @@ def assert_index_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        Int64Index as well.
+        NumericIndex with an int64 dtype as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -511,7 +511,7 @@ def assert_interval_array_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        Int64Index as well.
+        NumericIndex with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
