@@ -373,7 +373,7 @@ cdef _maybe_cast_from_unit(ts, str unit):
     #  assert unit not in ["Y", "y", "M"]
     try:
         ts = cast_from_unit(ts, unit)
-    except OverflowError as err:
+    except OutOfBoundsDatetime as err:
         raise OutOfBoundsTimedelta(
             f"Cannot cast {ts} from {unit} to 'ns' without overflow."
         ) from err
