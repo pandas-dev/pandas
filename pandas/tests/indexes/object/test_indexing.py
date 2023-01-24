@@ -187,3 +187,29 @@ class TestSliceLocs:
         assert index2.slice_locs(end="a") == (0, 6)
         assert index2.slice_locs("d", "b") == (0, 4)
         assert index2.slice_locs("c", "a") == (2, 6)
+
+
+def test_np_datetime64_objects():
+    # GH#50690
+    ms = np.datetime64(1, "ms")
+    us = np.datetime64(1000, "us")
+
+    left = Index([ms], dtype=object)
+    right = Index([us], dtype=object)
+
+    assert left[0] in right
+    assert right[0] in left
+
+    assert left.get_loc(right[0]) == 0
+    assert right.get_loc(left[0]) == 0
+
+    # non-monotonic cases go through different paths in cython code
+    sec = np.datetime64("9999-01-01", "s")
+    day = np.datetime64("2016-01-01", "D")
+    left2 = Index([ms, sec, day], dtype=object)
+
+    expected = np.array([0], dtype=np.intp)
+    res = left2[:1].get_indexer(right)
+    tm.assert_numpy_array_equal(res, expected)
+    res = left2.get_indexer(right)
+    tm.assert_numpy_array_equal(res, expected)

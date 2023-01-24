@@ -7,7 +7,10 @@
 typedef npy_complex64 khcomplex64_t;
 typedef npy_complex128 khcomplex128_t;
 
+// get pandas_datetime_to_datetimestruct
+#include <../../tslibs/src/datetime/np_datetime.h>
 
+#include "datetime.h"
 
 // khash should report usage to tracemalloc
 #if PY_VERSION_HEX >= 0x03060000
@@ -330,6 +333,40 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
 }
 
 
+// TODO: same thing for timedelta64 objects
+Py_hash_t PANDAS_INLINE np_datetime64_object_hash(PyObject* key) {
+    // GH#50690 numpy's hash implementation does not preserve comparabity
+    // either across resolutions or with standard library objects.
+    NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)((PyDatetimeScalarObject*)key)->obmeta.base;
+    npy_datetime value = ((PyDatetimeScalarObject*)key)->obval;
+    npy_datetimestruct dts;
+    PyObject* dt;
+
+    pandas_datetime_to_datetimestruct(value, unit, &dts);
+
+    if ((dts.year > 0) && (dts.year <= 9999) && (dts.ps == 0) && (dts.as == 0)) {
+        // we CAN cast to pydatetime, so use that hash to ensure we compare
+        // as matching standard library datetimes (and pd.Timestamps)
+        PyDateTime_IMPORT;
+        dt = PyDateTime_FromDateAndTime(
+            dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
+        );
+        return PyObject_Hash(dt);
+    }
+
+    if (unit == NPY_FR_as) {
+        // nothing higher to cast to, so use value.  Lower-resolution
+        // cases are responsible for matching this.
+        return value;
+    }
+
+    // TODO: see if we can cast to the next-highest unit without overflow.
+    //  If so, return the hash of _that_ reso.  Otherwise, return value.
+    //  See also Timestamp.__hash__
+    return value;
+}
+
+
 khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     Py_hash_t hash;
     // For PyObject_Hash holds:
@@ -350,6 +387,10 @@ khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     }
     else if (PyTuple_CheckExact(key)) {
         hash = tupleobject_hash((PyTupleObject*)key);
+    }
+    else if (PyObject_TypeCheck(key, &PyDatetimeArrType_Type)) {
+        // GH#50690
+        hash = np_datetime64_object_hash(key);
     }
     else {
         hash = PyObject_Hash(key);
