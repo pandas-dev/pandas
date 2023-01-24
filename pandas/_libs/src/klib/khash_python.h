@@ -333,14 +333,112 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
 }
 
 
+// TODO: if nanos is most common/important, might be most performant to
+// make that canonical and others cast to that?
+Py_hash_t PANDAS_INLINE hash_datetime_value_and_reso(npy_datetime value, NPY_DATETIMEUNIT unit, npy_datetimestruct* dts) {
+    // If we cannot cast to pydatetime, then the question is if there are
+    // other-resolution datetime64 objects that we might be equal to whose
+    // hashes we need to match. We let year-reso objects return value, and make
+    // higher-resolution cases responsible for checking of they match.
+    if (unit == NPY_FR_Y) {
+        return value;
+    }
+    else if (unit == NPY_FR_M) {
+        if ((value % 12) == 0) {
+            return hash_datetime_value_and_reso(value / 12, NPY_FR_Y, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_W) {
+        if (dts->day == 1) {
+            value = (dts->year - 1970) * 12 + dts->month;
+            return hash_datetime_value_and_reso(value, NPY_FR_M, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_D) {
+        if ((value % 7) == 0) {
+            return hash_datetime_value_and_reso(value / 7, NPY_FR_W, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_h) {
+        if ((value % 24) == 0) {
+            return hash_datetime_value_and_reso(value / 24, NPY_FR_D, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_m) {
+        if ((value % 60) == 0) {
+            return hash_datetime_value_and_reso(value / 60, NPY_FR_h, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_s) {
+        if ((value % 60) == 0) {
+            return hash_datetime_value_and_reso(value / 60, NPY_FR_m, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_ms) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_s, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_us) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ns, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_ns) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_us, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_ps) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ns, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_fs) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ps, dts);
+        }
+        return value;
+    }
+    else if (unit == NPY_FR_as) {
+        if ((value % 1000) == 0) {
+            return hash_datetime_value_and_reso(value / 1000, NPY_FR_fs, dts);
+        }
+        return value;
+    }
+    else {
+        // i.e. NPY_FR_GENERIC
+        // we default to treating these like nanos
+        return hash_datetime_value_and_reso(value, NPY_FR_ns, dts);
+    }
+}
+
+
 // TODO: same thing for timedelta64 objects
-Py_hash_t PANDAS_INLINE np_datetime64_object_hash(PyObject* key) {
+Py_hash_t np_datetime64_object_hash(PyObject* key) {
     // GH#50690 numpy's hash implementation does not preserve comparabity
     // either across resolutions or with standard library objects.
+    // See also Timestamp.__hash__
+
     NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)((PyDatetimeScalarObject*)key)->obmeta.base;
     npy_datetime value = ((PyDatetimeScalarObject*)key)->obval;
     npy_datetimestruct dts;
     PyObject* dt;
+
+    if (value == NPY_DATETIME_NAT) {
+        // np.datetime64("NaT") in any reso
+        return NPY_DATETIME_NAT;
+    }
 
     pandas_datetime_to_datetimestruct(value, unit, &dts);
 
@@ -354,16 +452,7 @@ Py_hash_t PANDAS_INLINE np_datetime64_object_hash(PyObject* key) {
         return PyObject_Hash(dt);
     }
 
-    if (unit == NPY_FR_as) {
-        // nothing higher to cast to, so use value.  Lower-resolution
-        // cases are responsible for matching this.
-        return value;
-    }
-
-    // TODO: see if we can cast to the next-highest unit without overflow.
-    //  If so, return the hash of _that_ reso.  Otherwise, return value.
-    //  See also Timestamp.__hash__
-    return value;
+    return hash_datetime_value_and_reso(value, unit, &dts);
 }
 
 

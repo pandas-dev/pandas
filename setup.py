@@ -467,7 +467,8 @@ ext_data = {
     "_libs.interval": {
         "pyxfile": "_libs/interval",
         "include": klib_include,
-        "depends": _pxi_dep["interval"],
+        "depends": _pxi_dep["interval"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
