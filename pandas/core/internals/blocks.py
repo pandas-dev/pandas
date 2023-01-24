@@ -1294,8 +1294,8 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        qs : Float64Index
-            List of the quantiles to be computed.
+        qs : Index
+            The quantiles to be computed in float64.
         interpolation : str, default 'linear'
             Type of interpolation.
         axis : int, default 0

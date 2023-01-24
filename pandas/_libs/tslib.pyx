@@ -220,19 +220,6 @@ def format_array_from_datetime(
     return result
 
 
-cdef int64_t _wrapped_cast_from_unit(object val, str unit) except? -1:
-    """
-    Call cast_from_unit and re-raise OverflowError as OutOfBoundsDatetime
-    """
-    # See also timedeltas._maybe_cast_from_unit
-    try:
-        return cast_from_unit(val, unit)
-    except OverflowError as err:
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {val} with the unit '{unit}'"
-        ) from err
-
-
 def array_with_unit_to_datetime(
     ndarray[object] values,
     str unit,
@@ -273,7 +260,7 @@ def array_with_unit_to_datetime(
         bint is_coerce = errors=="coerce"
         bint is_raise = errors=="raise"
         ndarray[int64_t] iresult
-        object tz = None
+        tzinfo tz = None
         float fval
 
     assert is_ignore or is_coerce or is_raise
@@ -302,7 +289,7 @@ def array_with_unit_to_datetime(
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
-                    iresult[i] = _wrapped_cast_from_unit(val, unit)
+                    iresult[i] = cast_from_unit(val, unit)
 
             elif isinstance(val, str):
                 if len(val) == 0 or val in nat_strings:
@@ -317,7 +304,7 @@ def array_with_unit_to_datetime(
                             f"non convertible value {val} with the unit '{unit}'"
                         )
 
-                    iresult[i] = _wrapped_cast_from_unit(fval, unit)
+                    iresult[i] = cast_from_unit(fval, unit)
 
             else:
                 # TODO: makes more sense as TypeError, but that would be an
@@ -346,7 +333,7 @@ cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str un
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] oresult
-        object tz = None
+        tzinfo tz = None
 
     # TODO: fix subtle differences between this and no-unit code
     oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
@@ -362,7 +349,7 @@ cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str un
             else:
                 try:
                     oresult[i] = Timestamp(val, unit=unit)
-                except OverflowError:
+                except OutOfBoundsDatetime:
                     oresult[i] = val
 
         elif isinstance(val, str):
@@ -497,15 +484,9 @@ cpdef array_to_datetime(
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
-                elif is_raise or is_ignore:
-                    iresult[i] = val
                 else:
-                    # coerce
                     # we now need to parse this as if unit='ns'
-                    try:
-                        iresult[i] = cast_from_unit(val, "ns")
-                    except OverflowError:
-                        iresult[i] = NPY_NAT
+                    iresult[i] = cast_from_unit(val, "ns")
 
             elif isinstance(val, str):
                 # string
