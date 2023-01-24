@@ -3783,13 +3783,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self) and not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must contain "
-                    "numeric elements if it is list type"
+                    f"tolerance argument for {type(self).__name__} with dtype "
+                    f"{self.dtype} must contain numeric elements if it is list type"
                 )
 
             raise ValueError(
-                f"tolerance argument for {type(self).__name__} must be numeric "
-                f"if it is a scalar: {repr(tolerance)}"
+                f"tolerance argument for {type(self).__name__} with dtype {self.dtype} "
+                f"must be numeric if it is a scalar: {repr(tolerance)}"
             )
         return tolerance
 
