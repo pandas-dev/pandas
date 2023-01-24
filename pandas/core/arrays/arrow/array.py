@@ -1012,6 +1012,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         ------
         TypeError : subclass does not define reductions
         """
+        pa_type = self._data.type
+
+        data_to_reduce = self._data
+
+        if name in ["any", "all"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_duration(pa_type)
+        ):
+            # pyarrow only supports any/all for boolean dtype, we allow
+            #  for other dtypes, matching our non-pyarrow behavior
+
+            if pa.types.is_duration(pa_type):
+                data_to_cmp = self._data.cast(pa.int64())
+            else:
+                data_to_cmp = self._data
+
+            not_eq = pc.not_equal(data_to_cmp, 0)
+            data_to_reduce = not_eq
+
+        elif name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            data_to_reduce = self._data.cast(pa.int64())
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
@@ -1034,12 +1057,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
 
-        data_to_reduce = self._data
-
-        pa_dtype = self._data.type
-        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_dtype):
-            data_to_reduce = self._data.cast(pa.int64())
-
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
@@ -1053,8 +1070,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if pc.is_null(result).as_py():
             return self.dtype.na_value
 
-        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_dtype):
-            result = result.cast(pa_dtype)
+        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            result = result.cast(pa_type)
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:
