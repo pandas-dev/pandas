@@ -1001,7 +1001,6 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
-    @doc(Series.skew.__doc__)
     def skew(
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
@@ -1009,6 +1008,35 @@ class SeriesGroupBy(GroupBy[Series]):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series:
+        """
+        Return unbiased skew within groups.\n\nNormalized by N-1.
+
+        Parameters
+        ----------
+        axis : {axis_descr}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        {min_count}\
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        {name1} or scalar\
+        {see_also}\
+        {examples}
+        """
         result = self._op_via_apply(
             "skew",
             axis=axis,
@@ -2470,7 +2498,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
-    @doc(DataFrame.skew.__doc__)
     def skew(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
@@ -2478,6 +2505,35 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only: bool = False,
         **kwargs,
     ) -> DataFrame:
+        """
+        Return unbiased skew within groups.\n\nNormalized by N-1.
+
+        Parameters
+        ----------
+        axis : {axis_descr}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        {min_count}\
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        {name1} or scalar\
+        {see_also}\
+        {examples}
+        """
         result = self._op_via_apply(
             "skew",
             axis=axis,
