@@ -1525,21 +1525,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         nonexistent: TimeNonexistent = "raise",
     ):
         if ambiguous != "raise":
-            raise ValueError(f"{ambiguous=} is not supported")
-        supported_nonexistent = {
-            "shift_backwards": "earliest",
-            "shift_forward": "latest",
-            "raise": "raise",
-        }
-        pa_nonexistent = supported_nonexistent.get(nonexistent, None)
-        if pa_nonexistent is None:
-            raise ValueError(f"{nonexistent=} is not supported")
+            raise NotImplementedError(f"{ambiguous=} is not supported")
+        if nonexistent != "raise":
+            raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
             new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
             return type(self)(self._data.cast(new_type))
         pa_tz = str(tz)
         return type(self)(
-            pc.assume_timezone(
-                self._data, pa_tz, ambiguous=ambiguous, nonexistent=nonexistent
-            )
+            self._data.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
         )

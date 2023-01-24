@@ -1637,3 +1637,80 @@ def test_dt_strftime():
         ["2023-01-02T03:00:00.000000000", None], dtype=ArrowDtype(pa.string())
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_tz_options_not_supported(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous is not supported."):
+        getattr(ser.dt, method)("1H", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent is not supported."):
+        getattr(ser.dt, method)("1H", nonexistent="NaT")
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_unsupported_freq(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(ValueError, match="freq='1B' is not supported"):
+        getattr(ser.dt, method)("1B")
+
+    with pytest.raises(ValueError, match="Must specify a valid frequency: None"):
+        getattr(ser.dt, method)(None)
+
+
+@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_ceil_year_floor(freq, method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=1), None],
+    )
+    pa_dtype = ArrowDtype(pa.timestamp("ns"))
+    expected = getattr(ser.dt, method)(f"1{freq}").astype(pa_dtype)
+    result = getattr(ser.astype(pa_dtype).dt, method)(f"1{freq}")
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_tz_localize_unsupported_tz_options():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", nonexistent="NaT")
+
+
+def test_dt_tz_localize_none():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
+    )
+    result = ser.dt.tz_localize(None)
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_tz_localize(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.tz_localize("US/Pacific")
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    )
+    tm.assert_series_equal(result, expected)
