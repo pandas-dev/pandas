@@ -501,8 +501,8 @@ def test_frame_setitem_copy_raises(
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
     if using_copy_on_write:
-        # TODO(CoW) it would be nice if this could still warn/raise
-        df["foo"]["one"] = 2
+        with tm.raises_chained_assignment_error():
+            df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
@@ -516,7 +516,8 @@ def test_frame_setitem_copy_no_write(
     expected = frame
     df = frame.copy()
     if using_copy_on_write:
-        df["foo"]["one"] = 2
+        with tm.raises_chained_assignment_error():
+            df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):

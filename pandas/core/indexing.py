@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+import sys
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -12,17 +13,22 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import (
     Axis,
     AxisInt,
 )
+from pandas.compat import PYPY
 from pandas.errors import (
     AbstractMethodError,
+    ChainedAssignmentError,
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import doc
 
@@ -830,6 +836,10 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self.obj) <= 2:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)

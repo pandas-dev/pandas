@@ -14,6 +14,9 @@ import uuid
 
 import numpy as np
 
+from pandas.compat import PYPY
+from pandas.errors import ChainedAssignmentError
+
 from pandas import set_option
 
 from pandas.io.common import get_handle
@@ -227,3 +230,21 @@ class RNGContext:
     ) -> None:
 
         np.random.set_state(self.start_state)
+
+
+def raises_chained_assignment_error():
+
+    if PYPY:
+        from contextlib import nullcontext
+
+        return nullcontext()
+    else:
+        import pytest
+
+        return pytest.raises(
+            ChainedAssignmentError,
+            match=(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            ),
+        )

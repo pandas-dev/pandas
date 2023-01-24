@@ -73,7 +73,6 @@ jobs:
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
-            error_on_warnings: "0"
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"

@@ -50,11 +50,13 @@ def test_cache_updating(using_copy_on_write):
 
     # setting via chained assignment
     # but actually works, since everything is a view
-    df.loc[0]["z"].iloc[0] = 1.0
-    result = df.loc[(0, 0), "z"]
     if using_copy_on_write:
-        assert result == df_original.loc[0, "z"]
+        with tm.raises_chained_assignment_error():
+            df.loc[0]["z"].iloc[0] = 1.0
+        assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
     else:
+        df.loc[0]["z"].iloc[0] = 1.0
+        result = df.loc[(0, 0), "z"]
         assert result == 1
 
     # correct setting

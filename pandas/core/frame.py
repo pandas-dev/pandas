@@ -16,6 +16,7 @@ import datetime
 import functools
 from io import StringIO
 import itertools
+import sys
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -91,12 +92,17 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    _chained_assignment_msg,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -3862,6 +3868,10 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
