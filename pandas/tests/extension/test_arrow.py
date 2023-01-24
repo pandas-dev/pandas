@@ -1213,7 +1213,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             # i.e. timestamp, date, time, but not timedelta; these *should*
             #  raise when trying to add
             ser = pd.Series(data)
-            msg = "Function 'add_checked' has no kernel matching input types"
+            if pa_version_under7p0:
+                msg = "Function add_checked has no kernel matching input types"
+            else:
+                msg = "Function 'add_checked' has no kernel matching input types"
             with pytest.raises(NotImplementedError, match=msg):
                 # TODO: this is a pa.lib.ArrowNotImplementedError, might
                 #  be better to reraise a TypeError; more consistent with
