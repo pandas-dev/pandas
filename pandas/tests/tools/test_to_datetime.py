@@ -1712,6 +1712,23 @@ class TestToDatetime:
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
+    @pytest.mark.parametrize("item", [150, float(150)])
+    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item):
+        # GH#50870 Note we have separate tests that pd.Timestamp gets these right
+        ts = Timestamp(item, unit=unit)
+        expected = DatetimeIndex([ts])
+
+        result = to_datetime([item], unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+        # TODO: this should also work
+        #  result = to_datetime(np.array([item]), unit=unit, cache=cache)
+        #  tm.assert_index_equal(result, expected)
+
+        result = to_datetime(np.array([item], dtype=object), unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
         # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with

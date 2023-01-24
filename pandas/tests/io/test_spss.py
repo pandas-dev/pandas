@@ -3,12 +3,15 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
+@td.skip_copy_on_write_not_yet_implemented
 @pytest.mark.parametrize("path_klass", [lambda p: p, Path])
 def test_spss_labelled_num(path_klass, datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
@@ -24,6 +27,7 @@ def test_spss_labelled_num(path_klass, datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@td.skip_copy_on_write_not_yet_implemented
 def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "spss", "labelled-num-na.sav")
@@ -38,6 +42,7 @@ def test_spss_labelled_num_na(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@td.skip_copy_on_write_not_yet_implemented
 def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "spss", "labelled-str.sav")
@@ -52,6 +57,7 @@ def test_spss_labelled_str(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@td.skip_copy_on_write_not_yet_implemented
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "spss", "umlauts.sav")
