@@ -3,7 +3,10 @@ datetimelike delegation
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -166,7 +169,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         self._orig = orig
         self._freeze()
 
-    def _delegate_property_get(self, name: str):
+    def _delegate_property_get(self, name: str):  # type: ignore[override]
         if not hasattr(self._parent.array, f"_dt_{name}"):
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
@@ -184,13 +187,6 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         result = type(self._parent)(
             result, index=index, name=self._parent.name
         ).__finalize__(self._parent)
-
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a property of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
 
         return result
 
@@ -211,22 +207,17 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             result, index=index, name=self._parent.name
         ).__finalize__(self._parent)
 
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a property of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
         return result
 
     def isocalendar(self):
         from pandas import DataFrame
 
-        result = self._parent.array._dt_isocalendar()._data.combine_chunks()
+        result = cast(
+            ArrowExtensionArray, self._parent.array._dt_isocalendar()
+        )._data.combine_chunks()
         iso_calendar_df = DataFrame(
             {
-                col: type(self._parent.array)(result.field(i))
+                col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
             }
         )

@@ -1576,7 +1576,14 @@ def test_unsupported_dt(data):
         ["dayofyear", 2],
         ["hour", 3],
         ["minute", 4],
-        ["is_leap_year", False],
+        pytest.param(
+            ["is_leap_year", False],
+            marks=pytest.mark.xfail(
+                pa_version_under8p0,
+                raises=NotImplementedError,
+                reason="is_leap_year not implemented for pyarrow < 8.0",
+            ),
+        ),
         ["microsecond", 5],
         ["month", 1],
         ["nanosecond", 6],
@@ -1650,7 +1657,17 @@ def test_dt_isocalendar():
     tm.assert_frame_equal(result, expected)
 
 
-def test_dt_strftime():
+def test_dt_strftime(request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
@@ -1688,6 +1705,9 @@ def test_dt_roundlike_unsupported_freq(method):
         getattr(ser.dt, method)(None)
 
 
+@pytest.mark.xfail(
+    pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
+)
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
 def test_dt_ceil_year_floor(freq, method):
