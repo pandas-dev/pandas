@@ -11,6 +11,9 @@ from typing import (
 )
 import uuid
 
+from pandas.compat import PYPY
+from pandas.errors import ChainedAssignmentError
+
 from pandas import set_option
 
 from pandas.io.common import get_handle
@@ -190,3 +193,21 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
     finally:
         expr._MIN_ELEMENTS = oldmin
         set_option("compute.use_numexpr", olduse)
+
+
+def raises_chained_assignment_error():
+
+    if PYPY:
+        from contextlib import nullcontext
+
+        return nullcontext()
+    else:
+        import pytest
+
+        return pytest.raises(
+            ChainedAssignmentError,
+            match=(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            ),
+        )
