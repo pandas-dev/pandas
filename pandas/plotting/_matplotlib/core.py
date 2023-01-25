@@ -27,9 +27,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_categorical_dtype,
-    is_complex_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -842,11 +840,7 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif (
-                is_numeric_dtype(index)
-                and not is_bool_dtype(index)
-                and not is_complex_dtype(index)
-            ):
+            elif is_numeric_dtype(index):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime

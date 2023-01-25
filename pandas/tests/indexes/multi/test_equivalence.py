@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_numeric_dtype
 
 import pandas as pd
 from pandas import (
@@ -259,9 +255,7 @@ def test_is_all_dates(idx):
 
 def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not (
-        is_numeric_dtype(idx) and not is_bool_dtype(idx) and not is_complex_dtype(idx)
-    )
+    assert not is_numeric_dtype(idx)
 
 
 def test_multiindex_compare():

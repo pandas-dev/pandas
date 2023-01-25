@@ -19,8 +19,7 @@ from pandas.errors import (
 from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
+    is_any_numeric_dtype,
     is_numeric_dtype,
 )
 
@@ -661,11 +660,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert (
-            is_numeric_dtype(index)
-            and not is_bool_dtype(index)
-            and not is_complex_dtype(index)
-        ) is expected
+        assert is_any_numeric_dtype(index) is expected
 
     @pytest.mark.parametrize(
         "index, expected",
