@@ -461,7 +461,8 @@ ext_data = {
     "_libs.index": {
         "pyxfile": "_libs/index",
         "include": klib_include,
-        "depends": _pxi_dep["index"],
+        "depends": _pxi_dep["index"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
