@@ -3207,7 +3207,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1)
+            out = concat(dfs, axis=1, copy=True)
             out = out.reindex(columns=items, copy=False)
             return out
 
