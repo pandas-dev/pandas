@@ -1577,7 +1577,8 @@ def test_unsupported_dt(data):
         ["hour", 3],
         ["minute", 4],
         pytest.param(
-            ["is_leap_year", False],
+            "is_leap_year",
+            False,
             marks=pytest.mark.xfail(
                 pa_version_under8p0,
                 raises=NotImplementedError,
