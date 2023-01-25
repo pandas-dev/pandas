@@ -212,9 +212,11 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
     def isocalendar(self):
         from pandas import DataFrame
 
-        result = cast(
-            ArrowExtensionArray, self._parent.array._dt_isocalendar()
-        )._data.combine_chunks()
+        result = (
+            cast(ArrowExtensionArray, self._parent.array)
+            ._dt_isocalendar()
+            ._data.combine_chunks()
+        )
         iso_calendar_df = DataFrame(
             {
                 col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
