@@ -173,7 +173,7 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    _combine_le_expected_dtype = object  # TODO: can we make this boolean?
 
 
 class TestCasting(base.BaseCastingTests):

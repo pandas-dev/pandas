@@ -972,11 +972,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_factorize(data_for_grouping)
 
-    @pytest.mark.xfail(
-        reason="result dtype pyarrow[bool] better than expected dtype object"
-    )
-    def test_combine_le(self, data_repeated):
-        super().test_combine_le(data_repeated)
+    _combine_le_expected_dtype = "bool[pyarrow]"
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
