@@ -533,7 +533,12 @@ def array_strptime(
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
-            ex.args = (f"{str(ex)}, at position {i}",)
+            if iso_format:
+                ex.args = (f"{str(ex)}, at position {i}. If your time strings "
+                           "are all (not-necessarily-identically-formatted) ISO8601, "
+                           "you could try passing 'format=\"ISO8601\"'",)
+            else:
+                ex.args = (f"{str(ex)}, at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

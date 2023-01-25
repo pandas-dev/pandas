@@ -1295,7 +1295,9 @@ class TestToDatetime:
             ValueError,
             match=(
                 r'^time data "True" doesn\'t match \(inferred\) format "%Y%m%d", '
-                "at position 1$"
+                "at position 1. If your time strings are all "
+                r"\(not-necessarily-identically-formatted\) ISO8601, you could "
+                "try passing 'format=\"ISO8601\"'$"
             ),
         ):
             to_datetime(["20130101", True], cache=cache)
@@ -2093,7 +2095,9 @@ class TestToDatetimeDataFrame:
 
         msg = (
             r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d", at position 1$'
+            r'match format "%Y%m%d", at position 1. '
+            r"If your time strings are all \(not-necessarily-identically-formatted\) "
+            "ISO8601, you could try passing 'format=\"ISO8601\"'$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2171,7 +2175,9 @@ class TestToDatetimeDataFrame:
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
             r"^cannot assemble the datetimes: unconverted data remains when parsing "
-            r'with format ".*": "1", at position 0$'
+            r'with format ".*": "1", at position 0. '
+            r"If your time strings are all \(not-necessarily-identically-formatted\) "
+            "ISO8601, you could try passing 'format=\"ISO8601\"'$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2254,7 +2260,9 @@ class TestToDatetimeMisc:
         msg = "|".join(
             [
                 '^unconverted data remains when parsing with format ".*": ".*"'
-                ", at position 0$",
+                ", at position 0. "
+                r"If your time strings are all \(not-necessarily-identically-"
+                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
                 'time data ".*" doesn\'t match format ".*", at position 0',
             ]
         )
@@ -2856,7 +2864,9 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                "^day is out of range for month, at position 0$",
+                "^day is out of range for month, at position 0. "
+                r"If your time strings are all \(not-necessarily-identically-"
+                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
             ),
             (
                 "2015-29-02",
@@ -2867,7 +2877,9 @@ class TestDaysInMonth:
                 "2015-02-32",
                 "%Y-%m-%d",
                 '^unconverted data remains when parsing with format "%Y-%m-%d": "2", '
-                "at position 0$",
+                "at position 0. "
+                r"If your time strings are all \(not-necessarily-identically-"
+                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
             ),
             (
                 "2015-32-02",
@@ -2878,7 +2890,9 @@ class TestDaysInMonth:
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                "^day is out of range for month, at position 0$",
+                "^day is out of range for month, at position 0. "
+                r"If your time strings are all \(not-necessarily-identically-"
+                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
             ),
             (
                 "2015-31-04",
@@ -3290,9 +3304,7 @@ class TestOrigin:
     )
     def test_to_datetime_out_of_bounds_with_format_arg(self, format, warning):
         # see gh-23830
-        msg = (
-            r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00, at position 0$"
-        )
+        msg = r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00, at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
                 to_datetime("2417-10-10 00:00:00", format=format)
