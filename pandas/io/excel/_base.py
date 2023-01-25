@@ -880,6 +880,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
                 raise err
 
+        if last_sheetname is None:
+            raise ValueError("Sheet name is an empty list")
+
         if ret_dict:
             return output
         else:
