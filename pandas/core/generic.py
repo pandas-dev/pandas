@@ -3268,11 +3268,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             By default, the value will be read from the pandas config
             module, and set to `True` if the option ``styler.latex.environment`` is
             `"longtable"`.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
         escape : bool, optional
             By default, the value will be read from the pandas config
             module and set to `True` if the option ``styler.format.escape`` is
             `"latex"`. When set to False prevents from escaping latex special
             characters in column names.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3282,10 +3289,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module, and is set
             as the option ``styler.sparse.columns``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module, and is set as the option
             ``styler.latex.multicol_align``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value.
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
@@ -3293,6 +3307,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             rows, separating groups via clines. The default will be read
             from the pandas config module, and is set as the option
             ``styler.sparse.index``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value.
         caption : str or tuple, optional
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
