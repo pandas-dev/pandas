@@ -316,7 +316,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value.value, "ns")
+            return np.timedelta64(value.value, self.unit)
         else:
             return value.as_unit(self.unit).asm8
 
@@ -726,10 +726,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        ndarray, Float64Index or Series
+        ndarray, Index or Series
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
-            the return type is a Float64Index. When the calling object
+            the return type is an Index with a float64 dtype. When the calling object
             is a Series, the return type is Series of type `float64` whose
             index is the same as the original.
 
