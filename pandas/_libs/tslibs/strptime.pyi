@@ -5,7 +5,6 @@ from pandas._typing import npt
 def array_strptime(
     values: npt.NDArray[np.object_],
     fmt: str | None,
-    fmt_inferred: bool = ...,
     exact: bool = ...,
     errors: str = ...,
     utc: bool = ...,

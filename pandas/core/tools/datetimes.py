@@ -442,15 +442,12 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
 
-    format_inferred = False
-    if format is None:
+    if format is None and format != "mixed":
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
-        format_inferred = True
 
-    if format is not None:
-        return _array_strptime_with_fallback(
-            arg, name, utc, format, format_inferred, exact, errors
-        )
+    # `format` could not be inferred, or user asked for mixed-format parsing.
+    if format is not None and format != "mixed":
+        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -475,16 +472,13 @@ def _array_strptime_with_fallback(
     name,
     utc: bool,
     fmt: str,
-    fmt_inferred: bool,
     exact: bool,
     errors: str,
 ) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, timezones = array_strptime(
-        arg, fmt, fmt_inferred=fmt_inferred, exact=exact, errors=errors, utc=utc
-    )
+    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
     if any(tz is not None for tz in timezones):
         return _return_parsed_timezone_results(result, timezones, utc, name)
 
@@ -694,7 +688,7 @@ def to_datetime(
     yearfirst: bool = False,
     utc: bool = False,
     format: str | None = None,
-    exact: bool = True,
+    exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
     infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
@@ -766,7 +760,12 @@ def to_datetime(
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices, though
         note that :const:`"%f"` will parse all the way up to nanoseconds.
-        You can also pass "ISO8601" to parse any ISO8601 time string.
+        You can also pass:
+
+        - "ISO8601", to parse any ISO8601 time string (not necessarily in exactly the
+          same format);
+        - "mixed", to infer the format for each element individually. This is risky,
+          and you should probably use it along with `dayfirst`.
     exact : bool, default True
         Control how `format` is used:
 
@@ -774,7 +773,7 @@ def to_datetime(
         - If :const:`False`, allow the `format` to match anywhere in the target
           string.
 
-        Note that if ``format='ISO8601'`` then `exact` has no effect.
+        Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
@@ -1006,6 +1005,8 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
+    if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
+        raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "

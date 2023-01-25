@@ -152,7 +152,6 @@ cdef dict _parse_code_table = {"y": 0,
 def array_strptime(
     ndarray[object] values,
     str fmt,
-    bint fmt_inferred=False,
     bint exact=True,
     errors="raise",
     bint utc=False,
@@ -349,40 +348,22 @@ def array_strptime(
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    if fmt_inferred:
-                        raise ValueError(
-                            f"time data \"{val}\" doesn't "
-                            f"match (inferred) format \"{fmt}\""
-                        )
-                    else:
-                        raise ValueError(
-                            f"time data \"{val}\" doesn't match format \"{fmt}\""
-                        )
+                    raise ValueError(
+                        f"time data \"{val}\" doesn't match format \"{fmt}\""
+                    )
                 if len(val) != found.end():
-                    if fmt_inferred:
-                        raise ValueError(
-                            "unconverted data remains when parsing with "
-                            f"(inferred) format \"{fmt}\": \"{val[found.end():]}\""
-                        )
-                    else:
-                        raise ValueError(
-                            "unconverted data remains when parsing with "
-                            f"format \"{fmt}\": \"{val[found.end():]}\""
-                        )
+                    raise ValueError(
+                        "unconverted data remains when parsing with "
+                        f"format \"{fmt}\": \"{val[found.end():]}\""
+                    )
 
             # search
             else:
                 found = format_regex.search(val)
                 if not found:
-                    if fmt_inferred:
-                        raise ValueError(
-                            f"time data \"{val}\" doesn't match "
-                            f"(inferred) format \"{fmt}\""
-                        )
-                    else:
-                        raise ValueError(
-                            f"time data \"{val}\" doesn't match format \"{fmt}\""
-                        )
+                    raise ValueError(
+                        f"time data \"{val}\" doesn't match format \"{fmt}\""
+                    )
 
             iso_year = -1
             year = 1900
@@ -533,12 +514,14 @@ def array_strptime(
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
-            if iso_format:
-                ex.args = (f"{str(ex)}, at position {i}. If your time strings "
-                           "are all (not-necessarily-identically-formatted) ISO8601, "
-                           "you could try passing 'format=\"ISO8601\"'",)
-            else:
-                ex.args = (f"{str(ex)}, at position {i}",)
+            ex.args = (
+                f"{str(ex)}, at position {i}. You might want to try:\n"
+                "    - passing ``format='ISO8601'`` if your strings are "
+                "all ISO8601 but not necessarily in exactly the same format;\n"
+                "    - passing ``format='mixed'``, and the format will be "
+                "inferred for each element individually. "
+                "You might want to use ``dayfirst`` alongside this.",
+            )
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

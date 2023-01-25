@@ -188,6 +188,7 @@ Other enhancements
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
 - :func:`to_datetime` now accepts ``"ISO8601"`` as an argument to ``format``, which will match any ISO8601 string (but possibly not identically-formatted) (:issue:`50411`)
+- :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -573,11 +574,11 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 
 Note that this affects :func:`read_csv` as well.
 
-If you still need to parse dates with inconsistent formats, you'll need to apply :func:`to_datetime`
-to each element individually, e.g. ::
+If you still need to parse dates with inconsistent formats, you can use
+``format='mixed`` (preferably alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
-     ser.apply(pd.to_datetime)
+     pd.to_datetime(ser, format='mixed', dayfirst=True)
 
 or, if your formats are all ISO8601 (but possibly not identically-formatted) ::
 

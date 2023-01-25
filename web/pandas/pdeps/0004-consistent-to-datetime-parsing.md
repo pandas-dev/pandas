@@ -104,4 +104,4 @@ We could make ``guess_datetime_format`` smarter by using a random sample of elem
 ### PDEP History
 
 - 18 September 2022: Initial draft
-- 23 January 2023: Amended to mention ``format='ISO8601'`` option
+- 25 January 2023: Amended to mention ``format='ISO8601'`` and ``format='mixed'`` options

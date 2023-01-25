@@ -48,6 +48,15 @@ from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
 from pandas.util.version import Version
 
+PARSING_ERR_MSG = (
+    r"You might want to try:\n"
+    r"    - passing ``format=\'ISO8601\'`` if your strings are all ISO8601 "
+    r"but not necessarily in exactly the same format;\n"
+    r"    - passing ``format=\'mixed\'``, and the format will be inferred "
+    r"for each element individually. You might want to use ``dayfirst`` "
+    r"alongside this."
+)
+
 
 @pytest.fixture(params=[True, False])
 def cache(request):
@@ -531,9 +540,10 @@ class TestTimeConversionFormats:
 
         msg = "|".join(
             [
-                r'^time data ".*" doesn\'t match format ".*", at position 0$',
+                r'^time data ".*" doesn\'t match format ".*", at position 0. '
+                f"{PARSING_ERR_MSG}$",
                 r'^unconverted data remains when parsing with format ".*": ".*", '
-                "at position 0$",
+                f"at position 0. {PARSING_ERR_MSG}$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1294,10 +1304,8 @@ class TestToDatetime:
         with pytest.raises(
             ValueError,
             match=(
-                r'^time data "True" doesn\'t match \(inferred\) format "%Y%m%d", '
-                "at position 1. If your time strings are all "
-                r"\(not-necessarily-identically-formatted\) ISO8601, you could "
-                "try passing 'format=\"ISO8601\"'$"
+                r'^time data "True" doesn\'t match format "%Y%m%d", '
+                f"at position 1. {PARSING_ERR_MSG}$"
             ),
         ):
             to_datetime(["20130101", True], cache=cache)
@@ -1339,10 +1347,11 @@ class TestToDatetime:
 
         msg = "|".join(
             [
-                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0$',
+                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0. '
+                f"{PARSING_ERR_MSG}$",
                 r'^Given date string "a" not likely a datetime, at position 0$',
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
-                "at position 0$",
+                f"at position 0. {PARSING_ERR_MSG}$",
                 r"^second must be in 0..59: 00:01:99, at position 0$",
             ]
         )
@@ -1365,7 +1374,7 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = r'^time data ".*" doesn\'t match format ".*", at position 0$'
+            msg = r'^time data ".*" doesn\'t match format ".*", at position 0.'
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
@@ -1392,9 +1401,10 @@ class TestToDatetime:
         msg = "|".join(
             [
                 r'^Given date string "a" not likely a datetime, at position 0$',
-                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0$',
+                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0. '
+                f"{PARSING_ERR_MSG}$",
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
-                "at position 0$",
+                f"at position 0. {PARSING_ERR_MSG}$",
                 r"^second must be in 0..59: 00:01:99, at position 0$",
             ]
         )
@@ -2095,9 +2105,7 @@ class TestToDatetimeDataFrame:
 
         msg = (
             r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d", at position 1. '
-            r"If your time strings are all \(not-necessarily-identically-formatted\) "
-            "ISO8601, you could try passing 'format=\"ISO8601\"'$"
+            r'match format "%Y%m%d", at position 1.'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2175,9 +2183,7 @@ class TestToDatetimeDataFrame:
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
             r"^cannot assemble the datetimes: unconverted data remains when parsing "
-            r'with format ".*": "1", at position 0. '
-            r"If your time strings are all \(not-necessarily-identically-formatted\) "
-            "ISO8601, you could try passing 'format=\"ISO8601\"'$"
+            r'with format ".*": "1", at position 0.'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2260,10 +2266,9 @@ class TestToDatetimeMisc:
         msg = "|".join(
             [
                 '^unconverted data remains when parsing with format ".*": ".*"'
-                ", at position 0. "
-                r"If your time strings are all \(not-necessarily-identically-"
-                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
-                'time data ".*" doesn\'t match format ".*", at position 0',
+                f", at position 0. {PARSING_ERR_MSG}$",
+                f'^time data ".*" doesn\'t match format ".*", at position 0. '
+                f"{PARSING_ERR_MSG}$",
             ]
         )
         with pytest.raises(
@@ -2397,8 +2402,8 @@ class TestToDatetimeMisc:
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
         msg = (
-            r'^time data " " doesn\'t match \(inferred\) format "%m/%d/%Y", '
-            "at position 2$"
+            r'^time data " " doesn\'t match format "%m/%d/%Y", '
+            rf"at position 2. {PARSING_ERR_MSG}$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
@@ -2663,8 +2668,8 @@ class TestToDatetimeMisc:
         with pytest.raises(
             ValueError,
             match=(
-                r'^time data "03/30/2011" doesn\'t match \(inferred\) format '
-                r'"%d/%m/%Y", at position 1$'
+                r'^time data "03/30/2011" doesn\'t match format '
+                rf'"%d/%m/%Y", at position 1. {PARSING_ERR_MSG}$'
             ),
         ):
             to_datetime(arr, dayfirst=True)
@@ -2734,8 +2739,8 @@ class TestToDatetimeInferFormat:
         data = ["01/01/2011 00:00:00", "01-02-2011 00:00:00", "2011-01-03T00:00:00"]
         ser = Series(np.array(data))
         msg = (
-            r'^time data "01-02-2011 00:00:00" doesn\'t match \(inferred\) format '
-            r'"%m/%d/%Y %H:%M:%S", at position 1$'
+            r'^time data "01-02-2011 00:00:00" doesn\'t match format '
+            rf'"%m/%d/%Y %H:%M:%S", at position 1. {PARSING_ERR_MSG}$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, cache=cache)
@@ -2864,40 +2869,34 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                "^day is out of range for month, at position 0. "
-                r"If your time strings are all \(not-necessarily-identically-"
-                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
+                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-29-02",
                 "%Y-%d-%m",
-                "^day is out of range for month, at position 0$",
+                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-02-32",
                 "%Y-%m-%d",
                 '^unconverted data remains when parsing with format "%Y-%m-%d": "2", '
-                "at position 0. "
-                r"If your time strings are all \(not-necessarily-identically-"
-                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
+                f"at position 0. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-32-02",
                 "%Y-%d-%m",
                 '^time data "2015-32-02" doesn\'t match format "%Y-%d-%m", '
-                "at position 0$",
+                f"at position 0. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                "^day is out of range for month, at position 0. "
-                r"If your time strings are all \(not-necessarily-identically-"
-                r"formatted\) ISO8601, you could try passing 'format=\"ISO8601\"'$",
+                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-31-04",
                 "%Y-%d-%m",
-                "^day is out of range for month, at position 0$",
+                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
             ),
         ],
     )
@@ -3541,6 +3540,21 @@ def test_to_datetime_mixed_iso8601():
     result = to_datetime(["2020-01-01", "2020-01-01 05:00:00"], format="ISO8601")
     expected = DatetimeIndex(["2020-01-01 00:00:00", "2020-01-01 05:00:00"])
     tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_mixed_other():
+    # https://github.com/pandas-dev/pandas/issues/50411
+    result = to_datetime(["01/11/2000", "12 January 2000"], format="mixed")
+    expected = DatetimeIndex(["2000-01-11", "2000-01-12"])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("exact", [True, False])
+@pytest.mark.parametrize("format", ["ISO8601", "mixed"])
+def test_to_datetime_mixed_or_iso_exact(exact, format):
+    msg = "Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'"
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(["2020-01-01"], exact=exact, format=format)
 
 
 def test_to_datetime_mixed_not_necessarily_iso8601_raise():

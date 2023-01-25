@@ -1001,17 +1001,17 @@ way to parse dates is to explicitly set ``format=``.
    )
    df
 
-In the case that you have mixed datetime formats within the same column, you'll need to
-first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+In the case that you have mixed datetime formats within the same column, you can
+pass  ``format='mixed'``
 
 .. ipython:: python
 
    data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
-   df['date'] = df['date'].apply(pd.to_datetime)
+   df['date'] = pd.to_datetime(df['date'], format='mixed')
    df
 
-or, if your datetime formats are all ISO8601 (but possibly not identically-formatted):
+or, if your datetime formats are all ISO8601 (possibly not identically-formatted):
 
 .. ipython:: python
 
