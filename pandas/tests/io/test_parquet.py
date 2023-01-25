@@ -640,6 +640,28 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    def test_use_nullable_dtypes_option(self, engine, request):
+        # GH#50748
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
+
+        table = pyarrow.table({"a": pyarrow.array([1, 2, 3, None], "int64")})
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            with pd.option_context("mode.nullable_dtypes", True):
+                result2 = read_parquet(path, engine=engine)
+
+        expected = pd.DataFrame({"a": pd.array([1, 2, 3, None], dtype="Int64")})
+        tm.assert_frame_equal(result2, expected)
+
     @pytest.mark.parametrize(
         "dtype",
         [

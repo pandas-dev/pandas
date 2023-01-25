@@ -530,6 +530,22 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
+def test_use_nullable_dtypes_option(all_parsers):
+    # GH#50748
+
+    parser = all_parsers
+
+    data = """a
+1
+3
+"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = parser.read_csv(StringIO(data))
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_ea_int_avoid_overflow(all_parsers):
     # GH#32134
     parser = all_parsers
