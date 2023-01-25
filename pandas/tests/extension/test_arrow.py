@@ -678,6 +678,17 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
+    def test_check_dtype(self, data, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="decimal string repr affects numpy comparison",
+                )
+            )
+        super().test_construct_from_string_own_name(dtype)
+
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if (
@@ -926,6 +937,13 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
+        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"No pyarrow kernel for {pa_dtype}",
+                    raises=pa.ArrowNotImplementedError,
+                )
+            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
     @pytest.mark.parametrize(
@@ -944,11 +962,19 @@ class TestBaseMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
+        pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
         if pa_version_under6p0 and skipna:
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason="min_max not supported in pyarrow",
+                )
+            )
+        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"No pyarrow kernel for {pa_dtype}",
+                    raises=pa.ArrowNotImplementedError,
                 )
             )
         super().test_argreduce_series(
@@ -1050,6 +1076,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     divmod_exc = NotImplementedError
 
+    @classmethod
     def assert_equal(cls, left, right, **kwargs):
         if isinstance(left, pd.DataFrame):
             left_pa_type = left.iloc[:, 0].dtype.pyarrow_dtype
@@ -1152,6 +1179,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             mark = pytest.mark.xfail(
                 raises=pa.ArrowInvalid,
                 reason="divide by 0",
+            )
+        elif (
+            opname == "__pow__"
+            and pa.types.is_decimal(pa_dtype)
+            and pa_version_under7p0
+        ):
+            mark = pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason="Invalid decimal function: power_checked",
             )
 
         return mark
