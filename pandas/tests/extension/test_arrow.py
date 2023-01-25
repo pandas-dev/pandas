@@ -542,6 +542,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"var", "std", "median"}
+            and pa_version_under7p0
+            and pa.types.is_decimal(pa_dtype)
+        ):
+            request.node.add_marker(xfail_mark)
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
         elif (
@@ -1361,7 +1367,7 @@ def test_quantile(data, interpolation, quantile, request):
     if (
         pa.types.is_integer(pa_dtype)
         or pa.types.is_floating(pa_dtype)
-        or pa.types.is_decimal(pa_dtype)
+        or (pa.types.is_decimal(pa_dtype) and not pa_version_under7p0)
     ):
         pass
     elif pa.types.is_temporal(data._data.type) and interpolation in ["lower", "higher"]:
@@ -1405,6 +1411,13 @@ def test_quantile(data, interpolation, quantile, request):
 def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     pa_dtype = data_for_grouping.dtype.pyarrow_dtype
     if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"mode not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=pa.ArrowNotImplementedError,
