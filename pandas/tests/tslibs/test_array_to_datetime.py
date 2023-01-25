@@ -67,6 +67,7 @@ def test_parsing_timezone_offsets(dt_string, expected_tz):
     assert result_tz == timezone(timedelta(minutes=expected_tz))
 
 
+@pytest.mark.filterwarnings("ignore:.*dependent on system timezone.*:FutureWarning")
 def test_parsing_non_iso_timezone_offset():
     dt_string = "01-01-2013T00:00:00.000000000+0000"
     arr = np.array([dt_string], dtype=object)
