@@ -4,7 +4,6 @@ from typing import Callable
 
 import numpy as np
 
-from pandas._libs import index as libindex
 from pandas._typing import Dtype
 from pandas.util._decorators import (
     cache_readonly,
@@ -73,36 +72,6 @@ class NumericIndex(Index):
         "numeric type",
     )
     _can_hold_strings = False
-
-    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
-        np.dtype(np.int8): libindex.Int8Engine,
-        np.dtype(np.int16): libindex.Int16Engine,
-        np.dtype(np.int32): libindex.Int32Engine,
-        np.dtype(np.int64): libindex.Int64Engine,
-        np.dtype(np.uint8): libindex.UInt8Engine,
-        np.dtype(np.uint16): libindex.UInt16Engine,
-        np.dtype(np.uint32): libindex.UInt32Engine,
-        np.dtype(np.uint64): libindex.UInt64Engine,
-        np.dtype(np.float32): libindex.Float32Engine,
-        np.dtype(np.float64): libindex.Float64Engine,
-        np.dtype(np.complex64): libindex.Complex64Engine,
-        np.dtype(np.complex128): libindex.Complex128Engine,
-    }
-
-    @property
-    def _engine_type(self) -> type[libindex.IndexEngine]:
-        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
-        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
-        return self._engine_types[self.dtype]  # type: ignore[index]
-
-    @cache_readonly
-    def inferred_type(self) -> str:
-        return {
-            "i": "integer",
-            "u": "integer",
-            "f": "floating",
-            "c": "complex",
-        }[self.dtype.kind]
 
     def __new__(
         cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
