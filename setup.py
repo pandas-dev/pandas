@@ -442,7 +442,8 @@ ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
         "include": klib_include,
-        "depends": _pxi_dep["algos"],
+        "depends": _pxi_dep["algos"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
