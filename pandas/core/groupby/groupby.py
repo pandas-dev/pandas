@@ -1020,19 +1020,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             return
 
-        groupers = self.exclusions
-
-        if len(groupers):
+        exclusions = self.exclusions
+        if len(exclusions):
             # GH12839 clear selected obj cache when group selection changes
             ax = self.obj._info_axis
-            if len(ax) < 1000:
-                # Determined experimentally, larger is slower than the NumPy version
-                self._group_selection = np.array(
-                    [idx for idx, label in enumerate(ax) if label not in groupers]
-                )
-            else:
-                indexer = ax.get_indexer_for(list(groupers))
-                self._group_selection = np.delete(np.arange(len(ax)), indexer)
+            # ilocs of ax that are not in the exclusions
+            self._group_selection = np.arange(len(ax))[~ax.isin(exclusions)]
             self._reset_cache("_selected_obj")
 
     @final
