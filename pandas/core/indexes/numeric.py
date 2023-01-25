@@ -190,22 +190,6 @@ class NumericIndex(Index):
 
     # ----------------------------------------------------------------
 
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = super()._convert_tolerance(tolerance, target)
-
-        if not np.issubdtype(tolerance.dtype, np.number):
-            if tolerance.ndim > 0:
-                raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must contain "
-                    "numeric elements if it is list type"
-                )
-
-            raise ValueError(
-                f"tolerance argument for {type(self).__name__} must be numeric "
-                f"if it is a scalar: {repr(tolerance)}"
-            )
-        return tolerance
-
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
