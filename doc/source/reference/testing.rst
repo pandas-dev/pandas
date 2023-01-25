@@ -28,6 +28,7 @@ Exceptions and warnings
    errors.AccessorRegistrationWarning
    errors.AttributeConflictWarning
    errors.CategoricalConversionWarning
+   errors.ChainedAssignmentError
    errors.ClosedFileError
    errors.CSSWarning
    errors.DatabaseError

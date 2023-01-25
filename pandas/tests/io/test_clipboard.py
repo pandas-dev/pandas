@@ -466,3 +466,20 @@ y,2,5.0,,,,,False,"""
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_read_clipboard_nullable_dtypes_option(
+        self, request, mock_clipboard, engine
+    ):
+        # GH#50748
+
+        text = """a
+1
+2"""
+        mock_clipboard[request.node.name] = text
+
+        with pd.option_context("mode.nullable_dtypes", True):
+            result = read_clipboard(sep=",", engine=engine)
+
+        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)
