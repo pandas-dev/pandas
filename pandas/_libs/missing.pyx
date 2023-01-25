@@ -3,6 +3,11 @@ import numbers
 from sys import maxsize
 
 cimport cython
+from cpython.datetime cimport (
+    date,
+    time,
+    timedelta,
+)
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -307,6 +312,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
 
 
 def _create_binary_propagating_op(name, is_divmod=False):
+    is_cmp = name.strip("_") in ["eq", "ne", "le", "lt", "ge", "gt"]
 
     def method(self, other):
         if (other is C_NA or isinstance(other, (str, bytes))
@@ -328,6 +334,9 @@ def _create_binary_propagating_op(name, is_divmod=False):
                 return out, out.copy()
             else:
                 return out
+
+        elif is_cmp and isinstance(other, (date, time, timedelta)):
+            return NA
 
         return NotImplemented
 

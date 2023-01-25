@@ -49,6 +49,16 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_feather`
 * :func:`to_numeric`
 
+To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
+the keyword argument globally to ``True`` if not specified directly. The option can be enabled
+through:
+
+.. ipython:: python
+
+    pd.options.mode.nullable_dtypes = True
+
+The option will only work for functions with the keyword ``use_nullable_dtypes``.
+
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
@@ -124,6 +134,14 @@ Copy-on-Write improvements
 - The :class:`Series` constructor will now create a lazy copy (deferring the copy until
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
+
+- Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
+  will now always raise an exception when Copy-on-Write is enabled. In this mode,
+  chained assignment can never work because we are always setting into a temporary
+  object that is the result of an indexing operation (getitem), which under
+  Copy-on-Write always behaves as a copy. Thus, assigning through a chain
+  can never update the original Series or DataFrame. Therefore, an informative
+  error is raised to the user instead of silently doing nothing (:issue:`49467`)
 
 Copy-on-Write can be enabled through
 
@@ -618,6 +636,7 @@ Deprecations
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
+- :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -883,6 +902,7 @@ Performance improvements
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :func:`to_datetime` when parsing strings with timezone offsets (:issue:`50107`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
+- Performance improvement for :meth:`Series.replace` with categorical dtype (:issue:`49404`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
@@ -927,6 +947,8 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
+- Bug in :meth:`Series.replace` with categorical dtype when ``to_replace`` values overlap with new values (:issue:`49404`)
+- Bug in :meth:`Series.replace` with categorical dtype losing nullable dtypes of underlying categories (:issue:`49404`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
 - Bug in :class:`Categorical` constructor when constructing from a :class:`Categorical` object and ``dtype="category"`` losing ordered-ness (:issue:`49309`)
 -
@@ -1109,6 +1131,7 @@ Groupby/resample/rolling
 - Bug in :class:`.DataFrameGroupBy` would raise when used with an empty DataFrame, categorical grouper, and ``dropna=False`` (:issue:`50634`)
 - Bug in :meth:`.SeriesGroupBy.value_counts` did not respect ``sort=False`` (:issue:`50482`)
 - Bug in :meth:`.DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 -
 
 Reshaping
