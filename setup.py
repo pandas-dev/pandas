@@ -476,6 +476,7 @@ ext_data = {
         "pyxfile": "_libs/join",
         "depends": tseries_depends,
         "include": klib_include,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.lib": {
         "pyxfile": "_libs/lib",
