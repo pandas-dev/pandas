@@ -876,11 +876,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         try:
             return ArrowJsonParserWrapper(filepath_or_buffer)
-        except Exception:
+        finally:
             if self.handles is not None:
                 self.handles.close()
-        finally:
-            raise Exception
 
     def _preprocess_data(self, data):
         """
