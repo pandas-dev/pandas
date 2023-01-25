@@ -6,6 +6,7 @@ from typing import (
 )
 
 import numpy as np
+
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing

@@ -18,7 +18,10 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
-from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_object_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -43,7 +46,7 @@ from pandas.core.indexes.api import (
     ensure_index_from_sequences,
 )
 from pandas.tests.indexes.common import Base
-from pandas.core.dtypes.common import is_object_dtype
+
 
 class TestIndex(Base):
     _index_cls = Index
