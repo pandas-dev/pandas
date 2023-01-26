@@ -1046,6 +1046,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             data_to_reduce = self._data.cast(pa.int64())
 
+        elif name in ["median", "mean", "std", "sem"] and pa.types.is_temporal(pa_type):
+            nbits = pa_type.bit_width
+            if nbits == 32:
+                data_to_reduce = self._data.cast(pa.int32())
+            else:
+                data_to_reduce = self._data.cast(pa.int64())
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
@@ -1083,6 +1090,24 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
+        if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
+            result = result.cast(pa_type)
+        if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
+            result = result.cast(pa.int64())
+            if pa.types.is_duration(pa_type):
+                result = result.cast(pa_type)
+            elif pa.types.is_time(pa_type):
+                # TODO: with time types we should probably retain "unit",
+                #  but not clear how to get that since pa_type.unit raises
+                #  AttributeError
+                result = result.cast(pa.duration("ns"))
+            elif pa.types.is_date(pa_type):
+                # go with closest available unit, i.e. "s"
+                result = result.cast(pa.duration("s"))
+            else:
+                # i.e. timestamp
+                result = result.cast(pa.duration(pa_type.unit))
+
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:
