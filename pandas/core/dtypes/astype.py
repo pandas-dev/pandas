@@ -264,16 +264,20 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     if dtype == new_dtype:
         return True
 
-    if isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
+    elif isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
         # Only equal numpy dtypes avoid a copy
         return False
 
     if is_string_dtype(dtype) and is_string_dtype(new_dtype):
         return True
+
     elif is_string_dtype(dtype) or is_string_dtype(new_dtype):
         return False
 
-    if getattr(dtype, "numpy_dtype", dtype) == getattr(
+    elif dtype.kind in "mM" and new_dtype.kind in "mM":
+        return True
+
+    elif getattr(dtype, "numpy_dtype", dtype) == getattr(
         new_dtype, "numpy_dtype", new_dtype
     ):
         return True
