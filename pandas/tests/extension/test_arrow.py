@@ -706,7 +706,7 @@ class TestBaseDtype(base.BaseDtypeTests):
                     reason="decimal string repr affects numpy comparison",
                 )
             )
-        super().test_check_dtype(dtype)
+        super().test_check_dtype(data)
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
