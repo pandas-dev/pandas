@@ -165,10 +165,12 @@ class HashTable:
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
+        mask: npt.NDArray[np.bool_] | None = ...,
     ) -> None: ...
     def lookup(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
+        mask: npt.NDArray[np.bool_] | None = ...,
     ) -> npt.NDArray[np.intp]: ...
     def get_labels(
         self,

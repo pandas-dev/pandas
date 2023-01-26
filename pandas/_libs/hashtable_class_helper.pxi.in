@@ -1005,8 +1005,9 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def lookup(self, ndarray[object] values) -> ndarray:
+    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1041,7 +1042,8 @@ cdef class StringHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[object] values) -> None:
+    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1314,7 +1316,8 @@ cdef class PyObjectHashTable(HashTable):
         else:
             raise KeyError(key)
 
-    def map_locations(self, ndarray[object] values) -> None:
+    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1328,8 +1331,9 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
-    def lookup(self, ndarray[object] values) -> ndarray:
+    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
