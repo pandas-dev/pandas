@@ -3985,7 +3985,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
-        if is_float_dtype(self.dtype):
+        if isinstance(self.dtype, np.dtype) and is_float_dtype(self.dtype):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             return self.slice_indexer(start, stop, step)
