@@ -1802,10 +1802,12 @@ One or more strings in the dta file could not be decoded using utf-8, and
 so the fallback encoding of latin-1 is being used.  This can happen when a file
 has been incorrectly encoded by Stata or some other software. You should verify
 the string values returned are correct."""
+        # Move path outside of read_stata, or else assert_produces_warning
+        # will block pytests skip mechanism from triggering (failing the test)
+        # if the path is not present
+        path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
         with tm.assert_produces_warning(UnicodeWarning) as w:
-            encoded = read_stata(
-                datapath("io", "data", "stata", "stata1_encoding_118.dta")
-            )
+            encoded = read_stata(path)
             assert len(w) == 151
             assert w[0].message.args[0] == msg
 
