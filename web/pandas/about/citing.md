@@ -44,10 +44,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_white.svg"/>
         </td>
     </tr>
 </table>
@@ -57,10 +57,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas_secondary.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_secondary.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_secondary_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_secondary_white.svg"/>
         </td>
     </tr>
 </table>
@@ -70,10 +70,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas_mark.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_mark.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_mark_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_mark_white.svg"/>
         </td>
     </tr>
 </table>
