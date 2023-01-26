@@ -1033,12 +1033,13 @@ class Parser:
     _split_keys: tuple[str, ...]
     _default_orient: str
 
-    _STAMP_UNITS = ("s", "ms", "us", "ns")
+    _STAMP_UNITS = ("s", "ms", "us", "ns", "D")
     _MIN_STAMPS = {
         "s": 31536000,
         "ms": 31536000000,
         "us": 31536000000000,
         "ns": 31536000000000000,
+        "D": 365,
     }
 
     def __init__(
@@ -1063,7 +1064,9 @@ class Parser:
         self.dtype = dtype
 
         if date_unit is not None:
-            date_unit = date_unit.lower()
+            # avoid lowercasing "D" but ensure retrocompatibility for other units
+            if date_unit != "D":
+                date_unit = date_unit.lower()
             if date_unit not in self._STAMP_UNITS:
                 raise ValueError(f"date_unit must be one of {self._STAMP_UNITS}")
             self.min_stamp = self._MIN_STAMPS[date_unit]

@@ -33,6 +33,9 @@ int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
     case NPY_FR_s:
         *value /= 1000000000LL;
         break;
+    case NPY_FR_D:
+        // 24 * 60 * 60 * 1000000000LL to convert to days
+        *value /= 86400000000000LL;
     default:
         return -1;
     }

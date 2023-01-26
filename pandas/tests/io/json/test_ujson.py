@@ -394,6 +394,9 @@ class TestUltraJSONTests:
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val).as_unit("ns")
 
+        roundtrip = ujson.decode(ujson.encode(val, date_unit="D"))
+        assert roundtrip == stamp.value // (864 * 10**11)
+
         roundtrip = ujson.decode(ujson.encode(val, date_unit="s"))
         assert roundtrip == stamp.value // 10**9
 

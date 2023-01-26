@@ -835,6 +835,7 @@ class TestPandasContainer:
             ("20130101 20:43:42.123", "ms"),
             ("20130101 20:43:42.123456", "us"),
             ("20130101 20:43:42.123456789", "ns"),
+            ("20130101", "D"),
         ],
     )
     def test_date_format_frame(self, date, date_unit, datetime_frame):
@@ -865,6 +866,7 @@ class TestPandasContainer:
             ("20130101 20:43:42.123", "ms"),
             ("20130101 20:43:42.123456", "us"),
             ("20130101 20:43:42.123456789", "ns"),
+            ("20130101", "D"),
         ],
     )
     def test_date_format_series(self, date, date_unit, datetime_series):
@@ -886,7 +888,7 @@ class TestPandasContainer:
             ts.to_json(date_format="iso", date_unit="foo")
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-    def test_date_unit(self, unit, datetime_frame):
+    def test_date_unit_time(self, unit, datetime_frame):
         df = datetime_frame
         df["date"] = Timestamp("20130101 20:43:42")
         dl = df.columns.get_loc("date")
@@ -902,6 +904,27 @@ class TestPandasContainer:
 
         # detect date unit
         result = read_json(json, date_unit=None)
+        tm.assert_frame_equal(result, df)
+
+    def test_date_unit_day(self, datetime_frame):
+        # a different test is implemented for unit="D"
+        # since it needs some handling of the df that unit
+        # is not autodetected by the read_json method
+        df = datetime_frame
+        df["date"] = Timestamp("20130102 20:43:42")
+        dl = df.columns.get_loc("date")
+
+        df.iloc[1, dl] = Timestamp("19710102 20:43:42")
+        df.iloc[2, dl] = Timestamp("21460101 20:43:42")
+        df.iloc[4, dl] = pd.NaT
+
+        json = df.to_json(date_format="epoch", date_unit="D")
+
+        # remove time part since it doesn't get serialized
+        # so it won't be equal in the deserialized df
+        df["date"] = pd.to_datetime(df["date"].dt.date)
+
+        result = read_json(json, date_unit="D")
         tm.assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
