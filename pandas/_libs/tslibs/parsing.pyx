@@ -654,6 +654,7 @@ cdef dateutil_parse(
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
+            assert False, (res.tzname, time.tzname)
             warnings.warn(
                 "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
                 "is deprecated and will raise in a future version. Pass the 'tz' "
