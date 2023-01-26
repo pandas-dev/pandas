@@ -465,7 +465,8 @@ which will be triggered when the tag is pushed.
 
 7. Download all wheels from the Anaconda repository where MacPython uploads them:
    https://anaconda.org/multibuild-wheels-staging/pandas/files?version=<version>
-   to the ``dist/`` directory in the local pandas copy.
+   to the ``dist/`` directory in the local pandas copy. You can use the script
+   ``scripts/download_wheels.sh`` to download all wheels at once.
 
 8. Upload wheels to PyPI:
 
