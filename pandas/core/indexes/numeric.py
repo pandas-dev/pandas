@@ -169,11 +169,6 @@ class NumericIndex(Index):
     def _should_fallback_to_positional(self) -> bool:
         return False
 
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str):
-        # we will try to coerce to integers
-        return self._maybe_cast_indexer(label)
-
     # ----------------------------------------------------------------
 
     @classmethod
