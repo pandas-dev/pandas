@@ -174,10 +174,12 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_quantile_timedelta():
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_resample_quantile_timedelta(unit):
     # GH: 29485
+    dtype = np.dtype(f"m8[{unit}]")
     df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), unit="s")},
+        {"value": pd.to_timedelta(np.arange(4), unit="s").astype(dtype)},
         index=pd.date_range("20200101", periods=4, tz="UTC"),
     )
     result = df.resample("2D").quantile(0.99)
@@ -189,7 +191,7 @@ def test_resample_quantile_timedelta():
             ]
         },
         index=pd.date_range("20200101", periods=2, tz="UTC", freq="2D"),
-    )
+    ).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
 
