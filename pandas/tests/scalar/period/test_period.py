@@ -399,6 +399,19 @@ class TestPeriodConstruction:
         assert result == expected
         assert isinstance(result, Period)
 
+    def test_parse_week_str_roundstrip(self):
+        # GH#50803
+        per = Period("2017-01-23/2017-01-29")
+        assert per.freq.freqstr == "W-SUN"
+
+        per = Period("2017-01-24/2017-01-30")
+        assert per.freq.freqstr == "W-MON"
+
+        msg = "Could not parse as weekly-freq Period"
+        with pytest.raises(ValueError, match=msg):
+            # not 6 days apart
+            Period("2016-01-23/2017-01-29")
+
     def test_period_from_ordinal(self):
         p = Period("2011-01", freq="M")
         res = Period._from_ordinal(p.ordinal, freq="M")

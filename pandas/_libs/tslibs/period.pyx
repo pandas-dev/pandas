@@ -1,3 +1,5 @@
+import re
+
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -2591,20 +2593,31 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-            dt, reso = parse_datetime_string_with_reso(value, freqstr)
-            if reso == "nanosecond":
-                nanosecond = dt.nanosecond
-            if dt is NaT:
-                ordinal = NPY_NAT
+            try:
+                dt, reso = parse_datetime_string_with_reso(value, freqstr)
+            except ValueError as err:
+                match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
+                if match:
+                    # Case that cannot be parsed (correctly) by our datetime
+                    #  parsing logic
+                    dt, freq = _parse_weekly_str(value, freq)
+                else:
+                    raise err
 
-            if freq is None and ordinal != NPY_NAT:
-                # Skip NaT, since it doesn't have a resolution
-                try:
-                    freq = attrname_to_abbrevs[reso]
-                except KeyError:
-                    raise ValueError(f"Invalid frequency or could not "
-                                     f"infer: {reso}")
-                freq = to_offset(freq)
+            else:
+                if reso == "nanosecond":
+                    nanosecond = dt.nanosecond
+                if dt is NaT:
+                    ordinal = NPY_NAT
+
+                if freq is None and ordinal != NPY_NAT:
+                    # Skip NaT, since it doesn't have a resolution
+                    try:
+                        freq = attrname_to_abbrevs[reso]
+                    except KeyError:
+                        raise ValueError(f"Invalid frequency or could not "
+                                         f"infer: {reso}")
+                    freq = to_offset(freq)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2664,3 +2677,28 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     if how not in {"S", "E"}:
         raise ValueError("How must be one of S or E")
     return how
+
+
+cdef _parse_weekly_str(value, BaseOffset freq):
+    """
+    Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
+    datetime-parsing logic.  This ensures that we can round-trip with
+    Period.__str__ with weekly freq.
+    """
+    # GH#50803
+    start, end = value.split("/")
+    start = Timestamp(start)
+    end = Timestamp(end)
+
+    if (end - start).days != 6:
+        # We are interested in cases where this is str(period)
+        #  of a Week-freq period
+        raise ValueError("Could not parse as weekly-freq Period")
+
+    if freq is None:
+        day_name = end.day_name()[:3].upper()
+        freqstr = f"W-{day_name}"
+        freq = to_offset(freqstr)
+        # We _should_ have freq.is_on_offset(end)
+
+    return end, freq
