@@ -41,7 +41,10 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.astype import astype_array_safe
+from pandas.core.dtypes.astype import (
+    astype_array_safe,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
@@ -501,16 +504,7 @@ class Block(PandasObject):
                 f"({newb.dtype.name} [{newb.shape}])"
             )
         if using_copy_on_write():
-            if (
-                not copy
-                and isinstance(values.dtype, np.dtype)
-                and isinstance(new_values.dtype, np.dtype)
-                and values is not new_values
-            ):
-                # We made a copy
-                pass
-            elif not copy:
-                # This tracks more references than necessary.
+            if astype_is_view(values.dtype, new_values.dtype):
                 newb._ref = weakref.ref(self)
         return newb
 

@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
+    is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
@@ -246,3 +247,35 @@ def astype_array_safe(
             raise
 
     return new_values
+
+
+def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
+    """Checks if astype avoided copying the data.
+
+    Parameters
+    ----------
+    dtype : Original dtype
+    new_dtype : target dtype
+
+    Returns
+    -------
+    True if new data is a view, False otherwise
+    """
+    if dtype == new_dtype:
+        return True
+
+    if isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
+        # Only equal numpy dtypes avoid a copy
+        return False
+
+    if is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        return True
+    elif is_string_dtype(dtype) or is_string_dtype(new_dtype):
+        return False
+
+    if getattr(dtype, "numpy_dtype", dtype) == getattr(
+        new_dtype, "numpy_dtype", new_dtype
+    ):
+        return True
+
+    return False
