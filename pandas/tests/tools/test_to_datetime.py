@@ -1084,7 +1084,7 @@ class TestToDatetime:
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_index_equal(
             to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            Index([dt.item() for dt in dts_with_oob]),
+            Index(dts_with_oob),
         )
 
     def test_to_datetime_tz(self, cache):
