@@ -112,7 +112,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         super().__init__(values)
         self._dtype = StringDtype(storage="pyarrow")
 
-        if not pa.types.is_string(self._data.type):
+        if not pa.types.is_string(self._pa_array.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
@@ -183,7 +183,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         if not len(value_set):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._data, value_set=pa.array(value_set))
+        result = pc.is_in(self._pa_array, value_set=pa.array(value_set))
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -196,7 +196,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                 return self.copy()
             return self
         elif isinstance(dtype, NumericDtype):
-            data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
+            data = self._pa_array.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
         elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
             return self.to_numpy(dtype=dtype, na_value=np.nan)
@@ -282,12 +282,12 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                 fallback_performancewarning()
                 return super()._str_contains(pat, case, flags, na, regex)
             else:
-                result = pc.match_substring_regex(self._data, pat)
+                result = pc.match_substring_regex(self._pa_array, pat)
         else:
             if case:
-                result = pc.match_substring(self._data, pat)
+                result = pc.match_substring(self._pa_array, pat)
             else:
-                result = pc.match_substring(pc.utf8_upper(self._data), pat.upper())
+                result = pc.match_substring(pc.utf8_upper(self._pa_array), pat.upper())
         result = BooleanDtype().__from_arrow__(result)
         if not isna(na):
             result[isna(result)] = bool(na)
@@ -315,7 +315,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._data, pattern=pat, replacement=repl, max_replacements=n)
+        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
         return type(self)(result)
 
     def _str_match(
@@ -333,68 +333,68 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):
-        result = pc.utf8_is_alnum(self._data)
+        result = pc.utf8_is_alnum(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isalpha(self):
-        result = pc.utf8_is_alpha(self._data)
+        result = pc.utf8_is_alpha(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isdecimal(self):
-        result = pc.utf8_is_decimal(self._data)
+        result = pc.utf8_is_decimal(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isdigit(self):
-        result = pc.utf8_is_digit(self._data)
+        result = pc.utf8_is_digit(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_islower(self):
-        result = pc.utf8_is_lower(self._data)
+        result = pc.utf8_is_lower(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isnumeric(self):
-        result = pc.utf8_is_numeric(self._data)
+        result = pc.utf8_is_numeric(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isspace(self):
-        result = pc.utf8_is_space(self._data)
+        result = pc.utf8_is_space(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_istitle(self):
-        result = pc.utf8_is_title(self._data)
+        result = pc.utf8_is_title(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isupper(self):
-        result = pc.utf8_is_upper(self._data)
+        result = pc.utf8_is_upper(self._pa_array)
         return BooleanDtype().__from_arrow__(result)
 
     def _str_len(self):
-        result = pc.utf8_length(self._data)
+        result = pc.utf8_length(self._pa_array)
         return Int64Dtype().__from_arrow__(result)
 
     def _str_lower(self):
-        return type(self)(pc.utf8_lower(self._data))
+        return type(self)(pc.utf8_lower(self._pa_array))
 
     def _str_upper(self):
-        return type(self)(pc.utf8_upper(self._data))
+        return type(self)(pc.utf8_upper(self._pa_array))
 
     def _str_strip(self, to_strip=None):
         if to_strip is None:
-            result = pc.utf8_trim_whitespace(self._data)
+            result = pc.utf8_trim_whitespace(self._pa_array)
         else:
-            result = pc.utf8_trim(self._data, characters=to_strip)
+            result = pc.utf8_trim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
     def _str_lstrip(self, to_strip=None):
         if to_strip is None:
-            result = pc.utf8_ltrim_whitespace(self._data)
+            result = pc.utf8_ltrim_whitespace(self._pa_array)
         else:
-            result = pc.utf8_ltrim(self._data, characters=to_strip)
+            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
     def _str_rstrip(self, to_strip=None):
         if to_strip is None:
-            result = pc.utf8_rtrim_whitespace(self._data)
+            result = pc.utf8_rtrim_whitespace(self._pa_array)
         else:
-            result = pc.utf8_rtrim(self._data, characters=to_strip)
+            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)

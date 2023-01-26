@@ -39,7 +39,7 @@ def split_array(arr):
     def _split_array(arr):
         import pyarrow as pa
 
-        arrow_array = arr._data
+        arrow_array = arr._pa_array
         split = len(arrow_array) // 2
         arrow_array = pa.chunked_array(
             [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
