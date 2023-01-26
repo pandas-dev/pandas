@@ -1138,6 +1138,10 @@ class TestDataFrameAnalytics:
         expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
 
+    # GH#50947 deprecates this but it is not emitting a warning in some builds.
+    @pytest.mark.filterwarnings(
+        "ignore:'any' with datetime64 dtypes is deprecated.*:FutureWarning"
+    )
     def test_any_datetime(self):
 
         # GH 23070
@@ -1150,7 +1154,6 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        # GH#50947 deprecates this, but it is not emitting a warning in some builds
         result = df.any(axis=1)
 
         expected = Series([True, True, True, False])
