@@ -89,6 +89,7 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
+from pandas.core.array_algos.quantile import groupby_quantile_ndim_compat
 from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
@@ -3174,11 +3175,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
-        nqs = len(qs)
-
-        func = partial(
-            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
-        )
 
         # Put '-1' (NaN) labels as the last group so it does not interfere
         # with the calculations. Note: length check avoids failure on empty
@@ -3201,55 +3197,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: np.dtype | None = None
-            if is_integer_dtype(values.dtype):
-                vals = values
-                inference = np.dtype(np.int64)
-            else:
-                vals = np.asarray(values)
+            npy_out = groupby_quantile_ndim_compat(
+                qs=qs,
+                interpolation=interpolation,
+                ngroups=ngroups,
+                ids=ids,
+                labels_for_lexsort=labels_for_lexsort,
+                npy_vals=values,
+                mask=isna(values),
+                result_mask=None,
+            )
 
-            ncols = 1
-            if vals.ndim == 2:
-                ncols = vals.shape[0]
-                shaped_labels = np.broadcast_to(
-                    labels_for_lexsort, (ncols, len(labels_for_lexsort))
-                )
-            else:
-                shaped_labels = labels_for_lexsort
-
-            out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
-
-            # Get an index of values sorted by values and then labels
-            order = (vals, shaped_labels)
-            sort_arr = np.lexsort(order).astype(np.intp, copy=False)
-
-            mask = isna(values)
-
-            if vals.ndim == 1:
-                func(
-                    out[0],
-                    values=vals,
-                    mask=mask,
-                    sort_indexer=sort_arr,
-                    result_mask=None,
-                )
-            else:
-                for i in range(ncols):
-                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
-
-            if vals.ndim == 1:
-                out = out.ravel("K")
-            else:
-                out = out.reshape(ncols, ngroups * nqs)
-
-            if inference:
-                # Check for edge case
-                if not (
-                    is_integer_dtype(inference)
-                    and interpolation in {"linear", "midpoint"}
-                ):
-                    return out.astype(inference)
-            return out
+            if is_integer_dtype(values.dtype) and interpolation not in {
+                "linear",
+                "midpoint",
+            }:
+                return npy_out.astype(np.dtype(np.int64))
+            return npy_out
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1

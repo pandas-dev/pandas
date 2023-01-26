@@ -8,7 +8,6 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
-from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -25,10 +24,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    groupby as libgroupby,
-    lib,
-)
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -91,7 +87,10 @@ from pandas.core.algorithms import (
     rank,
     unique,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import (
+    groupby_quantile_ndim_compat,
+    quantile_with_mask,
+)
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -1707,8 +1706,6 @@ class ExtensionArray:
         labels_for_lexsort: npt.NDArray[np.intp],
     ):
 
-        nqs = len(qs)
-
         mask = self.isna()
 
         inference: DtypeObj | None = None
@@ -1733,46 +1730,16 @@ class ExtensionArray:
         else:
             npy_vals = np.asarray(self)
 
-        ncols = 1
-        if npy_vals.ndim == 2:
-            ncols = npy_vals.shape[0]
-            shaped_labels = np.broadcast_to(
-                labels_for_lexsort, (ncols, len(labels_for_lexsort))
-            )
-        else:
-            shaped_labels = labels_for_lexsort
-
-        npy_out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
-
-        # Get an index of values sorted by values and then labels
-        order = (npy_vals, shaped_labels)
-        sort_arr = np.lexsort(order).astype(np.intp, copy=False)
-
-        func = partial(
-            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+        npy_out = groupby_quantile_ndim_compat(
+            qs=qs,
+            interpolation=interpolation,
+            ngroups=ngroups,
+            ids=ids,
+            labels_for_lexsort=labels_for_lexsort,
+            npy_vals=npy_vals,
+            mask=np.asarray(mask),
+            result_mask=None,
         )
-
-        if npy_vals.ndim == 1:
-            func(
-                npy_out[0],
-                values=npy_vals,
-                mask=mask,
-                sort_indexer=sort_arr,
-                result_mask=None,
-            )
-        else:
-            for i in range(ncols):
-                func(
-                    npy_out[i],
-                    values=npy_vals[i],
-                    mask=mask[i],
-                    sort_indexer=sort_arr[i],
-                )
-
-        if npy_vals.ndim == 1:
-            npy_out = npy_out.ravel("K")
-        else:
-            npy_out = npy_out.reshape(ncols, ngroups * nqs)
 
         if inference is not None:
             # Check for edge case

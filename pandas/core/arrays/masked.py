@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,7 +14,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    groupby as libgroupby,
     lib,
     missing as libmissing,
 )
@@ -79,7 +77,10 @@ from pandas.core.array_algos import (
     masked_accumulations,
     masked_reductions,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import (
+    groupby_quantile_ndim_compat,
+    quantile_with_mask,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -1388,6 +1389,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
 
+    @doc(ExtensionArray.groupby_quantile)
     def groupby_quantile(
         self,
         *,
@@ -1405,29 +1407,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
 
-        ncols = 1
-        shaped_labels = labels_for_lexsort
-
-        npy_out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
-
-        # Get an index of values sorted by values and then labels
-        order = (npy_vals, shaped_labels)
-        sort_arr = np.lexsort(order).astype(np.intp, copy=False)
-
-        func = partial(
-            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
-        )
-
-        func(
-            npy_out[0],
-            values=npy_vals,
+        npy_out = groupby_quantile_ndim_compat(
+            qs=qs,
+            interpolation=interpolation,
+            ngroups=ngroups,
+            ids=ids,
+            labels_for_lexsort=labels_for_lexsort,
+            npy_vals=npy_vals,
             mask=mask,
-            sort_indexer=sort_arr,
             result_mask=result_mask,
         )
-
-        npy_out = npy_out.ravel("K")
-        result_mask = result_mask.ravel("K")
+        result_mask = result_mask.reshape(ngroups * nqs)
 
         if interpolation in {"linear", "midpoint"} and not is_float_dtype(self.dtype):
             from pandas.core.arrays import FloatingArray

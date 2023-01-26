@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from functools import partial
+
 import numpy as np
 
+from pandas._libs import groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
     Scalar,
@@ -13,6 +16,94 @@ from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+
+def groupby_quantile_ndim_compat(
+    *,
+    qs: npt.NDArray[np.float64],
+    interpolation: str,
+    ngroups: int,
+    ids: npt.NDArray[np.intp],
+    labels_for_lexsort: npt.NDArray[np.intp],
+    npy_vals: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    result_mask: npt.NDArray[np.bool_] | None,
+) -> np.ndarray:
+    """
+    Compatibility layer to handle either 1D arrays or 2D ndarrays in
+    GroupBy.quantile. Located here to be available to
+    ExtensionArray.groupby_quantile for dispatching after casting to numpy.
+
+    Parameters
+    ----------
+    qs : np.ndarray[float64]
+        Values between 0 and 1 providing the quantile(s) to compute.
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        Method to use when the desired quantile falls between two points.
+    ngroups : int
+        The number of groupby groups.
+    ids : np.ndarray[intp]
+        Group labels.
+    labels_for_lexsort : np.ndarray[intp]
+        Group labels, but with -1s moved moved to the end to sort NAs last.
+    npy_vals : np.ndarray
+        The values for which we are computing quantiles.
+    mask : np.ndarray[bool]
+        Locations to treat as NA.
+    result_mask : np.ndarray[bool] or None
+        If present, set to True for locations that should be treated as missing
+        a result.  Modified in-place.
+
+    Returns
+    -------
+    np.ndarray
+    """
+    nqs = len(qs)
+
+    ncols = 1
+    if npy_vals.ndim == 2:
+        ncols = npy_vals.shape[0]
+        shaped_labels = np.broadcast_to(
+            labels_for_lexsort, (ncols, len(labels_for_lexsort))
+        )
+    else:
+        shaped_labels = labels_for_lexsort
+
+    npy_out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+
+    # Get an index of values sorted by values and then labels
+    order = (npy_vals, shaped_labels)
+    sort_arr = np.lexsort(order).astype(np.intp, copy=False)
+
+    func = partial(
+        libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+    )
+
+    if npy_vals.ndim == 1:
+        func(
+            npy_out[0],
+            values=npy_vals,
+            mask=mask,
+            sort_indexer=sort_arr,
+            result_mask=result_mask,
+        )
+    else:
+        # if we ever did get here with non-None result_mask, we'd pass result_mask[i]
+        assert result_mask is None
+        for i in range(ncols):
+            func(
+                npy_out[i],
+                values=npy_vals[i],
+                mask=mask[i],
+                sort_indexer=sort_arr[i],
+            )
+
+    if npy_vals.ndim == 1:
+        npy_out = npy_out.reshape(ngroups * nqs)
+    else:
+        npy_out = npy_out.reshape(ncols, ngroups * nqs)
+
+    return npy_out
 
 
 def quantile_compat(
