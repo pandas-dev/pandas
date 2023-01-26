@@ -895,6 +895,74 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    def sum(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("sum", args, kwargs)
+        return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
+
+    @doc(GroupBy.prod)
+    def prod(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("prod", args, kwargs)
+        return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
+
+    def min(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("min", args, kwargs)
+        return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
+
+    def max(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("max", args, kwargs)
+        return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
+
+    @doc(GroupBy.first)
+    def first(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("first", args, kwargs)
+        return self._downsample("first", numeric_only=numeric_only, min_count=min_count)
+
+    @doc(GroupBy.last)
+    def last(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("last", args, kwargs)
+        return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
+
+    @doc(GroupBy.median)
+    def median(self, numeric_only: bool = False, *args, **kwargs):
+        nv.validate_resampler_func("median", args, kwargs)
+        return self._downsample("median", numeric_only=numeric_only)
+
     def mean(
         self,
         numeric_only: bool = False,
@@ -984,6 +1052,35 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
+    @doc(GroupBy.sem)
+    def sem(
+        self,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("sem", args, kwargs)
+        return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
+
+    @doc(GroupBy.ohlc)
+    def ohlc(
+        self,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("ohlc", args, kwargs)
+        return self._downsample("ohlc")
+
+    @doc(SeriesGroupBy.nunique)
+    def nunique(
+        self,
+        *args,
+        **kwargs,
+    ):
+        nv.validate_resampler_func("nunique", args, kwargs)
+        return self._downsample("nunique")
+
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
@@ -1045,87 +1142,6 @@ class Resampler(BaseGroupBy, PandasObject):
             and the values are its quantiles.
         """
         return self._downsample("quantile", q=q, **kwargs)
-
-
-def _add_downsample_kernel(
-    name: str, args: tuple[str, ...], docs_class: type = GroupBy
-) -> None:
-    """
-    Add a kernel to Resampler.
-
-    Arguments
-    ---------
-    name : str
-        Name of the kernel.
-    args : tuple
-        Arguments of the method.
-    docs_class : type
-        Class to get kernel docstring from.
-    """
-    assert args in (
-        ("numeric_only", "min_count"),
-        ("numeric_only",),
-        ("ddof", "numeric_only"),
-        (),
-    )
-
-    # Explicitly provide args rather than args/kwargs for API docs
-    if args == ("numeric_only", "min_count"):
-
-        def f(
-            self,
-            numeric_only: bool = False,
-            min_count: int = 0,
-            *args,
-            **kwargs,
-        ):
-            nv.validate_resampler_func(name, args, kwargs)
-            return self._downsample(
-                name, numeric_only=numeric_only, min_count=min_count
-            )
-
-    elif args == ("numeric_only",):
-        # error: All conditional function variants must have identical signatures
-        def f(self, numeric_only: bool = False, *args, **kwargs):  # type: ignore[misc]
-            nv.validate_resampler_func(name, args, kwargs)
-            return self._downsample(name, numeric_only=numeric_only)
-
-    elif args == ("ddof", "numeric_only"):
-        # error: All conditional function variants must have identical signatures
-        def f(  # type: ignore[misc]
-            self,
-            ddof: int = 1,
-            numeric_only: bool = False,
-            *args,
-            **kwargs,
-        ):
-            nv.validate_resampler_func(name, args, kwargs)
-            return self._downsample(name, ddof=ddof, numeric_only=numeric_only)
-
-    else:
-        # error: All conditional function variants must have identical signatures
-        def f(  # type: ignore[misc]
-            self,
-            *args,
-            **kwargs,
-        ):
-            nv.validate_resampler_func(name, args, kwargs)
-            return self._downsample(name)
-
-    f.__doc__ = getattr(docs_class, name).__doc__
-    setattr(Resampler, name, f)
-
-
-for _method in ["sum", "prod", "min", "max", "first", "last"]:
-    _add_downsample_kernel(_method, ("numeric_only", "min_count"))
-for _method in ["median"]:
-    _add_downsample_kernel(_method, ("numeric_only",))
-for _method in ["sem"]:
-    _add_downsample_kernel(_method, ("ddof", "numeric_only"))
-for _method in ["ohlc"]:
-    _add_downsample_kernel(_method, ())
-for _method in ["nunique"]:
-    _add_downsample_kernel(_method, (), SeriesGroupBy)
 
 
 class _GroupByMixin(PandasObject):
@@ -1202,7 +1218,7 @@ class _GroupByMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            if isinstance(key, list) and self.key not in key:
+            if isinstance(key, list) and self.key not in key and self.key is not None:
                 key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
