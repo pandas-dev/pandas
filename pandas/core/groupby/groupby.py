@@ -2004,8 +2004,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def median(self, numeric_only: bool = False):
         """
         Compute median of groups, excluding missing values.
@@ -2315,8 +2313,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
         Compute standard error of the mean of groups, excluding missing values.
@@ -2471,7 +2467,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @Substitution(name="groupby")
     def first(self, numeric_only: bool = False, min_count: int = -1):
         """
         Compute the first non-null entry of each column.
@@ -2542,7 +2537,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
     def last(self, numeric_only: bool = False, min_count: int = -1):
         """
         Compute the last non-null entry of each column.
@@ -2602,8 +2596,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
         Compute open, high, low and close values of a group, excluding missing values.
