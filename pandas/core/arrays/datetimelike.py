@@ -121,6 +121,7 @@ from pandas.core.algorithms import (
     isin,
     unique1d,
 )
+from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
@@ -1292,25 +1293,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return res_values
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
+        if name not in {"cummin", "cummax"}:
+            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
 
-        if is_period_dtype(self.dtype):
-            data = self
-        else:
-            # Incompatible types in assignment (expression has type
-            # "ndarray[Any, Any]", variable has type "DatetimeLikeArrayMixin"
-            data = self._ndarray.copy()  # type: ignore[assignment]
+        op = getattr(datetimelike_accumulations, name)
+        result = op(self.copy(), skipna=skipna, **kwargs)
 
-        if name in {"cummin", "cummax"}:
-            func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
-            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
-
-            # error: Unexpected keyword argument "freq" for
-            # "_simple_new" of "NDArrayBacked"  [call-arg]
-            return type(self)._simple_new(
-                result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
-            )
-
-        raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+        return type(self)._simple_new(
+            result, freq=None, dtype=self.dtype  # type: ignore[call-arg]
+        )
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
@@ -1906,7 +1897,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         try:
             on_freq = cls._generate_range(
-                start=index[0], end=None, periods=len(index), freq=freq, **kwargs
+                start=index[0],
+                end=None,
+                periods=len(index),
+                freq=freq,
+                unit=index.unit,
+                **kwargs,
             )
             if not np.array_equal(index.asi8, on_freq.asi8):
                 raise ValueError

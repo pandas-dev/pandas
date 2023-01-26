@@ -135,9 +135,7 @@ def test_series_groupby_value_counts_with_grouper(utc):
         }
     ).drop([3])
 
-    df["Datetime"] = to_datetime(
-        df["Timestamp"].apply(lambda t: str(t)), utc=utc, unit="s"
-    )
+    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s")
     dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
 
     # have to sort on index because of unstable sort on values xref GH9212
@@ -183,7 +181,7 @@ def test_series_groupby_value_counts_on_categorical():
         data=[1, 0],
         index=MultiIndex.from_arrays(
             [
-                [0, 0],
+                np.array([0, 0]),
                 CategoricalIndex(
                     ["a", "b"], categories=["a", "b"], ordered=False, dtype="category"
                 ),
@@ -880,7 +878,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
-            "level_0": [4, 4, 5],
+            "level_0": np.array([4, 4, 5], dtype=np.int_),
             "A": [1, 1, 2],
             "level_2": [8, 8, 7],
             "B": [1, 3, 2],
@@ -903,7 +901,8 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
     # Test for duplicate input column labels and generated duplicate labels
     df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
     expected_data = [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)]
-    result = df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
+    keys = ["a", np.array([0, 1], dtype=np.int64), "d"]
+    result = df.groupby(keys, as_index=as_index).value_counts()
     if as_index:
         expected = Series(
             data=(1, 1),
@@ -942,7 +941,7 @@ def test_result_label_duplicates(normalize, expected_label):
 def test_ambiguous_grouping():
     # Test that groupby is not confused by groupings length equal to row count
     df = DataFrame({"a": [1, 1]})
-    gb = df.groupby([1, 1])
+    gb = df.groupby(np.array([1, 1], dtype=np.int64))
     result = gb.value_counts()
     expected = Series([2], index=MultiIndex.from_tuples([[1, 1]], names=[None, "a"]))
     tm.assert_series_equal(result, expected)
@@ -1009,9 +1008,7 @@ def test_value_counts_time_grouper(utc):
         }
     ).drop([3])
 
-    df["Datetime"] = to_datetime(
-        df["Timestamp"].apply(lambda t: str(t)), utc=utc, unit="s"
-    )
+    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s")
     gb = df.groupby(Grouper(freq="1D", key="Datetime"))
     result = gb.value_counts()
     dates = to_datetime(
