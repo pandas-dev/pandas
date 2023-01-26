@@ -2357,9 +2357,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                     use_nullable_dtypes=True,
                     chunksize=3,
                 )
-            expected = self.nullable_expected(string_storage, dtype_backend)
-            for result in iterator:
-                tm.assert_frame_equal(result, expected)
+                expected = self.nullable_expected(string_storage, dtype_backend)
+                for result in iterator:
+                    tm.assert_frame_equal(result, expected)
 
     def nullable_data(self) -> DataFrame:
         return DataFrame(
