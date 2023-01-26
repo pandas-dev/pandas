@@ -108,6 +108,9 @@ JSOBJ Object_npyNewArray(void *prv, void *_decoder) {
     if (decoder->curdim <= 0) {
         // start of array - initialise the context buffer
         npyarr = decoder->npyarr = PyObject_Malloc(sizeof(NpyArrContext));
+        if (npyarr == NULL) {
+            return NULL;
+        }
         decoder->npyarr_addr = npyarr;
 
         if (!npyarr) {
@@ -119,6 +122,9 @@ JSOBJ Object_npyNewArray(void *prv, void *_decoder) {
         npyarr->labels[0] = npyarr->labels[1] = NULL;
 
         npyarr->shape.ptr = PyObject_Malloc(sizeof(npy_intp) * NPY_MAXDIMS);
+        if (npyarr->shape.ptr == NULL) {
+            return NULL;
+        }
         npyarr->shape.len = 1;
         npyarr->ret = NULL;
 

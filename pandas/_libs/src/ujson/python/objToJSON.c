@@ -149,6 +149,9 @@ static TypeContext *createTypeContext(void) {
     TypeContext *pc;
 
     pc = PyObject_Malloc(sizeof(TypeContext));
+    if (pc == NULL) {
+        return NULL;
+    }
     if (!pc) {
         PyErr_NoMemory();
         return NULL;
@@ -183,11 +186,17 @@ static PyObject *get_values(PyObject *obj) {
         //  without going through and object array of Timestamps.
         if (PyObject_HasAttrString(obj, "tz")) {
             PyObject *tz = PyObject_GetAttrString(obj, "tz");
+            if (tz == NULL) {
+                return NULL;
+            }
             if (tz != Py_None) {
                 // Go through object array if we have dt64tz, since tz info will
                 // be lost if values is used directly.
                 Py_DECREF(tz);
                 values = PyObject_CallMethod(obj, "__array__", NULL);
+                if (values == NULL) {
+                    return NULL;
+                }
                 return values;
             }
             Py_DECREF(tz);
@@ -211,10 +220,19 @@ static PyObject *get_values(PyObject *obj) {
 
     if (values == NULL) {
         PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
+        if (typeRepr == NULL) {
+            return NULL;
+        }
         PyObject *repr;
         if (PyObject_HasAttrString(obj, "dtype")) {
             PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
+            if (dtype == NULL) {
+                return NULL;
+            }
             repr = PyObject_Repr(dtype);
+            if (repr == NULL) {
+                return NULL;
+            }
             Py_DECREF(dtype);
         } else {
             repr = PyUnicode_FromString("<unknown dtype>");
@@ -233,12 +251,18 @@ static PyObject *get_values(PyObject *obj) {
 
 static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
     PyObject *tmp = PyObject_GetAttrString(obj, attr);
+    if (tmp == NULL) {
+        return NULL;
+    }
     PyObject *ret;
 
     if (tmp == 0) {
         return 0;
     }
     ret = PyObject_GetAttrString(tmp, subAttr);
+    if (ret == NULL) {
+        return ret;
+    }
     Py_DECREF(tmp);
 
     return ret;

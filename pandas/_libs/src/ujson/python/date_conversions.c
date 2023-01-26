@@ -90,6 +90,10 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
     *len = (size_t)get_datetime_iso_8601_strlen(0, base);
     char *result = PyObject_Malloc(*len);
+    if (result == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
     // Check to see if PyDateTime has a timezone.
     // Don't convert to UTC if it doesn't.
     int is_tz_aware = 0;

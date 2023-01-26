@@ -66,6 +66,9 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
     args = Py_BuildValue("(i)", nbytes);
 
     func = PyObject_GetAttrString(src->obj, "read");
+    if (func == NULL) {
+        return NULL;
+    }
 
     /* TODO: does this release the GIL? */
     result = PyObject_CallObject(func, args);
