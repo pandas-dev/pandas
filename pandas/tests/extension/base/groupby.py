@@ -137,6 +137,7 @@ class BaseGroupbyTests(BaseExtensionTests):
             or is_string_dtype(dtype)
             or is_period_dtype(dtype)
             or is_object_dtype(dtype)
+            or dtype.kind == "m"  # in particular duration[*][pyarrow]
         ):
             expected = pd.Index(["B", "C"])
             result = df.groupby("A").sum().columns
