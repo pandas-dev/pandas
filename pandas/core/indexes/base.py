@@ -3983,6 +3983,13 @@ class Index(IndexOpsMixin, PandasObject):
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
 
+        # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
+        #  to simplify this.
+        if is_float_dtype(self.dtype):
+            # We always treat __getitem__ slicing as label-based
+            # translate to locations
+            return self.slice_indexer(start, stop, step)
+
         # figure out if this is a positional indexer
         def is_int(v):
             return v is None or is_integer(v)
