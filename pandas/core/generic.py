@@ -2349,8 +2349,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
-            precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
-            microsecond, and nanosecond respectively.
+            precision.  One of 'D', 's', 'ms', 'us', 'ns' for days,
+            second, millisecond, microsecond, and nanosecond respectively.
         default_handler : callable, default None
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is

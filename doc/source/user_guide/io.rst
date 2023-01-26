@@ -1864,7 +1864,7 @@ with optional parameters:
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 * ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
 * ``force_ascii`` : force encoded string to be ASCII, default True.
-* ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
+* ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 'D', 's', 'ms', 'us' or 'ns' for days, seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
 * ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
@@ -1962,6 +1962,13 @@ Writing in ISO date format, with microseconds:
 .. ipython:: python
 
    json = dfd.to_json(date_format="iso", date_unit="us")
+   json
+
+Writing in ISO date format, with just dates:
+
+.. ipython:: python
+
+   json = dfd.to_json(date_format="iso", date_unit="D")
    json
 
 Epoch timestamps, in seconds:
@@ -2064,8 +2071,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
-  then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
-  seconds, milliseconds, microseconds or nanoseconds respectively.
+  then pass one of 'D', 's', 'ms', 'us' or 'ns' to force timestamp precision to
+  days, seconds, milliseconds, microseconds or nanoseconds respectively.
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.

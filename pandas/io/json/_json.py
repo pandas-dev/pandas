@@ -596,8 +596,10 @@ def read_json(
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
         is to try and detect the correct precision, but if this is not desired
-        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
-        milliseconds, microseconds or nanoseconds respectively.
+        then pass one of 'D', 's', 'ms', 'us' or 'ns' to force parsing only days,
+        seconds, milliseconds, microseconds or nanoseconds respectively.
+        Time unit (from 's' to 'ns') are automatically inferred from the input,
+        while the 'D' unit is not inferred and must be specified explicitly.
 
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.

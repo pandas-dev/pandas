@@ -2086,7 +2086,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
             pyEncoder.datetimeUnit = NPY_FR_ns;
         } else if (strcmp(sdateFormat, "D") == 0) {
             pyEncoder.datetimeUnit = NPY_FR_D;
-        }else {
+        } else {
             PyErr_Format(PyExc_ValueError,
                          "Invalid value '%s' for option 'date_unit'",
                          sdateFormat);
