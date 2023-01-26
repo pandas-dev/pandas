@@ -1642,7 +1642,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Float64Index([1.0, nan, 2.0], dtype='float64')
+        NumericIndex([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2164,7 +2164,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        dropped : MultiIndex
+        MultiIndex
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
