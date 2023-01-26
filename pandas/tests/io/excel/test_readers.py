@@ -1808,4 +1808,3 @@ class TestExcelFileRead:
                     pd.ExcelFile(file, engine=engine)
                 except errors:
                     pass
-ф
