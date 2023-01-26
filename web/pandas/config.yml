@@ -168,6 +168,11 @@ sponsors:
     logo: /static/img/partners/nvidia.svg
     kind: partner
     description: "Matthew Roeschke"
+  - name: "Intel"
+    url: https://www.intel.com/
+    logo: /static/img/partners/intel.svg
+    kind: partner
+    description: "Brock Mendel"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: /static/img/partners/tidelift.svg
