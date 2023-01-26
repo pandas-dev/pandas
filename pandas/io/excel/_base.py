@@ -736,7 +736,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
         output = {}
 
+        last_sheetname = None
         for asheetname in sheets:
+            last_sheetname = asheetname
             if verbose:
                 print(f"Reading sheet {asheetname}")
 
@@ -888,10 +890,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
                 raise err
 
+        if last_sheetname is None:
+            raise ValueError("Sheet name is an empty list")
+
         if ret_dict:
             return output
         else:
-            return output[asheetname]
+            return output[last_sheetname]
 
 
 @doc(storage_options=_shared_docs["storage_options"])
