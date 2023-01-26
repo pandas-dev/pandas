@@ -147,7 +147,7 @@ test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asy
 test-command = "python {project}/ci/test_wheels.py"
 
 [tool.cibuildwheel.macos]
-archs = "x86_64 universal2"
+archs = "x86_64 arm64"
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.windows]
