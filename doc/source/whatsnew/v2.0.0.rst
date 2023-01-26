@@ -630,6 +630,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
+- Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
 - :meth:`Index.is_boolean` has been deprecated. Use :func:`pandas.api.types.is_bool_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
@@ -1023,7 +1024,7 @@ Conversion
 
 Strings
 ^^^^^^^
-- Bug in :func:`pandas.api.dtypes.is_string_dtype` that would not return ``True`` for :class:`StringDtype` (:issue:`15585`)
+- Bug in :func:`pandas.api.dtypes.is_string_dtype` that would not return ``True`` for :class:`StringDtype` or :class:`ArrowDtype` with ``pyarrow.string()`` (:issue:`15585`)
 - Bug in converting string dtypes to "datetime64[ns]" or "timedelta64[ns]" incorrectly raising ``TypeError`` (:issue:`36153`)
 -
 
