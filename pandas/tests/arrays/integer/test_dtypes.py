@@ -62,8 +62,7 @@ def test_astype_nansafe():
 
 @pytest.mark.parametrize("dropna", [True, False])
 def test_construct_index(all_data, dropna):
-    # ensure that we do not coerce to Float64Index, rather
-    # keep as Index
+    # ensure that we do not coerce to different Index dtype or non-index
 
     all_data = all_data[:10]
     if dropna:

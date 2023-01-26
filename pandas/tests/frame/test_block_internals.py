@@ -259,7 +259,7 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "^Unknown string format: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
@@ -340,7 +340,11 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            Y["g"]["c"] = np.NaN
+            if using_copy_on_write:
+                with tm.raises_chained_assignment_error():
+                    Y["g"]["c"] = np.NaN
+            else:
+                Y["g"]["c"] = np.NaN
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa
