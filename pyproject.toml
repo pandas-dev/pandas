@@ -288,7 +288,6 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "undefined-loop-variable",
   "unexpected-keyword-arg",
   "ungrouped-imports",
   "unsubscriptable-object",

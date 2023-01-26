@@ -17,7 +17,7 @@ tracked on our [issue tracker](https://github.com/pandas-dev/pandas/issues).
 
 The roadmap is defined as a set of major enhancement proposals named PDEPs.
 For more information about PDEPs, and how to submit one, please refer to
-[PEDP-1](/pdeps/0001-purpose-and-guidelines.html).
+[PEDP-1]({{ base_url }}pdeps/0001-purpose-and-guidelines.html).
 
 ## PDEPs
 
@@ -27,7 +27,7 @@ For more information about PDEPs, and how to submit one, please refer to
 
 <ul>
 {% for pdep in pdeps[pdep_type] %}
-    <li><a href="{{ pdep.url }}">{{ pdep.title }}</a></li>
+    <li><a href="{% if not pdep.url.startswith("http") %}{{ base_url }}{% endif %}{{ pdep.url }}">{{ pdep.title }}</a></li>
 {% else %}
     <li>There are currently no PDEPs with this status</li>
 {% endfor %}
