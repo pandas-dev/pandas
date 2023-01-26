@@ -372,16 +372,27 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseAccumulateTests(base.BaseAccumulateTests):
-    def check_accumulate(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna).astype("Float64")
-        expected = getattr(s.astype("Float64"), op_name)(skipna=skipna)
+    def check_accumulate(self, ser, op_name, skipna):
+        result = getattr(ser, op_name)(skipna=skipna)
+
+        if ser.dtype.kind == "m":
+            # Just check that we match the integer behavior.
+            ser = ser.astype("int64[pyarrow]")
+            result = result.astype("int64[pyarrow]")
+
+        result = result.astype("Float64")
+        expected = getattr(ser.astype("Float64"), op_name)(skipna=skipna)
         self.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         pa_type = data.dtype.pyarrow_dtype
         if (
-            (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
+            (
+                pa.types.is_integer(pa_type)
+                or pa.types.is_floating(pa_type)
+                or pa.types.is_duration(pa_type)
+            )
             and all_numeric_accumulations == "cumsum"
             and not pa_version_under9p0
         ):
@@ -423,9 +434,7 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
                     raises=NotImplementedError,
                 )
             )
-        elif all_numeric_accumulations == "cumsum" and (
-            pa.types.is_duration(pa_type) or pa.types.is_boolean(pa_type)
-        ):
+        elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -566,10 +575,24 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if not pa.types.is_boolean(pa_dtype):
+        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+            # We *might* want to make this behave like the non-pyarrow cases,
+            #  but have not yet decided.
             request.node.add_marker(xfail_mark)
+
         op_name = all_boolean_reductions
         ser = pd.Series(data)
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+
+            with pytest.raises(TypeError, match="does not support reduction"):
+                getattr(ser, op_name)(skipna=skipna)
+
+            return
+
         result = getattr(ser, op_name)(skipna=skipna)
         assert result is (op_name == "any")
 
@@ -949,11 +972,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_factorize(data_for_grouping)
 
-    @pytest.mark.xfail(
-        reason="result dtype pyarrow[bool] better than expected dtype object"
-    )
-    def test_combine_le(self, data_repeated):
-        super().test_combine_le(data_repeated)
+    _combine_le_expected_dtype = "bool[pyarrow]"
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype

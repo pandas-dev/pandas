@@ -200,7 +200,8 @@ class TestFeather:
         tm.assert_frame_equal(expected, res)
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-    def test_read_json_nullable(self, string_storage, dtype_backend):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_read_json_nullable(self, string_storage, dtype_backend, option):
         # GH#50765
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
@@ -228,7 +229,11 @@ class TestFeather:
             to_feather(df, path)
             with pd.option_context("mode.string_storage", string_storage):
                 with pd.option_context("mode.dtype_backend", dtype_backend):
-                    result = read_feather(path, use_nullable_dtypes=True)
+                    if option:
+                        with pd.option_context("mode.nullable_dtypes", option):
+                            result = read_feather(path)
+                    else:
+                        result = read_feather(path, use_nullable_dtypes=True)
 
         expected = pd.DataFrame(
             {
