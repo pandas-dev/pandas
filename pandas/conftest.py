@@ -92,10 +92,6 @@ if compat.PY39:
     except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
         zoneinfo = None
 
-# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
-suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
-    "ignore:Promotion of numbers and bools:FutureWarning"
-)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -171,7 +167,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-        item.add_marker(suppress_npdev_promotion_warning)
 
         for (mark, kwd, skip_if_found, arg_name) in marks:
             if kwd in item.keywords:
@@ -525,7 +520,7 @@ def multiindex_year_month_day_dataframe_random_data():
     """
     tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
-    # use Int64Index, to make sure things work
+    # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd

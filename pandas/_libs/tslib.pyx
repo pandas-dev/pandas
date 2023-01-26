@@ -1,3 +1,7 @@
+import warnings
+
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 
 from datetime import timezone
@@ -35,7 +39,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
-    pydatetime_to_dt64,
     string_to_dts,
 )
 from pandas._libs.tslibs.strptime cimport parse_today_now
@@ -46,12 +49,11 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
-    convert_datetime_to_tsobject,
+    convert_str_to_tsobject,
     convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
@@ -262,14 +264,10 @@ def array_with_unit_to_datetime(
         bint is_coerce = errors=="coerce"
         bint is_raise = errors=="raise"
         ndarray[int64_t] iresult
-        ndarray[object] oresult
-        object tz = None
-        bint is_ym
+        tzinfo tz = None
         float fval
 
     assert is_ignore or is_coerce or is_raise
-
-    is_ym = unit in "YM"
 
     if unit == "ns":
         result, tz = array_to_datetime(
@@ -283,10 +281,10 @@ def array_with_unit_to_datetime(
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
 
-    try:
-        for i in range(n):
-            val = values[i]
+    for i in range(n):
+        val = values[i]
 
+        try:
             if checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
 
@@ -295,28 +293,7 @@ def array_with_unit_to_datetime(
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
-                    if is_ym and is_float_object(val) and not val.is_integer():
-                        # Analogous to GH#47266 for Timestamp
-                        if is_raise:
-                            raise ValueError(
-                                f"Conversion of non-round float with unit={unit} "
-                                "is ambiguous"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
-
-                    try:
-                        iresult[i] = cast_from_unit(val, unit)
-                    except OverflowError:
-                        if is_raise:
-                            raise OutOfBoundsDatetime(
-                                f"cannot convert input {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
+                    iresult[i] = cast_from_unit(val, unit)
 
             elif isinstance(val, str):
                 if len(val) == 0 or val in nat_strings:
@@ -327,65 +304,50 @@ def array_with_unit_to_datetime(
                     try:
                         fval = float(val)
                     except ValueError:
-                        if is_raise:
-                            raise ValueError(
-                                f"non convertible value {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
+                        raise ValueError(
+                            f"non convertible value {val} with the unit '{unit}'"
+                        )
+                    warnings.warn(
+                        "The behavior of 'to_datetime' with 'unit' when parsing "
+                        "strings is deprecated. In a future version, strings will "
+                        "be parsed as datetime strings, matching the behavior "
+                        "without a 'unit'. To retain the old behavior, explicitly "
+                        "cast ints or floats to numeric type before calling "
+                        "to_datetime.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
-                    if is_ym and not fval.is_integer():
-                        # Analogous to GH#47266 for Timestamp
-                        if is_raise:
-                            raise ValueError(
-                                f"Conversion of non-round float with unit={unit} "
-                                "is ambiguous"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                        continue
-
-                    try:
-                        iresult[i] = cast_from_unit(fval, unit)
-                    except ValueError:
-                        if is_raise:
-                            raise ValueError(
-                                f"non convertible value {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
-                    except OverflowError:
-                        if is_raise:
-                            raise OutOfBoundsDatetime(
-                                f"cannot convert input {val} with the unit '{unit}'"
-                            )
-                        elif is_ignore:
-                            raise AssertionError
-                        iresult[i] = NPY_NAT
+                    iresult[i] = cast_from_unit(fval, unit)
 
             else:
+                # TODO: makes more sense as TypeError, but that would be an
+                #  API change.
+                raise ValueError(
+                    f"unit='{unit}' not valid with non-numerical val='{val}'"
+                )
 
-                if is_raise:
-                    raise ValueError(
-                        f"unit='{unit}' not valid with non-numerical val='{val}'"
-                    )
-                if is_ignore:
-                    raise AssertionError
-
+        except (ValueError, OutOfBoundsDatetime, TypeError) as err:
+            if is_raise:
+                err.args = (f"{err}, at position {i}",)
+                raise
+            elif is_ignore:
+                # we have hit an exception
+                # and are in ignore mode
+                # redo as object
+                return _array_with_unit_to_datetime_object_fallback(values, unit)
+            else:
+                # is_coerce
                 iresult[i] = NPY_NAT
 
-        return result, tz
+    return result, tz
 
-    except AssertionError:
-        pass
 
-    # we have hit an exception
-    # and are in ignore mode
-    # redo as object
+cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] oresult
+        tzinfo tz = None
 
     # TODO: fix subtle differences between this and no-unit code
     oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
@@ -401,7 +363,7 @@ def array_with_unit_to_datetime(
             else:
                 try:
                     oresult[i] = Timestamp(val, unit=unit)
-                except OverflowError:
+                except OutOfBoundsDatetime:
                     oresult[i] = val
 
         elif isinstance(val, str):
@@ -482,7 +444,6 @@ cpdef array_to_datetime(
         object val, tz
         ndarray[int64_t] iresult
         npy_datetimestruct dts
-        NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
@@ -490,12 +451,8 @@ cpdef array_to_datetime(
         bint is_coerce = errors=="coerce"
         bint is_same_offsets
         _TSObject _ts
-        int64_t value
-        int out_local = 0, out_tzoffset = 0
         float tz_offset
         set out_tzoffset_vals = set()
-        bint string_to_dts_failed
-        datetime py_dt
         tzinfo tz_out = None
         bint found_tz = False, found_naive = False
         cnp.broadcast mi
@@ -541,15 +498,9 @@ cpdef array_to_datetime(
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
-                elif is_raise or is_ignore:
-                    iresult[i] = val
                 else:
-                    # coerce
                     # we now need to parse this as if unit='ns'
-                    try:
-                        iresult[i] = cast_from_unit(val, "ns")
-                    except OverflowError:
-                        iresult[i] = NPY_NAT
+                    iresult[i] = cast_from_unit(val, "ns")
 
             elif isinstance(val, str):
                 # string
@@ -557,61 +508,34 @@ cpdef array_to_datetime(
                     # GH#32264 np.str_ object
                     val = str(val)
 
-                if len(val) == 0 or val in nat_strings:
-                    iresult[i] = NPY_NAT
+                if parse_today_now(val, &iresult[i], utc):
+                    # We can't _quite_ dispatch this to convert_str_to_tsobject
+                    #  bc there isn't a nice way to pass "utc"
                     cnp.PyArray_MultiIter_NEXT(mi)
                     continue
 
-                string_to_dts_failed = string_to_dts(
-                    val, &dts, &out_bestunit, &out_local,
-                    &out_tzoffset, False, None, False
+                _ts = convert_str_to_tsobject(
+                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
                 )
-                if string_to_dts_failed:
-                    # An error at this point is a _parsing_ error
-                    # specifically _not_ OutOfBoundsDatetime
-                    if parse_today_now(val, &iresult[i], utc):
-                        cnp.PyArray_MultiIter_NEXT(mi)
-                        continue
+                _ts.ensure_reso(NPY_FR_ns, val)
 
-                    py_dt = parse_datetime_string(val,
-                                                  dayfirst=dayfirst,
-                                                  yearfirst=yearfirst)
-                    # If the dateutil parser returned tzinfo, capture it
-                    # to check if all arguments have the same tzinfo
-                    tz = py_dt.utcoffset()
+                iresult[i] = _ts.value
 
-                    if tz is not None:
-                        seen_datetime_offset = True
-                        # dateutil timezone objects cannot be hashed, so
-                        # store the UTC offsets in seconds instead
-                        out_tzoffset_vals.add(tz.total_seconds())
-                    else:
-                        # Add a marker for naive string, to track if we are
-                        # parsing mixed naive and aware strings
-                        out_tzoffset_vals.add("naive")
-
-                    _ts = convert_datetime_to_tsobject(py_dt, None)
-                    iresult[i] = _ts.value
+                tz = _ts.tzinfo
+                if tz is not None:
+                    # dateutil timezone objects cannot be hashed, so
+                    # store the UTC offsets in seconds instead
+                    nsecs = tz.utcoffset(None).total_seconds()
+                    out_tzoffset_vals.add(nsecs)
+                    # need to set seen_datetime_offset *after* the
+                    #  potentially-raising timezone(timedelta(...)) call,
+                    #  otherwise we can go down the is_same_offsets path
+                    #  bc len(out_tzoffset_vals) == 0
+                    seen_datetime_offset = True
                 else:
-                    # No error reported by string_to_dts, pick back up
-                    # where we left off
-                    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-                    if out_local == 1:
-                        seen_datetime_offset = True
-                        # Store the out_tzoffset in seconds
-                        # since we store the total_seconds of
-                        # dateutil.tz.tzoffset objects
-                        out_tzoffset_vals.add(out_tzoffset * 60.)
-                        tz = timezone(timedelta(minutes=out_tzoffset))
-                        value = tz_localize_to_utc_single(value, tz)
-                        out_local = 0
-                        out_tzoffset = 0
-                    else:
-                        # Add a marker for naive string, to track if we are
-                        # parsing mixed naive and aware strings
-                        out_tzoffset_vals.add("naive")
-                    iresult[i] = value
-                    check_dts_bounds(&dts)
+                    # Add a marker for naive string, to track if we are
+                    # parsing mixed naive and aware strings
+                    out_tzoffset_vals.add("naive")
 
             else:
                 raise TypeError(f"{type(val)} is not convertible to datetime")
@@ -743,6 +667,7 @@ cdef _array_to_datetime_object(
         ndarray[object] oresult
         npy_datetimestruct dts
         cnp.broadcast mi
+        _TSObject tsobj
 
     assert is_raise or is_ignore or is_coerce
 
@@ -770,11 +695,20 @@ cdef _array_to_datetime_object(
                 oresult[i] = "NaT"
                 cnp.PyArray_MultiIter_NEXT(mi)
                 continue
+
             try:
-                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                   yearfirst=yearfirst)
-                pydatetime_to_dt64(oresult[i], &dts)
-                check_dts_bounds(&dts)
+                tsobj = convert_str_to_tsobject(
+                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                )
+                tsobj.ensure_reso(NPY_FR_ns, val)
+
+                dts = tsobj.dts
+                oresult[i] = datetime(
+                    dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
+                    tzinfo=tsobj.tzinfo,
+                    fold=tsobj.fold,
+                )
+
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:

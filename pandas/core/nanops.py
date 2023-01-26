@@ -746,25 +746,30 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     2.0
     """
 
-    def get_median(x):
-        mask = notna(x)
-        if not skipna and not mask.all():
+    def get_median(x, _mask=None):
+        if _mask is None:
+            _mask = notna(x)
+        else:
+            _mask = ~_mask
+        if not skipna and not _mask.all():
             return np.nan
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings("ignore", "All-NaN slice encountered")
-            res = np.nanmedian(x[mask])
+            warnings.filterwarnings(
+                "ignore", "All-NaN slice encountered", RuntimeWarning
+            )
+            res = np.nanmedian(x[_mask])
         return res
 
-    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
+    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask, fill_value=0)
     if not is_float_dtype(values.dtype):
         try:
             values = values.astype("f8")
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
             raise TypeError(str(err)) from err
-        if mask is not None:
-            values[mask] = np.nan
+    if mask is not None:
+        values[mask] = np.nan
 
     notempty = values.size
 
@@ -780,7 +785,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                 # fastpath for the skipna case
                 with warnings.catch_warnings():
                     # Suppress RuntimeWarning about All-NaN slice
-                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    warnings.filterwarnings(
+                        "ignore", "All-NaN slice encountered", RuntimeWarning
+                    )
                     res = np.nanmedian(values, axis)
 
         else:
@@ -792,7 +799,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     else:
         # otherwise return a scalar value
-        res = get_median(values) if notempty else np.nan
+        res = get_median(values, mask) if notempty else np.nan
     return _wrap_results(res, dtype)
 
 
@@ -1036,8 +1043,11 @@ def nansem(
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
 
+    if not skipna and mask is not None and mask.any():
+        return np.nan
+
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
+    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)
 
@@ -1218,6 +1228,8 @@ def nanskew(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
@@ -1306,6 +1318,8 @@ def nankurt(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
@@ -1711,53 +1725,11 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         np.minimum.accumulate: (np.inf, np.nan),
     }[accum_func]
 
+    # This should go through ea interface
+    assert values.dtype.kind not in ["m", "M"]
+
     # We will be applying this function to block values
-    if values.dtype.kind in ["m", "M"]:
-        # GH#30460, GH#29058
-        # numpy 1.18 started sorting NaTs at the end instead of beginning,
-        #  so we need to work around to maintain backwards-consistency.
-        orig_dtype = values.dtype
-
-        # We need to define mask before masking NaTs
-        mask = isna(values)
-
-        y = values.view("i8")
-        # Note: the accum_func comparison fails as an "is" comparison
-        changed = accum_func == np.minimum.accumulate
-
-        try:
-            if changed:
-                y[mask] = lib.i8max
-
-            result = accum_func(y, axis=0)
-        finally:
-            if changed:
-                # restore NaT elements
-                y[mask] = iNaT
-
-        if skipna:
-            result[mask] = iNaT
-        elif accum_func == np.minimum.accumulate:
-            # Restore NaTs that we masked previously
-            nz = (~np.asarray(mask)).nonzero()[0]
-            if len(nz):
-                # everything up to the first non-na entry stays NaT
-                result[: nz[0]] = iNaT
-
-        if isinstance(values.dtype, np.dtype):
-            result = result.view(orig_dtype)
-        else:
-            # DatetimeArray/TimedeltaArray
-            # TODO: have this case go through a DTA method?
-            # For DatetimeTZDtype, view result as M8[ns]
-            npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
-            # Item "type" of "Union[Type[ExtensionArray], Type[ndarray[Any, Any]]]"
-            # has no attribute "_simple_new"
-            result = type(values)._simple_new(  # type: ignore[union-attr]
-                result.view(npdtype), dtype=orig_dtype
-            )
-
-    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+    if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
         mask = isna(vals)
         vals[mask] = mask_a

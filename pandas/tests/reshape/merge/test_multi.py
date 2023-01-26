@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     Timestamp,
 )
@@ -118,7 +119,7 @@ class TestMergeMulti:
 
             out = merge(left, right.reset_index(), on=icols, sort=sort, how="left")
 
-            res.index = np.arange(len(res))
+            res.index = RangeIndex(len(res))
             tm.assert_frame_equal(out, res)
 
         lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
@@ -371,7 +372,7 @@ class TestMergeMulti:
 
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how="left", on="tag")
-        expected.index = np.arange(len(expected))
+        expected.index = RangeIndex(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_left_merge_na_buglet(self):
@@ -442,14 +443,13 @@ class TestMergeMulti:
         if klass is not None:
             on_vector = klass(on_vector)
 
-        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
+        exp_years = np.array([2016, 2017, 2018], dtype=np.int32)
+        expected = DataFrame({"a": [1, 2, 3], "key_1": exp_years})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
-        )
+        expected = DataFrame({"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]})
 
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
@@ -853,14 +853,13 @@ class TestJoinMultiMulti:
         if box is not None:
             on_vector = box(on_vector)
 
-        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
+        exp_years = np.array([2016, 2017, 2018], dtype=np.int32)
+        expected = DataFrame({"a": [1, 2, 3], "key_1": exp_years})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
-        )
+        expected = DataFrame({"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]})
 
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
