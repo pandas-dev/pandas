@@ -3259,6 +3259,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
+            if isinstance(values, ExtensionArray):
+                return values.groupby_quantile(
+                    qs=qs,
+                    interpolation=interpolation,
+                    ngroups=ngroups,
+                    ids=ids,
+                    labels_for_lexsort=labels_for_lexsort,
+                )
+
             orig_vals = values
             if isinstance(values, BaseMaskedArray):
                 mask = values._mask

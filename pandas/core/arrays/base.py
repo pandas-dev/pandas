@@ -1688,6 +1688,154 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
+    def groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        labels_for_lexsort: npt.NDArray[np.intp],
+    ):
+        from functools import partial
+
+        from pandas._libs import groupby as libgroupby
+
+        from pandas.core.dtypes.common import (
+            is_bool_dtype,
+            is_float_dtype,
+            is_integer_dtype,
+            is_numeric_dtype,
+            is_object_dtype,
+        )
+
+        from pandas.core.arrays import (
+            BaseMaskedArray,
+            FloatingArray,
+        )
+
+        nqs = len(qs)
+
+        func = partial(
+            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+        )
+
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
+            if is_object_dtype(vals):
+                raise TypeError(
+                    "'quantile' cannot be performed against 'object' dtypes!"
+                )
+
+            inference: Dtype | None = None
+            if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
+                inference = vals.dtype
+            elif is_integer_dtype(vals.dtype):
+                if isinstance(vals, ExtensionArray):
+                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                else:
+                    out = vals
+                inference = np.dtype(np.int64)
+            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_datetime64_dtype(vals.dtype):
+                inference = vals.dtype
+                out = np.asarray(vals).astype(float)
+            elif is_timedelta64_dtype(vals.dtype):
+                inference = vals.dtype
+                out = np.asarray(vals).astype(float)
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+                inference = np.dtype(np.float64)
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
+            else:
+                out = np.asarray(vals)
+
+            return out, inference
+
+        def post_processor(
+            vals: np.ndarray,
+            inference: Dtype | None,
+            result_mask: np.ndarray | None,
+            orig_vals: ArrayLike,
+        ) -> ArrayLike:
+            if inference:
+                # Check for edge case
+                if isinstance(orig_vals, BaseMaskedArray):
+                    assert result_mask is not None  # for mypy
+
+                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
+                        orig_vals
+                    ):
+                        return FloatingArray(vals, result_mask)
+                    else:
+                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
+                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
+                        # [union-attr]
+                        return type(orig_vals)(
+                            vals.astype(
+                                inference.numpy_dtype  # type: ignore[union-attr]
+                            ),
+                            result_mask,
+                        )
+
+                elif not (
+                    is_integer_dtype(inference)
+                    and interpolation in {"linear", "midpoint"}
+                ):
+                    assert isinstance(inference, np.dtype)  # for mypy
+                    return vals.astype(inference)
+
+            return vals
+
+        def blk_func(values: ArrayLike) -> ArrayLike:
+            orig_vals = values
+            if isinstance(values, BaseMaskedArray):
+                mask = values._mask
+                result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
+            else:
+                mask = isna(values)
+                result_mask = None
+
+            vals, inference = pre_processor(values)
+
+            ncols = 1
+            if vals.ndim == 2:
+                ncols = vals.shape[0]
+                shaped_labels = np.broadcast_to(
+                    labels_for_lexsort, (ncols, len(labels_for_lexsort))
+                )
+            else:
+                shaped_labels = labels_for_lexsort
+
+            out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+
+            # Get an index of values sorted by values and then labels
+            order = (vals, shaped_labels)
+            sort_arr = np.lexsort(order).astype(np.intp, copy=False)
+
+            if vals.ndim == 1:
+                # Ea is always 1d
+                func(
+                    out[0],
+                    values=vals,
+                    mask=mask,
+                    sort_indexer=sort_arr,
+                    result_mask=result_mask,
+                )
+            else:
+                for i in range(ncols):
+                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
+
+            if vals.ndim == 1:
+                out = out.ravel("K")
+                if result_mask is not None:
+                    result_mask = result_mask.ravel("K")
+            else:
+                out = out.reshape(ncols, ngroups * nqs)
+            return post_processor(out, inference, result_mask, orig_vals)
+
+        return blk_func(self)
+
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
     def any(self, *, skipna: bool = True) -> bool:
