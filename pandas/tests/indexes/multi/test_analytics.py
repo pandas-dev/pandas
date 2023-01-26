@@ -9,7 +9,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.api import UInt64Index
 
 
 def test_infer_objects(idx):
@@ -196,8 +195,8 @@ def test_map_dictlike(idx, mapper):
 
     identity = mapper(idx.values, idx)
 
-    # we don't infer to UInt64 for a dict
-    if isinstance(idx, UInt64Index) and isinstance(identity, dict):
+    # we don't infer to uint64 dtype for a dict
+    if idx.dtype == np.uint64 and isinstance(identity, dict):
         expected = idx.astype("int64")
     else:
         expected = idx

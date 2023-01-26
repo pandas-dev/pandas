@@ -594,7 +594,7 @@ def test_frame_select(setup_path):
         # invalid terms
         df = tm.makeTimeDataFrame()
         store.append("df_time", df)
-        msg = "could not convert string to Timestamp"
+        msg = "day is out of range for month: 0"
         with pytest.raises(ValueError, match=msg):
             store.select("df_time", "index>0")
 
