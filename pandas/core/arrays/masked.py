@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    groupby as libgroupby,
     lib,
     missing as libmissing,
 )
@@ -1383,3 +1385,56 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data, mask = op(data, mask, skipna=skipna, **kwargs)
 
         return type(self)(data, mask, copy=False)
+
+    # ------------------------------------------------------------------
+
+    def groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        labels_for_lexsort: npt.NDArray[np.intp],
+    ):
+
+        nqs = len(qs)
+
+        mask = self._mask
+        result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
+
+        npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
+
+        ncols = 1
+        shaped_labels = labels_for_lexsort
+
+        npy_out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+
+        # Get an index of values sorted by values and then labels
+        order = (npy_vals, shaped_labels)
+        sort_arr = np.lexsort(order).astype(np.intp, copy=False)
+
+        func = partial(
+            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+        )
+
+        func(
+            npy_out[0],
+            values=npy_vals,
+            mask=mask,
+            sort_indexer=sort_arr,
+            result_mask=result_mask,
+        )
+
+        npy_out = npy_out.ravel("K")
+        result_mask = result_mask.ravel("K")
+
+        if interpolation in {"linear", "midpoint"} and not is_float_dtype(self.dtype):
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(npy_out, result_mask)
+        else:
+            return type(self)(
+                npy_out.astype(self.dtype.numpy_dtype),
+                result_mask,
+            )

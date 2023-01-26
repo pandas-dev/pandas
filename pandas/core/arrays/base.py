@@ -66,7 +66,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
@@ -1708,34 +1707,19 @@ class ExtensionArray:
         labels_for_lexsort: npt.NDArray[np.intp],
     ):
 
-        from pandas.core.arrays import (
-            BaseMaskedArray,
-            FloatingArray,
-        )
-
         nqs = len(qs)
 
-        if isinstance(self, BaseMaskedArray):
-            mask = self._mask
-            result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
-        else:
-            mask = self.isna()
-            result_mask = None
+        mask = self.isna()
 
         inference: DtypeObj | None = None
 
+        # TODO: 2023-01-26 we only have tests for the dt64/td64 cases here
         if is_object_dtype(self.dtype):
             raise TypeError("'quantile' cannot be performed against 'object' dtypes!")
-        elif isinstance(self, BaseMaskedArray) and is_numeric_dtype(self.dtype):
-            npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
-            inference = self.dtype
         elif is_integer_dtype(self.dtype):
-            if isinstance(self, ExtensionArray):
-                npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
-            else:
-                npy_vals = self
+            npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
             inference = np.dtype(np.int64)
-        elif is_bool_dtype(self.dtype) and isinstance(self, ExtensionArray):
+        elif is_bool_dtype(self.dtype):
             npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
         elif is_datetime64_dtype(self.dtype):
             inference = self.dtype
@@ -1743,7 +1727,7 @@ class ExtensionArray:
         elif is_timedelta64_dtype(self.dtype):
             inference = self.dtype
             npy_vals = np.asarray(self).astype(float)
-        elif isinstance(self, ExtensionArray) and is_float_dtype(self):
+        elif is_float_dtype(self):
             inference = np.dtype(np.float64)
             npy_vals = self.to_numpy(dtype=float, na_value=np.nan)
         else:
@@ -1774,7 +1758,7 @@ class ExtensionArray:
                 values=npy_vals,
                 mask=mask,
                 sort_indexer=sort_arr,
-                result_mask=result_mask,
+                result_mask=None,
             )
         else:
             for i in range(ncols):
@@ -1787,30 +1771,12 @@ class ExtensionArray:
 
         if npy_vals.ndim == 1:
             npy_out = npy_out.ravel("K")
-            if result_mask is not None:
-                result_mask = result_mask.ravel("K")
         else:
             npy_out = npy_out.reshape(ncols, ngroups * nqs)
 
         if inference is not None:
             # Check for edge case
-            if isinstance(self, BaseMaskedArray):
-                assert result_mask is not None  # for mypy
-
-                if interpolation in {"linear", "midpoint"} and not is_float_dtype(self):
-                    return FloatingArray(npy_out, result_mask)
-                else:
-                    # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
-                    # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
-                    # [union-attr]
-                    return type(self)(
-                        npy_out.astype(
-                            inference.numpy_dtype  # type: ignore[union-attr]
-                        ),
-                        result_mask,
-                    )
-
-            elif not (
+            if not (
                 is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}
             ):
                 assert isinstance(inference, np.dtype)  # for mypy
