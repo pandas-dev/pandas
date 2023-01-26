@@ -679,7 +679,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
 class TestBaseDtype(base.BaseDtypeTests):
     def test_check_dtype(self, data, request):
-        pa_dtype = dtype.pyarrow_dtype
+        pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
             request.node.add_marker(
                 pytest.mark.xfail(
