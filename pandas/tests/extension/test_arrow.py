@@ -1385,6 +1385,27 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_mode_dropna_false_mode_na(data, request):
+    # GH 50982
+    pa_dtype = data.dtype.pyarrow_dtype
+    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"mode not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
+    result = more_nans.mode(dropna=False)
+    expected = pd.Series([None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+    equal_nans = pd.Series([None, data[0]], dtype=data.dtype)
+    result = equal_nans.mode(dropna=False)
+    expected = pd.Series([data[0], None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_is_bool_dtype():
     # GH 22667
     data = ArrowExtensionArray(pa.array([True, False, True]))
