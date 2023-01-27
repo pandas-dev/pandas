@@ -120,3 +120,11 @@ class TestConvertDtypes:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_pyarrow_dtype_empty_object(self):
+        # GH 50970
+        pytest.importorskip("pyarrow")
+        expected = pd.DataFrame(columns=[0])
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
+            result = expected.convert_dtypes()
+        tm.assert_frame_equal(result, expected)

@@ -137,15 +137,17 @@ def to_pyarrow_type(
     Convert dtype to a pyarrow type instance.
     """
     if isinstance(dtype, ArrowDtype):
-        pa_dtype = dtype.pyarrow_dtype
+        return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
-        pa_dtype = dtype
+        return dtype
     elif dtype:
-        # Accepts python types too
-        pa_dtype = pa.from_numpy_dtype(dtype)
-    else:
-        pa_dtype = None
-    return pa_dtype
+        try:
+            # Accepts python types too
+            # Doesn't handle all numpy types
+            return pa.from_numpy_dtype(dtype)
+        except pa.ArrowNotImplementedError:
+            pass
+    return None
 
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
