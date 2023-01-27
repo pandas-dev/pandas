@@ -3115,7 +3115,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def quantile(
         self,
         q: float | AnyArrayLike = 0.5,
-        interpolation: str = "linear",
+        interpolation: Literal[
+            "linear", "lower", "higher", "nearest", "midpoint"
+        ] = "linear",
         numeric_only: bool = False,
     ):
         """
