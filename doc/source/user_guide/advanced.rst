@@ -609,7 +609,7 @@ are named.
 
 .. ipython:: python
 
-   s.index.set_names(["L1", "L2"], inplace=True)
+   s = s.index.set_names(["L1", "L2"])
    s.sort_index(level="L1")
    s.sort_index(level="L2")
 
