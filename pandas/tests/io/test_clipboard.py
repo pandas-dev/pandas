@@ -407,7 +407,10 @@ class TestClipboard:
         [
             "\U0001f44d...",
             pytest.param(
-                "Ωœ∑´...", marks=pytest.mark.xfail(is_ci_environment(), strict=False)
+                "Ωœ∑´...",
+                marks=pytest.mark.xfail(
+                    is_ci_environment(), reason="Flaky on CI builds", strict=False
+                ),
             ),
             "abcd...",
         ],
