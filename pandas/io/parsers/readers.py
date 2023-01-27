@@ -903,8 +903,20 @@ def read_csv(
             "A strict version of it is now the default, see "
             "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
             "You can safely remove this argument.",
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
+    if date_parser is not None:
+        warnings.warn(
+            "The argument 'date_parser' is deprecated and will "
+            "be removed in a future version. "
+            "Please use 'date_format' instead, or read your data in as 'object' dtype "
+            "and then call 'to_datetime'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if date_parser is not None and date_format is not None:
+        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
