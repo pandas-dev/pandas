@@ -929,12 +929,12 @@ an exception is raised, the next one is tried:
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
-1. If you know the format, use ``pd.to_datetime()``:
-   ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
+1. If you know the format, use ``date_format``, e.g.:
+   ``date_format="%d/%m/%Y"``.
 
-2. If you have a really non-standard format, use a custom ``date_parser`` function.
-   For optimal performance, this should be vectorized, i.e., it should accept arrays
-   as arguments.
+2. If you different formats for different columns, or want to pass any extra options (such
+   as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
+   then use ``to_datetime``.
 
 
 .. ipython:: python
