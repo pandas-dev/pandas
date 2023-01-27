@@ -5,6 +5,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import is_bool_dtype
 
 
 @pytest.mark.parametrize(
@@ -57,7 +58,7 @@ def test_drop_with_ignore_errors():
 
     # GH 8522
     ser = Series([2, 3], index=[True, False])
-    assert not ser.index.is_object()
+    assert is_bool_dtype(ser.index)
     assert ser.index.dtype == bool
     result = ser.drop(True)
     expected = Series([3], index=[False])

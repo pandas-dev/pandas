@@ -72,6 +72,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -2560,7 +2561,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not Index(self.values).is_object():
+        if not is_object_dtype(Index(self.values)):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 

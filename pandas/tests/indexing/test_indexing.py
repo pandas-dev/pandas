@@ -13,6 +13,7 @@ from pandas.errors import IndexingError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
+    is_object_dtype,
 )
 
 import pandas as pd
@@ -618,7 +619,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
         for s in [Series(range(5), index=np.arange(5.0))]:
 
@@ -635,7 +636,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
 
 class TestMisc:
