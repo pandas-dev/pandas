@@ -341,6 +341,10 @@ Py_hash_t PANDAS_INLINE hash_datetime_value_and_reso(npy_datetime value, NPY_DAT
     // hashes we need to match. We let year-reso objects return value, and make
     // higher-resolution cases responsible for checking of they match.
     if (unit == NPY_FR_Y) {
+        if (value == -1) {
+            // https://github.com/pandas-dev/pandas/pull/50960#discussion_r1088695136
+            return -2;
+        }
         return value;
     }
     else if (unit == NPY_FR_M) {
@@ -433,7 +437,6 @@ Py_hash_t np_datetime64_object_hash(PyObject* key) {
     NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)((PyDatetimeScalarObject*)key)->obmeta.base;
     npy_datetime value = ((PyDatetimeScalarObject*)key)->obval;
     npy_datetimestruct dts;
-    PyObject* dt;
 
     if (value == NPY_DATETIME_NAT) {
         // np.datetime64("NaT") in any reso
@@ -446,10 +449,19 @@ Py_hash_t np_datetime64_object_hash(PyObject* key) {
         // we CAN cast to pydatetime, so use that hash to ensure we compare
         // as matching standard library datetimes (and pd.Timestamps)
         PyDateTime_IMPORT;
+
+        PyObject* dt;
+        Py_hash_t hash;
+
         dt = PyDateTime_FromDateAndTime(
             dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
         );
-        return PyObject_Hash(dt);
+        if (dt == NULL) {
+            return -1;
+        }
+        hash = PyObject_Hash(dt);
+        Py_DECREF(dt);
+        return hash;
     }
 
     return hash_datetime_value_and_reso(value, unit, &dts);
