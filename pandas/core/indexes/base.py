@@ -206,6 +206,22 @@ str_t = str
 
 _dtype_obj = np.dtype("object")
 
+_masked_engines = {
+    "Complex128": libindex.MaskedComplex128Engine,
+    "Complex64": libindex.MaskedComplex64Engine,
+    "Float64": libindex.MaskedFloat64Engine,
+    "Float32": libindex.MaskedFloat32Engine,
+    "UInt64": libindex.MaskedUInt64Engine,
+    "UInt32": libindex.MaskedUInt32Engine,
+    "UInt16": libindex.MaskedUInt16Engine,
+    "UInt8": libindex.MaskedUInt8Engine,
+    "Int64": libindex.MaskedInt64Engine,
+    "Int32": libindex.MaskedInt32Engine,
+    "Int16": libindex.MaskedInt16Engine,
+    "Int8": libindex.MaskedInt8Engine,
+    "boolean": libindex.MaskedBoolEngine,
+}
+
 
 def _maybe_return_indexers(meth: F) -> F:
     """
@@ -770,14 +786,15 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(
         self,
-    ) -> libindex.IndexEngine | libindex.ExtensionEngine:
+    ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedIndexEngine:
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
-        if (
-            isinstance(target_values, ExtensionArray)
-            and self._engine_type is libindex.ObjectEngine
-        ):
-            return libindex.ExtensionEngine(target_values)
+        if isinstance(target_values, ExtensionArray):
+
+            if isinstance(target_values, BaseMaskedArray):
+                return _masked_engines[target_values.dtype.name](target_values)
+            elif self._engine_type is libindex.ObjectEngine:
+                return libindex.ExtensionEngine(target_values)
 
         target_values = cast(np.ndarray, target_values)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
@@ -3811,6 +3828,17 @@ class Index(IndexOpsMixin, PandasObject):
         tolerance = np.asarray(tolerance)
         if target.size != tolerance.size and tolerance.size > 1:
             raise ValueError("list-like tolerance size must match target index size")
+        elif is_numeric_dtype(self) and not np.issubdtype(tolerance.dtype, np.number):
+            if tolerance.ndim > 0:
+                raise ValueError(
+                    f"tolerance argument for {type(self).__name__} with dtype "
+                    f"{self.dtype} must contain numeric elements if it is list type"
+                )
+
+            raise ValueError(
+                f"tolerance argument for {type(self).__name__} with dtype {self.dtype} "
+                f"must be numeric if it is a scalar: {repr(tolerance)}"
+            )
         return tolerance
 
     @final
@@ -4867,7 +4895,11 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(vals, StringArray):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
-        if type(self) is Index and isinstance(self._values, ExtensionArray):
+        if (
+            type(self) is Index
+            and isinstance(self._values, ExtensionArray)
+            and not isinstance(self._values, BaseMaskedArray)
+        ):
             # TODO(ExtensionIndex): remove special-case, just use self._values
             return self._values.astype(object)
         return vals
