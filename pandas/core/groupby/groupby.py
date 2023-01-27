@@ -3188,10 +3188,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
-                inference = np.dtype("datetime64[ns]")
+                inference = vals.dtype
                 out = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                inference = np.dtype("timedelta64[ns]")
+                inference = vals.dtype
                 out = np.asarray(vals).astype(float)
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
                 inference = np.dtype(np.float64)
