@@ -1702,15 +1702,34 @@ class TestToDatetime:
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
+    @pytest.mark.parametrize("item", [150, float(150)])
+    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item):
+        # GH#50870 Note we have separate tests that pd.Timestamp gets these right
+        ts = Timestamp(item, unit=unit)
+        expected = DatetimeIndex([ts])
+
+        result = to_datetime([item], unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+        # TODO: this should also work
+        #  result = to_datetime(np.array([item]), unit=unit, cache=cache)
+        #  tm.assert_index_equal(result, expected)
+
+        result = to_datetime(np.array([item], dtype=object), unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
         # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with
         #  Y or M unit
+        warn_msg = "strings will be parsed as datetime strings"
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
         with pytest.raises(ValueError, match=msg):
-            to_datetime(["1.5"], unit=unit, errors="raise")
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                to_datetime(["1.5"], unit=unit, errors="raise")
 
         # with errors="ignore" we also end up raising within the Timestamp
         #  constructor; this may not be ideal
@@ -1725,7 +1744,8 @@ class TestToDatetimeUnit:
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        res = to_datetime(["1.5"], unit=unit, errors="coerce")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = to_datetime(["1.5"], unit=unit, errors="coerce")
         tm.assert_index_equal(res, expected)
 
         # round floats are OK
