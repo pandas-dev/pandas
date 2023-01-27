@@ -779,8 +779,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if copy is False and not using_copy_on_write():
-                return self
             return self.copy(deep=copy)
 
         mapping = {i: j, j: i}
@@ -1486,7 +1484,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __invert__(self: NDFrameT) -> NDFrameT:
         if not self.size:
             # inv fails with 0 len
-            return self
+            return self.copy(deep=False)
 
         new_data = self._mgr.apply(operator.invert)
         return self._constructor(new_data).__finalize__(self, method="__invert__")
@@ -8890,7 +8888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
-            return self
+            return self.copy(deep=False)
 
         offset = to_offset(offset)
         if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
@@ -8963,7 +8961,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
-            return self
+            return self.copy(deep=None)
 
         offset = to_offset(offset)
 
@@ -9471,8 +9469,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit=None,
         fill_axis: Axis = 0,
     ):
-        uses_cow = using_copy_on_write()
-
         is_series = isinstance(self, ABCSeries)
 
         if (not is_series and axis is None) or axis not in [None, 0, 1]:
@@ -9495,10 +9491,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
             elif lidx is None or join_index is None:
-                if uses_cow:
-                    left = self.copy(deep=copy)
-                else:
-                    left = self.copy(deep=copy) if copy or copy is None else self
+                left = self.copy(deep=copy)
             else:
                 left = self._constructor(
                     self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
@@ -9527,10 +9520,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = self._constructor(fdata)
 
             if ridx is None:
-                if uses_cow:
-                    right = other.copy(deep=copy)
-                else:
-                    right = other.copy(deep=copy) if copy or copy is None else other
+                right = other.copy(deep=copy)
             else:
                 right = other.reindex(join_index, level=level)
 
