@@ -1700,7 +1700,7 @@ class ExtensionArray:
         self,
         *,
         qs: npt.NDArray[np.float64],
-        interpolation: str,
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
         ngroups: int,
         ids: npt.NDArray[np.intp],
         labels_for_lexsort: npt.NDArray[np.intp],

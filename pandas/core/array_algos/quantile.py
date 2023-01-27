@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+from typing import Literal
 
 import numpy as np
 
@@ -21,7 +22,7 @@ from pandas.core.dtypes.missing import (
 def groupby_quantile_ndim_compat(
     *,
     qs: npt.NDArray[np.float64],
-    interpolation: str,
+    interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
     ngroups: int,
     ids: npt.NDArray[np.intp],
     labels_for_lexsort: npt.NDArray[np.intp],
