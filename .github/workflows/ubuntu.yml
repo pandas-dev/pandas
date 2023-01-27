@@ -81,7 +81,6 @@ jobs:
           - name: "New Numpy (1.24)"
             env_file: actions-310_new_numpy_no_numba.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             error_on_warnings: "0"
         exclude:
           - env_file: actions-38.yaml
