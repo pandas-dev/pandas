@@ -514,7 +514,7 @@ def test_astype_single_dtype(using_copy_on_write):
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 @pytest.mark.parametrize("new_dtype", ["int64", "Int64", "int64[pyarrow]"])
 def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
-    if dtype == "int64[pyarrow]" and pa_version_under6p0:
+    if new_dtype == "int64[pyarrow]" and pa_version_under6p0:
         pytest.skip("pyarrow not installed")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     df_orig = df.copy()
