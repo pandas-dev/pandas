@@ -94,7 +94,7 @@ class MaybeConvertNumeric:
     #  go in benchmarks/libs.py
 
     param_names = ["dtype"]
-    params = ["int64", "uint64", "float64", "complex128"]
+    params = ["int64", "uint64", "float64", "complex128", "bool"]
 
     def setup(self, dtype):
         N = 10**7
@@ -105,7 +105,7 @@ class MaybeConvertNumeric:
             # Make vals not storable as int64
             arr += 1
         self.data = arr.astype(object)
-        if dtype != "complex128":
+        if dtype not in ["complex128", "bool"]:
             # Prevent fastpath from being triggered by stringifying first element
             self.data[0] = str(self.data[0])
 
