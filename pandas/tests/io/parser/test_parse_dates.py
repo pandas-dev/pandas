@@ -1332,7 +1332,7 @@ def test_parse_dates_infer_datetime_format_warning(all_parsers):
     "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
 )
 def test_parse_dates_date_parser_and_date_format(all_parsers, reader):
-    # GH ???
+    # GH 50601
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
     msg = "Cannot use both 'date_parser' and 'date_format'"
