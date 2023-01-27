@@ -84,7 +84,7 @@ def groupby_quantile_ndim_compat(
         func(
             npy_out[0],
             values=npy_vals,
-            mask=mask,
+            mask=mask.view(np.uint8),
             sort_indexer=sort_arr,
             result_mask=result_mask,
         )
@@ -95,7 +95,7 @@ def groupby_quantile_ndim_compat(
             func(
                 npy_out[i],
                 values=npy_vals[i],
-                mask=mask[i],
+                mask=mask[i].view(np.uint8),
                 sort_indexer=sort_arr[i],
             )
 
