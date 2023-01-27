@@ -901,9 +901,9 @@ class TestReaders:
                 "record; found b'foo'"
             )
         elif engine == "calamine":
-            import python_calamine
+            from python_calamine import CalamineError
 
-            error = python_calamine._python_calamine.CalamineError
+            error = CalamineError
             msg = "Cannot detect file format"
         else:
             error = BadZipFile
@@ -1797,9 +1797,9 @@ class TestExcelFileRead:
 
             errors = (BadZipFile, xlrd.biffh.XLRDError)
         elif engine == "calamine":
-            import python_calamine
+            from python_calamine import CalamineError
 
-            errors = (python_calamine._python_calamine.CalamineError,)
+            errors = (CalamineError,)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
             Path(file).write_text("corrupt")
