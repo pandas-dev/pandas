@@ -127,10 +127,10 @@ def maybe_split(meth: F) -> F:
     def newfunc(self, *args, **kwargs) -> list[Block]:
 
         if self.ndim == 1 or self.shape[0] == 1:
-            return meth(self, *args, **kwargs)
+            return meth(self, *args, **kwargs, original_block=self)
         else:
             # Split and operate column-by-column
-            return self.split_and_operate(meth, *args, **kwargs)
+            return self.split_and_operate(meth, *args, **kwargs, original_block=self)
 
     return cast(F, newfunc)
 
@@ -437,7 +437,7 @@ class Block(PandasObject):
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype) -> list[Block]:
+    def _downcast_2d(self, dtype, original_block) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
@@ -451,7 +451,6 @@ class Block(PandasObject):
         *,
         copy: bool = True,
         using_copy_on_write: bool = False,
-        original_blocks: list[Block] = [],
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
@@ -460,9 +459,7 @@ class Block(PandasObject):
         """
         if not copy and using_copy_on_write:
             result = self.copy(deep=False)
-            result._ref = weakref.ref(  # type: ignore[attr-defined]
-                original_blocks[self.mgr_locs.as_array[0]]
-            )
+            result._ref = weakref.ref(self)
             return [result]
         return [self.copy()] if copy else [self]
 
@@ -2011,7 +2008,7 @@ class ObjectBlock(NumpyBlock):
         *,
         copy: bool = True,
         using_copy_on_write: bool = False,
-        original_blocks: list[Block] = [],
+        original_block: Block = None,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -2022,9 +2019,7 @@ class ObjectBlock(NumpyBlock):
             #  that is fixed, we short-circuit here.
             if using_copy_on_write:
                 result = self.copy(deep=False)
-                result._ref = weakref.ref(  # type: ignore[attr-defined]
-                    original_blocks[self.mgr_locs.as_array[0]]
-                )
+                result._ref = weakref.ref(original_block)
                 return [result]
             return [self]
 
@@ -2045,7 +2040,7 @@ class ObjectBlock(NumpyBlock):
         if copy and res_values is values:
             res_values = values.copy()
         elif res_values is values and using_copy_on_write:
-            ref = weakref.ref(original_blocks[self.mgr_locs.as_array[0]])
+            ref = weakref.ref(original_block)
 
         res_values = ensure_block_shape(res_values, self.ndim)
         result = self.make_block(res_values)

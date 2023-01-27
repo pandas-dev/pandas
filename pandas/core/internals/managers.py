@@ -445,15 +445,10 @@ class BaseBlockManager(DataManager):
             else:
                 copy = True
 
-        if self.is_single_block:
-            original_blocks = [self.blocks[0]] * self.shape[0]
-        else:
-            original_blocks = [self.blocks[i] for i in self.blknos]
         mgr = self.apply(
             "convert",
             copy=copy,
             using_copy_on_write=using_copy_on_write(),
-            original_blocks=original_blocks,
         )
         refs = [getattr(blk, "_ref", None) for blk in mgr.blocks]
         if any(ref is not None for ref in refs):
