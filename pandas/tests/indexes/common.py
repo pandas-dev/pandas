@@ -823,6 +823,18 @@ class Base:
         ):
             idx.is_categorical()
 
+    def test_is_interval_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_interval()
+
+    def test_is_object_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(FutureWarning):
+            idx.is_object()
+
 
 class NumericBase(Base):
     """

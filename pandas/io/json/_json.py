@@ -21,6 +21,9 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._libs.json import (
     dumps,
     loads,
@@ -496,7 +499,7 @@ def read_json(
     compression: CompressionOptions = "infer",
     nrows: int | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Series | JsonReader:
     """
     Convert a JSON string to pandas object.
@@ -731,6 +734,12 @@ def read_json(
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
         raise ValueError("cannot pass both convert_axes and orient='table'")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
@@ -1213,7 +1222,9 @@ class Parser:
         if new_data.dtype == "object":
             try:
                 new_data = data.astype("int64")
-            except (TypeError, ValueError, OverflowError):
+            except OverflowError:
+                return data, False
+            except (TypeError, ValueError):
                 pass
 
         # ignore numbers that are out of range

@@ -349,10 +349,10 @@ The release process makes a snapshot of pandas (a git commit) available to users
 a particular version number. After the release the new pandas version will be available
 in the next places:
 
-- Git repo with a [new tag](https://github.com/pandas-dev/pandas/tags)
-- Source distribution in a [GitHub release](https://github.com/pandas-dev/pandas/releases)
-- Pip packages in the [PyPI](https://pypi.org/project/pandas/)
-- Conda/Mamba packages in [conda-forge](https://anaconda.org/conda-forge/pandas)
+- Git repo with a `new tag <https://github.com/pandas-dev/pandas/tags>`_
+- Source distribution in a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_
+- Pip packages in the `PyPI <https://pypi.org/project/pandas/>`_
+- Conda/Mamba packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_
 
 The process for releasing a new version of pandas is detailed next section.
 
@@ -368,11 +368,11 @@ Prerequisites
 
 In order to be able to release a new pandas version, the next permissions are needed:
 
-- Merge rights to the [pandas](https://github.com/pandas-dev/pandas/),
-  [pandas-wheels](https://github.com/MacPython/pandas-wheels), and
-  [pandas-feedstock](https://github.com/conda-forge/pandas-feedstock/) repositories.
+- Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_,
+  `pandas-wheels <https://github.com/MacPython/pandas-wheels>`_, and
+  `pandas-feedstock <https://github.com/conda-forge/pandas-feedstock/>`_ repositories.
 - Permissions to push to main in the pandas repository, to push the new tags.
-- Write permissions to [PyPI](https://github.com/conda-forge/pandas-feedstock/pulls)
+- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_
 - Access to the social media accounts, to publish the announcements.
 
 Pre-release
@@ -408,7 +408,7 @@ Pre-release
 Release
 ```````
 
-1. Create an empty commit and a tag in the last commit of the branch to be released:
+1. Create an empty commit and a tag in the last commit of the branch to be released::
 
     git checkout <branch>
     git pull --ff-only upstream <branch>
@@ -423,7 +423,7 @@ which will be triggered when the tag is pushed.
 2. Only if the release is a release candidate, we want to create a new branch for it, immediately
    after creating the tag. For example, if we are releasing pandas 1.4.0rc0, we would like to
    create the branch 1.4.x to backport commits to the 1.4 versions. As well as create a tag to
-   mark the start of the development of 1.5.0 (assuming it is the next version):
+   mark the start of the development of 1.5.0 (assuming it is the next version)::
 
     git checkout -b 1.4.x
     git push upstream 1.4.x
@@ -436,7 +436,7 @@ which will be triggered when the tag is pushed.
 
     ./setup.py sdist --formats=gztar --quiet
 
-4. Create a [new GitHub release](https://github.com/pandas-dev/pandas/releases/new):
+4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Title: ``Pandas <version>``
    - Tag: ``<version>``
@@ -447,13 +447,13 @@ which will be triggered when the tag is pushed.
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
 5. The GitHub release will after some hours trigger an
-   [automated conda-forge PR](https://github.com/conda-forge/pandas-feedstock/pulls).
+   `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
    Merge it once the CI is green, and it will generate the conda-forge packages.
 
 6. Packages for supported versions in PyPI are built in the
-   [MacPython repo](https://github.com/MacPython/pandas-wheels).
+   `MacPython repo <https://github.com/MacPython/pandas-wheels>`_.
    Open a PR updating the build commit to the released version, and merge it once the
-   CI is green.
+   CI is green. To do this type::
 
     git checkout master
     git pull --ff-only upstream master
@@ -465,7 +465,8 @@ which will be triggered when the tag is pushed.
 
 7. Download all wheels from the Anaconda repository where MacPython uploads them:
    https://anaconda.org/multibuild-wheels-staging/pandas/files?version=<version>
-   to the ``dist/`` directory in the local pandas copy.
+   to the ``dist/`` directory in the local pandas copy. You can use the script
+   ``scripts/download_wheels.sh`` to download all wheels at once.
 
 8. Upload wheels to PyPI:
 
@@ -486,7 +487,7 @@ Post-Release
 4. Create a new issue for the next release, with the estimated date of release.
 
 5. Open a PR with the placeholder for the release notes of the next version. See
-   for example [the PR for 1.5.3](https://github.com/pandas-dev/pandas/pull/49843/files).
+   for example `the PR for 1.5.3 <https://github.com/pandas-dev/pandas/pull/49843/files>`_.
 
 6. Announce the new release in the official channels (use previous announcements
    for reference):

@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+import sys
 from textwrap import dedent
 from typing import (
     IO,
@@ -33,7 +34,7 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.lib import (
-    array_equal_fast,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -67,8 +68,13 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    _chained_assignment_msg,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -890,7 +896,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if (
             indices.ndim == 1
             and using_copy_on_write()
-            and array_equal_fast(indices, np.arange(0, len(self), dtype=indices.dtype))
+            and is_range_indexer(indices, len(self))
         ):
             return self.copy(deep=None)
 
@@ -1074,6 +1080,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
@@ -3585,9 +3595,7 @@ Keep all original rows and also all original values
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
-        if array_equal_fast(
-            sorted_index, np.arange(0, len(sorted_index), dtype=sorted_index.dtype)
-        ):
+        if is_range_indexer(sorted_index, len(sorted_index)):
             if inplace:
                 return self._update_inplace(self)
             return self.copy(deep=None)

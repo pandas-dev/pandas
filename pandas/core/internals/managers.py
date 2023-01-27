@@ -1300,7 +1300,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def _iset_split_block(
         self, blkno_l: int, blk_locs: np.ndarray, value: ArrayLike | None = None
-    ):
+    ) -> None:
         """Removes columns from a block by splitting the block.
 
         Avoids copying the whole block through slicing and updates the manager
@@ -1320,7 +1320,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
-            first_nb = new_block_2d(value, BlockPlacement(blk.mgr_locs[blk_locs]))
+            # error: No overload variant of "__getitem__" of "BlockPlacement" matches
+            # argument type "ndarray[Any, Any]"  [call-overload]
+            first_nb = new_block_2d(
+                value,
+                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[call-overload]
+            )
         else:
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
