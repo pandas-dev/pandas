@@ -78,6 +78,40 @@ def interp_methods_ind(request):
 
 
 class TestSeriesInterpolateData:
+    def test_interpolate_datetimelike_values(self):
+        # GH#11312
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = pd.NaT
+
+        res = ser.interpolate()
+        expected = orig
+        tm.assert_series_equal(res, expected)
+
+        # datetime64tz cast
+        ser_tz = ser.dt.tz_localize("US/Pacific")
+        res_tz = ser_tz.interpolate()
+        expected_tz = orig.dt.tz_localize("US/Pacific")
+        tm.assert_series_equal(res_tz, expected_tz)
+
+        # timedelta64 cast
+        ser_td = ser - ser[0]
+        res_td = ser_td.interpolate()
+        expected_td = orig - orig[0]
+        tm.assert_series_equal(res_td, expected_td)
+
+    @pytest.mark.xfail(reason="EA.fillna does not handle 'linear' method")
+    def test_interpolate_period_values(self):
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = pd.NaT
+
+        # period cast
+        ser_per = ser.dt.to_period("D")
+        res_per = ser_per.interpolate()
+        expected_per = orig.dt.to_period("D")
+        tm.assert_series_equal(res_per, expected_per)
+
     def test_interpolate(self, datetime_series):
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
