@@ -908,26 +908,8 @@ data columns:
 Date parsing functions
 ++++++++++++++++++++++
 
-Finally, the parser allows you to specify a custom ``date_parser`` function to
-take full advantage of the flexibility of the date parsing API:
-
-.. ipython:: python
-
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=date_spec, date_parser=pd.to_datetime
-   )
-   df
-
-pandas will try to call the ``date_parser`` function in three different ways. If
-an exception is raised, the next one is tried:
-
-1. ``date_parser`` is first called with one or more arrays as arguments,
-   as defined using ``parse_dates`` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``).
-
-2. If #1 fails, ``date_parser`` is called with all the columns
-   concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-Note that performance-wise, you should try these methods of parsing dates in order:
+Finally, the parser allows you to specify a custom ``date_format``.
+Performance-wise, you should try these methods of parsing dates in order:
 
 1. If you know the format, use ``date_format``, e.g.:
    ``date_format="%d/%m/%Y"``.
@@ -962,16 +944,13 @@ an object-dtype column with strings, even with ``parse_dates``.
    df = pd.read_csv(StringIO(content), parse_dates=["a"])
    df["a"]
 
-To parse the mixed-timezone values as a datetime column, pass a partially-applied
-:func:`to_datetime` with ``utc=True`` as the ``date_parser``.
+To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
+then call :func:`to_datetime` with ``utc=True``.
 
 .. ipython:: python
 
-   df = pd.read_csv(
-       StringIO(content),
-       parse_dates=["a"],
-       date_parser=lambda col: pd.to_datetime(col, utc=True),
-   )
+   df = pd.read_csv(StringIO(content))
+   df["a"] = pd.to_datetime(df["a"], utc=True)
    df["a"]
 
 
