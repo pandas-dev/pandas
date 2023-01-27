@@ -1599,8 +1599,7 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    # error: Signature of "interpolate" incompatible with supertype "Block"
-    def interpolate(  # type: ignore[override]
+    def interpolate(
         self,
         *,
         method: FillnaOptions = "pad",
@@ -1978,8 +1977,7 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
 
-    # error: Signature of "interpolate" incompatible with supertype "Block"
-    def interpolate(  # type: ignore[override]
+    def interpolate(
         self,
         *,
         method: FillnaOptions = "pad",
@@ -1992,7 +1990,10 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     ):
         values = self.values
 
-        if method == "linear":
+        # error: Non-overlapping equality check (left operand type:
+        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
+        # "Literal['linear']")  [comparison-overlap]
+        if method == "linear":  # type: ignore[comparison-overlap]
             # TODO: GH#50950 implement for arbitrary EAs
             data_out = values._ndarray if inplace else values._ndarray.copy()
             missing.interpolate_array_2d(
