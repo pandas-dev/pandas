@@ -5629,7 +5629,7 @@ Keep all original rows and also all original values
             result.index = default_index(len(result))
 
         if inplace:
-            self._update_inplace(result)
+            return self._update_inplace(result)
         else:
             return result
 
