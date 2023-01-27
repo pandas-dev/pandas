@@ -436,13 +436,19 @@ class BaseBlockManager(DataManager):
         )
 
     def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        return self._apply_and_handle_refs(
+            "astype", copy=copy, dtype=dtype, errors=errors
+        )
+
+    def _apply_and_handle_refs(self, func: str, copy: bool | None, **kwargs):
         if copy is None:
             if using_copy_on_write():
                 copy = False
             else:
                 copy = True
 
-        result = self.apply("astype", dtype=dtype, copy=copy, errors=errors)
+        result = self.apply(func, copy=copy, **kwargs)
+
         if using_copy_on_write() and not copy:
             refs = [blk._ref for blk in result.blocks]
             if any(ref is not None for ref in refs):
