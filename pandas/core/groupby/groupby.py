@@ -2097,13 +2097,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
 
+            def _preprocessing(values):
+                if isinstance(values, BaseMaskedArray):
+                    return values._data, None
+                return values, None
+
             def _postprocessing(
-                vals, inference, nullable: bool = False, mask=None
+                vals, inference, nullable: bool = False, result_mask=None
             ) -> ArrayLike:
                 if nullable:
-                    if mask.ndim == 2:
-                        mask = mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), mask.view(np.bool_))
+                    if result_mask.ndim == 2:
+                        result_mask = result_mask[:, 0]
+                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
                 return np.sqrt(vals)
 
             result = self._get_cythonized_result(
@@ -2111,6 +2116,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
+                pre_processing=_preprocessing,
                 post_processing=_postprocessing,
                 ddof=ddof,
                 how="std",
@@ -3720,7 +3726,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             inferences = None
 
             if needs_counts:
-                counts = np.zeros(self.ngroups, dtype=np.int64)
+                counts = np.zeros(ngroups, dtype=np.int64)
                 func = partial(func, counts=counts)
 
             vals = values
@@ -3742,11 +3748,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
 
-            else:
+            elif isinstance(values, BaseMaskedArray):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
                 func = partial(func, result_mask=result_mask)
 
-            func(**kwargs)  # Call func to modify indexer values in place
+            func(**kwargs)  # Call func to modify result in place
 
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
@@ -3755,8 +3761,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if post_processing:
                 pp_kwargs: dict[str, bool | np.ndarray] = {}
                 pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std":
-                    pp_kwargs["mask"] = result_mask
+                if how == "std" and pp_kwargs["nullable"]:
+                    pp_kwargs["result_mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
 
