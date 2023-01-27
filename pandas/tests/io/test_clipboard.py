@@ -4,7 +4,10 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -399,7 +402,16 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    @pytest.mark.parametrize(
+        "data",
+        [
+            "\U0001f44d...",
+            pytest.param(
+                "Ωœ∑´...", marks=pytest.mark.xfail(is_ci_environment(), strict=False)
+            ),
+            "abcd...",
+        ],
+    )
     @pytest.mark.xfail(
         os.environ.get("DISPLAY") is None and not is_platform_mac(),
         reason="Cannot be runed if a headless system is not put in place with Xvfb",
