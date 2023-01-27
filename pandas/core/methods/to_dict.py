@@ -60,7 +60,7 @@ def to_dict(
         is 'tight') in the returned dictionary. Can only be ``False``
         when `orient` is 'split' or 'tight'.
 
-        .. versionadded:: 1.6.0
+        .. versionadded:: 2.0.0
 
     Returns
     -------
