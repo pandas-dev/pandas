@@ -290,6 +290,16 @@ date_parser : function, default ``None``
   values from the columns defined by parse_dates into a single array and pass
   that; and 3) call date_parser once for each row using one or more strings
   (corresponding to the columns defined by parse_dates) as arguments.
+
+  .. deprecated:: 2.0.0
+   Use ``date_format`` instead, or read in as ``object`` and then apply
+   :func:`to_datetime` as-needed.
+date_format : str, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex (e.g. different formats for different columns),
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+    .. versionadded:: 2.0.0
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
 cache_dates : boolean, default True

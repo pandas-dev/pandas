@@ -116,6 +116,7 @@ class ParserBase:
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
         self.date_parser = kwds.pop("date_parser", None)
+        self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
 
@@ -134,6 +135,7 @@ class ParserBase:
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
+            date_format=self.date_format,
             dayfirst=self.dayfirst,
             cache_dates=self.cache_dates,
         )
@@ -1092,6 +1094,7 @@ def _make_date_converter(
     date_parser=None,
     dayfirst: bool = False,
     cache_dates: bool = True,
+    date_format=None,
 ):
     def converter(*date_cols):
         if date_parser is None:
@@ -1099,6 +1102,7 @@ def _make_date_converter(
 
             return tools.to_datetime(
                 ensure_object(strs),
+                format=date_format,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",
@@ -1153,6 +1157,7 @@ parser_defaults = {
     "keep_date_col": False,
     "dayfirst": False,
     "date_parser": None,
+    "date_format": None,
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
