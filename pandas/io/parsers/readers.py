@@ -1207,6 +1207,17 @@ def read_table(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
