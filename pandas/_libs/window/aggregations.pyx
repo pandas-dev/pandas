@@ -1,10 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    round,
-    signbit,
-    sqrt,
-)
+from libc.math cimport round
+
 from libcpp.deque cimport deque
 
 from pandas._libs.algos cimport TiebreakEnumType
@@ -18,6 +15,10 @@ from numpy cimport (
     int64_t,
     ndarray,
 )
+
+cdef extern from "<cmath>" namespace "std":
+    int signbit(float64_t) nogil
+    float64_t sqrt(float64_t x) nogil
 
 cnp.import_array()
 
