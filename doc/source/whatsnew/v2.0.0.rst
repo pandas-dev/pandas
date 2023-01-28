@@ -1105,6 +1105,7 @@ Period
 - Bug in adding a :class:`Period` object to an array of :class:`DateOffset` objects incorrectly raising ``TypeError`` (:issue:`50162`)
 - Bug in :class:`Period` where passing a string with finer resolution than nanosecond would result in a ``KeyError`` instead of dropping the extra precision (:issue:`50417`)
 - Bug in parsing strings representing Week-periods e.g. "2017-01-23/2017-01-29" as minute-frequency instead of week-frequency (:issue:`50803`)
+- Bug in :meth:`GroupBy.sum`, :meth:`GroupBy.cumsum`, :meth:`GroupBy.prod`, :meth:`GroupBy.cumprod` with :class:`PeriodDtype` failing to raise ``TypeError`` (:issue:`??`)
 -
 
 Plotting
