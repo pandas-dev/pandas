@@ -31,3 +31,8 @@ def test_take_categorical():
         pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
     )
     tm.assert_series_equal(result, expected)
+
+def test_take_incorrect_axis_name():
+    with pytest.raises(ValueError, match="No axis named foo for object type Series"):
+        pd.Series([1,2,3,4]).take([1], axis="foo")
+
