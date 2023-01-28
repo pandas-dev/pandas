@@ -70,7 +70,7 @@ def to_numeric(
 
         - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
         - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
-        - 'float': float dtype (min.: np.float32), float16 is not supported.
+        - 'float': smallest float dtype (min.: np.float32)
 
         As this behaviour is separate from the core conversion to
         numeric values, any errors raised during the downcasting
