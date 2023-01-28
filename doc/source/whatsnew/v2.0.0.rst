@@ -1053,7 +1053,7 @@ Indexing
 - Bug in :meth:`Series.rename` with :class:`MultiIndex` losing extension array dtypes (:issue:`21055`)
 - Bug in :meth:`DataFrame.isetitem` coercing extension array dtypes in :class:`DataFrame` to object (:issue:`49922`)
 - Bug in :class:`BusinessHour` would cause creation of :class:`DatetimeIndex` to fail when no opening hour was included in the index (:issue:`49835`)
--
+- Bug in :meth:`Series.take` where any incorrect value can be passed as axis argument and no Exception is raised (:issue:`51022`)
 
 Missing
 ^^^^^^^
