@@ -4653,6 +4653,8 @@ Keep all original rows and also all original values
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
+            if using_copy_on_write():
+                return self.copy(deep=copy)
             if copy or copy is None:
                 return self.copy(deep=copy)
             return self
