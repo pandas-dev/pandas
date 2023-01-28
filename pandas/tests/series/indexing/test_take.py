@@ -33,6 +33,7 @@ def test_take_categorical():
     tm.assert_series_equal(result, expected)
 
 def test_take_incorrect_axis_name():
+    # GH 51022
     with pytest.raises(ValueError, match="No axis named foo for object type Series"):
         pd.Series([1,2,3,4]).take([1], axis="foo")
 
