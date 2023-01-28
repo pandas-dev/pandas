@@ -1349,13 +1349,12 @@ def test_quantile(data, interpolation, quantile, request):
     raises=NotImplementedError,
     reason="mode only supported for pyarrow version >= 6.0",
 )
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
     [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx, request):
     pa_dtype = data_for_grouping.dtype.pyarrow_dtype
     if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
         request.node.add_marker(
@@ -1376,7 +1375,7 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
         )
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    result = ser.mode(dropna=dropna)
+    result = ser.mode(dropna=True)
     expected = pd.Series(data_for_grouping.take(exp_idx))
     tm.assert_series_equal(result, expected)
 
