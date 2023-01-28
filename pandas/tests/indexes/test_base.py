@@ -309,7 +309,6 @@ class TestIndex(Base):
         "klass",
         [
             Index,
-            NumericIndex,
             CategoricalIndex,
             DatetimeIndex,
             TimedeltaIndex,
@@ -873,8 +872,9 @@ class TestIndex(Base):
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
-            msg = "data is not compatible with NumericIndex"
-            with pytest.raises(ValueError, match=msg):
+            na_name = type(nulls_fixture).__name__
+            msg = rf"float\(\) argument must be a string or a number, not '{na_name}'"
+            with pytest.raises(TypeError, match=msg):
                 NumericIndex([1.0, nulls_fixture], dtype=np.float64)
 
             idx = NumericIndex([1.0, np.nan], dtype=np.float64)
