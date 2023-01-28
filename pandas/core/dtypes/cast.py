@@ -398,7 +398,11 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        new_result = result.astype(dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "overflow encountered in cast", RuntimeWarning
+            )
+            new_result = result.astype(dtype)
 
         # Adjust tolerances based on floating point size
         size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
