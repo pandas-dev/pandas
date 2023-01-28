@@ -890,7 +890,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(NDFrame.take.__doc__)
     def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
         nv.validate_take((), kwargs)
-        if axis not in [0, 1, 'index', 'columns', None]:
+        if axis not in [0, 1, "index", "columns", None]:
             raise ValueError(f"No axis named {axis} for object type Series")
         indices = ensure_platform_int(indices)
 
