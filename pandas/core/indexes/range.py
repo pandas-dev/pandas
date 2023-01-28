@@ -98,6 +98,7 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _values: np.ndarray
 
     @property
     def _engine_type(self) -> type[libindex.Int64Engine]:
