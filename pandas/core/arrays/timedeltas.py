@@ -7,6 +7,7 @@ from typing import (
     Iterator,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -918,7 +919,12 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
-        base = data.astype(np.int64)
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            base = data.astype(np.int64)
         frac = data - base
         if p:
             frac = np.round(frac, p)
