@@ -37,7 +37,6 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
@@ -899,10 +898,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @doc(GroupBy.prod)
@@ -910,30 +906,21 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("prod", args, kwargs)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     def min(
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     def max(
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @doc(GroupBy.first)
@@ -941,10 +928,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("first", args, kwargs)
         return self._downsample("first", numeric_only=numeric_only, min_count=min_count)
 
     @doc(GroupBy.last)
@@ -952,22 +936,16 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("last", args, kwargs)
         return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
 
     @doc(GroupBy.median)
-    def median(self, numeric_only: bool = False, *args, **kwargs):
-        nv.validate_resampler_func("median", args, kwargs)
+    def median(self, numeric_only: bool = False):
         return self._downsample("median", numeric_only=numeric_only)
 
     def mean(
         self,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute mean of groups, excluding missing values.
@@ -986,15 +964,12 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Mean of values within each group.
         """
-        nv.validate_resampler_func("mean", args, kwargs)
         return self._downsample("mean", numeric_only=numeric_only)
 
     def std(
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -1017,15 +992,12 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Standard deviation of values within each group.
         """
-        nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
     def var(
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -1049,7 +1021,6 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Variance of values within each group.
         """
-        nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @doc(GroupBy.sem)
@@ -1057,28 +1028,19 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("sem", args, kwargs)
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @doc(GroupBy.ohlc)
     def ohlc(
         self,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("ohlc", args, kwargs)
         return self._downsample("ohlc")
 
     @doc(SeriesGroupBy.nunique)
     def nunique(
         self,
-        *args,
-        **kwargs,
     ):
-        nv.validate_resampler_func("nunique", args, kwargs)
         return self._downsample("nunique")
 
     @doc(GroupBy.size)
