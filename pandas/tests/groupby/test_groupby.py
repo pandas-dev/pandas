@@ -2870,6 +2870,7 @@ def test_groupby_method_drop_na(method):
 
 
 def test_groupby_reduce_period():
+    # GH#51040
     pi = pd.period_range("2016-01-01", periods=100, freq="D")
     grps = list(range(10)) * 10
     ser = pi.to_series()
