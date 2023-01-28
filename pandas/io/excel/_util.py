@@ -73,7 +73,6 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
-        "xls": "xlwt",
         "ods": "odf",
     }
     assert mode in ["reader", "writer"]

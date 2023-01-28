@@ -3,10 +3,7 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -40,22 +37,11 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    with catch_warnings():
-        # `np.bool` is a deprecated alias...
-        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
-        # accessing pd.Int64Index in pd namespace
-        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
-
-        import fastparquet
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
-
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
 
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
@@ -654,6 +640,28 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    def test_use_nullable_dtypes_option(self, engine, request):
+        # GH#50748
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
+
+        table = pyarrow.table({"a": pyarrow.array([1, 2, 3, None], "int64")})
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            with pd.option_context("mode.nullable_dtypes", True):
+                result2 = read_parquet(path, engine=engine)
+
+        expected = pd.DataFrame({"a": pd.array([1, 2, 3, None], dtype="Int64")})
+        tm.assert_frame_equal(result2, expected)
+
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -688,7 +696,6 @@ class TestBasic(Base):
         )
 
 
-@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
@@ -835,6 +842,7 @@ class TestParquetPyArrow(Base):
 
         # GH #35791
         if partition_col:
+            expected_df = expected_df.astype(dict.fromkeys(partition_col, np.int32))
             partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
@@ -905,7 +913,7 @@ class TestParquetPyArrow(Base):
 
     def test_empty_dataframe(self, pa):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         check_round_trip(df, pa)
 
     def test_write_with_schema(self, pa):
@@ -932,14 +940,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow", min_version="2.0.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -991,7 +999,7 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         df = pd.DataFrame({"a": list(range(0, 3))})
@@ -1043,7 +1051,7 @@ class TestParquetPyArrow(Base):
             pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
         )
 
-        with pd.option_context("io.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
             check_round_trip(
                 df,
                 engine=pa,
@@ -1180,7 +1188,7 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)

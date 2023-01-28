@@ -213,29 +213,24 @@ class TestBusinessHour:
         offset = request.getfixturevalue(offset_name)
         assert offset == offset
 
-    def test_call(
+    def test_add_datetime(
         self,
         dt,
         offset1,
         offset2,
         offset3,
         offset4,
-        offset5,
-        offset6,
-        offset7,
         offset8,
         offset9,
         offset10,
     ):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert offset1(dt) == datetime(2014, 7, 1, 11)
-            assert offset2(dt) == datetime(2014, 7, 1, 13)
-            assert offset3(dt) == datetime(2014, 6, 30, 17)
-            assert offset4(dt) == datetime(2014, 6, 30, 14)
-            assert offset8(dt) == datetime(2014, 7, 1, 11)
-            assert offset9(dt) == datetime(2014, 7, 1, 22)
-            assert offset10(dt) == datetime(2014, 7, 1, 1)
+        assert offset1 + dt == datetime(2014, 7, 1, 11)
+        assert offset2 + dt == datetime(2014, 7, 1, 13)
+        assert offset3 + dt == datetime(2014, 6, 30, 17)
+        assert offset4 + dt == datetime(2014, 6, 30, 14)
+        assert offset8 + dt == datetime(2014, 7, 1, 11)
+        assert offset9 + dt == datetime(2014, 7, 1, 22)
+        assert offset10 + dt == datetime(2014, 7, 1, 1)
 
     def test_sub(self, dt, offset2, _offset):
         off = offset2
@@ -245,6 +240,12 @@ class TestBusinessHour:
         assert 2 * off - off == off
 
         assert dt - offset2 == dt + _offset(-3)
+
+    def test_multiply_by_zero(self, dt, offset1, offset2):
+        assert dt - 0 * offset1 == dt
+        assert dt + 0 * offset1 == dt
+        assert dt - 0 * offset2 == dt
+        assert dt + 0 * offset2 == dt
 
     def testRollback1(
         self,
@@ -976,6 +977,12 @@ class TestBusinessHour:
         expected = idx1
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
+
+    def test_short_datetimeindex_creation(self):
+        # gh-49835
+        idx4 = date_range(start="2014-07-01 10:00", freq="BH", periods=1)
+        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="BH")
+        tm.assert_index_equal(idx4, expected4)
 
     def test_bday_ignores_timedeltas(self):
         idx = date_range("2010/02/01", "2010/02/10", freq="12H")

@@ -32,7 +32,6 @@ from typing import (
     Callable,
     Generator,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -67,34 +66,17 @@ def safe_import(mod_name: str, min_version: str | None = None):
     object
         The imported module if successful, or False
     """
-    with warnings.catch_warnings():
-        # Suppress warnings that we can't do anything about,
-        #  e.g. from aiohttp
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            module="aiohttp",
-            message=".*decorator is deprecated since Python 3.8.*",
-        )
-
-        # fastparquet import accesses pd.Int64Index
-        warnings.filterwarnings(
-            "ignore",
-            category=FutureWarning,
-            module="fastparquet",
-            message=".*Int64Index.*",
-        )
-
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message="distutils Version classes are deprecated.*",
-        )
-
-        try:
-            mod = __import__(mod_name)
-        except ImportError:
+    try:
+        mod = __import__(mod_name)
+    except ImportError:
+        return False
+    except SystemError:
+        # TODO: numba is incompatible with numpy 1.24+.
+        # Once that's fixed, this block should be removed.
+        if mod_name == "numba":
             return False
+        else:
+            raise
 
     if not min_version:
         return mod
@@ -112,20 +94,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl() -> bool | None:
+def _skip_if_no_mpl() -> bool:
     mod = safe_import("matplotlib")
     if mod:
         mod.use("Agg")
-        return None
+        return False
     else:
         return True
 
 
-def _skip_if_not_us_locale() -> bool | None:
+def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
         return True
-    return None
+    return False
 
 
 def _skip_if_no_scipy() -> bool:
@@ -193,18 +175,14 @@ def skip_if_no(package: str, min_version: str | None = None):
     )
 
 
-# error: Argument 1 to "__call__" of "_SkipifMarkDecorator" has incompatible type
-# "Optional[bool]"; expected "Union[str, bool]"
 skip_if_no_mpl = pytest.mark.skipif(
-    _skip_if_no_mpl(), reason="Missing matplotlib dependency"  # type: ignore[arg-type]
+    _skip_if_no_mpl(), reason="Missing matplotlib dependency"
 )
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-# error: Argument 1 to "__call__" of "_SkipifMarkDecorator" has incompatible type
-# "Optional[bool]"; expected "Union[str, bool]"
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(),  # type: ignore[arg-type]
+    _skip_if_not_us_locale(),
     reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_no_scipy = pytest.mark.skipif(
@@ -315,4 +293,9 @@ skip_array_manager_not_yet_implemented = pytest.mark.xfail(
 skip_array_manager_invalid_test = pytest.mark.skipif(
     get_option("mode.data_manager") == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
+)
+
+skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
+    get_option("mode.copy_on_write"),
+    reason="Not yet implemented/adapted for Copy-on-Write mode",
 )

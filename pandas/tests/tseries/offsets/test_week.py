@@ -114,11 +114,7 @@ class TestWeek:
 
         for day in range(1, 8):
             date = datetime(2008, 1, day)
-
-            if day % 7 == weekday:
-                expected = True
-            else:
-                expected = False
+            expected = day % 7 == weekday
         assert_is_on_offset(offset, date, expected)
 
     @pytest.mark.parametrize(

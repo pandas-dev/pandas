@@ -219,12 +219,12 @@ class GetItemMask:
         d = 1e-5
         arr = make_array(N, d, np.nan, np.float64)
         self.sp_arr = SparseArray(arr)
-        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool8)
+        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool_)
         fv_inds = np.unique(
             np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
         )
         b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
-        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool8, fill_value=fill_value)
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool_, fill_value=fill_value)
 
     def time_mask(self, fill_value):
         self.sp_arr[self.sp_b_arr]

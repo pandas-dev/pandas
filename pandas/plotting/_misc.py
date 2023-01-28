@@ -193,7 +193,7 @@ def radviz(
     influence of all dimensions.
 
     More info available at the `original article
-    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://doi.org/10.1145/331770.331775>`_
     describing RadViz.
 
     Parameters
@@ -218,7 +218,7 @@ def radviz(
 
     See Also
     --------
-    plotting.andrews_curves : Plot clustering visualization.
+    pandas.plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -293,7 +293,7 @@ def andrews_curves(
         Number of points to plot in each curve.
     color : str, list[str] or tuple[str], optional
         Colors to use for the different classes. Colors can be strings
-        or 3-element floating point RBG values.
+        or 3-element floating point RGB values.
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If a string, load colormap with that
         name from matplotlib.
@@ -311,7 +311,7 @@ def andrews_curves(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
@@ -443,7 +443,7 @@ def parallel_coordinates(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(

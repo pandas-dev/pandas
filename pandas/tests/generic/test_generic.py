@@ -50,7 +50,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
     return box(arr, dtype=dtype, **kwargs)
 
 
-class Generic:
+class TestGeneric:
     @pytest.mark.parametrize(
         "func",
         [
@@ -66,7 +66,7 @@ class Generic:
 
         for axis in frame_or_series._AXIS_ORDERS:
             kwargs = {axis: idx}
-            obj = construct(4, **kwargs)
+            obj = construct(frame_or_series, 4, **kwargs)
 
             # rename a single axis
             result = obj.rename(**{axis: func})
@@ -83,21 +83,22 @@ class Generic:
         }
 
         # get the numeric data
-        o = construct(n, **kwargs)
+        o = construct(frame_or_series, n, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
         # non-inclusion
         result = o._get_bool_data()
-        expected = construct(n, value="empty", **kwargs)
+        expected = construct(frame_or_series, n, value="empty", **kwargs)
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        tm.assert_equal(result, expected)
+        # https://github.com/pandas-dev/pandas/issues/50862
+        tm.assert_equal(result.reset_index(drop=True), expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
-        o = construct(n, value=arr, **kwargs)
+        o = construct(frame_or_series, n, value=arr, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
@@ -160,7 +161,7 @@ class Generic:
 
         msg = (
             "compound dtypes are not implemented "
-            f"in the {frame_or_series.__name__} frame_or_series"
+            f"in the {frame_or_series.__name__} constructor"
         )
 
         with pytest.raises(NotImplementedError, match=msg):
@@ -257,7 +258,7 @@ class Generic:
         # GH 12021
         # compat for __name__, __qualname__
 
-        obj = (frame_or_series, 5)
+        obj = construct(frame_or_series, 5)
         f = getattr(obj, func)
         assert f.__name__ == func
         assert f.__qualname__.endswith(func)
@@ -438,22 +439,6 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
-
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
         if frame_or_series is DataFrame:
@@ -462,11 +447,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()

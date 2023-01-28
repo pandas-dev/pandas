@@ -37,8 +37,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
-from pandas.core.api import Float64Index
+from pandas.api.types import (
+    is_bool_dtype,
+    is_scalar,
+)
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -276,8 +278,9 @@ class TestLocBaseIndependent:
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
         # GH#20684
         """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        parse_datetime_string_with_reso return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_datetime_string_with_reso
+        as a tuple.
         If first argument is Period and a tuple has 3 items,
         process go on not raise exception
         """
@@ -390,16 +393,16 @@ class TestLocBaseIndependent:
         # GH31340
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
         cols = ["a", "b", "c"]
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, cols] = df.loc[:, cols].astype("float32")
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
+        # pre-2.0 this setting would swap in new arrays, in 2.0 it is correctly
+        #  in-place, consistent with non-split-path
         expected = DataFrame(
             {
                 "id": ["A"],
-                "a": np.array([1.2], dtype="float32"),
-                "b": np.array([0.0], dtype="float32"),
-                "c": np.array([-2.5], dtype="float32"),
+                "a": np.array([1.2], dtype="float64"),
+                "b": np.array([0.0], dtype="float64"),
+                "c": np.array([-2.5], dtype="float64"),
             }
         )  # id is inferred as object
 
@@ -435,9 +438,8 @@ class TestLocBaseIndependent:
             np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
         )
 
-        # raise a KeyError?
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -455,7 +457,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -471,7 +473,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -488,7 +490,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            rf"\"None of \[NumericIndex\(\[3\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -505,12 +507,11 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                "\"None of [Int64Index([3], dtype='int64')] are in the [index]\""
-            ),
-        ):
+        msg = (
+            f"\"None of [NumericIndex([3], dtype='{np.int_().dtype}')] "
+            'are in the [index]"'
+        )
+        with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
         # a non-match and a match
@@ -620,15 +621,18 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
+        # before the enforcement of #45333 in 2.0, the loc.setitem here would
+        #  change the dtype of df.x to int64
         expected = DataFrame(columns=["x", "y"])
-        expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])
         with tm.assert_produces_warning(None):
             df.loc[:, "x"] = 1
         tm.assert_frame_equal(df, expected)
 
+        # setting with setitem swaps in a new array, so changes the dtype
         df = DataFrame(columns=["x", "y"])
         df["x"] = 1
+        expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_slice_column_len(self):
@@ -655,28 +659,25 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-                df.loc[:, ("Respondent", "StartDate")]
-            )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-                df.loc[:, ("Respondent", "EndDate")]
-            )
-        with tm.assert_produces_warning(None, match=msg):
-            # Adding a new key -> no warning
-            df.loc[:, ("Respondent", "Duration")] = (
-                df.loc[:, ("Respondent", "EndDate")]
-                - df.loc[:, ("Respondent", "StartDate")]
-            )
+        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+            df.loc[:, ("Respondent", "StartDate")]
+        )
+        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+            df.loc[:, ("Respondent", "EndDate")]
+        )
+        df = df.infer_objects(copy=False)
 
-        with tm.assert_produces_warning(None, match=msg):
-            # timedelta64[m] -> float64, so this cannot be done inplace, so
-            #  no warning
-            df.loc[:, ("Respondent", "Duration")] = df.loc[
-                :, ("Respondent", "Duration")
-            ].astype("timedelta64[m]")
+        # Adding a new key
+        df.loc[:, ("Respondent", "Duration")] = (
+            df.loc[:, ("Respondent", "EndDate")]
+            - df.loc[:, ("Respondent", "StartDate")]
+        )
+
+        # timedelta64[m] -> float, so this cannot be done inplace, so
+        #  no warning
+        df.loc[:, ("Respondent", "Duration")] = df.loc[
+            :, ("Respondent", "Duration")
+        ] / Timedelta(60_000_000_000)
 
         expected = Series(
             [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
@@ -742,11 +743,11 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
+        df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
-        expected = DataFrame({"A": ser})
+        # pre-2.0 this setting swapped in a new array, now it is inplace
+        #  consistent with non-split-path
+        expected = DataFrame({"A": ser.astype(float)})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
@@ -754,10 +755,10 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
+        # pre-2.0 this setting swapped in a new array, now it is inplace
+        #  consistent with non-split-path
+        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_empty_frame(self):
@@ -930,13 +931,7 @@ class TestLocBaseIndependent:
         # GH 29334
         df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
 
-        warn = None
-        if isinstance(index[0], slice) and index[0] == slice(None):
-            warn = FutureWarning
-
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[index] = box
+        df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
@@ -953,11 +948,7 @@ class TestLocBaseIndependent:
 
     def test_loc_coercion2(self):
         # GH#12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         expected = df.dtypes
 
         result = df.iloc[[0]]
@@ -1088,20 +1079,14 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(
-        self, using_array_manager, request, using_copy_on_write
-    ):
+    def test_identity_slice_returns_new_object(self, using_copy_on_write):
         # GH13873
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="setting with .loc[:, 'a'] does not alter inplace"
-            )
-            request.node.add_marker(mark)
 
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.loc[:]
         assert sliced_df is not original_df
         assert original_df[:] is not original_df
+        assert original_df.loc[:, :] is not original_df
 
         # should be a shallow copy
         assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
@@ -1115,9 +1100,11 @@ class TestLocBaseIndependent:
             assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
-        assert original_df is original_df.loc[:, :]
         df = DataFrame(np.random.randn(10, 4))
-        assert df[0] is df.loc[:, 0]
+        if using_copy_on_write:
+            assert df[0] is not df.loc[:, 0]
+        else:
+            assert df[0] is df.loc[:, 0]
 
         # Same tests for Series
         original_series = Series([1, 2, 3, 4, 5, 6])
@@ -1178,8 +1165,6 @@ class TestLocBaseIndependent:
             # don't wrap around
             ser.loc[[-1]]
 
-    # FIXME: warning issued here is false-positive
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe
 
@@ -1191,8 +1176,6 @@ class TestLocBaseIndependent:
         df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
-    # FIXME: warning issued here is false-positive
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows_mixed_dtype(self):
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
@@ -1218,7 +1201,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+            rf"None of \[NumericIndex\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
@@ -1300,10 +1283,6 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
-    @pytest.mark.filterwarnings(
-        # TODO(2.0): remove filtering; note only needed for using_array_manager
-        "ignore:The behavior of .astype from SparseDtype.*FutureWarning"
-    )
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 
@@ -1397,9 +1376,10 @@ class TestLocBaseIndependent:
         expected.name = val
         tm.assert_series_equal(result, expected)
 
-    def test_loc_setitem_int_label_with_float64index(self):
+    def test_loc_setitem_int_label_with_float_index(self, float_numpy_dtype):
         # note labels are floats
-        ser = Series(["a", "b", "c"], index=[0, 0.5, 1])
+        dtype = float_numpy_dtype
+        ser = Series(["a", "b", "c"], index=Index([0, 0.5, 1], dtype=dtype))
         expected = ser.copy()
 
         ser.loc[1] = "zoo"
@@ -1447,13 +1427,17 @@ class TestLocBaseIndependent:
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "Alpha"] = categories
+        # pre-2.0 this swapped in a new array, in 2.0 it operates inplace,
+        #  consistent with non-split-path
+        df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
-        expected = Series(categories, index=df.index, name="Alpha")
+        expected = Series(categories, index=df.index, name="Alpha").astype(object)
         tm.assert_series_equal(result, expected)
+
+        # double-check that the non-loc setting retains categoricalness
+        df["Alpha"] = categories
+        tm.assert_series_equal(df["Alpha"], Series(categories, name="Alpha"))
 
     def test_loc_setitem_datetime_coercion(self):
         # GH#1048
@@ -1462,9 +1446,6 @@ class TestLocBaseIndependent:
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        with tm.assert_produces_warning(FutureWarning):
-            # Comparing Timestamp to date obj is deprecated
-            assert Timestamp("2005-05-05") == df.loc[2, "c"]
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
@@ -1680,7 +1661,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and obj.index.is_boolean():
+        if indexer is tm.loc and is_bool_dtype(obj.index):
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return
@@ -2072,13 +2053,12 @@ class TestLocSetitemWithExpansion:
         df.time = df.set_index("time").index.tz_localize("UTC")
         v = df[df.new_col == "new"].set_index("time").index.tz_convert("US/Pacific")
 
-        # trying to set a single element on a part of a different timezone
-        # this converts to object
+        # pre-2.0  trying to set a single element on a part of a different
+        #  timezone converted to object; in 2.0 it retains dtype
         df2 = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            df2.loc[df2.new_col == "new", "time"] = v
+        df2.loc[df2.new_col == "new", "time"] = v
 
-        expected = Series([v[0], df.loc[1, "time"]], name="time")
+        expected = Series([v[0].tz_convert("UTC"), df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == "new", "time"] + Timedelta("1s")
@@ -2093,7 +2073,7 @@ class TestLocSetitemWithExpansion:
         df.loc[0, np.inf] = 3
 
         result = df.columns
-        expected = Float64Index([0, 1, np.inf])
+        expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
@@ -2435,13 +2415,14 @@ class TestLabelSlicing:
         s1 = df.loc[52195.1:52198.9]
         assert len(s1) == 3
 
-    def test_loc_getitem_float_slice_float64index(self):
-        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
+    def test_loc_getitem_float_slice_floatindex(self, float_numpy_dtype):
+        dtype = float_numpy_dtype
+        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=dtype))
 
         assert len(ser.loc[12.0:]) == 8
         assert len(ser.loc[12.5:]) == 7
 
-        idx = np.arange(10, 20, dtype=float)
+        idx = np.arange(10, 20, dtype=dtype)
         idx[2] = 12.2
         ser.index = idx
         assert len(ser.loc[12.0:]) == 8
@@ -2468,7 +2449,9 @@ class TestLabelSlicing:
             [1, 2, 3],
             index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
             obj.loc[start:"2022"]
 
     @pytest.mark.parametrize("value", [1, 1.5])
@@ -2795,15 +2778,12 @@ def test_loc_mixed_int_float():
     assert result == 0
 
 
-def test_loc_with_positional_slice_deprecation():
+def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
         ser.loc[:3] = 2
-
-    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
@@ -2822,15 +2802,15 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#31840 deprecated incorrect behavior
+        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+            # GH#31840 enforce incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31840 deprecated incorrect behavior
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+        # GH#31840 enforce incorrect behavior
         df.loc[1:3, 1] = 2
 
 

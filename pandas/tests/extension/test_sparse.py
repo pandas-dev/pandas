@@ -19,8 +19,6 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_object_dtype
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -159,10 +157,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         ],
     )
     def test_stack(self, data, columns):
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, match="astype from Sparse"
-        ):
-            super().test_stack(data, columns)
+        super().test_stack(data, columns)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -211,24 +206,7 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
 
 class TestIndex(base.BaseIndexTests):
-    def test_index_from_array(self, data):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx = pd.Index(data)
-
-        if data.dtype.subtype == "f":
-            assert idx.dtype == np.float64
-        elif data.dtype.subtype == "i":
-            assert idx.dtype == np.int64
-        else:
-            assert idx.dtype == data.dtype.subtype
-
-    # TODO(2.0): should pass once SparseArray is stored directly in Index.
-    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
-    def test_index_from_listlike_with_dtype(self, data):
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            super().test_index_from_listlike_with_dtype(data)
+    pass
 
 
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
@@ -292,28 +270,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    def test_combine_le(self, data_repeated):
-        # We return a Series[SparseArray].__le__ returns a
-        # Series[Sparse[bool]]
-        # rather than Series[bool]
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            SparseArray(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-                fill_value=False,
-            )
-        )
-        self.assert_series_equal(result, expected)
-
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
-        )
-        self.assert_series_equal(result, expected)
+    _combine_le_expected_dtype = "Sparse[bool]"
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -396,33 +353,11 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    def test_astype_object_series(self, all_data):
-        # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock / resulting array to be np.dtype("object")
-        ser = pd.Series(all_data, name="A")
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = ser.astype(object)
-        assert is_object_dtype(result.dtype)
-        assert is_object_dtype(result._mgr.array.dtype)
-
-    def test_astype_object_frame(self, all_data):
-        # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock / resulting array to be np.dtype("object")
-        df = pd.DataFrame({"A": all_data})
-
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = df.astype(object)
-        assert is_object_dtype(result._mgr.arrays[0].dtype)
-
-        # check that we can compare the dtypes
-        comp = result.dtypes == df.dtypes
-        assert not comp.any()
-
     def test_astype_str(self, data):
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = pd.Series(data[:5]).astype(str)
-        expected_dtype = SparseDtype(str, str(data.fill_value))
-        expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
+        # pre-2.0 this would give a SparseDtype even if the user asked
+        #  for a non-sparse dtype.
+        result = pd.Series(data[:5]).astype(str)
+        expected = pd.Series([str(x) for x in data[:5]], dtype=object)
         self.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
@@ -524,5 +459,10 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            with tm.assert_produces_warning(FutureWarning, match="astype from"):
-                super().test_EA_types(engine, data)
+            super().test_EA_types(engine, data)
+
+
+class TestNoNumericAccumulations(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
+        pass

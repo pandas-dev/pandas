@@ -4,7 +4,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas.compat import IS64
 from pandas.errors import (
     PerformanceWarning,
@@ -28,7 +27,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -94,7 +92,9 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     result = grouped.sum()
 
     expected = mframe.groupby(key.astype("O")).sum()
-    tm.assert_frame_equal(result, expected)
+    assert result.index.dtype == np.int8
+    assert expected.index.dtype == np.int64
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
@@ -229,6 +229,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
+    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -435,17 +436,13 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.mean()
+    result = grouped.mean(numeric_only=True)
     assert result.index.name == "A"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A", as_index=False).mean()
+    result = df.groupby("A", as_index=False).mean(numeric_only=True)
     assert result.index.name != "A"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.agg(np.mean)
+    result = grouped[["C", "D"]].agg(np.mean)
     assert result.index.name == "A"
 
     result = grouped.agg({"C": np.mean, "D": np.std})
@@ -468,10 +465,10 @@ def test_multi_func(df):
     col2 = df["B"]
 
     grouped = df.groupby([col1.get, col2.get])
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.mean()
-        expected = df.groupby(["A", "B"]).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
+    agged = grouped.mean(numeric_only=True)
+    expected = df.groupby(["A", "B"]).mean()
 
     # TODO groupby get drops names
     tm.assert_frame_equal(
@@ -530,6 +527,54 @@ def test_frame_multi_key_function_list():
                 "two",
                 "one",
             ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    grouped = data.groupby(["A", "B"])
+    funcs = [np.mean, np.std]
+    agged = grouped.agg(funcs)
+    expected = pd.concat(
+        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
+        keys=["D", "E", "F"],
+        axis=1,
+    )
+    assert isinstance(agged.index, MultiIndex)
+    assert isinstance(expected.index, MultiIndex)
+    tm.assert_frame_equal(agged, expected)
+
+
+def test_frame_multi_key_function_list_partial_failure():
+    data = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
             "C": [
                 "dull",
                 "dull",
@@ -551,18 +596,8 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
-    ):
-        agged = grouped.agg(funcs)
-    expected = pd.concat(
-        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
-        keys=["D", "E", "F"],
-        axis=1,
-    )
-    assert isinstance(agged.index, MultiIndex)
-    assert isinstance(expected.index, MultiIndex)
-    tm.assert_frame_equal(agged, expected)
+    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+        grouped.agg(funcs)
 
 
 @pytest.mark.parametrize("op", [lambda x: x.sum(), lambda x: x.mean()])
@@ -620,6 +655,8 @@ def test_groupby_as_index_select_column_sum_empty_df():
     left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
 
     expected = DataFrame(columns=df.columns[:2], index=range(0))
+    # GH#50744 - Columns after selection shouldn't retain names
+    expected.columns.names = [None]
     tm.assert_frame_equal(left, expected)
 
 
@@ -628,16 +665,19 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.agg(np.mean)
-        expected = grouped.mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.agg(np.mean)
+    result = grouped[["C", "D"]].agg(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
+    expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected2 = grouped.mean()
-        expected2["D"] = grouped.sum()["D"]
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
+    expected2 = grouped.mean(numeric_only=True)
+    expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
@@ -688,11 +728,9 @@ def test_ops_not_as_index(reduction_func):
 
     if reduction_func in ("corrwith", "nth", "ngroup"):
         pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
-    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        expected = getattr(df.groupby("a"), reduction_func)()
+    expected = getattr(df.groupby("a"), reduction_func)()
     if reduction_func == "size":
         expected = expected.rename("size")
     expected = expected.reset_index()
@@ -703,20 +741,16 @@ def test_ops_not_as_index(reduction_func):
 
     g = df.groupby("a", as_index=False)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = getattr(g, reduction_func)()
+    result = getattr(g, reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = g.agg(reduction_func)
+    result = g.agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = getattr(g["b"], reduction_func)()
+    result = getattr(g["b"], reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = g["b"].agg(reduction_func)
+    result = g["b"].agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
 
@@ -724,10 +758,8 @@ def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped["C"].agg(np.sum)
-        expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
+    result = grouped["C"].agg(np.sum)
+    expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -737,8 +769,7 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
     result = grouped["C"].sum()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = grouped.sum().loc[:, ["A", "C"]]
+    expected = grouped.sum().loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -762,12 +793,14 @@ def test_groupby_as_index_cython(df):
 
     # single-key
     grouped = data.groupby("A", as_index=False)
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.mean()
-        expected = data.groupby(["A"]).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
+    result = grouped.mean(numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        data.groupby(["A"]).mean()
+    expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
     # multi-key
@@ -778,7 +811,7 @@ def test_groupby_as_index_cython(df):
     arrays = list(zip(*expected.index.values))
     expected.insert(0, "A", arrays[0])
     expected.insert(1, "B", arrays[1])
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
 
@@ -832,21 +865,21 @@ def test_groupby_multi_corner(df):
     tm.assert_frame_equal(agged, expected)
 
 
-def test_omit_nuisance(df):
+def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.agg(np.mean)
-        exp = grouped.mean()
-    tm.assert_frame_equal(agged, exp)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.agg(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
 
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.agg(np.sum)
-        expected = grouped.sum()
-    tm.assert_frame_equal(result, expected)
+    msg = "datetime64 type does not support sum operations"
+    with pytest.raises(TypeError, match=msg):
+        grouped.agg(np.sum)
+    with pytest.raises(TypeError, match=msg):
+        grouped.sum()
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
@@ -873,72 +906,45 @@ def test_keep_nuisance_agg(df, agg_function):
     "agg_function",
     ["sum", "mean", "prod", "std", "var", "sem", "median"],
 )
-@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
+@pytest.mark.parametrize("numeric_only", [True, False])
 def test_omit_nuisance_agg(df, agg_function, numeric_only):
     # GH 38774, GH 38815
-    if numeric_only is lib.no_default or (not numeric_only and agg_function != "sum"):
-        # sum doesn't drop strings
-        warn = FutureWarning
-    else:
-        warn = None
-
     grouped = df.groupby("A")
 
-    if agg_function in ("var", "std", "sem") and numeric_only is False:
+    no_drop_nuisance = ("var", "std", "sem", "mean", "prod", "median")
+    if agg_function in no_drop_nuisance and not numeric_only:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
-        klass = TypeError if agg_function == "var" else ValueError
-        with pytest.raises(klass, match="could not convert string to float"):
+        klass = ValueError if agg_function in ("std", "sem") else TypeError
+        msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
+        with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
-        if numeric_only is lib.no_default:
-            msg = (
-                f"The default value of numeric_only in DataFrameGroupBy.{agg_function}"
-            )
-        else:
-            msg = "Dropping invalid columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(grouped, agg_function)(numeric_only=numeric_only)
-        if (
-            (numeric_only is lib.no_default or not numeric_only)
-            # These methods drop non-numeric columns even when numeric_only is False
-            and agg_function not in ("mean", "prod", "median")
-        ):
+        result = getattr(grouped, agg_function)(numeric_only=numeric_only)
+        if not numeric_only and agg_function == "sum":
+            # sum is successful on column B
             columns = ["A", "B", "C", "D"]
         else:
             columns = ["A", "C", "D"]
-        if agg_function == "sum" and numeric_only is False:
-            # sum doesn't drop nuisance string columns
-            warn = None
-        elif agg_function in ("sum", "std", "var", "sem") and numeric_only is not True:
-            warn = FutureWarning
-        else:
-            warn = None
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
-                numeric_only=numeric_only
-            )
+        expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
+            numeric_only=numeric_only
+        )
         tm.assert_frame_equal(result, expected)
 
 
-def test_omit_nuisance_warnings(df):
+def test_raise_on_nuisance_python_single(df):
     # GH 38815
-    with tm.assert_produces_warning(FutureWarning, filter_level="always"):
-        grouped = df.groupby("A")
-        result = grouped.skew()
-        expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
-        tm.assert_frame_equal(result, expected)
+    grouped = df.groupby("A")
+    with pytest.raises(TypeError, match="could not convert"):
+        grouped.skew()
 
 
-def test_omit_nuisance_python_multiple(three_group):
+def test_raise_on_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
-
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.agg(np.mean)
-        exp = grouped.mean()
-    tm.assert_frame_equal(agged, exp)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.agg(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
 
 
 def test_empty_groups_corner(mframe):
@@ -954,10 +960,12 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.agg(np.mean)
-        expected = grouped.mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.agg(np.mean)
+    result = grouped[["v1", "v2"]].agg(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        grouped.mean()
+    expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     grouped = mframe[3:5].groupby(level=0)
@@ -979,20 +987,18 @@ def test_wrap_aggregated_output_multindex(mframe):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = df.groupby(keys).agg(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(keys).agg(np.mean)
+    agged = df.drop(columns=("baz", "two")).groupby(keys).agg(np.mean)
     assert isinstance(agged.columns, MultiIndex)
 
     def aggfun(ser):
         if ser.name == ("foo", "one"):
-            raise TypeError
-        else:
-            return ser.sum()
+            raise TypeError("Test error message")
+        return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        agged2 = df.groupby(keys).aggregate(aggfun)
-    assert len(agged2.columns) + 1 == len(df.columns)
+    with pytest.raises(TypeError, match="Test error message"):
+        df.groupby(keys).aggregate(aggfun)
 
 
 def test_groupby_level_apply(mframe):
@@ -1015,8 +1021,12 @@ def test_groupby_level_mapper(mframe):
     result0 = mframe.groupby(mapper0, level=0).sum()
     result1 = mframe.groupby(mapper1, level=1).sum()
 
-    mapped_level0 = np.array([mapper0.get(x) for x in deleveled["first"]])
-    mapped_level1 = np.array([mapper1.get(x) for x in deleveled["second"]])
+    mapped_level0 = np.array(
+        [mapper0.get(x) for x in deleveled["first"]], dtype=np.int64
+    )
+    mapped_level1 = np.array(
+        [mapper1.get(x) for x in deleveled["second"]], dtype=np.int64
+    )
     expected0 = mframe.groupby(mapped_level0).sum()
     expected1 = mframe.groupby(mapped_level1).sum()
     expected0.index.name, expected1.index.name = "first", "second"
@@ -1063,10 +1073,6 @@ def test_groupby_complex():
     expected = Series((1 + 2j, 5 + 10j))
 
     result = a.groupby(level=0).sum()
-    tm.assert_series_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
 
 
@@ -1142,22 +1148,17 @@ def test_groupby_with_hier_columns():
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(level=0).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(level=0).mean()
+    result = df.groupby(level=0).mean(numeric_only=True)
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
 
 def test_grouping_ndarray(df):
     grouped = df.groupby(df["A"].values)
-
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.sum()
-        expected = df.groupby("A").sum()
-    tm.assert_frame_equal(
-        result, expected, check_names=False
-    )  # Note: no names when grouping by value
+    result = grouped.sum()
+    expected = df.groupby(df["A"].rename(None)).sum()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_wrong_multi_labels():
@@ -1182,10 +1183,12 @@ def test_groupby_wrong_multi_labels():
 
 
 def test_groupby_series_with_name(df):
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(df["A"]).mean()
-        result2 = df.groupby(df["A"], as_index=False).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(df["A"]).mean()
+    result = df.groupby(df["A"]).mean(numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(df["A"], as_index=False).mean()
+    result2 = df.groupby(df["A"], as_index=False).mean(numeric_only=True)
     assert result.index.name == "A"
     assert "A" in result2
 
@@ -1262,8 +1265,6 @@ def test_groupby_mixed_type_columns():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Ensure warning isn't emitted in the first place
-@pytest.mark.filterwarnings("ignore:Mean of:RuntimeWarning")
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
@@ -1336,10 +1337,12 @@ def test_groupby_unit64_float_conversion():
 
 
 def test_groupby_list_infer_array_like(df):
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(list(df["A"])).mean()
-        expected = df.groupby(df["A"]).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(list(df["A"])).mean()
+    result = df.groupby(list(df["A"])).mean(numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby(df["A"]).mean()
+    expected = df.groupby(df["A"]).mean(numeric_only=True)
     tm.assert_frame_equal(result, expected, check_names=False)
 
     with pytest.raises(KeyError, match=r"^'foo'$"):
@@ -1452,9 +1455,9 @@ def test_groupby_2d_malformed():
     d["zeros"] = [0, 0]
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        tmp = d.groupby(["group"]).mean()
+    with pytest.raises(TypeError, match="Could not convert"):
+        d.groupby(["group"]).mean()
+    tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
@@ -1585,7 +1588,7 @@ def test_set_group_name(df, grouper):
         assert group.name is not None
         return group.sum()
 
-    def foo(x):
+    def freducex(x):
         return freduce(x)
 
     grouped = df.groupby(grouper, group_keys=False)
@@ -1598,7 +1601,7 @@ def test_set_group_name(df, grouper):
 
     grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
-    grouped["C"].aggregate([freduce, foo])
+    grouped["C"].aggregate([freduce, freducex])
     grouped["C"].transform(f)
 
 
@@ -1620,13 +1623,10 @@ def test_group_name_available_in_inference_pass():
 
 def test_no_dummy_key_names(df):
     # see gh-1291
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(df["A"].values).sum()
+    result = df.groupby(df["A"].values).sum()
     assert result.index.name is None
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby([df["A"].values, df["B"].values]).sum()
+    result = df.groupby([df["A"].values, df["B"].values]).sum()
     assert result.index.names == (None, None)
 
 
@@ -1877,27 +1877,21 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
-    "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
+    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
+def test_empty_groupby(
+    columns, keys, values, method, op, request, using_array_manager, dropna
+):
     # GH8093 & GH26411
     override_dtype = None
 
     if (
         isinstance(values, Categorical)
         and not isinstance(columns, list)
-        and op in ["sum", "prod", "skew", "mad"]
+        and op in ["sum", "prod", "skew"]
     ):
         # handled below GH#41291
-
-        if using_array_manager and op == "mad":
-            right_msg = "Cannot interpret 'CategoricalDtype.* as a data type"
-            msg = "Regex pattern \"'Categorical' does not implement.*" + right_msg
-            mark = pytest.mark.xfail(raises=AssertionError, match=msg)
-            request.node.add_marker(mark)
-
+        pass
     elif (
         isinstance(values, Categorical)
         and len(keys) == 1
@@ -1931,19 +1925,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
         )
         request.node.add_marker(mark)
 
-    elif (
-        op == "mad"
-        and not isinstance(columns, list)
-        and isinstance(values, pd.DatetimeIndex)
-        and values.tz is not None
-        and using_array_manager
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError,
-            match=r"Cannot interpret 'datetime64\[ns, US/Eastern\]' as a data type",
-        )
-        request.node.add_marker(mark)
-
     elif isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
@@ -1960,17 +1941,13 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
 
-    def get_result():
-        warn = FutureWarning if op == "mad" else None
-        with tm.assert_produces_warning(
-            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
-        ):
-            if method == "attr":
-                return getattr(gb, op)()
-            else:
-                return getattr(gb, method)(op)
+    def get_result(**kwargs):
+        if method == "attr":
+            return getattr(gb, op)(**kwargs)
+        else:
+            return getattr(gb, method)(op, **kwargs)
 
     if columns == "C":
         # i.e. SeriesGroupBy
@@ -1987,13 +1964,10 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                     get_result()
 
                 return
-        if op in ["prod", "sum", "skew", "mad"]:
+        if op in ["prod", "sum", "skew"]:
             if isinstance(values, Categorical):
                 # GH#41291
-                if op == "mad":
-                    # mad calls mean, which Categorical doesn't implement
-                    msg = "does not support reduction 'mean'"
-                elif op == "skew":
+                if op == "skew":
                     msg = f"does not support reduction '{op}'"
                 else:
                     msg = "category type does not support"
@@ -2008,7 +1982,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
-                result = get_result()
+                with pytest.raises(TypeError, match="datetime64 type does not support"):
+                    get_result()
+                result = get_result(numeric_only=True)
 
                 # with numeric_only=True, these are dropped, and we get
                 # an empty DataFrame back
@@ -2019,7 +1995,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             elif isinstance(values, Categorical):
                 # GH#41291
                 # Categorical doesn't implement sum or prod
-                result = get_result()
+                with pytest.raises(TypeError, match="category type does not support"):
+                    get_result()
+                result = get_result(numeric_only=True)
 
                 # with numeric_only=True, these are dropped, and we get
                 # an empty DataFrame back
@@ -2035,23 +2013,27 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 return
 
             elif df.dtypes[0] == object:
-                # FIXME: the test is actually wrong here, xref #41341
                 result = get_result()
-                # In this case we have list-of-list, will raise TypeError,
-                # and subsequently be dropped as nuisance columns
-                expected = df.set_index(keys)[[]]
+                expected = df.set_index(keys)[["C"]]
                 tm.assert_equal(result, expected)
                 return
 
-        if (
-            op in ["mad", "min", "max", "skew"]
-            and isinstance(values, Categorical)
-            and len(keys) == 1
+        if (op in ["min", "max", "skew"] and isinstance(values, Categorical)) or (
+            op == "skew" and df.dtypes[0].kind == "M"
         ):
+            if op == "skew" or len(keys) == 1:
+                msg = "|".join(
+                    [
+                        "Categorical is not ordered",
+                        "does not support reduction",
+                    ]
+                )
+                with pytest.raises(TypeError, match=msg):
+                    get_result()
+                return
             # Categorical doesn't implement, so with numeric_only=True
             #  these are dropped and we get an empty DataFrame back
             result = get_result()
-            expected = df.set_index(keys)[[]]
 
             # with numeric_only=True, these are dropped, and we get
             # an empty DataFrame back
@@ -2066,7 +2048,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 lev = Categorical([0], dtype=values.dtype)
                 ci = Index(lev, name=keys[0])
                 expected = DataFrame([], columns=[], index=ci)
-            # expected = df.set_index(keys)[columns]
 
             tm.assert_equal(result, expected)
             return
@@ -2307,13 +2288,9 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*is deprecated.*:FutureWarning")
 def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
-    if transformation_func == "tshift":
-        mark = pytest.mark.xfail(raises=NotImplementedError)
-        request.node.add_marker(mark)
     df = DataFrame(
         data=[[1, Timestamp("today"), 3, 4]],
         columns=["col_1", "col_2", "col_3", "col_4"],
@@ -2323,8 +2300,6 @@ def test_group_on_empty_multiindex(transformation_func, request):
     df = df.set_index(["col_1", "col_2"])
     if transformation_func == "fillna":
         args = ("ffill",)
-    elif transformation_func == "tshift":
-        args = (1, "D")
     else:
         args = ()
     result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
@@ -2351,24 +2326,15 @@ def test_group_on_empty_multiindex(transformation_func, request):
         MultiIndex.from_tuples((("a", "a"), ("a", "a")), names=["foo", "bar"]),
     ],
 )
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip(f"Not applicable for {groupby_func}")
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
-    warn = FutureWarning if groupby_func in ("mad", "tshift") else None
 
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
-    if groupby_func == "tshift":
-        df.index = [Timestamp("today")]
-        # args.extend([1, "D"])
     args = get_groupby_method_args(groupby_func, df)
-
-    with tm.assert_produces_warning(warn, match="is deprecated"):
-        result = getattr(grp_by, groupby_func)(*args)
+    result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
@@ -2512,7 +2478,7 @@ def test_groupby_duplicate_columns():
     ).astype(object)
     df.columns = ["A", "B", "B"]
     result = df.groupby([0, 0, 0, 0]).min()
-    expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    expected = DataFrame([["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -2669,14 +2635,12 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
     )
 
     expected = DataFrame(
-        {"z": [7, 8]},
+        {"y": [Timedelta(7, "days"), Timedelta(8, "days")], "z": [7, 8]},
         index=Index([0, 1], dtype="int64", name="x"),
     )
 
     gb = df.groupby(by=["x"])
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.sum()
+    result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -2777,18 +2741,10 @@ def test_groupby_none_column_name():
 
 def test_single_element_list_grouping():
     # GH 42795
-    df = DataFrame(
-        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
-    )
-    msg = (
-        "In a future version of pandas, a length 1 "
-        "tuple will be returned when iterating over "
-        "a groupby with a grouper equal to a list of "
-        "length 1. Don't supply a list with a single grouper "
-        "to avoid this warning."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        values, _ = next(iter(df.groupby(["a"])))
+    df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
+    result = [key for key, _ in df.groupby(["a"])]
+    expected = [(1,), (2,)]
+    assert result == expected
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])
@@ -2823,7 +2779,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").sum()
     expected = DataFrame(
         {"b": [val * 2]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2835,7 +2791,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").prod()
     expected = DataFrame(
         {"b": [val * val]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2881,4 +2837,33 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
 
     result = series.to_frame().groupby("blah").sum()
     expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n", [1, 10, 32, 100, 1000])
+def test_sum_of_booleans(n):
+    # GH 50347
+    df = DataFrame({"groupby_col": 1, "bool": [True] * n})
+    df["bool"] = df["bool"].eq(True)
+    result = df.groupby("groupby_col").sum()
+    expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
+def test_groupby_method_drop_na(method):
+    # GH 21755
+    df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
+
+    if method == "nth":
+        result = getattr(df.groupby("A"), method)(n=0)
+    else:
+        result = getattr(df.groupby("A"), method)()
+
+    if method in ["first", "last"]:
+        expected = DataFrame({"B": [0, 2, 4]}).set_index(
+            Series(["a", "b", "c"], name="A")
+        )
+    else:
+        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
     tm.assert_frame_equal(result, expected)

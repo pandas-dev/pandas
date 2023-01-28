@@ -44,6 +44,15 @@ class IntegerArray:
         pd.array(self.values_integer, dtype="Int64")
 
 
+class IntervalArray:
+    def setup(self):
+        N = 10_000
+        self.tuples = [(i, i + 1) for i in range(N)]
+
+    def time_from_tuples(self):
+        pd.arrays.IntervalArray.from_tuples(self.tuples)
+
+
 class StringArray:
     def setup(self):
         N = 100_000
@@ -84,11 +93,52 @@ class ArrowStringArray:
             self.array[i] = "foo"
 
     def time_setitem_list(self, multiple_chunks):
-        indexer = list(range(0, 50)) + list(range(-50, 0))
+        indexer = list(range(0, 50)) + list(range(-1000, 0, 50))
         self.array[indexer] = ["foo"] * len(indexer)
 
     def time_setitem_slice(self, multiple_chunks):
         self.array[::10] = "foo"
 
+    def time_setitem_null_slice(self, multiple_chunks):
+        self.array[:] = "foo"
+
     def time_tolist(self, multiple_chunks):
         self.array.tolist()
+
+
+class ArrowExtensionArray:
+
+    params = [
+        [
+            "boolean[pyarrow]",
+            "float64[pyarrow]",
+            "int64[pyarrow]",
+            "string[pyarrow]",
+            "timestamp[ns][pyarrow]",
+        ],
+        [False, True],
+    ]
+    param_names = ["dtype", "hasna"]
+
+    def setup(self, dtype, hasna):
+        N = 100_000
+        if dtype == "boolean[pyarrow]":
+            data = np.random.choice([True, False], N, replace=True)
+        elif dtype == "float64[pyarrow]":
+            data = np.random.randn(N)
+        elif dtype == "int64[pyarrow]":
+            data = np.arange(N)
+        elif dtype == "string[pyarrow]":
+            data = tm.rands_array(10, N)
+        elif dtype == "timestamp[ns][pyarrow]":
+            data = pd.date_range("2000-01-01", freq="s", periods=N)
+        else:
+            raise NotImplementedError
+
+        arr = pd.array(data, dtype=dtype)
+        if hasna:
+            arr[::2] = pd.NA
+        self.arr = arr
+
+    def time_to_numpy(self, dtype, hasna):
+        self.arr.to_numpy()

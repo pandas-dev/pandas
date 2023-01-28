@@ -16,6 +16,14 @@ import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    """
+    Resolution for datetimelike dtypes.
+    """
+    return request.param
+
+
 class TestAsOfMerge:
     def read_data(self, datapath, name, dedupe=False):
         path = datapath("reshape", "merge", "data", name)
@@ -63,8 +71,13 @@ class TestAsOfMerge:
         result = merge_asof(left, right, on="a")
         tm.assert_frame_equal(result, expected)
 
-    def test_examples2(self):
+    def test_examples2(self, unit):
         """doc-string examples"""
+        if unit == "s":
+            pytest.skip(
+                "This test is invalid for unit='s' because that would "
+                "round the trades['time']]"
+            )
         trades = pd.DataFrame(
             {
                 "time": to_datetime(
@@ -75,7 +88,7 @@ class TestAsOfMerge:
                         "20160525 13:30:00.048",
                         "20160525 13:30:00.048",
                     ]
-                ),
+                ).astype(f"M8[{unit}]"),
                 "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
                 "price": [51.95, 51.95, 720.77, 720.92, 98.00],
                 "quantity": [75, 155, 100, 100, 100],
@@ -96,7 +109,7 @@ class TestAsOfMerge:
                         "20160525 13:30:00.072",
                         "20160525 13:30:00.075",
                     ]
-                ),
+                ).astype(f"M8[{unit}]"),
                 "ticker": [
                     "GOOG",
                     "MSFT",
@@ -127,7 +140,7 @@ class TestAsOfMerge:
                         "20160525 13:30:00.048",
                         "20160525 13:30:00.048",
                     ]
-                ),
+                ).astype(f"M8[{unit}]"),
                 "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
                 "price": [51.95, 51.95, 720.77, 720.92, 98.00],
                 "quantity": [75, 155, 100, 100, 100],
@@ -210,7 +223,6 @@ class TestAsOfMerge:
     def test_basic_right_index(self, trades, asof, quotes):
 
         expected = asof
-        trades = trades
         quotes = quotes.set_index("time")
 
         result = merge_asof(
@@ -640,7 +652,7 @@ class TestAsOfMerge:
         result = merge_asof(left, right, on="a", direction="nearest", tolerance=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_tolerance_tz(self):
+    def test_tolerance_tz(self, unit):
         # GH 14844
         left = pd.DataFrame(
             {
@@ -649,6 +661,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
+                    unit=unit,
                 ),
                 "value1": np.arange(5),
             }
@@ -660,6 +673,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
+                    unit=unit,
                 ),
                 "value2": list("ABCDE"),
             }
@@ -673,6 +687,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
+                    unit=unit,
                 ),
                 "value1": np.arange(5),
                 "value2": list("BCDEE"),
@@ -1315,22 +1330,27 @@ class TestAsOfMerge:
         expected["value_y"] = np.array([np.nan], dtype=object)
         tm.assert_frame_equal(result, expected)
 
-    def test_timedelta_tolerance_nearest(self):
+    def test_timedelta_tolerance_nearest(self, unit):
         # GH 27642
+        if unit == "s":
+            pytest.skip(
+                "This test is invalid with unit='s' because that would "
+                "round left['time']"
+            )
 
         left = pd.DataFrame(
             list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5])),
             columns=["time", "left"],
         )
 
-        left["time"] = pd.to_timedelta(left["time"], "ms")
+        left["time"] = pd.to_timedelta(left["time"], "ms").astype(f"m8[{unit}]")
 
         right = pd.DataFrame(
             list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5])),
             columns=["time", "right"],
         )
 
-        right["time"] = pd.to_timedelta(right["time"], "ms")
+        right["time"] = pd.to_timedelta(right["time"], "ms").astype(f"m8[{unit}]")
 
         expected = pd.DataFrame(
             list(
@@ -1343,7 +1363,7 @@ class TestAsOfMerge:
             columns=["time", "left", "right"],
         )
 
-        expected["time"] = pd.to_timedelta(expected["time"], "ms")
+        expected["time"] = pd.to_timedelta(expected["time"], "ms").astype(f"m8[{unit}]")
 
         result = merge_asof(
             left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
@@ -1401,12 +1421,17 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_left_index_right_index_tolerance(self):
+    def test_left_index_right_index_tolerance(self, unit):
         # https://github.com/pandas-dev/pandas/issues/35558
-        dr1 = pd.date_range(start="1/1/2020", end="1/20/2020", freq="2D") + Timedelta(
-            seconds=0.4
-        )
-        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020")
+        if unit == "s":
+            pytest.skip(
+                "This test is invalid with unit='s' because that would round dr1"
+            )
+
+        dr1 = pd.date_range(
+            start="1/1/2020", end="1/20/2020", freq="2D", unit=unit
+        ) + Timedelta(seconds=0.4).as_unit(unit)
+        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020", unit=unit)
 
         df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
         df2 = pd.DataFrame({"val2": "bar"}, index=pd.DatetimeIndex(dr2))
@@ -1568,3 +1593,18 @@ def test_merge_asof_array_as_on():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_raise_for_duplicate_columns():
+    # GH#50102
+    left = pd.DataFrame([[1, 2, "a"]], columns=["a", "a", "left_val"])
+    right = pd.DataFrame([[1, 1, 1]], columns=["a", "a", "right_val"])
+
+    with pytest.raises(ValueError, match="column label 'a'"):
+        merge_asof(left, right, on="a")
+
+    with pytest.raises(ValueError, match="column label 'a'"):
+        merge_asof(left, right, left_on="a", right_on="right_val")
+
+    with pytest.raises(ValueError, match="column label 'a'"):
+        merge_asof(left, right, left_on="left_val", right_on="a")

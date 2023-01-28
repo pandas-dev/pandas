@@ -13,6 +13,7 @@ from pandas.errors import IndexingError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
+    is_object_dtype,
 )
 
 import pandas as pd
@@ -26,7 +27,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -41,7 +41,7 @@ class TestFancy:
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(np.arange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11), dtype=np.int64))
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
@@ -69,8 +69,7 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="label-based"):
-                df[2:5] = np.arange(1, 4) * 1j
+            df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -168,7 +167,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = Float64Index([1, 2, np.inf])
+        expected = Index([1, 2, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -549,52 +548,47 @@ class TestFancy:
         )
 
         df = df_orig.copy()
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
-        expected = DataFrame(
-            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        tm.assert_frame_equal(df, expected)
 
-        df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
+        # with the enforcement of GH#45333 in 2.0, this setting is attempted inplace,
+        #  so object dtype is retained
+        df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["A"] = expected["A"].astype(object)
+        expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["A"] = expected["A"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["B"] = expected["B"].astype(object)
+        expected["C"] = expected["C"].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
         # full replacements / no nans
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0] = df["A"].astype(np.int64)
-        expected = DataFrame({"A": [1, 2, 3, 4]})
+
+        # With the enforcement of GH#45333 in 2.0, this assignment occurs inplace,
+        #  so float64 is retained
+        df.iloc[:, 0] = df["A"].astype(np.int64)
+        expected = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "A"] = df["A"].astype(np.int64)
-        expected = DataFrame({"A": [1, 2, 3, 4]})
+        df.loc[:, "A"] = df["A"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
@@ -609,11 +603,11 @@ class TestFancy:
         # integer indexes
         for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
 
-            assert s.index.is_integer()
+            assert is_integer_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
-            assert s2.index.is_floating()
+            assert is_float_dtype(s2.index)
             assert indexer(s2)[0.1] == 0
 
             s2 = s.copy()
@@ -625,15 +619,15 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
         for s in [Series(range(5), index=np.arange(5.0))]:
 
-            assert s.index.is_floating()
+            assert is_float_dtype(s.index)
 
             s2 = s.copy()
             indexer(s2)[0.1] = 0
-            assert s2.index.is_floating()
+            assert is_float_dtype(s2.index)
             assert indexer(s2)[0.1] == 0
 
             s2 = s.copy()
@@ -642,7 +636,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
 
 class TestMisc:
@@ -706,7 +700,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right_loc, right_iloc]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{}".format)
+            frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)
@@ -883,7 +877,7 @@ class TestDatetimelikeCoercion:
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
-            assert ser._values._data is values._data
+            assert ser._values._ndarray is values._ndarray
         else:
             assert ser._values is values
 
@@ -911,7 +905,7 @@ class TestDatetimelikeCoercion:
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
-            assert ser._values._data is values._data
+            assert ser._values._ndarray is values._ndarray
         else:
             assert ser._values is values
 
@@ -925,7 +919,7 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(scalar)
 
         indexer_sli(ser)[0] = scalar
-        assert ser._values._data is values._data
+        assert ser._values._ndarray is values._ndarray
 
     @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
@@ -945,7 +939,7 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(newvals)
 
         indexer_sli(ser)[key] = newvals
-        assert ser._values._data is values._data
+        assert ser._values._ndarray is values._ndarray
 
 
 def test_extension_array_cross_section():

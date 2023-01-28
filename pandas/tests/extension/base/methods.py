@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -211,33 +213,17 @@ class BaseMethodsTests(BaseExtensionTests):
         assert isinstance(result, type(data))
         assert result[0] == duplicated[0]
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel):
-        if na_sentinel == -1:
-            msg = "Specifying `na_sentinel=-1` is deprecated"
-        else:
-            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_codes = np.array(
-            [0, 0, na_sentinel, na_sentinel, 1, 1, 0, 2], dtype=np.intp
-        )
+    def test_factorize(self, data_for_grouping):
+        codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        if na_sentinel == -1:
-            msg = "Specifying `na_sentinel=-1` is deprecated"
-        else:
-            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            codes_1, uniques_1 = pd.factorize(
-                data_for_grouping, na_sentinel=na_sentinel
-            )
-            codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+    def test_factorize_equivalence(self, data_for_grouping):
+        codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)
@@ -276,6 +262,9 @@ class BaseMethodsTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=msg):
             data_missing.fillna(data_missing.take([1]))
 
+    # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
+    _combine_le_expected_dtype: Dtype = np.dtype(bool)
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison
@@ -284,13 +273,17 @@ class BaseMethodsTests(BaseExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+            dtype=self._combine_le_expected_dtype,
         )
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)])
+        expected = pd.Series(
+            [a <= val for a in list(orig_data1)],
+            dtype=self._combine_le_expected_dtype,
+        )
         self.assert_series_equal(result, expected)
 
     def test_combine_add(self, data_repeated):

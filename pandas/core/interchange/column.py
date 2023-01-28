@@ -315,7 +315,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 
@@ -329,7 +329,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

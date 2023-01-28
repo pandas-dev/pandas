@@ -90,8 +90,9 @@ class TestPreserves:
         assert df.loc[[0]].flags.allows_duplicate_labels is False
         assert df.loc[0, ["A"]].flags.allows_duplicate_labels is False
 
-    @pytest.mark.xfail(reason="Unclear behavior.")
-    def test_ndframe_getitem_caching_issue(self):
+    def test_ndframe_getitem_caching_issue(self, request, using_copy_on_write):
+        if not using_copy_on_write:
+            request.node.add_marker(pytest.mark.xfail(reason="Unclear behavior."))
         # NDFrame.__getitem__ will cache the first df['A']. May need to
         # invalidate that cache? Update the cached entries?
         df = pd.DataFrame({"A": [0]}).set_flags(allows_duplicate_labels=False)
@@ -414,7 +415,6 @@ def test_dataframe_insert_raises():
     "method, frame_only",
     [
         (operator.methodcaller("set_index", "A", inplace=True), True),
-        (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
         (operator.methodcaller("reset_index", inplace=True), True),
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
@@ -427,19 +427,11 @@ def test_inplace_raises(method, frame_only):
     s.flags.allows_duplicate_labels = False
     msg = "Cannot specify"
 
-    warn_msg = "Series.set_axis 'inplace' keyword"
-    if "set_axis" in str(method):
-        warn = FutureWarning
-    else:
-        warn = None
-
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            method(df)
+        method(df)
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match=warn_msg):
-                method(s)
+            method(s)
 
 
 def test_pickle():

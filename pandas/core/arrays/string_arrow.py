@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: PDF001
 import re
-from typing import Union
+from typing import (
+    Callable,
+    Union,
+)
 
 import numpy as np
 
@@ -12,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    NpDtype,
     Scalar,
     npt,
 )
@@ -85,7 +86,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
 
     See Also
     --------
-    array
+    :func:`pandas.array`
         The recommended function for creating a ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
@@ -151,31 +152,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         """
         return self._dtype
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
-        """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
-
-    def to_numpy(
-        self,
-        dtype: npt.DTypeLike | None = None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        """
-        Convert to a NumPy ndarray.
-        """
-        # TODO: copy argument is ignored
-
-        result = np.array(self._data, dtype=dtype)
-        if self._data.null_count > 0:
-            if na_value is lib.no_default:
-                if dtype and np.issubdtype(dtype, np.floating):
-                    return result
-                na_value = self._dtype.na_value
-            mask = self.isna()
-            result[mask] = na_value
-        return result
-
     def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
@@ -194,7 +170,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             for v in value:
                 if not (v is None or isinstance(v, str)):
                     raise ValueError("Scalar must be NA or str")
-        return value
+        return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         value_set = [
@@ -219,10 +195,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             if copy:
                 return self.copy()
             return self
-
         elif isinstance(dtype, NumericDtype):
             data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
+        elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
+            return self.to_numpy(dtype=dtype, na_value=np.nan)
 
         return super().astype(dtype, copy=copy)
 
@@ -317,11 +294,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return result
 
     def _str_startswith(self, pat: str, na=None):
-        pat = "^" + re.escape(pat)
+        pat = f"^{re.escape(pat)}"
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_endswith(self, pat: str, na=None):
-        pat = re.escape(pat) + "$"
+        pat = f"{re.escape(pat)}$"
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_replace(
@@ -345,14 +322,14 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if not pat.startswith("^"):
-            pat = "^" + pat
+            pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if not pat.endswith("$") or pat.endswith("//$"):
-            pat = pat + "$"
+            pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):

@@ -213,9 +213,9 @@ class ODFReader(BaseExcelReader):
             return float(cell_value)
         elif cell_type == "date":
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
-            return pd.to_datetime(cell_value)
+            return pd.Timestamp(cell_value)
         elif cell_type == "time":
-            stamp = pd.to_datetime(str(cell))
+            stamp = pd.Timestamp(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
             return cast(Scalar, stamp.time())
         else:

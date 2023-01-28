@@ -38,22 +38,3 @@ __all__ = [
     # this is preserved here for downstream compatibility (GH-33892)
     "create_block_manager_from_blocks",
 ]
-
-
-def __getattr__(name: str):
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    if name == "CategoricalBlock":
-        warnings.warn(
-            "CategoricalBlock is deprecated and will be removed in a future version. "
-            "Use ExtensionBlock instead.",
-            DeprecationWarning,
-            stacklevel=find_stack_level(),
-        )
-        from pandas.core.internals.blocks import CategoricalBlock
-
-        return CategoricalBlock
-
-    raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")

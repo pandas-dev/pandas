@@ -1,12 +1,11 @@
 import glob
 import os
-import platform
 import shutil
 import subprocess
 import sys
 
 if os.name == "nt":
-    py_ver = platform.python_version()
+    py_ver = f"{sys.version_info.major}.{sys.version_info.minor}"
     is_32_bit = os.getenv("IS_32_BIT") == "true"
     try:
         wheel_dir = sys.argv[1]

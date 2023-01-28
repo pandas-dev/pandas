@@ -16,7 +16,8 @@ class TestSeriesReplace:
         expected = pd.Series([0, 0, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        df = pd.DataFrame(np.zeros((3, 3)))
+        # Cast column 2 to object to avoid implicit cast when setting entry to ""
+        df = pd.DataFrame(np.zeros((3, 3))).astype({2: object})
         df.iloc[2, 2] = ""
         result = df.replace("", None)
         expected = pd.DataFrame(
@@ -309,8 +310,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(FutureWarning):
-            empty_series = pd.Series([])
+        empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
     def test_replace_string_with_number(self):
@@ -662,8 +662,53 @@ class TestSeriesReplace:
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
         maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
-        map_dict = {old: new for (old, new) in zip(maps.values, maps.index)}
+        map_dict = dict(zip(maps.values, maps.index))
 
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [2, np.nan, 2.0])
+    def test_replace_value_none_dtype_numeric(self, val):
+        # GH#48231
+        ser = pd.Series([1, val])
+        result = ser.replace(val, None)
+        expected = pd.Series([1, None], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_change_dtype_series(self):
+        # GH#25797
+        df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})
+        df["Test"] = df["Test"].replace([True], [np.nan])
+        expected = pd.DataFrame.from_dict({"Test": ["0.5", np.nan, "0.6"]})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df["Test"] = df["Test"].replace([None], [np.nan])
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df["Test"] = df["Test"].fillna(np.nan)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["object", "Int64"])
+    def test_replace_na_in_obj_column(self, dtype):
+        # GH#47480
+        ser = pd.Series([0, 1, pd.NA], dtype=dtype)
+        expected = pd.Series([0, 2, pd.NA], dtype=dtype)
+        result = ser.replace(to_replace=1, value=2)
+        tm.assert_series_equal(result, expected)
+
+        ser.replace(to_replace=1, value=2, inplace=True)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("val", [0, 0.5])
+    def test_replace_numeric_column_with_na(self, val):
+        # GH#50758
+        ser = pd.Series([val, 1])
+        expected = pd.Series([val, pd.NA])
+        result = ser.replace(to_replace=1, value=pd.NA)
+        tm.assert_series_equal(result, expected)
+
+        ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        tm.assert_series_equal(ser, expected)

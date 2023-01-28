@@ -27,6 +27,7 @@ from pandas._config.localization import (
 from pandas._typing import (
     Dtype,
     Frequency,
+    NpDtype,
 )
 from pandas.compat import pa_version_under6p0
 
@@ -34,12 +35,14 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_sequence,
+    is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -60,7 +63,6 @@ from pandas._testing._io import (
     write_to_compressed,
 )
 from pandas._testing._random import (
-    randbool,
     rands,
     rands_array,
 )
@@ -102,16 +104,12 @@ from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
     ensure_safe_environment_variables,
+    raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
@@ -129,12 +127,13 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_NUMPY_DTYPES: list[NpDtype] = [int, "int8", "int16", "int32", "int64"]
 SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
 ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
+ALL_INT_DTYPES: list[Dtype] = [*ALL_INT_NUMPY_DTYPES, *ALL_INT_EA_DTYPES]
 
 FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
@@ -200,10 +199,16 @@ if not pa_version_under6p0:
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+    ALL_INT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in ALL_INT_PYARROW_DTYPES
+    ]
 
     # pa.float16 doesn't seem supported
     # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    FLOAT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
+    ]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -236,6 +241,9 @@ if not pa_version_under6p0:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+else:
+    FLOAT_PYARROW_DTYPES_STR_REPR = []
+    ALL_INT_PYARROW_DTYPES_STR_REPR = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -279,7 +287,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index._with_infer(expected)
+        expected = Index(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -350,7 +358,7 @@ def makeBoolIndex(k: int = 10, name=None) -> Index:
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
-def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
+def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> NumericIndex:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
@@ -368,23 +376,29 @@ def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
     return NumericIndex(values, dtype=dtype, name=name)
 
 
-def makeIntIndex(k: int = 10, name=None) -> Int64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="int64")
-    return Int64Index(base_idx)
+def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_signed_integer_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, name=None) -> UInt64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
-    return UInt64Index(base_idx)
+def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_unsigned_integer_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
 def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
     return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
-def makeFloatIndex(k: int = 10, name=None) -> Float64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="float64")
-    return Float64Index(base_idx)
+def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_float_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
 def makeDateIndex(
@@ -610,8 +624,6 @@ def makeCustomIndex(
     for i in range(nlevels):
 
         def keyfunc(x):
-            import re
-
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
             return [int(num) for num in numeric_tuple]
 
@@ -887,7 +899,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
+    return pytest.raises(expected_exception, match=None)
 
 
 cython_table = pd.core.common._cython_table.items()
@@ -1121,10 +1133,10 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "randbool",
     "rands",
     "reset_display_options",
     "RNGContext",
+    "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",

@@ -4,11 +4,8 @@ datetimelike delegation
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
-
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -164,7 +161,7 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
     >>> hours_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="h"))
     >>> hours_series
@@ -176,7 +173,7 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
     >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="q"))
     >>> quarters_series
@@ -188,7 +185,7 @@ class DatetimeProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
 
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
@@ -276,31 +273,6 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
-    @property
-    def weekofyear(self):
-        """
-        The week ordinal of the year according to the ISO 8601 standard.
-
-        .. deprecated:: 1.1.0
-
-        Series.dt.weekofyear and Series.dt.week have been deprecated.  Please
-        call :func:`Series.dt.isocalendar` and access the ``week`` column
-        instead.
-        """
-        warnings.warn(
-            "Series.dt.weekofyear and Series.dt.week have been deprecated. "
-            "Please use Series.dt.isocalendar().week instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        week_series = self.isocalendar().week
-        week_series.name = self.name
-        if week_series.hasnans:
-            return week_series.astype("float64")
-        return week_series.astype("int64")
-
-    week = weekofyear
-
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
@@ -331,7 +303,7 @@ class TimedeltaProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
     """
 
     def to_pytimedelta(self) -> np.ndarray:

@@ -4,7 +4,6 @@ from typing import (
     Any,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -18,12 +17,10 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
-    pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -216,18 +213,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         name = maybe_extract_name(name, data, cls)
 
-        if data is None:
-            # GH#38944
-            warnings.warn(
-                "Constructing a CategoricalIndex without passing data is "
-                "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            data = []
-
         if is_scalar(data):
+            # GH#38944 include None here, which pre-2.0 subbed in []
             cls._raise_scalar_data_error(data)
 
         data = Categorical(
@@ -286,30 +273,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         return other
 
-    @doc(Index.astype)
-    def astype(self, dtype: Dtype, copy: bool = True) -> Index:
-        from pandas.core.api import NumericIndex
-
-        dtype = pandas_dtype(dtype)
-
-        categories = self.categories
-        # the super method always returns Int64Index, UInt64Index and Float64Index
-        # but if the categories are a NumericIndex with dtype float32, we want to
-        # return an index with the same dtype as self.categories.
-        if categories._is_backward_compat_public_numeric_index:
-            assert isinstance(categories, NumericIndex)  # mypy complaint fix
-            try:
-                categories._validate_dtype(dtype)
-            except ValueError:
-                pass
-            else:
-                new_values = self._data.astype(dtype, copy=copy)
-                # pass copy=False because any copying has been done in the
-                #  _data.astype call above
-                return categories._constructor(new_values, name=self.name, copy=False)
-
-        return super().astype(dtype, copy=copy)
-
     def equals(self, other: object) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
@@ -349,7 +312,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         attrs = [
             (
                 "categories",
-                "[" + ", ".join(self._data._repr_categories()) + "]",
+                f"[{', '.join(self._data._repr_categories())}]",
             ),
             ("ordered", self.ordered),
         ]
@@ -377,7 +340,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         return contains(self, key, container=self._engine)
 
-    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
@@ -404,56 +366,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             raise NotImplementedError(
                 "argument limit is not implemented for CategoricalIndex.reindex"
             )
-
-        target = ibase.ensure_index(target)
-
-        if self.equals(target):
-            indexer = None
-            missing = np.array([], dtype=np.intp)
-        else:
-            indexer, missing = self.get_indexer_non_unique(target)
-            if not self.is_unique:
-                # GH#42568
-                warnings.warn(
-                    "reindexing with a non-unique Index is deprecated and will "
-                    "raise in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-        new_target: Index
-        if len(self) and indexer is not None:
-            new_target = self.take(indexer)
-        else:
-            new_target = target
-
-        # filling in missing if needed
-        if len(missing):
-            cats = self.categories.get_indexer(target)
-
-            if not isinstance(target, CategoricalIndex) or (cats == -1).any():
-                new_target, indexer, _ = super()._reindex_non_unique(target)
-            else:
-                # error: "Index" has no attribute "codes"
-                codes = new_target.codes.copy()  # type: ignore[attr-defined]
-                codes[indexer == -1] = cats[missing]
-                cat = self._data._from_backing_data(codes)
-                new_target = type(self)._simple_new(cat, name=self.name)
-
-        # we always want to return an Index type here
-        # to be consistent with .reindex for other index types (e.g. they don't
-        # coerce based on the actual values, only on the dtype)
-        # unless we had an initial Categorical to begin with
-        # in which case we are going to conform to the passed Categorical
-        if is_categorical_dtype(target):
-            cat = Categorical(new_target, dtype=target.dtype)
-            new_target = type(self)._simple_new(cat, name=self.name)
-        else:
-            # e.g. test_reindex_with_categoricalindex, test_reindex_duplicate_target
-            new_target_array = np.asarray(new_target)
-            new_target = Index._with_infer(new_target_array, name=self.name)
-
-        return new_target, indexer
+        return super().reindex(target)
 
     # --------------------------------------------------------------------
     # Indexing Methods

@@ -40,7 +40,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import WeekDay
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,
@@ -250,16 +250,6 @@ class TestCommon:
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
-
-        if exp_warning is None and funcname == "_apply":
-            # GH#44522
-            # Check in this particular case to avoid headaches with
-            #  testing for multiple warnings produced by the same call.
-            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
-                res2 = offset_s.apply(ts)
-
-            assert type(res2) is type(result)
-            assert res2 == result
 
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -571,27 +561,6 @@ class TestCommon:
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
-        # GH#30340 use idiomatic naming
-        off = _create_offset(offset_types)
-
-        ts = fixed_now_ts
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.onOffset(ts)
-
-        expected = off.is_on_offset(ts)
-        assert result == expected
-
-    def test_isAnchored_deprecated(self, offset_types):
-        # GH#30340 use idiomatic naming
-        off = _create_offset(offset_types)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.isAnchored()
-
-        expected = off.is_anchored()
-        assert result == expected
-
     def test_offsets_hashable(self, offset_types):
         # GH: 37267
         off = _create_offset(offset_types)
@@ -614,8 +583,8 @@ class TestCommon:
         exp_unit = unit
         if isinstance(off, Tick) and off._creso > dta._creso:
             # cast to higher reso like we would with Timedelta scalar
-            exp_unit = Timedelta(off)._unit
-        expected = expected._as_unit(exp_unit)
+            exp_unit = Timedelta(off).unit
+        expected = expected.as_unit(exp_unit)
 
         if len(w):
             # PerformanceWarning was issued bc _apply_array raised, so we
@@ -770,6 +739,33 @@ class TestDateOffset:
 
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
+    @pytest.mark.parametrize(
+        "offset_kwargs, expected_arg",
+        [
+            ({"microseconds": 1, "milliseconds": 1}, "2022-01-01 00:00:00.001001"),
+            ({"seconds": 1, "milliseconds": 1}, "2022-01-01 00:00:01.001"),
+            ({"minutes": 1, "milliseconds": 1}, "2022-01-01 00:01:00.001"),
+            ({"hours": 1, "milliseconds": 1}, "2022-01-01 01:00:00.001"),
+            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:00:00.001"),
+            ({"weeks": 1, "milliseconds": 1}, "2022-01-08 00:00:00.001"),
+            ({"months": 1, "milliseconds": 1}, "2022-02-01 00:00:00.001"),
+            ({"years": 1, "milliseconds": 1}, "2023-01-01 00:00:00.001"),
+        ],
+    )
+    def test_milliseconds_combination(self, offset_kwargs, expected_arg):
+        # GH 49897
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01")
+        result = ts + offset
+        expected = Timestamp(expected_arg)
+
+        assert result == expected
+
+    def test_offset_invalid_arguments(self):
+        msg = "^Invalid argument/s or bad combination of arguments"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(picoseconds=1)
+
 
 class TestOffsetNames:
     def test_get_offset_name(self):
@@ -902,12 +898,6 @@ class TestReprNames:
         for name in names:
             offset = _get_offset(name)
             assert offset.freqstr == name
-
-
-def get_utc_offset_hours(ts):
-    # take a Timestamp and compute total hours of utc offset
-    o = ts.utcoffset()
-    return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
 # ---------------------------------------------------------------------

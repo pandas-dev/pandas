@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -80,11 +81,10 @@ class TestDataFrameToDict:
             df.to_dict(orient="xinvalid")
 
     @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
-    def test_to_dict_short_orient_warns(self, orient):
+    def test_to_dict_short_orient_raises(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        msg = "Using short name for 'orient' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="not understood"):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -380,6 +380,16 @@ class TestDataFrameToDict:
                     "b": [float, float, float],
                 },
             ),
+            (  # Make sure we have one df which is all object type cols
+                {
+                    "a": [1, "hello", 3],
+                    "b": [1.1, "world", 3.3],
+                },
+                {
+                    "a": [int, str, int],
+                    "b": [float, str, float],
+                },
+            ),
         ),
     )
     def test_to_dict_returns_native_types(self, orient, data, expected_types):
@@ -449,3 +459,39 @@ class TestDataFrameToDict:
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
         result = df.to_dict(orient=orient, index=False)
         tm.assert_dict_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("dict", {"a": {0: 1, 1: None}}),
+            ("list", {"a": [1, None]}),
+            ("split", {"index": [0, 1], "columns": ["a"], "data": [[1], [None]]}),
+            (
+                "tight",
+                {
+                    "index": [0, 1],
+                    "columns": ["a"],
+                    "data": [[1], [None]],
+                    "index_names": [None],
+                    "column_names": [None],
+                },
+            ),
+            ("records", [{"a": 1}, {"a": None}]),
+            ("index", {0: {"a": 1}, 1: {"a": None}}),
+        ],
+    )
+    def test_to_dict_na_to_none(self, orient, expected):
+        # GH#50795
+        df = DataFrame({"a": [1, NA]}, dtype="Int64")
+        result = df.to_dict(orient=orient)
+        assert result == expected
+
+    def test_to_dict_masked_native_python(self):
+        # GH#34665
+        df = DataFrame({"a": Series([1, 2], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int
+
+        df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
+        result = df.to_dict(orient="records")
+        assert type(result[0]["a"]) is int

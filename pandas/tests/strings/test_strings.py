@@ -11,7 +11,6 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    isna,
 )
 import pandas._testing as tm
 
@@ -25,81 +24,6 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.startswith(pattern)
     with pytest.raises(TypeError, match=msg):
         ser.str.endswith(pattern)
-
-
-def assert_series_or_index_equal(left, right):
-    if isinstance(left, Series):
-        tm.assert_series_equal(left, right)
-    else:  # Index
-        tm.assert_index_equal(left, right)
-
-
-def test_iter():
-    # GH3638
-    strs = "google", "wikimedia", "wikipedia", "wikitravel"
-    ser = Series(strs)
-
-    with tm.assert_produces_warning(FutureWarning):
-        for s in ser.str:
-            # iter must yield a Series
-            assert isinstance(s, Series)
-
-            # indices of each yielded Series should be equal to the index of
-            # the original Series
-            tm.assert_index_equal(s.index, ser.index)
-
-            for el in s:
-                # each element of the series is either a basestring/str or nan
-                assert isinstance(el, str) or isna(el)
-
-    # desired behavior is to iterate until everything would be nan on the
-    # next iter so make sure the last element of the iterator was 'l' in
-    # this case since 'wikitravel' is the longest string
-    assert s.dropna().values.item() == "l"
-
-
-def test_iter_empty(any_string_dtype):
-    ser = Series([], dtype=any_string_dtype)
-
-    i, s = 100, 1
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    # nothing to iterate over so nothing defined values should remain
-    # unchanged
-    assert i == 100
-    assert s == 1
-
-
-def test_iter_single_element(any_string_dtype):
-    ser = Series(["a"], dtype=any_string_dtype)
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    assert not i
-    tm.assert_series_equal(ser, s)
-
-
-def test_iter_object_try_string():
-    ser = Series(
-        [
-            slice(None, np.random.randint(10), np.random.randint(10, 20))
-            for _ in range(4)
-        ]
-    )
-
-    i, s = 100, "h"
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    assert i == 100
-    assert s == "h"
 
 
 # test integer/float dtypes (inferred by constructor) and mixed
@@ -197,7 +121,7 @@ def test_empty_str_methods(any_string_dtype):
         DataFrame(columns=[0, 1], dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
-    tm.assert_frame_equal(empty_df, empty.str.get_dummies())
+    tm.assert_frame_equal(empty_df.set_axis([], axis=1), empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
