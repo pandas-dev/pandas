@@ -429,6 +429,12 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
+            if request.config.option.skip_slow:
+                # equivalent to marking these cases with @pytest.mark.slow,
+                #  these xfails take a long time to run because pytest
+                #  renders the exception messages even when not showing them
+                pytest.skip("pyarrow xfail slow")
+
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented",
@@ -770,7 +776,9 @@ class TestBaseIndex(base.BaseIndexTests):
 
 
 class TestBaseInterface(base.BaseInterfaceTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views.")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views.", run=False
+    )
     def test_view(self, data):
         super().test_view(data)
 
@@ -800,13 +808,17 @@ class TestBasePrinting(base.BasePrintingTests):
 
 
 class TestBaseReshaping(base.BaseReshapingTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_transpose(self, data):
         super().test_transpose(data)
 
 
 class TestBaseSetitem(base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
 
