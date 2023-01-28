@@ -928,7 +928,11 @@ def sequence_to_td64ns(
         frac = data - base
         if p:
             frac = np.round(frac, p)
-        data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
         data[mask] = iNaT
         copy = False
 
