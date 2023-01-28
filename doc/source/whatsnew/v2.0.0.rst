@@ -630,13 +630,16 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
+- Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
 - :meth:`Index.is_boolean` has been deprecated. Use :func:`pandas.api.types.is_bool_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
+- :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -904,6 +907,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`Series.replace` with categorical dtype (:issue:`49404`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Performance improvement for indexing operations with nullable dtypes (:issue:`49420`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
@@ -1101,6 +1105,8 @@ Period
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising ``UnicodeDecodeError`` when a locale-specific directive was passed (:issue:`46319`)
 - Bug in adding a :class:`Period` object to an array of :class:`DateOffset` objects incorrectly raising ``TypeError`` (:issue:`50162`)
 - Bug in :class:`Period` where passing a string with finer resolution than nanosecond would result in a ``KeyError`` instead of dropping the extra precision (:issue:`50417`)
+- Bug in parsing strings representing Week-periods e.g. "2017-01-23/2017-01-29" as minute-frequency instead of week-frequency (:issue:`50803`)
+-
 
 Plotting
 ^^^^^^^^

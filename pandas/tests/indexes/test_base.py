@@ -18,7 +18,10 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
-from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_object_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -677,7 +680,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_object(self, index, expected):
-        assert index.is_object() is expected
+        assert is_object_dtype(index) is expected
 
     def test_summary(self, index):
         index._summary()

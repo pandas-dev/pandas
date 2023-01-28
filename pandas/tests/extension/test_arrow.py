@@ -549,10 +549,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             "sem",
         ] and pa.types.is_temporal(pa_dtype):
             request.node.add_marker(xfail_mark)
-        elif all_numeric_reductions in ["sum", "min", "max"] and pa.types.is_duration(
-            pa_dtype
-        ):
-            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",

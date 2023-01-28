@@ -40,12 +40,15 @@ class TestDataFrameAlign:
         assert new1.index.tz is timezone.utc
         assert new2.index.tz is timezone.utc
 
-    def test_align_float(self, float_frame):
+    def test_align_float(self, float_frame, using_copy_on_write):
         af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
 
         af, bf = float_frame.align(float_frame, copy=False)
-        assert af._mgr is float_frame._mgr
+        if not using_copy_on_write:
+            assert af._mgr is float_frame._mgr
+        else:
+            assert af._mgr is not float_frame._mgr
 
         # axis = 0
         other = float_frame.iloc[:-5, :3]

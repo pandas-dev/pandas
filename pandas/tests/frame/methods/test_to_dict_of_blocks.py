@@ -20,30 +20,34 @@ class TestToDictOfBlocks:
         column = df.columns[0]
 
         # use the default copy=True, change a column
+        _last_df = None
         blocks = df._to_dict_of_blocks(copy=True)
         for _df in blocks.values():
+            _last_df = _df
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
-        assert not _df[column].equals(df[column])
+        assert _last_df is not None and not _last_df[column].equals(df[column])
 
     def test_no_copy_blocks(self, float_frame, using_copy_on_write):
         # GH#9607
         df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
 
+        _last_df = None
         # use the copy=False, change a column
         blocks = df._to_dict_of_blocks(copy=False)
         for _df in blocks.values():
+            _last_df = _df
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
         if not using_copy_on_write:
             # make sure we did change the original DataFrame
-            assert _df[column].equals(df[column])
+            assert _last_df is not None and _last_df[column].equals(df[column])
         else:
-            assert not _df[column].equals(df[column])
+            assert _last_df is not None and not _last_df[column].equals(df[column])
 
 
 def test_to_dict_of_blocks_item_cache(request, using_copy_on_write):
