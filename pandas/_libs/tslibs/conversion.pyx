@@ -50,28 +50,26 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.timezones cimport (
-    get_utcoffset,
-    is_utc,
-    maybe_get_tz,
-)
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
-
-from pandas._libs.tslibs.parsing import parse_datetime_string
-
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.parsing cimport parse_datetime_string
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport (
+    get_utcoffset,
+    is_utc,
+    maybe_get_tz,
+)
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
     tz_localize_to_utc_single,
+)
+from pandas._libs.tslibs.util cimport (
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
 )
 
 # ----------------------------------------------------------------------
@@ -552,8 +550,10 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                 return obj
 
         dt = parse_datetime_string(
-            ts, dayfirst=dayfirst, yearfirst=yearfirst
+            ts, dayfirst=dayfirst, yearfirst=yearfirst, out_bestunit=&out_bestunit
         )
+        reso = get_supported_reso(out_bestunit)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=reso)
 
     return convert_datetime_to_tsobject(dt, tz)
 

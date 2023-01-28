@@ -18,7 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import parse_datetime_string
+from pandas._libs.tslibs.parsing import py_parse_datetime_string
 from pandas.compat.pyarrow import (
     pa_version_under6p0,
     pa_version_under7p0,
@@ -1755,7 +1755,7 @@ def test_hypothesis_delimited_date(
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parse_datetime_string, date_string, dayfirst=dayfirst
+        py_parse_datetime_string, date_string, dayfirst=dayfirst
     )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
