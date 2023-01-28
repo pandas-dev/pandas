@@ -227,9 +227,10 @@ class WrappedCythonOp:
 
         Raises
         ------
+        TypeError
+            This is not a valid operation for this dtype.
         NotImplementedError
-            This is either not a valid function for this dtype, or
-            valid but not implemented in cython.
+            This may be a valid operation, but does not have a cython implementation.
         """
         how = self.how
 
@@ -238,15 +239,15 @@ class WrappedCythonOp:
             return
 
         if isinstance(dtype, CategoricalDtype):
-            # NotImplementedError for methods that can fall back to a
-            #  non-cython implementation.
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
+            if how in ["min", "max", "rank"] and not dtype.ordered:
+                # raise TypeError instead of NotImplementedError to ensure we
+                #  don't go down a group-by-group path, since in the empty-groups
+                #  case that would fail to raise
+                raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
             if how not in ["rank"]:
                 # only "rank" is implemented in cython
-                raise NotImplementedError(f"{dtype} dtype not supported")
-            if not dtype.ordered:
-                # TODO: TypeError?
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
