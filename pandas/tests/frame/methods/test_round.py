@@ -218,7 +218,7 @@ class TestDataFrameRound:
         tm.assert_frame_equal(result, expected)
 
     def test_round_empty_not_input(self):
-        # GH#
+        # GH#51032
         df = DataFrame()
         result = df.round()
         tm.assert_frame_equal(df, result)

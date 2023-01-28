@@ -22,7 +22,7 @@ class TestSwapAxes:
             df.swapaxes(2, 5)
 
     def test_round_empty_not_input(self):
-        # GH#
+        # GH#51032
         df = DataFrame({"a": [1, 2]})
         result = df.swapaxes("index", "index")
         tm.assert_frame_equal(df, result)

@@ -90,7 +90,7 @@ class TestFirst:
 
     @pytest.mark.parametrize("func", ["first", "last"])
     def test_empty_not_input(self, func):
-        # GH#
+        # GH#51032
         df = DataFrame(index=pd.DatetimeIndex([]))
         result = getattr(df, func)(offset=1)
         tm.assert_frame_equal(df, result)

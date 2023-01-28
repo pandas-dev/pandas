@@ -85,7 +85,7 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(result, expected)
 
     def test_invert_empy_not_input(self):
-        # GH#
+        # GH#51032
         df = pd.DataFrame()
         result = ~df
         tm.assert_frame_equal(df, result)

@@ -8961,7 +8961,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         offset = to_offset(offset)
 

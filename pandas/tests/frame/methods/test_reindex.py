@@ -1238,7 +1238,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_identical_different_object(self):
-        # GH#
+        # GH#51032
         df = DataFrame({"a": [1, 2]})
         ser = Series([3, 4])
         result, result2 = df.align(ser, axis=0)
@@ -1248,7 +1248,7 @@ class TestDataFrameSelectReindex:
         assert ser is not result2
 
     def test_reindex_identical_different_object_columns(self):
-        # GH#
+        # GH#51032
         df = DataFrame({"a": [1, 2]})
         ser = Series([1], index=["a"])
         result, result2 = df.align(ser, axis=1)
