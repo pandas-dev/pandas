@@ -34,7 +34,7 @@ VERSIONS = {
     "pyarrow": "6.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "7.0.0",
-    "python-calamine": "0.0.6",
+    "python-calamine": "0.0.7",
     "pyxlsb": "1.0.8",
     "s3fs": "2021.08.0",
     "scipy": "1.7.1",

@@ -99,7 +99,7 @@ class CalamineExcelReader(BaseExcelReader):
 
         from python_calamine import get_sheet_data
 
-        rows = get_sheet_data(self.book, sheet)
+        rows = get_sheet_data(self.book, sheet, skip_empty_area=False)
         data: list[list[Scalar]] = []
 
         for row in rows:
