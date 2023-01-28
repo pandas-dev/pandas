@@ -359,7 +359,7 @@ def test_format_decimal(formatter, thousands, precision, func, col):
 
 
 def test_str_escape_error():
-    msg = "`escape` only permitted in {'html', 'latex'}, got "
+    msg = "`escape` only permitted in {'html', 'latex', 'latex-math'}, got "
     with pytest.raises(ValueError, match=msg):
         _str_escape("text", "bad_escape")
 
