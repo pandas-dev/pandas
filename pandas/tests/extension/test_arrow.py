@@ -991,7 +991,7 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason="min_max not supported in pyarrow",
                 )
             )
-        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0 and skipna:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"No pyarrow kernel for {pa_dtype}",
