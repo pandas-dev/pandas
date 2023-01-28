@@ -2891,10 +2891,10 @@ def test_groupby_reduce_period():
 
     res = gb.max()
     expected = ser[-10:]
-    expected.index = list(range(10))
+    expected.index = range(10)
     tm.assert_series_equal(res, expected)
 
     res = gb.min()
     expected = ser[:10]
-    expected.index = list(range(10))
+    expected.index = range(10)
     tm.assert_series_equal(res, expected)
