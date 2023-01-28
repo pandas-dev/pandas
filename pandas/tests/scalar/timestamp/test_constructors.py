@@ -56,6 +56,15 @@ class TestTimestampConstructors:
         assert ts.unit == "s"
 
     @pytest.mark.parametrize("typ", [int, float])
+    def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
+        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        val = typ(150000000)
+
+        msg = f"cannot convert input {val} with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(val, unit="D")
+
+    @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
         # GH#47266 avoid the conversions in cast_from_unit
         val = typ(150)
@@ -439,7 +448,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = f"Unknown string format: 2014-11-02 01:00{z}"
+        msg = f"Unknown datetime string format, unable to parse: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 

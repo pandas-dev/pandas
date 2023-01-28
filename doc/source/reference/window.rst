@@ -6,9 +6,9 @@
 Window
 ======
 
-Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
-Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
-ExponentialMovingWindow objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
+Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling`.
+Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding` and :func:`pandas.Series.expanding`.
+ExponentialMovingWindow objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm` and :func:`pandas.Series.ewm`.
 
 .. _api.functions_rolling:
 

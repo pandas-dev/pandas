@@ -86,7 +86,8 @@ jobs:
           activate-environment: test
           channels: conda-forge, anaconda
           channel-priority: true
-          mamba-version: "*"
+          # mamba fails to solve, also we really don't need this since we're just installing python
+          # mamba-version: "*"
 
       - name: Test wheels (Windows 64-bit only)
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
@@ -154,7 +155,8 @@ jobs:
           python-version: '3.8'
           channels: conda-forge
           channel-priority: true
-          mamba-version: "*"
+          # mamba fails to solve, also we really don't need this since we're just installing python
+          # mamba-version: "*"
 
       - name: Build sdist
         run: |
