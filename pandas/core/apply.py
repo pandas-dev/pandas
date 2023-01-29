@@ -340,9 +340,7 @@ class Apply(metaclass=abc.ABCMeta):
                         args_pass, kwargs_pass, args_remain, kwargs_remain = _map_args(
                             a, args_remain, kwargs_remain
                         )
-                        new_res = colg.aggregate(
-                            a, self.axis, *args_pass, **kwargs_pass
-                        )
+                        new_res = colg.aggregate(a, *args_pass, **kwargs_pass)
                     else:
                         new_res = colg.aggregate(a)
                     results.append(new_res)
@@ -356,7 +354,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg, self.axis, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
