@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import nullcontext
 from functools import partial
 import inspect
+from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -333,10 +334,17 @@ class Apply(metaclass=abc.ABCMeta):
                 args_remain, kwargs_remain = self.args, self.kwargs
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    args_pass, kwargs_pass, args_remain, kwargs_remain = _map_args(
-                        a, args_remain, kwargs_remain
-                    )
-                    new_res = colg.aggregate(a, self.axis, *args_pass, **kwargs_pass)
+                    if not isinstance(a, (np.ufunc, str)) and isinstance(
+                        a, FunctionType
+                    ):
+                        args_pass, kwargs_pass, args_remain, kwargs_remain = _map_args(
+                            a, args_remain, kwargs_remain
+                        )
+                        new_res = colg.aggregate(
+                            a, self.axis, *args_pass, **kwargs_pass
+                        )
+                    else:
+                        new_res = colg.aggregate(a)
                     results.append(new_res)
 
                     # make sure we find a good name
