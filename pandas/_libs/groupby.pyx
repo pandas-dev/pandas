@@ -843,18 +843,7 @@ def group_prod(
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] < min_count:
-
-                    # else case is not possible
-                    if uses_mask:
-                        result_mask[i, j] = True
-                        # Be deterministic, out was initialized as empty
-                        out[i, j] = 0
-                    elif int64float_t is float32_t or int64float_t is float64_t:
-                        out[i, j] = NAN
-                    else:
-                        # we only get here when < mincount which gets handled later
-                        pass
-
+                    _check_below_mincount(out, uses_mask, result_mask, i, j)
                 else:
                     out[i, j] = prodx[i, j]
 
