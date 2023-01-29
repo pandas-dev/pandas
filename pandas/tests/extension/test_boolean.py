@@ -235,8 +235,7 @@ class TestMethods(base.BaseMethodsTests):
 class TestCasting(base.BaseCastingTests):
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
-        expected = list(data)
-        expected = [None if v is pd.NA else v for v in expected]
+        expected = [None if pd.isna(v) else v for v in data]
         assert isinstance(result, list)
         assert result == expected
 
