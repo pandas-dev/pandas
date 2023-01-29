@@ -4021,6 +4021,13 @@ class Index(IndexOpsMixin, PandasObject):
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
 
+        # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
+        #  to simplify this.
+        if isinstance(self.dtype, np.dtype) and is_float_dtype(self.dtype):
+            # We always treat __getitem__ slicing as label-based
+            # translate to locations
+            return self.slice_indexer(start, stop, step)
+
         # figure out if this is a positional indexer
         def is_int(v):
             return v is None or is_integer(v)
@@ -6326,11 +6333,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         # We are a plain index here (sub-class override this method if they
-        # wish to have special treatment for floats/ints, e.g. NumericIndex and
-        # datetimelike Indexes
-        # Special case numeric EA Indexes, since they are not handled by NumericIndex
+        # wish to have special treatment for floats/ints, e.g. datetimelike Indexes
 
-        if is_extension_array_dtype(self.dtype) and is_numeric_dtype(self.dtype):
+        if is_numeric_dtype(self.dtype):
             return self._maybe_cast_indexer(label)
 
         # reject them, if index does not contain label
