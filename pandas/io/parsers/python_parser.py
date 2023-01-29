@@ -1168,12 +1168,14 @@ class PythonParser(ParserBase):
     def _set_no_thousand_columns(self) -> set[int]:
         no_thousands_columns: set[int] | None = None
         if self.columns and self.parse_dates:
+            assert self._col_indices is not None
             no_thousands_columns = self._set_noconvert_dtype_columns(
                 self._col_indices, self.columns
             )
         if self.columns and self.dtype:
             if no_thousands_columns is None:
                 no_thousands_columns = set()
+            assert self._col_indices is not None
             for i in self._col_indices:
                 if isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype.get(self.columns[i], None)
