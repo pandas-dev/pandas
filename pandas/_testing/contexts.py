@@ -14,6 +14,11 @@ import uuid
 
 import numpy as np
 
+from pandas._typing import (
+    BaseBuffer,
+    CompressionOptions,
+    FilePath,
+)
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
@@ -23,7 +28,9 @@ from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(path, compression) -> Generator[IO[bytes], None, None]:
+def decompress_file(
+    path: FilePath | BaseBuffer, compression: CompressionOptions
+) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
