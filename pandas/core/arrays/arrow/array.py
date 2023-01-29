@@ -835,7 +835,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return type(self)(self._data.take(indices_array))
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         return self._data.to_pylist()
 
     @doc(ExtensionArray.to_numpy)
