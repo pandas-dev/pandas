@@ -128,6 +128,13 @@ from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport tz_compare
 
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCPandasArray,
+    ABCSeries,
+)
+
 # constants that will be compared to potentially arbitrarily large
 # python int
 cdef:
@@ -1358,7 +1365,7 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base", "type"]:
+    for attr in ["kind", "name", "base", "type"]:
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
@@ -1475,11 +1482,17 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         bint seen_val = False
         flatiter it
 
+    if not util.is_array(value):
+        if isinstance(value, (ABCSeries, ABCExtensionArray, ABCPandasArray)):
+            inferred = _try_infer_map(value.dtype)
+            if inferred is not None:
+                return inferred
+        elif isinstance(value, ABCIndex) and skipna is False:
+            # Index, use the cached attribute if possible, populate the cache otherwise
+            return value.inferred_type
+
     if util.is_array(value):
         values = value
-    elif hasattr(value, "inferred_type") and skipna is False:
-        # Index, use the cached attribute if possible, populate the cache otherwise
-        return value.inferred_type
     elif hasattr(value, "dtype"):
         # this will handle ndarray-like
         # e.g. categoricals
@@ -1493,7 +1506,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
         # Unwrap Series/Index
         values = np.asarray(value)
-
     else:
         if not isinstance(value, list):
             value = list(value)
@@ -1503,10 +1515,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
-    val = _try_infer_map(values.dtype)
-    if val is not None:
+    inferred = _try_infer_map(values.dtype)
+    if inferred is not None:
         # Anything other than object-dtype should return here.
-        return val
+        return inferred
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
