@@ -1335,8 +1335,6 @@ def group_last(
 
             for i in range(ncounts):
                 for j in range(K):
-                    # TODO(cython3): the entire next block can be shared
-                    #  across 3 places once conditional-nogil is available
                     if nobs[i, j] < min_count:
                         _check_below_mincount(out, uses_mask, result_mask, i, j)
                     else:
