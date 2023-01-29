@@ -1635,7 +1635,7 @@ def test_agg_list_like_arg():
     def foo2(x, c=3, d=4):
         return x + c + d
 
-    result = df.agg([foo1, foo2], 0, a=5, b=6, c=7, d=8)
+    result = df.agg([foo1, foo2], 0, 5, b=6, c=7, d=8)
     expected = DataFrame(
         [[12, 16], [13, 17], [14, 18]],
         columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),

@@ -123,20 +123,16 @@ class Apply(metaclass=abc.ABCMeta):
         self.result_type = result_type
 
         # curry if needed
-        if (kwargs or args) and not isinstance(func, (np.ufunc, str)):
-            if not is_list_like(func):
 
-                def f(x):
-                    return func(x, *args, **kwargs)
+        if (
+            (kwargs or args)
+            and not isinstance(func, (np.ufunc, str))
+            and not is_list_like(func)
+        ):
 
-            elif type(func) == list and all(i for i in func if callable(i)):
-                # GH 50624
-                # only explicit arg passing is supported temporarily
-                # eg. df.agg([foo], a=1)
-                # df.agg([foo], 1) is not supported
-                f = _recreate_func(func, kwargs)
-            else:
-                f = func
+            def f(x):
+                return func(x, *args, **kwargs)
+
         else:
             f = func
 
@@ -335,9 +331,13 @@ class Apply(metaclass=abc.ABCMeta):
             # degenerate case
             if selected_obj.ndim == 1:
 
+                args_remain, kwargs_remain = self.args, self.kwargs
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    new_res = colg.aggregate(a)
+                    args_pass, kwargs_pass, args_remain, kwargs_remain = _map_args(
+                        a, args_remain, kwargs_remain
+                    )
+                    new_res = colg.aggregate(a, self.axis, *args_pass, **kwargs_pass)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -349,7 +349,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg)
+                    new_res = colg.aggregate(arg, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -1513,60 +1513,52 @@ def validate_func_kwargs(
     return columns, func
 
 
-def _check_arg(callable: Callable, arg: str) -> bool:
+def _map_args(
+    func: AggFuncType, args: tuple, kwargs: dict
+) -> tuple[tuple, dict, tuple, dict]:
     # GH 50624
-    """To check if arg is a valid argument for callable.
-
-    Parameters
-    ----------
-    callable : Callable
-    arg : str
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
-    >>> def func(x, a=1, b=2):
-    ...     pass
-    >>> _check_arg(func, 'a')
-    True
     """
-    argspec = inspect.getfullargspec(callable)
-    args_names = argspec.args + argspec.kwonlyargs
-    return arg in args_names
-
-
-def _recreate_func(
-    callable_list: list[Callable], kwargs: dict
-) -> list[partial[Any]] | Callable[[Any], Any]:
-    # GH 50624
-    """Recreate callable with kwargs.
+    Map arguments to function.
+    But for some cases with unnamed arguments, it will cause error.
 
     Parameters
     ----------
-    callable_list : list[Callable]
+    func : function
+    args : tuple
     kwargs : dict
 
     Returns
     -------
-    list[partial[Any]] | Callable[[Any], Any]
+    args_pass : tuple
+        Args should be passed to func
+    kwargs_pass : dict
+        Kwargs should be passed to func
+    args_remain : tuple
+        Args should be passed to other functions
+    kwargs_remain : dict
+        Kwargs should be passed to other functions
 
     Examples
     --------
-    >>> def func(x, a=1, b=2):
-    ...     pass
-    >>> _recreate_func([func], {'a': 3, 'b': 4})
-    [<functools.partial object at 0x...>, a=3, b=4]
+    >>> def f(a=1, b=2):
+    ...     return a, b
+    >>> _map_args(f, (1,), {'b': 2, 'c': 3})
+    ((1,), {'b': 2}, (), {'c': 3})
+    >>> _map_args(f, (1, 2, 3), {'b': 4}) # maybe some unexpected results
+    ((1, 2), {}, (3,), {'b':4})
     """
-    func_kwargs = {}
-    for single_func in callable_list:
-        single_func_kwargs = {
-            k: v for k, v in kwargs.items() if _check_arg(single_func, k)
-        }
-        func_kwargs[single_func] = single_func_kwargs
+    argspec = inspect.getfullargspec(func)
+    args_names = argspec.args + argspec.kwonlyargs
 
-    return [
-        partial(single_func, **kwargs) for single_func, kwargs in func_kwargs.items()
-    ]
+    if len(args) >= len(args_names):
+        args_pass = args[: len(args_names)]
+        args_remain = args[len(args_names) :]
+        kwargs_pass = {}
+        kwargs_remain = kwargs
+    else:
+        args_pass = args
+        args_remain = ()
+        kwargs_pass = {k: v for k, v in kwargs.items() if k in args_names}
+        kwargs_remain = {k: v for k, v in kwargs.items() if k not in args_names}
+
+    return args_pass, kwargs_pass, args_remain, kwargs_remain
