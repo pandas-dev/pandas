@@ -123,7 +123,6 @@ class Apply(metaclass=abc.ABCMeta):
         self.result_type = result_type
 
         # curry if needed
-
         if (
             (kwargs or args)
             and not isinstance(func, (np.ufunc, str))
