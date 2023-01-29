@@ -891,6 +891,7 @@ def read_csv(
             "A strict version of it is now the default, see "
             "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
             "You can safely remove this argument.",
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
     # locals() should never be modified
