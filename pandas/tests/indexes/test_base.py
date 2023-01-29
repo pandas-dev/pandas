@@ -18,6 +18,11 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_object_dtype,
+)
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -592,12 +597,10 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif index._is_backward_compat_public_numeric_index:
+        elif is_numeric_dtype(index.dtype):
             expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(rng, dtype=index.dtype)
-        elif index.dtype.kind == "u":
             expected = Index(rng, dtype=index.dtype)
         else:
             expected = Index(rng)
@@ -677,7 +680,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_object(self, index, expected):
-        assert index.is_object() is expected
+        assert is_object_dtype(index) is expected
 
     def test_summary(self, index):
         index._summary()
