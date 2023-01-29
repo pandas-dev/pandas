@@ -1294,19 +1294,23 @@ def test_parse_dates_empty_string(all_parsers):
     "reader",
     [
         'read_csv_check_warnings',
-        'read_csv_check_warnings'
+        'read_table_check_warnings'
     ]
 )
 def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
     # GH 49024, 51017
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
+    warning_type = (FutureWarning if reader == "read_table_check_warnings"
+                    else UserWarning)
+
     getattr(parser, reader)(
-        UserWarning,
+        warning_type,
         "The argument 'infer_datetime_format' is deprecated",
         StringIO(data),
         parse_dates=["Date"],
         infer_datetime_format=True,
+        sep=",",
     )
 
 
