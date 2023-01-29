@@ -1095,6 +1095,7 @@ I/O
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
 - Bug in :func:`read_csv` unnecessarily overflowing for extension array dtype when containing ``NA`` (:issue:`32134`)
+- Bug in :meth:`Series.tolist` not converting ``NA`` to ``None`` (:issue:`29738`)
 - Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)

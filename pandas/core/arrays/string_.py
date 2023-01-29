@@ -227,7 +227,8 @@ class BaseStringArray(ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        return list(self.to_numpy())
+        # pd.NA -> None (python native types)
+        return self.to_numpy(na_value=None).tolist()
 
 
 class StringArray(BaseStringArray, PandasArray):

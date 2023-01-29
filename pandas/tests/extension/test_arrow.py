@@ -245,6 +245,12 @@ class TestBaseCasting(base.BaseCastingTests):
             )
         super().test_astype_str(data)
 
+    def test_tolist(self, data):
+        result = pd.Series(data).tolist()
+        expected = [None if pd.isna(v) else v for v in data]
+        assert isinstance(result, list)
+        assert result == expected
+
 
 class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
@@ -781,6 +787,12 @@ class TestBaseInterface(base.BaseInterfaceTests):
     )
     def test_view(self, data):
         super().test_view(data)
+
+    def test_tolist(self, data):
+        result = pd.Series(data).tolist()
+        expected = [None if pd.isna(v) else v for v in data]
+        assert isinstance(result, list)
+        assert result == expected
 
 
 class TestBaseMissing(base.BaseMissingTests):

@@ -169,7 +169,11 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    pass
+    def test_tolist(self, data):
+        result = pd.Series(data).tolist()
+        expected = [None if pd.isna(v) else v for v in data]
+        assert isinstance(result, list)
+        assert result == expected
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -205,7 +209,12 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    def test_tolist(self, data):
+        result = pd.Series(data).tolist()
+        expected = list(data)
+        expected = [None if v is pd.NA else v for v in expected]
+        assert isinstance(result, list)
+        assert result == expected
 
 
 class TestGroupby(base.BaseGroupbyTests):

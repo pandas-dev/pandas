@@ -438,8 +438,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        if self._hasna:
+            # pd.NA -> None (python native types)
+            return self.to_numpy(na_value=None).tolist()
+        return self._data.tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
