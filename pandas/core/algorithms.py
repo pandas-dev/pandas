@@ -891,6 +891,8 @@ def value_counts(
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
+            if keys.dtype == np.float16:
+                keys = keys.astype(np.float32)
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
@@ -1303,7 +1305,7 @@ class SelectNFrame(SelectN):
 
     def compute(self, method: str) -> DataFrame:
 
-        from pandas.core.api import Int64Index
+        from pandas.core.api import NumericIndex
 
         n = self.n
         frame = self.obj
@@ -1331,7 +1333,7 @@ class SelectNFrame(SelectN):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer = Int64Index([])
+        indexer = NumericIndex([], dtype=np.int64)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].

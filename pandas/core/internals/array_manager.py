@@ -4,7 +4,6 @@ Experimental manager based on storing a collection of 1D arrays
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -93,10 +92,6 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.api import Float64Index
-
 
 T = TypeVar("T", bound="BaseArrayManager")
 
@@ -856,7 +851,7 @@ class ArrayManager(BaseArrayManager):
         return
 
     def column_setitem(
-        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace_only: bool = False
     ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
@@ -868,7 +863,7 @@ class ArrayManager(BaseArrayManager):
             raise TypeError("The column index should be an integer")
         arr = self.arrays[loc]
         mgr = SingleArrayManager([arr], [self._axes[0]])
-        if inplace:
+        if inplace_only:
             mgr.setitem_inplace(idx, value)
         else:
             new_mgr = mgr.setitem((idx,), value)
@@ -1013,7 +1008,7 @@ class ArrayManager(BaseArrayManager):
     def quantile(
         self,
         *,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         axis: AxisInt = 0,
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",

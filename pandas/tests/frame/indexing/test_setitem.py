@@ -85,8 +85,7 @@ class TestDataFrameSetItem:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df["newcol"] = ser
+            df["newcol"] = ser
 
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
@@ -409,16 +408,12 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager):
+    def test_setitem_frame_duplicate_columns(self):
         # GH#15695
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[:, "B"] = (1, 4)
+        df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -429,19 +424,10 @@ class TestDataFrameSetItem:
             dtype="object",
         )
 
-        if using_array_manager:
-            # setitem replaces column so changes dtype
-
-            expected.columns = cols
-            expected["C"] = expected["C"].astype("int64")
-            # TODO(ArrayManager) .loc still overwrites
-            expected["B"] = expected["B"].astype("int64")
-
-        else:
-            # set these with unique columns to be extra-unambiguous
-            expected[2] = expected[2].astype(np.int64)
-            expected[5] = expected[5].astype(np.int64)
-            expected.columns = cols
+        # set these with unique columns to be extra-unambiguous
+        expected[2] = expected[2].astype(np.int64)
+        expected[5] = expected[5].astype(np.int64)
+        expected.columns = cols
 
         tm.assert_frame_equal(df, expected)
 
@@ -1259,12 +1245,15 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        for label in df.columns:
-            df[label][label] = 1
-
         if not using_copy_on_write:
+            for label in df.columns:
+                df[label][label] = 1
+
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
+            with tm.raises_chained_assignment_error():
+                for label in df.columns:
+                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)

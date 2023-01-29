@@ -16,6 +16,7 @@ import datetime
 import functools
 from io import StringIO
 import itertools
+import sys
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -35,7 +36,10 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -45,6 +49,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
+    is_range_indexer,
     no_default,
 )
 from pandas._typing import (
@@ -87,16 +92,20 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    _chained_assignment_msg,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -720,6 +729,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
+                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -728,6 +738,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     typ=manager,
+                    copy=_copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -957,12 +968,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
 
-    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
-    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
     @property
-    def _values(  # type: ignore[override]
-        self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
+    def _values(self) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -1895,7 +1902,7 @@ class DataFrame(NDFrame, OpsMixin):
             is 'tight') in the returned dictionary. Can only be ``False``
             when `orient` is 'split' or 'tight'.
 
-            .. versionadded:: 1.6.0
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -3478,7 +3485,7 @@ class DataFrame(NDFrame, OpsMixin):
         0     1     3
         1     2     4
 
-        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed = df1.T  # or df1.transpose()
         >>> df1_transposed
               0  1
         col1  1  2
@@ -3508,7 +3515,7 @@ class DataFrame(NDFrame, OpsMixin):
         0  Alice    9.5     False     0
         1    Bob    8.0      True     0
 
-        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed = df2.T  # or df2.transpose()
         >>> df2_transposed
                       0     1
         name      Alice   Bob
@@ -3566,6 +3573,31 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def T(self) -> DataFrame:
+        """
+        The transpose of the DataFrame.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        DataFrame.transpose : Transpose index and columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df.T
+              0  1
+        col1  1  2
+        col2  3  4
+        """
         return self.transpose()
 
     # ----------------------------------------------------------------------
@@ -3719,6 +3751,10 @@ class DataFrame(NDFrame, OpsMixin):
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
+
+        if key.all():
+            return self.copy(deep=None)
+
         indexer = key.nonzero()[0]
         return self._take_with_is_copy(indexer, axis=0)
 
@@ -3819,10 +3855,23 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where `frame.columns` is unique, this is equivalent to
         `frame[frame.columns[i]] = value`.
         """
+        if isinstance(value, DataFrame):
+            if is_scalar(loc):
+                loc = [loc]
+
+            for i, idx in enumerate(loc):
+                arraylike = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False)
+            return
+
         arraylike = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -4077,7 +4126,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value, inplace=True)
+            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
             self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
@@ -4141,6 +4190,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
+        if using_copy_on_write():
+            loc = self.columns.get_loc(item)
+            return self._ixs(loc, axis=1)
+
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
@@ -4189,8 +4242,7 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4334,7 +4386,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4359,8 +4411,7 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4466,7 +4517,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -4743,7 +4794,7 @@ class DataFrame(NDFrame, OpsMixin):
         of the columns depends on another one defined within the same assign:
 
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
-        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+        ...           temp_k=lambda x: (x['temp_f'] + 459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
@@ -4882,7 +4933,7 @@ class DataFrame(NDFrame, OpsMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -4945,7 +4996,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -5228,7 +5279,7 @@ class DataFrame(NDFrame, OpsMixin):
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
-        Alter axes labels.
+        Rename columns or index labels.
 
         Function / dict values must be unique (1-to-1). Labels not contained in
         a dict / Series will be left as-is. Extra labels listed don't throw an
@@ -5512,7 +5563,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
         """
         # Operate column-wise
-        res = self if inplace else self.copy()
+        res = self if inplace else self.copy(deep=None)
         ax = self.columns
 
         for i, ax_value in enumerate(ax):
@@ -5982,8 +6033,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
         ...                                      ('species', 'type')])
         >>> df = pd.DataFrame([(389.0, 'fly'),
-        ...                    ( 24.0, 'fly'),
-        ...                    ( 80.5, 'run'),
+        ...                    (24.0, 'fly'),
+        ...                    (80.5, 'run'),
         ...                    (np.nan, 'jump')],
         ...                   index=index,
         ...                   columns=columns)
@@ -6328,7 +6379,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
-            result = self.copy()
+            result = self.copy(deep=None)
         else:
             result = self.loc(axis=axis)[mask]
 
@@ -6421,7 +6472,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy()
+            return self.copy(deep=None)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
@@ -6678,7 +6729,16 @@ class DataFrame(NDFrame, OpsMixin):
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            return self.copy()
+            if inplace:
+                return self._update_inplace(self)
+            else:
+                return self.copy(deep=None)
+
+        if is_range_indexer(indexer, len(indexer)):
+            if inplace:
+                return self._update_inplace(self)
+            else:
+                return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
@@ -7253,7 +7313,7 @@ class DataFrame(NDFrame, OpsMixin):
         ),
     )
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy()
+        result = self.copy(deep=None)
 
         axis = self._get_axis_number(axis)
 
@@ -7972,10 +8032,10 @@ Keep all original rows and columns and also all original values
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas.core.computation import expressions
 
@@ -8013,9 +8073,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
-                self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -8263,14 +8321,14 @@ Parrot 2  Parrot       24.0
         4   2    1    1    5    4
         5   2    2    2    6    5
 
-        >>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+        >>> df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
         lev2    1         2
         lev3    1    2    1    2
         lev1
         1     0.0  1.0  2.0  NaN
         2     4.0  3.0  NaN  5.0
 
-        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"], values="values")
               lev3    1    2
         lev1  lev2
            1     1  0.0  1.0
@@ -8318,7 +8376,8 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
-        values : column to aggregate, optional
+        values : list-like or scalar, optional
+            Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
             If an array is passed, it must be the same length as the data. The
             list can contain any of the other types (except list).
@@ -8404,7 +8463,7 @@ Parrot 2  Parrot       24.0
         This first example aggregates values by taking the sum.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum)
+        ...                        columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
@@ -8416,7 +8475,7 @@ Parrot 2  Parrot       24.0
         We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
+        ...                        columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
         A   B
@@ -8428,8 +8487,7 @@ Parrot 2  Parrot       24.0
         The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': np.mean})
+        ...                        aggfunc={'D': np.mean, 'E': np.mean})
         >>> table
                         D         E
         A   C
@@ -8442,8 +8500,8 @@ Parrot 2  Parrot       24.0
         value column.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean,
-        ...                              'E': [min, max, np.mean]})
+        ...                        aggfunc={'D': np.mean,
+        ...                                 'E': [min, max, np.mean]})
         >>> table
                           D   E
                        mean max      mean  min
@@ -9428,7 +9486,9 @@ Parrot 2  Parrot       24.0
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects().rename_axis(index.names, copy=False)
+            other = row_df.infer_objects(copy=False).rename_axis(
+                index.names, copy=False
+            )
         elif isinstance(other, list):
             if not other:
                 pass
@@ -10349,9 +10409,8 @@ Parrot 2  Parrot       24.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        # TODO: Make other agg func handle axis=None properly GH#21597
-        axis = self._get_axis_number(axis)
-        assert axis in [0, 1]
+        if axis is not None:
+            axis = self._get_axis_number(axis)
 
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
@@ -10402,7 +10461,7 @@ Parrot 2  Parrot       24.0
 
             return out
 
-        assert not numeric_only and axis == 1
+        assert not numeric_only and axis in (1, None)
 
         data = self
         values = data.values
@@ -10417,6 +10476,9 @@ Parrot 2  Parrot       24.0
                 except (ValueError, TypeError):
                     # try to coerce to the original dtypes item by item if we can
                     pass
+
+        if axis is None:
+            return result
 
         labels = self._get_agg_axis(axis)
         result = self._constructor_sliced(result, index=labels)
@@ -10818,11 +10880,7 @@ Parrot 2  Parrot       24.0
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
         if method == "single":
-            # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
-            # "Index"; expected "Float64Index"
-            res = data._mgr.quantile(
-                qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
-            )
+            res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
         elif method == "table":
             valid_interpolation = {"nearest", "lower", "higher"}
             if interpolation not in valid_interpolation:
@@ -10908,7 +10966,7 @@ Parrot 2  Parrot       24.0
         freq: Frequency | None = None,
         how: str = "start",
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -10927,7 +10985,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with DatetimeIndex
+        DataFrame
+            The DataFrame has a DatetimeIndex.
         """
         new_obj = self.copy(deep=copy)
 
@@ -10942,7 +11001,7 @@ Parrot 2  Parrot       24.0
         return new_obj
 
     def to_period(
-        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool = True
+        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool | None = None
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
@@ -10961,7 +11020,8 @@ Parrot 2  Parrot       24.0
 
         Returns
         -------
-        DataFrame with PeriodIndex
+        DataFrame
+            The DataFrame has a PeriodIndex.
 
         Examples
         --------

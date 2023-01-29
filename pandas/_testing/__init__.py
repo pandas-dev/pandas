@@ -27,6 +27,7 @@ from pandas._config.localization import (
 from pandas._typing import (
     Dtype,
     Frequency,
+    NpDtype,
 )
 from pandas.compat import pa_version_under6p0
 
@@ -41,6 +42,7 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -102,6 +104,7 @@ from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
     ensure_safe_environment_variables,
+    raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
     with_csv_dialect,
@@ -124,12 +127,13 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_NUMPY_DTYPES: list[NpDtype] = [int, "int8", "int16", "int32", "int64"]
 SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
 ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
+ALL_INT_DTYPES: list[Dtype] = [*ALL_INT_NUMPY_DTYPES, *ALL_INT_EA_DTYPES]
 
 FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
@@ -195,10 +199,16 @@ if not pa_version_under6p0:
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+    ALL_INT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in ALL_INT_PYARROW_DTYPES
+    ]
 
     # pa.float16 doesn't seem supported
     # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    FLOAT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
+    ]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -231,6 +241,9 @@ if not pa_version_under6p0:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+else:
+    FLOAT_PYARROW_DTYPES_STR_REPR = []
+    ALL_INT_PYARROW_DTYPES_STR_REPR = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -886,7 +899,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
+    return pytest.raises(expected_exception, match=None)
 
 
 cython_table = pd.core.common._cython_table.items()
@@ -1123,6 +1136,7 @@ __all__ = [
     "rands",
     "reset_display_options",
     "RNGContext",
+    "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",

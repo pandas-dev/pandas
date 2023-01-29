@@ -665,7 +665,22 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 
 def test_execute_typeerror(sqlite_iris_engine):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        sql.execute("select * from iris", sqlite_iris_engine)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="`pandas.io.sql.execute` is deprecated and "
+            "will be removed in the future version.",
+        ):
+            sql.execute("select * from iris", sqlite_iris_engine)
+
+
+def test_execute_deprecated(sqlite_buildin_iris):
+    # GH50185
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+    ):
+        sql.execute("select * from iris", sqlite_buildin_iris)
 
 
 class MixInBase:
@@ -2276,17 +2291,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
+    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_nullable_dtypes(self, string_storage, func):
+    def test_read_sql_nullable_dtypes(self, string_storage, func, option):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = getattr(pd, func)(
-                f"Select * from {table}", self.conn, use_nullable_dtypes=True
-            )
+            if option:
+                with pd.option_context("mode.nullable_dtypes", True):
+                    result = getattr(pd, func)(f"Select * from {table}", self.conn)
+            else:
+                result = getattr(pd, func)(
+                    f"Select * from {table}", self.conn, use_nullable_dtypes=True
+                )
         expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
@@ -2301,15 +2321,20 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func, option):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
+            if option:
+                with pd.option_context("mode.nullable_dtypes", True):
+                    result = getattr(pd, func)(table, self.conn)
+            else:
+                result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
         expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
@@ -2378,6 +2403,30 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             chunksize=1,
         ):
             tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("use_nullable_dtypes", [True, False])
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+    def test_read_sql_dtype(self, func, use_nullable_dtypes):
+        # GH#50797
+        table = "test"
+        df = DataFrame({"a": [1, 2, 3], "b": 5})
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        result = getattr(pd, func)(
+            f"Select * from {table}",
+            self.conn,
+            dtype={"a": np.float64},
+            use_nullable_dtypes=use_nullable_dtypes,
+        )
+        expected = DataFrame(
+            {
+                "a": Series([1, 2, 3], dtype=np.float64),
+                "b": Series(
+                    [5, 5, 5], dtype="int64" if not use_nullable_dtypes else "Int64"
+                ),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
@@ -2842,7 +2891,7 @@ class TestXSQLite:
 
         frame["txt"] = ["a"] * len(frame)
         frame2 = frame.copy()
-        new_idx = Index(np.arange(len(frame2))) + 10
+        new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
         frame2["Idx"] = new_idx.copy()
         assert (
             sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False)

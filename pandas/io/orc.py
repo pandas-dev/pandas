@@ -8,8 +8,12 @@ from typing import (
     Literal,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
 
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -33,7 +37,7 @@ from pandas.io.common import get_handle
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -59,16 +63,16 @@ def read_orc(
         for the resulting DataFrame.
 
         The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
         numpy-backed nullable dtypes or
-        ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
         pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0
 
         .. note
 
-            Currently only ``mode.nullable_backend`` set to ``"pyarrow"`` is supported.
+            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -86,23 +90,31 @@ def read_orc(
 
     orc = import_optional_dependency("pyarrow.orc")
 
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     with get_handle(path, "rb", is_text=False) as handles:
         orc_file = orc.ORCFile(handles.handle)
         pa_table = orc_file.read(columns=columns, **kwargs)
     if use_nullable_dtypes:
-        nullable_backend = get_option("mode.nullable_backend")
-        if nullable_backend != "pyarrow":
-            raise NotImplementedError(
-                f"mode.nullable_backend set to {nullable_backend} is not implemented."
+        dtype_backend = get_option("mode.dtype_backend")
+        if dtype_backend == "pyarrow":
+            df = DataFrame(
+                {
+                    col_name: ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
             )
-        df = DataFrame(
-            {
-                col_name: ArrowExtensionArray(pa_col)
-                for col_name, pa_col in zip(
-                    pa_table.column_names, pa_table.itercolumns()
-                )
-            }
-        )
+        else:
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping()
+            df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
         return pa_table.to_pandas()

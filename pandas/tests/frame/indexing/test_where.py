@@ -363,7 +363,7 @@ class TestDataFrameIndexingWhere:
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
-    def test_where_datetime(self, using_array_manager):
+    def test_where_datetime(self):
 
         # GH 3311
         df = DataFrame(
@@ -384,10 +384,7 @@ class TestDataFrameIndexingWhere:
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
 
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected.loc[:, "C"] = np.nan
+        expected.loc[:, "C"] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -461,7 +458,7 @@ class TestDataFrameIndexingWhere:
         df[df.abs() >= 5] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_where_axis(self, using_array_manager):
+    def test_where_axis(self):
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
@@ -515,7 +512,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_multiple_dtypes(self, using_array_manager):
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -553,7 +550,8 @@ class TestDataFrameIndexingWhere:
 
         # DataFrame vs DataFrame
         d1 = df.copy().drop(1, axis=0)
-        expected = df.copy()
+        # Explicit cast to avoid implicit cast when setting value to np.nan
+        expected = df.copy().astype("float")
         expected.loc[1, :] = np.nan
 
         result = df.where(mask, d1)
@@ -571,10 +569,7 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected.loc[:, 1] = np.nan
+        expected.loc[:, 1] = np.nan
 
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
@@ -647,7 +642,8 @@ class TestDataFrameIndexingWhere:
     @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
-        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        data = np.arange(2 * 3, dtype=np.int64).reshape(2, 3)
+        df = DataFrame(data, columns=list("ABC"))
         mask = np.array([[True, False, False], [False, False, True]])
 
         # change type to category
@@ -675,7 +671,8 @@ class TestDataFrameIndexingWhere:
         df["b"] = df["b"].astype("category")
 
         result = df.where(df["a"] > 0)
-        expected = df.copy()
+        # Explicitly cast to 'float' to avoid implicit cast when setting np.nan
+        expected = df.copy().astype({"a": "float"})
         expected.loc[0, :] = np.nan
 
         tm.assert_equal(result, expected)

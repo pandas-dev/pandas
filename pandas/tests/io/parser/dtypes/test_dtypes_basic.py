@@ -18,6 +18,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
+    IntegerArray,
     StringArray,
 )
 
@@ -498,7 +499,7 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 1,2.5,True,a,,,,,12-31-2019,
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
-    with pd.option_context("mode.nullable_backend", "pyarrow"):
+    with pd.option_context("mode.dtype_backend", "pyarrow"):
         if engine == "c":
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -526,4 +527,40 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
                 "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
             }
         )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.usefixtures("pyarrow_xfail")
+def test_use_nullable_dtypes_option(all_parsers):
+    # GH#50748
+
+    parser = all_parsers
+
+    data = """a
+1
+3
+"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = parser.read_csv(StringIO(data))
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_int_avoid_overflow(all_parsers):
+    # GH#32134
+    parser = all_parsers
+    data = """a,b
+1,1
+,1
+1582218195625938945,1
+"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
+    expected = DataFrame(
+        {
+            "a": IntegerArray(
+                np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
+            ),
+            "b": 1,
+        }
+    )
     tm.assert_frame_equal(result, expected)

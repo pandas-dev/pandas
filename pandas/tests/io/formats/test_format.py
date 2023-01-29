@@ -11,7 +11,6 @@ from io import StringIO
 import itertools
 import locale
 from operator import methodcaller
-import os
 from pathlib import Path
 import re
 from shutil import get_terminal_size
@@ -106,11 +105,6 @@ def assert_filepath_or_buffer_equals(
     return _assert_filepath_or_buffer_equals
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 def has_info_repr(df):
     r = repr(df)
     c1 = r.split("\n")[0].startswith("<class")
@@ -140,7 +134,7 @@ def has_horizontally_truncated_repr(df):
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
-    for ix, l in enumerate(r.splitlines()):
+    for ix, _ in enumerate(r.splitlines()):
         if not r.split()[cand_col] == "...":
             return False
     return True
@@ -171,7 +165,6 @@ def has_expanded_repr(df):
     return False
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
     def test_eng_float_formatter(self, float_frame):
         df = float_frame
@@ -200,7 +193,8 @@ class TestDataFrameFormatting:
     )
     def test_show_counts(self, row, columns, show_counts, result):
 
-        df = DataFrame(1, columns=range(10), index=range(10))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
         df.iloc[1, 1] = np.nan
 
         with option_context(
@@ -1335,7 +1329,6 @@ class TestDataFrameFormatting:
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
-            index=np.arange(200),
         )
 
         biggie.loc[:20, "A"] = np.nan
@@ -3437,7 +3430,6 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
-@pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",
@@ -3452,6 +3444,8 @@ def test_filepath_or_buffer_arg(
     filepath_or_buffer_id,
 ):
     df = DataFrame([data])
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
 
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
@@ -3459,10 +3453,8 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        expected_warning = FutureWarning if method == "to_latex" else None
-        with tm.assert_produces_warning(expected_warning):
-            with pytest.raises(LookupError, match="unknown encoding"):
-                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        with pytest.raises(LookupError, match="unknown encoding"):
+            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
@@ -3472,6 +3464,8 @@ def test_filepath_or_buffer_arg(
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())

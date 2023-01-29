@@ -26,8 +26,12 @@ import pandas._testing as tm
         ([np.nan, 4.0, np.nan, 2.0, np.nan], [np.nan, 4.0, np.nan, 2.0, np.nan]),
         # Timestamps
         (
-            list(pd.date_range("1/1/18", freq="D", periods=5)),
-            list(pd.date_range("1/1/18", freq="D", periods=5))[::-1],
+            pd.date_range("1/1/18", freq="D", periods=5),
+            pd.date_range("1/1/18", freq="D", periods=5)[::-1],
+        ),
+        (
+            pd.date_range("1/1/18", freq="D", periods=5).as_unit("s"),
+            pd.date_range("1/1/18", freq="D", periods=5)[::-1].as_unit("s"),
         ),
         # All NA
         ([np.nan] * 5, [np.nan] * 5),
@@ -35,24 +39,32 @@ import pandas._testing as tm
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
 def test_quantile(interpolation, a_vals, b_vals, q, request):
-    if interpolation == "nearest" and q == 0.5 and b_vals == [4, 3, 2, 1]:
+    if (
+        interpolation == "nearest"
+        and q == 0.5
+        and isinstance(b_vals, list)
+        and b_vals == [4, 3, 2, 1]
+    ):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="Unclear numpy expectation for nearest "
                 "result with equidistant data"
             )
         )
+    all_vals = pd.concat([pd.Series(a_vals), pd.Series(b_vals)])
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
     b_expected = pd.Series(b_vals).quantile(q, interpolation=interpolation)
 
-    df = DataFrame(
-        {"key": ["a"] * len(a_vals) + ["b"] * len(b_vals), "val": a_vals + b_vals}
-    )
+    df = DataFrame({"key": ["a"] * len(a_vals) + ["b"] * len(b_vals), "val": all_vals})
 
     expected = DataFrame(
         [a_expected, b_expected], columns=["val"], index=Index(["a", "b"], name="key")
     )
+    if all_vals.dtype.kind == "M" and expected.dtypes.values[0].kind == "M":
+        # TODO(non-nano): this should be unnecessary once array_to_datetime
+        #  correctly infers non-nano from Timestamp.unit
+        expected = expected.astype(all_vals.dtype)
     result = df.groupby("key").quantile(q, interpolation=interpolation)
 
     tm.assert_frame_equal(result, expected)
@@ -61,7 +73,8 @@ def test_quantile(interpolation, a_vals, b_vals, q, request):
 def test_quantile_array():
     # https://github.com/pandas-dev/pandas/issues/27526
     df = DataFrame({"A": [0, 1, 2, 3, 4]})
-    result = df.groupby([0, 0, 1, 1, 1]).quantile([0.25])
+    key = np.array([0, 0, 1, 1, 1], dtype=np.int64)
+    result = df.groupby(key).quantile([0.25])
 
     index = pd.MultiIndex.from_product([[0, 1], [0.25]])
     expected = DataFrame({"A": [0.25, 2.50]}, index=index)
@@ -70,7 +83,8 @@ def test_quantile_array():
     df = DataFrame({"A": [0, 1, 2, 3], "B": [4, 5, 6, 7]})
     index = pd.MultiIndex.from_product([[0, 1], [0.25, 0.75]])
 
-    result = df.groupby([0, 0, 1, 1]).quantile([0.25, 0.75])
+    key = np.array([0, 0, 1, 1], dtype=np.int64)
+    result = df.groupby(key).quantile([0.25, 0.75])
     expected = DataFrame(
         {"A": [0.25, 0.75, 2.25, 2.75], "B": [4.25, 4.75, 6.25, 6.75]}, index=index
     )
@@ -79,9 +93,8 @@ def test_quantile_array():
 
 def test_quantile_array2():
     # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
-    df = DataFrame(
-        np.random.RandomState(0).randint(0, 5, size=(10, 3)), columns=list("ABC")
-    )
+    arr = np.random.RandomState(0).randint(0, 5, size=(10, 3), dtype=np.int64)
+    df = DataFrame(arr, columns=list("ABC"))
     result = df.groupby("A").quantile([0.3, 0.7])
     expected = DataFrame(
         {
@@ -97,14 +110,15 @@ def test_quantile_array2():
 
 def test_quantile_array_no_sort():
     df = DataFrame({"A": [0, 1, 2], "B": [3, 4, 5]})
-    result = df.groupby([1, 0, 1], sort=False).quantile([0.25, 0.5, 0.75])
+    key = np.array([1, 0, 1], dtype=np.int64)
+    result = df.groupby(key, sort=False).quantile([0.25, 0.5, 0.75])
     expected = DataFrame(
         {"A": [0.5, 1.0, 1.5, 1.0, 1.0, 1.0], "B": [3.5, 4.0, 4.5, 4.0, 4.0, 4.0]},
         index=pd.MultiIndex.from_product([[1, 0], [0.25, 0.5, 0.75]]),
     )
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby([1, 0, 1], sort=False).quantile([0.75, 0.25])
+    result = df.groupby(key, sort=False).quantile([0.75, 0.25])
     expected = DataFrame(
         {"A": [1.5, 0.5, 1.0, 1.0], "B": [4.5, 3.5, 4.0, 4.0]},
         index=pd.MultiIndex.from_product([[1, 0], [0.75, 0.25]]),
@@ -135,7 +149,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
     nrow, ncol = frame_size
     df = DataFrame(np.array([ncol * [_ % 4] for _ in range(nrow)]), columns=range(ncol))
 
-    idx_levels = [list(range(min(nrow, 4)))] * len(groupby) + [q]
+    idx_levels = [np.arange(min(nrow, 4))] * len(groupby) + [q]
     idx_codes = [[x for x in range(min(nrow, 4)) for _ in q]] * len(groupby) + [
         list(range(len(q))) * min(nrow, 4)
     ]

@@ -444,8 +444,8 @@ _shared_docs[
     a reproducible gzip archive:
     ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
@@ -466,8 +466,8 @@ _shared_docs[
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
@@ -798,8 +798,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions
@@ -865,8 +865,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions

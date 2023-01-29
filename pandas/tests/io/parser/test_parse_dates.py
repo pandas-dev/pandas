@@ -10,7 +10,6 @@ from datetime import (
     timezone,
 )
 from io import StringIO
-import warnings
 
 from dateutil.parser import parse as du_parse
 from hypothesis import given
@@ -166,7 +165,9 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         -------
         parsed : Series
         """
-        return parsing.try_parse_dates(parsing.concat_date_cols(date_cols))
+        return parsing.try_parse_dates(
+            parsing.concat_date_cols(date_cols), parser=du_parse
+        )
 
     kwds = {
         "header": None,
@@ -923,9 +924,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         tm.assert_frame_equal(df, expected)
     else:
         msg = "got an unexpected keyword argument 'day_first'"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             parser.read_csv(
                 StringIO(data),
                 names=["time", "Q", "NTU"],
@@ -1454,6 +1453,8 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 
 
 @xfail_pyarrow
+# From date_parser fallback behavior
+@pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
@@ -1717,7 +1718,9 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     # GH46210
     with pytest.raises(
         ValueError,
-        match=r"^time data '31/05/2000' does not match format '%m/%d/%Y' \(match\)$",
+        match=(
+            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y", at position 1$'
+        ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
 
@@ -1751,11 +1754,9 @@ def test_hypothesis_delimited_date(
         )
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
-            parse_datetime_string, date_string, dayfirst=dayfirst
-        )
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parse_datetime_string, date_string, dayfirst=dayfirst
+    )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
@@ -2026,4 +2027,32 @@ def test_parse_dates_and_string_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
     expected = DataFrame({"a": ["1"], "b": [Timestamp("2019-12-31")]})
     expected["a"] = expected["a"].astype("string")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dot_separated_dates(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/2586
+    parser = all_parsers
+    data = """a,b
+27.03.2003 14:55:00.000,1
+03.08.2003 15:20:00.000,2"""
+    if parser.engine == "pyarrow":
+        expected_index = Index(
+            ["27.03.2003 14:55:00.000", "03.08.2003 15:20:00.000"],
+            dtype="object",
+            name="a",
+        )
+        warn = None
+    else:
+        expected_index = DatetimeIndex(
+            ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
+            dtype="datetime64[ns]",
+            name="a",
+        )
+        warn = UserWarning
+    msg = r"when dayfirst=False \(the default\) was specified"
+    result = parser.read_csv_check_warnings(
+        warn, msg, StringIO(data), parse_dates=True, index_col=0
+    )
+    expected = DataFrame({"b": [1, 2]}, index=expected_index)
     tm.assert_frame_equal(result, expected)

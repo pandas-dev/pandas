@@ -92,10 +92,6 @@ if compat.PY39:
     except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
         zoneinfo = None
 
-# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
-suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
-    "ignore:Promotion of numbers and bools:FutureWarning"
-)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -171,7 +167,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-        item.add_marker(suppress_npdev_promotion_warning)
 
         for (mark, kwd, skip_if_found, arg_name) in marks:
             if kwd in item.keywords:
@@ -525,7 +520,7 @@ def multiindex_year_month_day_dataframe_random_data():
     """
     tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
-    # use Int64Index, to make sure things work
+    # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd
@@ -1486,7 +1481,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
@@ -1528,6 +1523,43 @@ def any_numeric_ea_dtype(request):
     * 'Int64'
     * 'Float32'
     * 'Float64'
+    """
+    return request.param
+
+
+#  Unsupported operand types for + ("List[Union[str, ExtensionDtype, dtype[Any],
+#  Type[object]]]" and "List[str]")
+@pytest.fixture(
+    params=tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+    + tm.ALL_INT_PYARROW_DTYPES_STR_REPR
+    + tm.FLOAT_PYARROW_DTYPES_STR_REPR  # type: ignore[operator]
+)
+def any_numeric_ea_and_arrow_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
+    * 'uint8[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float32[pyarrow]'
+    * 'float64[pyarrow]'
     """
     return request.param
 
