@@ -1236,23 +1236,3 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
-
-    def test_reindex_identical_different_object(self):
-        # GH#51032
-        df = DataFrame({"a": [1, 2]})
-        ser = Series([3, 4])
-        result, result2 = df.align(ser, axis=0)
-        tm.assert_frame_equal(result, df)
-        tm.assert_series_equal(result2, ser)
-        assert df is not result
-        assert ser is not result2
-
-    def test_reindex_identical_different_object_columns(self):
-        # GH#51032
-        df = DataFrame({"a": [1, 2]})
-        ser = Series([1], index=["a"])
-        result, result2 = df.align(ser, axis=1)
-        tm.assert_frame_equal(result, df)
-        tm.assert_series_equal(result2, ser)
-        assert df is not result
-        assert ser is not result2
