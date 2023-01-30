@@ -135,6 +135,13 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             return cls(pa.array(result, mask=na_values, type=pa.string()))
 
+        if is_object_dtype(scalars):
+            # copy if we get object dtype with non-string values to avoid
+            # modifying input inplace
+            inferred = lib.infer_dtype(scalars, skipna=False)
+            if inferred != "string":
+                copy = True
+
         # convert non-na-likes to str
         result = lib.ensure_string_array(scalars, copy=copy)
         return cls(pa.array(result, type=pa.string(), from_pandas=True))
