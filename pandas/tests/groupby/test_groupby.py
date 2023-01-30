@@ -1953,41 +1953,33 @@ def test_empty_groupby(
             tm.assert_equal(result, expected)
         return
 
-    if columns == "C":
-        # i.e. SeriesGroupBy
-        if op in ["prod", "sum", "skew"]:
-            # ops that require more than just ordered-ness
-            if is_dt64 or is_cat or is_per:
-                # GH#41291
-                # datetime64 -> prod and sum are invalid
-                if op == "skew":
-                    msg = "does not support reduction 'skew'"
-                elif is_dt64:
-                    msg = "datetime64 type does not support"
-                elif is_per:
-                    msg = "Period type does not support"
-                else:
-                    msg = "category type does not support"
-                with pytest.raises(TypeError, match=msg):
-                    get_result()
+    if op in ["prod", "sum", "skew"]:
+        # ops that require more than just ordered-ness
+        if is_dt64 or is_cat or is_per:
+            # GH#41291
+            # datetime64 -> prod and sum are invalid
+            if op == "skew":
+                msg = "does not support reduction 'skew'"
+            elif is_dt64:
+                msg = "datetime64 type does not support"
+            elif is_per:
+                msg = "Period type does not support"
+            else:
+                msg = "category type does not support"
+            with pytest.raises(TypeError, match=msg):
+                get_result()
 
+            if not isinstance(columns, list):
+                # i.e. SeriesGroupBy
                 return
-    else:
-        # ie. DataFrameGroupBy
-        if op in ["prod", "sum"]:
-            # ops that require more than just ordered-ness
-            if is_dt64 or is_per or is_cat:
+            elif op == "skew":
+                # TODO: test the numeric_only=True case
+                return
+            else:
+                # i.e. op in ["prod", "sum"]:
+                # i.e. DataFrameGroupBy
+                # ops that require more than just ordered-ness
                 # GH#41291
-                # datetime64 -> prod and sum are invalid
-                if is_dt64:
-                    msg = "datetime64 type does not support"
-                elif is_per:
-                    msg = "Period type does not support"
-                else:
-                    msg = "category type does not support"
-
-                with pytest.raises(TypeError, match=msg):
-                    get_result()
                 result = get_result(numeric_only=True)
 
                 # with numeric_only=True, these are dropped, and we get
@@ -1997,17 +1989,6 @@ def test_empty_groupby(
                     expected = get_categorical_invalid_expected()
                 tm.assert_equal(result, expected)
                 return
-
-        if op == "skew" and (is_cat or is_dt64 or is_per):
-            msg = "|".join(
-                [
-                    "Categorical is not ordered",
-                    "does not support reduction",
-                ]
-            )
-            with pytest.raises(TypeError, match=msg):
-                get_result()
-            return
 
     result = get_result()
     expected = df.set_index(keys)[columns]
