@@ -1897,7 +1897,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         try:
             on_freq = cls._generate_range(
-                start=index[0], end=None, periods=len(index), freq=freq, **kwargs
+                start=index[0],
+                end=None,
+                periods=len(index),
+                freq=freq,
+                unit=index.unit,
+                **kwargs,
             )
             if not np.array_equal(index.asi8, on_freq.asi8):
                 raise ValueError
@@ -2029,11 +2034,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # Reductions
 
     def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 discussion of desired behavior long-term
+        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 discussion of desired behavior long-term
+        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
+
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------

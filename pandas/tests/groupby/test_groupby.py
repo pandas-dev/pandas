@@ -655,6 +655,8 @@ def test_groupby_as_index_select_column_sum_empty_df():
     left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
 
     expected = DataFrame(columns=df.columns[:2], index=range(0))
+    # GH#50744 - Columns after selection shouldn't retain names
+    expected.columns.names = [None]
     tm.assert_frame_equal(left, expected)
 
 
@@ -2846,3 +2848,53 @@ def test_sum_of_booleans(n):
     result = df.groupby("groupby_col").sum()
     expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
+def test_groupby_method_drop_na(method):
+    # GH 21755
+    df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
+
+    if method == "nth":
+        result = getattr(df.groupby("A"), method)(n=0)
+    else:
+        result = getattr(df.groupby("A"), method)()
+
+    if method in ["first", "last"]:
+        expected = DataFrame({"B": [0, 2, 4]}).set_index(
+            Series(["a", "b", "c"], name="A")
+        )
+    else:
+        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_reduce_period():
+    # GH#51040
+    pi = pd.period_range("2016-01-01", periods=100, freq="D")
+    grps = list(range(10)) * 10
+    ser = pi.to_series()
+    gb = ser.groupby(grps)
+
+    with pytest.raises(TypeError, match="Period type does not support sum operations"):
+        gb.sum()
+    with pytest.raises(
+        TypeError, match="Period type does not support cumsum operations"
+    ):
+        gb.cumsum()
+    with pytest.raises(TypeError, match="Period type does not support prod operations"):
+        gb.prod()
+    with pytest.raises(
+        TypeError, match="Period type does not support cumprod operations"
+    ):
+        gb.cumprod()
+
+    res = gb.max()
+    expected = ser[-10:]
+    expected.index = Index(range(10), dtype=np.int_)
+    tm.assert_series_equal(res, expected)
+
+    res = gb.min()
+    expected = ser[:10]
+    expected.index = Index(range(10), dtype=np.int_)
+    tm.assert_series_equal(res, expected)

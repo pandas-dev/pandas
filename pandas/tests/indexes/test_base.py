@@ -18,6 +18,11 @@ from pandas.errors import (
 )
 from pandas.util._test_decorators import async_mark
 
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_object_dtype,
+)
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -304,7 +309,6 @@ class TestIndex(Base):
         "klass",
         [
             Index,
-            NumericIndex,
             CategoricalIndex,
             DatetimeIndex,
             TimedeltaIndex,
@@ -592,12 +596,10 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif index._is_backward_compat_public_numeric_index:
+        elif is_numeric_dtype(index.dtype):
             expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(rng, dtype=index.dtype)
-        elif index.dtype.kind == "u":
             expected = Index(rng, dtype=index.dtype)
         else:
             expected = Index(rng)
@@ -677,7 +679,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_object(self, index, expected):
-        assert index.is_object() is expected
+        assert is_object_dtype(index) is expected
 
     def test_summary(self, index):
         index._summary()
@@ -870,8 +872,11 @@ class TestIndex(Base):
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
-            msg = "data is not compatible with NumericIndex"
-            with pytest.raises(ValueError, match=msg):
+            msg = (
+                r"float\(\) argument must be a string or a (real )?number, "
+                f"not {repr(type(nulls_fixture).__name__)}"
+            )
+            with pytest.raises(TypeError, match=msg):
                 NumericIndex([1.0, nulls_fixture], dtype=np.float64)
 
             idx = NumericIndex([1.0, np.nan], dtype=np.float64)

@@ -16,7 +16,6 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -207,33 +206,39 @@ class TestInsertIndexCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1, np.int64),
+            (1, 1, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = NumericIndex([1, 2, 3, 4], dtype=np.int64)
-        assert obj.dtype == np.int64
+    def test_insert_int_index(
+        self, any_int_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = any_int_numpy_dtype
+        obj = pd.Index([1, 2, 3, 4], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1, coerced_val, 2, 3, 4])
+        exp = pd.Index([1, coerced_val, 2, 3, 4], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1.0, np.float64),
+            (1, 1.0, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
-        assert obj.dtype == np.float64
+    def test_insert_float_index(
+        self, float_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = float_numpy_dtype
+        obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])
+        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(

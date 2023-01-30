@@ -13,6 +13,7 @@ from pandas.errors import IndexingError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
+    is_object_dtype,
 )
 
 import pandas as pd
@@ -26,7 +27,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -167,7 +167,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = Float64Index([1, 2, np.inf])
+        expected = Index([1, 2, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -619,7 +619,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
         for s in [Series(range(5), index=np.arange(5.0))]:
 
@@ -636,7 +636,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
 
 class TestMisc:
