@@ -585,6 +585,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.var \
         pandas.Index.factorize \
         pandas.Period.strftime \
+        pandas.Series.copy \
         pandas.Series.factorize \
         pandas.Series.floordiv \
         pandas.Series.plot.line \
