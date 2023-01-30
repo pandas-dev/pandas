@@ -6932,7 +6932,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : mapping, function, label, list of labels, optional
+        subset : label or list of labels, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
