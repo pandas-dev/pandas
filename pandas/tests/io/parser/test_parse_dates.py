@@ -1293,8 +1293,8 @@ def test_parse_dates_empty_string(all_parsers):
 @pytest.mark.parametrize(
     "reader",
     [
-        'read_csv_check_warnings',
-        'read_table_check_warnings'
+        "read_csv_check_warnings",
+        "read_table_check_warnings"
     ]
 )
 def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
