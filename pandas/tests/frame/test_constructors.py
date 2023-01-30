@@ -11,9 +11,12 @@ from datetime import (
     datetime,
     timedelta,
 )
+import errno
 import functools
+import os
 import random
 import re
+import signal
 from typing import Iterator
 import warnings
 
@@ -2459,6 +2462,30 @@ class TestDataFrameConstructors:
 
     def test_constructor_large_size_frame(self):
         # GH#50708
+        # https://stackoverflow.com/questions/2281850/timeout-function-
+        # if-it-takes-too-long-to-finish/2282656#2282656
+        class TimeoutError(Exception):
+            pass
+
+        def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
+            def decorator(func):
+                def _handle_timeout(signum, frame):
+                    raise TimeoutError(error_message)
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    signal.signal(signal.SIGALRM, _handle_timeout)
+                    signal.alarm(seconds)
+                    try:
+                        result = func(*args, **kwargs)
+                    finally:
+                        signal.alarm(0)
+                    return result
+
+                return wrapper
+
+            return decorator
+
         class LargeFrame(DataFrame):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
@@ -2480,9 +2507,12 @@ class TestDataFrameConstructors:
                 ).T
             )
 
-        frame = get_frame(1000000)
         # check that dropna() doesn't fall into an infinite loop
-        frame.dropna()
+        @timeout(5)
+        def time_restricted_dropna(n):
+            get_frame(n).dropna()
+
+        time_restricted_dropna(1000000)
 
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
