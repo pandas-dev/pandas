@@ -985,27 +985,32 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        msg = "'(any|all)' with datetime64 dtypes is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)
