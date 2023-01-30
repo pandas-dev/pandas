@@ -1,4 +1,5 @@
 import os
+import subprocess
 from textwrap import dedent
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 
 from pandas.compat import (
     is_ci_environment,
+    is_platform_linux,
     is_platform_mac,
 )
 from pandas.errors import (
@@ -406,12 +408,7 @@ class TestClipboard:
         "data",
         [
             "\U0001f44d...",
-            pytest.param(
-                "Ωœ∑´...",
-                marks=pytest.mark.xfail(
-                    is_ci_environment(), reason="Flaky on CI builds", strict=False
-                ),
-            ),
+            "Ωœ∑´...",
             "abcd...",
         ],
     )
@@ -424,6 +421,9 @@ class TestClipboard:
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
+        if is_ci_environment() and is_platform_linux():
+            # Clipboard can sometimes keep previous param causing flaky CI failures
+            subprocess.run(["xsel", "--delete", "--clipboard"])
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
