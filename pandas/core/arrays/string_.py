@@ -223,8 +223,6 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
-    pass
-
 
 class StringArray(BaseStringArray, PandasArray):
     """
