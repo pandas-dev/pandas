@@ -1197,8 +1197,10 @@ class SelectN:
         nsmallest/nlargest methods
         """
         return (
-            is_numeric_dtype(dtype) and not is_complex_dtype(dtype)
-        ) or needs_i8_conversion(dtype)
+            not is_complex_dtype(dtype)
+            if is_numeric_dtype(dtype)
+            else needs_i8_conversion(dtype)
+        )
 
 
 class SelectNSeries(SelectN):

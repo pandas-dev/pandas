@@ -32,6 +32,7 @@ from pandas._libs import (
 
 from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
+    C_NA,
     checknull,
     is_matching_na,
 )
@@ -48,7 +49,7 @@ cdef bint is_definitely_invalid_key(object val):
     return False
 
 
-cdef ndarray _get_bool_indexer(ndarray values, object val):
+cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
     Return a ndarray[bool] of locations where val matches self.values.
 
@@ -61,6 +62,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
         object item
 
     if values.descr.type_num == cnp.NPY_OBJECT:
+        assert mask is None  # no mask for object dtype
         # i.e. values.dtype == object
         if not checknull(val):
             indexer = eq_NA_compat(values, val)
@@ -74,10 +76,16 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
                 indexer[i] = is_matching_na(item, val)
 
     else:
-        if util.is_nan(val):
-            indexer = np.isnan(values)
+        if mask is not None:
+            if val is C_NA:
+                indexer = mask == 1
+            else:
+                indexer = (values == val) & ~mask
         else:
-            indexer = values == val
+            if util.is_nan(val):
+                indexer = np.isnan(values)
+            else:
+                indexer = values == val
 
     return indexer.view(bool)
 
@@ -111,6 +119,7 @@ cdef class IndexEngine:
 
     cdef readonly:
         ndarray values
+        ndarray mask
         HashTable mapping
         bint over_size_threshold
 
@@ -121,6 +130,7 @@ cdef class IndexEngine:
 
     def __init__(self, ndarray values):
         self.values = values
+        self.mask = None
 
         self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
@@ -159,6 +169,8 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         if not self.unique:
             return self._get_loc_duplicates(val)
+        if self.mask is not None and val is C_NA:
+            return self.mapping.get_na()
 
         try:
             return self.mapping.get_item(val)
@@ -206,7 +218,7 @@ cdef class IndexEngine:
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
-        indexer = _get_bool_indexer(self.values, val)
+        indexer = _get_bool_indexer(self.values, val, self.mask)
         return _unpack_bool_indexer(indexer, val)
 
     def sizeof(self, deep: bool = False) -> int:
@@ -247,21 +259,25 @@ cdef class IndexEngine:
     cdef _do_monotonic_check(self):
         cdef:
             bint is_unique
-        try:
-            values = self.values
-            self.monotonic_inc, self.monotonic_dec, is_unique = \
-                self._call_monotonic(values)
-        except TypeError:
+        if self.mask is not None and np.any(self.mask):
             self.monotonic_inc = 0
             self.monotonic_dec = 0
-            is_unique = 0
+        else:
+            try:
+                values = self.values
+                self.monotonic_inc, self.monotonic_dec, is_unique = \
+                    self._call_monotonic(values)
+            except TypeError:
+                self.monotonic_inc = 0
+                self.monotonic_dec = 0
+                is_unique = 0
 
-        self.need_monotonic_check = 0
+            self.need_monotonic_check = 0
 
-        # we can only be sure of uniqueness if is_unique=1
-        if is_unique:
-            self.unique = 1
-            self.need_unique_check = 0
+            # we can only be sure of uniqueness if is_unique=1
+            if is_unique:
+                self.unique = 1
+                self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
@@ -286,7 +302,7 @@ cdef class IndexEngine:
 
             values = self.values
             self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values)
+            self.mapping.map_locations(values, self.mask)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
@@ -841,6 +857,15 @@ cdef class BoolEngine(UInt8Engine):
         return <uint8_t>val
 
 
+cdef class MaskedBoolEngine(MaskedUInt8Engine):
+    cdef _check_type(self, object val):
+        if val is C_NA:
+            return val
+        if not util.is_bool_object(val):
+            raise KeyError(val)
+        return <uint8_t>val
+
+
 @cython.internal
 @cython.freelist(32)
 cdef class SharedEngine:
@@ -1110,3 +1135,130 @@ cdef class ExtensionEngine(SharedEngine):
 
     cdef _check_type(self, object val):
         hash(val)
+
+
+cdef class MaskedIndexEngine(IndexEngine):
+    def __init__(self, object values):
+        super().__init__(values._data)
+        self.mask = values._mask
+
+    def get_indexer(self, object values) -> np.ndarray:
+        self._ensure_mapping_populated()
+        return self.mapping.lookup(values._data, values._mask)
+
+    def get_indexer_non_unique(self, object targets):
+        """
+        Return an indexer suitable for taking from a non unique index
+        return the labels in the same order as the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+
+        Returns
+        -------
+        indexer : np.ndarray[np.intp]
+        missing : np.ndarray[np.intp]
+        """
+        # TODO: Unify with parent class
+        cdef:
+            ndarray values, mask, target_vals, target_mask
+            ndarray[intp_t] result, missing
+            set stargets
+            list na_pos
+            dict d = {}
+            object val
+            Py_ssize_t count = 0, count_missing = 0
+            Py_ssize_t i, j, n, n_t, n_alloc, start, end, na_idx
+
+        target_vals = targets._data
+        target_mask = targets._mask
+
+        values = self.values
+        assert not values.dtype == object  # go through object path instead
+
+        mask = self.mask
+        stargets = set(target_vals[~target_mask])
+
+        n = len(values)
+        n_t = len(target_vals)
+        if n > 10_000:
+            n_alloc = 10_000
+        else:
+            n_alloc = n
+
+        result = np.empty(n_alloc, dtype=np.intp)
+        missing = np.empty(n_t, dtype=np.intp)
+
+        # map each starget to its position in the index
+        if (
+                stargets and
+                len(stargets) < 5 and
+                not np.any(target_mask) and
+                self.is_monotonic_increasing
+        ):
+            # if there are few enough stargets and the index is monotonically
+            # increasing, then use binary search for each starget
+            for starget in stargets:
+                start = values.searchsorted(starget, side="left")
+                end = values.searchsorted(starget, side="right")
+                if start != end:
+                    d[starget] = list(range(start, end))
+
+            stargets = set()
+
+        if stargets:
+            # otherwise, map by iterating through all items in the index
+
+            na_pos = []
+
+            for i in range(n):
+                val = values[i]
+
+                if mask[i]:
+                    na_pos.append(i)
+
+                else:
+                    if val in stargets:
+                        if val not in d:
+                            d[val] = []
+                        d[val].append(i)
+
+        for i in range(n_t):
+            val = target_vals[i]
+
+            if target_mask[i]:
+                if na_pos:
+                    for na_idx in na_pos:
+                        # realloc if needed
+                        if count >= n_alloc:
+                            n_alloc += 10_000
+                            result = np.resize(result, n_alloc)
+
+                        result[count] = na_idx
+                        count += 1
+                    continue
+
+            elif val in d:
+                # found
+                key = val
+
+                for j in d[key]:
+
+                    # realloc if needed
+                    if count >= n_alloc:
+                        n_alloc += 10_000
+                        result = np.resize(result, n_alloc)
+
+                    result[count] = j
+                    count += 1
+                continue
+
+            # value not found
+            if count >= n_alloc:
+                n_alloc += 10_000
+                result = np.resize(result, n_alloc)
+            result[count] = -1
+            count += 1
+            missing[count_missing] = i
+            count_missing += 1
+
+        return result[0:count], missing[0:count_missing]
