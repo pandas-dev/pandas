@@ -6211,6 +6211,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
     ) -> DataFrame:
         ...
 
@@ -6223,6 +6224,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
+        ignore_index: bool = ...,
     ) -> None:
         ...
 
@@ -6234,6 +6236,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
+        ignore_index: bool = False,
     ) -> DataFrame | None:
         """
         Remove missing values.
@@ -6269,6 +6272,10 @@ class DataFrame(NDFrame, OpsMixin):
             these would be a list of columns to include.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -6382,6 +6389,9 @@ class DataFrame(NDFrame, OpsMixin):
             result = self.copy(deep=None)
         else:
             result = self.loc(axis=axis)[mask]
+
+        if ignore_index:
+            result.index = default_index(len(result))
 
         if not inplace:
             return result

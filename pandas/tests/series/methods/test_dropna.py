@@ -101,3 +101,14 @@ class TestDropna:
         )
         assert result.dtype == "datetime64[ns, Asia/Tokyo]"
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [1, 1.5])
+    def test_dropna_ignore_index(self, val):
+        # GH#31725
+        ser = Series([1, 2, val], index=[3, 2, 1])
+        result = ser.dropna(ignore_index=True)
+        expected = Series([1, 2, val])
+        tm.assert_series_equal(result, expected)
+
+        ser.dropna(ignore_index=True, inplace=True)
+        tm.assert_series_equal(ser, expected)
