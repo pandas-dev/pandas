@@ -143,7 +143,7 @@ class OpsMixin:
         Keys of a dictionary are aligned to the DataFrame, based on column names;
         each value in the dictionary is added to the corresponding column.
 
-        >>> df + {'height': 0.5, 'weight': 1.5}
+        >>> df[['height', 'weight']] + {'height': 0.5, 'weight': 1.5}
                height  weight
         elk       2.0   501.5
         moose     3.1   801.5
@@ -177,7 +177,7 @@ class OpsMixin:
 
         >>> other = pd.DataFrame({'height': [0.2, 0.4, 0.6]},
         ...                      index=['elk', 'moose', 'deer'])
-        >>> df + other
+        >>> df[['height', 'weight']] + other
                height  weight
         deer      NaN     NaN
         elk       1.7     NaN
