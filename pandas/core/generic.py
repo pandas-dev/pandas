@@ -6290,11 +6290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for i, (col_name, col) in enumerate(self.items()):
                 cdt = dtype_ser.iat[i]
                 if isna(cdt):
-                    if using_copy_on_write():
-                        # Make a shallow copy even if copy=False for CoW
-                        res_col = col.copy(deep=copy)
-                    else:
-                        res_col = col if copy is False else col.copy()
+                    res_col = col.copy(deep=copy)
                 else:
                     try:
                         res_col = col.astype(dtype=cdt, copy=copy, errors=errors)

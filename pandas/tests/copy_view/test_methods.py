@@ -510,6 +510,11 @@ def test_astype_single_dtype(using_copy_on_write):
         assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
 
+    # mutating parent also doesn't update result
+    df2 = df.astype("float64")
+    df.iloc[0, 2] = 5.5
+    tm.assert_frame_equal(df2, df_orig.astype("float64"))
+
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 @pytest.mark.parametrize("new_dtype", ["int64", "Int64", "int64[pyarrow]"])
@@ -523,8 +528,6 @@ def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
-        if new_dtype == "int64[pyarrow]":
-            pytest.skip("Does not make a copy")
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
@@ -532,6 +535,11 @@ def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+    # mutating parent also doesn't update result
+    df2 = df.astype(new_dtype)
+    df.iloc[0, 0] = 100
+    tm.assert_frame_equal(df2, df_orig.astype(new_dtype))
 
 
 @pytest.mark.parametrize("dtype", ["float64", "int32", "Int32", "int32[pyarrow]"])
@@ -542,13 +550,15 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     df_orig = df.copy()
     df2 = df.astype(dtype)
 
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df2.iloc[0, 0] = 5
     tm.assert_frame_equal(df, df_orig)
+
+    # mutating parent also doesn't update result
+    df2 = df.astype(dtype)
+    df.iloc[0, 0] = 100
+    tm.assert_frame_equal(df2, df_orig.astype(dtype))
 
 
 @pytest.mark.parametrize(

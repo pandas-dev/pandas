@@ -280,6 +280,8 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     elif getattr(dtype, "numpy_dtype", dtype) == getattr(
         new_dtype, "numpy_dtype", new_dtype
     ):
+        # If underlying numpy dtype is the same, no copy is made, e.g.
+        # int64 -> Int64 or int64[pyarrow]
         return True
 
     return False
