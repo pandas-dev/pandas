@@ -223,12 +223,7 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
-    @doc(ExtensionArray.tolist)
-    def tolist(self) -> list:
-        if self.ndim > 1:
-            return [x.tolist() for x in self]
-        # pd.NA -> None (python native types)
-        return self.to_numpy(na_value=None).tolist()
+    pass
 
 
 class StringArray(BaseStringArray, PandasArray):
@@ -514,6 +509,15 @@ class StringArray(BaseStringArray, PandasArray):
                 "with NAs present."
             )
         return super().searchsorted(value=value, side=side, sorter=sorter)
+
+    @doc(ExtensionArray.tolist)
+    def tolist(self) -> list:
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        if self._hasna:
+            # pd.NA -> None (python native types)
+            return self.to_numpy(na_value=None).tolist()
+        return self._ndarray.tolist()
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
