@@ -160,13 +160,15 @@ def test_data_frame_value_counts_subset(nulls_fixture):
         index=pd.Index(["John", "Anne", "Beth"], name="first_name"),
     )
 
+    tm.assert_series_equal(result, expected)
+
     df = pd.DataFrame(
         {100: [2, 100, 5, 9], 200: [2, 6, 2, 6], 300: [4, 6, 2, 1]},
     )
     result = df.value_counts([200])
     expected = pd.Series(
         data=[2, 2],
-        index=pd.Index([2, 6], name=200),
+        index=pd.MultiIndex.from_arrays([[2, 6]], names=[200]),
     )
 
     tm.assert_series_equal(result, expected)
