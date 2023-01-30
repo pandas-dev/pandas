@@ -147,8 +147,8 @@ test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asy
 test-command = "python {project}/ci/test_wheels.py"
 
 [tool.cibuildwheel.macos]
-archs = "x86_64 universal2"
-test-skip = "*_arm64 *_universal2:arm64"
+archs = "x86_64 arm64"
+test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
 repair-wheel-command = "python ci/fix_wheels.py {wheel} {dest_dir}"
@@ -287,7 +287,6 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "undefined-loop-variable",
   "unexpected-keyword-arg",
   "ungrouped-imports",
   "unsubscriptable-object",
