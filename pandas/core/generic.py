@@ -1081,8 +1081,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
-        index=None,
-        columns=None,
+        index=lib.no_default,
+        columns=lib.no_default,
         axis: Axis = 0,
         copy: bool_t = True,
         *,
