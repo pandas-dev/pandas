@@ -5517,6 +5517,7 @@ Keep all original rows and also all original values
         axis: Axis = ...,
         inplace: Literal[False] = ...,
         how: AnyAll | None = ...,
+        ignore_index: bool = ...,
     ) -> Series:
         ...
 
@@ -5527,6 +5528,7 @@ Keep all original rows and also all original values
         axis: Axis = ...,
         inplace: Literal[True],
         how: AnyAll | None = ...,
+        ignore_index: bool = ...,
     ) -> None:
         ...
 
@@ -5536,6 +5538,7 @@ Keep all original rows and also all original values
         axis: Axis = 0,
         inplace: bool = False,
         how: AnyAll | None = None,
+        ignore_index: bool = False,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
@@ -5551,6 +5554,10 @@ Keep all original rows and also all original values
             If True, do operation inplace and return None.
         how : str, optional
             Not in use. Kept for compatibility.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -5608,19 +5615,25 @@ Keep all original rows and also all original values
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
-            if inplace:
-                self._update_inplace(result)
-            else:
-                return result
         else:
             if not inplace:
-                return self.copy(deep=None)
-        return None
+                result = self.copy(deep=None)
+            else:
+                result = self
+
+        if ignore_index:
+            result.index = default_index(len(result))
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
