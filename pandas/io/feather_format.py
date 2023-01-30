@@ -24,7 +24,6 @@ from pandas import (
 )
 from pandas.core.api import (
     DataFrame,
-    NumericIndex,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -69,7 +68,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not (isinstance(df.index, NumericIndex) and df.index.dtype == "int64"):
+    if not df.index.dtype == "int64":
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "
@@ -131,11 +130,13 @@ def read_feather(
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0
 
