@@ -514,11 +514,9 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         elif arg.dtype.kind == "f":
             mult, _ = precision_from_unit(unit)
 
-            iresult = arg.astype("i8")
             mask = np.isnan(arg) | (arg == iNaT)
-            iresult[mask] = 0
-
-            fvalues = iresult.astype("f8") * mult
+            fvalues = (arg * mult).astype("f8", copy=False)
+            fvalues[mask] = 0
 
             if (fvalues < Timestamp.min.value).any() or (
                 fvalues > Timestamp.max.value
@@ -528,11 +526,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                     return _to_datetime_with_unit(arg, unit, name, utc, errors)
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            # TODO: is fresult meaningfully different from fvalues?
-            fresult = (arg * mult).astype("f8")
-            fresult[mask] = 0
-
-            arr = fresult.astype("M8[ns]", copy=False)
+            arr = fvalues.astype("M8[ns]", copy=False)
             arr[mask] = np.datetime64("NaT", "ns")
 
             tz_parsed = None

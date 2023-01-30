@@ -21,6 +21,11 @@ import pandas._testing as tm
         ((5, 6), 2, [1, 2, 3], False),
         ([1], [2], [2, 2, 3], False),
         ([1, 4], [5, 2], [5, 2, 3], False),
+        # GH49404: overlap between to_replace and value
+        ([1, 2, 3], [2, 3, 4], [2, 3, 4], False),
+        # GH50872, GH46884: replace with null
+        (1, None, [None, 2, 3], False),
+        (1, pd.NA, [None, 2, 3], False),
         # check_categorical sorts categories, which crashes on mixed dtypes
         (3, "4", [1, 2, "4"], False),
         ([1, 2, "3"], "5", ["5", "5", 3], True),
@@ -65,3 +70,11 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
 
     pd.Series(cat).replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)
+
+
+def test_replace_categorical_ea_dtype():
+    # GH49404
+    cat = Categorical(pd.array(["a", "b"], dtype="string"))
+    result = pd.Series(cat).replace(["a", "b"], ["c", pd.NA])._values
+    expected = Categorical(pd.array(["c", pd.NA], dtype="string"))
+    tm.assert_categorical_equal(result, expected)
