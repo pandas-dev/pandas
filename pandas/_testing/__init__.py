@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -103,6 +104,7 @@ from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
     ensure_safe_environment_variables,
+    raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
     with_csv_dialect,
@@ -197,10 +199,16 @@ if not pa_version_under6p0:
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+    ALL_INT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in ALL_INT_PYARROW_DTYPES
+    ]
 
     # pa.float16 doesn't seem supported
     # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    FLOAT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
+    ]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -233,6 +241,9 @@ if not pa_version_under6p0:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+else:
+    FLOAT_PYARROW_DTYPES_STR_REPR = []
+    ALL_INT_PYARROW_DTYPES_STR_REPR = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -1125,6 +1136,7 @@ __all__ = [
     "rands",
     "reset_display_options",
     "RNGContext",
+    "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",

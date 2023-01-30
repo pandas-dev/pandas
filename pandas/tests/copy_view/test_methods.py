@@ -456,6 +456,41 @@ def test_align_series(using_copy_on_write):
     tm.assert_series_equal(ser_other, ser_orig)
 
 
+def test_align_copy_false(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    df2, df3 = df.align(df, copy=False)
+
+    assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    if using_copy_on_write:
+        df2.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+        df3.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+
+def test_align_with_series_copy_false(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    ser = Series([1, 2, 3], name="x")
+    ser_orig = ser.copy()
+    df_orig = df.copy()
+    df2, ser2 = df.align(ser, copy=False, axis=0)
+
+    assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    assert np.shares_memory(get_array(ser, "x"), get_array(ser2, "x"))
+
+    if using_copy_on_write:
+        df2.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+        ser2.loc[0] = 0
+        tm.assert_series_equal(ser, ser_orig)  # Original is unchanged
+
+
 def test_to_frame(using_copy_on_write):
     # Case: converting a Series to a DataFrame with to_frame
     ser = Series([1, 2, 3])
@@ -1115,6 +1150,26 @@ def test_putmask(using_copy_on_write):
         # Without CoW the original will be modified
         assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
         assert view.iloc[0, 0] == 5
+
+
+def test_asfreq_noop(using_copy_on_write):
+    df = DataFrame(
+        {"a": [0.0, None, 2.0, 3.0]},
+        index=date_range("1/1/2000", periods=4, freq="T"),
+    )
+    df_orig = df.copy()
+    df2 = df.asfreq(freq="T")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_isetitem(using_copy_on_write):

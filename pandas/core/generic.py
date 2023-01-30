@@ -5429,6 +5429,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if (copy or copy is None) and new_data is self._mgr:
             new_data = new_data.copy(deep=copy)
+        elif using_copy_on_write() and new_data is self._mgr:
+            new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -9469,6 +9471,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit=None,
         fill_axis: Axis = 0,
     ):
+        uses_cow = using_copy_on_write()
 
         is_series = isinstance(self, ABCSeries)
 
@@ -9492,7 +9495,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
             elif lidx is None or join_index is None:
-                left = self.copy(deep=copy) if copy or copy is None else self
+                if uses_cow:
+                    left = self.copy(deep=copy)
+                else:
+                    left = self.copy(deep=copy) if copy or copy is None else self
             else:
                 left = self._constructor(
                     self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
@@ -9521,7 +9527,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = self._constructor(fdata)
 
             if ridx is None:
-                right = other.copy(deep=copy) if copy or copy is None else other
+                if uses_cow:
+                    right = other.copy(deep=copy)
+                else:
+                    right = other.copy(deep=copy) if copy or copy is None else other
             else:
                 right = other.reindex(join_index, level=level)
 

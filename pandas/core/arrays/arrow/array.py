@@ -137,15 +137,17 @@ def to_pyarrow_type(
     Convert dtype to a pyarrow type instance.
     """
     if isinstance(dtype, ArrowDtype):
-        pa_dtype = dtype.pyarrow_dtype
+        return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
-        pa_dtype = dtype
+        return dtype
     elif dtype:
-        # Accepts python types too
-        pa_dtype = pa.from_numpy_dtype(dtype)
-    else:
-        pa_dtype = None
-    return pa_dtype
+        try:
+            # Accepts python types too
+            # Doesn't handle all numpy types
+            return pa.from_numpy_dtype(dtype)
+        except pa.ArrowNotImplementedError:
+            pass
+    return None
 
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
@@ -985,7 +987,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pyarrow_meth = getattr(pc, pyarrow_name, None)
         if pyarrow_meth is None:
             return super()._accumulate(name, skipna=skipna, **kwargs)
-        result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+
+        data_to_accum = self._data
+
+        pa_dtype = data_to_accum.type
+        if pa.types.is_duration(pa_dtype):
+            data_to_accum = data_to_accum.cast(pa.int64())
+
+        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+
+        if pa.types.is_duration(pa_dtype):
+            result = result.cast(pa_dtype)
+
         return type(self)(result)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
@@ -1012,6 +1025,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         ------
         TypeError : subclass does not define reductions
         """
+        pa_type = self._data.type
+
+        data_to_reduce = self._data
+
+        if name in ["any", "all"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_duration(pa_type)
+        ):
+            # pyarrow only supports any/all for boolean dtype, we allow
+            #  for other dtypes, matching our non-pyarrow behavior
+
+            if pa.types.is_duration(pa_type):
+                data_to_cmp = self._data.cast(pa.int64())
+            else:
+                data_to_cmp = self._data
+
+            not_eq = pc.not_equal(data_to_cmp, 0)
+            data_to_reduce = not_eq
+
+        elif name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            data_to_reduce = self._data.cast(pa.int64())
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
@@ -1033,8 +1069,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
         try:
-            result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+            result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
@@ -1045,6 +1082,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             raise TypeError(msg) from err
         if pc.is_null(result).as_py():
             return self.dtype.na_value
+
+        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            result = result.cast(pa_type)
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:

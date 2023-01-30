@@ -4,11 +4,7 @@ from typing import Callable
 
 import numpy as np
 
-from pandas._libs import index as libindex
-from pandas._typing import (
-    Dtype,
-    npt,
-)
+from pandas._typing import Dtype
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -16,7 +12,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_scalar,
@@ -76,36 +71,6 @@ class NumericIndex(Index):
         "numeric type",
     )
     _can_hold_strings = False
-
-    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
-        np.dtype(np.int8): libindex.Int8Engine,
-        np.dtype(np.int16): libindex.Int16Engine,
-        np.dtype(np.int32): libindex.Int32Engine,
-        np.dtype(np.int64): libindex.Int64Engine,
-        np.dtype(np.uint8): libindex.UInt8Engine,
-        np.dtype(np.uint16): libindex.UInt16Engine,
-        np.dtype(np.uint32): libindex.UInt32Engine,
-        np.dtype(np.uint64): libindex.UInt64Engine,
-        np.dtype(np.float32): libindex.Float32Engine,
-        np.dtype(np.float64): libindex.Float64Engine,
-        np.dtype(np.complex64): libindex.Complex64Engine,
-        np.dtype(np.complex128): libindex.Complex128Engine,
-    }
-
-    @property
-    def _engine_type(self) -> type[libindex.IndexEngine]:
-        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
-        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
-        return self._engine_types[self.dtype]  # type: ignore[index]
-
-    @cache_readonly
-    def inferred_type(self) -> str:
-        return {
-            "i": "integer",
-            "u": "integer",
-            "f": "floating",
-            "c": "complex",
-        }[self.dtype.kind]
 
     def __new__(
         cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
@@ -204,41 +169,7 @@ class NumericIndex(Index):
     def _should_fallback_to_positional(self) -> bool:
         return False
 
-    @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str):
-        # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
-        #  to simplify this.
-        if is_float_dtype(self.dtype):
-            assert kind in ["loc", "getitem"]
-
-            # We always treat __getitem__ slicing as label-based
-            # translate to locations
-            return self.slice_indexer(key.start, key.stop, key.step)
-
-        return super()._convert_slice_indexer(key, kind=kind)
-
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str):
-        # we will try to coerce to integers
-        return self._maybe_cast_indexer(label)
-
     # ----------------------------------------------------------------
-
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = super()._convert_tolerance(tolerance, target)
-
-        if not np.issubdtype(tolerance.dtype, np.number):
-            if tolerance.ndim > 0:
-                raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must contain "
-                    "numeric elements if it is list type"
-                )
-
-            raise ValueError(
-                f"tolerance argument for {type(self).__name__} must be numeric "
-                f"if it is a scalar: {repr(tolerance)}"
-            )
-        return tolerance
 
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
@@ -251,33 +182,3 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    def _format_native_types(
-        self,
-        *,
-        na_rep: str = "",
-        float_format=None,
-        decimal: str = ".",
-        quoting=None,
-        **kwargs,
-    ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        if is_float_dtype(self.dtype):
-            formatter = FloatArrayFormatter(
-                self._values,
-                na_rep=na_rep,
-                float_format=float_format,
-                decimal=decimal,
-                quoting=quoting,
-                fixed_width=False,
-            )
-            return formatter.get_result_as_array()
-
-        return super()._format_native_types(
-            na_rep=na_rep,
-            float_format=float_format,
-            decimal=decimal,
-            quoting=quoting,
-            **kwargs,
-        )

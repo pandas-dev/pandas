@@ -1220,13 +1220,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    nbs_tup = tuple(blk.delete(blk_locs))
-                    first_nb = new_block_2d(
-                        value_getitem(val_locs), BlockPlacement(blk.mgr_locs[blk_locs])
-                    )
-                    if self.refs is not None:
-                        self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
-                    self._clear_reference_block(blkno_l)
+                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
@@ -1239,24 +1233,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     removed_blknos.append(blkno_l)
                     continue
                 else:
-                    nbs = blk.delete(blk_locs)
-                    # Add first block where old block was and remaining blocks at
-                    # the end to avoid updating all block numbers
-                    first_nb = nbs[0]
-                    nbs_tup = tuple(nbs[1:])
-            nr_blocks = len(self.blocks)
-            blocks_tup = (
-                self.blocks[:blkno_l]
-                + (first_nb,)
-                + self.blocks[blkno_l + 1 :]
-                + nbs_tup
-            )
-            self.blocks = blocks_tup
-            self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
-
-            for i, nb in enumerate(nbs_tup):
-                self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
-                self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
+                    # Defer setting the new values to enable consolidation
+                    self._iset_split_block(blkno_l, blk_locs)
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly
@@ -1319,6 +1297,57 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
+
+    def _iset_split_block(
+        self, blkno_l: int, blk_locs: np.ndarray, value: ArrayLike | None = None
+    ) -> None:
+        """Removes columns from a block by splitting the block.
+
+        Avoids copying the whole block through slicing and updates the manager
+        after determinint the new block structure. Optionally adds a new block,
+        otherwise has to be done by the caller.
+
+        Parameters
+        ----------
+        blkno_l: The block number to operate on, relevant for updating the manager
+        blk_locs: The locations of our block that should be deleted.
+        value: The value to set as a replacement.
+        """
+        blk = self.blocks[blkno_l]
+
+        if self._blklocs is None:
+            self._rebuild_blknos_and_blklocs()
+
+        nbs_tup = tuple(blk.delete(blk_locs))
+        if value is not None:
+            # error: No overload variant of "__getitem__" of "BlockPlacement" matches
+            # argument type "ndarray[Any, Any]"  [call-overload]
+            first_nb = new_block_2d(
+                value,
+                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[call-overload]
+            )
+        else:
+            first_nb = nbs_tup[0]
+            nbs_tup = tuple(nbs_tup[1:])
+
+        if self.refs is not None:
+            self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
+
+        if value is not None:
+            # Only clear if we set new values
+            self._clear_reference_block(blkno_l)
+
+        nr_blocks = len(self.blocks)
+        blocks_tup = (
+            self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
+        )
+        self.blocks = blocks_tup
+
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+
+        for i, nb in enumerate(nbs_tup):
+            self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+            self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
     def _iset_single(
         self, loc: int, value: ArrayLike, inplace: bool, blkno: int, blk: Block
