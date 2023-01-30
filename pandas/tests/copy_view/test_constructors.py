@@ -81,10 +81,12 @@ def test_series_from_series_with_reindex(using_copy_on_write):
         assert result._mgr.refs is None or result._mgr.refs[0] is None
 
 
-@pytest.mark.parametrize("dtype", [None, "int64"])
+@pytest.mark.parametrize("dtype", [None, "int64", "Int64"])
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])
 @pytest.mark.parametrize("columns", [None, ["a", "b"], ["a", "b", "c"]])
-def test_dataframe_from_dict_of_series(using_copy_on_write, columns, index, dtype):
+def test_dataframe_from_dict_of_series(
+    request, using_copy_on_write, columns, index, dtype
+):
     # Case: constructing a DataFrame from Series objects with copy=False
     # has to do a lazy following CoW rules
     # (the default for DataFrame(dict) is still to copy to ensure consolidation)
@@ -98,6 +100,12 @@ def test_dataframe_from_dict_of_series(using_copy_on_write, columns, index, dtyp
     result = DataFrame(
         {"a": s1, "b": s2}, index=index, columns=columns, dtype=dtype, copy=False
     )
+
+    if using_copy_on_write and dtype == "Int64":
+        # TODO(CoW) remove this once astype properly tracks refs
+        request.node.add_marker(
+            pytest.mark.xfail(reason="astype with Int64 is giving view")
+        )
 
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(result, "a"), s1.values)
