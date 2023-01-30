@@ -11,5 +11,3 @@ or overwrite the original one:
    .. code-block:: python
 
       df = df.sort_values("col1")
-
-.. note::
