@@ -59,6 +59,7 @@ from pandas._typing import (
     NaPosition,
     QuantileInterpolation,
     Renamer,
+    Scalar,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -196,8 +197,12 @@ _shared_doc_kwargs = {
     "duplicated": "Series",
     "optional_by": "",
     "optional_mapper": "",
-    "optional_labels": "",
-    "optional_axis": "",
+    "optional_reindex": """
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Unused.""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -4874,21 +4879,29 @@ Keep all original rows and also all original values
     @doc(
         NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels=_shared_doc_kwargs["optional_labels"],
-        optional_axis=_shared_doc_kwargs["optional_axis"],
+        optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
-    def reindex(self, *args, **kwargs) -> Series:
-        if len(args) > 1:
-            raise TypeError("Only one positional argument ('index') is allowed")
-        if args:
-            (index,) = args
-            if "index" in kwargs:
-                raise TypeError(
-                    "'index' passed as both positional and keyword argument"
-                )
-            kwargs.update({"index": index})
-        return super().reindex(**kwargs)
+    def reindex(  # type: ignore[override]
+        self,
+        index=None,
+        *,
+        axis: Axis | None = None,
+        method: str | None = None,
+        copy: bool | None = None,
+        level: Level | None = None,
+        fill_value: Scalar | None = None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> Series:
+        return super().reindex(
+            index=index,
+            method=method,
+            copy=copy,
+            level=level,
+            fill_value=fill_value,
+            limit=limit,
+            tolerance=tolerance,
+        )
 
     @overload
     def drop(
