@@ -12,7 +12,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_scalar,
@@ -169,24 +168,6 @@ class NumericIndex(Index):
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
-
-    @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str):
-        # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
-        #  to simplify this.
-        if is_float_dtype(self.dtype):
-            assert kind in ["loc", "getitem"]
-
-            # We always treat __getitem__ slicing as label-based
-            # translate to locations
-            return self.slice_indexer(key.start, key.stop, key.step)
-
-        return super()._convert_slice_indexer(key, kind=kind)
-
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str):
-        # we will try to coerce to integers
-        return self._maybe_cast_indexer(label)
 
     # ----------------------------------------------------------------
 
