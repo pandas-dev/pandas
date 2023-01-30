@@ -421,3 +421,14 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_array_copy_on_write(using_copy_on_write):
+    df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
+    df2 = df.astype(DecimalDtype())
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        expected = pd.DataFrame(
+            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
+        )
+        tm.assert_equal(df2.values, expected.values)
