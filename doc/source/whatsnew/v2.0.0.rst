@@ -639,6 +639,7 @@ Deprecations
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
+- Deprecated ``all`` and ``any`` reductions with ``datetime64`` and :class:`DatetimeTZDtype` dtypes, use e.g. ``(obj != pd.Timestamp(0), tz=obj.tz).all()`` instead (:issue:`34479`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -1020,6 +1021,7 @@ Conversion
 - Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 - Bug in :meth:`Series.astype` raising ``pyarrow.ArrowInvalid`` when converting from a non-pyarrow string dtype to a pyarrow numeric type (:issue:`50430`)
 - Bug in :meth:`Series.to_numpy` converting to NumPy array before applying ``na_value`` (:issue:`48951`)
+- Bug in :meth:`DataFrame.astype` not copying data when converting to pyarrow dtype (:issue:`50984`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
 -
