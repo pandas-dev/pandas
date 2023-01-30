@@ -4096,7 +4096,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "copy": False,
                 "fill_value": fill_value,
             }
-            return output.reindex(**d)
+            return output.reindex(**d)  # type: ignore[arg-type]
 
         # GH 13204
         # Here, the categorical in-axis groupers, which need to be fully
