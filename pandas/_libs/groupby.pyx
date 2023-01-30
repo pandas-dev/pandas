@@ -1248,7 +1248,7 @@ ctypedef fused mincount_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _check_below_mincount(
+cdef inline void _check_below_mincount(
     mincount_t[:, ::1] out,
     bint uses_mask,
     uint8_t[:, ::1] result_mask,
