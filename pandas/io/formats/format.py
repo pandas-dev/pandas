@@ -2174,6 +2174,8 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     2   1.0
     3  1.0k
     4  1.0M
+
+    >>> pd.set_option("display.float_format", None)  # unset option
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 
