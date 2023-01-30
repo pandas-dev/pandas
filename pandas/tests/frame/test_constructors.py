@@ -2458,6 +2458,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_large_size_frame(self):
+        # GH#50708
         class LargeFrame(DataFrame):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
