@@ -444,8 +444,8 @@ _shared_docs[
     a reproducible gzip archive:
     ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
@@ -466,8 +466,8 @@ _shared_docs[
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
