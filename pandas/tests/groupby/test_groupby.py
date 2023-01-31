@@ -1901,25 +1901,12 @@ def test_empty_groupby(
             raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and not isinstance(columns, list)
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError, match="'Categorical' does not implement"
-        )
-        request.node.add_marker(mark)
     elif isinstance(values, Categorical) and len(keys) == 1 and op in ["sum", "prod"]:
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, Categorical)
-        and len(keys) == 2
-        and op in ["min", "max", "sum"]
-    ):
+    elif isinstance(values, Categorical) and len(keys) == 2 and op in ["sum"]:
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
@@ -1948,6 +1935,31 @@ def test_empty_groupby(
             return getattr(gb, op)(**kwargs)
         else:
             return getattr(gb, method)(op, **kwargs)
+
+    if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
+        msg = f"Cannot perform {op} with non-ordered Categorical"
+        with pytest.raises(TypeError, match=msg):
+            get_result()
+
+        if isinstance(columns, list):
+            # i.e. DataframeGroupBy, not SeriesGroupBy
+            result = get_result(numeric_only=True)
+
+            # Categorical is special without 'observed=True', we get an NaN entry
+            #  corresponding to the unobserved group. If we passed observed=True
+            #  to groupby, expected would just be 'df.set_index(keys)[columns]'
+            #  as below
+            lev = Categorical([0], dtype=values.dtype)
+            if len(keys) != 1:
+                idx = MultiIndex.from_product([lev, lev], names=keys)
+            else:
+                # all columns are dropped, but we end up with one row
+                # Categorical is special without 'observed=True'
+                idx = Index(lev, name=keys[0])
+
+            expected = DataFrame([], columns=[], index=idx)
+            tm.assert_equal(result, expected)
+        return
 
     if columns == "C":
         # i.e. SeriesGroupBy
@@ -2018,38 +2030,17 @@ def test_empty_groupby(
                 tm.assert_equal(result, expected)
                 return
 
-        if (op in ["min", "max", "skew"] and isinstance(values, Categorical)) or (
-            op == "skew" and df.dtypes[0].kind == "M"
+        if op == "skew" and (
+            isinstance(values, Categorical) or df.dtypes[0].kind == "M"
         ):
-            if op == "skew" or len(keys) == 1:
-                msg = "|".join(
-                    [
-                        "Categorical is not ordered",
-                        "does not support reduction",
-                    ]
-                )
-                with pytest.raises(TypeError, match=msg):
-                    get_result()
-                return
-            # Categorical doesn't implement, so with numeric_only=True
-            #  these are dropped and we get an empty DataFrame back
-            result = get_result()
-
-            # with numeric_only=True, these are dropped, and we get
-            # an empty DataFrame back
-            if len(keys) != 1:
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                mi = MultiIndex.from_product([lev, lev], names=keys)
-                expected = DataFrame([], columns=[], index=mi)
-            else:
-                # all columns are dropped, but we end up with one row
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                ci = Index(lev, name=keys[0])
-                expected = DataFrame([], columns=[], index=ci)
-
-            tm.assert_equal(result, expected)
+            msg = "|".join(
+                [
+                    "Categorical is not ordered",
+                    "does not support reduction",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                get_result()
             return
 
     result = get_result()

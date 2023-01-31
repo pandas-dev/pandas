@@ -13,6 +13,23 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_rank_unordered_categorical_typeerror():
+    # GH#51034 should be TypeError, not NotImplementedError
+    cat = pd.Categorical([], ordered=False)
+    ser = Series(cat)
+    df = ser.to_frame()
+
+    msg = "Cannot perform rank with non-ordered Categorical"
+
+    gb = ser.groupby(cat)
+    with pytest.raises(TypeError, match=msg):
+        gb.rank()
+
+    gb2 = df.groupby(cat)
+    with pytest.raises(TypeError, match=msg):
+        gb2.rank()
+
+
 def test_rank_apply():
     lev1 = tm.rands_array(10, 100)
     lev2 = tm.rands_array(10, 130)
