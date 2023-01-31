@@ -76,6 +76,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_numeric_dtype,
@@ -723,13 +724,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-
-        if self._selection is None or isinstance(self.obj, Series):
-            if self._group_selection is not None:
-                return self.obj[self._group_selection]
+        if isinstance(self.obj, Series):
             return self.obj
-        else:
-            return self.obj[self._selection]
+
+        if self._selection is not None:
+            if is_hashable(self._selection):
+                # i.e. a single key, so selecting it will return a Series.
+                #  In this case, _obj_with_exclusions which wrap the key
+                #  in a list and return a single-column DataFrame.
+                return self.obj[self._selection]
+
+            # Otherwise _selection is equivalent to _selection_list, so
+            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  that and avoid making a copy.
+            return self._obj_with_exclusions
+
+        if self._group_selection is not None:
+            return self._obj_with_exclusions
+        return self.obj
 
     @final
     def _dir_additions(self) -> set[str]:
