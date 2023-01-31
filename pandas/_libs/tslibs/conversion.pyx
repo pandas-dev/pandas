@@ -297,9 +297,12 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            ts = cast_from_unit(ts, unit)
-            obj.value = ts
-            pandas_datetime_to_datetimestruct(ts, NPY_FR_ns, &obj.dts)
+            in_reso = abbrev_to_npy_unit(unit)
+            out_reso = get_supported_reso(in_reso)
+            value = convert_reso(ts, in_reso, out_reso, False)
+            obj.value = value
+            obj.creso = out_reso
+            pandas_datetime_to_datetimestruct(ts, out_reso, &obj.dts)
     elif is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
