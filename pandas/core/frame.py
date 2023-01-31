@@ -16,6 +16,7 @@ import datetime
 import functools
 from io import StringIO
 import itertools
+import sys
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -91,22 +92,25 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    _chained_assignment_msg,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
-    rewrite_axis_style_signature,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
-    validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
 )
@@ -260,11 +264,18 @@ by : str or list of str
       levels and/or column labels.
     - if `axis` is 1 or `'columns'` then `by` may contain column
       levels and/or index labels.""",
-    "optional_labels": """labels : array-like, optional
-            New labels / index to conform the axis specified by 'axis' to.""",
-    "optional_axis": """axis : int or str, optional
-            Axis to target. Can be either the axis name ('index', 'columns')
-            or number (0, 1).""",
+    "optional_reindex": """
+labels : array-like, optional
+    New labels / index to conform the axis specified by 'axis' to.
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+columns : array-like, optional
+    New labels for the columns. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Axis to target. Can be either the axis name ('index', 'columns')
+    or number (0, 1).""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -1896,7 +1907,7 @@ class DataFrame(NDFrame, OpsMixin):
             is 'tight') in the returned dictionary. Can only be ``False``
             when `orient` is 'split' or 'tight'.
 
-            .. versionadded:: 1.6.0
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -3862,6 +3873,10 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -4990,26 +5005,37 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.reindex.__doc__)
-    @rewrite_axis_style_signature(
-        "labels",
-        [
-            ("method", None),
-            ("copy", None),
-            ("level", None),
-            ("fill_value", np.nan),
-            ("limit", None),
-            ("tolerance", None),
-        ],
+    @doc(
+        NDFrame.reindex,
+        klass=_shared_doc_kwargs["klass"],
+        optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
-    def reindex(self, *args, **kwargs) -> DataFrame:
-        axes = validate_axis_style_args(self, args, kwargs, "labels", "reindex")
-        kwargs.update(axes)
-        # Pop these, since the values are in `kwargs` under different names
-        kwargs.pop("axis", None)
-        kwargs.pop("labels", None)
-        return super().reindex(**kwargs)
+    def reindex(  # type: ignore[override]
+        self,
+        labels=None,
+        *,
+        index=None,
+        columns=None,
+        axis: Axis | None = None,
+        method: str | None = None,
+        copy: bool | None = None,
+        level: Level | None = None,
+        fill_value: Scalar | None = np.nan,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> DataFrame:
+        return super().reindex(
+            labels=labels,
+            index=index,
+            columns=columns,
+            axis=axis,
+            method=method,
+            copy=copy,
+            level=level,
+            fill_value=fill_value,
+            limit=limit,
+            tolerance=tolerance,
+        )
 
     @overload
     def drop(
@@ -6201,6 +6227,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
     ) -> DataFrame:
         ...
 
@@ -6213,6 +6240,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
+        ignore_index: bool = ...,
     ) -> None:
         ...
 
@@ -6224,6 +6252,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
+        ignore_index: bool = False,
     ) -> DataFrame | None:
         """
         Remove missing values.
@@ -6259,6 +6288,10 @@ class DataFrame(NDFrame, OpsMixin):
             these would be a list of columns to include.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -6372,6 +6405,9 @@ class DataFrame(NDFrame, OpsMixin):
             result = self.copy(deep=None)
         else:
             result = self.loc(axis=axis)[mask]
+
+        if ignore_index:
+            result.index = default_index(len(result))
 
         if not inplace:
             return result
@@ -9909,7 +9945,7 @@ Parrot 2  Parrot       24.0
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
-            return self
+            return self.copy(deep=False)
 
     # ----------------------------------------------------------------------
     # Statistical methods, etc.

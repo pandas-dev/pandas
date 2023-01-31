@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -260,6 +262,9 @@ class BaseMethodsTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=msg):
             data_missing.fillna(data_missing.take([1]))
 
+    # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
+    _combine_le_expected_dtype: Dtype = np.dtype(bool)
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison
@@ -268,13 +273,17 @@ class BaseMethodsTests(BaseExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+            dtype=self._combine_le_expected_dtype,
         )
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)])
+        expected = pd.Series(
+            [a <= val for a in list(orig_data1)],
+            dtype=self._combine_le_expected_dtype,
+        )
         self.assert_series_equal(result, expected)
 
     def test_combine_add(self, data_repeated):
