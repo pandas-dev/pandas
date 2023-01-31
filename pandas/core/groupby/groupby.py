@@ -730,7 +730,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         if self._selection is not None:
             if is_hashable(self._selection):
                 # i.e. a single key, so selecting it will return a Series.
-                #  In this case, _obj_with_exclusions which wrap the key
+                #  In this case, _obj_with_exclusions would wrap the key
                 #  in a list and return a single-column DataFrame.
                 return self.obj[self._selection]
 
