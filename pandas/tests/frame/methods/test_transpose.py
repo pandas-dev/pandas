@@ -111,11 +111,18 @@ class TestTranspose:
             assert s.dtype == np.object_
 
     @td.skip_array_manager_invalid_test
-    def test_transpose_get_view(self, float_frame):
+    def test_transpose_get_view(self, request, float_frame, using_copy_on_write):
         dft = float_frame.T
-        dft.values[:, 5:10] = 5
+        dft.iloc[:, 5:10] = 5
 
-        assert (float_frame.values[5:10] == 5).all()
+        if using_copy_on_write:
+            # TODO(CoW) transpose
+            request.node.add_marker(
+                pytest.mark.xfail(reason="transpose doesn't yet do CoW")
+            )
+            assert (float_frame.values[5:10] != 5).all()
+        else:
+            assert (float_frame.values[5:10] == 5).all()
 
     @td.skip_array_manager_invalid_test
     def test_transpose_get_view_dt64tzget_view(self):

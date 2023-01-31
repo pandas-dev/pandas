@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import (
     Timestamp,
     internals as libinternals,
@@ -2326,6 +2328,12 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._ndarray
-    else:
-        return values
+        values = values._ndarray
+
+    if isinstance(values, np.ndarray) and using_copy_on_write():
+        values = values.view()
+        values.flags.writeable = False
+
+    # TODO(CoW) we should also mark our ExtensionArrays as read-only
+
+    return values

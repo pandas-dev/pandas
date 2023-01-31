@@ -1745,13 +1745,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.get_values())
                 if dtype:
                     arr = arr.astype(dtype, copy=False)
+
+            if copy:
+                arr = arr.copy()
+            elif using_copy_on_write():
+                arr = arr.view()
+                arr.flags.writeable = False
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
-            # The underlying data was copied within _interleave
-            copy = False
-
-        if copy:
-            arr = arr.copy()
+            # The underlying data was copied within _interleave, so no need
+            # to further copy if copy=True or setting na_value
 
         if na_value is not lib.no_default:
             arr[isna(arr)] = na_value

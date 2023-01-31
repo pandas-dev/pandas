@@ -85,7 +85,13 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame):
+    def test_modify_values(self, float_frame, using_copy_on_write):
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                float_frame.values[5] = 5
+            assert (float_frame.values[5] != 5).all()
+            return
+
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
 
