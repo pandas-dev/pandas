@@ -503,6 +503,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 "transform", obj._values, how, axis, **kwargs
             )
         except NotImplementedError as err:
+            # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)

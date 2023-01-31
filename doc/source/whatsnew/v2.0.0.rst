@@ -620,11 +620,12 @@ Other API changes
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
+- :class:`DataFrame` objects read from a :class:`HDFStore` file without an index now have a :class:`RangeIndex` instead of an ``int64`` index (:issue:`51076`)
 - Instantiating an :class:`Index` with an numeric numpy dtype with data containing :class:`NA` and/or :class:`NaT` now raises a ``ValueError``. Previously a ``TypeError`` was raised (:issue:`51050`)
 - Loading a JSON file with duplicate columns using ``read_json(orient='split')`` renames columns to avoid duplicates, as :func:`read_csv` and the other readers do (:issue:`50370`)
 - The levels of the index of the :class:`Series` returned from ``Series.sparse.from_coo`` now always have dtype ``int32``. Previously they had dtype ``int64`` (:issue:`50926`)
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
--
+- The methods :meth:`Series.round`, :meth:`DataFrame.__invert__`, :meth:`Series.__invert__`, :meth:`DataFrame.swapaxes`, :meth:`DataFrame.first`, :meth:`DataFrame.last`, :meth:`Series.first`, :meth:`Series.last` and :meth:`DataFrame.align` will now always return new objects (:issue:`51032`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.deprecations:
@@ -958,6 +959,7 @@ Categorical
 - Bug in :meth:`Series.replace` with categorical dtype losing nullable dtypes of underlying categories (:issue:`49404`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
 - Bug in :class:`Categorical` constructor when constructing from a :class:`Categorical` object and ``dtype="category"`` losing ordered-ness (:issue:`49309`)
+- Bug in :meth:`SeriesGroupBy.min`, :meth:`SeriesGroupBy.max`, :meth:`DataFrameGroupBy.min`, and :meth:`DataFrameGroupBy.max` with unordered :class:`CategoricalDtype` with no groups failing to raise ``TypeError`` (:issue:`51034`)
 -
 
 Datetimelike
