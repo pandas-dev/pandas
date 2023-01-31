@@ -2612,11 +2612,7 @@ class Period(_Period):
 
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
-                    try:
-                        freq = attrname_to_abbrevs[reso]
-                    except KeyError:
-                        raise ValueError(f"Invalid frequency or could not "
-                                         f"infer: {reso}")
+                    freq = attrname_to_abbrevs[reso]
                     freq = to_offset(freq)
 
         elif PyDateTime_Check(value):

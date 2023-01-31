@@ -1416,6 +1416,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self
 
+    @final
     def to_series(self, index=None, name: Hashable = None) -> Series:
         """
         Create a Series with both index and values equal to the index keys.
@@ -5226,6 +5227,7 @@ class Index(IndexOpsMixin, PandasObject):
             if is_object_dtype(self):  # pragma: no cover
                 raise err
 
+            # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
             return self.astype(dtype).putmask(mask, value)
 

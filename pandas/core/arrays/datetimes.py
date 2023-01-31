@@ -2030,17 +2030,11 @@ def _sequence_to_dt64ns(
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                if data.dtype == "i8":
-                    # GH#42505
-                    # by convention, these are _already_ UTC, e.g
-                    return data.view(DT64NS_DTYPE), tz, None
+                assert data.dtype == "i8"
+                # GH#42505
+                # by convention, these are _already_ UTC, e.g
+                return data.view(DT64NS_DTYPE), tz, None
 
-                if timezones.is_utc(tz):
-                    # Fastpath, avoid copy made in tzconversion
-                    utc_vals = data.view("i8")
-                else:
-                    utc_vals = tz_convert_from_utc(data.view("i8"), tz)
-                data = utc_vals.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
 
