@@ -90,7 +90,6 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -2051,7 +2050,7 @@ class IndexCol:
 
     def convert(
         self, values: np.ndarray, nan_rep, encoding: str, errors: str
-    ) -> tuple[np.ndarray, np.ndarray] | tuple[DatetimeIndex, DatetimeIndex]:
+    ) -> tuple[np.ndarray, np.ndarray] | tuple[Index, Index]:
         """
         Convert the data from this selection to the appropriate pandas type.
         """
@@ -2244,13 +2243,9 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self) -> bool:
         return False
 
-    # error: Return type "Tuple[NumericIndex, NumericIndex]" of "convert"
-    # incompatible with return type "Union[Tuple[ndarray[Any, Any],
-    # ndarray[Any, Any]], Tuple[DatetimeIndex, DatetimeIndex]]" in
-    # supertype "IndexCol"
-    def convert(  # type: ignore[override]
+    def convert(
         self, values: np.ndarray, nan_rep, encoding: str, errors: str
-    ) -> tuple[NumericIndex, NumericIndex]:
+    ) -> tuple[Index, Index]:
         """
         Convert the data from this selection to the appropriate pandas type.
 
@@ -2263,7 +2258,7 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        index = NumericIndex(np.arange(len(values)), dtype=np.int64)
+        index = Index(np.arange(len(values), dtype=np.int64))
         return index, index
 
     def set_attr(self) -> None:
@@ -4866,11 +4861,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     atom = DataIndexableCol._get_atom(converted)
 
     if (
-        (isinstance(index, NumericIndex) and is_integer_dtype(index))
+        (isinstance(index.dtype, np.dtype) and is_integer_dtype(index))
         or needs_i8_conversion(index.dtype)
         or is_bool_dtype(index.dtype)
     ):
-        # Includes NumericIndex, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+        # Includes Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
         return IndexCol(

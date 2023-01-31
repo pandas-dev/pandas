@@ -193,7 +193,7 @@ def radviz(
     influence of all dimensions.
 
     More info available at the `original article
-    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://doi.org/10.1145/331770.331775>`_
     describing RadViz.
 
     Parameters
@@ -218,7 +218,7 @@ def radviz(
 
     See Also
     --------
-    plotting.andrews_curves : Plot clustering visualization.
+    pandas.plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
