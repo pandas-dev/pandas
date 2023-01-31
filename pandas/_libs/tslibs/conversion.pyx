@@ -304,7 +304,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             except OverflowError:
                 # GH#26651 re-raise as OutOfBoundsDatetime
                 raise OutOfBoundsDatetime(
-                    f"cannot convert input {ts} with the unit '{unit}'")
+                    f"cannot convert input {ts} with the unit '{unit}'"
+                )
             obj.value = value
             obj.creso = out_reso
             pandas_datetime_to_datetimestruct(value, out_reso, &obj.dts)
