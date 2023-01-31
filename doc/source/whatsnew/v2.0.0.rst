@@ -69,6 +69,9 @@ to select the nullable dtypes implementation.
 * :func:`read_html`
 * :func:`read_xml`
 * :func:`read_json`
+* :func:`read_sql`
+* :func:`read_sql_query`
+* :func:`read_sql_table`
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
