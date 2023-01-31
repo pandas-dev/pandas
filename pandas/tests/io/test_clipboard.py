@@ -423,7 +423,7 @@ class TestClipboard:
         assert data == clipboard_get()
         if is_ci_environment() and is_platform_linux():
             # Clipboard can sometimes keep previous param causing flaky CI failures
-            subprocess.run(["xsel", "--delete", "--clipboard"])
+            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
