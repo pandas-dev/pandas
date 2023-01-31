@@ -1009,7 +1009,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         NOTE: this should be paired with a call to _reset_group_selection
         """
-        if self.grouper.groupings is None or self.obj.ndim == 1:
+        grp = self.grouper
+        if grp.groupings is None or self.obj.ndim == 1 or self._group_selection:
             return
         self._group_selection = True
         self._reset_cache("_selected_obj")
