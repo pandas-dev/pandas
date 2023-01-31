@@ -610,7 +610,7 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
-    _group_selection: np.ndarray | None = None
+    _group_selection: bool = False
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -725,10 +725,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
 
         if self._selection is None or isinstance(self.obj, Series):
-            if self._group_selection is not None:
-                return self.obj._take(
-                    self._group_selection, axis=1, convert_indices=False
-                )
+            if self._group_selection:
+                return self._obj_with_exclusions
             return self.obj
         else:
             return self.obj[self._selection]
@@ -1011,30 +1009,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         NOTE: this should be paired with a call to _reset_group_selection
         """
-        # This is a no-op for SeriesGroupBy
-        grp = self.grouper
-        if (
-            grp.groupings is None
-            or self.obj.ndim == 1
-            or self._group_selection is not None
-        ):
+        if self.grouper.groupings is None or self.obj.ndim == 1:
             return
-
-        groupers = self.exclusions
-
-        if len(groupers):
-            # GH12839 clear selected obj cache when group selection changes
-            ax = self.obj._info_axis
-            if len(ax) < 2000:
-                # Determined experimentally, after 2000 this is slower than
-                # the NumPy version
-                self._group_selection = np.array(
-                    [idx for idx, label in enumerate(ax) if label not in groupers]
-                )
-            else:
-                indexer = ax.get_indexer_for(list(groupers))
-                self._group_selection = np.delete(np.arange(len(ax)), indexer)
-            self._reset_cache("_selected_obj")
+        self._group_selection = True
+        self._reset_cache("_selected_obj")
 
     @final
     def _reset_group_selection(self) -> None:
@@ -1044,9 +1022,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Used for methods needing to return info on each group regardless of
         whether a group selection was previously set.
         """
-        if self._group_selection is not None:
+        if self._group_selection:
             # GH12839 clear cached selection too when changing group selection
-            self._group_selection = None
+            self._group_selection = False
             self._reset_cache("_selected_obj")
 
     @contextmanager
