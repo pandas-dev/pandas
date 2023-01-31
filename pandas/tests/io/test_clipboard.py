@@ -404,14 +404,7 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "data",
-        [
-            "\U0001f44d...",
-            "Ωœ∑´...",
-            "abcd...",
-        ],
-    )
+    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
         os.environ.get("DISPLAY") is None and not is_platform_mac(),
         reason="Cannot be runed if a headless system is not put in place with Xvfb",
