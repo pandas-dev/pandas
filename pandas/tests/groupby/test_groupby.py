@@ -2364,14 +2364,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (DataFrame, "group_keys", False),
         (DataFrame, "observed", True),
         (DataFrame, "dropna", False),
-        pytest.param(
-            Series,
-            "axis",
-            1,
-            marks=pytest.mark.xfail(
-                reason="GH 35443: Attribute currently not passed on to series"
-            ),
-        ),
         (Series, "level", "a"),
         (Series, "as_index", False),
         (Series, "sort", False),
