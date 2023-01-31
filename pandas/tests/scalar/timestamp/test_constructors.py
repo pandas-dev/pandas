@@ -38,7 +38,7 @@ class TestTimestampConstructors:
         # non-iso8601 path
 
         # _parse_delimited_date path
-        ts = Timestamp("2023/01/30")
+        ts = Timestamp("01/30/2023")
         assert ts.unit == "s"
 
         # _parse_dateabbr_string path
