@@ -49,7 +49,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    Dtype,
+    DtypeObj,
     FillnaOptions,
     IndexLabel,
     NDFrameT,
@@ -2097,13 +2097,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
 
+            def _preprocessing(values):
+                if isinstance(values, BaseMaskedArray):
+                    return values._data, None
+                return values, None
+
             def _postprocessing(
-                vals, inference, nullable: bool = False, mask=None
+                vals, inference, nullable: bool = False, result_mask=None
             ) -> ArrayLike:
                 if nullable:
-                    if mask.ndim == 2:
-                        mask = mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), mask.view(np.bool_))
+                    if result_mask.ndim == 2:
+                        result_mask = result_mask[:, 0]
+                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
                 return np.sqrt(vals)
 
             result = self._get_cythonized_result(
@@ -2111,6 +2116,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
+                pre_processing=_preprocessing,
                 post_processing=_postprocessing,
                 ddof=ddof,
                 how="std",
@@ -3169,13 +3175,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: Dtype | None = None
+            inference: DtypeObj | None = None
             if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = vals.dtype
@@ -3188,10 +3194,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
-                inference = np.dtype("datetime64[ns]")
+                inference = vals.dtype
                 out = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                inference = np.dtype("timedelta64[ns]")
+                inference = vals.dtype
                 out = np.asarray(vals).astype(float)
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
                 inference = np.dtype(np.float64)
@@ -3203,7 +3209,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def post_processor(
             vals: np.ndarray,
-            inference: Dtype | None,
+            inference: DtypeObj | None,
             result_mask: np.ndarray | None,
             orig_vals: ArrayLike,
         ) -> ArrayLike:
@@ -3720,7 +3726,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             inferences = None
 
             if needs_counts:
-                counts = np.zeros(self.ngroups, dtype=np.int64)
+                counts = np.zeros(ngroups, dtype=np.int64)
                 func = partial(func, counts=counts)
 
             vals = values
@@ -3742,11 +3748,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
 
-            else:
+            elif isinstance(values, BaseMaskedArray):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
                 func = partial(func, result_mask=result_mask)
 
-            func(**kwargs)  # Call func to modify indexer values in place
+            func(**kwargs)  # Call func to modify result in place
 
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
@@ -3755,8 +3761,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if post_processing:
                 pp_kwargs: dict[str, bool | np.ndarray] = {}
                 pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std":
-                    pp_kwargs["mask"] = result_mask
+                if how == "std" and pp_kwargs["nullable"]:
+                    pp_kwargs["result_mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
 
@@ -3767,21 +3773,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
-        orig_mgr_len = len(mgr)
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
 
         res_mgr = mgr.grouped_reduce(blk_func)
-
-        if not is_ser and len(res_mgr.items) != orig_mgr_len:
-            if len(res_mgr.items) == 0:
-                # We re-call grouped_reduce to get the right exception message
-                mgr.grouped_reduce(blk_func)
-                # grouped_reduce _should_ raise, so this should not be reached
-                raise TypeError(  # pragma: no cover
-                    "All columns were dropped in grouped_reduce"
-                )
 
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)
@@ -4090,7 +4086,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "copy": False,
                 "fill_value": fill_value,
             }
-            return output.reindex(**d)
+            return output.reindex(**d)  # type: ignore[arg-type]
 
         # GH 13204
         # Here, the categorical in-axis groupers, which need to be fully
