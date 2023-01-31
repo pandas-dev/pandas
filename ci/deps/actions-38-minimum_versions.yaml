@@ -61,4 +61,4 @@ dependencies:
 
   - pip:
     - pyqt5==5.15.1
-    - python-calamine==0.0.7
+    - python-calamine==0.0.8

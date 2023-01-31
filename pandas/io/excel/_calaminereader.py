@@ -27,12 +27,7 @@ from pandas.io.excel._base import (
 ValueT = Union[int, float, str, bool, time, date, datetime]
 
 
-class __calamine__:
-    pass
-
-
 class CalamineExcelReader(BaseExcelReader):
-    book: str
     _sheet_names: list[str] | None = None
 
     def __init__(
@@ -44,10 +39,12 @@ class CalamineExcelReader(BaseExcelReader):
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
-    def _workbook_class(self) -> type[__calamine__]:
-        return __calamine__
+    def _workbook_class(self):
+        from python_calamine import CalamineReader
 
-    def load_workbook(self, filepath_or_buffer) -> str:
+        return CalamineReader
+
+    def load_workbook(self, filepath_or_buffer):
         if hasattr(filepath_or_buffer, "read") and hasattr(filepath_or_buffer, "seek"):
             ext = inspect_excel_format(filepath_or_buffer)
             with NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp_file:
@@ -59,29 +56,24 @@ class CalamineExcelReader(BaseExcelReader):
 
         assert isinstance(filepath_or_buffer, str)
 
-        from python_calamine import get_sheet_names
+        from python_calamine import CalamineReader
 
-        self._sheet_names = get_sheet_names(filepath_or_buffer)
-        return filepath_or_buffer
+        return CalamineReader.from_path(filepath_or_buffer)
 
     @property
     def sheet_names(self) -> list[str]:
-        from python_calamine import get_sheet_names
+        return self.book.sheet_names
 
-        if self._sheet_names is None:
-            self._sheet_names = get_sheet_names(self.book)
-        return self._sheet_names
-
-    def get_sheet_by_name(self, name: str) -> int:
+    def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)
-        return self.sheet_names.index(name)
+        return self.book.get_sheet_by_name(name)
 
-    def get_sheet_by_index(self, index: int) -> int:
+    def get_sheet_by_index(self, index: int):
         self.raise_if_bad_sheet_by_index(index)
-        return index
+        return self.book.get_sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet: int, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
         def _convert_cell(value: ValueT) -> Scalar:
             if isinstance(value, float):
@@ -97,9 +89,7 @@ class CalamineExcelReader(BaseExcelReader):
 
             return value
 
-        from python_calamine import get_sheet_data
-
-        rows = get_sheet_data(self.book, sheet, skip_empty_area=False)
+        rows: list[list[ValueT]] = sheet.to_python(skip_empty_area=False)
         data: list[list[Scalar]] = []
 
         for row in rows:
