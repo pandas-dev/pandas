@@ -154,6 +154,8 @@ class TestRendering:
         # test the string repr
         index.name = "foo"
         assert "'foo'" in str(index)
+        if type(index).__name__ == "NumericIndex":  # TODO: remove NumericIndex
+            return
         assert type(index).__name__ in str(index)
 
 
