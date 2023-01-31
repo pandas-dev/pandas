@@ -61,6 +61,7 @@ from pandas.core.api import (
     DataFrame,
     Series,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.internals.construction import convert_object_array
@@ -166,6 +167,12 @@ def _convert_arrays_to_dataframe(
         coerce_float=coerce_float,
         use_nullable_dtypes=use_nullable_dtypes,
     )
+    dtype_backend = get_option("mode.dtype_backend")
+    if dtype_backend == "pyarrow":
+        pa = import_optional_dependency("pyarrow")
+        arrays = [
+            ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
+        ]
     if arrays:
         return DataFrame(dict(zip(columns, arrays)))
     else:
@@ -314,6 +321,14 @@ def read_sql_table(
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
 
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
         .. versionadded:: 2.0
 
     Returns
@@ -449,6 +464,14 @@ def read_sql_query(
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
 
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
         .. versionadded:: 2.0
 
     Returns
@@ -578,6 +601,14 @@ def read_sql(
         Whether to use nullable dtypes as default when reading data. If
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -1625,6 +1656,14 @@ class SQLDatabase(PandasSQL):
             Whether to use nullable dtypes as default when reading data. If
             set to True, nullable dtypes are used for all dtypes that have a nullable
             implementation, even if no nulls are present.
+
+            .. note::
+
+                The nullable dtype implementation can be configured by calling
+                ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+                numpy-backed nullable dtypes or
+                ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+                pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
             .. versionadded:: 2.0
 
