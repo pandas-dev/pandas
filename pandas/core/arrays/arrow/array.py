@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -137,15 +138,17 @@ def to_pyarrow_type(
     Convert dtype to a pyarrow type instance.
     """
     if isinstance(dtype, ArrowDtype):
-        pa_dtype = dtype.pyarrow_dtype
+        return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
-        pa_dtype = dtype
+        return dtype
     elif dtype:
-        # Accepts python types too
-        pa_dtype = pa.from_numpy_dtype(dtype)
-    else:
-        pa_dtype = None
-    return pa_dtype
+        try:
+            # Accepts python types too
+            # Doesn't handle all numpy types
+            return pa.from_numpy_dtype(dtype)
+        except pa.ArrowNotImplementedError:
+            pass
+    return None
 
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
@@ -218,6 +221,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(scalars, cls):
             scalars = scalars._data
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            if copy and is_array_like(scalars):
+                # pa array should not get updated when numpy array is updated
+                scalars = deepcopy(scalars)
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
