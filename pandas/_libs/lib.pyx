@@ -773,6 +773,7 @@ cpdef ndarray[object] ensure_string_array(
 
         elif not already_copied:
             result = result.copy()
+            already_copied = True
 
         if not checknull(val):
             if not util.is_float_object(val):
