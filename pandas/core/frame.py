@@ -9945,7 +9945,7 @@ Parrot 2  Parrot       24.0
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
-            return self
+            return self.copy(deep=False)
 
     # ----------------------------------------------------------------------
     # Statistical methods, etc.

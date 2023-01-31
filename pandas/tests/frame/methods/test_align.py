@@ -414,3 +414,23 @@ class TestDataFrameAlign:
         result, other = df.align(ser, axis=1)
         ser.iloc[0] = 100
         tm.assert_series_equal(other, expected)
+
+    def test_align_identical_different_object(self):
+        # GH#51032
+        df = DataFrame({"a": [1, 2]})
+        ser = Series([3, 4])
+        result, result2 = df.align(ser, axis=0)
+        tm.assert_frame_equal(result, df)
+        tm.assert_series_equal(result2, ser)
+        assert df is not result
+        assert ser is not result2
+
+    def test_align_identical_different_object_columns(self):
+        # GH#51032
+        df = DataFrame({"a": [1, 2]})
+        ser = Series([1], index=["a"])
+        result, result2 = df.align(ser, axis=1)
+        tm.assert_frame_equal(result, df)
+        tm.assert_series_equal(result2, ser)
+        assert df is not result
+        assert ser is not result2
