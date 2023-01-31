@@ -335,6 +335,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
+            out_unit=unit,
         )
         # We have to call this again after possibly inferring a tz above
         _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
@@ -1966,6 +1967,7 @@ def _sequence_to_dt64ns(
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
+    out_unit: str | None = None,
 ):
     """
     Parameters
@@ -1977,6 +1979,8 @@ def _sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
+    out_unit : str or None, default None
+        Desired output resolution.
 
     Returns
     -------
@@ -2003,6 +2007,10 @@ def _sequence_to_dt64ns(
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
+
+    out_dtype = DT64NS_DTYPE
+    if out_unit is not None:
+        out_dtype = np.dtype(f"M8[{out_unit}]")
 
     if (
         is_object_dtype(data_dtype)
@@ -2096,7 +2104,7 @@ def _sequence_to_dt64ns(
         # assume this data are epoch timestamps
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
-        result = data.view(DT64NS_DTYPE)
+        result = data.view(out_dtype)
 
     if copy:
         result = result.copy()
@@ -2209,7 +2217,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.
         # Note: data.astype(np.int64) fails ARM tests, see
         # https://github.com/pandas-dev/pandas/issues/49468.
-        data = data.astype("M8[ns]").view("i8")
+        data = data.astype("i8")
         copy = False
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
