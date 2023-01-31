@@ -33,7 +33,6 @@ from pandas._libs.util cimport (
 @cython.final
 @cython.freelist(32)
 cdef class BlockPlacement:
-    # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
         ndarray _as_array  # Note: this still allows `None`; will be intp_t
@@ -621,7 +620,7 @@ cdef class NumpyBlock(SharedBlock):
         public ndarray values
 
     def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
 
@@ -643,7 +642,7 @@ cdef class NDArrayBackedBlock(SharedBlock):
         NDArrayBacked values
 
     def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
 
@@ -662,7 +661,7 @@ cdef class Block(SharedBlock):
         public object values
 
     def __cinit__(self, object values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
 

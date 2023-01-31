@@ -46,6 +46,7 @@ from libc.string cimport (
 
 
 cdef extern from "Python.h":
+    # TODO(cython3): get this from cpython.unicode
     object PyUnicode_FromString(char *v)
 
 
@@ -453,14 +454,12 @@ cdef class TextReader:
 
         self.skipfooter = skipfooter
 
-        # suboptimal
         if usecols is not None:
             self.has_usecols = 1
             # GH-20558, validate usecols at higher level and only pass clean
             # usecols into TextReader.
             self.usecols = usecols
 
-        # TODO: XXX?
         if skipfooter > 0:
             self.parser.on_bad_lines = SKIP
 
@@ -501,7 +500,6 @@ cdef class TextReader:
         self.dtype = dtype
         self.use_nullable_dtypes = use_nullable_dtypes
 
-        # XXX
         self.noconvert = set()
 
         self.index_col = index_col
@@ -761,7 +759,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header[0])
-        else:  # not self.has_usecols:
+        else:
 
             field_count = self.parser.line_fields[data_line]
 
@@ -1409,6 +1407,8 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     The casted array.
     """
     if is_extension_array_dtype(arr.dtype):
+        # TODO: the docstring says arr is an ndarray, in which case this cannot
+        #  be reached. Is that incorrect?
         return arr
 
     na_value = na_values[arr.dtype]

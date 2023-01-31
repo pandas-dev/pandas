@@ -238,8 +238,6 @@ cdef class IndexEngine:
         return self.unique == 1
 
     cdef _do_unique_check(self):
-
-        # this de-facto the same
         self._ensure_mapping_populated()
 
     @property

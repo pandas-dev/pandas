@@ -53,7 +53,6 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
-    maybe_get_tz,
 )
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object,
@@ -124,7 +123,7 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
         dt64obj = np.datetime64(ts, unit)
         return get_datetime64_nanos(dt64obj, NPY_FR_ns)
 
-    # cast the unit, multiply base/frace separately
+    # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
     try:
         base = <int64_t>ts
@@ -380,7 +379,6 @@ cdef _TSObject convert_datetime_to_tsobject(
     obj.creso = reso
     obj.fold = ts.fold
     if tz is not None:
-        tz = maybe_get_tz(tz)
 
         if ts.tzinfo is not None:
             # Convert the current timezone to the passed timezone

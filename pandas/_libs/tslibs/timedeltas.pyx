@@ -691,10 +691,6 @@ cdef timedelta_from_spec(object number, object frac, object unit):
             "values and are not supported."
         )
 
-    if unit == "M":
-        # To parse ISO 8601 string, 'M' should be treated as minute,
-        # not month
-        unit = "m"
     unit = parse_timedelta_unit(unit)
 
     n = "".join(number) + "." + "".join(frac)

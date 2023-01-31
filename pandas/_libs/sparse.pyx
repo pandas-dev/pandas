@@ -301,9 +301,6 @@ cdef class BlockIndex(SparseIndex):
         self.nblocks = np.int32(len(self.blocs))
         self.npoints = self.blengths.sum()
 
-        # self.block_start = blocs
-        # self.block_end = blocs + blengths
-
         self.check_integrity()
 
     def __reduce__(self):

@@ -49,7 +49,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    Dtype,
+    DtypeObj,
     FillnaOptions,
     IndexLabel,
     NDFrameT,
@@ -3175,13 +3175,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: Dtype | None = None
+            inference: DtypeObj | None = None
             if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = vals.dtype
@@ -3209,7 +3209,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def post_processor(
             vals: np.ndarray,
-            inference: Dtype | None,
+            inference: DtypeObj | None,
             result_mask: np.ndarray | None,
             orig_vals: ArrayLike,
         ) -> ArrayLike:
@@ -3773,21 +3773,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
-        orig_mgr_len = len(mgr)
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
 
         res_mgr = mgr.grouped_reduce(blk_func)
-
-        if not is_ser and len(res_mgr.items) != orig_mgr_len:
-            if len(res_mgr.items) == 0:
-                # We re-call grouped_reduce to get the right exception message
-                mgr.grouped_reduce(blk_func)
-                # grouped_reduce _should_ raise, so this should not be reached
-                raise TypeError(  # pragma: no cover
-                    "All columns were dropped in grouped_reduce"
-                )
 
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)

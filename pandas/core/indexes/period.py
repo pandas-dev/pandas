@@ -413,7 +413,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 try:
                     return self._partial_date_slice(reso, parsed)
                 except KeyError as err:
-                    # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
             if reso == self._resolution_obj:

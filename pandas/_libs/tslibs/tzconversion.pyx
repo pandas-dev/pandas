@@ -545,7 +545,7 @@ cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
 
         pandas_datetime_to_datetimestruct(val, creso, &dts)
         # casting to pydatetime drops nanoseconds etc, which we will
-        #  need to re-add later as 'extra''
+        #  need to re-add later as 'extra'
         extra = (dts.ps // 1000) * (pps // 1_000_000_000)
 
         dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
