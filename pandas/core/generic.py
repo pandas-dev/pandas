@@ -3292,7 +3292,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 2.0.0
                The pandas option affecting this argument has changed.
-        multicolumn_format : str, default 'l'
+        multicolumn_format : str, default 'r'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module, and is set as the option
             ``styler.latex.multicol_align``.
