@@ -203,8 +203,6 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
-  # ruff
-  "RUF",
   # tidy imports
   "TID",
 ]
