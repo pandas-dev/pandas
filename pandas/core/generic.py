@@ -3300,7 +3300,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionchanged:: 2.0.0
                The pandas option affecting this argument has changed, as has the
                default value.
-        multirow : bool, default False
+        multirow : bool, default True
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
