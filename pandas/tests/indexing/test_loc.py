@@ -37,8 +37,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
-from pandas.core.api import Float64Index
+from pandas.api.types import (
+    is_bool_dtype,
+    is_scalar,
+)
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -276,8 +278,9 @@ class TestLocBaseIndependent:
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
         # GH#20684
         """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        parse_datetime_string_with_reso return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_datetime_string_with_reso
+        as a tuple.
         If first argument is Period and a tuple has 3 items,
         process go on not raise exception
         """
@@ -1373,9 +1376,10 @@ class TestLocBaseIndependent:
         expected.name = val
         tm.assert_series_equal(result, expected)
 
-    def test_loc_setitem_int_label_with_float64index(self):
+    def test_loc_setitem_int_label_with_float_index(self, float_numpy_dtype):
         # note labels are floats
-        ser = Series(["a", "b", "c"], index=[0, 0.5, 1])
+        dtype = float_numpy_dtype
+        ser = Series(["a", "b", "c"], index=Index([0, 0.5, 1], dtype=dtype))
         expected = ser.copy()
 
         ser.loc[1] = "zoo"
@@ -1657,7 +1661,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and obj.index.is_boolean():
+        if indexer is tm.loc and is_bool_dtype(obj.index):
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return
@@ -2069,7 +2073,7 @@ class TestLocSetitemWithExpansion:
         df.loc[0, np.inf] = 3
 
         result = df.columns
-        expected = Float64Index([0, 1, np.inf])
+        expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
@@ -2411,13 +2415,14 @@ class TestLabelSlicing:
         s1 = df.loc[52195.1:52198.9]
         assert len(s1) == 3
 
-    def test_loc_getitem_float_slice_float64index(self):
-        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
+    def test_loc_getitem_float_slice_floatindex(self, float_numpy_dtype):
+        dtype = float_numpy_dtype
+        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=dtype))
 
         assert len(ser.loc[12.0:]) == 8
         assert len(ser.loc[12.5:]) == 7
 
-        idx = np.arange(10, 20, dtype=float)
+        idx = np.arange(10, 20, dtype=dtype)
         idx[2] = 12.2
         ser.index = idx
         assert len(ser.loc[12.0:]) == 8

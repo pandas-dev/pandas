@@ -1,10 +1,15 @@
 import os
+import subprocess
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_linux,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -409,6 +414,9 @@ class TestClipboard:
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
+        if is_ci_environment() and is_platform_linux():
+            # Clipboard can sometimes keep previous param causing flaky CI failures
+            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
     @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
@@ -465,4 +473,21 @@ y,2,5.0,,,,,False,"""
             )
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_read_clipboard_nullable_dtypes_option(
+        self, request, mock_clipboard, engine
+    ):
+        # GH#50748
+
+        text = """a
+1
+2"""
+        mock_clipboard[request.node.name] = text
+
+        with pd.option_context("mode.nullable_dtypes", True):
+            result = read_clipboard(sep=",", engine=engine)
+
+        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

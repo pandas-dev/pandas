@@ -657,3 +657,23 @@ class TestGetDummies:
 
         with pytest.raises(TypeError, match=msg):
             get_dummies(df, columns=values)
+
+    def test_get_dummies_ea_dtype_series(self, any_numeric_ea_and_arrow_dtype):
+        # GH#32430
+        ser = Series(list("abca"))
+        result = get_dummies(ser, dtype=any_numeric_ea_and_arrow_dtype)
+        expected = DataFrame(
+            {"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]},
+            dtype=any_numeric_ea_and_arrow_dtype,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_get_dummies_ea_dtype_dataframe(self, any_numeric_ea_and_arrow_dtype):
+        # GH#32430
+        df = DataFrame({"x": list("abca")})
+        result = get_dummies(df, dtype=any_numeric_ea_and_arrow_dtype)
+        expected = DataFrame(
+            {"x_a": [1, 0, 0, 1], "x_b": [0, 1, 0, 0], "x_c": [0, 0, 1, 0]},
+            dtype=any_numeric_ea_and_arrow_dtype,
+        )
+        tm.assert_frame_equal(result, expected)

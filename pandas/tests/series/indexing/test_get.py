@@ -2,9 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Index,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 def test_get():
@@ -65,7 +67,7 @@ def test_get():
                 54,
             ]
         ),
-        index=Float64Index(
+        index=Index(
             [
                 25.0,
                 36.0,
@@ -87,7 +89,8 @@ def test_get():
                 1764.0,
                 1849.0,
                 1936.0,
-            ]
+            ],
+            dtype=np.float64,
         ),
     )
 
@@ -110,18 +113,18 @@ def test_get():
     assert result == "Missing"
 
 
-def test_get_nan():
+def test_get_nan(float_numpy_dtype):
     # GH 8569
-    s = Float64Index(range(10)).to_series()
+    s = Index(range(10), dtype=float_numpy_dtype).to_series()
     assert s.get(np.nan) is None
     assert s.get(np.nan, default="Missing") == "Missing"
 
 
-def test_get_nan_multiple():
+def test_get_nan_multiple(float_numpy_dtype):
     # GH 8569
     # ensure that fixing "test_get_nan" above hasn't broken get
     # with multiple elements
-    s = Float64Index(range(10)).to_series()
+    s = Index(range(10), dtype=float_numpy_dtype).to_series()
 
     idx = [2, 30]
     assert s.get(idx) is None

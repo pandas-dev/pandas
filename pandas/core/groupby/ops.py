@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
+    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -249,16 +250,17 @@ class WrappedCythonOp:
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
-            # categoricals are only 1d, so we
-            #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
-            # TODO: same for period_dtype?  no for these methods with Period
-            # we raise NotImplemented if this is an invalid operation
-            #  entirely, e.g. adding datetimes
+            # Adding/multiplying datetimes is not valid
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
+        elif is_period_dtype(dtype):
+            # Adding/multiplying Periods is not valid
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"Period type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
+            # timedeltas we can add but not multiply
             if how in ["prod", "cumprod"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
@@ -946,7 +948,7 @@ class BaseGrouper:
 
     @final
     def get_group_levels(self) -> list[ArrayLike]:
-        # Note: only called from _insert_inaxis_grouper_inplace, which
+        # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
             return [self.groupings[0].group_arraylike]
