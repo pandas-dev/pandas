@@ -297,7 +297,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            in_reso = abbrev_to_npy_unit(unit)
+            in_reso = abbrev_to_npy_unit(unit or "ns")
             out_reso = get_supported_reso(in_reso)
             value = convert_reso(ts, in_reso, out_reso, False)
             obj.value = value
