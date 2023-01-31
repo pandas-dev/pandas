@@ -411,7 +411,7 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes: list[str] = ["name"]
 
     @cache_readonly
-    def _can_hold_strings(self):
+    def _can_hold_strings(self) -> bool:
         return not is_numeric_dtype(self)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
