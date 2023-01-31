@@ -4903,9 +4903,7 @@ Keep all original rows and also all original values
             tolerance=tolerance,
         )
 
-    @doc(
-        NDFrame.rename_axis,  # type: ignore[has-type]
-    )
+    @doc(NDFrame.rename_axis)
     def rename_axis(  # type: ignore[override]
         self: Series,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
