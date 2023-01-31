@@ -85,13 +85,6 @@ def compare_element(result, expected, typ):
 legacy_dirname = os.path.join(os.path.dirname(__file__), "data", "legacy_pickle")
 files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
-if not len(files):
-    # Probably is a wheel build(no data files), so skip the entire module
-    pytest.skip(
-        "Could not find legacy pickle files, skipping test_pickle.py tests",
-        allow_module_level=True,
-    )
-
 
 @pytest.fixture(params=files)
 def legacy_pickle(request, datapath):

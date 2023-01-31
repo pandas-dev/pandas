@@ -359,7 +359,8 @@ disable = [
 # sync minversion with pyproject.toml & install.rst
 minversion =  "7.0"
 addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
-empty_parameter_set_mark = "fail_at_collect"
+# Pickle tests will fail when the pickle data files are not found if this is set to fail_at_collect
+empty_parameter_set_mark = "skip" 
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [
