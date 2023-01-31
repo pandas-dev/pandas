@@ -357,12 +357,6 @@ class StringArray(BaseStringArray, PandasArray):
 
         else:
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
-            if is_object_dtype(scalars):
-                # copy if we get object dtype with non-string values to avoid
-                # modifying input inplace
-                inferred = lib.infer_dtype(scalars, skipna=False)
-                if inferred != "string":
-                    copy = True
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
         # Manually creating new array avoids the validation step in the __init__, so is
