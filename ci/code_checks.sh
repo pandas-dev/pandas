@@ -187,7 +187,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.show_versions \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.unit \
         pandas.Timestamp.as_unit \
         pandas.Timestamp.ctime \
         pandas.Timestamp.date \
