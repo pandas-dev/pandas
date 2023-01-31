@@ -54,7 +54,7 @@ repos:
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
