@@ -36,7 +36,7 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._libs.lib import array_equal_fast
+from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -69,6 +69,7 @@ from pandas._typing import (
     NDFrameT,
     RandomState,
     Renamer,
+    Scalar,
     SortKind,
     StorageOptions,
     Suffixes,
@@ -3921,10 +3922,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis == 0
                 and indices.ndim == 1
                 and using_copy_on_write()
-                and array_equal_fast(
-                    indices,
-                    np.arange(0, len(self), dtype=np.intp),
-                )
+                and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
 
@@ -5107,11 +5105,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels="",
-        optional_axis="",
+        optional_reindex="",
     )
-    def reindex(self: NDFrameT, *args, **kwargs) -> NDFrameT:
+    def reindex(
+        self: NDFrameT,
+        labels=None,
+        index=None,
+        columns=None,
+        axis: Axis | None = None,
+        method: str | None = None,
+        copy: bool_t | None = None,
+        level: Level | None = None,
+        fill_value: Scalar | None = np.nan,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> NDFrameT:
         """
         Conform {klass} to new index with optional filling logic.
 
@@ -5121,11 +5129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        {optional_labels}
-        {axes} : array-like, optional
-            New labels / index to conform to, should be specified using
-            keywords. Preferably an Index object to avoid duplicating data.
-        {optional_axis}
+        {optional_reindex}
         method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
@@ -5314,31 +5318,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # TODO: Decide if we care about having different examples for different
         # kinds
 
-        # construct the args
-        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = clean_reindex_fill_method(kwargs.pop("method", None))
-        level = kwargs.pop("level", None)
-        copy = kwargs.pop("copy", None)
-        limit = kwargs.pop("limit", None)
-        tolerance = kwargs.pop("tolerance", None)
-        fill_value = kwargs.pop("fill_value", None)
-
-        # Series.reindex doesn't use / need the axis kwarg
-        # We pop and ignore it here, to make writing Series/Frame generic code
-        # easier
-        kwargs.pop("axis", None)
-
-        if kwargs:
-            raise TypeError(
-                "reindex() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
-            )
+        if index is not None and columns is not None and labels is not None:
+            raise TypeError("Cannot specify all of 'labels', 'index', 'columns'.")
+        elif index is not None or columns is not None:
+            if axis is not None:
+                raise TypeError(
+                    "Cannot specify both 'axis' and any of 'index' or 'columns'"
+                )
+            if labels is not None:
+                if index is not None:
+                    columns = labels
+                else:
+                    index = labels
+        else:
+            if axis and self._get_axis_number(axis) == 1:
+                columns = labels
+            else:
+                index = labels
+        axes: dict[Literal["index", "columns"], Any] = {
+            "index": index,
+            "columns": columns,
+        }
+        method = clean_reindex_fill_method(method)
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
         if all(
-            self._get_axis(axis).identical(ax)
-            for axis, ax in axes.items()
+            self._get_axis(axis_name).identical(ax)
+            for axis_name, ax in axes.items()
             if ax is not None
         ):
             return self.copy(deep=copy)
@@ -5432,6 +5439,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if (copy or copy is None) and new_data is self._mgr:
             new_data = new_data.copy(deep=copy)
+        elif using_copy_on_write() and new_data is self._mgr:
+            new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -5520,7 +5529,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}
+                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
             )
         elif like:
 
@@ -9472,6 +9481,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit=None,
         fill_axis: Axis = 0,
     ):
+        uses_cow = using_copy_on_write()
 
         is_series = isinstance(self, ABCSeries)
 
@@ -9495,7 +9505,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
             elif lidx is None or join_index is None:
-                left = self.copy(deep=copy) if copy or copy is None else self
+                if uses_cow:
+                    left = self.copy(deep=copy)
+                else:
+                    left = self.copy(deep=copy) if copy or copy is None else self
             else:
                 left = self._constructor(
                     self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
@@ -9524,7 +9537,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = self._constructor(fdata)
 
             if ridx is None:
-                right = other.copy(deep=copy) if copy or copy is None else other
+                if uses_cow:
+                    right = other.copy(deep=copy)
+                else:
+                    right = other.copy(deep=copy) if copy or copy is None else other
             else:
                 right = other.reindex(join_index, level=level)
 

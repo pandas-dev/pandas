@@ -98,6 +98,7 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _values: np.ndarray
 
     @property
     def _engine_type(self) -> type[libindex.Int64Engine]:
@@ -177,6 +178,17 @@ class RangeIndex(NumericIndex):
         result._cache = {}
         result._reset_identity()
         return result
+
+    @classmethod
+    def _validate_dtype(cls, dtype: Dtype | None) -> None:
+        if dtype is None:
+            return
+
+        validation_func, expected = cls._dtype_validation_metadata
+        if not validation_func(dtype):
+            raise ValueError(
+                f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            )
 
     # --------------------------------------------------------------------
 

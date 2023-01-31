@@ -4,7 +4,6 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 import tempfile
-from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -12,7 +11,8 @@ from typing import (
 )
 import uuid
 
-import numpy as np
+from pandas.compat import PYPY
+from pandas.errors import ChainedAssignmentError
 
 from pandas import set_option
 
@@ -195,35 +195,19 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-class RNGContext:
-    """
-    Context manager to set the numpy random number generator speed. Returns
-    to the original value upon exiting the context manager.
+def raises_chained_assignment_error():
 
-    Parameters
-    ----------
-    seed : int
-        Seed for numpy.random.seed
+    if PYPY:
+        from contextlib import nullcontext
 
-    Examples
-    --------
-    with RNGContext(42):
-        np.random.randn()
-    """
+        return nullcontext()
+    else:
+        import pytest
 
-    def __init__(self, seed) -> None:
-        self.seed = seed
-
-    def __enter__(self) -> None:
-
-        self.start_state = np.random.get_state()
-        np.random.seed(self.seed)
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-
-        np.random.set_state(self.start_state)
+        return pytest.raises(
+            ChainedAssignmentError,
+            match=(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            ),
+        )
