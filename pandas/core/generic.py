@@ -4496,7 +4496,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
-            axes = {"index": index, "columns": columns}
+            axes = {"index": index}
+            if self.ndim == 2:
+                axes["columns"] = columns
         else:
             raise ValueError(
                 "Need to specify at least one of 'labels', 'index' or 'columns'"
