@@ -36,6 +36,16 @@ class TestTimestampConstructors:
 
     def test_constructor_str_infer_reso(self):
         # non-iso8601 path
+
+        # _parse_delimited_date path
+        ts = Timestamp("2023/01/30")
+        assert ts.unit == "s"
+
+        # _parse_dateabbr_string path
+        ts = Timestamp("2015Q1")
+        assert ts.unit == "s"
+
+        # dateutil_parse path
         ts = Timestamp("2016-01-01 1:30:01 PM")
         assert ts.unit == "s"
 
