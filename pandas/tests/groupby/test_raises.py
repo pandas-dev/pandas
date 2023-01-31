@@ -176,3 +176,11 @@ def test_groupby_raises_datetime_udf(how):
 
     with pytest.raises(TypeError, match="Test error message"):
         getattr(gb, how)(func)
+
+
+def test_subsetting_columns_axis_1_raises():
+    # GH 35443
+    df = DataFrame({"a": [1], "b": [2], "c": [3]})
+    gb = df.groupby("a", axis=1)
+    with pytest.raises(ValueError, match="Cannot subset columns when using axis=1"):
+        gb["b"]
