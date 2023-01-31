@@ -43,15 +43,15 @@ def listlike_box(request):
 
 
 @pytest.fixture(
-    params=[
-        *tm.ALL_REAL_NUMPY_DTYPES,
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + [
         "object",
         "category",
         "datetime64[ns]",
         "timedelta64[ns]",
     ]
 )
-def any_numpy_dtype_for_small_pos_integer_indexes(request):
+def any_dtype_for_small_pos_integer_indexes(request):
     """
     Dtypes that can be given to an Index with small positive integers.
 

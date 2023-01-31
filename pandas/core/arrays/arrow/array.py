@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -141,15 +142,17 @@ def to_pyarrow_type(
     Convert dtype to a pyarrow type instance.
     """
     if isinstance(dtype, ArrowDtype):
-        pa_dtype = dtype.pyarrow_dtype
+        return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
-        pa_dtype = dtype
+        return dtype
     elif dtype:
-        # Accepts python types too
-        pa_dtype = pa.from_numpy_dtype(dtype)
-    else:
-        pa_dtype = None
-    return pa_dtype
+        try:
+            # Accepts python types too
+            # Doesn't handle all numpy types
+            return pa.from_numpy_dtype(dtype)
+        except pa.ArrowNotImplementedError:
+            pass
+    return None
 
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
@@ -222,6 +225,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(scalars, cls):
             scalars = scalars._data
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            if copy and is_array_like(scalars):
+                # pa array should not get updated when numpy array is updated
+                scalars = deepcopy(scalars)
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -1047,6 +1053,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             not_eq = pc.not_equal(data_to_cmp, 0)
             data_to_reduce = not_eq
 
+        elif name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            data_to_reduce = self._data.cast(pa.int64())
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
@@ -1081,6 +1090,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             raise TypeError(msg) from err
         if pc.is_null(result).as_py():
             return self.dtype.na_value
+
+        if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
+            result = result.cast(pa_type)
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:

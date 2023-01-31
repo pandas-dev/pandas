@@ -46,6 +46,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_numeric_dtype,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
 )
 from pandas.tests.extension import base
@@ -428,6 +429,12 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
+            if request.config.option.skip_slow:
+                # equivalent to marking these cases with @pytest.mark.slow,
+                #  these xfails take a long time to run because pytest
+                #  renders the exception messages even when not showing them
+                pytest.skip("pyarrow xfail slow")
+
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented",
@@ -548,10 +555,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             "sem",
         ] and pa.types.is_temporal(pa_dtype):
             request.node.add_marker(xfail_mark)
-        elif all_numeric_reductions in ["sum", "min", "max"] and pa.types.is_duration(
-            pa_dtype
-        ):
-            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",
@@ -651,6 +654,24 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         ):
             super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    def test_in_numeric_groupby(self, data_for_grouping):
+        if is_string_dtype(data_for_grouping.dtype):
+            df = pd.DataFrame(
+                {
+                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
+                    "B": data_for_grouping,
+                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
+                }
+            )
+
+            expected = pd.Index(["C"])
+            with pytest.raises(TypeError, match="does not support"):
+                df.groupby("A").sum().columns
+            result = df.groupby("A").sum(numeric_only=True).columns
+            tm.assert_index_equal(result, expected)
+        else:
+            super().test_in_numeric_groupby(data_for_grouping)
+
 
 class TestBaseDtype(base.BaseDtypeTests):
     def test_construct_from_string_own_name(self, dtype, request):
@@ -730,7 +751,6 @@ class TestBaseDtype(base.BaseDtypeTests):
                 and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
             )
             or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
-            or pa.types.is_string(pa_dtype)
             or pa.types.is_binary(pa_dtype)
         ):
             request.node.add_marker(
@@ -743,13 +763,22 @@ class TestBaseDtype(base.BaseDtypeTests):
             )
         super().test_get_common_dtype(dtype)
 
+    def test_is_not_string_type(self, dtype):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_string(pa_dtype):
+            assert is_string_dtype(dtype)
+        else:
+            super().test_is_not_string_type(dtype)
+
 
 class TestBaseIndex(base.BaseIndexTests):
     pass
 
 
 class TestBaseInterface(base.BaseInterfaceTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views.")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views.", run=False
+    )
     def test_view(self, data):
         super().test_view(data)
 
@@ -779,13 +808,17 @@ class TestBasePrinting(base.BasePrintingTests):
 
 
 class TestBaseReshaping(base.BaseReshapingTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_transpose(self, data):
         super().test_transpose(data)
 
 
 class TestBaseSetitem(base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
 
