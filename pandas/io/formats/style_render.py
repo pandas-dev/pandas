@@ -1109,14 +1109,14 @@ class StylerRenderer:
 
         Using a ``formatter`` with ``escape`` in 'latex' mode.
 
-        >>> df = pd.DataFrame([["123"], ["~ ^"], ["%#"]])
+        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
         >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
         ...  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbf{123} \\
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
-        2 & \textbf{\%\#} \\
+        2 & \textbf{\$\%\#} \\
         \end{tabular}
 
         Using ``escape`` in 'latex-math' mode.
@@ -2381,7 +2381,7 @@ def _escape_latex_math(s):
     str :
         Escaped string
     """
-    s = s.replace(r"\$", r"ab2§=§8yz")
+    s = s.replace(r"\$", r"rt8§=§7wz")
     pattern = re.compile(r"\$.*?\$")
     pos = 0
     ps = pattern.search(s, pos)
@@ -2393,4 +2393,4 @@ def _escape_latex_math(s):
         ps = pattern.search(s, pos)
 
     res.append(_escape_latex(s[pos : len(s)]))
-    return "".join(res).replace(r"ab2§=§8yz", r"\$")
+    return "".join(res).replace(r"rt8§=§7wz", r"\$")
