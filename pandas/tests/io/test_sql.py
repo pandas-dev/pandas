@@ -260,24 +260,34 @@ def check_iris_frame(frame: DataFrame):
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
+    assert frame.shape in ((150, 5), (8, 5))
 
 
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
     if isinstance(conn, sqlite3.Connection):
         cur = conn.cursor()
-        result = cur.execute(stmt)
+        return cur.execute(stmt).fetchone()[0]
     else:
-        from sqlalchemy import text
+        from sqlalchemy import (
+            create_engine,
+            text,
+        )
         from sqlalchemy.engine import Engine
 
         stmt = text(stmt)
-        if isinstance(conn, Engine):
+        if isinstance(conn, str):
+            try:
+                engine = create_engine(conn)
+                with engine.connect() as conn:
+                    return conn.execute(stmt).scalar_one()
+            finally:
+                engine.dispose()
+        elif isinstance(conn, Engine):
             with conn.connect() as conn:
-                result = conn.execute(stmt)
+                return conn.execute(stmt).scalar_one()
         else:
-            result = conn.execute(stmt)
-    return result.fetchone()[0]
+            return conn.execute(stmt).scalar_one()
 
 
 @pytest.fixture
@@ -388,6 +398,7 @@ def mysql_pymysql_engine(iris_path, types_data):
     engine = sqlalchemy.create_engine(
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -414,7 +425,8 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -435,9 +447,16 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def sqlite_engine():
+def sqlite_str():
+    pytest.importorskip("sqlalchemy")
+    with tm.ensure_clean() as name:
+        yield "sqlite:///" + name
+
+
+@pytest.fixture
+def sqlite_engine(sqlite_str):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine("sqlite://")
+    engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
     yield engine
     engine.dispose()
 
@@ -445,6 +464,15 @@ def sqlite_engine():
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
     yield sqlite_engine.connect()
+
+
+@pytest.fixture
+def sqlite_iris_str(sqlite_str, iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_iris(engine, iris_path, "sqlite")
+    engine.dispose()
+    return sqlite_str
 
 
 @pytest.fixture
@@ -485,11 +513,13 @@ postgresql_connectable = [
 sqlite_connectable = [
     "sqlite_engine",
     "sqlite_conn",
+    "sqlite_str",
 ]
 
 sqlite_iris_connectable = [
     "sqlite_iris_engine",
     "sqlite_iris_conn",
+    "sqlite_iris_str",
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
@@ -541,10 +571,47 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris(conn, request):
+def test_read_iris_query(conn, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
-        iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    iris_frame = read_sql_query("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris where 0=1", conn)
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_iris_query_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_query("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris where 0=1", conn, chunksize=7))
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = read_sql_table("iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("iris", conn)
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_table("iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
 
 
