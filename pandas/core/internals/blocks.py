@@ -153,6 +153,7 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
+    _ref = None
 
     @final
     @cache_readonly
@@ -433,7 +434,7 @@ class Block(PandasObject):
         if downcast is None:
             return blocks
 
-        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
+        return extend_blocks([b._downcast_2d(downcast, b) for b in blocks])
 
     @final
     @maybe_split
@@ -2003,12 +2004,12 @@ class ObjectBlock(NumpyBlock):
     is_object = True
 
     @maybe_split
-    def convert(
+    def convert(  # type: ignore[override]
         self,
         *,
+        original_block: Block,
         copy: bool = True,
         using_copy_on_write: bool = False,
-        original_block: Block = None,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -2044,7 +2045,7 @@ class ObjectBlock(NumpyBlock):
 
         res_values = ensure_block_shape(res_values, self.ndim)
         result = self.make_block(res_values)
-        result._ref = ref  # type: ignore[attr-defined]
+        result._ref = ref
         return [result]
 
 
