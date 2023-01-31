@@ -775,8 +775,7 @@ class Base:
 
             # check that we are matching Series behavior
             res2 = ~Series(idx)
-            # TODO(2.0): once we preserve dtype, check_dtype can be True
-            tm.assert_series_equal(res2, Series(expected), check_dtype=False)
+            tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
                 msg = "ufunc 'invert' not supported for the input types"

@@ -85,6 +85,7 @@ from pandas import (
     Index,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     concat,
@@ -2258,7 +2259,7 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        index = Index(np.arange(len(values), dtype=np.int64))
+        index = RangeIndex(len(values))
         return index, index
 
     def set_attr(self) -> None:
