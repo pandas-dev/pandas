@@ -4904,7 +4904,7 @@ Keep all original rows and also all original values
         )
 
     @doc(
-        NDFrame.reindex,  # type: ignore[has-type]
+        NDFrame.rename_axis,  # type: ignore[has-type]
     )
     def rename_axis(  # type: ignore[override]
         self: Series,

@@ -1044,7 +1044,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool_t = ...,
+        copy: bool_t | None = ...,
         *,
         inplace: Literal[False] = ...,
     ) -> NDFrameT:
@@ -1057,7 +1057,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool_t = ...,
+        copy: bool_t | None = ...,
         *,
         inplace: Literal[True],
     ) -> None:
@@ -1070,7 +1070,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool_t = ...,
+        copy: bool_t | None = ...,
         *,
         inplace: bool_t = ...,
     ) -> NDFrameT | None:
@@ -1082,7 +1082,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=lib.no_default,
         columns=lib.no_default,
         axis: Axis = 0,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         *,
         inplace: bool_t = False,
     ) -> NDFrameT | None:
@@ -1105,7 +1105,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and/or ``columns``.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default True
+        copy : bool, default None
             Also copy underlying data.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
