@@ -363,7 +363,6 @@ class TestTimestamp:
     )
     def test_unit(self, value, check_kwargs):
         def check(value, unit=None, h=1, s=1, us=0, ns=0):
-            breakpoint()
             stamp = Timestamp(value, unit=unit)
             assert stamp.year == 2000
             assert stamp.month == 1

@@ -1765,7 +1765,7 @@ class TestToDatetimeUnit:
         result = to_datetime(values, unit="D", errors="ignore", cache=cache)
         expected = Index(
             [
-                11111111,
+                Timestamp(11111111, unit="D"),
                 Timestamp("1970-01-02"),
                 Timestamp("1970-01-02"),
                 NaT,
@@ -1792,7 +1792,9 @@ class TestToDatetimeUnit:
         values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
 
         result = to_datetime(values, errors="ignore", unit="s", cache=cache)
-        expected = Index([1420043460000, NaT, NaT, NaT, NaT], dtype=object)
+        expected = Index(
+            [Timestamp(1420043460000, unit="s"), NaT, NaT, NaT, NaT], dtype=object
+        )
         tm.assert_index_equal(result, expected)
 
         result = to_datetime(values, errors="coerce", unit="s", cache=cache)
