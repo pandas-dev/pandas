@@ -17,6 +17,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     NaT,
     Series,
     Timedelta,
@@ -26,7 +27,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import PandasArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -68,9 +68,7 @@ class TestTimedelta64ArrayLikeComparisons:
     def test_compare_timedelta64_zerodim(self, box_with_array):
         # GH#26689 should unbox when comparing with zerodim array
         box = box_with_array
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
+        xbox = box_with_array if box_with_array not in [Index, pd.array] else np.ndarray
 
         tdi = timedelta_range("2H", periods=4)
         other = np.array(tdi.to_numpy()[0])
@@ -93,7 +91,7 @@ class TestTimedelta64ArrayLikeComparisons:
     def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
         # regression test for GH#5963
         box = box_with_array
-        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
+        xbox = box if box not in [Index, pd.array] else np.ndarray
 
         ser = Series([timedelta(days=1), timedelta(days=2)])
         ser = tm.box_expected(ser, box)
@@ -489,7 +487,7 @@ class TestTimedelta64ArithmeticUnsorted:
         # random indexes
         msg = "Addition/subtraction of integers and integer-arrays"
         with pytest.raises(TypeError, match=msg):
-            tdi + NumericIndex([1, 2, 3], dtype=np.int64)
+            tdi + Index([1, 2, 3], dtype=np.int64)
 
         # this is a union!
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
@@ -600,7 +598,7 @@ class TestTimedelta64ArithmeticUnsorted:
         orig_rng = rng
         rng += two_hours
         tm.assert_equal(rng, expected)
-        if box_with_array is not pd.Index:
+        if box_with_array is not Index:
             # Check that operation is actually inplace
             tm.assert_equal(orig_rng, expected)
 
@@ -615,7 +613,7 @@ class TestTimedelta64ArithmeticUnsorted:
         orig_rng = rng
         rng -= two_hours
         tm.assert_equal(rng, expected)
-        if box_with_array is not pd.Index:
+        if box_with_array is not Index:
             # Check that operation is actually inplace
             tm.assert_equal(orig_rng, expected)
 
@@ -1119,7 +1117,7 @@ class TestTimedeltaArraylikeAddSubOps:
         "vec",
         [
             np.array([1, 2, 3]),
-            pd.Index([1, 2, 3]),
+            Index([1, 2, 3]),
             Series([1, 2, 3]),
             DataFrame([[1, 2, 3]]),
         ],
@@ -1292,7 +1290,7 @@ class TestTimedeltaArraylikeAddSubOps:
         exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
-        other = pd.Index([offsets.Hour(n=1), offsets.Minute(n=-2)], name=names[1])
+        other = Index([offsets.Hour(n=1), offsets.Minute(n=-2)], name=names[1])
         other = np.array(other) if box in [tm.to_array, pd.array] else other
 
         expected = TimedeltaIndex(
@@ -1350,7 +1348,7 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_with_offset_series(self, names, box_with_array):
         # GH#18849
         box = box_with_array
-        box2 = Series if box in [pd.Index, tm.to_array, pd.array] else box
+        box2 = Series if box in [Index, tm.to_array, pd.array] else box
         exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
@@ -1379,7 +1377,7 @@ class TestTimedeltaArraylikeAddSubOps:
             res3 = obj - other
         tm.assert_equal(res3, expected_sub)
 
-    @pytest.mark.parametrize("obox", [np.array, pd.Index, Series])
+    @pytest.mark.parametrize("obox", [np.array, Index, Series])
     def test_td64arr_addsub_anchored_offset_arraylike(self, obox, box_with_array):
         # GH#18824
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"])
@@ -1418,7 +1416,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with tm.assert_produces_warning(PerformanceWarning):
             result = tdarr + other
 
-        expected = pd.Index(
+        expected = Index(
             [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, xbox).astype(object)
@@ -1432,7 +1430,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr
 
-        expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
+        expected = Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
         expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
@@ -1486,7 +1484,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     def test_tdi_mul_int_series(self, box_with_array):
         box = box_with_array
-        xbox = Series if box in [pd.Index, tm.to_array, pd.array] else box
+        xbox = Series if box in [Index, tm.to_array, pd.array] else box
 
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         expected = TimedeltaIndex(np.arange(5, dtype="int64") ** 2)
@@ -1499,7 +1497,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     def test_tdi_mul_float_series(self, box_with_array):
         box = box_with_array
-        xbox = Series if box in [pd.Index, tm.to_array, pd.array] else box
+        xbox = Series if box in [Index, tm.to_array, pd.array] else box
 
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box)
@@ -1516,9 +1514,9 @@ class TestTimedeltaArraylikeMulDivOps:
         "other",
         [
             np.arange(1, 11),
-            NumericIndex(np.arange(1, 11), np.int64),
-            NumericIndex(range(1, 11), np.uint64),
-            NumericIndex(range(1, 11), np.float64),
+            Index(np.arange(1, 11), np.int64),
+            Index(range(1, 11), np.uint64),
+            Index(range(1, 11), np.float64),
             pd.RangeIndex(1, 11),
         ],
         ids=lambda x: type(x).__name__,
@@ -1602,7 +1600,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = timedelta_range("1 days", "10 days", name="foo")
-        expected = NumericIndex((np.arange(10) + 1) * 12, dtype=np.float64, name="foo")
+        expected = Index((np.arange(10) + 1) * 12, dtype=np.float64, name="foo")
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)
@@ -1642,7 +1640,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = TimedeltaIndex(["1 days", NaT, "2 days"], name="foo")
-        expected = NumericIndex([12, np.nan, 24], dtype=np.float64, name="foo")
+        expected = Index([12, np.nan, 24], dtype=np.float64, name="foo")
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)
@@ -1660,7 +1658,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = TimedeltaIndex(["1 days", NaT, "2 days"])
-        expected = NumericIndex([12, np.nan, 24], dtype=np.float64)
+        expected = Index([12, np.nan, 24], dtype=np.float64)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)
@@ -1700,7 +1698,7 @@ class TestTimedeltaArraylikeMulDivOps:
         msg = "Cannot divide vectors|Unable to coerce to Series"
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
-            for other in [obj, np.array(obj), pd.Index(obj)]:
+            for other in [obj, np.array(obj), Index(obj)]:
                 with pytest.raises(ValueError, match=msg):
                     rng / other
                 with pytest.raises(ValueError, match=msg):
@@ -1717,9 +1715,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         res = tdi / other
 
-        expected = pd.Index(
-            [1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object
-        )
+        expected = Index([1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
         if isinstance(expected, PandasArray):
             expected = expected.to_numpy()
@@ -1730,7 +1726,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         res = tdi // other
 
-        expected = pd.Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
+        expected = Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
         if isinstance(expected, PandasArray):
             expected = expected.to_numpy()
@@ -1974,7 +1970,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     @pytest.mark.parametrize(
         "vector",
-        [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
+        [np.array([20, 30, 40]), Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
     def test_td64arr_rmul_numeric_array(
@@ -2004,7 +2000,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     @pytest.mark.parametrize(
         "vector",
-        [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
+        [np.array([20, 30, 40]), Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
     def test_td64arr_div_numeric_array(
@@ -2118,8 +2114,8 @@ class TestTimedeltaArraylikeMulDivOps:
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
 
-        expected = pd.Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
-        if box_with_array is not pd.Index:
+        expected = Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
+        if box_with_array is not Index:
             expected = tm.box_expected(expected, box_with_array).astype(object)
 
         result = left / right

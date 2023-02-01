@@ -22,7 +22,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.api import NumericIndex
 from pandas.core.computation import expressions as expr
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -1055,7 +1054,7 @@ class TestAdditionSubtraction:
 
 class TestUFuncCompat:
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, RangeIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, RangeIndex, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_compat(self, holder, dtype):
         box = Series if holder is Series else Index
@@ -1071,7 +1070,7 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_coercions(self, holder, dtype):
         idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
@@ -1115,7 +1114,7 @@ class TestUFuncCompat:
         tm.assert_equal(result, exp)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_multiple_return_values(self, holder, dtype):
         obj = holder([1, 2, 3], dtype=dtype, name="x")
