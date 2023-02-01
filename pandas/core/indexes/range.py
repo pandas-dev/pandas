@@ -98,7 +98,6 @@ class RangeIndex(NumericIndex):
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
     _values: np.ndarray
-    _should_fallback_to_positional = False
 
     @property
     def _engine_type(self) -> type[libindex.Int64Engine]:
@@ -195,7 +194,7 @@ class RangeIndex(NumericIndex):
     # error: Return type "Type[Index]" of "_constructor" incompatible with return
     # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[Index]:
+    def _constructor(self) -> type[Index]:  # type: ignore[override]
         """return the class to use for construction"""
         return NumericIndex
 
@@ -378,6 +377,13 @@ class RangeIndex(NumericIndex):
             # We reversed this range: transform to original locs
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
+
+    @cache_readonly
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        Should an integer key be treated as positional?
+        """
+        return False
 
     # --------------------------------------------------------------------
 
