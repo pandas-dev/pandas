@@ -34,7 +34,6 @@ def test_read_jsonl(engine):
 
 
 def test_read_jsonl_engine_pyarrow(json_dir_path, engine):
-    print(os.path.join(json_dir_path, "line_delimited.json"))
     result = read_json(
         os.path.join(json_dir_path, "line_delimited.json"),
         lines=True,

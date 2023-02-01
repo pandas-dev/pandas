@@ -615,9 +615,6 @@ def read_json(
 
         .. versionadded:: 1.3.0
 
-    engine : {{'ujson', 'pyarrow'}}, default "ujson"
-        Parser engine to use.
-
     lines : bool, default False
         Read the file as a json object per line.
 
@@ -863,7 +860,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     "currently pyarrow engine only supports "
                     "the line-delimited JSON format"
                 )
-        if self.engine not in ["pyarrow", "ujson"]:
+        if self.engine not in {"pyarrow", "ujson"}:
             raise ValueError(
                 f"The engine type {self.engine} is currently not supported."
             )
@@ -961,7 +958,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 table = pyarrow_json.read_json(self.data)
                 obj = table.to_pandas()
-            if self.engine == "ujson":
+            elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
                         obj = concat(self)
