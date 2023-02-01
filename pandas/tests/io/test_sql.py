@@ -149,8 +149,6 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy.engine import Engine
 
     iris = iris_table_metadata(dialect)
-    iris.drop(conn, checkfirst=True)
-    iris.create(bind=conn)
 
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
@@ -160,9 +158,14 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         if isinstance(conn, Engine):
             with conn.connect() as conn:
                 with conn.begin():
+                    iris.drop(conn, checkfirst=True)
+                    iris.create(bind=conn)
                     conn.execute(stmt)
         else:
-            conn.execute(stmt)
+            with conn.begin():
+                iris.drop(conn, checkfirst=True)
+                iris.create(bind=conn)
+                conn.execute(stmt)
 
 
 def create_and_load_iris_view(conn):
@@ -180,7 +183,8 @@ def create_and_load_iris_view(conn):
                 with conn.begin():
                     conn.execute(stmt)
         else:
-            conn.execute(stmt)
+            with conn.begin():
+                conn.execute(stmt)
 
 
 def types_table_metadata(dialect: str):
@@ -243,16 +247,19 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
     from sqlalchemy.engine import Engine
 
     types = types_table_metadata(dialect)
-    types.drop(conn, checkfirst=True)
-    types.create(bind=conn)
 
     stmt = insert(types).values(types_data)
     if isinstance(conn, Engine):
         with conn.connect() as conn:
             with conn.begin():
+                types.drop(conn, checkfirst=True)
+                types.create(bind=conn)
                 conn.execute(stmt)
     else:
-        conn.execute(stmt)
+        with conn.begin():
+            types.drop(conn, checkfirst=True)
+            types.create(bind=conn)
+            conn.execute(stmt)
 
 
 def check_iris_frame(frame: DataFrame):
@@ -715,7 +722,8 @@ def test_read_procedure(conn, request):
             with engine_conn.begin():
                 engine_conn.execute(proc)
     else:
-        conn.execute(proc)
+        with conn.begin():
+            conn.execute(proc)
 
     res1 = sql.read_sql_query("CALL get_testdb();", conn)
     tm.assert_frame_equal(df, res1)
@@ -1012,8 +1020,6 @@ class _TestSQLApi(PandasSQLTest):
     @pytest.fixture(autouse=True)
     def setup_method(self, iris_path, types_data):
         self.conn = self.connect()
-        if not isinstance(self.conn, sqlite3.Connection):
-            self.conn.begin()
         self.load_iris_data(iris_path)
         self.load_types_data(types_data)
         self.load_test_data_and_sql()
@@ -1509,7 +1515,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
                     with conn.begin():
                         conn.execute(query)
             else:
-                self.conn.execute(query)
+                with self.conn.begin():
+                    self.conn.execute(query)
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("other_table", self.conn)
@@ -1759,7 +1766,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_method(self, iris_path, types_data):
         try:
             self.conn = self.engine.connect()
-            self.conn.begin()
             self.pandasSQL = sql.SQLDatabase(self.conn)
         except sqlalchemy.exc.OperationalError:
             pytest.skip(f"Can't connect to {self.flavor} server")
@@ -2163,7 +2169,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
-    @pytest.mark.xfail(reason="Nested transactions rollbacks don't work with Pandas")
     def test_transactions(self):
         self._transaction_test()
 
@@ -2185,7 +2190,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 with conn.begin():
                     conn.execute(create_sql)
         else:
-            self.conn.execute(create_sql)
+            with self.conn.begin():
+                self.conn.execute(create_sql)
         returned_df = sql.read_sql_table(tbl, self.conn)
         tm.assert_frame_equal(returned_df, blank_test_df, check_index_type=False)
         self.drop_table(tbl, self.conn)
@@ -2653,7 +2659,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
             id = Column(Integer, primary_key=True)
             string_column = Column(String(50))
 
-        BaseModel.metadata.create_all(self.conn)
+        with self.conn.begin():
+            BaseModel.metadata.create_all(self.conn)
         Session = sessionmaker(bind=self.conn)
         with Session() as session:
             df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
@@ -2747,8 +2754,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
 
         # create a schema
-        self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.exec_driver_sql("CREATE SCHEMA other;")
+        with self.conn.begin():
+            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe to different schema's
         assert df.to_sql("test_schema_public", self.conn, index=False) == 2
@@ -2780,8 +2788,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         # different if_exists options
 
         # create a schema
-        self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.exec_driver_sql("CREATE SCHEMA other;")
+        with self.conn.begin():
+            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe with different if_exists options
         assert (

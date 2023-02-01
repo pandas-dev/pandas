@@ -348,7 +348,7 @@ def read_sql_table(
         else using_nullable_dtypes()
     )
 
-    with pandasSQL_builder(con, schema=schema) as pandas_sql:
+    with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
             raise ValueError(f"Table {table_name} not found")
 
@@ -951,7 +951,8 @@ class SQLTable(PandasObject):
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
-        self.table.create(bind=self.pd_sql.con)
+        with self.pd_sql.run_transaction():
+            self.table.create(bind=self.pd_sql.con)
 
     def create(self) -> None:
         if self.exists():
@@ -1597,7 +1598,11 @@ class SQLDatabase(PandasSQL):
 
     @contextmanager
     def run_transaction(self):
-        yield self.con
+        if not self.con.in_transaction():
+            with self.con.begin():
+                yield self.con
+        else:
+            yield self.con
 
     def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
@@ -2008,7 +2013,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
-            self.get_table(table_name, schema).drop(bind=self.con)
+            with self.run_transaction():
+                self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
 
     def _create_sql_schema(
