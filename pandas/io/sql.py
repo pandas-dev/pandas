@@ -69,6 +69,10 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from sqlalchemy import Table
+    from sqlalchemy.sql.expression import (
+        Select,
+        TextClause,
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -81,17 +85,6 @@ def _cleanup_after_generator(generator, exit_stack: ExitStack):
         yield from generator
     finally:
         exit_stack.close()
-
-
-def _convert_params(sql, params):
-    """Convert SQL and params args to DBAPI2.0 compliant format."""
-    args = [sql]
-    if params is not None:
-        if hasattr(params, "keys"):  # test if params is a mapping
-            args += [params]
-        else:
-            args += [list(params)]
-    return args
 
 
 def _process_parse_dates_argument(parse_dates):
@@ -232,8 +225,7 @@ def execute(sql, con, params=None):
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
         raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
     with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
-        args = _convert_params(sql, params)
-        return pandas_sql.execute(*args)
+        return pandas_sql.execute(sql, params)
 
 
 # -----------------------------------------------------------------------------
@@ -1459,7 +1451,7 @@ class PandasSQL(PandasObject, ABC):
         pass
 
     @abstractmethod
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
         pass
 
     @abstractmethod
@@ -1606,9 +1598,10 @@ class SQLDatabase(PandasSQL):
     def run_transaction(self):
         yield self.con
 
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.con.execute(*args, **kwargs)
+        args = [] if params is None else [params]
+        return self.con.execute(sql, *args)
 
     def read_table(
         self,
@@ -1786,9 +1779,7 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
-        args = _convert_params(sql, params)
-
-        result = self.execute(*args)
+        result = self.execute(sql, params)
         columns = result.keys()
 
         if chunksize is not None:
@@ -2246,21 +2237,24 @@ class SQLiteDatabase(PandasSQL):
         finally:
             cur.close()
 
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
+        if not isinstance(sql, str):
+            raise TypeError("Query must be a string unless using sqlalchemy.")
+        args = [] if params is None else [params]
         cur = self.con.cursor()
         try:
-            cur.execute(*args, **kwargs)
+            cur.execute(sql, *args)
             return cur
         except Exception as exc:
             try:
                 self.con.rollback()
             except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
-                    f"Execution failed on sql: {args[0]}\n{exc}\nunable to rollback"
+                    f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
 
-            ex = DatabaseError(f"Execution failed on sql '{args[0]}': {exc}")
+            ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
             raise ex from exc
 
     @staticmethod
@@ -2313,9 +2307,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
-
-        args = _convert_params(sql, params)
-        cursor = self.execute(*args)
+        cursor = self.execute(sql, params)
         columns = [col_desc[0] for col_desc in cursor.description]
 
         if chunksize is not None:

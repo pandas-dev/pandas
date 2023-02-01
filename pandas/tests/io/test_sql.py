@@ -597,6 +597,39 @@ def test_read_iris_query_chunksize(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_query_expression_with_parameter(conn, request):
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy import (
+        MetaData,
+        Table,
+        create_engine,
+        select,
+    )
+
+    metadata = MetaData()
+    autoload_con = create_engine(conn) if isinstance(conn, str) else conn
+    iris = Table("iris", metadata, autoload_with=autoload_con)
+    iris_frame = read_sql_query(
+        select(iris), conn, params={"name": "Iris-setosa", "length": 5.1}
+    )
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_iris_query_string_with_parameter(conn, request):
+    for db, query in SQL_STRINGS["read_parameters"].items():
+        if db in conn:
+            break
+    else:
+        raise KeyError(f"No part of {conn} found in SQL_STRINGS['read_parameters']")
+    conn = request.getfixturevalue(conn)
+    iris_frame = read_sql_query(query, conn, params=("Iris-setosa", 5.1))
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_table(conn, request):
     conn = request.getfixturevalue(conn)
     iris_frame = read_sql_table("iris", conn)
