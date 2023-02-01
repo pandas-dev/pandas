@@ -46,54 +46,28 @@ import _optional
 
 def pin_min_versions_to_ci_deps():
     toml_dependencies = get_versions_from_toml()
-    print("TOML Dependencies", toml_dependencies)
-    # if toml package is in yaml file, then run condition check
     # TODO: Add environment.yml to "all_yaml_files"
     all_yaml_files = list(YAML_PATH.iterdir())
-    yaml_dependencies = {}
-    # iterate through each yaml file
     for curr_file in all_yaml_files:
         with open(curr_file, "rb") as yaml_f:
-            # all stuff including dependencies
             yaml_file = yaml.safe_load(yaml_f)
-            print("\nCurrent YAML File Path:", curr_file)
-            # just yaml deps
             yaml_deps = yaml_file["dependencies"]
-            print("YAML Dictionary:", yaml_deps)
-            # iterate through package/version dependency string
             for dependency in yaml_deps:
-                # clean the string. extract dictionary data: yaml package, version
                 if ">=" in dependency:
                     yaml_package, yaml_version = str(dependency).strip().split(">=")
                 elif "=" in dependency:
                     yaml_package, yaml_version = str(dependency).strip().split("=")
                 else:
                     yaml_package, yaml_version = str(dependency), "None"
-                # comparison between YAML/TOML
                 if "=" in dependency:
                     if yaml_package in toml_dependencies:
                         if toml_dependencies[yaml_package] > yaml_version:
                             # update yaml package version to toml min version
                             pass
-                # else - yaml package has no version pinned
                 else:
                     if yaml_package in toml_dependencies:
-                        # update yaml package version to toml min version
-                        # use ">=" operator
+                        # update yaml package version to toml min version. use ">="
                         pass
-
-                # put extracted data into yaml dictionary
-                yaml_dependencies[yaml_package] = yaml_version
-            print()
-            myKeys = list(yaml_dependencies.keys())
-            myKeys.sort()
-            sorted_dict = {i: yaml_dependencies[i] for i in myKeys}
-
-            print("Sorted YAML Dependencies:")
-            for item in sorted_dict.items():
-                print(item)
-            print("===================")
-    return yaml_dependencies
 
 
 def get_versions_from_code() -> dict[str, str]:
@@ -163,21 +137,11 @@ def get_versions_from_toml() -> dict[str, str]:
 
     for item in EXCLUDE_DEPS:
         optional_dependencies.pop(item, None)
-    print()
-    myKeys = list(optional_dependencies.keys())
-    myKeys.sort()
-    sorted_dict = {i: optional_dependencies[i] for i in myKeys}
-    print("Sorted TOML Dependencies:")
-    for item in sorted_dict.items():
-        print(item)
-
     return optional_dependencies
 
 
 def main():
-    yaml_dependencies = pin_min_versions_to_ci_deps()
-    print("YAML Dependencies:", yaml_dependencies)
-
+    pin_min_versions_to_ci_deps()
     with open(CI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
