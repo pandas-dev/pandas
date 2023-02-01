@@ -17,7 +17,7 @@ def test_index_equal_levels_mismatch():
     msg = """Index are different
 
 Index levels are different
-\\[left\\]:  1, NumericIndex\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[left\\]:  1, Index\\(\\[1, 2, 3\\], dtype='int64'\\)
 \\[right\\]: 2, MultiIndex\\(\\[\\('A', 1\\),
             \\('A', 2\\),
             \\('B', 3\\),
@@ -35,8 +35,8 @@ def test_index_equal_values_mismatch(check_exact):
     msg = """MultiIndex level \\[1\\] are different
 
 MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
-\\[left\\]:  NumericIndex\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
-\\[right\\]: NumericIndex\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
     idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
@@ -49,8 +49,8 @@ def test_index_equal_length_mismatch(check_exact):
     msg = """Index are different
 
 Index length are different
-\\[left\\]:  3, NumericIndex\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: 4, NumericIndex\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
+\\[left\\]:  3, Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[right\\]: 4, Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
     idx1 = Index([1, 2, 3])
     idx2 = Index([1, 2, 3, 4])
@@ -85,7 +85,7 @@ def test_range_index_equal_class_mismatch(check_exact):
     msg = """Index are different
 
 Index classes are different
-\\[left\\]:  NumericIndex\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[left\\]:  Index\\(\\[1, 2, 3\\], dtype='int64'\\)
 \\[right\\]: """
 
     idx1 = Index([1, 2, 3])
@@ -103,8 +103,8 @@ def test_index_equal_values_close(check_exact):
         msg = """Index are different
 
 Index values are different \\(33\\.33333 %\\)
-\\[left\\]:  NumericIndex\\(\\[1.0, 2.0, 3.0], dtype='float64'\\)
-\\[right\\]: NumericIndex\\(\\[1.0, 2.0, 3.0000000001\\], dtype='float64'\\)"""
+\\[left\\]:  Index\\(\\[1.0, 2.0, 3.0], dtype='float64'\\)
+\\[right\\]: Index\\(\\[1.0, 2.0, 3.0000000001\\], dtype='float64'\\)"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
@@ -121,8 +121,8 @@ def test_index_equal_values_less_close(check_exact, rtol):
         msg = """Index are different
 
 Index values are different \\(33\\.33333 %\\)
-\\[left\\]:  NumericIndex\\(\\[1.0, 2.0, 3.0], dtype='float64'\\)
-\\[right\\]: NumericIndex\\(\\[1.0, 2.0, 3.0001\\], dtype='float64'\\)"""
+\\[left\\]:  Index\\(\\[1.0, 2.0, 3.0], dtype='float64'\\)
+\\[right\\]: Index\\(\\[1.0, 2.0, 3.0001\\], dtype='float64'\\)"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_index_equal(idx1, idx2, **kwargs)
@@ -138,8 +138,8 @@ def test_index_equal_values_too_far(check_exact, rtol):
     msg = """Index are different
 
 Index values are different \\(33\\.33333 %\\)
-\\[left\\]:  NumericIndex\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: NumericIndex\\(\\[1, 2, 4\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[1, 2, 4\\], dtype='int64'\\)"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, **kwargs)
@@ -153,8 +153,8 @@ def test_index_equal_value_oder_mismatch(check_exact, rtol, check_order):
     msg = """Index are different
 
 Index values are different \\(66\\.66667 %\\)
-\\[left\\]:  NumericIndex\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: NumericIndex\\(\\[3, 2, 1\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[3, 2, 1\\], dtype='int64'\\)"""
 
     if check_order:
         with pytest.raises(AssertionError, match=msg):
@@ -175,8 +175,8 @@ def test_index_equal_level_values_mismatch(check_exact, rtol):
     msg = """MultiIndex level \\[1\\] are different
 
 MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
-\\[left\\]:  NumericIndex\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
-\\[right\\]: NumericIndex\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, **kwargs)
@@ -232,7 +232,7 @@ Index are different
 
 Index classes are different
 \\[left\\]:  RangeIndex\\(start=0, stop=10, step=1\\)
-\\[right\\]: NumericIndex\\(\\[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\\], dtype='int64'\\)"""
+\\[right\\]: Index\\(\\[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\\], dtype='int64'\\)"""
 
     rcat = CategoricalIndex(RangeIndex(10))
     icat = CategoricalIndex(list(range(10)))
