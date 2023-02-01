@@ -269,25 +269,21 @@ def count_rows(conn, table_name: str):
         cur = conn.cursor()
         return cur.execute(stmt).fetchone()[0]
     else:
-        from sqlalchemy import (
-            create_engine,
-            text,
-        )
+        from sqlalchemy import create_engine
         from sqlalchemy.engine import Engine
 
-        stmt = text(stmt)
         if isinstance(conn, str):
             try:
                 engine = create_engine(conn)
                 with engine.connect() as conn:
-                    return conn.execute(stmt).scalar_one()
+                    return conn.exec_driver_sql(stmt).scalar_one()
             finally:
                 engine.dispose()
         elif isinstance(conn, Engine):
             with conn.connect() as conn:
-                return conn.execute(stmt).scalar_one()
+                return conn.exec_driver_sql(stmt).scalar_one()
         else:
-            return conn.execute(stmt).scalar_one()
+            return conn.exec_driver_sql(stmt).scalar_one()
 
 
 @pytest.fixture
@@ -417,7 +413,8 @@ def mysql_pymysql_engine(iris_path, types_data):
 
 @pytest.fixture
 def mysql_pymysql_conn(mysql_pymysql_engine):
-    yield mysql_pymysql_engine.connect()
+    with mysql_pymysql_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -443,7 +440,8 @@ def postgresql_psycopg2_engine(iris_path, types_data):
 
 @pytest.fixture
 def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
-    yield postgresql_psycopg2_engine.connect()
+    with postgresql_psycopg2_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -463,7 +461,8 @@ def sqlite_engine(sqlite_str):
 
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
-    yield sqlite_engine.connect()
+    with sqlite_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -483,7 +482,8 @@ def sqlite_iris_engine(sqlite_engine, iris_path):
 
 @pytest.fixture
 def sqlite_iris_conn(sqlite_iris_engine):
-    yield sqlite_iris_engine.connect()
+    with sqlite_iris_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -538,7 +538,7 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
         assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == len(test_frame1)
@@ -549,7 +549,7 @@ def test_to_sql(conn, method, test_frame1, request):
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
         assert pandasSQL.has_table("test_frame")
@@ -560,7 +560,7 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
         assert pandasSQL.has_table("test_frame")
 
@@ -613,6 +613,8 @@ def test_read_iris_query_expression_with_parameter(conn, request):
         select(iris), conn, params={"name": "Iris-setosa", "length": 5.1}
     )
     check_iris_frame(iris_frame)
+    if isinstance(conn, str):
+        autoload_con.dispose()
 
 
 @pytest.mark.db
@@ -660,7 +662,7 @@ def test_to_sql_callable(conn, test_frame1, request):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=sample)
         assert pandasSQL.has_table("test_frame")
     assert check == [1]
@@ -795,6 +797,8 @@ class MixInBase:
             pass
         else:
             with conn:
+                for view in self._get_all_views(conn):
+                    self.drop_view(view, conn)
                 for tbl in self._get_all_tables(conn):
                     self.drop_table(tbl, conn)
 
@@ -811,6 +815,14 @@ class SQLiteMixIn(MixInBase):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         return [table[0] for table in c.fetchall()]
 
+    def drop_view(self, view_name, conn):
+        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.commit()
+
+    def _get_all_views(self, conn):
+        c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
+        return [view[0] for view in c.fetchall()]
+
 
 class SQLAlchemyMixIn(MixInBase):
     @classmethod
@@ -821,6 +833,8 @@ class SQLAlchemyMixIn(MixInBase):
         return self.engine.connect()
 
     def drop_table(self, table_name, conn):
+        if conn.in_transaction():
+            conn.get_transaction().rollback()
         with conn.begin():
             sql.SQLDatabase(conn).drop_table(table_name)
 
@@ -828,6 +842,20 @@ class SQLAlchemyMixIn(MixInBase):
         from sqlalchemy import inspect
 
         return inspect(conn).get_table_names()
+
+    def drop_view(self, view_name, conn):
+        quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
+            view_name
+        )
+        if conn.in_transaction():
+            conn.get_transaction().rollback()
+        with conn.begin():
+            conn.exec_driver_sql(f"DROP VIEW IF EXISTS {quoted_view}")
+
+    def _get_all_views(self, conn):
+        from sqlalchemy import inspect
+
+        return inspect(conn).get_view_names()
 
 
 class PandasSQLTest:
@@ -1762,8 +1790,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-        pandasSQL = sql.SQLDatabase(temp_conn)
-        assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
+        with sql.SQLDatabase(temp_conn, need_transaction=True) as pandasSQL:
+            assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
         insp = inspect(temp_conn)
         assert insp.has_table("temp_frame")
@@ -1782,6 +1810,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert insp.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
+        try:
+            insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
+        except AttributeError:
+            pass
         assert not insp.has_table("temp_frame")
 
     def test_roundtrip(self, test_frame1):
@@ -2715,8 +2747,8 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
 
         # create a schema
-        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.execute("CREATE SCHEMA other;")
+        self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+        self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe to different schema's
         assert df.to_sql("test_schema_public", self.conn, index=False) == 2
@@ -2748,8 +2780,8 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         # different if_exists options
 
         # create a schema
-        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.execute("CREATE SCHEMA other;")
+        self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+        self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe with different if_exists options
         assert (
