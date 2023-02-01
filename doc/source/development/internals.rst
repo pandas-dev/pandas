@@ -23,8 +23,8 @@ containers for the axis labels:
   data, such as time stamps
 * ``Float64Index``: a version of ``Index`` highly optimized for 64-bit float data
 * :class:`MultiIndex`: the standard hierarchical index object
-* :class:`DatetimeIndex`: An Index object with ``Timestamp`` boxed elements (impl are the int64 values)
-* :class:`TimedeltaIndex`: An Index object with ``Timedelta`` boxed elements (impl are the in64 values)
+* :class:`DatetimeIndex`: An Index object with :class:`Timestamp` boxed elements (impl are the int64 values)
+* :class:`TimedeltaIndex`: An Index object with :class:`Timedelta` boxed elements (impl are the in64 values)
 * :class:`PeriodIndex`: An Index object with Period elements
 
 There are functions that make the creation of a regular index easy:
