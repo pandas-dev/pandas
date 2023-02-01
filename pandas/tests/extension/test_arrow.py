@@ -1333,7 +1333,7 @@ def test_quantile(data, interpolation, quantile, request):
 
     if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
         pass
-    elif pa.types.is_temporal(data._data.type) and interpolation in ["lower", "higher"]:
+    elif pa.types.is_temporal(data._data.type):
         pass
     else:
         request.node.add_marker(
@@ -1345,6 +1345,28 @@ def test_quantile(data, interpolation, quantile, request):
     data = data.take([0, 0, 0])
     ser = pd.Series(data)
     result = ser.quantile(q=quantile, interpolation=interpolation)
+
+    if pa.types.is_timestamp(pa_dtype) and interpolation not in ["lower", "higher"]:
+        # rounding error will make the check below fail
+        #  (e.g. '2020-01-01 01:01:01.000001' vs '2020-01-01 01:01:01.000001024'),
+        #  so we'll check for now that we match the numpy analogue
+        if pa_dtype.tz:
+            pd_dtype = f"M8[{pa_dtype.unit}, {pa_dtype.tz}]"
+        else:
+            pd_dtype = f"M8[{pa_dtype.unit}]"
+        ser_np = ser.astype(pd_dtype)
+
+        expected = ser_np.quantile(q=quantile, interpolation=interpolation)
+        if quantile == 0.5:
+            if pa_dtype.unit == "us":
+                expected = expected.to_pydatetime(warn=False)
+            assert result == expected
+        else:
+            if pa_dtype.unit == "us":
+                expected = expected.dt.floor("us")
+            tm.assert_series_equal(result, expected.astype(data.dtype))
+        return
+
     if quantile == 0.5:
         assert result == data[0]
     else:
