@@ -32,7 +32,7 @@ def test_parsing_tzlocal_deprecated():
         assert isinstance(res.tzinfo, tzlocal)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = parsing.parse_datetime_string(dtstr)
+            res = parsing.py_parse_datetime_string(dtstr)
         assert isinstance(res.tzinfo, tzlocal)
 
 
