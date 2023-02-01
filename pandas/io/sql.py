@@ -1221,7 +1221,7 @@ class SQLTable(PandasObject):
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
-        columns = [
+        columns: list[Any] = [
             Column(name, typ, index=is_index)
             for name, typ, is_index in column_names_and_types
         ]
@@ -1511,7 +1511,7 @@ class SQLAlchemyEngine(BaseEngine):
 
         try:
             return table.insert(chunksize=chunksize, method=method)
-        except exc.SQLAlchemyError as err:
+        except exc.StatementError as err:
             # GH34431
             # https://stackoverflow.com/a/67358288/6067848
             msg = r"""(\(1054, "Unknown column 'inf(e0)?' in 'field list'"\))(?#
@@ -1582,10 +1582,11 @@ class SQLDatabase(PandasSQL):
         self.exit_stack = ExitStack()
         if isinstance(con, str):
             con = create_engine(con)
+            self.exit_stack.callback(con.dispose)
         if isinstance(con, Engine):
             con = self.exit_stack.enter_context(con.connect())
-            if need_transaction:
-                self.exit_stack.enter_context(con.begin())
+        if need_transaction and not con.in_transaction():
+            self.exit_stack.enter_context(con.begin())
         self.con = con
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
@@ -1601,6 +1602,8 @@ class SQLDatabase(PandasSQL):
     def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
         args = [] if params is None else [params]
+        if isinstance(sql, str):
+            return self.con.exec_driver_sql(sql, *args)
         return self.con.execute(sql, *args)
 
     def read_table(
@@ -1837,13 +1840,14 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import (
-                TypeEngine,
-                to_instance,
-            )
+            from sqlalchemy.types import TypeEngine
 
             for col, my_type in dtype.items():
-                if not isinstance(to_instance(my_type), TypeEngine):
+                if isinstance(my_type, type) and issubclass(my_type, TypeEngine):
+                    pass
+                elif isinstance(my_type, TypeEngine):
+                    pass
+                else:
                     raise ValueError(f"The type of {col} is not a SQLAlchemy type")
 
         table = SQLTable(
