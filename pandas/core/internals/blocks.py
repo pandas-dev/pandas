@@ -258,9 +258,7 @@ class Block(PandasObject):
         #  is from internals.concat, and we can verify that never happens
         #  with 1-column blocks, i.e. never for ExtensionBlock.
 
-        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
-        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
-        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
+        new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
 
@@ -1180,6 +1178,7 @@ class Block(PandasObject):
 
     def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: AxisInt = 0,
         index: Index | None = None,
@@ -1212,15 +1211,15 @@ class Block(PandasObject):
             # split improves performance in ndarray.copy()
             return self.split_and_operate(
                 type(self).interpolate,
-                method,
-                axis,
-                index,
-                inplace,
-                limit,
-                limit_direction,
-                limit_area,
-                fill_value,
-                downcast,
+                method=method,
+                axis=axis,
+                index=index,
+                inplace=inplace,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                downcast=downcast,
                 **kwargs,
             )
 
@@ -1598,8 +1597,7 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    # error: Signature of "interpolate" incompatible with supertype "Block"
-    def interpolate(  # type: ignore[override]
+    def interpolate(
         self,
         method: FillnaOptions = "pad",
         axis: int = 0,
