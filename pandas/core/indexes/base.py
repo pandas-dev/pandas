@@ -332,7 +332,7 @@ class Index(IndexOpsMixin, PandasObject):
     Index(['a', 'b', 'c'], dtype='object')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
-    NumericIndex([1, 2, 3], dtype='uint8')
+    Index([1, 2, 3], dtype='uint8')
     """
 
     # To hand over control to subclasses
