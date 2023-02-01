@@ -492,7 +492,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# Can add const once https://github.com/cython/cython/issues/1772 resolved
+# TODO(cython3): Can add const once cython#1772 is resolved
 def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)

@@ -1221,7 +1221,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
-        self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
+        self.byteorder = ">" if self.path_or_buf.read(3) == b"MSF" else "<"
         self.path_or_buf.read(15)  # </byteorder><K>
         nvar_type = "H" if self.format_version <= 118 else "I"
         nvar_size = 2 if self.format_version <= 118 else 4
@@ -1413,7 +1413,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.byteorder = (
-            struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 and ">" or "<"
+            ">" if struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 else "<"
         )
         self.filetype = struct.unpack("b", self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused

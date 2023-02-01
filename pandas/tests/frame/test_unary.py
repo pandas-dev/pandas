@@ -84,6 +84,13 @@ class TestDataFrameUnaryOperators:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_invert_empy_not_input(self):
+        # GH#51032
+        df = pd.DataFrame()
+        result = ~df
+        tm.assert_frame_equal(df, result)
+        assert df is not result
+
     @pytest.mark.parametrize(
         "df",
         [

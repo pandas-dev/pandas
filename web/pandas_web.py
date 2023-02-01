@@ -278,7 +278,7 @@ class Preprocessors:
             context["pdeps"][status].append(
                 {
                     "title": title,
-                    "url": f"/pdeps/{html_file}",
+                    "url": f"pdeps/{html_file}",
                 }
             )
 
@@ -383,7 +383,6 @@ def extend_base_template(content: str, base_template: str) -> str:
 def main(
     source_path: str,
     target_path: str,
-    base_url: str,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -397,7 +396,7 @@ def main(
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, base_url=base_url, target_path=target_path)
+    context = get_context(config_fname, target_path=target_path)
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
@@ -420,6 +419,7 @@ def main(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
                 content = extend_base_template(body, context["main"]["base_template"])
+            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
             fname = os.path.splitext(fname)[0] + ".html"
             with open(os.path.join(target_path, fname), "w") as f:
@@ -438,8 +438,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output"
     )
-    parser.add_argument(
-        "--base-url", default="", help="base url where the website is served from"
-    )
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path, args.base_url))
+    sys.exit(main(args.source_path, args.target_path))

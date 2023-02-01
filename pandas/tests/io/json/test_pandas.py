@@ -1873,7 +1873,8 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "orient", ["split", "records", "values", "index", "columns"]
     )
-    def test_read_json_nullable(self, string_storage, dtype_backend, orient):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_read_json_nullable(self, string_storage, dtype_backend, orient, option):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
         df = DataFrame(
@@ -1900,7 +1901,11 @@ class TestPandasContainer:
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
             with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_json(out, use_nullable_dtypes=True, orient=orient)
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", option):
+                        result = read_json(out, orient=orient)
+                else:
+                    result = read_json(out, use_nullable_dtypes=True, orient=orient)
 
         expected = DataFrame(
             {
