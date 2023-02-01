@@ -250,6 +250,7 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     "function is not implemented for this dtype",
+                    f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -276,6 +277,7 @@ class TestNumericOnly:
                     "category type does not support",
                     "can't multiply sequence",
                     "function is not implemented for this dtype",
+                    f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
             with pytest.raises(exception, match=msg):

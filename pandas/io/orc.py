@@ -59,20 +59,19 @@ def read_orc(
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
     use_nullable_dtypes : bool, default False
-        If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame.
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
 
-        .. versionadded:: 2.0.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
-        .. note
-
-            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
+        .. versionadded:: 2.0
 
     **kwargs
         Any additional kwargs are passed to pyarrow.

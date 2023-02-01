@@ -775,8 +775,7 @@ class Base:
 
             # check that we are matching Series behavior
             res2 = ~Series(idx)
-            # TODO(2.0): once we preserve dtype, check_dtype can be True
-            tm.assert_series_equal(res2, Series(expected), check_dtype=False)
+            tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
                 msg = "ufunc 'invert' not supported for the input types"
@@ -935,15 +934,13 @@ class NumericBase(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_invalid_dtype(self, invalid_dtype):
-        # GH 29539
-        dtype = invalid_dtype
-        msg = rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
-        with pytest.raises(ValueError, match=msg):
-            self._index_cls([1, 2, 3], dtype=dtype)
-
     @pytest.mark.parametrize("complex_dtype", [np.complex64, np.complex128])
     def test_astype_to_complex(self, complex_dtype, simple_index):
         result = simple_index.astype(complex_dtype)
 
         assert type(result) is Index and result.dtype == complex_dtype
+
+    def test_cast_string(self, dtype):
+        result = self._index_cls(["0", "1", "2"], dtype=dtype)
+        expected = self._index_cls([0, 1, 2], dtype=dtype)
+        tm.assert_index_equal(result, expected)
