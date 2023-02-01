@@ -762,8 +762,8 @@ def to_datetime(
         note that :const:`"%f"` will parse all the way up to nanoseconds.
         You can also pass:
 
-        - "ISO8601", to parse any ISO8601 time string (not necessarily in exactly the
-          same format);
+        - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+          time string (not necessarily in exactly the same format);
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
     exact : bool, default True
