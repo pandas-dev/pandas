@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    groupby as libgroupby,
     lib,
     missing as libmissing,
 )
@@ -1383,3 +1384,64 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data, mask = op(data, mask, skipna=skipna, **kwargs)
 
         return type(self)(data, mask, copy=False)
+
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def groupby_any_all(
+        self,
+        *,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        val_test: Literal["any", "all"],
+        skipna: bool,
+    ):
+        from pandas.core.arrays import BooleanArray
+
+        result = np.zeros(ngroups * 1, dtype=np.int8).reshape(-1, 1)
+        vals = self._data.astype(bool, copy=False).view(np.int8).reshape(-1, 1)
+        mask = self.isna().view(np.uint8).reshape(-1, 1)
+
+        # Call func to modify result in place
+        libgroupby.group_any_all(
+            out=result,
+            labels=ids,
+            values=vals,
+            mask=mask,
+            val_test=val_test,
+            skipna=skipna,
+            nullable=True,
+        )
+
+        assert result.shape[1] == 1, result.shape
+        result = result[:, 0]
+
+        return BooleanArray(result.astype(bool, copy=False), result == -1)
+
+    def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
+        from pandas.core.arrays import FloatingArray
+
+        result = np.zeros(ngroups * 1, dtype=np.float64).reshape(-1, 1)
+        counts = np.zeros(ngroups, dtype=np.int64)
+        vals = self._data.astype(np.float64, copy=False).reshape(-1, 1)
+        mask = self.isna().view(np.uint8).reshape(-1, 1)
+        result_mask = np.zeros(result.shape, dtype=np.bool_)
+
+        # Call func to modify result in place
+        libgroupby.group_var(
+            out=result,
+            labels=ids,
+            values=vals,
+            mask=mask,
+            counts=counts,
+            result_mask=result_mask,
+            ddof=ddof,
+        )
+
+        assert result.shape[1] == 1, result.shape
+        result = result[:, 0]
+
+        assert result_mask.shape[1] == 1, result_mask.shape
+        result_mask = result_mask[:, 0]
+
+        return FloatingArray(np.sqrt(result), result_mask.view(np.bool_))

@@ -97,7 +97,6 @@ from pandas.core import (
 from pandas.core._numba import executor
 from pandas.core.arrays import (
     BaseMaskedArray,
-    BooleanArray,
     Categorical,
     ExtensionArray,
     FloatingArray,
@@ -1808,8 +1807,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     # mask on original values computed separately
                     vals = vals.copy()
                     vals[mask] = True
-            elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data
             vals = vals.astype(bool, copy=False)
             return vals.view(np.int8), bool
 
@@ -1818,10 +1815,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             inference: type,
             nullable: bool = False,
         ) -> ArrayLike:
-            if nullable:
-                return BooleanArray(result.astype(bool, copy=False), result == -1)
-            else:
-                return result.astype(inference, copy=False)
+            return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
             libgroupby.group_any_all,
@@ -2105,18 +2099,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
 
-            def _preprocessing(values):
-                if isinstance(values, BaseMaskedArray):
-                    return values._data, None
-                return values, None
-
             def _postprocessing(
                 vals, inference, nullable: bool = False, result_mask=None
             ) -> ArrayLike:
-                if nullable:
-                    if result_mask.ndim == 2:
-                        result_mask = result_mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
                 return np.sqrt(vals)
 
             result = self._get_cythonized_result(
@@ -2124,7 +2109,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
-                pre_processing=_preprocessing,
+                pre_processing=None,
                 post_processing=_postprocessing,
                 ddof=ddof,
                 how="std",
@@ -3737,9 +3722,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             values = values.T
             ncols = 1 if values.ndim == 1 else values.shape[1]
 
-            result: ArrayLike
-            result = np.zeros(ngroups * ncols, dtype=cython_dtype)
-            result = result.reshape((ngroups, ncols))
+            result = np.zeros((ngroups, ncols), dtype=cython_dtype)
 
             func = partial(base_func, out=result, labels=ids)
 
@@ -3758,19 +3741,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 vals = vals.reshape((-1, 1))
             func = partial(func, values=vals)
 
-            if how != "std" or isinstance(values, BaseMaskedArray):
+            if how != "std":
                 mask = isna(values).view(np.uint8)
                 if mask.ndim == 1:
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
-
-            if how != "std":
-                is_nullable = isinstance(values, BaseMaskedArray)
-                func = partial(func, nullable=is_nullable)
-
-            elif isinstance(values, BaseMaskedArray):
-                result_mask = np.zeros(result.shape, dtype=np.bool_)
-                func = partial(func, result_mask=result_mask)
+                func = partial(func, nullable=False)
 
             func(**kwargs)  # Call func to modify result in place
 
@@ -3778,14 +3754,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 assert result.shape[1] == 1, result.shape
                 result = result[:, 0]
 
-            if post_processing:
-                pp_kwargs: dict[str, bool | np.ndarray] = {}
-                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std" and pp_kwargs["nullable"]:
-                    pp_kwargs["result_mask"] = result_mask
-
-                result = post_processing(result, inferences, **pp_kwargs)
-
+            result = post_processing(result, inferences, nullable=False)
             return result.T
 
         obj = self._obj_with_exclusions
