@@ -958,7 +958,8 @@ def test_join_empty(left_empty, how, exp):
     tm.assert_frame_equal(result, expected)
 
 
-def test_join_multiindex_categorical_output_index_dtype():
+@pytest.mark.parametrize("how", ["inner", "outer", "left", "right"])
+def test_join_multiindex_categorical_output_index_dtype(how):
     # GH#50906
     df1 = DataFrame(
         {
@@ -985,6 +986,5 @@ def test_join_multiindex_categorical_output_index_dtype():
         }
     ).set_index(["idx1", "idx2"])
 
-    for how in ["inner", "outer", "left", "right"]:
-        result = df1.join(df2, how=how)
-        tm.assert_frame_equal(result, expected)
+    result = df1.join(df2, how=how)
+    tm.assert_frame_equal(result, expected)
