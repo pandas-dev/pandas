@@ -34,6 +34,24 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError, match="gives an invalid tzoffset"):
             Timestamp("200622-12-31")
 
+    def test_constructor_str_infer_reso(self):
+        # non-iso8601 path
+
+        # _parse_delimited_date path
+        ts = Timestamp("01/30/2023")
+        assert ts.unit == "s"
+
+        # _parse_dateabbr_string path
+        ts = Timestamp("2015Q1")
+        assert ts.unit == "s"
+
+        # dateutil_parse path
+        ts = Timestamp("2016-01-01 1:30:01 PM")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2016 June 3 15:25:01.345")
+        assert ts.unit == "ms"
+
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")

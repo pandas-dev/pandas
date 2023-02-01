@@ -288,6 +288,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     The basic object storing axis labels for all pandas objects.
 
+    .. versionchanged:: 2.0.0
+
+       Index can hold all numpy numeric dtypes (except float16). Previously only
+       int64/uint64/float64 dtypes were accepted.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -315,7 +320,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects
+    An Index instance can **only** contain hashable objects.
+    An Index instance *can not* hold numpy float16 dtype.
 
     Examples
     --------
@@ -324,6 +330,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
+
+    >>> pd.Index([1, 2, 3], dtype="uint8")
+    Index([1, 2, 3], dtype='uint8')
     """
 
     # To hand over control to subclasses
@@ -400,7 +409,10 @@ class Index(IndexOpsMixin, PandasObject):
     _no_setting_name: bool = False
     _comparables: list[str] = ["name"]
     _attributes: list[str] = ["name"]
-    _can_hold_strings: bool = True
+
+    @cache_readonly
+    def _can_hold_strings(self) -> bool:
+        return not is_numeric_dtype(self)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
