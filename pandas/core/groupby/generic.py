@@ -1019,9 +1019,6 @@ class SeriesGroupBy(GroupBy[Series]):
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
-            For DataFrames, specifying ``axis=None`` will apply the aggregation
-            across both axes.
-
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
