@@ -1264,14 +1264,22 @@ class DataSplitter(Generic[NDFrameT]):
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
 
+        if sdata._can_fast_construct:
+            chop = self._chop_fast
+        else:
+            chop = self._chop
+
         for start, end in zip(starts, ends):
-            yield self._chop(sdata, slice(start, end))
+            yield chop(sdata, slice(start, end))
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
+        raise AbstractMethodError(self)
+
+    def _chop_fast(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
 
 
@@ -1281,6 +1289,12 @@ class SeriesSplitter(DataSplitter):
         mgr = sdata._mgr.get_slice(slice_obj)
         ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
         return ser.__finalize__(sdata, method="groupby")
+
+    def _chop_fast(self, sdata: Series, slice_obj: slice) -> Series:
+        # _chop specialized to cast with _can_fast_construct
+        mgr = sdata._mgr.get_slice(slice_obj)
+        ser = Series(mgr, name=sdata.name, fastpath=True)
+        return ser
 
 
 class FrameSplitter(DataSplitter):
@@ -1293,6 +1307,12 @@ class FrameSplitter(DataSplitter):
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
         df = sdata._constructor(mgr)
         return df.__finalize__(sdata, method="groupby")
+
+    def _chop_fast(self, sdata: Series, slice_obj: slice) -> Series:
+        # _chop specialized to cast with _can_fast_construct
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        df = DataFrame(mgr)
+        return df
 
 
 def get_splitter(

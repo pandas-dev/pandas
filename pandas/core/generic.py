@@ -469,6 +469,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return dtype
 
+    @property
+    def _can_fast_construct(self) -> bool_t:
+        """
+        Check if we can avoid _constructor lookup and __finalize__ calls.
+        """
+        # GH#46505 repeated __finalize__ calls caused perf regression,
+        #  see if we can avoid those in some cases.
+        from pandas import (
+            DataFrame,
+            Series,
+        )
+
+        if self.attrs:
+            # __finalize__ is not a no-op
+            return False
+
+        if type(self) is Series:
+            if self._metadata == ["name"]:
+                return True
+            return False
+        elif type(self) is DataFrame:
+            return not self._metadata
+
+        # subclass, may have overridden _constructor -> cannot fast-construct
+        return False
+
     # ----------------------------------------------------------------------
     # Construction
 
