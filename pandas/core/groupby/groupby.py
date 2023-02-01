@@ -49,7 +49,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    Dtype,
+    DtypeObj,
     FillnaOptions,
     IndexLabel,
     NDFrameT,
@@ -1277,7 +1277,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # numba
 
     @final
-    def _numba_prep(self, data):
+    def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
         sorted_index = get_group_index_sorter(ids, ngroups)
         sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
@@ -1337,7 +1337,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return data._constructor(result, index=index, **result_kwargs)
 
     @final
-    def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+    def _transform_with_numba(
+        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
+    ):
         """
         Perform groupby transform routine with the numba engine.
 
@@ -1363,7 +1365,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.take(np.argsort(sorted_index), axis=0)
 
     @final
-    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+    def _aggregate_with_numba(
+        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
+    ):
         """
         Perform groupby aggregation routine with the numba engine.
 
@@ -1529,15 +1533,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         npfunc: Callable,
     ):
 
-        with self._group_selection_context():
-            # try a cython aggregation if we can
-            result = self._cython_agg_general(
-                how=alias,
-                alt=npfunc,
-                numeric_only=numeric_only,
-                min_count=min_count,
-            )
-            return result.__finalize__(self.obj, method="groupby")
+        result = self._cython_agg_general(
+            how=alias,
+            alt=npfunc,
+            numeric_only=numeric_only,
+            min_count=min_count,
+        )
+        return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
         self, values: ArrayLike, ndim: int, alt: Callable
@@ -1647,9 +1649,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            # TODO: tests with self._selected_obj.ndim == 1 on DataFrameGroupBy
-            with self._group_selection_context():
-                data = self._selected_obj
+            data = self._obj_with_exclusions
             df = data if data.ndim == 2 else data.to_frame()
             result = self._transform_with_numba(
                 df, func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -3175,13 +3175,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: Dtype | None = None
+            inference: DtypeObj | None = None
             if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = vals.dtype
@@ -3209,7 +3209,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def post_processor(
             vals: np.ndarray,
-            inference: Dtype | None,
+            inference: DtypeObj | None,
             result_mask: np.ndarray | None,
             orig_vals: ArrayLike,
         ) -> ArrayLike:
@@ -3773,21 +3773,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
-        orig_mgr_len = len(mgr)
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
 
         res_mgr = mgr.grouped_reduce(blk_func)
-
-        if not is_ser and len(res_mgr.items) != orig_mgr_len:
-            if len(res_mgr.items) == 0:
-                # We re-call grouped_reduce to get the right exception message
-                mgr.grouped_reduce(blk_func)
-                # grouped_reduce _should_ raise, so this should not be reached
-                raise TypeError(  # pragma: no cover
-                    "All columns were dropped in grouped_reduce"
-                )
 
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)
