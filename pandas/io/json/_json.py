@@ -663,7 +663,6 @@ def read_json(
     engine : {{'ujson', 'pyarrow'}}, default "ujson"
         Parser engine to use.
 
-
     Returns
     -------
     Series or DataFrame
