@@ -1316,6 +1316,8 @@ class TestDataFrameQueryBacktickQuoting:
 
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
     def test_query_ea_dtypes(self, dtype):
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
         # GH#50261
         df = DataFrame({"a": Series([1, 2], dtype=dtype)})
         ref = {2}  # noqa:F841
@@ -1326,6 +1328,8 @@ class TestDataFrameQueryBacktickQuoting:
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
     def test_query_ea_equality_comparison(self, dtype):
         # GH#50261
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
         df = DataFrame(
             {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
         )
