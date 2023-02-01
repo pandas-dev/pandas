@@ -100,6 +100,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
     FloatingArray,
+    PandasArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -1798,31 +1799,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Shared func to call any / all Cython GroupBy implementations.
         """
-
-        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype) and skipna:
-                # GH#37501: don't raise on pd.NA when skipna=True
-                mask = isna(vals)
-                if mask.any():
-                    # mask on original values computed separately
-                    vals = vals.copy()
-                    vals[mask] = True
-            vals = vals.astype(bool, copy=False)
-            return vals.view(np.int8), bool
-
-        def result_to_bool(
-            result: np.ndarray,
-            inference: type,
-            nullable: bool = False,
-        ) -> ArrayLike:
-            return result.astype(inference, copy=False)
-
         return self._get_cythonized_result(
-            libgroupby.group_any_all,
             numeric_only=False,
-            cython_dtype=np.dtype(np.int8),
-            pre_processing=objs_to_bool,
-            post_processing=result_to_bool,
             val_test=val_test,
             skipna=skipna,
         )
@@ -2099,18 +2077,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
 
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                return np.sqrt(vals)
-
             result = self._get_cythonized_result(
-                libgroupby.group_var,
-                cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
-                needs_counts=True,
-                pre_processing=None,
-                post_processing=_postprocessing,
                 ddof=ddof,
                 how="std",
             )
@@ -3651,12 +3619,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _get_cythonized_result(
         self,
-        base_func: Callable,
-        cython_dtype: np.dtype,
         numeric_only: bool = False,
-        needs_counts: bool = False,
-        pre_processing=None,
-        post_processing=None,
         how: str = "any_all",
         **kwargs,
     ):
@@ -3665,27 +3628,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        base_func : callable, Cythonized function to be called
-        cython_dtype : np.dtype
-            Type of the array that will be modified by the Cython call.
         numeric_only : bool, default False
             Whether only numeric datatypes should be computed
-        needs_counts : bool, default False
-            Whether the counts should be a part of the Cython call
-        pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython.
-            Function should return a tuple where the first element is the
-            values to be passed to Cython and the second element is an optional
-            type which the values should be converted to after being returned
-            by the Cython operation. This function is also responsible for
-            raising a TypeError if the values have an invalid type. Raises
-            if `needs_values` is False.
-        post_processing : function, default None
-            Function to be applied to result of Cython function. Should accept
-            an array of values as the first argument and type inferences as its
-            second argument, i.e. the signature should be
-            (ndarray, Type). If `needs_nullable=True`, a third argument should be
-            `nullable`, to allow for processing specific to nullable values.
         how : str, default any_all
             Determines if any/all cython interface or std interface is used.
         **kwargs : dict
@@ -3695,11 +3639,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         `Series` or `DataFrame`  with filled values
         """
-        if post_processing and not callable(post_processing):
-            raise ValueError("'post_processing' must be a callable!")
-        if pre_processing and not callable(pre_processing):
-            raise ValueError("'pre_processing' must be a callable!")
-
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
@@ -3718,44 +3657,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         skipna=kwargs["skipna"],
                         val_test=kwargs["val_test"],
                     )
+                else:
+                    raise NotImplementedError
 
-            values = values.T
-            ncols = 1 if values.ndim == 1 else values.shape[1]
-
-            result = np.zeros((ngroups, ncols), dtype=cython_dtype)
-
-            func = partial(base_func, out=result, labels=ids)
-
-            inferences = None
-
-            if needs_counts:
-                counts = np.zeros(ngroups, dtype=np.int64)
-                func = partial(func, counts=counts)
-
-            vals = values
-            if pre_processing:
-                vals, inferences = pre_processing(vals)
-
-            vals = vals.astype(cython_dtype, copy=False)
-            if vals.ndim == 1:
-                vals = vals.reshape((-1, 1))
-            func = partial(func, values=vals)
-
-            if how != "std":
-                mask = isna(values).view(np.uint8)
-                if mask.ndim == 1:
-                    mask = mask.reshape(-1, 1)
-                func = partial(func, mask=mask)
-                func = partial(func, nullable=False)
-
-            func(**kwargs)  # Call func to modify result in place
-
-            if values.ndim == 1:
-                assert result.shape[1] == 1, result.shape
-                result = result[:, 0]
-
-            result = post_processing(result, inferences, nullable=False)
-            return result.T
+            arr = PandasArray(values)
+            result = blk_func(arr)
+            return result
 
         obj = self._obj_with_exclusions
 

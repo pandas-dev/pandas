@@ -1703,12 +1703,10 @@ class ExtensionArray:
         val_test: Literal["any", "all"],
         skipna: bool,
     ):
-        values = self.T
-        ncols = 1 if values.ndim == 1 else values.shape[1]
-
+        ncols = 1 if self.ndim == 1 else self.shape[0]
         result = np.zeros((ngroups, ncols), dtype=np.int8)
 
-        obj = values
+        obj = self
         if is_object_dtype(self.dtype) and skipna:
             # GH#37501: don't raise on pd.NA when skipna=True
             mask = self.isna()
@@ -1717,31 +1715,25 @@ class ExtensionArray:
                 obj = obj.copy()
                 obj[mask] = True
 
-        vals = obj.astype(bool, copy=False)
-        vals = vals.view(np.int8)
-        if vals.ndim == 1:
-            vals = vals.reshape(-1, 1)
-
-        mask = isna(values).view(np.uint8)
-        if mask.ndim == 1:
-            mask = mask.reshape(-1, 1)
+        vals = obj.astype(bool, copy=False).view(np.int8)
+        mask = self.isna().view(np.uint8)
 
         # Call func to modify result in place
         libgroupby.group_any_all(
             out=result,
             labels=ids,
-            values=vals,
+            values=np.atleast_2d(vals).T,
+            mask=np.atleast_2d(mask).T,
             val_test=val_test,
             skipna=skipna,
-            mask=mask,
             nullable=False,
         )
 
-        if values.ndim == 1:
+        if self.ndim == 1:
             assert result.shape[1] == 1, result.shape
             result = result[:, 0]
 
-        result.astype(bool, copy=False)
+        result = result.astype(bool, copy=False)
         return result.T
 
     def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
