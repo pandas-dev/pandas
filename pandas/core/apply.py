@@ -5,7 +5,6 @@ from collections import defaultdict
 from contextlib import nullcontext
 from functools import partial
 import inspect
-from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -330,21 +329,10 @@ class Apply(metaclass=abc.ABCMeta):
         with context_manager:
             # degenerate case
             if selected_obj.ndim == 1:
-
-                args_remain, kwargs_remain = self.args, self.kwargs
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    if not isinstance(a, (np.ufunc, str)) and isinstance(
-                        a, FunctionType
-                    ):
-                        args_pass, kwargs_pass, args_remain, kwargs_remain = _map_args(
-                            a, args_remain, kwargs_remain
-                        )
-                        new_res = colg.aggregate(a, *args_pass, **kwargs_pass)
-                    else:
-                        new_res = colg.aggregate(a)
+                    new_res = colg.aggregate(a, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
-
                     # make sure we find a good name
                     name = com.get_callable_name(a) or a
                     keys.append(name)
@@ -354,7 +342,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -1516,54 +1504,3 @@ def validate_func_kwargs(
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
-
-
-def _map_args(
-    func: AggFuncType, args: tuple, kwargs: dict
-) -> tuple[tuple, dict, tuple, dict]:
-    # GH 50624
-    """
-    Map arguments to function.
-    But for some cases with unnamed arguments, it will cause error.
-
-    Parameters
-    ----------
-    func : function
-    args : tuple
-    kwargs : dict
-
-    Returns
-    -------
-    args_pass : tuple
-        Args should be passed to func
-    kwargs_pass : dict
-        Kwargs should be passed to func
-    args_remain : tuple
-        Args should be passed to other functions
-    kwargs_remain : dict
-        Kwargs should be passed to other functions
-
-    Examples
-    --------
-    >>> def f(a=1, b=2):
-    ...     return a, b
-    >>> _map_args(f, (1,), {'b': 2, 'c': 3})
-    ((1,), {'b': 2}, (), {'c': 3})
-    >>> _map_args(f, (1, 2, 3), {'b': 4}) # maybe some unexpected results
-    ((1, 2), {}, (3,), {'b':4})
-    """
-    argspec = inspect.getfullargspec(func)
-    args_names = argspec.args + argspec.kwonlyargs
-
-    if len(args) >= len(args_names):
-        args_pass = args[: len(args_names)]
-        args_remain = args[len(args_names) :]
-        kwargs_pass = {}
-        kwargs_remain = kwargs
-    else:
-        args_pass = args
-        args_remain = ()
-        kwargs_pass = {k: v for k, v in kwargs.items() if k in args_names}
-        kwargs_remain = {k: v for k, v in kwargs.items() if k not in args_names}
-
-    return args_pass, kwargs_pass, args_remain, kwargs_remain
