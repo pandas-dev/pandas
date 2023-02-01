@@ -979,6 +979,8 @@ Performance improvements
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
+- Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
