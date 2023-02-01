@@ -1009,33 +1009,58 @@ class SeriesGroupBy(GroupBy[Series]):
         **kwargs,
     ) -> Series:
         """
-        Return unbiased skew within groups.\n\nNormalized by N-1.
+        Return unbiased skew within groups.
+
+        Normalized by N-1.
 
         Parameters
         ----------
-        axis : {axis_descr}
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             For DataFrames, specifying ``axis=None`` will apply the aggregation
             across both axes.
 
-            .. versionadded:: 2.0.0
-
         skipna : bool, default True
             Exclude NA/null values when computing the result.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
 
-        {min_count}\
         **kwargs
             Additional keyword arguments to be passed to the function.
 
         Returns
         -------
-        {name1} or scalar\
-        {see_also}\
-        {examples}
+        scalar or scalar
+
+        See Also
+        --------
+        Series.skew : Return unbiased skew over requested axis.
+
+        Examples
+        --------
+        >>> ser = pd.Series([390., 350., 357., np.nan, 22., 20., 30.],
+        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot'],
+        ...                 name="Max Speed")
+        >>> ser
+        Falcon    390.0
+        Falcon    350.0
+        Falcon    357.0
+        Falcon      NaN
+        Parrot     22.0
+        Parrot     20.0
+        Parrot     30.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).skew()
+        Falcon    1.525174
+        Parrot    1.457863
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).skew(skipna=False)
+        Falcon         NaN
+        Parrot    1.457863
+        Name: Max Speed, dtype: float64
         """
         result = self._op_via_apply(
             "skew",
@@ -2506,13 +2531,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ) -> DataFrame:
         """
-        Return unbiased skew within groups.\n\nNormalized by N-1.
+        Return unbiased skew within groups.
+
+        Normalized by N-1.
 
         Parameters
         ----------
-        axis : {axis_descr}
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to 0.
 
             For DataFrames, specifying ``axis=None`` will apply the aggregation
             across both axes.
@@ -2521,18 +2547,51 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
-        numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
 
-        {min_count}\
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
         **kwargs
             Additional keyword arguments to be passed to the function.
 
         Returns
         -------
-        {name1} or scalar\
-        {see_also}\
-        {examples}
+        Series or scalar
+
+        See Also
+        --------
+        DataFrame.skew : Return unbiased skew over requested axis.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('cockatoo', 'bird', 70.0),
+        ...                    ('kiwi', 'bird', np.nan),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', 21.5),
+        ...                    ('rabbit', 'mammal', 15.0)],
+        ...                    columns=['name', 'class', 'max_speed'])
+        >>> df
+            name   class  max_speed
+        0    falcon    bird      389.0
+        1    parrot    bird       24.0
+        2  cockatoo    bird       70.0
+        3      kiwi    bird        NaN
+        4      lion  mammal       80.5
+        5    monkey  mammal       21.5
+        6    rabbit  mammal       15.0
+        >>> gb = df.groupby(["class"])
+        >>> gb.skew()
+                max_speed
+        class
+        bird     1.628296
+        mammal   1.669046
+        >>> gb.skew(skipna=False)
+                max_speed
+        class
+        bird          NaN
+        mammal   1.669046
         """
         result = self._op_via_apply(
             "skew",
