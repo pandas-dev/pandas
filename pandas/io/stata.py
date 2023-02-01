@@ -167,9 +167,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
-...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
+...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
