@@ -767,3 +767,23 @@ def test_timestamp_nano_range(nano):
     # GH 48255
     with pytest.raises(ValueError, match="nanosecond must be in 0..999"):
         Timestamp(year=2022, month=1, day=1, nanosecond=nano)
+
+
+def test_non_nano_value():
+    # https://github.com/pandas-dev/pandas/issues/49076
+    result = Timestamp("1800-01-01", unit="s").value
+    # `.value` shows nanoseconds, even though unit is 's'
+    assert result == -5364662400000000000
+
+    # out-of-nanoseconds-bounds `.value` raises informative message
+    msg = (
+        r"Cannot convert timestamp to nanoseconds without overflow. "
+        r"Use `.asm8.view\('i8'\)` to cast represent timestamp in its "
+        r"own unit \(here, s\).$"
+    )
+    ts = Timestamp("0300-01-01")
+    with pytest.raises(OverflowError, match=msg):
+        ts.value
+    # check that the suggested workaround actually works
+    result = ts.asm8.view("i8")
+    assert result == -52700112000

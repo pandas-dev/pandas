@@ -234,7 +234,14 @@ cdef class _Timestamp(ABCTimestamp):
 
     @property
     def value(self) -> int:
-        return convert_reso(self._value, self._creso, NPY_FR_ns, False)
+        try:
+            return convert_reso(self._value, self._creso, NPY_FR_ns, False)
+        except OverflowError:
+            raise OverflowError(
+                "Cannot convert Timestamp to nanoseconds without overflow. "
+                "Use `.asm8.view('i8')` to cast represent timestamp in its own "
+                f"unit (here, {self.unit})."
+            )
 
     @property
     def unit(self) -> str:
