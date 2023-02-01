@@ -15,7 +15,6 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
-    NoReturn,
     Sequence,
     final,
 )
@@ -55,6 +54,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
+    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -226,9 +226,10 @@ class WrappedCythonOp:
 
         Raises
         ------
+        TypeError
+            This is not a valid operation for this dtype.
         NotImplementedError
-            This is either not a valid function for this dtype, or
-            valid but not implemented in cython.
+            This may be a valid operation, but does not have a cython implementation.
         """
         how = self.how
 
@@ -237,28 +238,29 @@ class WrappedCythonOp:
             return
 
         if isinstance(dtype, CategoricalDtype):
-            # NotImplementedError for methods that can fall back to a
-            #  non-cython implementation.
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
+            if how in ["min", "max", "rank"] and not dtype.ordered:
+                # raise TypeError instead of NotImplementedError to ensure we
+                #  don't go down a group-by-group path, since in the empty-groups
+                #  case that would fail to raise
+                raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
             if how not in ["rank"]:
                 # only "rank" is implemented in cython
                 raise NotImplementedError(f"{dtype} dtype not supported")
-            if not dtype.ordered:
-                # TODO: TypeError?
-                raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
-            # categoricals are only 1d, so we
-            #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
-            # TODO: same for period_dtype?  no for these methods with Period
-            # we raise NotImplemented if this is an invalid operation
-            #  entirely, e.g. adding datetimes
+            # Adding/multiplying datetimes is not valid
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
+        elif is_period_dtype(dtype):
+            # Adding/multiplying Periods is not valid
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"Period type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
+            # timedeltas we can add but not multiply
             if how in ["prod", "cumprod"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
@@ -904,9 +906,6 @@ class BaseGrouper:
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
-            ids = ensure_platform_int(ids)
-            # TODO: if numpy annotates np.lexsort, this ensure_platform_int
-            #  may become unnecessary
         return ids
 
     @final
@@ -1010,21 +1009,14 @@ class BaseGrouper:
         # test_groupby_empty_with_category gets here with self.ngroups == 0
         #  and len(obj) > 0
 
-        if len(obj) == 0:
-            # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            result = self._aggregate_series_pure_python(obj, func)
-
-        elif not isinstance(obj._values, np.ndarray):
-            result = self._aggregate_series_pure_python(obj, func)
-
+        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        else:
-            result = self._aggregate_series_pure_python(obj, func)
+        result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -1221,12 +1213,6 @@ class BinGrouper(BaseGrouper):
         )
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
-        # -> np.ndarray[object]
-        raise NotImplementedError(
-            "This should not be reached; use _aggregate_series_pure_python"
-        )
-
 
 def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
     if isinstance(obj, Series):
@@ -1259,7 +1245,7 @@ class DataSplitter(Generic[NDFrameT]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> npt.NDArray[np.intp]:
+    def _slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
@@ -1269,20 +1255,20 @@ class DataSplitter(Generic[NDFrameT]):
         return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self) -> Iterator:
-        sdata = self.sorted_data
+        sdata = self._sorted_data
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
             return
 
-        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
+        starts, ends = lib.generate_slices(self._slabels, self.ngroups)
 
         for start, end in zip(starts, ends):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
-    def sorted_data(self) -> NDFrameT:
+    def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
