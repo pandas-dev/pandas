@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -978,7 +976,15 @@ def test_join_multiindex_categorical_output_index_dtype():
         }
     ).set_index(["idx1", "idx2"])
 
+    expected = DataFrame(
+        {
+            "idx1": Categorical(["a", "a", "a", "a"]),
+            "idx2": Categorical(["a", "a", "b", "b"]),
+            "data": [1, 2, 3, 3],
+            "data2": [1, 1, 2, 3],
+        }
+    ).set_index(["idx1", "idx2"])
+
     for how in ["inner", "outer", "left", "right"]:
-        df = df1.join(df2, how=how)
-        assert is_categorical_dtype(df.index.levels[0]) is True
-        assert is_categorical_dtype(df.index.levels[1]) is True
+        result = df1.join(df2, how=how)
+        tm.assert_frame_equal(result, expected)
