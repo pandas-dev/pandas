@@ -38,7 +38,7 @@ class TestValueCounts:
         exp_idx = orig[::-1]
         if not isinstance(exp_idx, PeriodIndex):
             exp_idx = exp_idx._with_freq(None)
-        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64", name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
@@ -89,13 +89,13 @@ class TestValueCounts:
 
     def _check_value_counts_dropna(self, idx):
         exp_idx = idx[[2, 3]]
-        expected = Series([3, 2], index=exp_idx)
+        expected = Series([3, 2], index=exp_idx, name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
 
         exp_idx = idx[[2, 3, -1]]
-        expected = Series([3, 2, 1], index=exp_idx)
+        expected = Series([3, 2, 1], index=exp_idx, name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(dropna=False), expected)

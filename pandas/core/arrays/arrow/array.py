@@ -934,7 +934,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index).astype("Int64")
+        return Series(counts, index=index, name="count").astype("Int64")
 
     @classmethod
     def _concat_same_type(

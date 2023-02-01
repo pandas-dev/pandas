@@ -1182,18 +1182,22 @@ class TestValueCounts:
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
         index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index)
+        expected = Series([1, 1, 1, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
+        expected = Series(
+            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)]), name="count"
+        )
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
+            [2, 2],
+            index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)]),
+            name="count",
         )
         tm.assert_series_equal(result, expected)
 
@@ -1221,7 +1225,7 @@ class TestValueCounts:
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
-        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1})
+        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, name="count")
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
@@ -1243,7 +1247,7 @@ class TestValueCounts:
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
             dtype=object,
         )
-        exp = Series([3, 2, 1], index=exp_index)
+        exp = Series([3, 2, 1], index=exp_index, name="count")
         tm.assert_series_equal(res, exp)
 
         # GH 12424
@@ -1255,7 +1259,9 @@ class TestValueCounts:
     def test_categorical(self):
         s = Series(Categorical(list("aaabbc")))
         result = s.value_counts()
-        expected = Series([3, 2, 1], index=CategoricalIndex(["a", "b", "c"]))
+        expected = Series(
+            [3, 2, 1], index=CategoricalIndex(["a", "b", "c"]), name="count"
+        )
 
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1272,10 +1278,13 @@ class TestValueCounts:
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
         result = s.value_counts(dropna=False)
-        expected = Series([4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]))
+        expected = Series(
+            [4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]), name="count"
+        )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # out of order
@@ -1287,8 +1296,11 @@ class TestValueCounts:
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(
-                ["a", "b", "c"], categories=["b", "a", "c"], ordered=True
+                ["a", "b", "c"],
+                categories=["b", "a", "c"],
+                ordered=True,
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1298,6 +1310,7 @@ class TestValueCounts:
             index=CategoricalIndex(
                 ["a", "b", "c", np.nan], categories=["b", "a", "c"], ordered=True
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1310,6 +1323,7 @@ class TestValueCounts:
             index=Categorical(
                 ["b", "a", "c", "d"], categories=list("abcd"), ordered=True
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1318,37 +1332,37 @@ class TestValueCounts:
 
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False]),
+            Series([2, 1], index=[True, False], name="count"),
         )
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=False),
-            Series([2, 1], index=[True, False]),
+            Series([2, 1], index=[True, False], name="count"),
         )
 
         tm.assert_series_equal(
             Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=Index([True, False], dtype=object)),
+            Series([3, 2], index=Index([True, False], dtype=object), name="count"),
         )
         tm.assert_series_equal(
             Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
-            Series([5, 3, 2], index=[True, False, np.nan]),
+            Series([5, 3, 2], index=[True, False, np.nan], name="count"),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=False),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
 
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0, None]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
 
         result = Series([10.3, 10.3, 5.0, 5.0, 5.0, None]).value_counts(dropna=False)
-        expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan])
+        expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan], name="count")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", (np.float64, object, "M8[ns]"))
@@ -1358,23 +1372,27 @@ class TestValueCounts:
         s_typed = s.astype(dtype)
         result = s_typed.value_counts(normalize=True, dropna=False)
         expected = Series(
-            [0.5, 0.3, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=dtype)
+            [0.5, 0.3, 0.2],
+            index=Series([np.nan, 2.0, 1.0], dtype=dtype),
+            name="proportion",
         )
         tm.assert_series_equal(result, expected)
 
         result = s_typed.value_counts(normalize=True, dropna=True)
-        expected = Series([0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype))
+        expected = Series(
+            [0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype), name="proportion"
+        )
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
         arr = np.array([2**63], dtype=np.uint64)
-        expected = Series([1], index=[2**63])
+        expected = Series([1], index=[2**63], name="count")
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2**63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2**63])
+        expected = Series([1, 1], index=[-1, 2**63], name="count")
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)

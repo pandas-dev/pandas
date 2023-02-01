@@ -219,7 +219,7 @@ class TestDataFrameMisc:
         t = df.T
 
         result = t.dtypes.value_counts()
-        expected = Series({np.dtype("object"): 10})
+        expected = Series({np.dtype("object"): 10}, name="count")
         tm.assert_series_equal(result, expected)
 
     def test_deepcopy(self, float_frame):

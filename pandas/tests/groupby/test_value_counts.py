@@ -38,7 +38,7 @@ def tests_value_counts_index_names_category_column():
     df_mi_expected = DataFrame([["US", "female"]], columns=["country", "gender"])
     df_mi_expected["gender"] = df_mi_expected["gender"].astype("category")
     mi_expected = MultiIndex.from_frame(df_mi_expected)
-    expected = Series([1], index=mi_expected, name="gender")
+    expected = Series([1], index=mi_expected, name="count")
 
     tm.assert_series_equal(result, expected)
 
@@ -85,12 +85,12 @@ for seed_nans in [True, False]:
 @pytest.mark.slow
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
 @pytest.mark.parametrize("isort", [True, False])
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
-    df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
+    df, keys, bins, n, m, isort, normalize, name, sort, ascending, dropna
 ):
     def rebuild_index(df):
         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
@@ -111,6 +111,8 @@ def test_series_groupby_value_counts(
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
+    # https://github.com/pandas-dev/pandas/issues/49909
+    right = right.rename(name)
 
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
@@ -142,6 +144,8 @@ def test_series_groupby_value_counts_with_grouper(utc):
     result = dfg["Food"].value_counts().sort_index()
     expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
+    # https://github.com/pandas-dev/pandas/issues/49909
+    expected = expected.rename("count")
 
     tm.assert_series_equal(result, expected)
 
@@ -153,7 +157,7 @@ def test_series_groupby_value_counts_empty(columns):
     dfg = df.groupby(columns[:-1])
 
     result = dfg[columns[-1]].value_counts()
-    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected = Series([], dtype=result.dtype, name="count")
     expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
 
     tm.assert_series_equal(result, expected)
@@ -166,7 +170,7 @@ def test_series_groupby_value_counts_one_row(columns):
     dfg = df.groupby(columns[:-1])
 
     result = dfg[columns[-1]].value_counts()
-    expected = df.value_counts().rename(columns[-1])
+    expected = df.value_counts()
 
     tm.assert_series_equal(result, expected)
 
@@ -187,6 +191,7 @@ def test_series_groupby_value_counts_on_categorical():
                 ),
             ]
         ),
+        name="count",
     )
 
     # Expected:
@@ -213,7 +218,7 @@ def test_series_groupby_value_counts_no_sort():
         codes=[[0, 1, 0, 1, 1], [0, 0, 1, 0, 1], [0, 1, 2, 0, 2]],
         names=["country", "gender", "education"],
     )
-    expected = Series([1, 1, 1, 2, 1], index=index, name="education")
+    expected = Series([1, 1, 1, 2, 1], index=index, name="count")
     tm.assert_series_equal(result, expected)
 
 
@@ -257,6 +262,7 @@ def test_basic(education_df):
             ],
             names=["country", "gender", "education"],
         ),
+        name="proportion",
     )
     tm.assert_series_equal(result, expected)
 
@@ -266,7 +272,7 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 
 
 @pytest.mark.parametrize("groupby", ["column", "array", "function"])
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize(
     "sort, ascending",
     [
@@ -278,7 +284,7 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
-    education_df, groupby, normalize, sort, ascending, as_index, frame
+    education_df, groupby, normalize, name, sort, ascending, as_index, frame
 ):
     # test all parameters:
     # - Use column, array or function as by= parameter
@@ -323,7 +329,7 @@ def test_against_frame_and_seriesgroupby(
         expected = gp["both"].value_counts(
             normalize=normalize, sort=sort, ascending=ascending
         )
-        expected.name = None
+        expected.name = name
         if as_index:
             index_frame = expected.index.to_frame(index=False)
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
@@ -382,16 +388,23 @@ def animals_df():
 
 
 @pytest.mark.parametrize(
-    "sort, ascending, normalize, expected_data, expected_index",
+    "sort, ascending, normalize, name, expected_data, expected_index",
     [
-        (False, None, False, [1, 2, 1], [(1, 1, 1), (2, 4, 6), (2, 0, 0)]),
-        (True, True, False, [1, 1, 2], [(1, 1, 1), (2, 6, 4), (2, 0, 0)]),
-        (True, False, False, [2, 1, 1], [(1, 1, 1), (4, 2, 6), (0, 2, 0)]),
-        (True, False, True, [0.5, 0.25, 0.25], [(1, 1, 1), (4, 2, 6), (0, 2, 0)]),
+        (False, None, False, "count", [1, 2, 1], [(1, 1, 1), (2, 4, 6), (2, 0, 0)]),
+        (True, True, False, "count", [1, 1, 2], [(1, 1, 1), (2, 6, 4), (2, 0, 0)]),
+        (True, False, False, "count", [2, 1, 1], [(1, 1, 1), (4, 2, 6), (0, 2, 0)]),
+        (
+            True,
+            False,
+            True,
+            "proportion",
+            [0.5, 0.25, 0.25],
+            [(1, 1, 1), (4, 2, 6), (0, 2, 0)],
+        ),
     ],
 )
 def test_data_frame_value_counts(
-    animals_df, sort, ascending, normalize, expected_data, expected_index
+    animals_df, sort, ascending, normalize, name, expected_data, expected_index
 ):
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests from frame/methods/test_value_counts.py
@@ -403,6 +416,7 @@ def test_data_frame_value_counts(
         index=MultiIndex.from_arrays(
             expected_index, names=["key", "num_legs", "num_wings"]
         ),
+        name=name,
     )
     tm.assert_series_equal(result_frame, expected)
 
@@ -449,7 +463,7 @@ def test_dropna_combinations(
     for column in nulls_df.columns:
         columns[column] = [nulls_df[column][row] for row in expected_rows]
     index = MultiIndex.from_frame(columns)
-    expected = Series(data=expected_values, index=index)
+    expected = Series(data=expected_values, index=index, name="proportion")
     tm.assert_series_equal(result, expected)
 
 
@@ -490,9 +504,9 @@ def names_with_nulls_df(nulls_fixture):
         ),
     ],
 )
-@pytest.mark.parametrize("normalize", [False, True])
+@pytest.mark.parametrize("normalize, name", [(False, "count"), (True, "proportion")])
 def test_data_frame_value_counts_dropna(
-    names_with_nulls_df, dropna, normalize, expected_data, expected_index
+    names_with_nulls_df, dropna, normalize, name, expected_data, expected_index
 ):
     # GH 41334
     # 3-way compare with :meth:`~DataFrame.value_counts`
@@ -501,6 +515,7 @@ def test_data_frame_value_counts_dropna(
     expected = Series(
         data=expected_data,
         index=expected_index,
+        name=name,
     )
     if normalize:
         expected /= float(len(expected_data))
@@ -517,17 +532,22 @@ def test_data_frame_value_counts_dropna(
 @pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
-    "normalize, expected_data",
+    "normalize, name, expected_data",
     [
-        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            False,
+            "count",
+            np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64),
+        ),
         (
             True,
+            "proportion",
             np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
         ),
     ],
 )
 def test_categorical_single_grouper_with_only_observed_categories(
-    education_df, as_index, observed, normalize, expected_data
+    education_df, as_index, observed, normalize, name, expected_data
 ):
 
     # Test single categorical grouper with only observed grouping categories
@@ -559,6 +579,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
     expected_series = Series(
         data=expected_data,
         index=expected_index,
+        name=name,
     )
     for i in range(3):
         expected_series.index = expected_series.index.set_levels(
@@ -575,7 +596,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
 
 
 def assert_categorical_single_grouper(
-    education_df, as_index, observed, expected_index, normalize, expected_data
+    education_df, as_index, observed, expected_index, normalize, name, expected_data
 ):
     # Test single categorical grouper when non-groupers are also categorical
     education_df = education_df.copy().astype("category")
@@ -592,6 +613,7 @@ def assert_categorical_single_grouper(
             expected_index,
             names=["country", "gender", "education"],
         ),
+        name=name,
     )
     for i in range(3):
         index_level = CategoricalIndex(expected_series.index.levels[i])
@@ -604,25 +626,28 @@ def assert_categorical_single_grouper(
     if as_index:
         tm.assert_series_equal(result, expected_series)
     else:
-        expected = expected_series.reset_index(
-            name="proportion" if normalize else "count"
-        )
+        expected = expected_series.reset_index(name=name)
         tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
-    "normalize, expected_data",
+    "normalize, name, expected_data",
     [
-        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            False,
+            "count",
+            np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64),
+        ),
         (
             True,
+            "proportion",
             np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
         ),
     ],
 )
 def test_categorical_single_grouper_observed_true(
-    education_df, as_index, normalize, expected_data
+    education_df, as_index, normalize, name, expected_data
 ):
     # GH#46357
 
@@ -647,22 +672,25 @@ def test_categorical_single_grouper_observed_true(
         observed=True,
         expected_index=expected_index,
         normalize=normalize,
+        name=name,
         expected_data=expected_data,
     )
 
 
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
-    "normalize, expected_data",
+    "normalize, name, expected_data",
     [
         (
             False,
+            "count",
             np.array(
                 [2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.int64
             ),
         ),
         (
             True,
+            "proportion",
             np.array(
                 [
                     0.5,
@@ -689,7 +717,7 @@ def test_categorical_single_grouper_observed_true(
     ],
 )
 def test_categorical_single_grouper_observed_false(
-    education_df, as_index, normalize, expected_data
+    education_df, as_index, normalize, name, expected_data
 ):
     # GH#46357
 
@@ -720,6 +748,7 @@ def test_categorical_single_grouper_observed_false(
         observed=False,
         expected_index=expected_index,
         normalize=normalize,
+        name=name,
         expected_data=expected_data,
     )
 
@@ -758,18 +787,23 @@ def test_categorical_single_grouper_observed_false(
     ],
 )
 @pytest.mark.parametrize(
-    "normalize, expected_data",
+    "normalize, name, expected_data",
     [
-        (False, np.array([1, 0, 2, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=np.int64)),
+        (
+            False,
+            "count",
+            np.array([1, 0, 2, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=np.int64),
+        ),
         (
             True,
+            "proportion",
             # NaN values corresponds to non-observed groups
             np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0]),
         ),
     ],
 )
 def test_categorical_multiple_groupers(
-    education_df, as_index, observed, expected_index, normalize, expected_data
+    education_df, as_index, observed, expected_index, normalize, name, expected_data
 ):
     # GH#46357
 
@@ -789,6 +823,7 @@ def test_categorical_multiple_groupers(
             expected_index,
             names=["country", "education", "gender"],
         ),
+        name=name,
     )
     for i in range(2):
         expected_series.index = expected_series.index.set_levels(
@@ -807,18 +842,23 @@ def test_categorical_multiple_groupers(
 @pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
-    "normalize, expected_data",
+    "normalize, name, expected_data",
     [
-        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            False,
+            "count",
+            np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64),
+        ),
         (
             True,
+            "proportion",
             # NaN values corresponds to non-observed groups
             np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
         ),
     ],
 )
 def test_categorical_non_groupers(
-    education_df, as_index, observed, normalize, expected_data
+    education_df, as_index, observed, normalize, name, expected_data
 ):
     # GH#46357 Test non-observed categories are included in the result,
     # regardless of `observed`
@@ -849,6 +889,7 @@ def test_categorical_non_groupers(
             expected_index,
             names=["country", "gender", "education"],
         ),
+        name=name,
     )
     for i in range(1, 3):
         expected_series.index = expected_series.index.set_levels(
@@ -910,6 +951,7 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
                 expected_data,
                 names=expected_names,
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected)
     else:
@@ -943,7 +985,9 @@ def test_ambiguous_grouping():
     df = DataFrame({"a": [1, 1]})
     gb = df.groupby(np.array([1, 1], dtype=np.int64))
     result = gb.value_counts()
-    expected = Series([2], index=MultiIndex.from_tuples([[1, 1]], names=[None, "a"]))
+    expected = Series(
+        [2], index=MultiIndex.from_tuples([[1, 1]], names=[None, "a"]), name="count"
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -968,7 +1012,9 @@ def test_subset():
     df = DataFrame({"c1": ["a", "b", "c"], "c2": ["x", "y", "y"]}, index=[0, 1, 1])
     result = df.groupby(level=0).value_counts(subset=["c2"])
     expected = Series(
-        [1, 2], index=MultiIndex.from_arrays([[0, 1], ["x", "y"]], names=[None, "c2"])
+        [1, 2],
+        index=MultiIndex.from_arrays([[0, 1], ["x", "y"]], names=[None, "c2"]),
+        name="count",
     )
     tm.assert_series_equal(result, expected)
 
@@ -986,6 +1032,7 @@ def test_subset_duplicate_columns():
         index=MultiIndex.from_arrays(
             [[0, 1], ["x", "y"], ["x", "y"]], names=[None, "c2", "c2"]
         ),
+        name="count",
     )
     tm.assert_series_equal(result, expected)
 
@@ -1020,5 +1067,5 @@ def test_value_counts_time_grouper(utc):
         codes=[[0, 1, 1, 2, 2, 3], range(6), [0, 0, 1, 2, 2, 3]],
         names=["Datetime", "Timestamp", "Food"],
     )
-    expected = Series(1, index=index)
+    expected = Series(1, index=index, name="count")
     tm.assert_series_equal(result, expected)
