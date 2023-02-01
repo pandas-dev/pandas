@@ -106,12 +106,12 @@ class ParserBase:
     def __init__(self, kwds) -> None:
 
         self.names = kwds.get("names")
-        self.orig_names: list | None = None
+        self.orig_names: Sequence[Hashable] | None = None
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
         self.index_names: Sequence[Hashable] | None = None
-        self.col_names = None
+        self.col_names: Sequence[Hashable] | None = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
@@ -269,9 +269,11 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self,
         header,
-        index_names: list | None,
+        index_names: Sequence[Hashable] | None,
         passed_names: bool = False,
-    ):
+    ) -> tuple[
+        Sequence[Hashable], Sequence[Hashable] | None, Sequence[Hashable] | None, bool
+    ]:
         """
         Extract and return the names, index_names, col_names if the column
         names are a MultiIndex.
@@ -1004,7 +1006,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
-    def _clean_index_names(self, columns, index_col):
+    def _clean_index_names(self, columns, index_col) -> tuple[list | None, list, list]:
         if not is_index_col(index_col):
             return None, columns, index_col
 

@@ -104,8 +104,7 @@ class CParserWrapper(ParserBase):
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]
-            # error: Cannot determine type of 'names'
-            self.names = list(range(self._reader.table_width))  # type: ignore[has-type]
+            self.names = list(range(self._reader.table_width))
 
         # gh-9755
         #
