@@ -738,7 +738,6 @@ def get_grouper(
     level=None,
     sort: bool = True,
     observed: bool = False,
-    mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
@@ -957,9 +956,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 
