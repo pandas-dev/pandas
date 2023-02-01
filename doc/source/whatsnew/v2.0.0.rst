@@ -333,6 +333,36 @@ a supported dtype:
 
    pd.Series(["2016-01-01"], dtype="datetime64[D]")
 
+.. _whatsnew_200.api_breaking.value_counts:
+
+Value counts sets the resulting name to ``count``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In past versions, when running :meth:`Series.value_counts`, the result would inherit
+the original object's name, and the result index would be nameless. This would cause
+confusion when resetting the index, and the column names would not correspond with the
+column values.
+Now, the result name will be ``'count'`` (or ``'proportion'`` if ``normalize=True`` was passed),
+and the index will be named after the original object (:issue:`49497`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [8]: pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+    Out[2]:
+    quetzal    2
+    elk        1
+    Name: animal, dtype: int64
+
+*New behavior*:
+
+.. ipython:: python
+
+    pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
+
 .. _whatsnew_200.api_breaking.astype_to_unsupported_datetimelike:
 
 Disallow astype conversion to non-supported datetime64/timedelta64 dtypes
