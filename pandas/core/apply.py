@@ -329,10 +329,12 @@ class Apply(metaclass=abc.ABCMeta):
         with context_manager:
             # degenerate case
             if selected_obj.ndim == 1:
+
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
                     new_res = colg.aggregate(a, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
+
                     # make sure we find a good name
                     name = com.get_callable_name(a) or a
                     keys.append(name)
