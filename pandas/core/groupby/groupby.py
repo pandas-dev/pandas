@@ -616,7 +616,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "group_keys",
         "keys",
         "level",
-        "mutated",
         "obj",
         "observed",
         "sort",
@@ -896,7 +895,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
         observed: bool = False,
-        mutated: bool = False,
         dropna: bool = True,
     ) -> None:
 
@@ -915,7 +913,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.sort = sort
         self.group_keys = group_keys
         self.observed = observed
-        self.mutated = mutated
         self.dropna = dropna
 
         if grouper is None:
@@ -926,7 +923,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 level=level,
                 sort=sort,
                 observed=observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
 
@@ -1273,7 +1269,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # numba
 
     @final
-    def _numba_prep(self, data):
+    def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
         sorted_index = get_group_index_sorter(ids, ngroups)
         sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
@@ -1333,7 +1329,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return data._constructor(result, index=index, **result_kwargs)
 
     @final
-    def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+    def _transform_with_numba(
+        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
+    ):
         """
         Perform groupby transform routine with the numba engine.
 
@@ -1359,7 +1357,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.take(np.argsort(sorted_index), axis=0)
 
     @final
-    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+    def _aggregate_with_numba(
+        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
+    ):
         """
         Perform groupby aggregation routine with the numba engine.
 
@@ -1483,7 +1483,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
-            not_indexed_same = mutated or self.mutated
+            not_indexed_same = mutated
 
         return self._wrap_applied_output(
             data,
@@ -1525,15 +1525,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         npfunc: Callable,
     ):
 
-        with self._group_selection_context():
-            # try a cython aggregation if we can
-            result = self._cython_agg_general(
-                how=alias,
-                alt=npfunc,
-                numeric_only=numeric_only,
-                min_count=min_count,
-            )
-            return result.__finalize__(self.obj, method="groupby")
+        result = self._cython_agg_general(
+            how=alias,
+            alt=npfunc,
+            numeric_only=numeric_only,
+            min_count=min_count,
+        )
+        return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
         self, values: ArrayLike, ndim: int, alt: Callable
@@ -1643,9 +1641,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            # TODO: tests with self._selected_obj.ndim == 1 on DataFrameGroupBy
-            with self._group_selection_context():
-                data = self._selected_obj
+            data = self._obj_with_exclusions
             df = data if data.ndim == 2 else data.to_frame()
             result = self._transform_with_numba(
                 df, func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -2201,6 +2197,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
             )
+        name = "proportion" if normalize else "count"
 
         with self._group_selection_context():
             df = self.obj
@@ -2209,8 +2206,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
             if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
+                _name = self._selected_obj.name
+                keys = [] if _name in in_axis_names else [self._selected_obj]
             else:
                 unique_cols = set(self._selected_obj.columns)
                 if subset is not None:
@@ -2233,8 +2230,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
+                    for idx, _name in enumerate(self._selected_obj.columns)
+                    if _name not in in_axis_names and _name in subsetted
                 ]
 
             groupings = list(self.grouper.groupings)
@@ -2257,6 +2254,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 dropna=self.dropna,
             )
             result_series = cast(Series, gb.size())
+            result_series.name = name
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
@@ -2300,7 +2298,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result_series
             else:
                 # Convert to frame
-                name = "proportion" if normalize else "count"
                 index = result_series.index
                 columns = com.fill_missing_names(index.names)
                 if name in columns:
@@ -3109,7 +3106,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=self.axis,
                 level=self.level,
                 sort=self.sort,
-                mutated=self.mutated,
             )
 
         grb = dropped.groupby(
@@ -4175,7 +4171,6 @@ def get_groupby(
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
     observed: bool = False,
-    mutated: bool = False,
     dropna: bool = True,
 ) -> GroupBy:
 
@@ -4203,7 +4198,6 @@ def get_groupby(
         sort=sort,
         group_keys=group_keys,
         observed=observed,
-        mutated=mutated,
         dropna=dropna,
     )
 
