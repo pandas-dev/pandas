@@ -9542,7 +9542,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
         lsuffix: str = "",
