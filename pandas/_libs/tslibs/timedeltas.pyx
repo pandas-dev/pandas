@@ -373,7 +373,7 @@ cdef _maybe_cast_from_unit(ts, str unit):
     #  assert unit not in ["Y", "y", "M"]
     try:
         ts = cast_from_unit(ts, unit)
-    except OverflowError as err:
+    except OutOfBoundsDatetime as err:
         raise OutOfBoundsTimedelta(
             f"Cannot cast {ts} from {unit} to 'ns' without overflow."
         ) from err
@@ -691,10 +691,6 @@ cdef timedelta_from_spec(object number, object frac, object unit):
             "values and are not supported."
         )
 
-    if unit == "M":
-        # To parse ISO 8601 string, 'M' should be treated as minute,
-        # not month
-        unit = "m"
     unit = parse_timedelta_unit(unit)
 
     n = "".join(number) + "." + "".join(frac)

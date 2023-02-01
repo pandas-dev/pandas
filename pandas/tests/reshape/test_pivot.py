@@ -409,7 +409,14 @@ class TestPivotTable:
         res = df.pivot_table(index=df.index.month, columns=df.index.day)
 
         exp_columns = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-        exp = DataFrame([[2.5, 4.0], [2.0, np.nan]], index=[1, 2], columns=exp_columns)
+        exp_columns = exp_columns.set_levels(
+            exp_columns.levels[1].astype(np.int32), level=1
+        )
+        exp = DataFrame(
+            [[2.5, 4.0], [2.0, np.nan]],
+            index=Index([1, 2], dtype=np.int32),
+            columns=exp_columns,
+        )
         tm.assert_frame_equal(res, exp)
 
         df = DataFrame(
@@ -422,7 +429,9 @@ class TestPivotTable:
         res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="M"))
         exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
-        exp = DataFrame([3.25, 2.0], index=[1, 2], columns=exp_columns)
+        exp = DataFrame(
+            [3.25, 2.0], index=Index([1, 2], dtype=np.int32), columns=exp_columns
+        )
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
@@ -1614,7 +1623,7 @@ class TestPivotTable:
         expected = DataFrame(
             {7: [0, 3], 8: [1, 4], 9: [2, 5]},
             index=exp_idx,
-            columns=Index([7, 8, 9], name="dt1"),
+            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1624,8 +1633,8 @@ class TestPivotTable:
 
         expected = DataFrame(
             {7: [0, 3], 8: [1, 4], 9: [2, 5]},
-            index=Index([1, 2], name="dt2"),
-            columns=Index([7, 8, 9], name="dt1"),
+            index=Index([1, 2], dtype=np.int32, name="dt2"),
+            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1637,10 +1646,16 @@ class TestPivotTable:
         )
 
         exp_col = MultiIndex.from_arrays(
-            [[7, 7, 8, 8, 9, 9], [1, 2] * 3], names=["dt1", "dt2"]
+            [
+                np.array([7, 7, 8, 8, 9, 9], dtype=np.int32),
+                np.array([1, 2] * 3, dtype=np.int32),
+            ],
+            names=["dt1", "dt2"],
         )
         expected = DataFrame(
-            np.array([[0, 3, 1, 4, 2, 5]], dtype="int64"), index=[2013], columns=exp_col
+            np.array([[0, 3, 1, 4, 2, 5]], dtype="int64"),
+            index=Index([2013], dtype=np.int32),
+            columns=exp_col,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2295,6 +2310,75 @@ class TestPivotTable:
                 [("sales", "A"), ("sales", "All")], names=[None, "a"]
             ),
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
+        # GH 50342
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+                ("col5",): [
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "bar",
+                    "bar",
+                    "bar",
+                    "bar",
+                ],
+                ("col6", 6): [
+                    "one",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                ],
+                (7, "seven"): [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+            }
+        )
+        result = pivot_table(
+            df, values="D", index=["A", "B"], columns=[(7, "seven")], aggfunc=np.sum
+        )
+        expected = DataFrame(
+            [[4.0, 5.0], [7.0, 6.0], [4.0, 1.0], [np.nan, 6.0]],
+            columns=Index(["large", "small"], name=(7, "seven")),
+            index=MultiIndex.from_arrays(
+                [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
+            ),
+        )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
 

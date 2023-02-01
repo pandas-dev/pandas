@@ -92,7 +92,9 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     result = grouped.sum()
 
     expected = mframe.groupby(key.astype("O")).sum()
-    tm.assert_frame_equal(result, expected)
+    assert result.index.dtype == np.int8
+    assert expected.index.dtype == np.int64
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
@@ -227,6 +229,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
+    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -652,6 +655,8 @@ def test_groupby_as_index_select_column_sum_empty_df():
     left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
 
     expected = DataFrame(columns=df.columns[:2], index=range(0))
+    # GH#50744 - Columns after selection shouldn't retain names
+    expected.columns.names = [None]
     tm.assert_frame_equal(left, expected)
 
 
@@ -795,7 +800,7 @@ def test_groupby_as_index_cython(df):
         data.groupby(["A"]).mean()
     expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
     # multi-key
@@ -806,7 +811,7 @@ def test_groupby_as_index_cython(df):
     arrays = list(zip(*expected.index.values))
     expected.insert(0, "A", arrays[0])
     expected.insert(1, "B", arrays[1])
-    expected.index = np.arange(len(expected))
+    expected.index = RangeIndex(len(expected))
     tm.assert_frame_equal(result, expected)
 
 
@@ -1016,8 +1021,12 @@ def test_groupby_level_mapper(mframe):
     result0 = mframe.groupby(mapper0, level=0).sum()
     result1 = mframe.groupby(mapper1, level=1).sum()
 
-    mapped_level0 = np.array([mapper0.get(x) for x in deleveled["first"]])
-    mapped_level1 = np.array([mapper1.get(x) for x in deleveled["second"]])
+    mapped_level0 = np.array(
+        [mapper0.get(x) for x in deleveled["first"]], dtype=np.int64
+    )
+    mapped_level1 = np.array(
+        [mapper1.get(x) for x in deleveled["second"]], dtype=np.int64
+    )
     expected0 = mframe.groupby(mapped_level0).sum()
     expected1 = mframe.groupby(mapped_level1).sum()
     expected0.index.name, expected1.index.name = "first", "second"
@@ -1892,25 +1901,12 @@ def test_empty_groupby(
             raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and not isinstance(columns, list)
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError, match="'Categorical' does not implement"
-        )
-        request.node.add_marker(mark)
     elif isinstance(values, Categorical) and len(keys) == 1 and op in ["sum", "prod"]:
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, Categorical)
-        and len(keys) == 2
-        and op in ["min", "max", "sum"]
-    ):
+    elif isinstance(values, Categorical) and len(keys) == 2 and op in ["sum"]:
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
@@ -1939,6 +1935,31 @@ def test_empty_groupby(
             return getattr(gb, op)(**kwargs)
         else:
             return getattr(gb, method)(op, **kwargs)
+
+    if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
+        msg = f"Cannot perform {op} with non-ordered Categorical"
+        with pytest.raises(TypeError, match=msg):
+            get_result()
+
+        if isinstance(columns, list):
+            # i.e. DataframeGroupBy, not SeriesGroupBy
+            result = get_result(numeric_only=True)
+
+            # Categorical is special without 'observed=True', we get an NaN entry
+            #  corresponding to the unobserved group. If we passed observed=True
+            #  to groupby, expected would just be 'df.set_index(keys)[columns]'
+            #  as below
+            lev = Categorical([0], dtype=values.dtype)
+            if len(keys) != 1:
+                idx = MultiIndex.from_product([lev, lev], names=keys)
+            else:
+                # all columns are dropped, but we end up with one row
+                # Categorical is special without 'observed=True'
+                idx = Index(lev, name=keys[0])
+
+            expected = DataFrame([], columns=[], index=idx)
+            tm.assert_equal(result, expected)
+        return
 
     if columns == "C":
         # i.e. SeriesGroupBy
@@ -2009,38 +2030,17 @@ def test_empty_groupby(
                 tm.assert_equal(result, expected)
                 return
 
-        if (op in ["min", "max", "skew"] and isinstance(values, Categorical)) or (
-            op == "skew" and df.dtypes[0].kind == "M"
+        if op == "skew" and (
+            isinstance(values, Categorical) or df.dtypes[0].kind == "M"
         ):
-            if op == "skew" or len(keys) == 1:
-                msg = "|".join(
-                    [
-                        "Categorical is not ordered",
-                        "does not support reduction",
-                    ]
-                )
-                with pytest.raises(TypeError, match=msg):
-                    get_result()
-                return
-            # Categorical doesn't implement, so with numeric_only=True
-            #  these are dropped and we get an empty DataFrame back
-            result = get_result()
-
-            # with numeric_only=True, these are dropped, and we get
-            # an empty DataFrame back
-            if len(keys) != 1:
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                mi = MultiIndex.from_product([lev, lev], names=keys)
-                expected = DataFrame([], columns=[], index=mi)
-            else:
-                # all columns are dropped, but we end up with one row
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                ci = Index(lev, name=keys[0])
-                expected = DataFrame([], columns=[], index=ci)
-
-            tm.assert_equal(result, expected)
+            msg = "|".join(
+                [
+                    "Categorical is not ordered",
+                    "does not support reduction",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                get_result()
             return
 
     result = get_result()
@@ -2417,14 +2417,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (DataFrame, "group_keys", False),
         (DataFrame, "observed", True),
         (DataFrame, "dropna", False),
-        pytest.param(
-            Series,
-            "axis",
-            1,
-            marks=pytest.mark.xfail(
-                reason="GH 35443: Attribute currently not passed on to series"
-            ),
-        ),
         (Series, "level", "a"),
         (Series, "as_index", False),
         (Series, "sort", False),
@@ -2469,7 +2461,7 @@ def test_groupby_duplicate_columns():
     ).astype(object)
     df.columns = ["A", "B", "B"]
     result = df.groupby([0, 0, 0, 0]).min()
-    expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    expected = DataFrame([["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -2770,7 +2762,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").sum()
     expected = DataFrame(
         {"b": [val * 2]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2782,7 +2774,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").prod()
     expected = DataFrame(
         {"b": [val * val]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2839,3 +2831,53 @@ def test_sum_of_booleans(n):
     result = df.groupby("groupby_col").sum()
     expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
+def test_groupby_method_drop_na(method):
+    # GH 21755
+    df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
+
+    if method == "nth":
+        result = getattr(df.groupby("A"), method)(n=0)
+    else:
+        result = getattr(df.groupby("A"), method)()
+
+    if method in ["first", "last"]:
+        expected = DataFrame({"B": [0, 2, 4]}).set_index(
+            Series(["a", "b", "c"], name="A")
+        )
+    else:
+        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_reduce_period():
+    # GH#51040
+    pi = pd.period_range("2016-01-01", periods=100, freq="D")
+    grps = list(range(10)) * 10
+    ser = pi.to_series()
+    gb = ser.groupby(grps)
+
+    with pytest.raises(TypeError, match="Period type does not support sum operations"):
+        gb.sum()
+    with pytest.raises(
+        TypeError, match="Period type does not support cumsum operations"
+    ):
+        gb.cumsum()
+    with pytest.raises(TypeError, match="Period type does not support prod operations"):
+        gb.prod()
+    with pytest.raises(
+        TypeError, match="Period type does not support cumprod operations"
+    ):
+        gb.cumprod()
+
+    res = gb.max()
+    expected = ser[-10:]
+    expected.index = Index(range(10), dtype=np.int_)
+    tm.assert_series_equal(res, expected)
+
+    res = gb.min()
+    expected = ser[:10]
+    expected.index = Index(range(10), dtype=np.int_)
+    tm.assert_series_equal(res, expected)
