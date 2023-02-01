@@ -239,7 +239,7 @@ cdef class _Timestamp(ABCTimestamp):
         except OverflowError:
             raise OverflowError(
                 "Cannot convert Timestamp to nanoseconds without overflow. "
-                "Use `.asm8.view('i8')` to cast represent timestamp in its own "
+                "Use `.asm8.view('i8')` to cast represent Timestamp in its own "
                 f"unit (here, {self.unit})."
             )
 

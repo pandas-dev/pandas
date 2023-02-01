@@ -1023,7 +1023,7 @@ cdef class _Timedelta(timedelta):
         except OverflowError:
             raise OverflowError(
                 "Cannot convert Timedelta to nanoseconds without overflow. "
-                "Use `.asm8.view('i8')` to cast represent timestamp in its own "
+                "Use `.asm8.view('i8')` to cast represent Timedelta in its own "
                 f"unit (here, {self.unit})."
             )
 

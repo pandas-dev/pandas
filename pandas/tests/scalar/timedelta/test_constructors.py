@@ -512,3 +512,23 @@ def test_subclass_respected():
 
     td = MyCustomTimedelta("1 minute")
     assert isinstance(td, MyCustomTimedelta)
+
+
+def test_non_nano_value():
+    # https://github.com/pandas-dev/pandas/issues/49076
+    result = Timedelta(10, unit="D").as_unit("s").value
+    # `.value` shows nanoseconds, even though unit is 's'
+    assert result == 864000000000000
+
+    # out-of-nanoseconds-bounds `.value` raises informative message
+    msg = (
+        r"Cannot convert Timedelta to nanoseconds without overflow. "
+        r"Use `.asm8.view\('i8'\)` to cast represent Timedelta in its "
+        r"own unit \(here, s\).$"
+    )
+    td = Timedelta(1_000, "D").as_unit("s") * 1_000
+    with pytest.raises(OverflowError, match=msg):
+        td.value
+    # check that the suggested workaround actually works
+    result = td.asm8.view("i8")
+    assert result == 86400000000

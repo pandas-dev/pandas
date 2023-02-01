@@ -777,8 +777,8 @@ def test_non_nano_value():
 
     # out-of-nanoseconds-bounds `.value` raises informative message
     msg = (
-        r"Cannot convert timestamp to nanoseconds without overflow. "
-        r"Use `.asm8.view\('i8'\)` to cast represent timestamp in its "
+        r"Cannot convert Timestamp to nanoseconds without overflow. "
+        r"Use `.asm8.view\('i8'\)` to cast represent Timestamp in its "
         r"own unit \(here, s\).$"
     )
     ts = Timestamp("0300-01-01")
