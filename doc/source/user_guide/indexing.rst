@@ -231,7 +231,7 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
 
 You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
 if you try to use attribute access to create a new column, it creates a new attribute rather than a
-new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+new column and will this raise a ``UserWarning``:
 
 .. code-block:: ipython
 
