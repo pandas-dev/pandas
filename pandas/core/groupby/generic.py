@@ -242,8 +242,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with self._group_selection_context():
-                data = self._selected_obj
+            data = self._obj_with_exclusions
             result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
@@ -503,6 +502,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 "transform", obj._values, how, axis, **kwargs
             )
         except NotImplementedError as err:
+            # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
@@ -1233,8 +1233,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with self._group_selection_context():
-                data = self._selected_obj
+            data = self._obj_with_exclusions
             result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )

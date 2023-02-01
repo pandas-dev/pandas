@@ -86,13 +86,13 @@ def test_append(setup_path):
             )
             _maybe_remove(store, "uints")
             store.append("uints", uint_data)
-            tm.assert_frame_equal(store["uints"], uint_data)
+            tm.assert_frame_equal(store["uints"], uint_data, check_index_type=True)
 
             # uints - test storage of uints in indexable columns
             _maybe_remove(store, "uints")
             # 64-bit indices not yet supported
             store.append("uints", uint_data, data_columns=["u08", "u16", "u32"])
-            tm.assert_frame_equal(store["uints"], uint_data)
+            tm.assert_frame_equal(store["uints"], uint_data, check_index_type=True)
 
 
 def test_append_series(setup_path):
@@ -128,7 +128,7 @@ def test_append_series(setup_path):
         # select on the index and values
         expected = ns[(ns > 70) & (ns.index < 90)]
         result = store.select("ns", "foo>70 and index<90")
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
         # multi-index
         mi = DataFrame(np.random.randn(5, 1), columns=["A"])
@@ -139,7 +139,7 @@ def test_append_series(setup_path):
         s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
-        tm.assert_series_equal(store["mi"], s)
+        tm.assert_series_equal(store["mi"], s, check_index_type=True)
 
 
 def test_append_some_nans(setup_path):
@@ -162,7 +162,7 @@ def test_append_some_nans(setup_path):
         df.loc[0:15, ["A1", "B", "D", "E"]] = np.nan
         store.append("df1", df[:10])
         store.append("df1", df[10:])
-        tm.assert_frame_equal(store["df1"], df)
+        tm.assert_frame_equal(store["df1"], df, check_index_type=True)
 
         # first column
         df1 = df.copy()
@@ -170,7 +170,7 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df1")
         store.append("df1", df1[:10])
         store.append("df1", df1[10:])
-        tm.assert_frame_equal(store["df1"], df1)
+        tm.assert_frame_equal(store["df1"], df1, check_index_type=True)
 
         # 2nd column
         df2 = df.copy()
@@ -178,7 +178,7 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df2")
         store.append("df2", df2[:10])
         store.append("df2", df2[10:])
-        tm.assert_frame_equal(store["df2"], df2)
+        tm.assert_frame_equal(store["df2"], df2, check_index_type=True)
 
         # datetimes
         df3 = df.copy()
@@ -186,7 +186,7 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df3")
         store.append("df3", df3[:10])
         store.append("df3", df3[10:])
-        tm.assert_frame_equal(store["df3"], df3)
+        tm.assert_frame_equal(store["df3"], df3, check_index_type=True)
 
 
 def test_append_all_nans(setup_path):
@@ -203,13 +203,13 @@ def test_append_all_nans(setup_path):
         _maybe_remove(store, "df")
         store.append("df", df[:10], dropna=True)
         store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df[-4:])
+        tm.assert_frame_equal(store["df"], df[-4:], check_index_type=True)
 
         # nan some entire rows (dropna=False)
         _maybe_remove(store, "df2")
         store.append("df2", df[:10], dropna=False)
         store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+        tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
         # tests the option io.hdf.dropna_table
         with pd.option_context("io.hdf.dropna_table", False):
@@ -240,12 +240,12 @@ def test_append_all_nans(setup_path):
             _maybe_remove(store, "df")
             store.append("df", df[:10], dropna=True)
             store.append("df", df[10:], dropna=True)
-            tm.assert_frame_equal(store["df"], df)
+            tm.assert_frame_equal(store["df"], df, check_index_type=True)
 
             _maybe_remove(store, "df2")
             store.append("df2", df[:10], dropna=False)
             store.append("df2", df[10:], dropna=False)
-            tm.assert_frame_equal(store["df2"], df)
+            tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
             # nan some entire rows (but since we have dates they are still
             # written!)
@@ -266,12 +266,12 @@ def test_append_all_nans(setup_path):
             _maybe_remove(store, "df")
             store.append("df", df[:10], dropna=True)
             store.append("df", df[10:], dropna=True)
-            tm.assert_frame_equal(store["df"], df)
+            tm.assert_frame_equal(store["df"], df, check_index_type=True)
 
             _maybe_remove(store, "df2")
             store.append("df2", df[:10], dropna=False)
             store.append("df2", df[10:], dropna=False)
-            tm.assert_frame_equal(store["df2"], df)
+            tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
 
 def test_append_frame_column_oriented(setup_path):
@@ -882,7 +882,7 @@ def test_append_to_multiple_dropna(setup_path):
         )
         result = store.select_as_multiple(["df1", "df2"])
         expected = df.dropna()
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=True)
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
@@ -932,4 +932,4 @@ def test_append_to_multiple_min_itemsize(setup_path):
             min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
         )
         result = store.select_as_multiple(["index", "nums", "strs"])
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=True)

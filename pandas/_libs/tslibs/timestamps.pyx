@@ -236,6 +236,20 @@ cdef class _Timestamp(ABCTimestamp):
     def unit(self) -> str:
         """
         The abbreviation associated with self._creso.
+
+        Examples
+        --------
+        >>> pd.Timestamp("2020-01-01 12:34:56").unit
+        's'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123").unit
+        'ms'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123456").unit
+        'us'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123456789").unit
+        'ns'
         """
         return npy_unit_to_abbrev(self._creso)
 
