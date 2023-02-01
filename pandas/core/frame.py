@@ -7043,7 +7043,7 @@ class DataFrame(NDFrame, OpsMixin):
             counts /= counts.sum()
 
         # Force MultiIndex for single column
-        if len(subset) == 1:
+        if is_list_like(subset) and len(subset) == 1:
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
