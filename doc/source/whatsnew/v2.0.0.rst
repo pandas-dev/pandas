@@ -69,6 +69,9 @@ to select the nullable dtypes implementation.
 * :func:`read_html`
 * :func:`read_xml`
 * :func:`read_json`
+* :func:`read_sql`
+* :func:`read_sql_query`
+* :func:`read_sql_table`
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
@@ -620,6 +623,7 @@ Other API changes
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
+- :class:`DataFrame` objects read from a :class:`HDFStore` file without an index now have a :class:`RangeIndex` instead of an ``int64`` index (:issue:`51076`)
 - Instantiating an :class:`Index` with an numeric numpy dtype with data containing :class:`NA` and/or :class:`NaT` now raises a ``ValueError``. Previously a ``TypeError`` was raised (:issue:`51050`)
 - Loading a JSON file with duplicate columns using ``read_json(orient='split')`` renames columns to avoid duplicates, as :func:`read_csv` and the other readers do (:issue:`50370`)
 - The levels of the index of the :class:`Series` returned from ``Series.sparse.from_coo`` now always have dtype ``int32``. Previously they had dtype ``int64`` (:issue:`50926`)
@@ -958,6 +962,7 @@ Categorical
 - Bug in :meth:`Series.replace` with categorical dtype losing nullable dtypes of underlying categories (:issue:`49404`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
 - Bug in :class:`Categorical` constructor when constructing from a :class:`Categorical` object and ``dtype="category"`` losing ordered-ness (:issue:`49309`)
+- Bug in :meth:`SeriesGroupBy.min`, :meth:`SeriesGroupBy.max`, :meth:`DataFrameGroupBy.min`, and :meth:`DataFrameGroupBy.max` with unordered :class:`CategoricalDtype` with no groups failing to raise ``TypeError`` (:issue:`51034`)
 -
 
 Datetimelike
