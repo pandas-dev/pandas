@@ -1308,7 +1308,7 @@ class FrameSplitter(DataSplitter):
         df = sdata._constructor(mgr)
         return df.__finalize__(sdata, method="groupby")
 
-    def _chop_fast(self, sdata: Series, slice_obj: slice) -> Series:
+    def _chop_fast(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # _chop specialized to cast with _can_fast_construct
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
         df = DataFrame(mgr)
