@@ -249,7 +249,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
-    `Categoricals` can only take on only a limited, and usually fixed, number
+    `Categoricals` can only take on a limited, and usually fixed, number
     of possible values (`categories`). In contrast to statistical categorical
     variables, a `Categorical` might have an order, but numerical operations
     (additions, divisions, ...) are not possible.
