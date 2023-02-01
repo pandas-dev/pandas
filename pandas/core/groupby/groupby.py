@@ -1487,7 +1487,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
-            not_indexed_same = mutated or self.mutated
+            not_indexed_same = mutated
 
         return self._wrap_applied_output(
             data,
