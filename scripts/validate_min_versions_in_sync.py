@@ -66,15 +66,16 @@ def pin_min_versions_to_ci_deps():
                 if ">=" in dependency:
                     yaml_package, yaml_version = str(dependency).strip().split(">=")
                 elif "=" in dependency:
-                    package, version = str(dependency).strip().split("=")
+                    yaml_package, yaml_version = str(dependency).strip().split("=")
                 else:
-                    package, version = str(dependency), "None"
+                    yaml_package, yaml_version = str(dependency), "None"
                 # comparison between YAML/TOML
-                if ">=" in dependency or "=" in dependency:
+                if "=" in dependency:
                     if yaml_package in toml_dependencies:
                         if toml_dependencies[yaml_package] > yaml_version:
                             # update yaml package version to toml min version
                             pass
+                # else - yaml package has no version pinned
                 else:
                     if yaml_package in toml_dependencies:
                         # update yaml package version to toml min version
@@ -82,7 +83,7 @@ def pin_min_versions_to_ci_deps():
                         pass
 
                 # put extracted data into yaml dictionary
-                yaml_dependencies[package] = version
+                yaml_dependencies[yaml_package] = yaml_version
             print()
             myKeys = list(yaml_dependencies.keys())
             myKeys.sort()
