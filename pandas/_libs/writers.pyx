@@ -161,15 +161,13 @@ cpdef inline Py_ssize_t word_len(object val):
 def string_array_replace_from_nan_rep(
     ndarray[object, ndim=1] arr,
     object nan_rep,
-    object replace=np.nan
 ) -> None:
     """
-    Replace the values in the array with 'replacement' if
-    they are 'nan_rep'. Return the same array.
+    Replace the values in the array with np.nan if they are nan_rep.
     """
     cdef:
         Py_ssize_t length = len(arr), i = 0
 
     for i in range(length):
         if arr[i] == nan_rep:
-            arr[i] = replace
+            arr[i] = np.nan

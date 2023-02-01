@@ -1,3 +1,7 @@
+import warnings
+
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 
 from datetime import timezone
@@ -111,7 +115,7 @@ def format_array_from_datetime(
 
     Parameters
     ----------
-    values : a 1-d i8 array
+    values : ndarray[int64_t], arbitrary ndim
     tz : tzinfo or None, default None
     format : str or None, default None
           a strftime capable string
@@ -220,19 +224,6 @@ def format_array_from_datetime(
     return result
 
 
-cdef int64_t _wrapped_cast_from_unit(object val, str unit) except? -1:
-    """
-    Call cast_from_unit and re-raise OverflowError as OutOfBoundsDatetime
-    """
-    # See also timedeltas._maybe_cast_from_unit
-    try:
-        return cast_from_unit(val, unit)
-    except OverflowError as err:
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {val} with the unit '{unit}'"
-        ) from err
-
-
 def array_with_unit_to_datetime(
     ndarray[object] values,
     str unit,
@@ -269,9 +260,9 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, n=len(values)
         int64_t mult
-        bint is_ignore = errors=="ignore"
-        bint is_coerce = errors=="coerce"
-        bint is_raise = errors=="raise"
+        bint is_ignore = errors == "ignore"
+        bint is_coerce = errors == "coerce"
+        bint is_raise = errors == "raise"
         ndarray[int64_t] iresult
         tzinfo tz = None
         float fval
@@ -302,7 +293,7 @@ def array_with_unit_to_datetime(
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
-                    iresult[i] = _wrapped_cast_from_unit(val, unit)
+                    iresult[i] = cast_from_unit(val, unit)
 
             elif isinstance(val, str):
                 if len(val) == 0 or val in nat_strings:
@@ -316,8 +307,18 @@ def array_with_unit_to_datetime(
                         raise ValueError(
                             f"non convertible value {val} with the unit '{unit}'"
                         )
+                    warnings.warn(
+                        "The behavior of 'to_datetime' with 'unit' when parsing "
+                        "strings is deprecated. In a future version, strings will "
+                        "be parsed as datetime strings, matching the behavior "
+                        "without a 'unit'. To retain the old behavior, explicitly "
+                        "cast ints or floats to numeric type before calling "
+                        "to_datetime.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
-                    iresult[i] = _wrapped_cast_from_unit(fval, unit)
+                    iresult[i] = cast_from_unit(fval, unit)
 
             else:
                 # TODO: makes more sense as TypeError, but that would be an
@@ -362,7 +363,7 @@ cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str un
             else:
                 try:
                     oresult[i] = Timestamp(val, unit=unit)
-                except OverflowError:
+                except OutOfBoundsDatetime:
                     oresult[i] = val
 
         elif isinstance(val, str):
@@ -445,9 +446,9 @@ cpdef array_to_datetime(
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_datetime_offset = False
-        bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
-        bint is_coerce = errors=="coerce"
+        bint is_raise = errors == "raise"
+        bint is_ignore = errors == "ignore"
+        bint is_coerce = errors == "coerce"
         bint is_same_offsets
         _TSObject _ts
         float tz_offset

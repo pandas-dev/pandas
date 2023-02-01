@@ -23,7 +23,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
     elif isinstance(arg1, ABCDataFrame):
         from pandas import DataFrame
 
-        def dataframe_from_int_dict(data, frame_template):
+        def dataframe_from_int_dict(data, frame_template) -> DataFrame:
             result = DataFrame(data, index=frame_template.index)
             if len(result.columns) > 0:
                 result.columns = frame_template.columns[result.columns]

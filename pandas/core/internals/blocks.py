@@ -258,9 +258,7 @@ class Block(PandasObject):
         #  is from internals.concat, and we can verify that never happens
         #  with 1-column blocks, i.e. never for ExtensionBlock.
 
-        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
-        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
-        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
+        new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
 
@@ -536,12 +534,10 @@ class Block(PandasObject):
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
+            # GH49404
             blk = self if inplace else self.copy()
-            # error: Item "ExtensionArray" of "Union[ndarray[Any, Any],
-            # ExtensionArray]" has no attribute "_replace"
-            blk.values._replace(  # type: ignore[union-attr]
-                to_replace=to_replace, value=value, inplace=True
-            )
+            values = cast(Categorical, blk.values)
+            values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
 
         if not self._can_hold_element(to_replace):
@@ -650,6 +646,14 @@ class Block(PandasObject):
         See BlockManager.replace_list docstring.
         """
         values = self.values
+
+        if isinstance(values, Categorical):
+            # TODO: avoid special-casing
+            # GH49404
+            blk = self if inplace else self.copy()
+            values = cast(Categorical, blk.values)
+            values._replace(to_replace=src_list, value=dest_list, inplace=True)
+            return [blk]
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -1174,6 +1178,7 @@ class Block(PandasObject):
 
     def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: AxisInt = 0,
         index: Index | None = None,
@@ -1206,15 +1211,15 @@ class Block(PandasObject):
             # split improves performance in ndarray.copy()
             return self.split_and_operate(
                 type(self).interpolate,
-                method,
-                axis,
-                index,
-                inplace,
-                limit,
-                limit_direction,
-                limit_area,
-                fill_value,
-                downcast,
+                method=method,
+                axis=axis,
+                index=index,
+                inplace=inplace,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                downcast=downcast,
                 **kwargs,
             )
 
@@ -1288,8 +1293,8 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        qs : Float64Index
-            List of the quantiles to be computed.
+        qs : Index
+            The quantiles to be computed in float64.
         interpolation : str, default 'linear'
             Type of interpolation.
         axis : int, default 0
@@ -1592,8 +1597,7 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    # error: Signature of "interpolate" incompatible with supertype "Block"
-    def interpolate(  # type: ignore[override]
+    def interpolate(
         self,
         method: FillnaOptions = "pad",
         axis: int = 0,

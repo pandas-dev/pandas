@@ -46,6 +46,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_numeric_dtype,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
 )
 from pandas.tests.extension import base
@@ -372,16 +373,27 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseAccumulateTests(base.BaseAccumulateTests):
-    def check_accumulate(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna).astype("Float64")
-        expected = getattr(s.astype("Float64"), op_name)(skipna=skipna)
+    def check_accumulate(self, ser, op_name, skipna):
+        result = getattr(ser, op_name)(skipna=skipna)
+
+        if ser.dtype.kind == "m":
+            # Just check that we match the integer behavior.
+            ser = ser.astype("int64[pyarrow]")
+            result = result.astype("int64[pyarrow]")
+
+        result = result.astype("Float64")
+        expected = getattr(ser.astype("Float64"), op_name)(skipna=skipna)
         self.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         pa_type = data.dtype.pyarrow_dtype
         if (
-            (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
+            (
+                pa.types.is_integer(pa_type)
+                or pa.types.is_floating(pa_type)
+                or pa.types.is_duration(pa_type)
+            )
             and all_numeric_accumulations == "cumsum"
             and not pa_version_under9p0
         ):
@@ -417,15 +429,19 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
+            if request.config.option.skip_slow:
+                # equivalent to marking these cases with @pytest.mark.slow,
+                #  these xfails take a long time to run because pytest
+                #  renders the exception messages even when not showing them
+                pytest.skip("pyarrow xfail slow")
+
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented",
                     raises=NotImplementedError,
                 )
             )
-        elif all_numeric_accumulations == "cumsum" and (
-            pa.types.is_duration(pa_type) or pa.types.is_boolean(pa_type)
-        ):
+        elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -539,10 +555,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             "sem",
         ] and pa.types.is_temporal(pa_dtype):
             request.node.add_marker(xfail_mark)
-        elif all_numeric_reductions in ["sum", "min", "max"] and pa.types.is_duration(
-            pa_dtype
-        ):
-            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",
@@ -566,10 +578,24 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if not pa.types.is_boolean(pa_dtype):
+        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+            # We *might* want to make this behave like the non-pyarrow cases,
+            #  but have not yet decided.
             request.node.add_marker(xfail_mark)
+
         op_name = all_boolean_reductions
         ser = pd.Series(data)
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+
+            with pytest.raises(TypeError, match="does not support reduction"):
+                getattr(ser, op_name)(skipna=skipna)
+
+            return
+
         result = getattr(ser, op_name)(skipna=skipna)
         assert result is (op_name == "any")
 
@@ -627,6 +653,24 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             check_stacklevel=False,
         ):
             super().test_groupby_extension_agg(as_index, data_for_grouping)
+
+    def test_in_numeric_groupby(self, data_for_grouping):
+        if is_string_dtype(data_for_grouping.dtype):
+            df = pd.DataFrame(
+                {
+                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
+                    "B": data_for_grouping,
+                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
+                }
+            )
+
+            expected = pd.Index(["C"])
+            with pytest.raises(TypeError, match="does not support"):
+                df.groupby("A").sum().columns
+            result = df.groupby("A").sum(numeric_only=True).columns
+            tm.assert_index_equal(result, expected)
+        else:
+            super().test_in_numeric_groupby(data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
@@ -707,7 +751,6 @@ class TestBaseDtype(base.BaseDtypeTests):
                 and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
             )
             or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
-            or pa.types.is_string(pa_dtype)
             or pa.types.is_binary(pa_dtype)
         ):
             request.node.add_marker(
@@ -720,13 +763,22 @@ class TestBaseDtype(base.BaseDtypeTests):
             )
         super().test_get_common_dtype(dtype)
 
+    def test_is_not_string_type(self, dtype):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_string(pa_dtype):
+            assert is_string_dtype(dtype)
+        else:
+            super().test_is_not_string_type(dtype)
+
 
 class TestBaseIndex(base.BaseIndexTests):
     pass
 
 
 class TestBaseInterface(base.BaseInterfaceTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views.")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views.", run=False
+    )
     def test_view(self, data):
         super().test_view(data)
 
@@ -756,13 +808,17 @@ class TestBasePrinting(base.BasePrintingTests):
 
 
 class TestBaseReshaping(base.BaseReshapingTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_transpose(self, data):
         super().test_transpose(data)
 
 
 class TestBaseSetitem(base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    @pytest.mark.xfail(
+        reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
+    )
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
 
@@ -949,11 +1005,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_factorize(data_for_grouping)
 
-    @pytest.mark.xfail(
-        reason="result dtype pyarrow[bool] better than expected dtype object"
-    )
-    def test_combine_le(self, data_repeated):
-        super().test_combine_le(data_repeated)
+    _combine_le_expected_dtype = "bool[pyarrow]"
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype

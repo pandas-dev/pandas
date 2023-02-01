@@ -24,7 +24,6 @@ from pandas._libs.tslibs import (
     timezones,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
@@ -63,7 +62,7 @@ from pandas.core.tools.times import to_time
 if TYPE_CHECKING:
     from pandas.core.api import (
         DataFrame,
-        Float64Index,
+        NumericIndex,
         PeriodIndex,
     )
 
@@ -284,11 +283,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
-    def to_julian_date(self) -> Float64Index:
-        from pandas.core.indexes.api import Float64Index
+    def to_julian_date(self) -> NumericIndex:
+        from pandas.core.indexes.api import NumericIndex
 
         arr = self._data.to_julian_date()
-        return Float64Index._simple_new(arr, name=self.name)
+        return NumericIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
     def isocalendar(self) -> DataFrame:
@@ -420,52 +419,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        reso = self._data._creso
-        ppd = periods_per_day(reso)
+        ppd = periods_per_day(self._data._creso)
 
         frac = values % ppd
-        if reso == NpyDatetimeUnit.NPY_FR_ns.value:
+        if self.unit == "ns":
             micros = frac // 1000
-        elif reso == NpyDatetimeUnit.NPY_FR_us.value:
+        elif self.unit == "us":
             micros = frac
-        elif reso == NpyDatetimeUnit.NPY_FR_ms.value:
+        elif self.unit == "ms":
             micros = frac * 1000
-        elif reso == NpyDatetimeUnit.NPY_FR_s.value:
+        elif self.unit == "s":
             micros = frac * 1_000_000
         else:  # pragma: no cover
-            raise NotImplementedError(reso)
+            raise NotImplementedError(self.unit)
 
         micros[self._isnan] = -1
         return micros
-
-    def to_series(self, index=None, name=None):
-        """
-        Create a Series with both index and values equal to the index keys.
-
-        Useful with map for returning an indexer based on an index.
-
-        Parameters
-        ----------
-        index : Index, optional
-            Index of resulting Series. If None, defaults to original index.
-        name : str, optional
-            Name of resulting Series. If None, defaults to name of original
-            index.
-
-        Returns
-        -------
-        Series
-        """
-        from pandas import Series
-
-        if index is None:
-            index = self._view()
-        if name is None:
-            name = self.name
-
-        values = self._values.copy()
-
-        return Series(values, index=index, name=name)
 
     def snap(self, freq: Frequency = "S") -> DatetimeIndex:
         """
@@ -502,7 +471,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        reso : str
+        reso : Resolution
             Resolution provided by parsed string.
         parsed : datetime
             Datetime from parsed string.

@@ -3,6 +3,7 @@ Note: includes tests for `last`
 """
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     bdate_range,
@@ -86,3 +87,11 @@ class TestFirst:
             [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
         )
         tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("func", ["first", "last"])
+    def test_empty_not_input(self, func):
+        # GH#51032
+        df = DataFrame(index=pd.DatetimeIndex([]))
+        result = getattr(df, func)(offset=1)
+        tm.assert_frame_equal(df, result)
+        assert df is not result
