@@ -1118,6 +1118,8 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             left_pa_type = left.dtype.pyarrow_dtype
             right_pa_type = right.dtype.pyarrow_dtype
         if pa.types.is_decimal(left_pa_type) or pa.types.is_decimal(right_pa_type):
+            # decimal precision can resize in the result type depending on data
+            # just compare the float values
             left = left.astype("float[pyarrow]")
             right = right.astype("float[pyarrow]")
         tm.assert_equal(left, right, **kwargs)
