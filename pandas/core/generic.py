@@ -1041,11 +1041,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
+        *,
         index=...,
         columns=...,
         axis: Axis = ...,
         copy: bool_t | None = ...,
-        *,
         inplace: Literal[False] = ...,
     ) -> NDFrameT:
         ...
@@ -1054,11 +1054,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
+        *,
         index=...,
         columns=...,
         axis: Axis = ...,
         copy: bool_t | None = ...,
-        *,
         inplace: Literal[True],
     ) -> None:
         ...
@@ -1067,11 +1067,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
+        *,
         index=...,
         columns=...,
         axis: Axis = ...,
         copy: bool_t | None = ...,
-        *,
         inplace: bool_t = ...,
     ) -> NDFrameT | None:
         ...
@@ -1079,11 +1079,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
         index=lib.no_default,
         columns=lib.no_default,
         axis: Axis = 0,
         copy: bool_t | None = None,
-        *,
         inplace: bool_t = False,
     ) -> NDFrameT | None:
         """
