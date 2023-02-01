@@ -39,12 +39,12 @@ Previously it was only possible to use ``int64``, ``uint64`` & ``float64`` dtype
 
 .. code-block:: ipython
 
-    In [1]: pd.Index(1, 2, 3], dtype=np.int8)
-    Out[1]: Int64Index(1, 2, 3], dtype="int64")
-    In [2]: pd.Index(1, 2, 3], dtype=np.uint16)
-    Out[2]: UInt64Index(1, 2, 3], dtype="uint64")
-    In [3]: pd.Index(1, 2, 3], dtype=np.float32)
-    Out[3]: Float64Index(1.0, 2.0, 3.0], dtype="float64")
+    In [1]: pd.Index([1, 2, 3], dtype=np.int8)
+    Out[1]: Int64Index([1, 2, 3], dtype="int64")
+    In [2]: pd.Index([1, 2, 3], dtype=np.uint16)
+    Out[2]: UInt64Index([1, 2, 3], dtype="uint64")
+    In [3]: pd.Index([1, 2, 3], dtype=np.float32)
+    Out[3]: Float64Index([1.0, 2.0, 3.0], dtype="float64")
 
 :class:`Int64Index`, :class:`UInt64Index` & :class:`Float64Index` were depreciated in pandas
 version 1.4 and have now been removed. Instead :class:`Index` should be used directly, and
@@ -69,7 +69,7 @@ Below is a possibly non-exhaustive list of changes:
    signed integer arrays previously return an index with ``int64`` dtype, but will now
    reuse the dtype of the supplied numpy array. So ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
-   e.g. ``Index( [1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
+   e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DateTimeIndex` (:attr:`~Date_TimeIndex.day`,
    :attr:`~DateTimeIndex.month`, :attr:`~DateTimeIndex.year` etc.) were previously in of
    dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
@@ -87,6 +87,7 @@ Below is a possibly non-exhaustive list of changes:
 
        A = sparse.coo_matrix(
            ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
+       )
        ser = pd.Series.sparse.from_coo(A)
        ser.index.dtype
 
@@ -95,6 +96,7 @@ Below is a possibly non-exhaustive list of changes:
    ``float64`` dtype. It row raises a ``NotImplementedError``:
 
    .. ipython:: python
+       :okexcept:
 
        pd.Index([1, 2, 3], dtype=np.float16)
 

@@ -876,7 +876,7 @@ For example:
 
 .. ipython:: python
 
-   idx[[0, 2]
+   idx[[0, 2]]
 
 
 .. _advanced.intervalindex:
