@@ -1627,17 +1627,10 @@ def test_duplicate_columns(request, groupby_func, as_index):
     gb = df.groupby("a", as_index=as_index)
     result = getattr(gb, groupby_func)(*args)
 
-    if groupby_func in ("size", "ngroup", "cumcount"):
-        expected = getattr(
-            df.take([0, 1], axis=1).groupby("a", as_index=as_index), groupby_func
-        )(*args)
-        tm.assert_equal(result, expected)
-    else:
-        expected_df = df.copy()
-        expected_df.columns = ["a", "b", "c"]
-        expected_args = get_groupby_method_args(groupby_func, expected_df)
-        expected = getattr(expected_df.groupby("a", as_index=as_index), groupby_func)(
-            *expected_args
-        )
+    expected_df = df.set_axis(["a", "b", "c"], axis=1)
+    expected_args = get_groupby_method_args(groupby_func, expected_df)
+    expected_gb = expected_df.groupby("a", as_index=as_index)
+    expected = getattr(expected_gb, groupby_func)(*expected_args)
+    if groupby_func not in ("size", "ngroup", "cumcount"):
         expected = expected.rename(columns={"c": "b"})
-        tm.assert_frame_equal(result, expected)
+    tm.assert_equal(result, expected)
