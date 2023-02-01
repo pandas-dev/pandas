@@ -1590,9 +1590,8 @@ or using numbers:
    index
    5 in index
 
-If no dtype is given ``Index`` tries to infer the dtype from the data.
-
-It is also possible to give a explicit dtype when instantiating an :class:`Index`:
+If no dtype is given, ``Index`` tries to infer the dtype from the data.
+It is also possible to give an explicit dtype when instantiating an :class:`Index`:
 
 .. ipython:: python
 
