@@ -620,7 +620,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "group_keys",
         "keys",
         "level",
-        "mutated",
         "obj",
         "observed",
         "sort",
@@ -900,7 +899,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
         observed: bool = False,
-        mutated: bool = False,
         dropna: bool = True,
     ) -> None:
 
@@ -919,7 +917,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.sort = sort
         self.group_keys = group_keys
         self.observed = observed
-        self.mutated = mutated
         self.dropna = dropna
 
         if grouper is None:
@@ -930,7 +927,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 level=level,
                 sort=sort,
                 observed=observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
 
@@ -3113,7 +3109,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=self.axis,
                 level=self.level,
                 sort=self.sort,
-                mutated=self.mutated,
             )
 
         grb = dropped.groupby(
@@ -4263,7 +4258,6 @@ def get_groupby(
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
     observed: bool = False,
-    mutated: bool = False,
     dropna: bool = True,
 ) -> GroupBy:
 
@@ -4291,7 +4285,6 @@ def get_groupby(
         sort=sort,
         group_keys=group_keys,
         observed=observed,
-        mutated=mutated,
         dropna=dropna,
     )
 
