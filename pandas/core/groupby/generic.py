@@ -1039,7 +1039,8 @@ class SeriesGroupBy(GroupBy[Series]):
         Examples
         --------
         >>> ser = pd.Series([390., 350., 357., np.nan, 22., 20., 30.],
-        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot'],
+        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon', \
+        ...                        'Parrot', 'Parrot', 'Parrot'],
         ...                 name="Max Speed")
         >>> ser
         Falcon    390.0
