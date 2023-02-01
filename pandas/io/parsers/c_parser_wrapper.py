@@ -11,6 +11,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
@@ -18,6 +20,7 @@ from pandas._typing import (
     DtypeObj,
     ReadCsvBuffer,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -79,6 +82,8 @@ class CParserWrapper(ParserBase):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
+        kwds["dtype_backend"] = get_option("mode.dtype_backend")
+        import_optional_dependency("pyarrow")  # Ensure that we fail here and not later
         self._reader = parsers.TextReader(src, **kwds)
 
         self.unnamed_cols = self._reader.unnamed_cols
