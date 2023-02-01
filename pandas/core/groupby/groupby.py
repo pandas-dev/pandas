@@ -3719,9 +3719,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         ids, _, ngroups = grouper.group_info
 
-        base_func = partial(base_func, labels=ids)
-
         def blk_func(values: ArrayLike) -> ArrayLike:
+
+            if isinstance(values, ExtensionArray):
+                if how == "std":
+                    return values.groupby_std(
+                        ngroups=ngroups, ids=ids, ddof=kwargs["ddof"]
+                    )
+                elif how == "any_all":
+                    return values.groupby_any_all(
+                        ngroups=ngroups,
+                        ids=ids,
+                        skipna=kwargs["skipna"],
+                        val_test=kwargs["val_test"],
+                    )
+
             values = values.T
             ncols = 1 if values.ndim == 1 else values.shape[1]
 
@@ -3729,7 +3741,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = np.zeros(ngroups * ncols, dtype=cython_dtype)
             result = result.reshape((ngroups, ncols))
 
-            func = partial(base_func, out=result)
+            func = partial(base_func, out=result, labels=ids)
 
             inferences = None
 

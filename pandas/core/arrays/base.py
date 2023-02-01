@@ -8,6 +8,7 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -24,7 +25,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    groupby as libgroupby,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -58,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_dtype_equal,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -1687,6 +1692,180 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def groupby_any_all(
+        self, *, ngroups: int, ids: npt.NDArray[np.intp], val_test: str, skipna: bool
+    ):
+        values = self
+        how = "any_all"
+        base_func = libgroupby.group_any_all
+        cython_dtype = np.dtype(np.int8)
+        needs_counts = False
+
+        from pandas.core.arrays import (
+            BaseMaskedArray,
+            BooleanArray,
+        )
+
+        def pre_processing(vals: ArrayLike) -> tuple[np.ndarray, type]:
+            if is_object_dtype(vals.dtype) and skipna:
+                # GH#37501: don't raise on pd.NA when skipna=True
+                mask = isna(vals)
+                if mask.any():
+                    # mask on original values computed separately
+                    vals = vals.copy()
+                    vals[mask] = True
+            elif isinstance(vals, BaseMaskedArray):
+                vals = vals._data
+            vals = vals.astype(bool, copy=False)
+            return vals.view(np.int8), bool
+
+        def post_processing(
+            result: np.ndarray,
+            inference: type,
+            nullable: bool = False,
+        ) -> ArrayLike:
+            if nullable:
+                return BooleanArray(result.astype(bool, copy=False), result == -1)
+            else:
+                return result.astype(inference, copy=False)
+
+        values = values.T
+        ncols = 1 if values.ndim == 1 else values.shape[1]
+
+        result: ArrayLike
+        result = np.zeros(ngroups * ncols, dtype=cython_dtype)
+        result = result.reshape((ngroups, ncols))
+
+        func = partial(base_func, out=result, labels=ids)
+
+        inferences = None
+
+        if needs_counts:
+            counts = np.zeros(ngroups, dtype=np.int64)
+            func = partial(func, counts=counts)
+
+        vals = values
+        if pre_processing:
+            vals, inferences = pre_processing(vals)
+
+        vals = vals.astype(cython_dtype, copy=False)
+        if vals.ndim == 1:
+            vals = vals.reshape((-1, 1))
+        func = partial(func, values=vals)
+
+        if how != "std" or isinstance(values, BaseMaskedArray):
+            mask = isna(values).view(np.uint8)
+            if mask.ndim == 1:
+                mask = mask.reshape(-1, 1)
+            func = partial(func, mask=mask)
+
+        if how != "std":
+            is_nullable = isinstance(values, BaseMaskedArray)
+            func = partial(func, nullable=is_nullable)
+
+        elif isinstance(values, BaseMaskedArray):
+            result_mask = np.zeros(result.shape, dtype=np.bool_)
+            func = partial(func, result_mask=result_mask)
+
+        func(val_test=val_test, skipna=skipna)  # Call func to modify result in place
+
+        if values.ndim == 1:
+            assert result.shape[1] == 1, result.shape
+            result = result[:, 0]
+
+        if post_processing:
+            pp_kwargs: dict[str, bool | np.ndarray] = {}
+            pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+            if how == "std" and pp_kwargs["nullable"]:
+                pp_kwargs["result_mask"] = result_mask
+
+            result = post_processing(result, inferences, **pp_kwargs)
+
+        return result.T
+
+    def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
+        values = self
+        how = "std"
+        base_func = libgroupby.group_var
+        cython_dtype = np.dtype(np.float64)
+        needs_counts = True
+
+        from pandas.core.arrays import (
+            BaseMaskedArray,
+            FloatingArray,
+        )
+
+        def pre_processing(values):
+            if isinstance(values, BaseMaskedArray):
+                return values._data, None
+            return values, None
+
+        def post_processing(
+            vals, inference, nullable: bool = False, result_mask=None
+        ) -> ArrayLike:
+            if nullable:
+                if result_mask.ndim == 2:
+                    result_mask = result_mask[:, 0]
+                return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
+            return np.sqrt(vals)
+
+        values = values.T
+        ncols = 1 if values.ndim == 1 else values.shape[1]
+
+        result: ArrayLike
+        result = np.zeros(ngroups * ncols, dtype=cython_dtype)
+        result = result.reshape((ngroups, ncols))
+
+        func = partial(base_func, out=result, labels=ids)
+
+        inferences = None
+
+        if needs_counts:
+            counts = np.zeros(ngroups, dtype=np.int64)
+            func = partial(func, counts=counts)
+
+        vals = values
+        if pre_processing:
+            vals, inferences = pre_processing(vals)
+
+        vals = vals.astype(cython_dtype, copy=False)
+        if vals.ndim == 1:
+            vals = vals.reshape((-1, 1))
+        func = partial(func, values=vals)
+
+        if how != "std" or isinstance(values, BaseMaskedArray):
+            mask = isna(values).view(np.uint8)
+            if mask.ndim == 1:
+                mask = mask.reshape(-1, 1)
+            func = partial(func, mask=mask)
+
+        if how != "std":
+            is_nullable = isinstance(values, BaseMaskedArray)
+            func = partial(func, nullable=is_nullable)
+
+        elif isinstance(values, BaseMaskedArray):
+            result_mask = np.zeros(result.shape, dtype=np.bool_)
+            func = partial(func, result_mask=result_mask)
+
+        func(ddof=ddof)  # Call func to modify result in place
+
+        if values.ndim == 1:
+            assert result.shape[1] == 1, result.shape
+            result = result[:, 0]
+
+        if post_processing:
+            pp_kwargs: dict[str, bool | np.ndarray] = {}
+            pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
+            if how == "std" and pp_kwargs["nullable"]:
+                pp_kwargs["result_mask"] = result_mask
+
+            result = post_processing(result, inferences, **pp_kwargs)
+
+        return result.T
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
