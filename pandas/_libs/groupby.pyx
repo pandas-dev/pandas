@@ -1284,6 +1284,8 @@ cdef inline void _check_below_mincount(
                 elif (
                     mincount_t is float32_t
                     or mincount_t is float64_t
+                    or mincount_t is complex64_t
+                    or mincount_t is complex128_t
                 ):
                     out[i, j] = NAN
                 elif mincount_t is int64_t:
