@@ -869,14 +869,14 @@ def test_read_csv_skip_blank_rows(all_parsers):
     # GH22693
     parser = all_parsers
     csv_f = StringIO(
-        """A, B, C, D
-    FOO, 1, 2, 3
-    FOO, 4, 5, 6
-    , , ,
-    FOO, 7, 8, 9
-    , 10, 11, 12
-    , , ,
-    """
+"""A, B, C, D
+FOO, 1, 2, 3
+FOO, 4, 5, 6
+,,,
+FOO, 7, 8, 9
+, 10, 11, 12
+,,,
+"""
     )
 
     result = parser.read_csv(csv_f, skip_blank_lines=True)
