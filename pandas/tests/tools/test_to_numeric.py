@@ -912,7 +912,6 @@ def test_to_numeric_use_nullable_dtypes_already_nullable(dtype):
 @pytest.mark.parametrize(
     "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
 )
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_to_numeric_use_nullable_dtypes_error(
     use_nullable_dtypes, dtype, dtype_backend
 ):
