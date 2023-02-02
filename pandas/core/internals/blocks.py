@@ -1995,7 +1995,7 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
             # TODO: GH#50950 implement for arbitrary EAs
             data_out = values._ndarray if inplace else values._ndarray.copy()
             missing.interpolate_array_2d(
-                data_out, method=method, limit=limit, index=index
+                data_out, method=method, limit=limit, index=index, axis=axis
             )
             new_values = type(values)._simple_new(data_out, dtype=values.dtype)
             return self.make_block_same_class(new_values)
