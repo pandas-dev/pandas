@@ -1533,7 +1533,18 @@ def test_parse_date_fields(all_parsers):
 
 
 @xfail_pyarrow
-def test_parse_date_all_fields(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        (
+            "date_parser",
+            lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S"),
+            FutureWarning,
+        ),
+        ("date_format", "%Y %m %d %H %M %S", None),
+    ],
+)
+def test_parse_date_all_fields(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
 year,month,day,hour,minute,second,a,b
@@ -1541,12 +1552,12 @@ year,month,day,hour,minute,second,a,b
 2001,01,5,10,0,00,1.,11.
 """
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         header=0,
-        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
+        **{key: value},
     )
     expected = DataFrame(
         [
@@ -1559,7 +1570,18 @@ year,month,day,hour,minute,second,a,b
 
 
 @xfail_pyarrow
-def test_datetime_fractional_seconds(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        (
+            "date_parser",
+            lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S.%f"),
+            FutureWarning,
+        ),
+        ("date_format", "%Y %m %d %H %M %S.%f", None),
+    ],
+)
+def test_datetime_fractional_seconds(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
 year,month,day,hour,minute,second,a,b
@@ -1567,12 +1589,12 @@ year,month,day,hour,minute,second,a,b
 2001,01,5,10,0,0.500000,1.,11.
 """
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         header=0,
-        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S.%f"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
+        **{key: value},
     )
     expected = DataFrame(
         [
@@ -2055,7 +2077,14 @@ def test_infer_first_column_as_index(all_parsers):
 
 
 @skip_pyarrow
-def test_replace_nans_before_parsing_dates(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        ("date_parser", lambda x: pd.to_datetime(x, format="%Y-%m-%d"), FutureWarning),
+        ("date_format", "%Y-%m-%d", None),
+    ],
+)
+def test_replace_nans_before_parsing_dates(all_parsers, key, value, warn):
     # GH#26203
     parser = all_parsers
     data = """Test
@@ -2066,12 +2095,12 @@ def test_replace_nans_before_parsing_dates(all_parsers):
 2017-09-09
 """
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         na_values={"Test": ["#", "0"]},
         parse_dates=["Test"],
-        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+        **{key: value},
     )
     expected = DataFrame(
         {
