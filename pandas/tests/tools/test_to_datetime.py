@@ -1084,8 +1084,14 @@ class TestToDatetime:
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_index_equal(
             to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            Index([dt.item() for dt in dts_with_oob]),
+            Index(dts_with_oob),
         )
+
+    def test_out_of_bounds_errors_ignore(self):
+        # https://github.com/pandas-dev/pandas/issues/50587
+        result = to_datetime(np.datetime64("9999-01-01"), errors="ignore")
+        expected = np.datetime64("9999-01-01")
+        assert result == expected
 
     def test_to_datetime_tz(self, cache):
 
