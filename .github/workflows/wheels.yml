@@ -152,7 +152,7 @@ jobs:
           auto-update-conda: true
           # Really doesn't matter what version we upload with
           # just the version we test with
-          python-version: '3.8'
+          python-version: '3.10'
           channels: conda-forge
           channel-priority: true
           # mamba fails to solve, also we really don't need this since we're just installing python
