@@ -670,16 +670,23 @@ class Block(PandasObject):
                 )
                 for s in pairs
             )
+            # Materialize if inplace = True, since the masks can change
+            # as we replace
+            if inplace:
+                masks = list(masks)
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = (
                 extract_bool_array(missing.mask_missing(values, s[0])) for s in pairs
             )
+            # Materialize if inplace = True, since the masks can change
+            # as we replace
+            if inplace:
+                masks = list(masks)
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
         # ndarray]"
-        # masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
         rb = [self if inplace else self.copy()]
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
