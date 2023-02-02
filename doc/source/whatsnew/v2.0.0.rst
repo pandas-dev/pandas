@@ -759,7 +759,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Removed :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`. See also :ref:`here <_whatsnew_200.enhancements.optional_dependency_management_pip>` for more information (:issue:`42717`)
+- Removed :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`. See also :ref:`here <whatsnew_200.enhancements.optional_dependency_management_pip>` for more information (:issue:`42717`)
 - Removed deprecated :attr:`Timestamp.freq`, :attr:`Timestamp.freqstr` and argument ``freq`` from the :class:`Timestamp` constructor and :meth:`Timestamp.fromordinal` (:issue:`14146`)
 - Removed deprecated :class:`CategoricalBlock`, :meth:`Block.is_categorical`, require datetime64 and timedelta64 values to be wrapped in :class:`DatetimeArray` or :class:`TimedeltaArray` before passing to :meth:`Block.make_block_same_class`, require ``DatetimeTZBlock.values`` to have the correct ndim when passing to the :class:`BlockManager` constructor, and removed the "fastpath" keyword from the :class:`SingleBlockManager` constructor (:issue:`40226`, :issue:`40571`)
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
