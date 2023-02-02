@@ -28,6 +28,82 @@ The available extras, found in the :ref:`installation guide<install.dependencies
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
+.. _whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes:
+
+:class:`Index` can now hold numpy numeric dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is now possible to use any numpy numeric dtype in a :class:`Index` (:issue:`42717`).
+
+Previously it was only possible to use ``int64``, ``uint64`` & ``float64`` dtypes:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype=np.int8)
+    Out[1]: Int64Index([1, 2, 3], dtype="int64")
+    In [2]: pd.Index([1, 2, 3], dtype=np.uint16)
+    Out[2]: UInt64Index([1, 2, 3], dtype="uint64")
+    In [3]: pd.Index([1, 2, 3], dtype=np.float32)
+    Out[3]: Float64Index([1.0, 2.0, 3.0], dtype="float64")
+
+:class:`Int64Index`, :class:`UInt64Index` & :class:`Float64Index` were depreciated in pandas
+version 1.4 and have now been removed. Instead :class:`Index` should be used directly, and
+can it now take all numpy numeric dtypes, i.e.
+``int8``/ ``int16``/``int32``/``int64``/``uint8``/``uint16``/``uint32``/``uint64``/``float32``/``float64`` dtypes:
+
+.. ipython:: python
+
+    pd.Index([1, 2, 3], dtype=np.int8)
+    pd.Index([1, 2, 3], dtype=np.uint16)
+    pd.Index([1, 2, 3], dtype=np.float32)
+
+The ability for ``Index`` to hold the numpy numeric dtypes has meant some changes in Pandas
+functionality. In particular, operations that previously were forced to create 64-bit indexes,
+can now create indexes with lower bit sizes, e.g. 32-bit indexes.
+
+Below is a possibly non-exhaustive list of changes:
+
+1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
+   Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
+   the index dtype follows the dtype of the numpy array. For example, it would for all
+   signed integer arrays previously return an index with ``int64`` dtype, but will now
+   reuse the dtype of the supplied numpy array. So ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems.
+   Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
+   e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
+2. The various numeric datetime attributes of :class:`DateTimeIndex` (:attr:`~Date_TimeIndex.day`,
+   :attr:`~DateTimeIndex.month`, :attr:`~DateTimeIndex.year` etc.) were previously in of
+   dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
+   ``int32`` on ``DateTimeIndex`` also:
+
+   .. ipython:: python
+
+       idx = pd.date_range(start='1/1/2018', periods=3, freq='M')
+       idx.array.year
+       idx.year
+
+3. Level dtypes on Indexes from :meth:`Series.sparse.from_coo` are now of dtype ``int32``,
+   the same as they are on the ``rows``/``cols`` on a scipy sparse matrix. Previously they
+   were of dtype ``int64``.
+
+   .. ipython:: python
+
+       from scipy import sparse
+       A = sparse.coo_matrix(
+           ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
+       )
+       ser = pd.Series.sparse.from_coo(A)
+       ser.index.dtype
+
+4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
+   an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
+   ``float64`` dtype. It row raises a ``NotImplementedError``:
+
+   .. ipython:: python
+       :okexcept:
+
+       pd.Index([1, 2, 3], dtype=np.float16)
+
+
 .. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_dtype_backend:
 
 Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
@@ -684,6 +760,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`. See also :ref:`here <whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes>` for more information (:issue:`42717`)
 - Removed deprecated :attr:`Timestamp.freq`, :attr:`Timestamp.freqstr` and argument ``freq`` from the :class:`Timestamp` constructor and :meth:`Timestamp.fromordinal` (:issue:`14146`)
 - Removed deprecated :class:`CategoricalBlock`, :meth:`Block.is_categorical`, require datetime64 and timedelta64 values to be wrapped in :class:`DatetimeArray` or :class:`TimedeltaArray` before passing to :meth:`Block.make_block_same_class`, require ``DatetimeTZBlock.values`` to have the correct ndim when passing to the :class:`BlockManager` constructor, and removed the "fastpath" keyword from the :class:`SingleBlockManager` constructor (:issue:`40226`, :issue:`40571`)
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
@@ -1049,6 +1126,7 @@ Numeric
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
+- Bug in :meth:`query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
 
 Conversion
 ^^^^^^^^^^
