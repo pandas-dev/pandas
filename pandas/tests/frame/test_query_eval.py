@@ -1298,7 +1298,8 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame(
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
-        result = df.eval("c = b - a")
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = df.eval("c = b - a")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 1]],
             columns=["a", "b", "c"],
@@ -1309,7 +1310,8 @@ class TestDataFrameQueryBacktickQuoting:
     def test_ea_dtypes_and_scalar(self):
         # GH#29618
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
-        result = df.eval("c = b - 1")
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = df.eval("c = b - 1")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
         )
@@ -1343,15 +1345,18 @@ class TestDataFrameQueryBacktickQuoting:
         expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("engine", ["python", "numexpr"])
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
-    def test_query_ea_equality_comparison(self, dtype):
+    def test_query_ea_equality_comparison(self, dtype, engine):
         # GH#50261
+        warning = RuntimeWarning if engine == "numexpr" else None
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = DataFrame(
             {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
         )
-        result = df.query("A == B")
+        with tm.assert_produces_warning(warning):
+            result = df.query("A == B", engine=engine)
         expected = DataFrame(
             {
                 "A": Series([1, 2], dtype="Int64", index=[0, 2]),
