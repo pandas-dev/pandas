@@ -23,11 +23,3 @@ class NumericIndex(Index):
         return super().__new__(
             cls, data=data, dtype=dtype, copy=copy, name=name
         )  # type: ignore[return-value]
-
-    # ----------------------------------------------------------------
-    # Indexing Methods
-
-    @cache_readonly
-    @doc(Index._should_fallback_to_positional)
-    def _should_fallback_to_positional(self) -> bool:
-        return False
