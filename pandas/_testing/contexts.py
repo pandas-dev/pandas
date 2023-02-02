@@ -4,7 +4,6 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 import tempfile
-from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -12,8 +11,11 @@ from typing import (
 )
 import uuid
 
-import numpy as np
-
+from pandas._typing import (
+    BaseBuffer,
+    CompressionOptions,
+    FilePath,
+)
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
@@ -23,7 +25,9 @@ from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(path, compression) -> Generator[IO[bytes], None, None]:
+def decompress_file(
+    path: FilePath | BaseBuffer, compression: CompressionOptions
+) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -196,40 +200,6 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
     finally:
         expr._MIN_ELEMENTS = oldmin
         set_option("compute.use_numexpr", olduse)
-
-
-class RNGContext:
-    """
-    Context manager to set the numpy random number generator speed. Returns
-    to the original value upon exiting the context manager.
-
-    Parameters
-    ----------
-    seed : int
-        Seed for numpy.random.seed
-
-    Examples
-    --------
-    with RNGContext(42):
-        np.random.randn()
-    """
-
-    def __init__(self, seed) -> None:
-        self.seed = seed
-
-    def __enter__(self) -> None:
-
-        self.start_state = np.random.get_state()
-        np.random.seed(self.seed)
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-
-        np.random.set_state(self.start_state)
 
 
 def raises_chained_assignment_error():

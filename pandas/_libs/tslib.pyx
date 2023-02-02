@@ -114,7 +114,7 @@ def format_array_from_datetime(
 
     Parameters
     ----------
-    values : a 1-d i8 array
+    values : ndarray[int64_t], arbitrary ndim
     tz : tzinfo or None, default None
     format : str or None, default None
           a strftime capable string
@@ -259,9 +259,9 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, n=len(values)
         int64_t mult
-        bint is_ignore = errors=="ignore"
-        bint is_coerce = errors=="coerce"
-        bint is_raise = errors=="raise"
+        bint is_ignore = errors == "ignore"
+        bint is_coerce = errors == "coerce"
+        bint is_raise = errors == "raise"
         ndarray[int64_t] iresult
         tzinfo tz = None
         float fval
@@ -445,9 +445,9 @@ cpdef array_to_datetime(
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_datetime_offset = False
-        bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
-        bint is_coerce = errors=="coerce"
+        bint is_raise = errors == "raise"
+        bint is_ignore = errors == "ignore"
+        bint is_coerce = errors == "coerce"
         bint is_same_offsets
         _TSObject _ts
         float tz_offset
