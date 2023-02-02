@@ -2408,7 +2408,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index only consists of numeric data.
 
         .. deprecated:: 2.0.0
-            Use `pandas.api.types.is_numeric_dtype` instead
+            Use `pandas.api.types.is_numeric_dtype` instead.
 
         Returns
         -------
