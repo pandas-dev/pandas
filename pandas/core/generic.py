@@ -3279,7 +3279,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 2.0.0
                The pandas option affecting this argument has changed, as has the
-               default value.
+               default value to `False`.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3299,7 +3299,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 2.0.0
                The pandas option affecting this argument has changed, as has the
-               default value.
+               default value to "r".
         multirow : bool, default True
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
@@ -3310,7 +3310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 2.0.0
                The pandas option affecting this argument has changed, as has the
-               default value.
+               default value to `True`.
         caption : str or tuple, optional
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
