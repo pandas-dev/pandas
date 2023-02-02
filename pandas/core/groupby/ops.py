@@ -678,7 +678,6 @@ class BaseGrouper:
     sort : bool, default True
         whether this grouper will give sorted result or not
     group_keys : bool, default True
-    mutated : bool, default False
     indexer : np.ndarray[np.intp], optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
@@ -694,7 +693,6 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
-        mutated: bool = False,
         indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
     ) -> None:
@@ -704,7 +702,6 @@ class BaseGrouper:
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
         self.group_keys = group_keys
-        self.mutated = mutated
         self.indexer = indexer
         self.dropna = dropna
 
@@ -772,7 +769,7 @@ class BaseGrouper:
     def apply(
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
-        mutated = self.mutated
+        mutated = False
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self.group_keys_seq
         result_values = []
@@ -1061,7 +1058,6 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    mutated : bool, default False
     indexer : np.ndarray[np.intp]
 
     Examples
@@ -1084,18 +1080,15 @@ class BinGrouper(BaseGrouper):
 
     bins: npt.NDArray[np.int64]
     binlabels: Index
-    mutated: bool
 
     def __init__(
         self,
         bins,
         binlabels,
-        mutated: bool = False,
         indexer=None,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self.mutated = mutated
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series

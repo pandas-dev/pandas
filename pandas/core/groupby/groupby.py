@@ -76,6 +76,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_numeric_dtype,
@@ -620,7 +621,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "group_keys",
         "keys",
         "level",
-        "mutated",
         "obj",
         "observed",
         "sort",
@@ -723,13 +723,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-
-        if self._selection is None or isinstance(self.obj, Series):
-            if self._group_selection is not None:
-                return self.obj[self._group_selection]
+        if isinstance(self.obj, Series):
             return self.obj
-        else:
-            return self.obj[self._selection]
+
+        if self._selection is not None:
+            if is_hashable(self._selection):
+                # i.e. a single key, so selecting it will return a Series.
+                #  In this case, _obj_with_exclusions would wrap the key
+                #  in a list and return a single-column DataFrame.
+                return self.obj[self._selection]
+
+            # Otherwise _selection is equivalent to _selection_list, so
+            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  that and avoid making a copy.
+            return self._obj_with_exclusions
+
+        if self._group_selection is not None:
+            return self._obj_with_exclusions
+        return self.obj
 
     @final
     def _dir_additions(self) -> set[str]:
@@ -900,7 +911,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
         observed: bool = False,
-        mutated: bool = False,
         dropna: bool = True,
     ) -> None:
 
@@ -919,7 +929,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.sort = sort
         self.group_keys = group_keys
         self.observed = observed
-        self.mutated = mutated
         self.dropna = dropna
 
         if grouper is None:
@@ -930,7 +939,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 level=level,
                 sort=sort,
                 observed=observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
 
@@ -1491,7 +1499,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
-            not_indexed_same = mutated or self.mutated
+            not_indexed_same = mutated
 
         return self._wrap_applied_output(
             data,
@@ -3114,7 +3122,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=self.axis,
                 level=self.level,
                 sort=self.sort,
-                mutated=self.mutated,
             )
 
         grb = dropped.groupby(
@@ -4264,7 +4271,6 @@ def get_groupby(
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
     observed: bool = False,
-    mutated: bool = False,
     dropna: bool = True,
 ) -> GroupBy:
 
@@ -4292,7 +4298,6 @@ def get_groupby(
         sort=sort,
         group_keys=group_keys,
         observed=observed,
-        mutated=mutated,
         dropna=dropna,
     )
 
