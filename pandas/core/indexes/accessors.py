@@ -559,7 +559,7 @@ class CombinedDatetimelikeProperties(
                 index=orig.index,
             )
 
-        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind in "mM":
+        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "M":
             return ArrowTemporalProperties(data, orig)
         if is_datetime64_dtype(data.dtype):
             return DatetimeProperties(data, orig)
