@@ -102,7 +102,7 @@ class TestGetDummies:
         else:
             dtype_name = self.effective_dtype(dtype).name
 
-        expected = Series({dtype_name: 8})
+        expected = Series({dtype_name: 8}, name="count")
         result = result.dtypes.value_counts()
         result.index = [str(i) for i in result.index]
         tm.assert_series_equal(result, expected)
@@ -112,7 +112,7 @@ class TestGetDummies:
         expected_counts = {"int64": 1, "object": 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
-        expected = Series(expected_counts).sort_index()
+        expected = Series(expected_counts, name="count").sort_index()
         result = result.dtypes.value_counts()
         result.index = [str(i) for i in result.index]
         result = result.sort_index()
