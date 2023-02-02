@@ -46,20 +46,15 @@ def roll_frame():
 
 
 class TestRolling:
-    def test_mutated(self, roll_frame):
+    def test_groupby_unsupported_argument(self, roll_frame):
 
         msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             roll_frame.groupby("A", foo=1)
 
-        g = roll_frame.groupby("A")
-        assert not g.mutated
-        g = get_groupby(roll_frame, by="A", mutated=True)
-        assert g.mutated
-
     def test_getitem(self, roll_frame):
         g = roll_frame.groupby("A")
-        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
+        g_mutated = get_groupby(roll_frame, by="A")
 
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
@@ -80,7 +75,7 @@ class TestRolling:
         # GH 13174
         g = roll_frame.groupby("A")
         r = g.rolling(2, min_periods=0)
-        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
+        g_mutated = get_groupby(roll_frame, by="A")
         expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
@@ -789,8 +784,6 @@ class TestRolling:
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index
         tm.assert_index_equal(result, expected)
-        assert not g.mutated
-        assert not g.grouper.mutated
 
     @pytest.mark.parametrize(
         ("window", "min_periods", "closed", "expected"),

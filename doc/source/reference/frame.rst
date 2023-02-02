@@ -83,6 +83,7 @@ Binary operator functions
 .. autosummary::
    :toctree: api/
 
+   DataFrame.__add__
    DataFrame.add
    DataFrame.sub
    DataFrame.mul
