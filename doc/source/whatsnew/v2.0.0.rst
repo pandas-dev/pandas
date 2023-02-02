@@ -333,6 +333,36 @@ a supported dtype:
 
    pd.Series(["2016-01-01"], dtype="datetime64[D]")
 
+.. _whatsnew_200.api_breaking.value_counts:
+
+Value counts sets the resulting name to ``count``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In past versions, when running :meth:`Series.value_counts`, the result would inherit
+the original object's name, and the result index would be nameless. This would cause
+confusion when resetting the index, and the column names would not correspond with the
+column values.
+Now, the result name will be ``'count'`` (or ``'proportion'`` if ``normalize=True`` was passed),
+and the index will be named after the original object (:issue:`49497`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [8]: pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+    Out[2]:
+    quetzal    2
+    elk        1
+    Name: animal, dtype: int64
+
+*New behavior*:
+
+.. ipython:: python
+
+    pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
+
 .. _whatsnew_200.api_breaking.astype_to_unsupported_datetimelike:
 
 Disallow astype conversion to non-supported datetime64/timedelta64 dtypes
@@ -635,6 +665,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated parsing datetime strings with system-local timezone to ``tzlocal``, pass a ``tz`` keyword or explicitly call ``tz_localize`` instead (:issue:`50791`)
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
@@ -949,6 +980,8 @@ Performance improvements
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
+- Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -1027,6 +1060,7 @@ Conversion
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
 - Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 - Bug in :meth:`Series.astype` raising ``pyarrow.ArrowInvalid`` when converting from a non-pyarrow string dtype to a pyarrow numeric type (:issue:`50430`)
+- Bug in :meth:`DataFrame.astype` modifying input array inplace when converting to ``string`` and ``copy=False`` (:issue:`51073`)
 - Bug in :meth:`Series.to_numpy` converting to NumPy array before applying ``na_value`` (:issue:`48951`)
 - Bug in :meth:`DataFrame.astype` not copying data when converting to pyarrow dtype (:issue:`50984`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
