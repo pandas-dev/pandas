@@ -294,18 +294,21 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            in_reso = abbrev_to_npy_unit(unit or "ns")
-            out_reso = get_supported_reso(in_reso)
+            if unit is None:
+                in_reso = abbrev_to_npy_unit("ns")
+            else:
+                in_reso = abbrev_to_npy_unit(unit)
+            reso = get_supported_reso(in_reso)
             try:
-                value = convert_reso(ts, in_reso, out_reso, False)
+                value = convert_reso(ts, in_reso, reso, False)
             except OverflowError:
                 # GH#26651 re-raise as OutOfBoundsDatetime
                 raise OutOfBoundsDatetime(
                     f"cannot convert input {ts} with the unit '{unit}'"
                 )
             obj.value = value
-            obj.creso = out_reso
-            pandas_datetime_to_datetimestruct(value, out_reso, &obj.dts)
+            obj.creso = reso
+            pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
     elif is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
