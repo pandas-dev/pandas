@@ -242,6 +242,8 @@ ignore = [
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
+  # Only works with python >=3.10
+  "B905",
 ]
 
 exclude = [

@@ -7178,7 +7178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             items = list(to_replace.items())
             if items:
-                keys, values = zip(*items, strict=False)
+                keys, values = zip(*items)
             else:
                 keys, values = ([], [])
 
@@ -7195,7 +7195,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items(), strict=False)) or ([], [])
+                    keys, values = list(zip(*v.items())) or ([], [])
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)

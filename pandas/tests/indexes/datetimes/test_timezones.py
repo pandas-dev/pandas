@@ -964,7 +964,7 @@ class TestDatetimeIndexTimezones:
         eastern_range = utc_range.tz_convert("US/Eastern")
         berlin_range = utc_range.tz_convert("Europe/Berlin")
 
-        for a, b, c in zip(utc_range, eastern_range, berlin_range, strict=False):
+        for a, b, c in zip(utc_range, eastern_range, berlin_range):
             assert a == b
             assert b == c
             assert a == c
