@@ -19,6 +19,7 @@ from pandas.errors import (
 from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import (
+    is_any_numeric_dtype,
     is_numeric_dtype,
     is_object_dtype,
 )
@@ -486,7 +487,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
-        empty_index = type(index)([])
+        empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
@@ -500,7 +501,7 @@ class TestIndex(Base):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        empty_index = type(index)([])
+        empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
@@ -659,7 +660,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert index.is_numeric() is expected
+        assert is_any_numeric_dtype(index) is expected
 
     @pytest.mark.parametrize(
         "index, expected",

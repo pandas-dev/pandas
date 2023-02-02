@@ -813,6 +813,15 @@ class Base:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             idx.holds_integer()
 
+    def test_is_numeric_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=f"{type(idx).__name__}.is_numeric is deprecated. ",
+        ):
+            idx.is_numeric()
+
     def test_is_categorical_is_deprecated(self, simple_index):
         # GH50042
         idx = simple_index
