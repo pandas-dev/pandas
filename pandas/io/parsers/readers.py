@@ -401,13 +401,15 @@ use_nullable_dtypes : bool = False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
-    The nullable dtype implementation can be configured by calling
-    ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-    numpy-backed nullable dtypes or
-    ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-    pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-    This is only implemented for the ``pyarrow`` or ``python``
-    engines.
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        This is only implemented for the ``pyarrow`` or ``python``
+        engines.
 
     .. versionadded:: 2.0
 
@@ -891,6 +893,7 @@ def read_csv(
             "A strict version of it is now the default, see "
             "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
             "You can safely remove this argument.",
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
     # locals() should never be modified
@@ -1207,6 +1210,17 @@ def read_table(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1270,6 +1284,16 @@ def read_fwf(
         Whether or not to use nullable dtypes as default when reading data. If
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+            This is only implemented for the ``pyarrow`` or ``python``
+            engines.
 
         .. versionadded:: 2.0
 
