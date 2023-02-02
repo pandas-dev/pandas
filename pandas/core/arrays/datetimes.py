@@ -2211,7 +2211,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.
         # Note: data.astype(np.int64) fails ARM tests, see
         # https://github.com/pandas-dev/pandas/issues/49468.
-        data = data.astype("i8")
+        data = data.astype(DT64NS_DTYPE).view("i8")
         copy = False
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
