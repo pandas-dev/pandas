@@ -4512,17 +4512,6 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4
         4  5   2
 
-        Use ``inplace=True`` to modify the original DataFrame.
-
-        >>> df.eval('C = A + B', inplace=True)
-        >>> df
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
-
         Multiple columns can be assigned to using multi-line expressions:
 
         >>> df.eval(
@@ -6372,13 +6361,6 @@ class DataFrame(NDFrame, OpsMixin):
                name        toy       born
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
-
-        Keep the DataFrame with valid entries in the same variable.
-
-        >>> df.dropna(inplace=True)
-        >>> df
-             name        toy       born
-        1  Batman  Batmobile 1940-04-25
         """
         if (how is not no_default) and (thresh is not no_default):
             raise TypeError(
