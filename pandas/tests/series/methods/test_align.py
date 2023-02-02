@@ -82,7 +82,7 @@ def test_align_fill_method(
     tm.assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(datetime_series):
+def test_align_nocopy(datetime_series, using_copy_on_write):
     b = datetime_series[:5].copy()
 
     # do copy
@@ -95,7 +95,10 @@ def test_align_nocopy(datetime_series):
     a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
-    assert (a[:5] == 5).all()
+    if using_copy_on_write:
+        assert not (a[:5] == 5).any()
+    else:
+        assert (a[:5] == 5).all()
 
     # do copy
     a = datetime_series.copy()
@@ -109,7 +112,10 @@ def test_align_nocopy(datetime_series):
     b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
-    assert (b[:2] == 5).all()
+    if using_copy_on_write:
+        assert not (b[:2] == 5).any()
+    else:
+        assert (b[:2] == 5).all()
 
 
 def test_align_same_index(datetime_series):
