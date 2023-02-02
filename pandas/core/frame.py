@@ -4988,13 +4988,6 @@ class DataFrame(NDFrame, OpsMixin):
         1  2   5
         2  3   6
 
-        Now, update the labels without copying the underlying data.
-
-        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
-           i  ii
-        0  1   4
-        1  2   5
-        2  3   6
         """
     )
     @Substitution(
