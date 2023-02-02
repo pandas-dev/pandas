@@ -22,6 +22,8 @@ def engine(request):
     if request.param == "pyarrow":
         pytest.importorskip("pyarrow.json")
         return request.param
+    else:
+        return request.param
 
 
 @pytest.fixture
