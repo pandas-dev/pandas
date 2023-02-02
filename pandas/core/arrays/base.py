@@ -1709,14 +1709,14 @@ class ExtensionArray:
         obj = self
         if is_object_dtype(self.dtype) and skipna:
             # GH#37501: don't raise on pd.NA when skipna=True
-            mask = self.isna()
-            if mask.any():
+            self_mask = self.isna()
+            if self_mask.any():
                 # mask on original values computed separately
                 obj = obj.copy()
-                obj[mask] = True
+                obj[self_mask] = True
 
         vals = obj.astype(bool, copy=False).view(np.int8)
-        mask = self.isna().view(np.uint8)
+        mask = np.asarray(self.isna()).view(np.uint8)
 
         # Call func to modify result in place
         libgroupby.group_any_all(
