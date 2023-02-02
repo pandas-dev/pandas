@@ -184,7 +184,7 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["normalize", "to_julian_date", "to_period", "unit", "value"]),
+        (Timestamp, ["normalize", "to_julian_date", "to_period", "unit"]),
         (
             Timedelta,
             [
@@ -193,7 +193,6 @@ def test_nat_iso_format(get_nat):
                 "to_pytimedelta",
                 "to_timedelta64",
                 "unit",
-                "value",
                 "view",
             ],
         ),

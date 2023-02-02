@@ -361,6 +361,10 @@ class NaTType(_NaT):
 
         return base
 
+    @property
+    def value(self) -> int:
+        return self._value
+
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
         # https://bugs.python.org/issue28730
