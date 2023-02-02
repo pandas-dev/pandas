@@ -258,9 +258,7 @@ class Block(PandasObject):
         #  is from internals.concat, and we can verify that never happens
         #  with 1-column blocks, i.e. never for ExtensionBlock.
 
-        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
-        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
-        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
+        new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
 

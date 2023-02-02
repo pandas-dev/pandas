@@ -686,6 +686,18 @@ cdef datetime dateutil_parse(
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
+            # GH#50791
+            if res.tzname != "UTC":
+                # If the system is localized in UTC (as many CI runs are)
+                #  we get tzlocal, once the deprecation is enforced will get
+                #  timezone.utc, not raise.
+                warnings.warn(
+                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "keyword or call tz_localize after construction instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level()
+                )
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())

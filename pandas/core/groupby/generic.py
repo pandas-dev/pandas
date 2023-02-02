@@ -666,10 +666,13 @@ class SeriesGroupBy(GroupBy[Series]):
         bins=None,
         dropna: bool = True,
     ) -> Series | DataFrame:
+        name = "proportion" if normalize else "count"
+
         if bins is None:
             result = self._value_counts(
                 normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
             )
+            result.name = name
             return result
 
         from pandas.core.reshape.merge import get_join_indexers
@@ -678,7 +681,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        names = self.grouper.names + [self.obj.name]
+        index_names = self.grouper.names + [self.obj.name]
 
         if is_categorical_dtype(val.dtype) or (
             bins is not None and not np.iterable(bins)
@@ -693,7 +696,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 ascending=ascending,
                 bins=bins,
             )
-            ser.index.names = names
+            ser.name = name
+            ser.index.names = index_names
             return ser
 
         # groupby removes null keys from groupings
@@ -803,13 +807,14 @@ class SeriesGroupBy(GroupBy[Series]):
             codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
             codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
+        mi = MultiIndex(
+            levels=levels, codes=codes, names=index_names, verify_integrity=False
+        )
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        result = self.obj._constructor(out, index=mi, name=self.obj.name)
+        result = self.obj._constructor(out, index=mi, name=name)
         if not self.as_index:
-            result.name = "proportion" if normalize else "count"
             result = result.reset_index()
         return result
 
@@ -1788,7 +1793,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 sort=self.sort,
                 group_keys=self.group_keys,
                 observed=self.observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
         elif ndim == 1:
@@ -2204,7 +2208,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         2
                            US         1
                 medium     FR         1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(ascending=True)
         gender  education  country
@@ -2213,7 +2217,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        US         1
                 medium     FR         1
                 low        FR         2
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(normalize=True)
         gender  education  country
@@ -2222,7 +2226,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         0.50
                            US         0.25
                 medium     FR         0.25
-        dtype: float64
+        Name: proportion, dtype: float64
 
         >>> df.groupby('gender', as_index=False).value_counts()
            gender education country  count
