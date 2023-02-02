@@ -1017,7 +1017,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to 0.
+            This parameter is only for compatibility with DataFrame and is unused.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
@@ -1030,7 +1030,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        scalar or scalar
+        Series
 
         See Also
         --------
@@ -2538,8 +2538,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
 
-            For DataFrames, specifying ``axis=None`` will apply the aggregation
-            across both axes.
+            Specifying ``axis=None`` will apply the aggregation across both axes.
 
             .. versionadded:: 2.0.0
 
@@ -2554,7 +2553,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        Series or scalar
+        DataFrame
 
         See Also
         --------
