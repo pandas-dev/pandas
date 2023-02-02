@@ -53,9 +53,9 @@ can it now take all numpy numeric dtypes, i.e.
 
 .. ipython:: python
 
-    pd.Index(1, 2, 3], dtype=np.int8)
-    pd.Index(1, 2, 3], dtype=np.uint16)
-    pd.Index(1, 2, 3], dtype=np.float32)
+    pd.Index([1, 2, 3], dtype=np.int8)
+    pd.Index([1, 2, 3], dtype=np.uint16)
+    pd.Index([1, 2, 3], dtype=np.float32)
 
 The ability for ``Index`` to hold the numpy numeric dtypes has meant some changes in Pandas
 functionality. In particular, operations that previously were forced to create 64-bit indexes,
@@ -81,10 +81,13 @@ Below is a possibly non-exhaustive list of changes:
        idx.array.year
        idx.year
 
-3. Level dtypes on Indexes from :attr:`Series.sparse.from_coo` are now of dtype ``int32``.
+3. Level dtypes on Indexes from :meth:`Series.sparse.from_coo` are now of dtype ``int32``,
+   the same as they are on the ``rows``/``cols`` on a scipy sparse matrix. Previously they
+   were of dtype ``int64``.
 
    .. ipython:: python
 
+       from scipy import sparse
        A = sparse.coo_matrix(
            ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
        )
