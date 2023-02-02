@@ -1168,8 +1168,6 @@ class _GroupByMixin(PandasObject):
         self.key = key
 
         self._groupby = groupby
-        self._groupby.mutated = True
-        self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
     @no_type_check

@@ -3663,6 +3663,25 @@ class DataFrame(NDFrame, OpsMixin):
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
 
+    def _getitem_nocopy(self, key: list):
+        """
+        Behaves like __getitem__, but returns a view in cases where __getitem__
+        would make a copy.
+        """
+        # TODO(CoW): can be removed if/when we are always Copy-on-Write
+        indexer = self.columns._get_indexer_strict(key, "columns")[1]
+        new_axis = self.columns[indexer]
+
+        new_mgr = self._mgr.reindex_indexer(
+            new_axis,
+            indexer,
+            axis=0,
+            allow_dups=True,
+            copy=False,
+            only_slice=True,
+        )
+        return self._constructor(new_mgr)
+
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
@@ -9542,7 +9561,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
         lsuffix: str = "",
