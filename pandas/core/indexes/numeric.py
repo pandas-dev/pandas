@@ -3,10 +3,6 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._typing import Dtype
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
 
 from pandas.core.indexes.base import Index
 
