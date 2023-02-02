@@ -78,3 +78,13 @@ def test_replace_categorical_ea_dtype():
     result = pd.Series(cat).replace(["a", "b"], ["c", pd.NA])._values
     expected = Categorical(pd.array(["c", pd.NA], dtype="string"))
     tm.assert_categorical_equal(result, expected)
+
+
+def test_replace_maintain_ordering():
+    # GH51016
+    dtype = pd.CategoricalDtype([0, 1, 2], ordered=True)
+    ser = pd.Series([0, 1, 2], dtype=dtype)
+    result = ser.replace(0, 2)
+    expected_dtype = pd.CategoricalDtype([1, 2], ordered=True)
+    expected = pd.Series([2, 1, 2], dtype=expected_dtype)
+    tm.assert_series_equal(expected, result, check_category_order=True)
