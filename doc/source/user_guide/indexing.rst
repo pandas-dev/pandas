@@ -1582,8 +1582,27 @@ lookups, data alignment, and reindexing. The easiest way to create an
    index
    'd' in index
 
-You can also pass a ``name`` to be stored in the index:
+or using numbers:
 
+.. ipython:: python
+
+   index = pd.Index([1, 5, 12])
+   index
+   5 in index
+
+If no dtype is given, ``Index`` tries to infer the dtype from the data.
+It is also possible to give an explicit dtype when instantiating an :class:`Index`:
+
+.. ipython:: python
+
+   index = pd.Index(['e', 'd', 'a', 'b'], dtype="string")
+   index
+   index = pd.Index([1, 5, 12], dtype="int8")
+   index
+   index = pd.Index([1, 5, 12], dtype="float32")
+   index
+
+You can also pass a ``name`` to be stored in the index:
 
 .. ipython:: python
 

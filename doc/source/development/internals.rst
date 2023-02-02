@@ -19,9 +19,6 @@ containers for the axis labels:
   assuming nothing about its contents. The labels must be hashable (and
   likely immutable) and unique. Populates a dict of label to location in
   Cython to do ``O(1)`` lookups.
-* ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
-  data, such as time stamps
-* ``Float64Index``: a version of ``Index`` highly optimized for 64-bit float data
 * :class:`MultiIndex`: the standard hierarchical index object
 * :class:`DatetimeIndex`: An Index object with :class:`Timestamp` boxed elements (impl are the int64 values)
 * :class:`TimedeltaIndex`: An Index object with :class:`Timedelta` boxed elements (impl are the in64 values)
