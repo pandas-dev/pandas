@@ -31,6 +31,7 @@ CI_PATH = next(
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
+ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
 # pandas package is not available
 # in pre-commit environment
@@ -46,28 +47,44 @@ import _optional
 
 def pin_min_versions_to_ci_deps():
     toml_dependencies = get_versions_from_toml()
-    # TODO: Add environment.yml to "all_yaml_files"
-    all_yaml_files = list(YAML_PATH.iterdir())
+    all_yaml_files = list(YAML_PATH.iterdir()).append(ENV_PATH)
+
     for curr_file in all_yaml_files:
         with open(curr_file, "rb") as yaml_f:
+            data = yaml_f.read()
             yaml_file = yaml.safe_load(yaml_f)
             yaml_deps = yaml_file["dependencies"]
-            for dependency in yaml_deps:
-                if ">=" in dependency:
-                    yaml_package, yaml_version = str(dependency).strip().split(">=")
-                elif "=" in dependency:
-                    yaml_package, yaml_version = str(dependency).strip().split("=")
+            yaml_left = ""
+            for dependency_line in yaml_deps:
+                if ">=" in dependency_line:
+                    yaml_package, yaml_version = (
+                        str(dependency_line).strip().split(">=")
+                    )
+                    yaml_left = yaml_package + ">="
+                elif "=" in dependency_line:
+                    yaml_package, yaml_version = str(dependency_line).strip().split("=")
+                    yaml_left = yaml_package + "="
                 else:
-                    yaml_package, yaml_version = str(dependency), "None"
-                if "=" in dependency:
-                    if yaml_package in toml_dependencies:
+                    yaml_package, yaml_version = str(dependency_line).strip(), None
+                yaml_package = yaml_package[2:]
+                if yaml_package in toml_dependencies:
+                    # update yaml package version to TOML min version
+                    if yaml_version is not None:
                         if toml_dependencies[yaml_package] > yaml_version:
-                            # update yaml package version to toml min version
-                            pass
-                else:
-                    if yaml_package in toml_dependencies:
-                        # update yaml package version to toml min version. use ">="
-                        pass
+                            # ex: "hypothesis>=" + "6.34.2"
+                            replace_text = yaml_left + toml_dependencies[yaml_package]
+                    else:
+                        # ex: "hypothesis + ">=" + 6.34.2"
+                        replace_text = (
+                            yaml_left + ">=" + toml_dependencies[yaml_package]
+                        )
+                search_text = str(dependency_line).strip()[2:]
+                data = data.replace(search_text, replace_text)
+
+            # create new yaml file with updated versions
+            with open(curr_file, "w") as f:
+                f.write(data)
+            # TODO: delete old yaml file
 
 
 def get_versions_from_code() -> dict[str, str]:
