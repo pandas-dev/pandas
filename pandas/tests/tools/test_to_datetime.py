@@ -1089,7 +1089,7 @@ class TestToDatetime:
 
     def test_out_of_bounds_errors_ignore(self):
         # https://github.com/pandas-dev/pandas/issues/50587
-        result = to_datetime([np.datetime64("9999-01-01")], errors="ignore")[0]
+        result = to_datetime(np.datetime64("9999-01-01"), errors="ignore")
         expected = np.datetime64("9999-01-01")
         assert result == expected
 
