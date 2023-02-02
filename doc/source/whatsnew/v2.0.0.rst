@@ -123,6 +123,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_sql_table`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`read_spss`
 * :func:`to_numeric`
 
 To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
@@ -151,6 +152,7 @@ to select the nullable dtypes implementation.
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`read_spss`
 * :func:`to_numeric`
 
 
