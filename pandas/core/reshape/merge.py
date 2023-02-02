@@ -89,7 +89,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible
@@ -2109,11 +2112,23 @@ class _AsOfMerge(_OrderedMerge):
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
-            left_values = left_values.view("i8")
-            right_values = right_values.view("i8")
             if tolerance is not None:
                 tolerance = Timedelta(tolerance)
+
+                # TODO: we have no test cases with PeriodDtype here; probably
+                #  need to adjust tolerance for that case.
+                if left_values.dtype.kind in ["m", "M"]:
+                    # Make sure the i8 representation for tolerance
+                    #  matches that for left_values/right_values.
+                    lvs = ensure_wrapped_if_datetimelike(left_values)
+                    tolerance = tolerance.as_unit(lvs.unit)
+
                 tolerance = tolerance.value
+
+            # TODO: require left_values.dtype == right_values.dtype, or at least
+            #  comparable for e.g. dt64tz
+            left_values = left_values.view("i8")
+            right_values = right_values.view("i8")
 
         # a "by" parameter requires special handling
         if self.left_by is not None:

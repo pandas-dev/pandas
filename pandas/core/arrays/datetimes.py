@@ -803,7 +803,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
@@ -892,7 +892,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -1031,7 +1031,7 @@ default 'raise'
 
         if self.tz is not None:
             if tz is None:
-                new_dates = tz_convert_from_utc(self.asi8, self.tz)
+                new_dates = tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1067,7 +1067,7 @@ default 'raise'
 
         Returns
         -------
-        datetimes : ndarray[object]
+        numpy.ndarray
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
@@ -2030,17 +2030,11 @@ def _sequence_to_dt64ns(
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                if data.dtype == "i8":
-                    # GH#42505
-                    # by convention, these are _already_ UTC, e.g
-                    return data.view(DT64NS_DTYPE), tz, None
+                assert data.dtype == "i8"
+                # GH#42505
+                # by convention, these are _already_ UTC, e.g
+                return data.view(DT64NS_DTYPE), tz, None
 
-                if timezones.is_utc(tz):
-                    # Fastpath, avoid copy made in tzconversion
-                    utc_vals = data.view("i8")
-                else:
-                    utc_vals = tz_convert_from_utc(data.view("i8"), tz)
-                data = utc_vals.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import collections
 import datetime as dt
+from functools import partial
 import gc
 from json import loads
 import operator
@@ -35,7 +36,7 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._libs.lib import array_equal_fast
+from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -48,7 +49,6 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     AxisInt,
-    ColspaceArgType,
     CompressionOptions,
     Dtype,
     DtypeArg,
@@ -69,6 +69,7 @@ from pandas._typing import (
     NDFrameT,
     RandomState,
     Renamer,
+    Scalar,
     SortKind,
     StorageOptions,
     Suffixes,
@@ -89,10 +90,7 @@ from pandas.errors import (
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
-from pandas.util._decorators import (
-    doc,
-    rewrite_axis_style_signature,
-)
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
@@ -182,7 +180,6 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats import format as fmt
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -511,38 +508,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _construct_axes_from_arguments(
-        cls, args, kwargs, require_all: bool_t = False, sentinel=None
-    ):
-        """
-        Construct and returns axes if supplied in args/kwargs.
-
-        If require_all, raise if all axis arguments are not supplied
-        return a tuple of (axes, kwargs).
-
-        sentinel specifies the default parameter when an axis is not
-        supplied; useful to distinguish when a user explicitly passes None
-        in scenarios where None has special meaning.
-        """
-        # construct the args
-        args = list(args)
-        for a in cls._AXIS_ORDERS:
-
-            # look for a argument by position
-            if a not in kwargs:
-                try:
-                    kwargs[a] = args.pop(0)
-                except IndexError as err:
-                    if require_all:
-                        raise TypeError(
-                            "not enough/duplicate arguments specified!"
-                        ) from err
-
-        axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
-        return axes, kwargs
-
-    @final
-    @classmethod
     def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
@@ -780,8 +745,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            if copy is False and not using_copy_on_write():
-                return self
             return self.copy(deep=copy)
 
         mapping = {i: j, j: i}
@@ -1079,8 +1042,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: Literal[False] = ...,
-        **kwargs,
     ) -> NDFrameT:
         ...
 
@@ -1089,8 +1055,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: Literal[True],
-        **kwargs,
     ) -> None:
         ...
 
@@ -1099,18 +1068,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: bool_t = ...,
-        **kwargs,
     ) -> NDFrameT | None:
         ...
 
-    @rewrite_axis_style_signature("mapper", [("copy", True)])
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
+        index=lib.no_default,
+        columns=lib.no_default,
+        axis: Axis = 0,
+        copy: bool_t | None = None,
         inplace: bool_t = False,
-        **kwargs,
     ) -> NDFrameT | None:
         """
         Set the name of the axis for the index or columns.
@@ -1131,7 +1105,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and/or ``columns``.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default True
+        copy : bool, default None
             Also copy underlying data.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
@@ -1235,22 +1209,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
-        kwargs["inplace"] = inplace
-        axes, kwargs = self._construct_axes_from_arguments(
-            (), kwargs, sentinel=lib.no_default
-        )
-        copy: bool_t | None = kwargs.pop("copy", None)
+        axes = {"index": index, "columns": columns}
 
-        inplace = kwargs.pop("inplace", False)
-        axis = kwargs.pop("axis", 0)
         if axis is not None:
             axis = self._get_axis_number(axis)
-
-        if kwargs:
-            raise TypeError(
-                "rename_axis() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
-            )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1487,7 +1449,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __invert__(self: NDFrameT) -> NDFrameT:
         if not self.size:
             # inv fails with 0 len
-            return self
+            return self.copy(deep=False)
 
         new_data = self._mgr.apply(operator.invert)
         return self._constructor(new_data).__finalize__(self, method="__invert__")
@@ -1805,14 +1767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
-            # error: Incompatible types in assignment (expression has type "Union[
-            # ExtensionArray, ndarray[Any, Any]]", variable has type "ndarray[Any,
-            # Any]")
-            values = (
-                self.axes[axis]
-                .get_level_values(key)  # type: ignore[assignment]
-                ._values
-            )
+            values = self.axes[axis].get_level_values(key)._values
         else:
             raise KeyError(key)
 
@@ -2108,7 +2063,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("display.latex.repr"):
+        if config.get_option("styler.render.repr") == "latex":
             return self.to_latex()
         else:
             return None
@@ -3146,7 +3101,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3174,7 +3128,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        col_space: ColspaceArgType | None = ...,
         header: bool_t | Sequence[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3198,12 +3151,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        col_space: ColspaceArgType | None = None,
         header: bool_t | Sequence[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
@@ -3237,14 +3188,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
+        .. versionchanged:: 2.0.0
+           Refactored to use the Styler implementation via jinja2 templating.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
             it is assumed to be aliases for the column names.
@@ -3318,7 +3270,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``\begin{{}}`` in the output.
 
             .. versionadded:: 1.2.0
-        {returns}
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+
         See Also
         --------
         io.formats.style.Styler.to_latex : Render a DataFrame to LaTeX
@@ -3327,30 +3284,35 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
 
+        Notes
+        -----
+        As of v2.0.0 this method has changed to use the Styler implementation as
+        part of :meth:`.Styler.to_latex` via ``jinja2`` templating. This means
+        that ``jinja2`` is a requirement, and needs to be installed, for this method
+        to function. It is advised that users switch to using Styler, since that
+        implementation is more frequently updated and contains much more
+        flexibility with the output.
+
         Examples
         --------
-        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +SKIP
-        \begin{{tabular}}{{lll}}
-         \toprule
-               name &    mask &    weapon \\
-         \midrule
-            Raphael &     red &       sai \\
-          Donatello &  purple &  bo staff \\
-        \bottomrule
-        \end{{tabular}}
-        """
-        msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        Convert a general DataFrame to LaTeX with formatting:
 
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(index=False,
+        ...                   formatters={"name": str.upper},
+        ...                   float_format="{:.1f}".format,
+        ... )  # doctest: +SKIP
+        \begin{tabular}{lrr}
+        \toprule
+        name & age & height \\
+        \midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
+        \bottomrule
+        \end{tabular}
+        """
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -3365,34 +3327,169 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        if column_format is not None and not isinstance(column_format, str):
+            raise ValueError("`column_format` must be str or unicode")
+        length = len(self.columns) if columns is None else len(columns)
+        if isinstance(header, (list, tuple)) and len(header) != length:
+            raise ValueError(f"Writing {length} cols but got {len(header)} aliases")
+
+        # Refactor formatters/float_format/decimal/na_rep/escape to Styler structure
+        base_format_ = {
+            "na_rep": na_rep,
+            "escape": "latex" if escape else None,
+            "decimal": decimal,
+        }
+        index_format_: dict[str, Any] = {"axis": 0, **base_format_}
+        column_format_: dict[str, Any] = {"axis": 1, **base_format_}
+
+        if isinstance(float_format, str):
+            float_format_: Callable | None = lambda x: float_format % x
+        else:
+            float_format_ = float_format
+
+        def _wrap(x, alt_format_):
+            if isinstance(x, (float, complex)) and float_format_ is not None:
+                return float_format_(x)
+            else:
+                return alt_format_(x)
+
+        formatters_: list | tuple | dict | Callable | None = None
+        if isinstance(formatters, list):
+            formatters_ = {
+                c: partial(_wrap, alt_format_=formatters[i])
+                for i, c in enumerate(self.columns)
+            }
+        elif isinstance(formatters, dict):
+            index_formatter = formatters.pop("__index__", None)
+            column_formatter = formatters.pop("__columns__", None)
+            if index_formatter is not None:
+                index_format_.update({"formatter": index_formatter})
+            if column_formatter is not None:
+                column_format_.update({"formatter": column_formatter})
+
+            formatters_ = formatters
+            float_columns = self.select_dtypes(include="float").columns
+            for col in float_columns:
+                if col not in formatters.keys():
+                    formatters_.update({col: float_format_})
+        elif formatters is None and float_format is not None:
+            formatters_ = partial(_wrap, alt_format_=lambda v: v)
+        format_index_ = [index_format_, column_format_]
+
+        # Deal with hiding indexes and relabelling column names
+        hide_: list[dict] = []
+        relabel_index_: list[dict] = []
+        if columns:
+            hide_.append(
+                {
+                    "subset": [c for c in self.columns if c not in columns],
+                    "axis": "columns",
+                }
+            )
+        if header is False:
+            hide_.append({"axis": "columns"})
+        elif isinstance(header, (list, tuple)):
+            relabel_index_.append({"labels": header, "axis": "columns"})
+            format_index_ = [index_format_]  # column_format is overwritten
+
+        if index is False:
+            hide_.append({"axis": "index"})
+        if index_names is False:
+            hide_.append({"names": True, "axis": "index"})
+
+        render_kwargs_ = {
+            "hrules": True,
+            "sparse_index": sparsify,
+            "sparse_columns": sparsify,
+            "environment": "longtable" if longtable else None,
+            "multicol_align": multicolumn_format
+            if multicolumn
+            else f"naive-{multicolumn_format}",
+            "multirow_align": "t" if multirow else "naive",
+            "encoding": encoding,
+            "caption": caption,
+            "label": label,
+            "position": position,
+            "column_format": column_format,
+            "clines": "skip-last;data" if multirow else None,
+            "bold_rows": bold_rows,
+        }
+
+        return self._to_latex_via_styler(
+            buf,
+            hide=hide_,
+            relabel_index=relabel_index_,
+            format={"formatter": formatters_, **base_format_},
+            format_index=format_index_,
+            render_kwargs=render_kwargs_,
+        )
+
+    def _to_latex_via_styler(
+        self,
+        buf=None,
+        *,
+        hide: dict | list[dict] | None = None,
+        relabel_index: dict | list[dict] | None = None,
+        format: dict | list[dict] | None = None,
+        format_index: dict | list[dict] | None = None,
+        render_kwargs: dict | None = None,
+    ):
+        """
+        Render object to a LaTeX tabular, longtable, or nested table.
+
+        Uses the ``Styler`` implementation with the following, ordered, method chaining:
+
+        .. code-block:: python
+           styler = Styler(DataFrame)
+           styler.hide(**hide)
+           styler.relabel_index(**relabel_index)
+           styler.format(**format)
+           styler.format_index(**format_index)
+           styler.to_latex(buf=buf, **render_kwargs)
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        hide : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.hide``. If a list will
+            call the method numerous times.
+        relabel_index : dict, list of dict
+            Keyword args to pass to the method of ``Styler.relabel_index``. If a list
+            will call the method numerous times.
+        format : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format``. If a list will
+            call the method numerous times.
+        format_index : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format_index``. If a
+            list will call the method numerous times.
+        render_kwargs : dict
+            Keyword args to pass to the method call of ``Styler.to_latex``.
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+        """
+        from pandas.io.formats.style import Styler
+
         self = cast("DataFrame", self)
-        formatter = DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
-        )
-        return DataFrameRenderer(formatter).to_latex(
-            buf=buf,
-            column_format=column_format,
-            longtable=longtable,
-            encoding=encoding,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
+        styler = Styler(self, uuid="")
+
+        for kw_name in ["hide", "relabel_index", "format", "format_index"]:
+            kw = vars()[kw_name]
+            if isinstance(kw, dict):
+                getattr(styler, kw_name)(**kw)
+            elif isinstance(kw, list):
+                for sub_kw in kw:
+                    getattr(styler, kw_name)(**sub_kw)
+
+        # bold_rows is not a direct kwarg of Styler.to_latex
+        render_kwargs = {} if render_kwargs is None else render_kwargs
+        if render_kwargs.pop("bold_rows"):
+            styler.applymap_index(lambda v: "textbf:--rwrap;")
+
+        return styler.to_latex(buf=buf, **render_kwargs)
 
     @overload
     def to_csv(
@@ -3787,10 +3884,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis == 0
                 and indices.ndim == 1
                 and using_copy_on_write()
-                and array_equal_fast(
-                    indices,
-                    np.arange(0, len(self), dtype=np.intp),
-                )
+                and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
 
@@ -4400,7 +4494,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
-            axes, _ = self._construct_axes_from_arguments((index, columns), {})
+            axes = {"index": index}
+            if self.ndim == 2:
+                axes["columns"] = columns
         else:
             raise ValueError(
                 "Need to specify at least one of 'labels', 'index' or 'columns'"
@@ -4973,11 +5069,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels="",
-        optional_axis="",
+        optional_reindex="",
     )
-    def reindex(self: NDFrameT, *args, **kwargs) -> NDFrameT:
+    def reindex(
+        self: NDFrameT,
+        labels=None,
+        index=None,
+        columns=None,
+        axis: Axis | None = None,
+        method: str | None = None,
+        copy: bool_t | None = None,
+        level: Level | None = None,
+        fill_value: Scalar | None = np.nan,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> NDFrameT:
         """
         Conform {klass} to new index with optional filling logic.
 
@@ -4987,11 +5093,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        {optional_labels}
-        {axes} : array-like, optional
-            New labels / index to conform to, should be specified using
-            keywords. Preferably an Index object to avoid duplicating data.
-        {optional_axis}
+        {optional_reindex}
         method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
@@ -5180,31 +5282,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # TODO: Decide if we care about having different examples for different
         # kinds
 
-        # construct the args
-        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = clean_reindex_fill_method(kwargs.pop("method", None))
-        level = kwargs.pop("level", None)
-        copy = kwargs.pop("copy", None)
-        limit = kwargs.pop("limit", None)
-        tolerance = kwargs.pop("tolerance", None)
-        fill_value = kwargs.pop("fill_value", None)
-
-        # Series.reindex doesn't use / need the axis kwarg
-        # We pop and ignore it here, to make writing Series/Frame generic code
-        # easier
-        kwargs.pop("axis", None)
-
-        if kwargs:
-            raise TypeError(
-                "reindex() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
-            )
+        if index is not None and columns is not None and labels is not None:
+            raise TypeError("Cannot specify all of 'labels', 'index', 'columns'.")
+        elif index is not None or columns is not None:
+            if axis is not None:
+                raise TypeError(
+                    "Cannot specify both 'axis' and any of 'index' or 'columns'"
+                )
+            if labels is not None:
+                if index is not None:
+                    columns = labels
+                else:
+                    index = labels
+        else:
+            if axis and self._get_axis_number(axis) == 1:
+                columns = labels
+            else:
+                index = labels
+        axes: dict[Literal["index", "columns"], Any] = {
+            "index": index,
+            "columns": columns,
+        }
+        method = clean_reindex_fill_method(method)
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
         if all(
-            self._get_axis(axis).identical(ax)
-            for axis, ax in axes.items()
+            self._get_axis(axis_name).identical(ax)
+            for axis_name, ax in axes.items()
             if ax is not None
         ):
             return self.copy(deep=copy)
@@ -5298,6 +5403,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if (copy or copy is None) and new_data is self._mgr:
             new_data = new_data.copy(deep=copy)
+        elif using_copy_on_write() and new_data is self._mgr:
+            new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -5386,7 +5493,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}
+                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
             )
         elif like:
 
@@ -5975,7 +6082,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         raise AbstractMethodError(self)
 
     @property
-    def _values(self) -> np.ndarray:
+    def _values(self) -> ArrayLike:
         """internal implementation"""
         raise AbstractMethodError(self)
 
@@ -7046,6 +7153,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                # TODO: Consider copy-on-write for non-replaced columns's here
                 if isinstance(self, ABCDataFrame):
                     from pandas import Series
 
@@ -7105,7 +7213,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy()
+                return self.copy(deep=None)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -8756,7 +8864,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
-            return self
+            return self.copy(deep=False)
 
         offset = to_offset(offset)
         if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
@@ -8829,7 +8937,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
-            return self
+            return self.copy(deep=False)
 
         offset = to_offset(offset)
 
@@ -9122,7 +9230,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        (left, right) : ({klass}, type of other)
+        tuple of ({klass}, type of other)
             Aligned objects.
 
         Examples
@@ -9337,7 +9445,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit=None,
         fill_axis: Axis = 0,
     ):
-
         is_series = isinstance(self, ABCSeries)
 
         if (not is_series and axis is None) or axis not in [None, 0, 1]:
@@ -9360,7 +9467,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
             elif lidx is None or join_index is None:
-                left = self.copy(deep=copy) if copy or copy is None else self
+                left = self.copy(deep=copy)
             else:
                 left = self._constructor(
                     self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
@@ -9389,7 +9496,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = self._constructor(fdata)
 
             if ridx is None:
-                right = other.copy(deep=copy) if copy or copy is None else other
+                right = other.copy(deep=copy)
             else:
                 right = other.reindex(join_index, level=level)
 
@@ -9908,7 +10015,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-08    45    48    52
         """
         if periods == 0:
-            return self.copy()
+            return self.copy(deep=None)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

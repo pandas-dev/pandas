@@ -236,6 +236,20 @@ cdef class _Timestamp(ABCTimestamp):
     def unit(self) -> str:
         """
         The abbreviation associated with self._creso.
+
+        Examples
+        --------
+        >>> pd.Timestamp("2020-01-01 12:34:56").unit
+        's'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123").unit
+        'ms'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123456").unit
+        'us'
+
+        >>> pd.Timestamp("2020-01-01 12:34:56.123456789").unit
+        'ns'
         """
         return npy_unit_to_abbrev(self._creso)
 
@@ -687,6 +701,14 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_end : Similar property indicating the end of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -703,6 +725,14 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        Timestamp.is_year_start : Similar property indicating the start of the year.
 
         Examples
         --------
@@ -785,6 +815,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
 
+        Returns
+        -------
+        bool
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -797,6 +831,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_week(self) -> int:
         """
         Return day of the week.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -811,6 +849,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -823,6 +865,10 @@ cdef class _Timestamp(ABCTimestamp):
     def quarter(self) -> int:
         """
         Return the quarter of the year.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -837,6 +883,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the week number of the year.
 
+        Returns
+        -------
+        int
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -849,6 +899,10 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        Returns
+        -------
+        int
 
         Examples
         --------
@@ -1409,7 +1463,18 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
         """
-        return datetime.strftime(self, format)
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "strftime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.strftime(format)
 
     # Issue 25016.
     @classmethod

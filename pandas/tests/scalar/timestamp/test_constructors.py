@@ -24,6 +24,34 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_string_invalid_raises(self):
+        # dateutil (weirdly) parses "200622-12-31" as
+        #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
+        #  which besides being mis-parsed, is a tzoffset that will cause
+        #  str(ts) to raise ValueError.  Ensure we raise in the constructor
+        #  instead.
+        # see test_to_datetime_malformed_raise for analogous to_datetime test
+        with pytest.raises(ValueError, match="gives an invalid tzoffset"):
+            Timestamp("200622-12-31")
+
+    def test_constructor_str_infer_reso(self):
+        # non-iso8601 path
+
+        # _parse_delimited_date path
+        ts = Timestamp("01/30/2023")
+        assert ts.unit == "s"
+
+        # _parse_dateabbr_string path
+        ts = Timestamp("2015Q1")
+        assert ts.unit == "s"
+
+        # dateutil_parse path
+        ts = Timestamp("2016-01-01 1:30:01 PM")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2016 June 3 15:25:01.345")
+        assert ts.unit == "ms"
+
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")
@@ -44,6 +72,15 @@ class TestTimestampConstructors:
         obj = date(2012, 9, 1)
         ts = Timestamp(obj)
         assert ts.unit == "s"
+
+    @pytest.mark.parametrize("typ", [int, float])
+    def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
+        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        val = typ(150000000)
+
+        msg = f"cannot convert input {val} with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(val, unit="D")
 
     @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
@@ -429,7 +466,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = f"Unknown string format: 2014-11-02 01:00{z}"
+        msg = f"Unknown datetime string format, unable to parse: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 
