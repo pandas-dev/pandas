@@ -19,7 +19,9 @@ def json_dir_path(datapath):
 
 @pytest.fixture(params=["ujson", "pyarrow"])
 def engine(request):
-    return request.param
+    if request.param == "pyarrow":
+        pytest.importorskip("pyarrow.json")
+        return request.param
 
 
 @pytest.fixture
