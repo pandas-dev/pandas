@@ -289,7 +289,7 @@ class TestSeriesMisc:
                 assert result == expected
 
 
-@pytest.mark.parametrize("converter", [int, float])
+@pytest.mark.parametrize("converter", [int, float, complex])
 def test_float_int_deprecated(converter):
     # GH 51101
     with tm.assert_produces_warning(FutureWarning):
