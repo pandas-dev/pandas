@@ -3,7 +3,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import UndefinedVariableError
+from pandas.errors import (
+    NumExprClobberingError,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -534,7 +537,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.errors import NumExprClobberingError
 
         engine, parser = self.engine, self.parser
 
@@ -863,6 +865,22 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             "df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]", engine=engine, parser=parser
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_query_numexpr_with_min_and_max_columns(self):
+        df = DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
+        regex_to_match = (
+            r"Variables in expression \"\(min\) == \(1\)\" "
+            r"overlap with builtins: \('min'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("min == 1")
+
+        regex_to_match = (
+            r"Variables in expression \"\(max\) == \(1\)\" "
+            r"overlap with builtins: \('max'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("max == 1")
 
 
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):

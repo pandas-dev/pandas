@@ -288,6 +288,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     The basic object storing axis labels for all pandas objects.
 
+    .. versionchanged:: 2.0.0
+
+       Index can hold all numpy numeric dtypes (except float16). Previously only
+       int64/uint64/float64 dtypes were accepted.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -315,15 +320,19 @@ class Index(IndexOpsMixin, PandasObject):
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects
+    An Index instance can **only** contain hashable objects.
+    An Index instance *can not* hold numpy float16 dtype.
 
     Examples
     --------
     >>> pd.Index([1, 2, 3])
-    NumericIndex([1, 2, 3], dtype='int64')
+    Index([1, 2, 3], dtype='int64')
 
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
+
+    >>> pd.Index([1, 2, 3], dtype="uint8")
+    Index([1, 2, 3], dtype='uint8')
     """
 
     # To hand over control to subclasses
@@ -400,7 +409,10 @@ class Index(IndexOpsMixin, PandasObject):
     _no_setting_name: bool = False
     _comparables: list[str] = ["name"]
     _attributes: list[str] = ["name"]
-    _can_hold_strings: bool = True
+
+    @cache_readonly
+    def _can_hold_strings(self) -> bool:
+        return not is_numeric_dtype(self)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -1194,6 +1206,10 @@ class Index(IndexOpsMixin, PandasObject):
         Return a string representation for this object.
         """
         klass_name = type(self).__name__
+        from pandas.core.indexes.numeric import NumericIndex
+
+        if type(self) is NumericIndex:
+            klass_name = "Index"
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
@@ -1416,6 +1432,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self
 
+    @final
     def to_series(self, index=None, name: Hashable = None) -> Series:
         """
         Create a Series with both index and values equal to the index keys.
@@ -1716,9 +1733,9 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1, 2, 3, 4])
         >>> idx
-        NumericIndex([1, 2, 3, 4], dtype='int64')
+        Index([1, 2, 3, 4], dtype='int64')
         >>> idx.set_names('quarter')
-        NumericIndex([1, 2, 3, 4], dtype='int64', name='quarter')
+        Index([1, 2, 3, 4], dtype='int64', name='quarter')
 
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]])
@@ -2004,7 +2021,7 @@ class Index(IndexOpsMixin, PandasObject):
                    names=['x', 'y'])
 
         >>> mi.droplevel(['x', 'y'])
-        NumericIndex([5, 6], dtype='int64', name='z')
+        Index([5, 6], dtype='int64', name='z')
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -2713,7 +2730,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.NaN])
         >>> idx
-        NumericIndex([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.isna()
         array([False, False,  True])
 
@@ -2770,7 +2787,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.NaN])
         >>> idx
-        NumericIndex([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.notna()
         array([ True,  True, False])
 
@@ -3081,7 +3098,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
-        NumericIndex([1, 2, 3, 4, 5, 6], dtype='int64')
+        Index([1, 2, 3, 4, 5, 6], dtype='int64')
 
         Union mismatched dtypes
 
@@ -3273,7 +3290,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.intersection(idx2)
-        NumericIndex([3, 4], dtype='int64')
+        Index([3, 4], dtype='int64')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -3420,9 +3437,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)
-        NumericIndex([1, 2], dtype='int64')
+        Index([1, 2], dtype='int64')
         >>> idx1.difference(idx2, sort=False)
-        NumericIndex([2, 1], dtype='int64')
+        Index([2, 1], dtype='int64')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -3503,7 +3520,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([2, 3, 4, 5])
         >>> idx1.symmetric_difference(idx2)
-        NumericIndex([1, 5], dtype='int64')
+        Index([1, 5], dtype='int64')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -5068,7 +5085,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1, 2, 3, 4])
         >>> idx
-        NumericIndex([1, 2, 3, 4], dtype='int64')
+        Index([1, 2, 3, 4], dtype='int64')
 
         >>> 2 in idx
         True
@@ -5226,6 +5243,7 @@ class Index(IndexOpsMixin, PandasObject):
             if is_object_dtype(self):  # pragma: no cover
                 raise err
 
+            # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
             return self.astype(dtype).putmask(mask, value)
 
@@ -5266,7 +5284,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx1 = pd.Index([1, 2, 3])
         >>> idx1
-        NumericIndex([1, 2, 3], dtype='int64')
+        Index([1, 2, 3], dtype='int64')
         >>> idx1.equals(pd.Index([1, 2, 3]))
         True
 
@@ -5283,10 +5301,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> ascending_idx = pd.Index([1, 2, 3])
         >>> ascending_idx
-        NumericIndex([1, 2, 3], dtype='int64')
+        Index([1, 2, 3], dtype='int64')
         >>> descending_idx = pd.Index([3, 2, 1])
         >>> descending_idx
-        NumericIndex([3, 2, 1], dtype='int64')
+        Index([3, 2, 1], dtype='int64')
         >>> ascending_idx.equals(descending_idx)
         False
 
@@ -5294,10 +5312,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
         >>> int64_idx
-        NumericIndex([1, 2, 3], dtype='int64')
+        Index([1, 2, 3], dtype='int64')
         >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
         >>> uint64_idx
-        NumericIndex([1, 2, 3], dtype='uint64')
+        Index([1, 2, 3], dtype='uint64')
         >>> int64_idx.equals(uint64_idx)
         True
         """
@@ -5520,18 +5538,18 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([10, 100, 1, 1000])
         >>> idx
-        NumericIndex([10, 100, 1, 1000], dtype='int64')
+        Index([10, 100, 1, 1000], dtype='int64')
 
         Sort values in ascending order (default behavior).
 
         >>> idx.sort_values()
-        NumericIndex([1, 10, 100, 1000], dtype='int64')
+        Index([1, 10, 100, 1000], dtype='int64')
 
         Sort values in descending order, and also get the indices `idx` was
         sorted by.
 
         >>> idx.sort_values(ascending=False, return_indexer=True)
-        (NumericIndex([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
+        (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         idx = ensure_key_mapped(self, key)
 
@@ -5671,6 +5689,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind in ["i", "u", "f"]:
+            return False
         return not self._holds_integer()
 
     _index_shared_docs[
@@ -6178,7 +6198,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1,2,3])
         >>> idx
-        NumericIndex([1, 2, 3], dtype='int64')
+        Index([1, 2, 3], dtype='int64')
 
         Check whether each index value in a list of values.
 
@@ -6975,7 +6995,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     Examples
     --------
     >>> ensure_index_from_sequences([[1, 2, 3]], names=["name"])
-    NumericIndex([1, 2, 3], dtype='int64', name='name')
+    Index([1, 2, 3], dtype='int64', name='name')
 
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),

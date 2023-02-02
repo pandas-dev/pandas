@@ -3663,6 +3663,25 @@ class DataFrame(NDFrame, OpsMixin):
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
 
+    def _getitem_nocopy(self, key: list):
+        """
+        Behaves like __getitem__, but returns a view in cases where __getitem__
+        would make a copy.
+        """
+        # TODO(CoW): can be removed if/when we are always Copy-on-Write
+        indexer = self.columns._get_indexer_strict(key, "columns")[1]
+        new_axis = self.columns[indexer]
+
+        new_mgr = self._mgr.reindex_indexer(
+            new_axis,
+            indexer,
+            axis=0,
+            allow_dups=True,
+            copy=False,
+            only_slice=True,
+        )
+        return self._constructor(new_mgr)
+
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
@@ -7003,28 +7022,28 @@ class DataFrame(NDFrame, OpsMixin):
         4         0            2
         2         2            1
         6         0            1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(sort=False)
         num_legs  num_wings
         2         2            1
         4         0            2
         6         0            1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(ascending=True)
         num_legs  num_wings
         2         2            1
         6         0            1
         4         0            2
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
         2         2            0.25
         6         0            0.25
-        dtype: float64
+        Name: proportion, dtype: float64
 
         With `dropna` set to `False` we can also count rows with NA values.
 
@@ -7041,7 +7060,7 @@ class DataFrame(NDFrame, OpsMixin):
         first_name  middle_name
         Beth        Louise         1
         John        Smith          1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(dropna=False)
         first_name  middle_name
@@ -7049,12 +7068,14 @@ class DataFrame(NDFrame, OpsMixin):
         Beth        Louise         1
         John        Smith          1
                     NaN            1
-        dtype: int64
+        Name: count, dtype: int64
         """
         if subset is None:
             subset = self.columns.tolist()
 
+        name = "proportion" if normalize else "count"
         counts = self.groupby(subset, dropna=dropna).grouper.size()
+        counts.name = name
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
@@ -9540,7 +9561,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
         lsuffix: str = "",

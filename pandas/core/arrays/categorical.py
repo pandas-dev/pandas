@@ -248,7 +248,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
-    `Categoricals` can only take on only a limited, and usually fixed, number
+    `Categoricals` can only take on a limited, and usually fixed, number
     of possible values (`categories`). In contrast to statistical categorical
     variables, a `Categorical` might have an order, but numerical operations
     (additions, divisions, ...) are not possible.
@@ -1499,7 +1499,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64")
+        return Series(count, index=CategoricalIndex(ix), dtype="int64", name="count")
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
@@ -2284,7 +2284,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ser = ser.replace(to_replace=to_replace, value=value)
 
         all_values = Index(ser)
-        new_categories = Index(ser.drop_duplicates(keep="first"))
+
+        # GH51016: maintain order of existing categories
+        idxr = cat.categories.get_indexer_for(all_values)
+        locs = np.arange(len(ser))
+        locs = np.where(idxr == -1, locs, idxr)
+        locs = locs.argsort()
+
+        new_categories = ser.take(locs)
+        new_categories = new_categories.drop_duplicates(keep="first")
+        new_categories = Index(new_categories)
         new_codes = recode_for_categories(
             cat._codes, all_values, new_categories, copy=False
         )
