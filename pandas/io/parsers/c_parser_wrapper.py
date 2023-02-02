@@ -82,8 +82,10 @@ class CParserWrapper(ParserBase):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
-        kwds["dtype_backend"] = get_option("mode.dtype_backend")
-        import_optional_dependency("pyarrow")  # Ensure that we fail here and not later
+        dtype_backend = get_option("mode.dtype_backend")
+        kwds["dtype_backend"] = dtype_backend
+        if dtype_backend == "pyarrow":
+            import_optional_dependency("pyarrow")  # Ensure that we fail here
         self._reader = parsers.TextReader(src, **kwds)
 
         self.unnamed_cols = self._reader.unnamed_cols
