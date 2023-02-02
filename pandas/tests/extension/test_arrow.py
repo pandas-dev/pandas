@@ -1377,7 +1377,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             pa.types.is_binary(pa_dtype)
             or pa.types.is_string(pa_dtype)
             or pa.types.is_boolean(pa_dtype)
-            or pa.types.is_decimal(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
