@@ -165,7 +165,7 @@ select = "*-win32"
 environment = { IS_32_BIT="true" }
 
 [tool.black]
-target-version = ['py38', 'py39']
+target-version = ['py39', 'py310']
 exclude = '''
 (
     asv_bench/env
@@ -187,7 +187,7 @@ exclude = '''
 [tool.ruff]
 line-length = 88
 update-check = false
-target-version = "py38"
+target-version = "py310"
 
 select = [
   # pyflakes
@@ -401,7 +401,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.8"
+python_version = "3.10"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -479,7 +479,7 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.8"
+pythonVersion = "3.10"
 typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]

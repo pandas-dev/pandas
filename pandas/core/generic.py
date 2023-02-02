@@ -7178,7 +7178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             items = list(to_replace.items())
             if items:
-                keys, values = zip(*items)
+                keys, values = zip(*items, strict=False)
             else:
                 keys, values = ([], [])
 
@@ -7195,7 +7195,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items())) or ([], [])
+                    keys, values = list(zip(*v.items(), strict=False)) or ([], [])
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
@@ -11729,8 +11729,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._inplace_method(other, type(self).__and__)  # type: ignore[operator]
 
     def __ior__(self: NDFrameT, other) -> NDFrameT:
-        # error: Unsupported left operand type for | ("Type[NDFrame]")
-        return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
+        return self._inplace_method(other, type(self).__or__)
 
     def __ixor__(self: NDFrameT, other) -> NDFrameT:
         # error: Unsupported left operand type for ^ ("Type[NDFrame]")

@@ -22,7 +22,8 @@ import pytz
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type  [misc]
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 from pandas._libs.tslibs import (
     conversion,
@@ -963,7 +964,7 @@ class TestDatetimeIndexTimezones:
         eastern_range = utc_range.tz_convert("US/Eastern")
         berlin_range = utc_range.tz_convert("Europe/Berlin")
 
-        for a, b, c in zip(utc_range, eastern_range, berlin_range):
+        for a, b, c in zip(utc_range, eastern_range, berlin_range, strict=False):
             assert a == b
             assert b == c
             assert a == c

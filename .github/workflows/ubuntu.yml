@@ -32,7 +32,7 @@ jobs:
         pyarrow_version: ["7", "8", "9", "10"]
         include:
           - name: "Downstream Compat"
-            env_file: actions-38-downstream_compat.yaml
+            env_file: actions-310-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
           - name: "Minimum Versions"

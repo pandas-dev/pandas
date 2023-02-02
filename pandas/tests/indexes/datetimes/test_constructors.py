@@ -1156,6 +1156,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
+_tzs: list[str | zoneinfo.ZoneInfo]
 _tzs = ["dateutil/Europe/London"]
 if PY39:
     try:
