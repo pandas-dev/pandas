@@ -290,13 +290,9 @@ def test_constructor_nan_like(na):
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
-    if cls is ArrowStringArray and copy is False:
-        mark = pytest.mark.xfail(
-            raises=AssertionError, reason="numpy array are different"
-        )
-        request.node.add_marker(mark)
 
     nan_arr = np.array(["a", np.nan], dtype=object)
+    expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
 
     result = cls._from_sequence(nan_arr, copy=copy)
@@ -309,9 +305,7 @@ def test_from_sequence_no_mutate(copy, cls, request):
         expected = cls(na_arr)
 
     tm.assert_extension_array_equal(result, expected)
-
-    expected = nan_arr if copy else na_arr
-    tm.assert_numpy_array_equal(nan_arr, expected)
+    tm.assert_numpy_array_equal(nan_arr, expected_input)
 
 
 def test_astype_int(dtype):

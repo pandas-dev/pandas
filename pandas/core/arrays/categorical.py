@@ -2284,7 +2284,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ser = ser.replace(to_replace=to_replace, value=value)
 
         all_values = Index(ser)
-        new_categories = Index(ser.drop_duplicates(keep="first"))
+
+        # GH51016: maintain order of existing categories
+        idxr = cat.categories.get_indexer_for(all_values)
+        locs = np.arange(len(ser))
+        locs = np.where(idxr == -1, locs, idxr)
+        locs = locs.argsort()
+
+        new_categories = ser.take(locs)
+        new_categories = new_categories.drop_duplicates(keep="first")
+        new_categories = Index(new_categories)
         new_codes = recode_for_categories(
             cat._codes, all_values, new_categories, copy=False
         )
