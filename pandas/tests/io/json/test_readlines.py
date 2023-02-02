@@ -14,8 +14,6 @@ import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
-xfail_json_engine_pyarrow = pytest.mark.usefixtures("json_engine_pyarrow_xfail")
-
 
 @pytest.fixture
 def lines_json_df():
@@ -23,7 +21,6 @@ def lines_json_df():
     return df.to_json(lines=True, orient="records")
 
 
-@xfail_json_engine_pyarrow
 def test_read_jsonl(request, engine):
     # GH9180
     if engine == "pyarrow":
@@ -45,7 +42,6 @@ def test_read_jsonl_engine_pyarrow(json_dir_path, engine):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_json_engine_pyarrow
 def test_read_datetime(request, engine):
     # GH33787
     if engine == "pyarrow":
@@ -65,7 +61,6 @@ def test_read_datetime(request, engine):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_json_engine_pyarrow
 def test_read_jsonl_unicode_chars(request, engine):
     # GH15132: non-ascii unicode characters
     # \u201d == RIGHT DOUBLE QUOTATION MARK
@@ -116,7 +111,6 @@ def test_to_jsonl_count_new_lines():
     assert actual_new_lines_count == expected_new_lines_count
 
 
-@xfail_json_engine_pyarrow
 @pytest.mark.parametrize("chunksize", [1, 1.0])
 def test_readjson_chunks(request, lines_json_df, chunksize, engine):
     # Basic test that read_json(chunks=True) gives the same result as
@@ -148,7 +142,6 @@ def test_readjson_chunksize_requires_lines(lines_json_df, engine):
             pass
 
 
-@xfail_json_engine_pyarrow
 def test_readjson_chunks_series(request, engine):
     if engine == "pyarrow":
         reason = (
@@ -172,7 +165,6 @@ def test_readjson_chunks_series(request, engine):
     tm.assert_series_equal(chunked, unchunked)
 
 
-@xfail_json_engine_pyarrow
 def test_readjson_each_chunk(request, lines_json_df, engine):
     if engine == "pyarrow":
         reason = (
@@ -191,7 +183,6 @@ def test_readjson_each_chunk(request, lines_json_df, engine):
     assert chunks[1].shape == (1, 2)
 
 
-@xfail_json_engine_pyarrow
 def test_readjson_chunks_from_file(request, engine):
     if engine == "pyarrow":
         reason = (
@@ -249,7 +240,6 @@ def test_readjson_invalid_chunksize(lines_json_df, chunksize, engine):
 
 
 @pytest.mark.parametrize("chunksize", [None, 1, 2])
-@xfail_json_engine_pyarrow
 def test_readjson_chunks_multiple_empty_lines(request, chunksize, engine):
     if engine == "pyarrow":
         reason = (
@@ -282,7 +272,6 @@ def test_readjson_chunks_multiple_empty_lines(request, chunksize, engine):
     tm.assert_frame_equal(orig, test, obj=f"chunksize: {chunksize}")
 
 
-@xfail_json_engine_pyarrow
 def test_readjson_unicode(request, monkeypatch, engine):
     if engine == "pyarrow":
         reason = (
@@ -301,7 +290,6 @@ def test_readjson_unicode(request, monkeypatch, engine):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_json_engine_pyarrow
 @pytest.mark.parametrize("nrows", [1, 2])
 def test_readjson_nrows(request, nrows, engine):
     # GH 33916
@@ -322,7 +310,6 @@ def test_readjson_nrows(request, nrows, engine):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_json_engine_pyarrow
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
 def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
@@ -358,7 +345,6 @@ def test_readjson_nrows_requires_lines(engine):
         read_json(jsonl, lines=False, nrows=2, engine=engine)
 
 
-@xfail_json_engine_pyarrow
 def test_readjson_lines_chunks_fileurl(request, datapath, engine):
     # GH 27135
     # Test reading line-format JSON from file url

@@ -24,14 +24,3 @@ def engine(request):
         return request.param
     else:
         return request.param
-
-
-@pytest.fixture
-def json_engine_pyarrow_xfail(request):
-    """
-    Fixture that xfails a test if the engine is pyarrow.
-    """
-    engine = request.getfixturevalue("engine")
-    if engine == "pyarrow":
-        mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
-        request.node.add_marker(mark)
