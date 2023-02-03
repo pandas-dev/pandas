@@ -11872,12 +11872,14 @@ The standard deviation of the columns can be found as follows:
 >>> df.std()
 age       18.786076
 height     0.237417
+dtype: float64
 
 Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 
 >>> df.std(ddof=0)
 age       16.269219
-height     0.205609"""
+height     0.205609
+dtype: float64"""
 
 _var_examples = """
 
@@ -11898,12 +11900,14 @@ person_id
 >>> df.var()
 age       352.916667
 height      0.056367
+dtype: float64
 
 Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
 
 >>> df.var(ddof=0)
 age       264.687500
-height      0.042275"""
+height      0.042275
+dtype: float64"""
 
 _bool_doc = """
 {desc}
