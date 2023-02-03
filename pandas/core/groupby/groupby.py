@@ -2786,7 +2786,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def rolling(self, *args, **kwargs) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
@@ -2877,6 +2876,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         Series.rolling : Calling object with Series data.
         DataFrame.rolling : Calling object with DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby
 
         Examples
         --------
