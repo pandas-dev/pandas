@@ -170,18 +170,6 @@ class Resampler(BaseGroupBy, PandasObject):
         else:
             self.exclusions = frozenset()
 
-    @final
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
-
     def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -1178,7 +1166,7 @@ class _GroupByMixin(PandasObject):
         """
 
         def func(x):
-            x = self._shallow_copy(x, groupby=self.groupby)
+            x = self._resampler_cls(x, groupby=self.groupby)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -1361,7 +1349,7 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return DatetimeIndexResampler
 
 
@@ -1473,7 +1461,7 @@ class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return PeriodIndexResampler
 
 
@@ -1501,7 +1489,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return TimedeltaIndexResampler
 
 
