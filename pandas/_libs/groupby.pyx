@@ -747,31 +747,9 @@ def group_sum(
                         compensation[lab, j] = t - sumx[lab, j] - y
                         sumx[lab, j] = t
 
-            for i in range(ncounts):
-                for j in range(K):
-                    if nobs[i, j] < min_count:
-                        # if we are integer dtype, not is_datetimelike, and
-                        #  not uses_mask, then getting here implies that
-                        #  counts[i] < min_count, which means we will
-                        #  be cast to float64 and masked at the end
-                        #  of WrappedCythonOp._call_cython_op. So we can safely
-                        #  set a placeholder value in out[i, j].
-                        if uses_mask:
-                            result_mask[i, j] = True
-                        elif (
-                            sum_t is float32_t
-                            or sum_t is float64_t
-                            or sum_t is complex64_t
-                        ):
-                            out[i, j] = NAN
-                        elif sum_t is int64_t:
-                            out[i, j] = NPY_NAT
-                        else:
-                            # placeholder, see above
-                            out[i, j] = 0
-
-                    else:
-                        out[i, j] = sumx[i, j]
+            _check_below_mincount(
+                out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
+            )
 
 
 @cython.wraparound(False)
@@ -823,23 +801,9 @@ def group_prod(
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
 
-        for i in range(ncounts):
-            for j in range(K):
-                if nobs[i, j] < min_count:
-
-                    # else case is not possible
-                    if uses_mask:
-                        result_mask[i, j] = True
-                        # Be deterministic, out was initialized as empty
-                        out[i, j] = 0
-                    elif int64float_t is float32_t or int64float_t is float64_t:
-                        out[i, j] = NAN
-                    else:
-                        # we only get here when < mincount which gets handled later
-                        pass
-
-                else:
-                    out[i, j] = prodx[i, j]
+        _check_below_mincount(
+            out, uses_mask, result_mask, ncounts, K, nobs, min_count, prodx
+        )
 
 
 @cython.wraparound(False)
@@ -1271,6 +1235,65 @@ cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
     return na_val
 
 
+ctypedef fused mincount_t:
+    numeric_t
+    complex64_t
+    complex128_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void _check_below_mincount(
+    mincount_t[:, ::1] out,
+    bint uses_mask,
+    uint8_t[:, ::1] result_mask,
+    Py_ssize_t ncounts,
+    Py_ssize_t K,
+    int64_t[:, ::1] nobs,
+    int64_t min_count,
+    mincount_t[:, ::1] resx,
+) nogil:
+    """
+    Check if the number of observations for a group is below min_count,
+    and if so set the result for that group to the appropriate NA-like value.
+    """
+    cdef:
+        Py_ssize_t i, j
+
+    for i in range(ncounts):
+        for j in range(K):
+
+            if nobs[i, j] < min_count:
+                # if we are integer dtype, not is_datetimelike, and
+                #  not uses_mask, then getting here implies that
+                #  counts[i] < min_count, which means we will
+                #  be cast to float64 and masked at the end
+                #  of WrappedCythonOp._call_cython_op. So we can safely
+                #  set a placeholder value in out[i, j].
+                if uses_mask:
+                    result_mask[i, j] = True
+                    # set out[i, j] to 0 to be deterministic, as
+                    #  it was initialized with np.empty. Also ensures
+                    #  we can downcast out if appropriate.
+                    out[i, j] = 0
+                elif (
+                    mincount_t is float32_t
+                    or mincount_t is float64_t
+                    or mincount_t is complex64_t
+                    or mincount_t is complex128_t
+                ):
+                    out[i, j] = NAN
+                elif mincount_t is int64_t:
+                    # Per above, this is a placeholder in
+                    #  non-is_datetimelike cases.
+                    out[i, j] = NPY_NAT
+                else:
+                    # placeholder, see above
+                    out[i, j] = 0
+            else:
+                out[i, j] = resx[i, j]
+
+
 # TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
 #  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
@@ -1291,8 +1314,8 @@ def group_last(
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         numeric_object_t val
-        ndarray[numeric_object_t, ndim=2] resx
-        ndarray[int64_t, ndim=2] nobs
+        numeric_object_t[:, ::1] resx
+        int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
         bint isna_entry
 
@@ -1327,7 +1350,7 @@ def group_last(
                     isna_entry = checknull(val)
 
                 if not isna_entry:
-                    # NB: use _treat_as_na here once
+                    # TODO(cython3): use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
                     resx[lab, j] = val
@@ -1358,33 +1381,9 @@ def group_last(
                         nobs[lab, j] += 1
                         resx[lab, j] = val
 
-            for i in range(ncounts):
-                for j in range(K):
-                    # TODO(cython3): the entire next block can be shared
-                    #  across 3 places once conditional-nogil is available
-                    if nobs[i, j] < min_count:
-                        # if we are integer dtype, not is_datetimelike, and
-                        #  not uses_mask, then getting here implies that
-                        #  counts[i] < min_count, which means we will
-                        #  be cast to float64 and masked at the end
-                        #  of WrappedCythonOp._call_cython_op. So we can safely
-                        #  set a placeholder value in out[i, j].
-                        if uses_mask:
-                            result_mask[i, j] = True
-                        elif (
-                            numeric_object_t is float32_t
-                            or numeric_object_t is float64_t
-                        ):
-                            out[i, j] = NAN
-                        elif numeric_object_t is int64_t:
-                            # Per above, this is a placeholder in
-                            #  non-is_datetimelike cases.
-                            out[i, j] = NPY_NAT
-                        else:
-                            # placeholder, see above
-                            out[i, j] = 0
-                    else:
-                        out[i, j] = resx[i, j]
+            _check_below_mincount(
+                out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
+            )
 
 
 # TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
@@ -1408,8 +1407,8 @@ def group_nth(
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         numeric_object_t val
-        ndarray[numeric_object_t, ndim=2] resx
-        ndarray[int64_t, ndim=2] nobs
+        numeric_object_t[:, ::1] resx
+        int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
         bint isna_entry
 
@@ -1444,7 +1443,7 @@ def group_nth(
                     isna_entry = checknull(val)
 
                 if not isna_entry:
-                    # NB: use _treat_as_na here once
+                    # TODO(cython3): use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
@@ -1478,37 +1477,9 @@ def group_nth(
                         if nobs[lab, j] == rank:
                             resx[lab, j] = val
 
-            # TODO: de-dup this whole block with group_last?
-            for i in range(ncounts):
-                for j in range(K):
-                    if nobs[i, j] < min_count:
-                        # if we are integer dtype, not is_datetimelike, and
-                        #  not uses_mask, then getting here implies that
-                        #  counts[i] < min_count, which means we will
-                        #  be cast to float64 and masked at the end
-                        #  of WrappedCythonOp._call_cython_op. So we can safely
-                        #  set a placeholder value in out[i, j].
-                        if uses_mask:
-                            result_mask[i, j] = True
-                            # set out[i, j] to 0 to be deterministic, as
-                            #  it was initialized with np.empty. Also ensures
-                            #  we can downcast out if appropriate.
-                            out[i, j] = 0
-                        elif (
-                            numeric_object_t is float32_t
-                            or numeric_object_t is float64_t
-                        ):
-                            out[i, j] = NAN
-                        elif numeric_object_t is int64_t:
-                            # Per above, this is a placeholder in
-                            #  non-is_datetimelike cases.
-                            out[i, j] = NPY_NAT
-                        else:
-                            # placeholder, see above
-                            out[i, j] = 0
-
-                    else:
-                        out[i, j] = resx[i, j]
+            _check_below_mincount(
+                out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
+            )
 
 
 @cython.boundscheck(False)
@@ -1643,7 +1614,7 @@ cdef group_min_max(
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         numeric_t val
-        ndarray[numeric_t, ndim=2] group_min_or_max
+        numeric_t[:, ::1] group_min_or_max
         int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
         bint isna_entry
@@ -1685,32 +1656,9 @@ cdef group_min_max(
                         if val < group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
 
-        for i in range(ngroups):
-            for j in range(K):
-                if nobs[i, j] < min_count:
-                    # if we are integer dtype, not is_datetimelike, and
-                    #  not uses_mask, then getting here implies that
-                    #  counts[i] < min_count, which means we will
-                    #  be cast to float64 and masked at the end
-                    #  of WrappedCythonOp._call_cython_op. So we can safely
-                    #  set a placeholder value in out[i, j].
-                    if uses_mask:
-                        result_mask[i, j] = True
-                        # set out[i, j] to 0 to be deterministic, as
-                        #  it was initialized with np.empty. Also ensures
-                        #  we can downcast out if appropriate.
-                        out[i, j] = 0
-                    elif numeric_t is float32_t or numeric_t is float64_t:
-                        out[i, j] = NAN
-                    elif numeric_t is int64_t:
-                        # Per above, this is a placeholder in
-                        #  non-is_datetimelike cases.
-                        out[i, j] = NPY_NAT
-                    else:
-                        # placeholder, see above
-                        out[i, j] = 0
-                else:
-                    out[i, j] = group_min_or_max[i, j]
+        _check_below_mincount(
+            out, uses_mask, result_mask, ngroups, K, nobs, min_count, group_min_or_max
+        )
 
 
 @cython.wraparound(False)

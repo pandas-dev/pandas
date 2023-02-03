@@ -28,6 +28,82 @@ The available extras, found in the :ref:`installation guide<install.dependencies
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
+.. _whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes:
+
+:class:`Index` can now hold numpy numeric dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is now possible to use any numpy numeric dtype in a :class:`Index` (:issue:`42717`).
+
+Previously it was only possible to use ``int64``, ``uint64`` & ``float64`` dtypes:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype=np.int8)
+    Out[1]: Int64Index([1, 2, 3], dtype="int64")
+    In [2]: pd.Index([1, 2, 3], dtype=np.uint16)
+    Out[2]: UInt64Index([1, 2, 3], dtype="uint64")
+    In [3]: pd.Index([1, 2, 3], dtype=np.float32)
+    Out[3]: Float64Index([1.0, 2.0, 3.0], dtype="float64")
+
+:class:`Int64Index`, :class:`UInt64Index` & :class:`Float64Index` were depreciated in pandas
+version 1.4 and have now been removed. Instead :class:`Index` should be used directly, and
+can it now take all numpy numeric dtypes, i.e.
+``int8``/ ``int16``/``int32``/``int64``/``uint8``/``uint16``/``uint32``/``uint64``/``float32``/``float64`` dtypes:
+
+.. ipython:: python
+
+    pd.Index([1, 2, 3], dtype=np.int8)
+    pd.Index([1, 2, 3], dtype=np.uint16)
+    pd.Index([1, 2, 3], dtype=np.float32)
+
+The ability for ``Index`` to hold the numpy numeric dtypes has meant some changes in Pandas
+functionality. In particular, operations that previously were forced to create 64-bit indexes,
+can now create indexes with lower bit sizes, e.g. 32-bit indexes.
+
+Below is a possibly non-exhaustive list of changes:
+
+1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
+   Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
+   the index dtype follows the dtype of the numpy array. For example, it would for all
+   signed integer arrays previously return an index with ``int64`` dtype, but will now
+   reuse the dtype of the supplied numpy array. So ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems.
+   Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
+   e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
+2. The various numeric datetime attributes of :class:`DateTimeIndex` (:attr:`~Date_TimeIndex.day`,
+   :attr:`~DateTimeIndex.month`, :attr:`~DateTimeIndex.year` etc.) were previously in of
+   dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
+   ``int32`` on ``DateTimeIndex`` also:
+
+   .. ipython:: python
+
+       idx = pd.date_range(start='1/1/2018', periods=3, freq='M')
+       idx.array.year
+       idx.year
+
+3. Level dtypes on Indexes from :meth:`Series.sparse.from_coo` are now of dtype ``int32``,
+   the same as they are on the ``rows``/``cols`` on a scipy sparse matrix. Previously they
+   were of dtype ``int64``.
+
+   .. ipython:: python
+
+       from scipy import sparse
+       A = sparse.coo_matrix(
+           ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
+       )
+       ser = pd.Series.sparse.from_coo(A)
+       ser.index.dtype
+
+4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
+   an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
+   ``float64`` dtype. It row raises a ``NotImplementedError``:
+
+   .. ipython:: python
+       :okexcept:
+
+       pd.Index([1, 2, 3], dtype=np.float16)
+
+
 .. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_dtype_backend:
 
 Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
@@ -47,6 +123,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_sql_table`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`read_spss`
 * :func:`to_numeric`
 
 To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
@@ -75,6 +152,7 @@ to select the nullable dtypes implementation.
 * :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
+* :func:`read_spss`
 * :func:`to_numeric`
 
 
@@ -332,6 +410,36 @@ a supported dtype:
    :okexcept:
 
    pd.Series(["2016-01-01"], dtype="datetime64[D]")
+
+.. _whatsnew_200.api_breaking.value_counts:
+
+Value counts sets the resulting name to ``count``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In past versions, when running :meth:`Series.value_counts`, the result would inherit
+the original object's name, and the result index would be nameless. This would cause
+confusion when resetting the index, and the column names would not correspond with the
+column values.
+Now, the result name will be ``'count'`` (or ``'proportion'`` if ``normalize=True`` was passed),
+and the index will be named after the original object (:issue:`49497`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [8]: pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+    Out[2]:
+    quetzal    2
+    elk        1
+    Name: animal, dtype: int64
+
+*New behavior*:
+
+.. ipython:: python
+
+    pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
 
 .. _whatsnew_200.api_breaking.astype_to_unsupported_datetimelike:
 
@@ -602,6 +710,7 @@ Other API changes
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
 - Changed behavior of :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`SparseDtype` to retain sparse dtype (:issue:`49583`)
 - When creating a :class:`Series` with a object-dtype :class:`Index` of datetime objects, pandas no longer silently converts the index to a :class:`DatetimeIndex` (:issue:`39307`, :issue:`23598`)
+- :func:`pandas.testing.assert_index_equal` with parameter ``exact="equiv"`` now considers two indexes equal when both are either a :class:`RangeIndex` or :class:`Index` with an ``int64`` dtype. Previously it meant either a :class:`RangeIndex` or a :class:`Int64Index` (:issue:`51098`)
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
 - :func:`to_datetime` and :class:`DatetimeIndex` now allow sequences containing both ``datetime`` objects and numeric entries, matching :class:`Series` behavior (:issue:`49037`, :issue:`50453`)
 - :func:`pandas.api.dtypes.is_string_dtype` now only returns ``True`` for array-likes with ``dtype=object`` when the elements are inferred to be strings (:issue:`15585`)
@@ -635,6 +744,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated parsing datetime strings with system-local timezone to ``tzlocal``, pass a ``tz`` keyword or explicitly call ``tz_localize`` instead (:issue:`50791`)
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
@@ -642,6 +752,7 @@ Deprecations
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
+- :meth:`Index.is_numeric` has been deprecated. Use :func:`pandas.api.types.is_numeric_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
@@ -653,6 +764,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`. See also :ref:`here <whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes>` for more information (:issue:`42717`)
 - Removed deprecated :attr:`Timestamp.freq`, :attr:`Timestamp.freqstr` and argument ``freq`` from the :class:`Timestamp` constructor and :meth:`Timestamp.fromordinal` (:issue:`14146`)
 - Removed deprecated :class:`CategoricalBlock`, :meth:`Block.is_categorical`, require datetime64 and timedelta64 values to be wrapped in :class:`DatetimeArray` or :class:`TimedeltaArray` before passing to :meth:`Block.make_block_same_class`, require ``DatetimeTZBlock.values`` to have the correct ndim when passing to the :class:`BlockManager` constructor, and removed the "fastpath" keyword from the :class:`SingleBlockManager` constructor (:issue:`40226`, :issue:`40571`)
 - Removed deprecated global option ``use_inf_as_null`` in favor of ``use_inf_as_na`` (:issue:`17126`)
@@ -948,6 +1060,8 @@ Performance improvements
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
+- Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -992,6 +1106,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
 - Bug in :func:`to_datetime` was incorrectly handling floating-point inputs within 1 ``unit`` of the overflow boundaries (:issue:`50183`)
 - Bug in :func:`to_datetime` with unit of "Y" or "M" giving incorrect results, not matching pointwise :class:`Timestamp` results (:issue:`50870`)
+- Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
 -
 
 Timedelta
@@ -1016,6 +1131,7 @@ Numeric
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
+- Bug in :meth:`query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
 
 Conversion
 ^^^^^^^^^^
@@ -1026,6 +1142,7 @@ Conversion
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
 - Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 - Bug in :meth:`Series.astype` raising ``pyarrow.ArrowInvalid`` when converting from a non-pyarrow string dtype to a pyarrow numeric type (:issue:`50430`)
+- Bug in :meth:`DataFrame.astype` modifying input array inplace when converting to ``string`` and ``copy=False`` (:issue:`51073`)
 - Bug in :meth:`Series.to_numpy` converting to NumPy array before applying ``na_value`` (:issue:`48951`)
 - Bug in :meth:`DataFrame.astype` not copying data when converting to pyarrow dtype (:issue:`50984`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
