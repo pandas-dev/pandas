@@ -328,15 +328,12 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = nullcontext()
         with context_manager:
 
-            if self.args:
-                self.args = (self.axis,) + self.args
-
             # degenerate case
             if selected_obj.ndim == 1:
 
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(a, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -348,7 +345,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, self.axis, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
