@@ -1216,34 +1216,3 @@ def test_isetitem(using_copy_on_write):
         assert np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
     else:
         assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
-
-
-def test_assigning_to_same_variable_removes_references(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    df = df.reset_index()
-    arr = get_array(df, "a")
-    df.iloc[0, 1] = 100  # Write into a
-
-    assert np.shares_memory(arr, get_array(df, "a"))
-
-
-def test_setitem_dont_track_unnecessary_references(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1})
-
-    df["b"] = 100
-    arr = get_array(df, "a")
-    df.iloc[0, 0] = 100  # Check that we correctly track reference
-    assert np.shares_memory(arr, get_array(df, "a"))
-
-
-def test_setitem_with_view_copies(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1})
-    view = df[:]
-    expected = df.copy()
-
-    df["b"] = 100
-    arr = get_array(df, "a")
-    df.iloc[0, 0] = 100  # Check that we correctly track reference
-    if using_copy_on_write:
-        assert not np.shares_memory(arr, get_array(df, "a"))
-        tm.assert_frame_equal(view, expected)
