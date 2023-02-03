@@ -860,6 +860,11 @@ cdef class BlockManager:
 
 
 cdef class BlockValuesRefs:
+    """Tracks all references to a given array.
+
+    Keeps track of all blocks (through weak references) that reference the same
+    data.
+    """
     cdef:
         public list referenced_blocks
 
@@ -867,9 +872,25 @@ cdef class BlockValuesRefs:
         self.referenced_blocks = [weakref.ref(blk)]
 
     def add_reference(self, blk: SharedBlock) -> None:
+        """Adds a new reference to our reference collection.
+
+        Parameters
+        ----------
+        blk: SharedBlock
+            The block that the new references should point to.
+        """
         self.referenced_blocks.append(weakref.ref(blk))
 
     def has_reference(self) -> bool:
+        """Checks if block has foreign references.
+
+        A reference is only relevant if it is still alive. The reference to
+        ourselves does not count.
+
+        Returns
+        -------
+            bool
+        """
         self.referenced_blocks = [
             obj for obj in self.referenced_blocks if obj() is not None
         ]
