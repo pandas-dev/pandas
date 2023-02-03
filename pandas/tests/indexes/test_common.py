@@ -31,7 +31,6 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -431,7 +430,7 @@ class TestCommon:
 
         if len(index) == 0:
             return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+        elif is_integer_dtype(index.dtype):
             return
         elif index.dtype == bool:
             # values[1] = np.nan below casts to True!

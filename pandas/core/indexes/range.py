@@ -49,13 +49,12 @@ from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.indexes.numeric import NumericIndex
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 _empty_range = range(0)
 
 
-class RangeIndex(NumericIndex):
+class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -196,7 +195,7 @@ class RangeIndex(NumericIndex):
     @cache_readonly
     def _constructor(self) -> type[Index]:  # type: ignore[override]
         """return the class to use for construction"""
-        return NumericIndex
+        return Index
 
     # error: Signature of "_data" incompatible with supertype "Index"
     @cache_readonly
@@ -408,7 +407,7 @@ class RangeIndex(NumericIndex):
             new_range = range(values[0], values[-1] + diff, diff)
             return type(self)._simple_new(new_range, name=name)
         else:
-            return NumericIndex._simple_new(values, name=name)
+            return self._constructor._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
         result = type(self)._simple_new(self._range, name=self._name)

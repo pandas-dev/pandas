@@ -737,7 +737,7 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do positional indexing on NumericIndex with "
+            "cannot do positional indexing on Index with "
             r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):

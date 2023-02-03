@@ -43,8 +43,6 @@ class TestFloatNumericIndex(NumericBase):
         return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
-        from pandas.core.api import NumericIndex  # noqa: F401
-
         tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_coerce(self, a, b, is_float_index=True):
