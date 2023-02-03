@@ -88,6 +88,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
+    is_any_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
@@ -2278,7 +2279,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_object : Check if the Index is of the object dtype (deprecated).
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects (deprecated).
@@ -2322,7 +2323,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         is_boolean : Check if the Index only consists of booleans (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_object : Check if the Index is of the object dtype. (deprecated).
         is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects (deprecated).
@@ -2370,7 +2371,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_object : Check if the Index is of the object dtype. (deprecated).
         is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects (deprecated).
@@ -2405,6 +2406,9 @@ class Index(IndexOpsMixin, PandasObject):
     def is_numeric(self) -> bool:
         """
         Check if the Index only consists of numeric data.
+
+        .. deprecated:: 2.0.0
+            Use `pandas.api.types.is_numeric_dtype` instead.
 
         Returns
         -------
@@ -2442,6 +2446,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_numeric()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_numeric is deprecated. "
+            "Use pandas.api.types.is_numeric_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.inferred_type in ["integer", "floating"]
 
     @final
@@ -2462,7 +2472,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects (deprecated).
 
@@ -2512,7 +2522,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_object : Check if the Index is of the object dtype. (deprecated).
         is_interval : Check if the Index holds Interval objects (deprecated).
 
@@ -2565,7 +2575,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_boolean : Check if the Index only consists of booleans (deprecated).
         is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
-        is_numeric : Check if the Index only consists of numeric data.
+        is_numeric : Check if the Index only consists of numeric data (deprecated).
         is_object : Check if the Index is of the object dtype. (deprecated).
         is_categorical : Check if the Index holds categorical data (deprecated).
 
@@ -3360,7 +3370,7 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
-                if self.is_numeric():
+                if is_numeric_dtype(self):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
                     res = algos.unique1d(res_indexer)
@@ -6037,8 +6047,8 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (is_bool_dtype(other) and self.is_numeric()) or (
-            is_bool_dtype(self) and other.is_numeric()
+        if (is_bool_dtype(other) and is_any_numeric_dtype(self)) or (
+            is_bool_dtype(self) and is_any_numeric_dtype(other)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
