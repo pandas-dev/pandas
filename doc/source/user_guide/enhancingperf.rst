@@ -647,24 +647,21 @@ This allows for *formulaic evaluation*.  The assignment target can be a
 new column name or an existing column name, and it must be a valid Python
 identifier.
 
-The ``inplace`` keyword determines whether this assignment will performed
-on the original :class:`DataFrame` or return a copy with the new column.
-
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.eval("c = a + b", inplace=True)
-   df.eval("d = a + b + c", inplace=True)
-   df.eval("a = 1", inplace=True)
+   df = df.eval("c = a + b")
+   df = df.eval("d = a + b + c")
+   df = df.eval("a = 1")
    df
 
-When ``inplace`` is set to ``False``, the default, a copy of the :class:`DataFrame` with the
+A copy of the :class:`DataFrame` with the
 new or modified columns is returned and the original frame is unchanged.
 
 .. ipython:: python
 
    df
-   df.eval("e = a - c", inplace=False)
+   df.eval("e = a - c")
    df
 
 As a convenience, multiple assignments can be performed by using a
@@ -677,7 +674,6 @@ multi-line string.
    c = a + b
    d = a + b + c
    a = 1""",
-       inplace=False,
    )
 
 The equivalent in standard Python would be

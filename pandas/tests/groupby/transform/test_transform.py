@@ -164,10 +164,6 @@ def test_transform_broadcast(tsframe, ts):
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
 
-    if transformation_func == "ngroup":
-        msg = "ngroup fails with axis=1: #45986"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
     result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
@@ -714,11 +710,6 @@ def test_cython_transform_frame(op, args, targop):
             # {"by": ['int','string']}]:
 
             gb = df.groupby(group_keys=False, **gb_target)
-            # allowlisted methods set the selection before applying
-            # bit a of hack to make sure the cythonized shift
-            # is equivalent to pre 0.17.1 behavior
-            if op == "shift":
-                gb._set_group_selection()
 
             if op != "shift" and "int" not in gb_target:
                 # numeric apply fastpath promotes dtype so have

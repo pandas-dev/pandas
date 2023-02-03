@@ -93,7 +93,6 @@ ABCIndex = cast(
         {
             "index",
             "rangeindex",
-            "numericindex",
             "multiindex",
             "datetimeindex",
             "timedeltaindex",
