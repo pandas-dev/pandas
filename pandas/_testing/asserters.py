@@ -363,11 +363,7 @@ def assert_class_equal(
         This only checks class equivalence. There is a separate check that the
         dtype is int64.
         """
-        from pandas.core.indexes.numeric import NumericIndex
-
-        if isinstance(idx, RangeIndex):
-            return True
-        elif type(idx) is Index or type(idx) is NumericIndex:
+        if type(idx) is Index or isinstance(idx, RangeIndex):
             return True
         else:
             return False
