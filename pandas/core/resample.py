@@ -150,7 +150,6 @@ class Resampler(BaseGroupBy, PandasObject):
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
-        **kwargs,
     ) -> None:
         self.groupby = groupby
         self.keys = None
