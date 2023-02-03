@@ -1691,7 +1691,7 @@ class TimeGrouper(Grouper):
     def _get_grouper(self, obj, validate: bool = True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r.binner, r.grouper, r.obj
+        return r.grouper, r.obj
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
