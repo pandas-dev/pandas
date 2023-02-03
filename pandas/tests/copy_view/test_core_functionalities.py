@@ -37,7 +37,7 @@ def test_setitem_with_view_copies(using_copy_on_write):
         tm.assert_frame_equal(view, expected)
 
 
-def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write):
+def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write, request):
     df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1})
     view = df[:]
 
@@ -46,7 +46,10 @@ def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write):
     view = None  # noqa
     df.iloc[0, 0] = 100  # Check that we correctly release the reference
     if using_copy_on_write:
-        pytest.mark.xfail("blk.delete does not track references correctly")
+        mark = pytest.mark.xfail(
+            reason="blk.delete does not track references correctly"
+        )
+        request.node.add_marker(mark)
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
