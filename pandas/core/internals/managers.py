@@ -695,7 +695,6 @@ class BaseBlockManager(DataManager):
                 use_na_proxy=use_na_proxy,
             )
         else:
-            print(self.blocks)
             new_blocks = [
                 blk.take_nd(
                     indexer,
@@ -757,7 +756,7 @@ class BaseBlockManager(DataManager):
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
-                    return [], []
+                    return []
                 bp = BlockPlacement(slice(0, sllen))
                 return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
             elif not allow_fill or self.ndim == 1:

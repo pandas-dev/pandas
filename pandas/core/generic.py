@@ -769,7 +769,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
             new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
-            new_mgr.blocks[0].refs.add_reference(new_mgr.blocks[0])
+            new_mgr.blocks[0].refs.add_reference(
+                new_mgr.blocks[0]  # type: ignore[arg-type]
+            )
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         elif (copy or copy is None) and self._mgr.is_single_block:
