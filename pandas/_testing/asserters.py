@@ -363,10 +363,7 @@ def assert_class_equal(
         This only checks class equivalence. There is a separate check that the
         dtype is int64.
         """
-        if type(idx) is Index or isinstance(idx, RangeIndex):
-            return True
-        else:
-            return False
+        return type(idx) is Index or isinstance(idx, RangeIndex)
 
     if type(left) == type(right):
         return
