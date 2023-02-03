@@ -189,6 +189,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
   - :meth:`DataFrame.set_index`
   - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+  - :meth:`DataFrame.set_flags` / :meth:`Series.set_flags`
   - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
   - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
   - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
@@ -202,7 +203,28 @@ Copy-on-Write improvements
   - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
   - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
   - :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
+  - :meth:`DataFrame.droplevel` / :meth:`Series.droplevel`
   - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
+  - :meth:`DataFrame.between_time` / :meth:`Series.between_time`
+  - :meth:`DataFrame.filter` / :meth:`Series.filter`
+  - :meth:`DataFrame.head` / :meth:`Series.head`
+  - :meth:`DataFrame.tail` / :meth:`Series.tail`
+  - :meth:`DataFrame.isetitem`
+  - :meth:`DataFrame.pipe` / :meth:`Series.pipe`
+  - :meth:`DataFrame.pop` / :meth:`Series.pop`
+  - :meth:`DataFrame.replace` / :meth:`Series.replace`
+  - :meth:`DataFrame.shift` / :meth:`Series.shift`
+  - :meth:`DataFrame.sort_index` / :meth:`Series.sort_index`
+  - :meth:`DataFrame.sort_values` / :meth:`Series.sort_values`
+  - :meth:`DataFrame.squeeze` / :meth:`Series.squeeze`
+  - :meth:`DataFrame.swapaxes`
+  - :meth:`DataFrame.swaplevel` / :meth:`Series.swaplevel`
+  - :meth:`DataFrame.take` / :meth:`Series.take`
+  - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
+  - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
+  - :meth:`DataFrame.truncate`
+  - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
   performance improvement compared to the regular execution (:issue:`49473`).
@@ -706,6 +728,7 @@ Other API changes
 - Passing ``dtype`` of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; passing a dtype with lower resolution for :class:`Series` or :class:`DataFrame` will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
 - Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49008`)
 - Passing ``datetime64`` values with resolution other than nanosecond to :func:`to_datetime` will retain the input resolution if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`50369`)
+- Passing integer values and a non-nanosecond datetime64 dtype (e.g. "datetime64[s]") :class:`DataFrame`, :class:`Series`, or :class:`Index` will treat the values as multiples of the dtype's unit, matching the behavior of e.g. ``Series(np.array(values, dtype="M8[s]"))`` (:issue:`51092`)
 - Passing a string in ISO-8601 format to :class:`Timestamp` will retain the resolution of the parsed input if it is "s", "ms", "us", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49737`)
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
 - Changed behavior of :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`SparseDtype` to retain sparse dtype (:issue:`49583`)
@@ -752,6 +775,7 @@ Deprecations
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
+- :meth:`Index.is_numeric` has been deprecated. Use :func:`pandas.api.types.is_numeric_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
@@ -1105,6 +1129,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing mixed-offset :class:`Timestamp` with ``errors='ignore'`` (:issue:`50585`)
 - Bug in :func:`to_datetime` was incorrectly handling floating-point inputs within 1 ``unit`` of the overflow boundaries (:issue:`50183`)
 - Bug in :func:`to_datetime` with unit of "Y" or "M" giving incorrect results, not matching pointwise :class:`Timestamp` results (:issue:`50870`)
+- Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with datetime or timedelta dtypes incorrectly raising ``ValueError`` (:issue:`11312`)
 - Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
 -
 
@@ -1262,6 +1287,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.value_counts` did not respect ``sort=False`` (:issue:`50482`)
 - Bug in :meth:`.DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
+- Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
 -
 
 Reshaping

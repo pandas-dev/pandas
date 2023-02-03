@@ -127,6 +127,7 @@ class Resampler(BaseGroupBy, PandasObject):
     """
 
     grouper: BinGrouper
+    _timegrouper: TimeGrouper
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
 
     # to the groupby descriptor
@@ -152,7 +153,7 @@ class Resampler(BaseGroupBy, PandasObject):
         selection=None,
         **kwargs,
     ) -> None:
-        self.groupby = groupby
+        self._timegrouper = groupby
         self.keys = None
         self.sort = True
         # error: Incompatible types in assignment (expression has type "Union
@@ -162,11 +163,11 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = group_keys
         self.as_index = True
 
-        self.groupby._set_grouper(self._convert_obj(obj), sort=True)
+        self._timegrouper._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
-        if self.groupby.key is not None:
-            self.exclusions = frozenset([self.groupby.key])
+        if self._timegrouper.key is not None:
+            self.exclusions = frozenset([self._timegrouper.key])
         else:
             self.exclusions = frozenset()
 
@@ -187,9 +188,9 @@ class Resampler(BaseGroupBy, PandasObject):
         Provide a nice str repr of our rolling object.
         """
         attrs = (
-            f"{k}={getattr(self.groupby, k)}"
+            f"{k}={getattr(self._timegrouper, k)}"
             for k in self._attributes
-            if getattr(self.groupby, k, None) is not None
+            if getattr(self._timegrouper, k, None) is not None
         )
         return f"{type(self).__name__} [{', '.join(attrs)}]"
 
@@ -197,7 +198,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self._attributes:
-            return getattr(self.groupby, attr)
+            return getattr(self._timegrouper, attr)
         if attr in self.obj:
             return self[attr]
 
@@ -208,13 +209,13 @@ class Resampler(BaseGroupBy, PandasObject):
     def obj(self) -> NDFrame:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
         # expected "NDFrameT")
-        return self.groupby.obj  # type: ignore[return-value]
+        return self._timegrouper.obj  # type: ignore[return-value]
 
     @property
     def ax(self):
         # we can infer that this is a PeriodIndex/DatetimeIndex/TimedeltaIndex,
         #  but skipping annotating bc the overrides overwhelming
-        return self.groupby.ax
+        return self._timegrouper.ax
 
     @property
     def _from_selection(self) -> bool:
@@ -223,8 +224,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         # upsampling and PeriodIndex resampling do not work
         # with selection, this state used to catch and raise an error
-        return self.groupby is not None and (
-            self.groupby.key is not None or self.groupby.level is not None
+        return self._timegrouper is not None and (
+            self._timegrouper.key is not None or self._timegrouper.level is not None
         )
 
     def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
@@ -252,7 +253,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
-        bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self._timegrouper.indexer)
         return binner, bin_grouper
 
     @Substitution(
@@ -391,7 +392,9 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00   NaN
         Freq: H, dtype: float64
         """
-        return self._selected_obj.groupby(self.groupby).transform(arg, *args, **kwargs)
+        return self._selected_obj.groupby(self._timegrouper).transform(
+            arg, *args, **kwargs
+        )
 
     def _downsample(self, f, **kwargs):
         raise AbstractMethodError(self)
@@ -1168,7 +1171,7 @@ class _GroupByMixin(PandasObject):
         self.key = key
 
         self._groupby = groupby
-        self.groupby = copy.copy(parent.groupby)
+        self._timegrouper = copy.copy(parent._timegrouper)
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1178,7 +1181,7 @@ class _GroupByMixin(PandasObject):
         """
 
         def func(x):
-            x = self._shallow_copy(x, groupby=self.groupby)
+            x = self._shallow_copy(x, groupby=self._timegrouper)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -1243,8 +1246,8 @@ class DatetimeIndexResampler(Resampler):
 
         # this is how we are actually creating the bins
         if self.kind == "period":
-            return self.groupby._get_time_period_bins(self.ax)
-        return self.groupby._get_time_bins(self.ax)
+            return self._timegrouper._get_time_period_bins(self.ax)
+        return self._timegrouper._get_time_bins(self.ax)
 
     def _downsample(self, how, **kwargs):
         """
@@ -1373,7 +1376,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
     def _get_binner_for_time(self):
         if self.kind == "timestamp":
             return super()._get_binner_for_time()
-        return self.groupby._get_period_bins(self.ax)
+        return self._timegrouper._get_period_bins(self.ax)
 
     def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         obj = super()._convert_obj(obj)
@@ -1483,7 +1486,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return TimedeltaIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-        return self.groupby._get_time_delta_bins(self.ax)
+        return self._timegrouper._get_time_delta_bins(self.ax)
 
     def _adjust_binner_for_upsample(self, binner):
         """
@@ -1691,7 +1694,7 @@ class TimeGrouper(Grouper):
     def _get_grouper(self, obj, validate: bool = True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r.binner, r.grouper, r.obj
+        return r.grouper, r.obj
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
