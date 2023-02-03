@@ -4987,7 +4987,6 @@ class DataFrame(NDFrame, OpsMixin):
         0  1   4
         1  2   5
         2  3   6
-
         """
     )
     @Substitution(
