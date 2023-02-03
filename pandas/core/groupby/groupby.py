@@ -966,7 +966,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # as are not passed directly but in the grouper
             f = getattr(type(self._obj_with_exclusions), name)
             if not callable(f):
-                return self.apply(lambda self: getattr(self, name))
+                # is_monotonic_increasing/decreasing, dtype
+                return self.apply(lambda obj: getattr(obj, name))
 
         sig = inspect.signature(f)
 
@@ -991,6 +992,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_transform = name in base.transformation_kernels
         # Transform needs to keep the same schema, including when empty
         if is_transform and self._obj_with_exclusions.empty:
+            # test_group_on_empty_multiindex
             return self._obj_with_exclusions
         result = self._python_apply_general(
             curried,
@@ -1484,9 +1486,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             this can be coincidental leading to value-dependent behavior.
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
-            and should not have group keys prepended. This is used
-            in _make_wrapper which generates both transforms (e.g. diff)
-            and non-transforms (e.g. corr)
+            and should not have group keys prepended.
         is_agg : bool, default False
             Indicator for whether the function is an aggregation. When the
             result is empty, we don't want to warn for this case.
@@ -1527,6 +1527,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             output[key] = result
 
         if not output:
+            # test_margins_no_values_two_row_two_cols, test_groupby_crash_on_nunique
             return self._python_apply_general(f, self._selected_obj)
 
         return self._wrap_aggregated_output(output)
@@ -4263,15 +4264,8 @@ def get_groupby(
     obj: NDFrame,
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
-    level=None,
     grouper: ops.BaseGrouper | None = None,
-    exclusions=None,
-    selection=None,
-    as_index: bool = True,
-    sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
-    observed: bool = False,
-    dropna: bool = True,
 ) -> GroupBy:
 
     klass: type[GroupBy]
@@ -4290,15 +4284,8 @@ def get_groupby(
         obj=obj,
         keys=by,
         axis=axis,
-        level=level,
         grouper=grouper,
-        exclusions=exclusions,
-        selection=selection,
-        as_index=as_index,
-        sort=sort,
         group_keys=group_keys,
-        observed=observed,
-        dropna=dropna,
     )
 
 

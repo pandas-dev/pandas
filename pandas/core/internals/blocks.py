@@ -261,10 +261,6 @@ class Block(PandasObject):
         new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
-
-        if new_values.ndim != self.values.ndim:
-            raise ValueError("Only same dim slicing is allowed")
-
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final

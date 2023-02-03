@@ -155,9 +155,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby = groupby
         self.keys = None
         self.sort = True
-        # error: Incompatible types in assignment (expression has type "Union
-        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
-        self.axis = axis  # type: ignore[assignment]
+        self.axis = obj._get_axis_number(axis)
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
@@ -1207,7 +1205,7 @@ class _GroupByMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            # error: "GotItemMixin" has no attribute "obj"
+            # error: "_GroupByMixin" has no attribute "obj"
             subset = self.obj  # type: ignore[attr-defined]
 
         # we need to make a shallow copy of ourselves
@@ -1691,7 +1689,7 @@ class TimeGrouper(Grouper):
     def _get_grouper(self, obj, validate: bool = True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r.binner, r.grouper, r.obj
+        return r.grouper, r.obj
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):

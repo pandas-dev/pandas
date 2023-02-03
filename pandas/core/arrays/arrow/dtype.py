@@ -4,7 +4,11 @@ import re
 
 import numpy as np
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    TYPE_CHECKING,
+    DtypeObj,
+    type_t,
+)
 from pandas.compat import pa_version_under6p0
 from pandas.util._decorators import cache_readonly
 
@@ -15,6 +19,9 @@ from pandas.core.dtypes.base import (
 
 if not pa_version_under6p0:
     import pyarrow as pa
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
 @register_extension_dtype
@@ -113,7 +120,7 @@ class ArrowDtype(StorageExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> type_t[ArrowExtensionArray]:
         """
         Return the array type associated with this dtype.
 

@@ -65,10 +65,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import (
-    algorithms,
-    nanops,
-)
+from pandas.core import algorithms
 from pandas.core.apply import (
     GroupByApply,
     maybe_mangle_lambdas,
@@ -97,6 +94,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from pandas import Categorical
     from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -135,29 +133,6 @@ class NamedAgg(NamedTuple):
 
     column: Hashable
     aggfunc: AggScalar
-
-
-def generate_property(name: str, klass: type[DataFrame | Series]):
-    """
-    Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
-
-    Parameters
-    ----------
-    name : str
-    klass : {DataFrame, Series}
-
-    Returns
-    -------
-    property
-    """
-
-    def prop(self):
-        return self._make_wrapper(name)
-
-    parent_method = getattr(klass, name)
-    prop.__doc__ = parent_method.__doc__ or ""
-    prop.__name__ = name
-    return property(prop)
 
 
 class SeriesGroupBy(GroupBy[Series]):
@@ -710,18 +685,13 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
 
             # lab is a Categorical with categories an IntervalIndex
-            lab = cut(Series(val), bins, include_lowest=True)
-            # error: "ndarray" has no attribute "cat"
-            lev = lab.cat.categories  # type: ignore[attr-defined]
-            # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
-            # argument types "Any", "bool", "Union[Any, float]"
-            lab = lev.take(  # type: ignore[call-overload]
-                # error: "ndarray" has no attribute "cat"
-                lab.cat.codes,  # type: ignore[attr-defined]
+            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_obj = cast("Categorical", cat_ser._values)
+            lev = cat_obj.categories
+            lab = lev.take(
+                cat_obj.codes,
                 allow_fill=True,
-                # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
-                # "_na_value"
-                fill_value=lev._na_value,  # type: ignore[union-attr]
+                fill_value=lev._na_value,
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
@@ -1484,7 +1454,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
-        # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
 
         # With self.axis == 0, we have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
@@ -2017,17 +1986,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             axis = self.axis
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmax,
-                "argmax",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(
@@ -2113,17 +2072,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             axis = self.axis
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmin,
-                "argmin",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(

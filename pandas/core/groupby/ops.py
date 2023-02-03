@@ -743,7 +743,7 @@ class BaseGrouper:
         Generator yielding subsetted objects
         """
         ids, _, ngroups = self.group_info
-        return get_splitter(data, ids, ngroups, axis=axis)
+        return _get_splitter(data, ids, ngroups, axis=axis)
 
     def _get_grouper(self):
         """
@@ -1026,14 +1026,13 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        ids, _, ngroups = self.group_info
+        _, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        # equiv: splitter = self._get_splitter(obj, axis=0)
-        splitter = get_splitter(obj, ids, ngroups, axis=0)
+        splitter = self._get_splitter(obj, axis=0)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -1288,7 +1287,7 @@ class FrameSplitter(DataSplitter):
         return df.__finalize__(sdata, method="groupby")
 
 
-def get_splitter(
+def _get_splitter(
     data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
