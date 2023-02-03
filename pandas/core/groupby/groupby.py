@@ -2900,12 +2900,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
           3  7.0  0.705
 
         >>> df.groupby('A').rolling(2, min_periods=1).sum()
-                A    B      C
+            B      C
         A
-        1 0  1.0  1.0  0.362
-          1  2.0  3.0  0.589
-        2 2  2.0  3.0  1.267
-          3  4.0  7.0  0.705
+        1 0  1.0  0.362
+          1  3.0  0.589
+        2 2  3.0  1.267
+          3  7.0  0.705
 
         >>> df.groupby('A').rolling(2, on='B').sum()
             B      C
