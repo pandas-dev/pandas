@@ -16,6 +16,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
+    NaT,
     algos,
     lib,
 )
@@ -457,6 +458,11 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
+    is_datetimelike = needs_i8_conversion(yvalues.dtype)
+
+    if is_datetimelike:
+        yvalues = yvalues.view("i8")
+
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
@@ -476,7 +482,10 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    yvalues[preserve_nans] = np.nan
+    if is_datetimelike:
+        yvalues[preserve_nans] = NaT.value
+    else:
+        yvalues[preserve_nans] = np.nan
     return
 
 
