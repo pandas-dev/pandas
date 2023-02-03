@@ -6216,17 +6216,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: category
         Categories (2, int64): [2 < 1]
 
-        Note that using ``copy=False`` and changing data on a new
-        pandas object may propagate changes:
-
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = s1.astype('int64', copy=False)
-        >>> s2[0] = 10
-        >>> s1  # note that s1[0] has changed too
-        0    10
-        1     2
-        dtype: int64
-
         Create a series of dates:
 
         >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))

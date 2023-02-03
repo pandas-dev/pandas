@@ -1674,13 +1674,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [5, 2, 2, 1, 1]
         Categories (3, int64): [1, 2, 5]
 
-        Inplace sorting can be done as well:
-
-        >>> c.sort_values(inplace=True)
-        >>> c
-        [1, 1, 2, 2, 5]
-        Categories (3, int64): [1, 2, 5]
-        >>>
         >>> c = pd.Categorical([1, 2, 2, 1, 5])
 
         'sort_values' behaviour with NaNs. Note that 'na_position'
