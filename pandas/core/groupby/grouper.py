@@ -505,12 +505,15 @@ class Grouping:
             )
             self.obj = newobj
 
-            ng = newgrouper._get_grouper()
             if isinstance(newgrouper, ops.BinGrouper):
-                # in this case we have `ng is newgrouper`
-                self.grouping_vector = ng
+                # TODO: can we unwrap this and get a tighter typing
+                #  for self.grouping_vector?
+                self.grouping_vector = newgrouper
             else:
                 # ops.BaseGrouper
+                # TODO: 2023-02-03 no test cases with len(newgrouper.groupings) > 1.
+                #  If that were to occur, would we be throwing out information?
+                ng = newgrouper.groupings[0].grouping_vector
                 # use Index instead of ndarray so we can recover the name
                 self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
 
