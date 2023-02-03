@@ -2873,6 +2873,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         RollingGroupby
             Return a new grouper with our rolling appended.
 
+        See Also
+        --------
+        Series.rolling : Calling object with Series data.
+        DataFrame.rolling : Calling object with DataFrames.
+
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
