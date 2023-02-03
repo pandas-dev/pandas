@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p24
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -21,11 +19,7 @@ class TestComparisonOps(NumericOps, ComparisonOps):
         op = comparison_op
         a = pd.array([0, 1, None] * 3, dtype="Int64")
         b = pd.array([0] * 3 + [1] * 3 + [None] * 3, dtype="Float64")
-        if np_version_gte1p24:
-            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-                other = b.astype("Int64")
-        else:
-            other = b.astype("Int64")
+        other = b.astype("Int64")
         expected = op(a, other)
         result = op(a, b)
         tm.assert_extension_array_equal(result, expected)

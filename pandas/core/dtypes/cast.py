@@ -1827,7 +1827,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # see test_where_complex GH#6345
                 return dtype.type(element)
 
-            casted = dtype.type(element)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                casted = dtype.type(element)
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize
