@@ -327,7 +327,6 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             context_manager = nullcontext()
         with context_manager:
-
             # degenerate case
             if selected_obj.ndim == 1:
 
