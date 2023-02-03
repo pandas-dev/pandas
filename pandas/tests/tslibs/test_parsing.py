@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 
 from dateutil.parser import parse as du_parse
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -16,6 +17,23 @@ from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
+
+
+@td.skip_if_windows
+def test_parsing_tzlocal_deprecated():
+    # GH#50791
+    msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
+    dtstr = "Jan 15 2004 03:00 EST"
+
+    with tm.set_timezone("US/Eastern"):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res, _ = parse_datetime_string_with_reso(dtstr)
+
+        assert isinstance(res.tzinfo, tzlocal)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = parsing.py_parse_datetime_string(dtstr)
+        assert isinstance(res.tzinfo, tzlocal)
 
 
 def test_parse_datetime_string_with_reso():
