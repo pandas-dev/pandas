@@ -35,12 +35,12 @@ def by(request):
 
 
 @pytest.fixture(params=[True, False])
-def groupby_serie(request):
+def groupby_series(request):
     return request.param
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_string(how, by, groupby_serie, groupby_func, as_index, sort):
+def test_groupby_raises_string(how, by, groupby_series, groupby_func, as_index, sort):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -52,7 +52,7 @@ def test_groupby_raises_string(how, by, groupby_serie, groupby_func, as_index, s
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, as_index=as_index, sort=sort)
 
-    if groupby_serie:
+    if groupby_series:
         if groupby_func == "corrwith":
             pytest.skip()
         gb = gb["d"]
@@ -124,7 +124,7 @@ def test_groupby_raises_string(how, by, groupby_serie, groupby_func, as_index, s
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_string_udf(how, by, groupby_serie):
+def test_groupby_raises_string_udf(how, by, groupby_series):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -135,7 +135,7 @@ def test_groupby_raises_string_udf(how, by, groupby_serie):
     )
     gb = df.groupby(by=by)
 
-    if groupby_serie:
+    if groupby_series:
         gb = gb["d"]
 
     def func(x):
@@ -145,9 +145,10 @@ def test_groupby_raises_string_udf(how, by, groupby_serie):
         getattr(gb, how)(func)
 
 
+# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_string_np(how, by, groupby_serie, groupby_func_np):
+def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -158,7 +159,7 @@ def test_groupby_raises_string_np(how, by, groupby_serie, groupby_func_np):
     )
     gb = df.groupby(by=by)
 
-    if groupby_serie:
+    if groupby_series:
         gb = gb["d"]
 
     klass, msg = {
@@ -174,7 +175,7 @@ def test_groupby_raises_string_np(how, by, groupby_serie, groupby_func_np):
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_datetime(how, by, groupby_serie, groupby_func, as_index, sort):
+def test_groupby_raises_datetime(how, by, groupby_series, groupby_func, as_index, sort):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -186,7 +187,7 @@ def test_groupby_raises_datetime(how, by, groupby_serie, groupby_func, as_index,
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, as_index=as_index, sort=sort)
 
-    if groupby_serie:
+    if groupby_series:
         if groupby_func == "corrwith":
             pytest.skip()
         gb = gb["d"]
@@ -246,7 +247,7 @@ def test_groupby_raises_datetime(how, by, groupby_serie, groupby_func, as_index,
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_datetime_udf(how, by, groupby_serie):
+def test_groupby_raises_datetime_udf(how, by, groupby_series):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -258,7 +259,7 @@ def test_groupby_raises_datetime_udf(how, by, groupby_serie):
 
     gb = df.groupby(by=by)
 
-    if groupby_serie:
+    if groupby_series:
         gb = gb["d"]
 
     def func(x):
@@ -268,9 +269,10 @@ def test_groupby_raises_datetime_udf(how, by, groupby_serie):
         getattr(gb, how)(func)
 
 
+# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_datetime_np(how, by, groupby_serie, groupby_func_np):
+def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -281,7 +283,7 @@ def test_groupby_raises_datetime_np(how, by, groupby_serie, groupby_func_np):
     )
     gb = df.groupby(by=by)
 
-    if groupby_serie:
+    if groupby_series:
         gb = gb["d"]
 
     klass, msg = {
@@ -296,8 +298,9 @@ def test_groupby_raises_datetime_np(how, by, groupby_serie, groupby_func_np):
             getattr(gb, how)(groupby_func_np)
 
 
+# GH#50749
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_category(how, by, groupby_serie, groupby_func, as_index, sort):
+def test_groupby_raises_category(how, by, groupby_series, groupby_func, as_index, sort):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -313,7 +316,7 @@ def test_groupby_raises_category(how, by, groupby_serie, groupby_func, as_index,
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, as_index=as_index, sort=sort)
 
-    if groupby_serie:
+    if groupby_series:
         if groupby_func == "corrwith":
             pytest.skip()
         gb = gb["d"]
@@ -417,8 +420,9 @@ def test_groupby_raises_category(how, by, groupby_serie, groupby_func, as_index,
                 gb.transform(groupby_func, *args)
 
 
+# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_category_udf(how, by, groupby_serie):
+def test_groupby_raises_category_udf(how, by, groupby_series):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -433,7 +437,7 @@ def test_groupby_raises_category_udf(how, by, groupby_serie):
     )
     gb = df.groupby(by=by)
 
-    if groupby_serie:
+    if groupby_series:
         gb = gb["d"]
 
     def func(x):
@@ -443,9 +447,46 @@ def test_groupby_raises_category_udf(how, by, groupby_serie):
         getattr(gb, how)(func)
 
 
+# GH#50749
+@pytest.mark.parametrize("how", ["agg", "transform"])
+@pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
+def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": Categorical(
+                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
+                categories=["a", "b", "c", "d"],
+                ordered=True,
+            ),
+        }
+    )
+    gb = df.groupby(by=by)
+
+    if groupby_series:
+        gb = gb["d"]
+
+    klass, msg = {
+        np.sum: (TypeError, "category type does not support sum operations"),
+        np.mean: (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'mean'",
+        ),
+    }[groupby_func_np]
+
+    if klass is None:
+        getattr(gb, how)(groupby_func_np)
+    else:
+        with pytest.raises(klass, match=msg):
+            getattr(gb, how)(groupby_func_np)
+
+
+# GH#50749
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
-    how, by, groupby_serie, groupby_func, observed
+    how, by, groupby_series, groupby_func, observed
 ):
     df = DataFrame(
         {
@@ -466,7 +507,7 @@ def test_groupby_raises_category_on_category(
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, observed=observed)
 
-    if groupby_serie:
+    if groupby_series:
         if groupby_func == "corrwith":
             pytest.skip()
         gb = gb["d"]
