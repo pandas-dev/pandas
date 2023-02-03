@@ -189,6 +189,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
   - :meth:`DataFrame.set_index`
   - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+  - :meth:`DataFrame.set_flags` / :meth:`Series.set_flags`
   - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
   - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
   - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
@@ -202,7 +203,28 @@ Copy-on-Write improvements
   - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
   - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
   - :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
+  - :meth:`DataFrame.droplevel` / :meth:`Series.droplevel`
   - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
+  - :meth:`DataFrame.between_time` / :meth:`Series.between_time`
+  - :meth:`DataFrame.filter` / :meth:`Series.filter`
+  - :meth:`DataFrame.head` / :meth:`Series.head`
+  - :meth:`DataFrame.tail` / :meth:`Series.tail`
+  - :meth:`DataFrame.isetitem`
+  - :meth:`DataFrame.pipe` / :meth:`Series.pipe`
+  - :meth:`DataFrame.pop` / :meth:`Series.pop`
+  - :meth:`DataFrame.replace` / :meth:`Series.replace`
+  - :meth:`DataFrame.shift` / :meth:`Series.shift`
+  - :meth:`DataFrame.sort_index` / :meth:`Series.sort_index`
+  - :meth:`DataFrame.sort_values` / :meth:`Series.sort_values`
+  - :meth:`DataFrame.squeeze` / :meth:`Series.squeeze`
+  - :meth:`DataFrame.swapaxes`
+  - :meth:`DataFrame.swaplevel` / :meth:`Series.swaplevel`
+  - :meth:`DataFrame.take` / :meth:`Series.take`
+  - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
+  - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
+  - :meth:`DataFrame.truncate`
+  - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
   performance improvement compared to the regular execution (:issue:`49473`).
