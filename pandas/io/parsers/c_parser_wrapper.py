@@ -85,7 +85,8 @@ class CParserWrapper(ParserBase):
         dtype_backend = get_option("mode.dtype_backend")
         kwds["dtype_backend"] = dtype_backend
         if dtype_backend == "pyarrow":
-            import_optional_dependency("pyarrow")  # Ensure that we fail here
+            # Fail here loudly instead of in cython after reading
+            import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
 
         self.unnamed_cols = self._reader.unnamed_cols

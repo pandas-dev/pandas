@@ -342,7 +342,7 @@ cdef class TextReader:
         bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
-        object dtype_backend  # str
+        str dtype_backend
 
     def __cinit__(self, source,
                   delimiter=b",",  # bytes | str
@@ -1450,7 +1450,7 @@ def _maybe_upcast(
 
     if use_nullable_dtypes and dtype_backend == "pyarrow":
         import pyarrow as pa
-        if isinstance(arr, IntegerArray) and arr._mask.all():
+        if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
             arr = arr.to_numpy()
         arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
