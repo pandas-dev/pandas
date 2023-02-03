@@ -647,7 +647,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-| pyarrow         | 6.0.0           |    X    |
+| pyarrow         | 7.0.0           |    X    |
 +-----------------+-----------------+---------+
 | matplotlib      | 3.6.1           |    X    |
 +-----------------+-----------------+---------+
