@@ -49,8 +49,9 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.lib._NoDefault.no_default",
     # internal type alias (should probably be private)
     "pandas._libs.lib.ndarray_obj_2d",
+    # runtime argument "owner" has a default value but stub argument does not
+    "pandas._libs.properties.AxisProperty.__get__",
     # workaround for mypy (cache_readonly = property)
-    "pandas._libs.properties.cache_readonly.__get__",
     "pandas._libs.properties.cache_readonly.deleter",
     "pandas._libs.properties.cache_readonly.getter",
     "pandas._libs.properties.cache_readonly.setter",

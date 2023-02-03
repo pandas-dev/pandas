@@ -1938,7 +1938,9 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(
+        zoneinfo.ZoneInfo("Europe/Warsaw")  # pyright: ignore[reportGeneralTypeIssues]
+    )
 
 
 @pytest.fixture(params=warsaws)
