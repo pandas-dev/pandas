@@ -1,4 +1,4 @@
-.. _copy_on_write::
+.. _copy_on_write:
 
 {{ header }}
 
