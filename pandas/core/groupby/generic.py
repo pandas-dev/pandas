@@ -1039,7 +1039,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Examples
         --------
         >>> ser = pd.Series([390., 350., 357., np.nan, 22., 20., 30.],
-        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon', \
+        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon',
         ...                        'Parrot', 'Parrot', 'Parrot'],
         ...                 name="Max Speed")
         >>> ser
@@ -2561,23 +2561,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('cockatoo', 'bird', 70.0),
-        ...                    ('kiwi', 'bird', np.nan),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', 21.5),
-        ...                    ('rabbit', 'mammal', 15.0)],
-        ...                    columns=['name', 'class', 'max_speed'])
+        >>> arrays = [['falcon', 'parrot', 'cockatoo', 'kiwi',
+        ...            'lion', 'monkey', 'rabbit'],
+        ...           ['bird', 'bird', 'bird', 'bird',
+        ...            'mammal', 'mammal', 'mammal']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('name', 'class'))
+        >>> df = pd.DataFrame({'max_speed': [389.0, 24.0, 70.0, np.nan,
+        ...                                  80.5, 21.5, 15.0]},
+        ...                   index=index)
         >>> df
-            name   class  max_speed
-        0    falcon    bird      389.0
-        1    parrot    bird       24.0
-        2  cockatoo    bird       70.0
-        3      kiwi    bird        NaN
-        4      lion  mammal       80.5
-        5    monkey  mammal       21.5
-        6    rabbit  mammal       15.0
+                        max_speed
+        name     class
+        falcon   bird        389.0
+        parrot   bird         24.0
+        cockatoo bird         70.0
+        kiwi     bird          NaN
+        lion     mammal       80.5
+        monkey   mammal       21.5
+        rabbit   mammal       15.0
         >>> gb = df.groupby(["class"])
         >>> gb.skew()
                 max_speed
