@@ -1195,6 +1195,7 @@ def test_asfreq_noop(using_copy_on_write):
 
 
 def test_interpolate_creates_copy(using_copy_on_write):
+    # GH#51126
     df = DataFrame({"a": [1.5, np.nan, 3]})
     view = df[:]
     expected = df.copy()
