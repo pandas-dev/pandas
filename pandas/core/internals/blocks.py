@@ -669,25 +669,24 @@ class Block(PandasObject):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             na_mask = ~isna(values)
-            masks: Iterable[ndarray[Any, dtype[bool_]] = (
+            masks: Iterable[npt.NDArray[np.bool_]] = (
                 extract_bool_array(
-                    compare_or_regex_search(values, s[0], regex=regex, mask=na_mask)
+                    cast(
+                        ArrayLike,
+                        compare_or_regex_search(
+                            values, s[0], regex=regex, mask=na_mask
+                        ),
+                    )
                 )
                 for s in pairs
-            ) # type: ignore[arg-type]
-            # Materialize if inplace = True, since the masks can change
-            # as we replace
-            if inplace:
-                masks = list(masks)
+            )
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks: Iterable[ndarray[Any, dtype[bool_]] = (
-                extract_bool_array(missing.mask_missing(values, s[0])) for s in pairs
-            ) # type: ignore[arg-type]
-            # Materialize if inplace = True, since the masks can change
-            # as we replace
-            if inplace:
-                masks = list(masks)
+            masks = (missing.mask_missing(values, s[0]) for s in pairs)
+        # Materialize if inplace = True, since the masks can change
+        # as we replace
+        if inplace:
+            masks = list(masks)
 
         rb = [self if inplace else self.copy()]
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
@@ -711,7 +710,7 @@ class Block(PandasObject):
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
-                    mask=m,  # type: ignore[arg-type]
+                    mask=m,
                     inplace=inplace,
                     regex=regex,
                 )
