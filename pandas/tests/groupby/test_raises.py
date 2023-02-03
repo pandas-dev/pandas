@@ -145,10 +145,10 @@ def test_groupby_raises_string_udf(how, by, groupby_series):
         getattr(gb, how)(func)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
+    # GH#50749
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -269,10 +269,10 @@ def test_groupby_raises_datetime_udf(how, by, groupby_series):
         getattr(gb, how)(func)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
+    # GH#50749
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -298,9 +298,9 @@ def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
             getattr(gb, how)(groupby_func_np)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category(how, by, groupby_series, groupby_func, as_index, sort):
+    # GH#50749
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -420,9 +420,9 @@ def test_groupby_raises_category(how, by, groupby_series, groupby_func, as_index
                 gb.transform(groupby_func, *args)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 def test_groupby_raises_category_udf(how, by, groupby_series):
+    # GH#50749
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -447,10 +447,10 @@ def test_groupby_raises_category_udf(how, by, groupby_series):
         getattr(gb, how)(func)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
+    # GH#50749
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -483,11 +483,11 @@ def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
             getattr(gb, how)(groupby_func_np)
 
 
-# GH#50749
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how, by, groupby_series, groupby_func, observed
 ):
+    # GH#50749
     df = DataFrame(
         {
             "a": Categorical(
