@@ -550,8 +550,8 @@ class _Concatenator:
                     obj = sample._constructor(obj, columns=[name], copy=False)
                     if using_copy_on_write():
                         # TODO(CoW): Remove when ref tracking in constructors works
-                        for i in range(len(original_obj._mgr.blocks)):  # type: ignore[union-attr]  # noqa
-                            obj._mgr.blocks[i].refs = original_obj._mgr.blocks[i].refs  # type: ignore[union-attr]  # noqa
+                        for i, block in enumerate(original_obj._mgr.blocks):  # type: ignore[union-attr]  # noqa
+                            obj._mgr.blocks[i].refs = block.refs  # type: ignore[union-attr]  # noqa
                             obj._mgr.blocks[i].refs.add_reference(obj._mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
 
                     obj.columns = [new_name]
@@ -612,8 +612,8 @@ class _Concatenator:
                     typ=get_option("mode.data_manager"),
                 )
                 if using_copy_on_write() and not self.copy:
-                    for i in range(len(self.objs)):
-                        mgr.blocks[i].refs = self.objs[i]._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
+                    for i, obj in enumerate(self.objs):
+                        mgr.blocks[i].refs = obj._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
                         mgr.blocks[i].refs.add_reference(mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
                 df = cons(mgr, copy=False)
                 df.columns = columns
