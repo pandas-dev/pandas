@@ -20,7 +20,10 @@ from pandas._libs import (
     lib,
     writers,
 )
-from pandas._libs.internals import BlockPlacement
+from pandas._libs.internals import (
+    BlockPlacement,
+    BlockValuesRefs,
+)
 from pandas._libs.missing import NA
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
@@ -144,6 +147,7 @@ class Block(PandasObject):
 
     values: np.ndarray | ExtensionArray
     ndim: int
+    refs: BlockValuesRefs
     __init__: Callable
 
     __slots__ = ()
@@ -506,9 +510,13 @@ class Block(PandasObject):
     def copy(self, deep: bool = True) -> Block:
         """copy constructor"""
         values = self.values
+        refs: BlockValuesRefs | None
         if deep:
             values = values.copy()
-        return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
+            refs = None
+        else:
+            refs = self.refs
+        return type(self)(values, placement=self._mgr_locs, ndim=self.ndim, refs=refs)
 
     # ---------------------------------------------------------------------
     # Replace

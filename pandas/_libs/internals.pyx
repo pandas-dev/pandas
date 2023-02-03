@@ -604,6 +604,7 @@ cdef class SharedBlock:
         if refs is None:
             self.refs = BlockValuesRefs(self)
         else:
+            refs.add_reference(self)
             self.refs = refs
 
     cpdef __reduce__(self):
@@ -877,11 +878,12 @@ cdef class BlockValuesRefs:
     def __cinit__(self, blk: SharedBlock) -> None:
         self.referenced_blocks = [weakref.ref(blk)]
 
-    cdef void add_reference(self, blk: SharedBlock):
+    def add_reference(self, blk: SharedBlock) -> None:
         self.referenced_blocks.append(weakref.ref(blk))
 
-    cdef bint has_reference(self):
+    def has_reference(self) -> bool:
         self.referenced_blocks = [
             obj for obj in self.referenced_blocks if obj() is not None
         ]
-        return len(self.referenced_blocks) > 0
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1

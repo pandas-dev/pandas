@@ -256,8 +256,9 @@ class BaseBlockManager(DataManager):
         """
         # TODO(CoW) include `or self.refs[blkno]() is None` ?
         return (
-            self.refs is None or self.refs[blkno] is None
-        ) and weakref.getweakrefcount(self.blocks[blkno]) == 0
+            (self.refs is None or self.refs[blkno] is None)
+            and weakref.getweakrefcount(self.blocks[blkno]) == 0
+        ) and not self.blocks[blkno].refs.has_reference()
 
     def _clear_reference_block(self, blkno: int) -> None:
         """
@@ -629,17 +630,7 @@ class BaseBlockManager(DataManager):
             new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
-        new_refs: list[weakref.ref | None] | None
-        if deep:
-            new_refs = None
-            parent = None
-        else:
-            new_refs = [weakref.ref(blk) for blk in self.blocks]
-            parent = self
-
         res.axes = new_axes
-        res.refs = new_refs
-        res.parent = parent
 
         if self.ndim > 1:
             # Avoid needing to re-compute these
