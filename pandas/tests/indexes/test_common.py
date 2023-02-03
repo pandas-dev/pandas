@@ -18,7 +18,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_numeric_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -316,7 +319,7 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        dtype = index.dtype if is_numeric_dtype(index) else None
         unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
@@ -345,7 +348,7 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            dtype = index.dtype if is_numeric_dtype(index) else None
             unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
