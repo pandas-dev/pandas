@@ -648,6 +648,7 @@ def test_read_iris_query_string_with_parameter(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_table(conn, request):
+    # GH 51015 if conn = sqlite_iris_str
     conn = request.getfixturevalue(conn)
     iris_frame = read_sql_table("iris", conn)
     check_iris_frame(iris_frame)
