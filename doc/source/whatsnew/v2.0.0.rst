@@ -1195,6 +1195,7 @@ Reshaping
 - Bug in :meth:`DataFrame.transpose` with ``IntervalDtype`` column with ``timedelta64[ns]`` endpoints (:issue:`44917`)
 - Bug in :func:`agg` would ignore arguments when passed a list of functions (:issue:`50863`)
 -
+
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`,:issue:`50087`)
