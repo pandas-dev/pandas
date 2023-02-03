@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -220,6 +221,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(scalars, cls):
             scalars = scalars._data
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            if copy and is_array_like(scalars):
+                # pa array should not get updated when numpy array is updated
+                scalars = deepcopy(scalars)
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -930,7 +934,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index).astype("Int64")
+        return Series(counts, index=index, name="count").astype("Int64")
 
     @classmethod
     def _concat_same_type(
@@ -1251,7 +1255,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_dtype = self._data.type
 
         data = self._data
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
             nbits = pa_dtype.bit_width
@@ -1262,7 +1266,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32())
+            else:
+                result = result.cast(pa.int64())
             result = result.cast(pa_dtype)
 
         return type(self)(result)

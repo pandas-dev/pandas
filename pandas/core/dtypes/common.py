@@ -1219,6 +1219,40 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     )
 
 
+def is_any_numeric_dtype(arr_or_dtype) -> bool:
+    """
+    Check whether the provided array or dtype is of a real number dtype
+
+    Parameters
+    ----------
+    arr_or_dtype : array-like or dtype
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean
+        Whether or not the array or dtype is of a real number dtype
+
+    Examples
+    -------
+    >>> is_any_numeric_dtype(str)
+    False
+    >>> is_any_numeric_dtype(int)
+    True
+    >>> is_any_numeric_dtype(float)
+    True
+    >>> is_any_numeric_dtype(complex(1,2))
+    False
+    >>> is_any_numeric_dtype(bool)
+    False
+    """
+    return (
+        is_numeric_dtype(arr_or_dtype)
+        and not is_complex_dtype(arr_or_dtype)
+        and not is_bool_dtype(arr_or_dtype)
+    )
+
+
 def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
@@ -1774,6 +1808,7 @@ __all__ = [
     "is_nested_list_like",
     "is_number",
     "is_numeric_dtype",
+    "is_any_numeric_dtype",
     "is_numeric_v_string_like",
     "is_object_dtype",
     "is_period_dtype",

@@ -250,6 +250,7 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     "function is not implemented for this dtype",
+                    f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -276,6 +277,7 @@ class TestNumericOnly:
                     "category type does not support",
                     "can't multiply sequence",
                     "function is not implemented for this dtype",
+                    f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -1254,6 +1256,27 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
+def test_describe_duplicate_columns():
+    # GH#50806
+    df = DataFrame([[0, 1, 2, 3]])
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    result = gb.describe(percentiles=[])
+
+    columns = ["count", "mean", "std", "min", "50%", "max"]
+    frames = [
+        DataFrame([[1.0, val, np.nan, val, val, val]], index=[1], columns=columns)
+        for val in (0.0, 2.0, 3.0)
+    ]
+    expected = pd.concat(frames, axis=1)
+    expected.columns = MultiIndex(
+        levels=[[0, 2], columns],
+        codes=[6 * [0] + 6 * [1] + 6 * [0], 3 * list(range(6))],
+    )
+    expected.index.names = [1]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
     df = DataFrame(
@@ -1594,3 +1617,22 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     result = method(*args).index
     expected = df.index
     tm.assert_index_equal(result, expected)
+
+
+def test_duplicate_columns(request, groupby_func, as_index):
+    # GH#50806
+    if groupby_func == "corrwith":
+        msg = "GH#50845 - corrwith fails when there are duplicate columns"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
+    args = get_groupby_method_args(groupby_func, df)
+    gb = df.groupby("a", as_index=as_index)
+    result = getattr(gb, groupby_func)(*args)
+
+    expected_df = df.set_axis(["a", "b", "c"], axis=1)
+    expected_args = get_groupby_method_args(groupby_func, expected_df)
+    expected_gb = expected_df.groupby("a", as_index=as_index)
+    expected = getattr(expected_gb, groupby_func)(*expected_args)
+    if groupby_func not in ("size", "ngroup", "cumcount"):
+        expected = expected.rename(columns={"c": "b"})
+    tm.assert_equal(result, expected)
