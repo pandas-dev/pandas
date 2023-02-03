@@ -649,7 +649,7 @@ cdef class NumpyBlock(SharedBlock):
         Assumes self.ndim == 2
         """
         new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
 
 cdef class NDArrayBackedBlock(SharedBlock):
@@ -677,7 +677,7 @@ cdef class NDArrayBackedBlock(SharedBlock):
         Assumes self.ndim == 2
         """
         new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
 
 cdef class Block(SharedBlock):
@@ -703,15 +703,11 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
-        public list refs
-        public object parent
 
     def __cinit__(
         self,
         blocks=None,
         axes=None,
-        refs=None,
-        parent=None,
         verify_integrity=True,
     ):
         # None as defaults for unpickling GH#42345
@@ -725,8 +721,6 @@ cdef class BlockManager:
 
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
-        self.refs = refs
-        self.parent = parent
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -835,16 +829,12 @@ cdef class BlockManager:
             ndarray blknos, blklocs
 
         nbs = []
-        nrefs = []
         for blk in self.blocks:
             nb = blk.getitem_block_index(slobj)
             nbs.append(nb)
-            nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(
-            tuple(nbs), new_axes, nrefs, parent=self, verify_integrity=False
-        )
+        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -857,7 +847,7 @@ cdef class BlockManager:
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
-            new_blocks, new_refs = self._slice_take_blocks_ax0(slobj)
+            new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
             return self._get_index_slice(slobj)
         else:
@@ -866,9 +856,7 @@ cdef class BlockManager:
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(
-            tuple(new_blocks), new_axes, new_refs, parent=self, verify_integrity=False
-        )
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
 
 
 cdef class BlockValuesRefs:

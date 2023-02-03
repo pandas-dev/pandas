@@ -22,7 +22,8 @@ def test_copy(using_copy_on_write):
     # the deep copy doesn't share memory
     assert not np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
     if using_copy_on_write:
-        assert df_copy._mgr.refs is None
+        assert not df_copy._mgr.blocks[0].refs.has_reference()
+        assert not df_copy._mgr.blocks[1].refs.has_reference()
 
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
