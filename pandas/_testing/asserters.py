@@ -75,7 +75,7 @@ def assert_almost_equal(
     right : object
     check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
-        then `RangeIndex` and `NumericIndex` with int64 dtype are also considered
+        then `RangeIndex` and `Index` with int64 dtype are also considered
         equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
@@ -197,7 +197,7 @@ def assert_index_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        NumericIndex with an int64 dtype as well.
+        Index with an int64 dtype as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -348,8 +348,6 @@ def assert_class_equal(
     """
     Checks classes are equal.
     """
-    from pandas.core.indexes.numeric import NumericIndex
-
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -359,12 +357,19 @@ def assert_class_equal(
 
         return type(x).__name__
 
+    def is_class_equiv(idx: Index) -> bool:
+        """Classes that are a RangeIndex (sub-)instance or exactly an `Index` .
+
+        This only checks class equivalence. There is a separate check that the
+        dtype is int64.
+        """
+        return type(idx) is Index or isinstance(idx, RangeIndex)
+
     if type(left) == type(right):
         return
 
     if exact == "equiv":
-        # accept equivalence of NumericIndex (sub-)classes
-        if isinstance(left, NumericIndex) and isinstance(right, NumericIndex):
+        if is_class_equiv(left) and is_class_equiv(right):
             return
 
     msg = f"{obj} classes are different"
@@ -470,7 +475,7 @@ def assert_categorical_equal(
     ):
         exact = "equiv"
     else:
-        # We still want to require exact matches for NumericIndex
+        # We still want to require exact matches for Index
         exact = True
 
     if check_category_order:
@@ -511,7 +516,7 @@ def assert_interval_array_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        NumericIndex with an int64 dtype as well.
+        Index with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
