@@ -2877,7 +2877,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.rolling : Calling object with Series data.
         DataFrame.rolling : Calling object with DataFrames.
         Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
+        DataFrame.groupby : Apply a function groupby.
 
         Examples
         --------
@@ -2895,25 +2895,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             B      C
         A
         1 0  NaN    NaN
-        1  3.0  0.589
+          1  3.0  0.589
         2 2  NaN    NaN
-        3  7.0  0.705
+          3  7.0  0.705
 
         >>> df.groupby('A').rolling(2, min_periods=1).sum()
                 A    B      C
         A
         1 0  1.0  1.0  0.362
-        1  2.0  3.0  0.589
+          1  2.0  3.0  0.589
         2 2  2.0  3.0  1.267
-        3  4.0  7.0  0.705
+          3  4.0  7.0  0.705
 
         >>> df.groupby('A').rolling(2, on='B').sum()
             B      C
         A
         1 0  1    NaN
-        1  2  0.589
+          1  2  0.589
         2 2  3    NaN
-        3  4  0.705
+          3  4  0.705
         """
         from pandas.core.window import RollingGroupby
 
