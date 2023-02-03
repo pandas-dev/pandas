@@ -580,9 +580,16 @@ cdef class SharedBlock:
     """
     cdef:
         public BlockPlacement _mgr_locs
+        public BlockValuesRefs refs
         readonly int ndim
 
-    def __cinit__(self, values, placement: BlockPlacement, ndim: int):
+    def __cinit__(
+        self,
+        values,
+        placement: BlockPlacement,
+        ndim: int,
+        refs: BlockValuesRefs | None = None,
+    ):
         """
         Parameters
         ----------
@@ -594,6 +601,10 @@ cdef class SharedBlock:
         """
         self._mgr_locs = placement
         self.ndim = ndim
+        if refs is None:
+            self.refs = BlockValuesRefs(self)
+        else:
+            self.refs = refs
 
     cpdef __reduce__(self):
         args = (self.values, self.mgr_locs.indexer, self.ndim)
@@ -619,9 +630,15 @@ cdef class NumpyBlock(SharedBlock):
     cdef:
         public ndarray values
 
-    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
+    def __cinit__(
+        self,
+        ndarray values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
         # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+        #  set placement, ndim and refs
         self.values = values
 
     cpdef NumpyBlock getitem_block_index(self, slice slicer):
@@ -641,9 +658,15 @@ cdef class NDArrayBackedBlock(SharedBlock):
     cdef public:
         NDArrayBacked values
 
-    def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
+    def __cinit__(
+        self,
+        NDArrayBacked values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
         # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+        #  set placement, ndim and refs
         self.values = values
 
     cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
@@ -660,9 +683,15 @@ cdef class Block(SharedBlock):
     cdef:
         public object values
 
-    def __cinit__(self, object values, BlockPlacement placement, int ndim):
+    def __cinit__(
+        self,
+        object values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
         # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+        #  set placement, ndim and refs
         self.values = values
 
 
@@ -839,3 +868,20 @@ cdef class BlockManager:
         return type(self)(
             tuple(new_blocks), new_axes, new_refs, parent=self, verify_integrity=False
         )
+
+
+cdef class BlockValuesRefs:
+    cdef:
+        public list referenced_blocks
+
+    def __cinit__(self, blk: SharedBlock) -> None:
+        self.referenced_blocks = [weakref.ref(blk)]
+
+    cdef void add_reference(self, blk: SharedBlock):
+        self.referenced_blocks.append(weakref.ref(blk))
+
+    cdef bint has_reference(self):
+        self.referenced_blocks = [
+            obj for obj in self.referenced_blocks if obj() is not None
+        ]
+        return len(self.referenced_blocks) > 0
