@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterator,
+    cast,
     final,
 )
 
@@ -298,12 +299,8 @@ class Grouper:
         a tuple of grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
-        # "Optional[Any]"
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
-            self.obj,
+        grouper, _, obj = get_grouper(
+            cast(NDFrameT, self.obj),
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -312,9 +309,7 @@ class Grouper:
             dropna=self.dropna,
         )
 
-        # error: Incompatible return value type (got "Tuple[None, None, None]",
-        # expected "Tuple[BaseGrouper, NDFrameT]")
-        return self.grouper, self.obj  # type: ignore[return-value]
+        return grouper, obj
 
     @final
     def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:

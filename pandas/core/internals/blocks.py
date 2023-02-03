@@ -1595,6 +1595,7 @@ class EABackedBlock(Block):
 
     def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: int = 0,
         inplace: bool = False,
@@ -1969,6 +1970,38 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
 
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
+
+    def interpolate(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        index: Index | None = None,
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
+    ):
+        values = self.values
+
+        # error: Non-overlapping equality check (left operand type:
+        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
+        # "Literal['linear']")  [comparison-overlap]
+        if method == "linear":  # type: ignore[comparison-overlap]
+            # TODO: GH#50950 implement for arbitrary EAs
+            data_out = values._ndarray if inplace else values._ndarray.copy()
+            missing.interpolate_array_2d(
+                data_out, method=method, limit=limit, index=index, axis=axis
+            )
+            new_values = type(values)._simple_new(data_out, dtype=values.dtype)
+            return self.make_block_same_class(new_values)
+
+        elif values.ndim == 2 and axis == 0:
+            # NDArrayBackedExtensionArray.fillna assumes axis=1
+            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+        else:
+            new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
