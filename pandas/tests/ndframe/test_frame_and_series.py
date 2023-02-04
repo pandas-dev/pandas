@@ -447,3 +447,14 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+
+def test_core_generic_deprecated():
+    # GH51152
+    msg = (
+        "pandas.core.generic is deprecated "
+        "and will be removed from pandas in a future version. "
+        "Use pandas.core.ndframe instead."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        from pandas.core import generic  # noqa F401
