@@ -608,6 +608,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_list_like \
         pandas.api.types.is_named_tuple \
         pandas.api.types.is_numeric_dtype \
+        pandas.api.types.is_any_real_numeric_dtype \
         pandas.api.types.is_object_dtype \
         pandas.api.types.is_period_dtype \
         pandas.api.types.is_re \
