@@ -450,7 +450,7 @@ class TestNDFrame:
 
 
 def test_core_generic_deprecated():
-    # GHXXXXX
+    # GH51164
     msg = (
         "pandas.core.generic is deprecated "
         "and will be removed from pandas in a future version. "
