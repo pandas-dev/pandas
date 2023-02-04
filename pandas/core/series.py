@@ -891,7 +891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
         nv.validate_take((), kwargs)
 
-        # GH # 51022
+        # GH#51022
         self._get_axis_number(axis)
 
         indices = ensure_platform_int(indices)
