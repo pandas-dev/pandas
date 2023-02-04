@@ -298,7 +298,6 @@ Datetime properties
    :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
-   Series.dt
    Series.dt.date
    Series.dt.time
    Series.dt.timetz
