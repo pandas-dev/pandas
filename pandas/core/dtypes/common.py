@@ -1235,12 +1235,18 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
 
     Examples
     -------
-    >>> is_any_real_numeric_dtype(str)
-    False
     >>> is_any_real_numeric_dtype(int)
     True
     >>> is_any_real_numeric_dtype(float)
     True
+    >>> is_any_real_numeric_dtype(np.array([1,2.5]))
+    True
+    >>> is_any_real_numeric_dtype(np.array(["a","b",complex(1,2)]))
+    False
+    >>> is_any_real_numeric_dtype(object)
+    False
+    >>> is_any_real_numeric_dtype(str)
+    False
     >>> is_any_real_numeric_dtype(complex(1,2))
     False
     >>> is_any_real_numeric_dtype(bool)
