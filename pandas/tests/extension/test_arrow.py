@@ -749,9 +749,6 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    def test_dropna_array(self, data_missing):
-        super().test_dropna_array(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data):
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
