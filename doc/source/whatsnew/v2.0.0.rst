@@ -780,7 +780,7 @@ Deprecations
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
 - Deprecated ``all`` and ``any`` reductions with ``datetime64`` and :class:`DatetimeTZDtype` dtypes, use e.g. ``(obj != pd.Timestamp(0), tz=obj.tz).all()`` instead (:issue:`34479`)
-- Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Resampler` (:issue:`50977`)
+- Deprecated unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` (:issue:`50977`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:

@@ -2273,7 +2273,7 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
     elif warn_kwargs:
         msg = "kwargs"
     else:
-        msg = ""
+        return
     if msg != "":
         warnings.warn(
             f"Passing additional {msg} to {cls.__name__}.{kernel} has "
