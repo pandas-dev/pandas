@@ -279,9 +279,8 @@ class Grouper:
     @final
     @property
     def ax(self) -> Index:
-        assert False
-        # TODO: do we need a deprecation cycle to get rid of this?  can just
-        #  document as a breaking change?
+        # TODO: deprecate/remove; this state should not exist, is no longer
+        #  accessed from Resample
         index = self._gpr_index
         if index is None:
             raise ValueError("_set_grouper must be called before ax is accessed")
@@ -387,9 +386,6 @@ class Grouper:
 
         if type(self) is not Grouper:
             # i.e. only for TimeGrouper
-            # error: Incompatible types in assignment (expression has type
-            # "NDFrameT", variable has type "None")
-            self.obj = obj  # type: ignore[assignment]
             self._gpr_index = ax
         return obj, ax
 

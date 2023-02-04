@@ -129,7 +129,7 @@ class Resampler(BaseGroupBy, PandasObject):
     grouper: BinGrouper
     _timegrouper: TimeGrouper
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
-    _internal_names_set = frozenset({"ax"})
+    _internal_names_set = frozenset({"obj", "ax"})
     # to the groupby descriptor
     _attributes = [
         "freq",
@@ -162,7 +162,9 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = group_keys
         self.as_index = True
 
-        _, self.ax = self._timegrouper._set_grouper(self._convert_obj(obj), sort=True)
+        self.obj, self.ax = self._timegrouper._set_grouper(
+            self._convert_obj(obj), sort=True
+        )
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
         if self._timegrouper.key is not None:
@@ -190,13 +192,6 @@ class Resampler(BaseGroupBy, PandasObject):
             return self[attr]
 
         return object.__getattribute__(self, attr)
-
-    # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
-    @property
-    def obj(self) -> NDFrame:  # type: ignore[override]
-        # error: Incompatible return value type (got "Optional[Any]",
-        # expected "NDFrameT")
-        return self._timegrouper.obj  # type: ignore[return-value]
 
     @property
     def _from_selection(self) -> bool:
@@ -1155,6 +1150,7 @@ class _GroupByMixin(PandasObject):
         self._timegrouper = copy.copy(parent._timegrouper)
 
         self.ax = parent.ax
+        self.obj = parent.obj
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1656,29 +1652,15 @@ class TimeGrouper(Grouper):
 
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
-                obj,
-                groupby=self,
-                kind=kind,
-                axis=self.axis,
-                group_keys=self.group_keys,
-                parent=obj,
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
             return PeriodIndexResampler(
-                obj,
-                groupby=self,
-                kind=kind,
-                axis=self.axis,
-                group_keys=self.group_keys,
-                parent=obj,
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
-                obj,
-                groupby=self,
-                axis=self.axis,
-                group_keys=self.group_keys,
-                parent=obj,
+                obj, groupby=self, axis=self.axis, group_keys=self.group_keys
             )
 
         raise TypeError(
