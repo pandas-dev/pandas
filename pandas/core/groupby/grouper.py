@@ -441,7 +441,6 @@ class Grouping:
 
     _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
-    _passed_categorical: bool
     _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
@@ -470,8 +469,6 @@ class Grouping:
         self.in_axis = in_axis
         self._dropna = dropna
         self._uniques = uniques
-
-        self._passed_categorical = False
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -545,8 +542,6 @@ class Grouping:
                 grouping_vector = Series(grouping_vector).to_numpy()
         elif is_categorical_dtype(grouping_vector):
             # a passed Categorical
-            self._passed_categorical = True
-
             self._orig_cats = grouping_vector.categories
             grouping_vector, self._all_grouper = recode_for_groupby(
                 grouping_vector, sort, observed
@@ -559,6 +554,10 @@ class Grouping:
 
     def __iter__(self) -> Iterator:
         return iter(self.indices)
+
+    @cache_readonly
+    def _passed_categorical(self) -> bool:
+        return is_categorical_dtype(self.grouping_vector)
 
     @cache_readonly
     def name(self) -> Hashable:
