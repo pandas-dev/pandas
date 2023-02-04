@@ -145,10 +145,6 @@ class TestSeriesConstructors:
         scalar = Series(0.5)
         assert not isinstance(scalar, float)
 
-        # Coercion
-        assert float(Series([1.0])) == 1.0
-        assert int(Series([1.0])) == 1
-
     def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
         # GH 28401
 
