@@ -912,13 +912,10 @@ def test_to_numeric_use_nullable_dtypes_already_nullable(dtype):
 @pytest.mark.parametrize(
     "use_nullable_dtypes, dtype", [(True, "Float64"), (False, "float64")]
 )
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_to_numeric_use_nullable_dtypes_error(
     use_nullable_dtypes, dtype, dtype_backend
 ):
     # GH#50505
-    if dtype_backend == "pyarrow":
-        pytest.importorskip("pyarrow")
     ser = Series(["a", "b", ""])
     expected = ser.copy()
     with pytest.raises(ValueError, match="Unable to parse string"):

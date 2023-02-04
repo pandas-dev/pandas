@@ -1293,6 +1293,22 @@ def string_storage(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "pandas",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
 

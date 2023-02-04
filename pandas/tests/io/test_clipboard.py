@@ -418,7 +418,6 @@ class TestClipboard:
             # Clipboard can sometimes keep previous param causing flaky CI failures
             subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine

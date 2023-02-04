@@ -82,7 +82,6 @@ def test_spss_usecols(datapath):
         pd.read_spss(fname, usecols="VAR00002")
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_spss_umlauts_use_nullable_dtypes(datapath, dtype_backend):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "spss", "umlauts.sav")
