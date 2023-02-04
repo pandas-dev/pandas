@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Hashable,
     Literal,
+    cast,
     final,
     no_type_check,
 )
@@ -455,7 +456,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby, key=key, parent=self)
+        return self._resampler_for_grouping(groupby=groupby, key=key, parent=self)
 
     def _wrap_result(self, result):
         """
@@ -1131,11 +1132,11 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, key=None, **kwargs) -> None:
+    def __init__(self, *, parent: Resampler, groupby=None, key=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
-        if parent is None:
-            parent = obj
+        # parent is always a Resampler, sometimes a _GroupByMixin
+        assert isinstance(parent, Resampler), type(parent)
 
         # initialize our GroupByMixin object with
         # the resampler attributes
@@ -1211,7 +1212,10 @@ class _GroupByMixin(PandasObject):
             selection = key
 
         new_rs = type(self)(
-            subset, groupby=groupby, parent=self, selection=selection, **kwargs
+            groupby=groupby,
+            parent=cast(Resampler, self),
+            selection=selection,
+            **kwargs,
         )
         return new_rs
 
