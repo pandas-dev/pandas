@@ -1,4 +1,5 @@
 from pandas.core.dtypes.common import (
+    is_any_real_numeric_dtype,
     is_array_like,
     is_bool,
     is_bool_dtype,
@@ -26,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_number,
     is_numeric_dtype,
-    is_any_real_numeric_dtype,
     is_object_dtype,
     is_period_dtype,
     is_re,
