@@ -60,7 +60,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects

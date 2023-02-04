@@ -28,7 +28,7 @@ if TYPE_CHECKING:
         PeriodArray,
         TimedeltaArray,
     )
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 
 # define abstract base classes to enable isinstance type checking on our

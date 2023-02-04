@@ -16,7 +16,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 
 def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:

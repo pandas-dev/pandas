@@ -57,10 +57,6 @@ import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.generic import (
-    NDFrame,
-    _shared_docs,
-)
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
@@ -81,6 +77,10 @@ from pandas.core.indexes.period import (
 from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
+)
+from pandas.core.ndframe import (
+    NDFrame,
+    _shared_docs,
 )
 
 from pandas.tseries.frequencies import (

@@ -97,7 +97,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]

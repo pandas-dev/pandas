@@ -262,8 +262,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
+    from pandas.core.ndframe import NDFrame
 
     cls = type(self)
 

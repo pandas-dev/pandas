@@ -16,7 +16,7 @@ from pandas.core.computation.expr import (
 )
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
-from pandas.core.generic import NDFrame
+from pandas.core.ndframe import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
 

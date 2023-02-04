@@ -78,7 +78,7 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 

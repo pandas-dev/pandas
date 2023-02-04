@@ -369,11 +369,11 @@ repos:
         files: ^pandas/
         exclude: ^pandas/tests/
         types: [python]
-    -   id: no-bool-in-core-generic
-        name: Use bool_t instead of bool in pandas/core/generic.py
-        entry: python scripts/no_bool_in_generic.py
+    -   id: no-bool-in-core-ndframe
+        name: Use bool_t instead of bool in pandas/core/ndframe.py
+        entry: python scripts/no_bool_in_ndframe.py
         language: python
-        files: ^pandas/core/generic\.py$
+        files: ^pandas/core/ndframe\.py$
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep

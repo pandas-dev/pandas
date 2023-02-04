@@ -1,11 +1,11 @@
 """
-Check that pandas/core/generic.py doesn't use bool as a type annotation.
+Check that pandas/core/ndframe.py doesn't use bool as a type annotation.
 
 There is already the method `bool`, so the alias `bool_t` should be used instead.
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
-    pre-commit run no-bool-in-core-generic --all-files
+    pre-commit run no-bool-in-core-ndframe --all-files
 
 The function `visit` is adapted from a function by the same name in pyupgrade:
 https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
@@ -57,7 +57,7 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
     return "\n".join(new_lines)
 
 
-def check_for_bool_in_generic(content: str) -> tuple[bool, str]:
+def check_for_bool_in_ndframe(content: str) -> tuple[bool, str]:
     tree = ast.parse(content)
     to_replace = visit(tree)
 
@@ -77,7 +77,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     for path in args.paths:
         with open(path, encoding="utf-8") as fd:
             content = fd.read()
-        mutated, new_content = check_for_bool_in_generic(content)
+        mutated, new_content = check_for_bool_in_ndframe(content)
         if mutated:
             with open(path, "w", encoding="utf-8") as fd:
                 fd.write(new_content)

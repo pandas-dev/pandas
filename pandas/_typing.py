@@ -50,7 +50,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
         GroupBy,
@@ -63,6 +62,7 @@ if TYPE_CHECKING:
         SingleArrayManager,
         SingleBlockManager,
     )
+    from pandas.core.ndframe import NDFrame
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow

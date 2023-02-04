@@ -96,7 +96,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 
 class WrappedCythonOp:

@@ -15,7 +15,7 @@ from pandas._typing import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 from pandas.util._decorators import doc
 

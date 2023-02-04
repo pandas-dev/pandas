@@ -179,7 +179,6 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import NDFrame
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -213,6 +212,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.ndframe import NDFrame
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
