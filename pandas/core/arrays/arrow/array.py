@@ -934,7 +934,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index).astype("Int64")
+        return Series(counts, index=index, name="count").astype("Int64")
 
     @classmethod
     def _concat_same_type(
@@ -1255,7 +1255,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_dtype = self._data.type
 
         data = self._data
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
             nbits = pa_dtype.bit_width
@@ -1266,7 +1266,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32())
+            else:
+                result = result.cast(pa.int64())
             result = result.cast(pa_dtype)
 
         return type(self)(result)
