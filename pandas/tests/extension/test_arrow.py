@@ -1756,3 +1756,57 @@ def test_str_replace(pat, repl, n, regex, exp):
     result = ser.str.replace(pat, repl, n=n, regex=regex)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
+
+
+def test_str_repeat_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="repeat is not"):
+        ser.str.repeat([1, 2])
+
+
+@pytest.mark.xfail(
+    pa_version_under7p0,
+    reason="Unsupported for pyarrow < 7",
+    raises=NotImplementedError,
+)
+def test_str_repeat():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.repeat(2)
+    expected = pd.Series(["abcabc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["ab", False, None, [True, None]],
+        ["Ab", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{1}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_match(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["abc", False, None, [True, None]],
+        ["Abc", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{2}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_fullmatch(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
