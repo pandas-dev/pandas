@@ -268,7 +268,6 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self.grouper = None
         self._gpr_index = None
         self.obj = None
         self.indexer = None
@@ -328,7 +327,7 @@ class Grouper:
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self.grouper value before overriding
+        # Keep self._grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
             self._grouper = self._gpr_index
@@ -386,12 +385,6 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
-
-    @final
-    @property
-    def groups(self):
-        # error: "None" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
