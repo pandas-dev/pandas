@@ -8,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterator,
-    cast,
     final,
 )
 
@@ -302,7 +301,7 @@ class Grouper:
         """
         obj, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
-            cast(NDFrameT, obj),
+            obj,
             [self.key],
             axis=self.axis,
             level=self.level,
