@@ -1,5 +1,5 @@
 """
-Check that pandas/core/generic.py doesn't use bool as a type annotation.
+Check that pandas/core/ndframe.py doesn't use bool as a type annotation.
 
 There is already the method `bool`, so the alias `bool_t` should be used instead.
 

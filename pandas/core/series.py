@@ -132,7 +132,6 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.generic import NDFrame
 from pandas.core.indexers import (
     disallow_ndim_indexing,
     unpack_1tuple,
@@ -156,6 +155,7 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
+from pandas.core.ndframe import NDFrame
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,

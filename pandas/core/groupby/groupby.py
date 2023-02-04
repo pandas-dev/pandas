@@ -106,7 +106,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import (
     base,
     numba_,
@@ -125,6 +124,7 @@ from pandas.core.indexes.api import (
     default_index,
 )
 from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.ndframe import NDFrame
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (

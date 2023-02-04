@@ -31,8 +31,8 @@ from pandas.core.computation.common import result_type_many
 if TYPE_CHECKING:
     from pandas._typing import F
 
-    from pandas.core.generic import NDFrame
     from pandas.core.indexes.api import Index
+    from pandas.core.ndframe import NDFrame
 
 
 def _align_core_single_unary_op(

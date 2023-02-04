@@ -50,7 +50,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.ndframe import NDFrame
 
 
 class Grouper:
