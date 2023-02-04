@@ -1413,7 +1413,7 @@ def inspect_excel_format(
 
 class ExcelFile:
     """
-    Class for parsing tabular excel sheets into DataFrame objects.
+    Class for parsing tabular Excel sheets into DataFrame objects.
 
     See read_excel for more documentation.
 

@@ -40,6 +40,7 @@ Excel
 
    read_excel
    DataFrame.to_excel
+   ExcelFile
    ExcelFile.parse
 
 .. currentmodule:: pandas.io.formats.style
