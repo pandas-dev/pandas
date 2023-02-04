@@ -1320,11 +1320,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
-            # error: No overload variant of "__getitem__" of "BlockPlacement" matches
-            # argument type "ndarray[Any, Any]"  [call-overload]
+            # Argument 1 to "BlockPlacement" has incompatible type "BlockPlacement";
+            # expected "Union[int, slice, ndarray[Any, Any]]"
             first_nb = new_block_2d(
                 value,
-                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[call-overload]
+                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[arg-type]
             )
         else:
             first_nb = nbs_tup[0]
