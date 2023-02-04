@@ -1232,10 +1232,10 @@ default 'raise'
         Index(['January', 'February', 'March'], dtype='object')
 
         Using the ``locale`` parameter you can set a different locale language,
-        for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month 
+        for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
         names in Brazilian Portuguese language.
 
-        To know your locale code you can just use ``locale -a`` in your terminal 
+        To know your locale code you can just use ``locale -a`` in your terminal
         to look for your specific language code.
 
         >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
@@ -1291,10 +1291,10 @@ default 'raise'
         Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
 
         Using the ``locale`` parameter you can set a different locale language,
-        for example: ``idx.day_name(locale='pt_BR.utf8')`` will return day 
+        for example: ``idx.day_name(locale='pt_BR.utf8')`` will return day
         names in Brazilian Portuguese language.
 
-        To know your locale code you can just use ``locale -a`` in your terminal 
+        To know your locale code you can just use ``locale -a`` in your terminal
         to look for your specific language code.
 
         >>> idx = pd.date_range(start='2018-01-01', freq='D', periods=3)
