@@ -31,6 +31,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     needs_i8_conversion,
 )
@@ -95,7 +96,10 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
     for x in nonna:
-        if potential_na:
+        if is_numeric_v_string_like(arr, x):
+            # GH#29553 prevent numpy deprecation warnings
+            pass
+        elif potential_na:
             new_mask = np.zeros(arr.shape, dtype=np.bool_)
             new_mask[arr_mask] = arr[arr_mask] == x
         else:

@@ -677,10 +677,7 @@ class Block(PandasObject):
             # GH#38086 faster if we know we dont need to check for regex
             masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
-        # error: Argument 1 to "extract_bool_array" has incompatible type
-        # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
-        # ndarray]"
-        masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
+        masks = [extract_bool_array(x) for x in masks]
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
