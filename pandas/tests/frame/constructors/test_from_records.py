@@ -22,7 +22,7 @@ import pandas._testing as tm
 
 class TestFromRecords:
     def test_from_records_dt64tz_frame(self):
-        # don't lose tz when calling from_records with DataFrame input
+        # GH#51162 don't lose tz when calling from_records with DataFrame input
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         df = DataFrame({i: dti for i in range(4)})
         res = DataFrame.from_records(df)
