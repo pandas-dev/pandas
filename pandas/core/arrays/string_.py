@@ -454,7 +454,8 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            # Skip the PandasArray.astype method
+            return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
