@@ -2261,11 +2261,10 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
         msg = "kwargs"
     else:
         return
-    if msg != "":
-        warnings.warn(
-            f"Passing additional {msg} to {cls.__name__}.{kernel} has "
-            "no impact on the result and is deprecated. This will "
-            "raise a TypeError in a future version of pandas.",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    warnings.warn(
+        f"Passing additional {msg} to {cls.__name__}.{kernel} has "
+        "no impact on the result and is deprecated. This will "
+        "raise a TypeError in a future version of pandas.",
+        category=FutureWarning,
+        stacklevel=find_stack_level(),
+    )
