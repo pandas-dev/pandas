@@ -250,15 +250,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
             if not self._hasna:
-                for val in self._data:
-                    yield val
+                for i in range(len(self)):
+                    yield self._data.item(i)
             else:
                 na_value = self.dtype.na_value
-                for isna_, val in zip(self._mask, self._data):
+                for i, isna_ in enumerate(self._mask):
                     if isna_:
                         yield na_value
                     else:
-                        yield val
+                        yield self._data.item(i)
         else:
             for i in range(len(self)):
                 yield self[i]
