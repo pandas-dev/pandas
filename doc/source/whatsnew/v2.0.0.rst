@@ -1108,6 +1108,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with unit of "Y" or "M" giving incorrect results, not matching pointwise :class:`Timestamp` results (:issue:`50870`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with datetime or timedelta dtypes incorrectly raising ``ValueError`` (:issue:`11312`)
 - Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
+- Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
 -
 
 Timedelta
