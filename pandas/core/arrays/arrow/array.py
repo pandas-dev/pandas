@@ -1495,8 +1495,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
             raise NotImplementedError(
-                "replace is not with a regex pat, callable repl, case=False, "
-                "or flags!=0"
+                "replace is not supported with a re.Pattern, callable repl, "
+                "case=False, or flags!=0"
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring

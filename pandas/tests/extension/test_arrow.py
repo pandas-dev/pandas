@@ -21,6 +21,7 @@ from io import (
     StringIO,
 )
 import pickle
+import re
 
 import numpy as np
 import pytest
@@ -1712,3 +1713,46 @@ def test_str_contains_flags_unsupported():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match="contains not"):
         ser.str.contains("a", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, pat, na, exp",
+    [
+        ["startswith", "ab", None, [True, None]],
+        ["startswith", "b", False, [False, False]],
+        ["endswith", "b", True, [False, True]],
+        ["endswith", "bc", None, [True, None]],
+    ],
+)
+def test_str_start_ends_with(side, pat, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(pat, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg_name, arg",
+    [["pat", re.compile("b")], ["repl", str], ["case", False], ["flags", 1]],
+)
+def test_str_replace_unsupported(arg_name, arg):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    kwargs = {"pat": "b", "repl": "x", "regex": True}
+    kwargs[arg_name] = arg
+    with pytest.raises(NotImplementedError, match="replace is not supported"):
+        ser.str.replace(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "pat, repl, n, regex, exp",
+    [
+        ["a", "x", -1, False, ["xbxc", None]],
+        ["a", "x", 1, False, ["xbac", None]],
+        ["[a-b]", "x", -1, True, ["xxxc", None]],
+    ],
+)
+def test_str_replace(pat, repl, n, regex, exp):
+    ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(pat, repl, n=n, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
