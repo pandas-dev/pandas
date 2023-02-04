@@ -1573,6 +1573,50 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
 
+    # ------------------------------------------------------------------
+    # GroupBy Methods
+
+    def groupby_op(
+        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+    ):
+        dtype = self.dtype
+        how = op.how
+        if dtype.kind == "M":
+            # Adding/multiplying datetimes is not valid
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"datetime64 type does not support {how} operations")
+        elif is_period_dtype(dtype):
+            # Adding/multiplying Periods is not valid
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"Period type does not support {how} operations")
+        else:
+            # timedeltas we can add but not multiply
+            if how in ["prod", "cumprod"]:
+                raise TypeError(f"timedelta64 type does not support {how} operations")
+
+        # All of the functions implemented here are ordinal, so we can
+        #  operate on the tz-naive equivalents
+        npvalues = self._ndarray.view("M8[ns]")
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=None,
+            **kwargs,
+        )
+
+        if op.how in op.cast_blocklist:
+            # i.e. how in ["rank"], since other cast_blocklist methods don't go
+            #  through cython_operation
+            return res_values
+
+        # We did a view to M8[ns] above, now we go the other direction
+        assert res_values.dtype == "M8[ns]"
+        res_values = res_values.view(self._ndarray.dtype)
+        return self._from_backing_data(res_values)
+
 
 class DatelikeOps(DatetimeLikeArrayMixin):
     """

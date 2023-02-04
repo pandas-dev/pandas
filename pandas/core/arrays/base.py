@@ -1694,19 +1694,10 @@ class ExtensionArray:
     def groupby_op(
         self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
     ):
-        from pandas.core.arrays import (
-            DatetimeArray,
-            PeriodArray,
-            TimedeltaArray,
-        )
         from pandas.core.arrays.string_ import StringDtype
 
         # GH#43682
-        if isinstance(self, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = self._ndarray.view("M8[ns]")
-        elif isinstance(self.dtype, StringDtype):
+        if isinstance(self.dtype, StringDtype):
             # StringArray
             npvalues = self.to_numpy(object, na_value=np.nan)
         else:
@@ -1733,11 +1724,6 @@ class ExtensionArray:
             string_array_cls = dtype.construct_array_type()
             return string_array_cls._from_sequence(res_values, dtype=dtype)
 
-        elif isinstance(self, (DatetimeArray, TimedeltaArray, PeriodArray)):
-            # In to_cython_values we took a view as M8[ns]
-            assert res_values.dtype == "M8[ns]"
-            res_values = res_values.view(self._ndarray.dtype)
-            return self._from_backing_data(res_values)
         else:
             raise NotImplementedError
 

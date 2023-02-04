@@ -2324,6 +2324,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def groupby_op(
         self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
     ):
+
+        how = op.how
+        dtype = self.dtype
+        if how in ["sum", "prod", "cumsum", "cumprod"]:
+            raise TypeError(f"{dtype} type does not support {how} operations")
+        if how in ["min", "max", "rank"] and not dtype.ordered:
+            # raise TypeError instead of NotImplementedError to ensure we
+            #  don't go down a group-by-group path, since in the empty-groups
+            #  case that would fail to raise
+            raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
+        if how not in ["rank"]:
+            # only "rank" is implemented in cython
+            raise NotImplementedError(f"{dtype} dtype not supported")
+
         assert op.how == "rank"  # the only one implemented ATM
         assert self.ordered  # checked earlier
         mask = self.isna()
