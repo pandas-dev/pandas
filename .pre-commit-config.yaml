@@ -369,9 +369,9 @@ repos:
         files: ^pandas/
         exclude: ^pandas/tests/
         types: [python]
-    -   id: no-bool-in-core-generic
+    -   id: no-bool-in-core-ndframe
         name: Use bool_t instead of bool in pandas/core/ndframe.py
-        entry: python scripts/no_bool_in_generic.py
+        entry: python scripts/no_bool_in_ndframe.py
         language: python
         files: ^pandas/core/ndframe\.py$
     -   id: no-return-exception
