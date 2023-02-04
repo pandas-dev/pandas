@@ -460,7 +460,7 @@ class Grouping:
     ) -> None:
         self.level = level
         self._orig_grouper = grouper
-        self.grouping_vector = _convert_grouper(index, grouper)
+        grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
         self._orig_cats = None
         self._index = index
@@ -486,74 +486,73 @@ class Grouping:
             else:
                 index_level = index
 
-            if self.grouping_vector is None:
-                self.grouping_vector = index_level
+            if grouping_vector is None:
+                grouping_vector = index_level
             else:
-                mapper = self.grouping_vector
-                self.grouping_vector = index_level.map(mapper)
+                mapper = grouping_vector
+                grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
-        elif isinstance(self.grouping_vector, Grouper):
+        elif isinstance(grouping_vector, Grouper):
             # get the new grouper; we already have disambiguated
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
             assert self.obj is not None  # for mypy
-            newgrouper, newobj = self.grouping_vector._get_grouper(
-                self.obj, validate=False
-            )
+            newgrouper, newobj = grouping_vector._get_grouper(self.obj, validate=False)
             self.obj = newobj
 
             if isinstance(newgrouper, ops.BinGrouper):
                 # TODO: can we unwrap this and get a tighter typing
                 #  for self.grouping_vector?
-                self.grouping_vector = newgrouper
+                grouping_vector = newgrouper
             else:
                 # ops.BaseGrouper
                 # TODO: 2023-02-03 no test cases with len(newgrouper.groupings) > 1.
                 #  If that were to occur, would we be throwing out information?
                 ng = newgrouper.groupings[0].grouping_vector
                 # use Index instead of ndarray so we can recover the name
-                self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
+                grouping_vector = Index(ng, name=newgrouper.result_index.name)
 
         elif not isinstance(
-            self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
+            grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
         ):
             # no level passed
-            if getattr(self.grouping_vector, "ndim", 1) != 1:
-                t = self.name or str(type(self.grouping_vector))
+            if getattr(grouping_vector, "ndim", 1) != 1:
+                t = str(type(grouping_vector))
                 raise ValueError(f"Grouper for '{t}' not 1-dimensional")
 
-            self.grouping_vector = index.map(self.grouping_vector)
+            grouping_vector = index.map(grouping_vector)
 
             if not (
-                hasattr(self.grouping_vector, "__len__")
-                and len(self.grouping_vector) == len(index)
+                hasattr(grouping_vector, "__len__")
+                and len(grouping_vector) == len(index)
             ):
-                grper = pprint_thing(self.grouping_vector)
+                grper = pprint_thing(grouping_vector)
                 errmsg = (
                     "Grouper result violates len(labels) == "
                     f"len(data)\nresult: {grper}"
                 )
-                self.grouping_vector = None  # Try for sanity
                 raise AssertionError(errmsg)
 
-        if isinstance(self.grouping_vector, np.ndarray):
-            if self.grouping_vector.dtype.kind in ["m", "M"]:
+        if isinstance(grouping_vector, np.ndarray):
+            if grouping_vector.dtype.kind in ["m", "M"]:
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
-                self.grouping_vector = Series(self.grouping_vector).to_numpy()
-        elif is_categorical_dtype(self.grouping_vector):
+                grouping_vector = Series(grouping_vector).to_numpy()
+        elif is_categorical_dtype(grouping_vector):
             # a passed Categorical
             self._passed_categorical = True
 
-            self._orig_cats = self.grouping_vector.categories
-            self.grouping_vector, self._all_grouper = recode_for_groupby(
-                self.grouping_vector, sort, observed
+            self._orig_cats = grouping_vector.categories
+            grouping_vector, self._all_grouper = recode_for_groupby(
+                grouping_vector, sort, observed
             )
+
+        self.grouping_vector = grouping_vector
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
