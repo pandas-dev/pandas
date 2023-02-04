@@ -138,9 +138,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-    @pytest.mark.parametrize("storage", ["python", "pyarrow"])
-    def test_use_nullable_dtypes(self, storage, dtype_backend):
+    def test_use_nullable_dtypes(self, string_storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -155,7 +153,7 @@ class TestReadHtml:
             }
         )
 
-        if storage == "python":
+        if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
 
@@ -165,7 +163,7 @@ class TestReadHtml:
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
 
         out = df.to_html(index=False)
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
             with pd.option_context("mode.dtype_backend", dtype_backend):
                 result = self.read_html(out, use_nullable_dtypes=True)[0]
 
