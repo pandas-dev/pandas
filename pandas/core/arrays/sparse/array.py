@@ -1818,7 +1818,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # GroupBy Methods
 
     def groupby_op(
-        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
     ):
         raise NotImplementedError(f"{self.dtype} dtype not supported")
 
