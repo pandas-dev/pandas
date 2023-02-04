@@ -65,18 +65,6 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -220,7 +208,7 @@ class WrappedCythonOp:
         return values
 
     # TODO: general case implementation overridable by EAs.
-    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
+    def _disallow_invalid_ops(self, dtype: DtypeObj):
         """
         Check if we can do this operation with our cython functions.
 
@@ -233,7 +221,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if is_numeric:
+        if is_numeric_dtype(dtype):
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
@@ -320,145 +308,6 @@ class WrappedCythonOp:
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
         return dtype
-
-    @final
-    def _ea_wrap_cython_operation(
-        self,
-        values: ExtensionArray,
-        min_count: int,
-        ngroups: int,
-        comp_ids: np.ndarray,
-        **kwargs,
-    ) -> ArrayLike:
-        """
-        If we have an ExtensionArray, unwrap, call _cython_operation, and
-        re-wrap if appropriate.
-        """
-        if isinstance(values, BaseMaskedArray):
-            return self._masked_ea_wrap_cython_operation(
-                values,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                **kwargs,
-            )
-
-        elif isinstance(values, Categorical):
-            assert self.how == "rank"  # the only one implemented ATM
-            assert values.ordered  # checked earlier
-            mask = values.isna()
-            npvalues = values._ndarray
-
-            res_values = self._cython_op_ndim_compat(
-                npvalues,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                mask=mask,
-                **kwargs,
-            )
-
-            # If we ever have more than just "rank" here, we'll need to do
-            #  `if self.how in self.cast_blocklist` like we do for other dtypes.
-            return res_values
-
-        npvalues = self._ea_to_cython_values(values)
-
-        res_values = self._cython_op_ndim_compat(
-            npvalues,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=None,
-            **kwargs,
-        )
-
-        if self.how in self.cast_blocklist:
-            # i.e. how in ["rank"], since other cast_blocklist methods don't go
-            #  through cython_operation
-            return res_values
-
-        return self._reconstruct_ea_result(values, res_values)
-
-    # TODO: general case implementation overridable by EAs.
-    def _ea_to_cython_values(self, values: ExtensionArray) -> np.ndarray:
-        # GH#43682
-        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, StringDtype):
-            # StringArray
-            npvalues = values.to_numpy(object, na_value=np.nan)
-        else:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: {values.dtype}"
-            )
-        return npvalues
-
-    # TODO: general case implementation overridable by EAs.
-    def _reconstruct_ea_result(
-        self, values: ExtensionArray, res_values: np.ndarray
-    ) -> ExtensionArray:
-        """
-        Construct an ExtensionArray result from an ndarray result.
-        """
-        dtype: BaseMaskedDtype | StringDtype
-
-        if isinstance(values.dtype, StringDtype):
-            dtype = values.dtype
-            string_array_cls = dtype.construct_array_type()
-            return string_array_cls._from_sequence(res_values, dtype=dtype)
-
-        elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
-            # In to_cython_values we took a view as M8[ns]
-            assert res_values.dtype == "M8[ns]"
-            res_values = res_values.view(values._ndarray.dtype)
-            return values._from_backing_data(res_values)
-
-        raise NotImplementedError
-
-    @final
-    def _masked_ea_wrap_cython_operation(
-        self,
-        values: BaseMaskedArray,
-        min_count: int,
-        ngroups: int,
-        comp_ids: np.ndarray,
-        **kwargs,
-    ) -> BaseMaskedArray:
-        """
-        Equivalent of `_ea_wrap_cython_operation`, but optimized for masked EA's
-        and cython algorithms which accept a mask.
-        """
-        orig_values = values
-
-        # libgroupby functions are responsible for NOT altering mask
-        mask = values._mask
-        if self.kind != "aggregate":
-            result_mask = mask.copy()
-        else:
-            result_mask = np.zeros(ngroups, dtype=bool)
-
-        arr = values._data
-
-        res_values = self._cython_op_ndim_compat(
-            arr,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=mask,
-            result_mask=result_mask,
-            **kwargs,
-        )
-
-        if self.how == "ohlc":
-            arity = self._cython_arity.get(self.how, 1)
-            result_mask = np.tile(result_mask, (arity, 1)).T
-
-        # res_values should already have the correct dtype, we just need to
-        #  wrap in a MaskedArray
-        return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -615,6 +464,17 @@ class WrappedCythonOp:
         return op_result
 
     @final
+    def _validate_axis(self, axis: AxisInt, values: ArrayLike) -> None:
+        if values.ndim > 2:
+            raise NotImplementedError("number of dimensions is currently limited to 2")
+        if values.ndim == 2:
+            assert axis == 1, axis
+        elif not is_1d_only_ea_dtype(values.dtype):
+            # Note: it is *not* the case that axis is always 0 for 1-dim values,
+            #  as we can have 1D ExtensionArrays that we need to treat as 2D
+            assert axis == 0
+
+    @final
     def cython_operation(
         self,
         *,
@@ -628,30 +488,16 @@ class WrappedCythonOp:
         """
         Call our cython function, with appropriate pre- and post- processing.
         """
-        if values.ndim > 2:
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        if values.ndim == 2:
-            assert axis == 1, axis
-        elif not is_1d_only_ea_dtype(values.dtype):
-            # Note: it is *not* the case that axis is always 0 for 1-dim values,
-            #  as we can have 1D ExtensionArrays that we need to treat as 2D
-            assert axis == 0
-
-        dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        self._validate_axis(axis, values)
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-        self._disallow_invalid_ops(dtype, is_numeric)
+        self._disallow_invalid_ops(values.dtype)
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            return self._ea_wrap_cython_operation(
-                values,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                **kwargs,
+            return values.groupby_op(
+                self, min_count=min_count, ngroups=ngroups, ids=comp_ids, **kwargs
             )
 
         return self._cython_op_ndim_compat(

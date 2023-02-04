@@ -2318,6 +2318,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return PandasArray(self.astype(str))._str_get_dummies(sep)
 
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def groupby_op(
+        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+    ):
+        assert op.how == "rank"  # the only one implemented ATM
+        assert self.ordered  # checked earlier
+        mask = self.isna()
+        npvalues = self._ndarray
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=mask,
+            **kwargs,
+        )
+
+        # If we ever have more than just "rank" here, we'll need to do
+        #  `if op.how in op.cast_blocklist` like we do for other dtypes.
+        return res_values
+
 
 # The Series.cat accessor
 
