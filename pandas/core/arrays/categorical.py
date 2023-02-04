@@ -2322,10 +2322,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # GroupBy Methods
 
     def groupby_op(
-        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
     ):
+        from pandas.core.groupby.ops import WrappedCythonOp
 
-        how = op.how
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod"]:
             raise TypeError(f"{dtype} type does not support {how} operations")
@@ -2338,7 +2348,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # only "rank" is implemented in cython
             raise NotImplementedError(f"{dtype} dtype not supported")
 
-        assert op.how == "rank"  # the only one implemented ATM
+        assert how == "rank"  # the only one implemented ATM
         assert self.ordered  # checked earlier
         mask = self.isna()
         npvalues = self._ndarray

@@ -1692,9 +1692,20 @@ class ExtensionArray:
     # GroupBy Methods
 
     def groupby_op(
-        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
     ):
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         # GH#43682
         if isinstance(self.dtype, StringDtype):

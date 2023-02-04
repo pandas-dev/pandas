@@ -1577,10 +1577,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # GroupBy Methods
 
     def groupby_op(
-        self, op, *, min_count: int, ngroups: int, ids: npt.NDArray[np.intp], **kwargs
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
     ):
         dtype = self.dtype
-        how = op.how
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
             if how in ["sum", "prod", "cumsum", "cumprod"]:
@@ -1597,6 +1603,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents
         npvalues = self._ndarray.view("M8[ns]")
+
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,

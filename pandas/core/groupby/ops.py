@@ -128,6 +128,12 @@ class WrappedCythonOp:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
+    @classmethod
+    def get_kind_from_how(cls, how: str) -> str:
+        if how in cls._CYTHON_FUNCTIONS["aggregate"]:
+            return "aggregate"
+        return "transform"
+
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
@@ -442,7 +448,12 @@ class WrappedCythonOp:
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
             return values.groupby_op(
-                self, min_count=min_count, ngroups=ngroups, ids=comp_ids, **kwargs
+                how=self.how,
+                has_dropped_na=self.has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=comp_ids,
+                **kwargs,
             )
 
         return self._cython_op_ndim_compat(
