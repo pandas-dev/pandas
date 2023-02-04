@@ -1474,13 +1474,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
     def _str_startswith(self, pat: str, na=None):
         result = pc.starts_with(self._data, pattern=pat)
-        if na is not None:
+        if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
 
     def _str_endswith(self, pat: str, na=None):
         result = pc.ends_with(self._data, pattern=pat)
-        if na is not None:
+        if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
 

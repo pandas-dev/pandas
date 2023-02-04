@@ -1657,3 +1657,58 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+@pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
+def test_str_count(pat):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.count(pat)
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_count_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="count not"):
+        ser.str.count("abc", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, str_func", [["left", "rjust"], ["right", "ljust"], ["both", "center"]]
+)
+def test_str_pad(side, str_func):
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.pad(width=3, side=side, fillchar="x")
+    expected = pd.Series(
+        [getattr("a", str_func)(3, "x"), None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_pad_invalid_side():
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(ValueError, match="Invalid side: foo"):
+        ser.str.pad(3, "foo", "x")
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, regex, exp",
+    [
+        ["ab", False, None, False, [True, None]],
+        ["Ab", True, None, False, [False, None]],
+        ["ab", False, True, False, [True, True]],
+        ["a[a-z]{1}", False, None, True, [True, None]],
+        ["A[a-z]{1}", True, None, True, [False, None]],
+    ],
+)
+def test_str_contains(pat, case, na, regex, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(pat, case=case, na=na, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_contains_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="contains not"):
+        ser.str.contains("a", flags=1)
