@@ -99,16 +99,17 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
         if is_numeric_v_string_like(arr, x):
             # GH#29553 prevent numpy deprecation warnings
             pass
-        elif potential_na:
-            new_mask = np.zeros(arr.shape, dtype=np.bool_)
-            new_mask[arr_mask] = arr[arr_mask] == x
         else:
-            new_mask = arr == x
+            if potential_na:
+                new_mask = np.zeros(arr.shape, dtype=np.bool_)
+                new_mask[arr_mask] = arr[arr_mask] == x
+            else:
+                new_mask = arr == x
 
-            if not isinstance(new_mask, np.ndarray):
-                # usually BooleanArray
-                new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-        mask |= new_mask
+                if not isinstance(new_mask, np.ndarray):
+                    # usually BooleanArray
+                    new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+            mask |= new_mask
 
     if na_mask.any():
         mask |= isna(arr)
