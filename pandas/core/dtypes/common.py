@@ -1239,8 +1239,6 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     True
     >>> is_any_real_numeric_dtype(float)
     True
-    >>> is_any_real_numeric_dtype(np.array([1, 2.5]))
-    True
     >>> is_any_real_numeric_dtype(object)
     False
     >>> is_any_real_numeric_dtype(str)
