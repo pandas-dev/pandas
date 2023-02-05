@@ -259,12 +259,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             scalars = to_datetime(strings, errors="raise").date
         elif pa.types.is_duration(pa_type):
             try:
-                # GH51146
-                # attempt to parse as integers reflecting pyarrow's
-                # duration to string casting behavior:
-                #   pa.scalar(1, pa.duration("s")).cast(pa.string()).as_py() == "1"
-                scalars = np.array(strings, dtype=object)
-                scalars = pa.array(scalars, type=pa.string(), from_pandas=True)
+                # GH51175: test_from_sequence_of_strings_pa_array
+                # attempt to parse as int64 reflecting pyarrow's
+                # duration to string casting behavior
+                if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                    scalars = strings
+                else:
+                    scalars = pa.array(strings, type=pa.string(), from_pandas=True)
                 scalars = scalars.cast(pa.int64())
             except pa.ArrowInvalid:
                 from pandas.core.tools.timedeltas import to_timedelta
