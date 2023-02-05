@@ -1052,7 +1052,7 @@ def test_grouping_by_key_is_in_axis():
 
 
 def test_grouper_groups():
-    # check Grouper.groups does not raise AttributeError
+    # GH#51182 check Grouper.groups does not raise AttributeError
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     grper = Grouper(key="a")
     gb = df.groupby(grper)
