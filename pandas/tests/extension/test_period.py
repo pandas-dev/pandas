@@ -18,6 +18,7 @@ import pytest
 
 from pandas._libs import iNaT
 from pandas.compat import is_platform_windows
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -98,7 +99,7 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
 
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
-        if is_platform_windows():
+        if is_platform_windows() and np_version_gte1p24:
             with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                 super().test_diff(data, periods)
         else:
