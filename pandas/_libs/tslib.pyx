@@ -34,7 +34,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
-    get_datetime64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -542,16 +541,6 @@ cpdef array_to_datetime(
 
             cnp.PyArray_MultiIter_NEXT(mi)
 
-        except OutOfBoundsDatetime as ex:
-            ex.args = (f"{ex}, at position {i}",)
-            if is_coerce:
-                iresult[i] = NPY_NAT
-                cnp.PyArray_MultiIter_NEXT(mi)
-                continue
-            elif is_raise:
-                raise
-            return ignore_errors_out_of_bounds_fallback(values), tz_out
-
         except (TypeError, OverflowError, ValueError) as ex:
             ex.args = (f"{ex}, at position {i}",)
             if is_coerce:
@@ -576,55 +565,6 @@ cpdef array_to_datetime(
             tz_offset = out_tzoffset_vals.pop()
             tz_out = timezone(timedelta(seconds=tz_offset))
     return result, tz_out
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef ndarray ignore_errors_out_of_bounds_fallback(ndarray values):
-    """
-    Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
-    and errors == "ignore"
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    ndarray[object]
-    """
-    cdef:
-        Py_ssize_t i, n = values.size
-        object val
-        cnp.broadcast mi
-        ndarray[object] oresult
-        ndarray oresult_nd
-
-    oresult_nd = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
-    mi = cnp.PyArray_MultiIterNew2(oresult_nd, values)
-    oresult = oresult_nd.ravel()
-
-    for i in range(n):
-        # Analogous to `val = values[i]`
-        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
-
-        # set as nan except if its a NaT
-        if checknull_with_nat_and_na(val):
-            if isinstance(val, float):
-                oresult[i] = np.nan
-            else:
-                oresult[i] = <object>NaT
-        elif is_datetime64_object(val):
-            if get_datetime64_value(val) == NPY_NAT:
-                oresult[i] = <object>NaT
-            else:
-                oresult[i] = val.item()
-        else:
-            oresult[i] = val
-
-        cnp.PyArray_MultiIter_NEXT(mi)
-
-    return oresult
 
 
 @cython.wraparound(False)
