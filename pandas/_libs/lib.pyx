@@ -128,13 +128,6 @@ from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport tz_compare
 
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCPandasArray,
-    ABCSeries,
-)
-
 # constants that will be compared to potentially arbitrarily large
 # python int
 cdef:
@@ -1489,28 +1482,17 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         bint seen_val = False
         flatiter it
 
-    if not util.is_array(value):
-        if isinstance(value, (ABCSeries, ABCExtensionArray, ABCPandasArray)):
-            inferred = _try_infer_map(value.dtype)
-            if inferred is not None:
-                return inferred
-        elif isinstance(value, ABCIndex) and skipna is False:
-            # Index, use the cached attribute if possible, populate the cache otherwise
-            return value.inferred_type
-
     if util.is_array(value):
         values = value
+    elif hasattr(type(value), "inferred_type") and skipna is False:
+        # Index, use the cached attribute if possible, populate the cache otherwise
+        return value.inferred_type
     elif hasattr(value, "dtype"):
-        # this will handle ndarray-like
-        # e.g. categoricals
-        dtype = value.dtype
-        if not cnp.PyArray_DescrCheck(dtype):
-            # i.e. not isinstance(dtype, np.dtype)
-            inferred = _try_infer_map(value.dtype)
-            if inferred is not None:
-                return inferred
+        inferred = _try_infer_map(value.dtype)
+        if inferred is not None:
+            return inferred
+        elif not cnp.PyArray_DescrCheck(value.dtype):
             return "unknown-array"
-
         # Unwrap Series/Index
         values = np.asarray(value)
     else:
