@@ -1234,7 +1234,7 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
         Whether or not the array or dtype is of a real number dtype.
 
     Examples
-    -------
+    --------
     >>> is_any_real_numeric_dtype(int)
     True
     >>> is_any_real_numeric_dtype(float)
