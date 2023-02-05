@@ -33,6 +33,7 @@ from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 from pandas.errors import PerformanceWarning
 
@@ -295,7 +296,7 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
+        elif pa_version_under11p0 and pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
