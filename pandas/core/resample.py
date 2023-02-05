@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Hashable,
     Literal,
+    cast,
     final,
     no_type_check,
 )
@@ -151,7 +152,6 @@ class Resampler(BaseGroupBy, PandasObject):
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
-        **kwargs,
     ) -> None:
         self._timegrouper = groupby
         self.keys = None
@@ -170,18 +170,6 @@ class Resampler(BaseGroupBy, PandasObject):
             self.exclusions = frozenset([self._timegrouper.key])
         else:
             self.exclusions = frozenset()
-
-    @final
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
 
     def __str__(self) -> str:
         """
@@ -479,7 +467,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby, key=key)
+        return self._resampler_for_grouping(groupby=groupby, key=key, parent=self)
 
     def _wrap_result(self, result):
         """
@@ -1155,11 +1143,11 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, key=None, **kwargs) -> None:
+    def __init__(self, *, parent: Resampler, groupby=None, key=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
-        if parent is None:
-            parent = obj
+        # parent is always a Resampler, sometimes a _GroupByMixin
+        assert isinstance(parent, Resampler), type(parent)
 
         # initialize our GroupByMixin object with
         # the resampler attributes
@@ -1181,7 +1169,7 @@ class _GroupByMixin(PandasObject):
         """
 
         def func(x):
-            x = self._shallow_copy(x, groupby=self._timegrouper)
+            x = self._resampler_cls(x, groupby=self._timegrouper)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -1232,7 +1220,10 @@ class _GroupByMixin(PandasObject):
             selection = key
 
         new_rs = type(self)(
-            subset, groupby=groupby, parent=self, selection=selection, **kwargs
+            groupby=groupby,
+            parent=cast(Resampler, self),
+            selection=selection,
+            **kwargs,
         )
         return new_rs
 
@@ -1364,7 +1355,7 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return DatetimeIndexResampler
 
 
@@ -1476,7 +1467,7 @@ class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return PeriodIndexResampler
 
 
@@ -1504,7 +1495,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
 
     @property
-    def _constructor(self):
+    def _resampler_cls(self):
         return TimedeltaIndexResampler
 
 
