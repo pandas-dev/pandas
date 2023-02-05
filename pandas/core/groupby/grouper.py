@@ -8,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterator,
-    cast,
     final,
 )
 
@@ -298,9 +297,9 @@ class Grouper:
         -------
         a tuple of grouper, obj (possibly sorted)
         """
-        self._set_grouper(obj)
+        obj, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
-            cast(NDFrameT, self.obj),
+            obj,
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -312,7 +311,9 @@ class Grouper:
         return grouper, obj
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
+    def _set_grouper(
+        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
+    ):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -331,16 +332,14 @@ class Grouper:
         # Keep self.grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
-            self._grouper = self._gpr_index
+            self._grouper = gpr_index
             self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self._gpr_index, "name", None) == key and isinstance(
-                obj, Series
-            ):
+            if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -386,6 +385,7 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
+        return obj, ax
 
     @final
     @property
