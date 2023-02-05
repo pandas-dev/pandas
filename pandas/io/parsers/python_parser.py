@@ -129,7 +129,6 @@ class PythonParser(ParserBase):
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
         # error: Cannot determine type of 'index_names'
-        self.columns: list[Hashable]
         (
             self.columns,
             self.index_names,
@@ -913,7 +912,7 @@ class PythonParser(ParserBase):
     _implicit_index = False
 
     def _get_index_name(
-        self, columns: list[Hashable]
+        self, columns: Sequence[Hashable]
     ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:

@@ -4756,7 +4756,7 @@ Selecting coordinates
 ^^^^^^^^^^^^^^^^^^^^^
 
 Sometimes you want to get the coordinates (a.k.a the index locations) of your query. This returns an
-``Int64Index`` of the resulting locations. These coordinates can also be passed to subsequent
+``Index`` of the resulting locations. These coordinates can also be passed to subsequent
 ``where`` operations.
 
 .. ipython:: python

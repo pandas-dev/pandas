@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Hashable,
     Iterator,
+    cast,
     final,
 )
 
@@ -286,7 +286,7 @@ class Grouper:
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
-    ) -> tuple[Any, ops.BaseGrouper, NDFrameT]:
+    ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
@@ -296,15 +296,11 @@ class Grouper:
 
         Returns
         -------
-        a tuple of binner, grouper, obj (possibly sorted)
+        a tuple of grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
-        # "Optional[Any]"
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
-            self.obj,
+        grouper, _, obj = get_grouper(
+            cast(NDFrameT, self.obj),
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -313,9 +309,7 @@ class Grouper:
             dropna=self.dropna,
         )
 
-        # error: Incompatible return value type (got "Tuple[None, None, None]",
-        # expected "Tuple[Any, BaseGrouper, NDFrameT]")
-        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
+        return grouper, obj
 
     @final
     def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
@@ -506,7 +500,7 @@ class Grouping:
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
             assert self.obj is not None  # for mypy
-            _, newgrouper, newobj = self.grouping_vector._get_grouper(
+            newgrouper, newobj = self.grouping_vector._get_grouper(
                 self.obj, validate=False
             )
             self.obj = newobj
@@ -738,7 +732,6 @@ def get_grouper(
     level=None,
     sort: bool = True,
     observed: bool = False,
-    mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
@@ -815,7 +808,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -957,9 +950,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 
