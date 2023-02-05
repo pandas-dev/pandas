@@ -499,7 +499,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# Can add const once https://github.com/cython/cython/issues/1772 resolved
+# TODO(cython3): Can add const once cython#1772 is resolved
 def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -746,6 +746,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        bint already_copied = True
 
     if hasattr(arr, "to_numpy"):
 
@@ -764,6 +765,8 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+    elif not copy and result is arr:
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -774,6 +777,10 @@ cpdef ndarray[object] ensure_string_array(
 
         if isinstance(val, str):
             continue
+
+        elif not already_copied:
+            result = result.copy()
+            already_copied = True
 
         if not checknull(val):
             if not util.is_float_object(val):

@@ -149,8 +149,6 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        # Docstring demonstrates the call raises a warning
-        ("_validators.validate_axis_style_args", "Use named arguments"),
     ]
 
     for item in items:
@@ -1286,6 +1284,22 @@ def nullable_string_dtype(request):
     ]
 )
 def string_storage(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "pandas",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
     """
     Parametrized fixture for pd.options.mode.string_storage.
 

@@ -26,7 +26,6 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.numeric import NumericIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -46,7 +45,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 __all__ = [
     "Index",
     "MultiIndex",
-    "NumericIndex",
     "CategoricalIndex",
     "IntervalIndex",
     "RangeIndex",

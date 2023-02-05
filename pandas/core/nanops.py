@@ -32,6 +32,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
@@ -529,6 +530,15 @@ def nanany(
     >>> nanops.nanany(s)
     False
     """
+    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+        # GH#34479
+        warnings.warn(
+            "'any' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).any() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
     # For object type, any won't necessarily return
@@ -575,6 +585,15 @@ def nanall(
     >>> nanops.nanall(s)
     False
     """
+    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+        # GH#34479
+        warnings.warn(
+            "'all' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).all() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
     # For object type, all won't necessarily return
