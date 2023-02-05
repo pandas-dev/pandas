@@ -1192,8 +1192,7 @@ class _GroupByMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            # error: "GotItemMixin" has no attribute "obj"
-            subset = self.obj  # type: ignore[attr-defined]
+            subset = self.obj
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
