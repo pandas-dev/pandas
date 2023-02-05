@@ -1221,7 +1221,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 
 def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     """
-    Check whether the provided array or dtype is of real number dtype.
+    Check whether the provided array or dtype is of a real number dtype.
 
     Parameters
     ----------
