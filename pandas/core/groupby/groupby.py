@@ -1125,7 +1125,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _wrap_aggregated_output(
         self,
-        output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike],
+        result: Series | DataFrame,
         qs: npt.NDArray[np.float64] | None = None,
     ):
         """
@@ -1133,22 +1133,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        output : Series, DataFrame, or Mapping[base.OutputKey, ArrayLike]
-           Data to wrap.
+        result : Series, DataFrame
 
         Returns
         -------
         Series or DataFrame
         """
-
-        if isinstance(output, (Series, DataFrame)):
-            # We get here (for DataFrameGroupBy) if we used Manager.grouped_reduce,
-            #  in which case our columns are already set correctly.
-            # ATM we do not get here for SeriesGroupBy; when we do, we will
-            #  need to require that result.name already match self.obj.name
-            result = output
-        else:
-            result = self._indexed_output_to_ndframe(output)
+        # ATM we do not get here for SeriesGroupBy; when we do, we will
+        #  need to require that result.name already match self.obj.name
 
         if not self.as_index:
             # `not self.as_index` is only relevant for DataFrameGroupBy,
@@ -1450,7 +1442,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         output: dict[base.OutputKey, ArrayLike] = {}
 
         if self.ngroups == 0:
-            # agg_series below assumes ngroups > 0
+            # e.g. test_evaluate_with_empty_groups different path gets different
+            #  result dtype in empty case.
             return self._python_apply_general(f, self._selected_obj, is_agg=True)
 
         for idx, obj in enumerate(self._iterate_slices()):
@@ -1460,9 +1453,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             output[key] = result
 
         if not output:
+            # e.g. test_groupby_crash_on_nunique, test_margins_no_values_no_cols
             return self._python_apply_general(f, self._selected_obj)
 
-        return self._wrap_aggregated_output(output)
+        result = self._indexed_output_to_ndframe(output)
+        return self._wrap_aggregated_output(result)
 
     @final
     def _agg_general(
@@ -2571,6 +2566,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
+        # TODO: 2023-02-05 all tests that get here have self.as_index
         return self._apply_to_column_groupbys(
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
