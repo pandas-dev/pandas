@@ -483,7 +483,7 @@ def flex_comp_method_FRAME(op):
     op_name = op.__name__.strip("_")
 
     doc = _flex_comp_doc_FRAME.format(
-        op_name=op_name, desc=_op_descriptions[op_name]["desc"]
+        op_name=op_name, desc=_op_descriptions[op_name]["desc"].lower()
     )
 
     @Appender(doc)

@@ -51,7 +51,7 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     elif typ == "dataframe":
         base_doc = _flex_doc_FRAME
         doc = base_doc.format(
-            desc=op_desc["desc"],
+            desc=op_desc["desc"].lower(),
             op_name=op_name,
             equiv=equiv,
             reverse=op_desc["reverse"],
@@ -451,7 +451,7 @@ Series.{reverse} : {see_also_desc}.
 """
 
 _flex_doc_FRAME = """
-Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Get `{desc}` of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
@@ -619,7 +619,7 @@ B square        0.0      0.0
 """
 
 _flex_comp_doc_FRAME = """
-Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Get `{desc}` of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
