@@ -1691,7 +1691,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # GroupBy Methods
 
-    def groupby_op(
+    def _groupby_op(
         self,
         *,
         how: str,
@@ -1700,7 +1700,32 @@ class ExtensionArray:
         ngroups: int,
         ids: npt.NDArray[np.intp],
         **kwargs,
-    ):
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy reduction or transformation operation.
+
+        This is an *experimental* API to allow ExtensionArray authors to implement
+        reductions and transformations. The API is subject to change.
+
+        Parameters
+        ----------
+        how : {'sum', 'prod', 'min', 'max', 'mean', 'median',
+               'median', 'var', 'nth', 'last', 'ohlc',
+               'cumprod', 'cumsum', 'cummin', 'cummax', 'rank'}
+        has_dropped_na : bool
+        min_count : int
+        ngroups : int
+        ids : np.ndarray[np.intp]
+            ids[i] gives the integer label for the group that self[i] belongs to.
+        **kwargs : operation-specific
+            'var' -> ['ddof']
+            'cumprod', 'cumsum', 'cummin', 'cummax' -> ['skipna']
+            'rank' -> ['ties_method', 'ascending', 'na_option', 'pct']
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 

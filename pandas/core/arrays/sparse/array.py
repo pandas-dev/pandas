@@ -1817,7 +1817,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ------------------------------------------------------------------------
     # GroupBy Methods
 
-    def groupby_op(
+    def _groupby_op(
         self,
         *,
         how: str,

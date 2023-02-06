@@ -447,7 +447,7 @@ class WrappedCythonOp:
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            return values.groupby_op(
+            return values._groupby_op(
                 how=self.how,
                 has_dropped_na=self.has_dropped_na,
                 min_count=min_count,

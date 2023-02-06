@@ -2321,7 +2321,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------------
     # GroupBy Methods
 
-    def groupby_op(
+    def _groupby_op(
         self,
         *,
         how: str,
