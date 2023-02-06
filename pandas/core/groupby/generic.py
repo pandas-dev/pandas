@@ -39,7 +39,6 @@ from pandas._typing import (
     CorrelationMethod,
     FillnaOptions,
     IndexLabel,
-    Manager,
     Manager2D,
     SingleManager,
     TakeIndexer,
@@ -161,16 +160,16 @@ def generate_property(name: str, klass: type[DataFrame | Series]):
 
 
 class SeriesGroupBy(GroupBy[Series]):
-    def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        if mgr.ndim == 1:
-            mgr = cast(SingleManager, mgr)
-            single = mgr
+    def _wrap_agged_manager(self, mgr: SingleManager) -> Series | DataFrame:
+        out: Series | DataFrame
+        out = self.obj._constructor(mgr, name=self.obj.name)
+
+        if self.as_index:
+            out.index = self.grouper.result_index
         else:
-            mgr = cast(Manager2D, mgr)
-            single = mgr.iget(0)
-        ser = self.obj._constructor(single, name=self.obj.name)
-        # NB: caller is responsible for setting ser.index
-        return ser
+            # At this point we may have a DataFrame
+            out = self._insert_inaxis_grouper(out)
+        return self._reindex_output(out)
 
     def _get_data_to_aggregate(self) -> SingleManager:
         ser = self._selected_obj

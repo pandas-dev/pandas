@@ -1576,16 +1576,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         new_mgr = data.grouped_reduce(array_func)
-
-        res = self._wrap_agged_manager(new_mgr)
-        if is_ser:
-            if self.as_index:
-                res.index = self.grouper.result_index
-            else:
-                res = self._insert_inaxis_grouper(res)
-            return self._reindex_output(res)
-        else:
-            return res
+        return self._wrap_agged_manager(new_mgr)
 
     def _cython_transform(
         self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
@@ -1852,12 +1843,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
-
-        if result.ndim == 1:
-            if self.as_index:
-                result.index = self.grouper.result_index
-            else:
-                result = self._insert_inaxis_grouper(result)
 
         return self._reindex_output(result, fill_value=0)
 
@@ -3263,7 +3248,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         res_mgr = data.grouped_reduce(blk_func)
 
         if is_ser:
-            res = self._wrap_agged_manager(res_mgr)
+            res = obj._constructor(res_mgr, name=self.obj.name)
         else:
             res = obj._constructor(res_mgr)
 
@@ -3724,7 +3709,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         res_mgr = mgr.grouped_reduce(blk_func)
 
         if is_ser:
-            out = self._wrap_agged_manager(res_mgr)
+            out = obj._constructor(res_mgr, name=self.obj.name)
         else:
             out = obj._constructor(res_mgr)
 
