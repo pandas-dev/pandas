@@ -1509,6 +1509,12 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "sum",
         "diff",
         "pct_change",
+        "var",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "prod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels

@@ -1482,6 +1482,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # TODO: if we ever get "rank" working, exclude it here.
             res_values = type(values)._from_sequence(res_values, dtype=values.dtype)
 
+        elif ser.dtype == object:
+            res_values = res_values.astype(object, copy=False)
+
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
         # then we need to reshape
         # GH#32223 includes case with IntegerArray values, ndarray res_values
@@ -1524,8 +1527,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
         out = self._wrap_aggregated_output(res)
-        if data.ndim == 2:
-            # TODO: don't special-case DataFrame vs Series
+        if self.axis == 1:
             out = out.infer_objects(copy=False)
         return out
 
