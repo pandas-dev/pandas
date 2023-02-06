@@ -109,7 +109,7 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
+@inherit_names(["is_normalized"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "tz",
@@ -248,7 +248,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
-    inferred_freq: str | None
     tz: dt.tzinfo | None
 
     # --------------------------------------------------------------------
@@ -290,6 +289,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def isocalendar(self) -> DataFrame:
         df = self._data.isocalendar()
         return df.set_index(self)
+
+    @cache_readonly
+    def _resolution_obj(self) -> Resolution:
+        return self._data._resolution_obj
 
     # --------------------------------------------------------------------
     # Constructors

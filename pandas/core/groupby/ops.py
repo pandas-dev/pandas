@@ -1028,7 +1028,6 @@ class BaseGrouper:
     ) -> npt.NDArray[np.object_]:
         _, _, ngroups = self.group_info
 
-        counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
@@ -1043,7 +1042,6 @@ class BaseGrouper:
                 libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
-            counts[i] = group.shape[0]
             result[i] = res
 
         return result
