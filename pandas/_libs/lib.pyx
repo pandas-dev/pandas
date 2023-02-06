@@ -2276,17 +2276,17 @@ def maybe_convert_numeric(
         Seen seen = Seen(coerce_numeric)
         # Okay to have this since it won't get allocated
         # until a write happens
-        ndarray[uint8_t] bools = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT8, 0
-        )
-        ndarray[uint8_t] mask = np.zeros(n, dtype=np.uint8)
-        float64_t fval
         # We'll astype and assign later if
         # those values appear
-        ndarray[int64_t] ints = None
-        ndarray[uint64_t] uints = None
-        ndarray[float64_t] floats = None
-        ndarray[complex128_t] complexes = None
+        ndarray[int64_t, ndim=1] ints = None
+        ndarray[uint64_t, ndim=1] uints = None
+        ndarray[float64_t, ndim=1] floats = None
+        ndarray[complex128_t, ndim=1] complexes = None
+        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_UINT8, 0
+        )
+        ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
+        float64_t fval
         ndarray arr_to_upcast = bools
 
         bint allow_null_in_int = convert_to_masked_nullable
