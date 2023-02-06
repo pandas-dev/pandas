@@ -245,7 +245,7 @@ Copy-on-Write improvements
   can never update the original Series or DataFrame. Therefore, an informative
   error is raised to the user instead of silently doing nothing (:issue:`49467`)
 
-Copy-on-Write can be enabled through on of
+Copy-on-Write can be enabled through one of
 
 .. code-block:: python
 
