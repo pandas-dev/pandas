@@ -561,11 +561,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under7p0:
-            fallback_performancewarning(version="6")
-            return super().dropna()
-        else:
-            return type(self)(pc.drop_null(self._data))
+        return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.fillna)
     def fillna(
