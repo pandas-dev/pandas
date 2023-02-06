@@ -91,6 +91,16 @@ def to_numeric(
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
 
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0.0
+
     Returns
     -------
     ret

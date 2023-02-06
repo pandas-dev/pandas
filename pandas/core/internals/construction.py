@@ -764,13 +764,13 @@ def to_arrays(
         # see test_from_records_with_index_data, test_from_records_bad_index_column
         if columns is not None:
             arrays = [
-                data._ixs(i, axis=1).values
+                data._ixs(i, axis=1)._values
                 for i, col in enumerate(data.columns)
                 if col in columns
             ]
         else:
             columns = data.columns
-            arrays = [data._ixs(i, axis=1).values for i in range(len(columns))]
+            arrays = [data._ixs(i, axis=1)._values for i in range(len(columns))]
 
         return arrays, columns
 

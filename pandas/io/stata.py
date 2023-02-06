@@ -167,9 +167,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
-...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
+...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -177,6 +177,7 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file in 10,000 line chunks:
+
 >>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
@@ -1221,7 +1222,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
-        self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
+        self.byteorder = ">" if self.path_or_buf.read(3) == b"MSF" else "<"
         self.path_or_buf.read(15)  # </byteorder><K>
         nvar_type = "H" if self.format_version <= 118 else "I"
         nvar_size = 2 if self.format_version <= 118 else 4
@@ -1413,7 +1414,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.byteorder = (
-            struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 and ">" or "<"
+            ">" if struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 else "<"
         )
         self.filetype = struct.unpack("b", self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused

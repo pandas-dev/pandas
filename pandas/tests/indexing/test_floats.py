@@ -8,7 +8,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 def gen_obj(klass, index):
@@ -261,9 +260,9 @@ class TestFloatIndexers:
         # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [
-            (NumericIndex(np.arange(5, dtype=np.int64)), False),
+            (Index(np.arange(5, dtype=np.int64)), False),
             (RangeIndex(5), False),
-            (NumericIndex(np.arange(5, dtype=np.int64) + 10), True),
+            (Index(np.arange(5, dtype=np.int64) + 10), True),
         ]:
 
             # s is an in-range index

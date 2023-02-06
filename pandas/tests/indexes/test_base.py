@@ -19,6 +19,7 @@ from pandas.errors import (
 from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import (
+    is_any_numeric_dtype,
     is_numeric_dtype,
     is_object_dtype,
 )
@@ -37,7 +38,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -194,14 +194,14 @@ class TestIndex(Base):
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
         data = [np.nan]
-        expected = NumericIndex(data, dtype=np.float64)
+        expected = Index(data, dtype=np.float64)
         result = Index(data, dtype="float")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "klass,dtype,na_val",
         [
-            (NumericIndex, np.float64, np.nan),
+            (Index, np.float64, np.nan),
             (DatetimeIndex, "datetime64[ns]", pd.NaT),
         ],
     )
@@ -309,7 +309,6 @@ class TestIndex(Base):
         "klass",
         [
             Index,
-            NumericIndex,
             CategoricalIndex,
             DatetimeIndex,
             TimedeltaIndex,
@@ -487,7 +486,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
-        empty_index = type(index)([])
+        empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
@@ -501,7 +500,7 @@ class TestIndex(Base):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        empty_index = type(index)([])
+        empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
@@ -660,7 +659,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert index.is_numeric() is expected
+        assert is_any_numeric_dtype(index) is expected
 
     @pytest.mark.parametrize(
         "index, expected",
@@ -868,20 +867,24 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, nulls_fixture):
+    def test_isin_nan_common_float64(self, nulls_fixture, float_numpy_dtype):
+        dtype = float_numpy_dtype
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
-            msg = "data is not compatible with NumericIndex"
-            with pytest.raises(ValueError, match=msg):
-                NumericIndex([1.0, nulls_fixture], dtype=np.float64)
+            msg = (
+                r"float\(\) argument must be a string or a (real )?number, "
+                f"not {repr(type(nulls_fixture).__name__)}"
+            )
+            with pytest.raises(TypeError, match=msg):
+                Index([1.0, nulls_fixture], dtype=dtype)
 
-            idx = NumericIndex([1.0, np.nan], dtype=np.float64)
+            idx = Index([1.0, np.nan], dtype=dtype)
             assert not idx.isin([nulls_fixture]).any()
             return
 
-        idx = NumericIndex([1.0, nulls_fixture], dtype=np.float64)
+        idx = Index([1.0, nulls_fixture], dtype=dtype)
         res = idx.isin([np.nan])
         tm.assert_numpy_array_equal(res, np.array([False, True]))
 
@@ -894,7 +897,7 @@ class TestIndex(Base):
         "index",
         [
             Index(["qux", "baz", "foo", "bar"]),
-            NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
+            Index([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
     def test_isin_level_kwarg(self, level, index):
@@ -1147,7 +1150,7 @@ class TestIndex(Base):
         # GH7774
         dtype = any_real_numpy_dtype
         index = Index(list("abc"))
-        labels = NumericIndex([], dtype=dtype)
+        labels = Index([], dtype=dtype)
         assert index.reindex(labels)[0].dtype == dtype
 
     def test_reindex_no_type_preserve_target_empty_mi(self):
@@ -1593,11 +1596,9 @@ def test_validate_1d_input(dtype):
     "klass, extra_kwargs",
     [
         [Index, {}],
-        [lambda x: NumericIndex(x, np.int64), {}],
-        [lambda x: NumericIndex(x, np.float64), {}],
+        *[[lambda x: Index(x, dtype=dtyp), {}] for dtyp in tm.ALL_REAL_NUMPY_DTYPES],
         [DatetimeIndex, {}],
         [TimedeltaIndex, {}],
-        [NumericIndex, {}],
         [PeriodIndex, {"freq": "Y"}],
     ],
 )
