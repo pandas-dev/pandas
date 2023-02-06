@@ -1555,11 +1555,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     elif dtype is object:
         msg = "|".join(
             [
-                "Cannot use numeric_only=True",
-                "called with numeric_only=True and dtype object",
+                "SeriesGroupBy.sem called with numeric_only=True and dtype object",
                 "Series.skew does not allow numeric_only=True with non-numeric",
-                "got an unexpected keyword argument 'numeric_only'",
-                "is not supported for object dtype",
+                "cum(sum|prod|min|max) is not supported for object dtype",
+                r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )
         with pytest.raises(TypeError, match=msg):

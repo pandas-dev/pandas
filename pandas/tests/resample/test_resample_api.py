@@ -908,7 +908,8 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+        msg = rf"Cannot use numeric_only=True with SeriesGroupBy\.{method}"
+        with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):

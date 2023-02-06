@@ -1540,21 +1540,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
-        data = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
         is_ser = data.ndim == 1
-
-        if numeric_only:
-            if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
-                # GH#41291 match Series behavior
-                kwd_name = "numeric_only"
-                if how in ["any", "all"]:
-                    kwd_name = "bool_only"
-                raise TypeError(
-                    f"Cannot use {kwd_name}={numeric_only} with "
-                    f"{type(self).__name__}.{how} and non-numeric types."
-                )
-            if not is_ser:
-                data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
@@ -2034,15 +2021,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-            if (
-                numeric_only
-                and self.obj.ndim == 1
-                and not is_numeric_dtype(self.obj.dtype)
-            ):
-                raise TypeError(
-                    f"{type(self).__name__}.std called with "
-                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-                )
 
             def _preprocessing(values):
                 if isinstance(values, BaseMaskedArray):
@@ -3114,11 +3092,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
-            raise TypeError(
-                f"{type(self).__name__}.quantile called with "
-                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-            )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
@@ -3258,8 +3231,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-        data = mgr.get_numeric_data() if numeric_only else mgr
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         res_mgr = data.grouped_reduce(blk_func)
 
         if is_ser:
@@ -3716,10 +3688,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-
-        if numeric_only:
-            mgr = mgr.get_numeric_data()
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         res_mgr = mgr.grouped_reduce(blk_func)
 
