@@ -602,6 +602,9 @@ cdef class SharedBlock:
         self._mgr_locs = placement
         self.ndim = ndim
         if refs is None:
+            # if no refs are passed, that means we are creating a Block from
+            # new values that it uniquely owns -> start a new BlockValuesRefs
+            # object that only references this block
             self.refs = BlockValuesRefs(self)
         else:
             refs.add_reference(self)
