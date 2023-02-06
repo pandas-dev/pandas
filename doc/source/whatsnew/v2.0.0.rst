@@ -1200,6 +1200,7 @@ Indexing
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
+- Bug in :meth:`DataFrame.loc` modifying object when setting incompatible value with an empty indexer (:issue:`45981`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :meth:`DataFrame.iloc` raising ``IndexError`` when indexer is a :class:`Series` with numeric extension array dtype (:issue:`49521`)
