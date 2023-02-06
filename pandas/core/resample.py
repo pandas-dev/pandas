@@ -435,6 +435,7 @@ class Resampler(BaseGroupBy, PandasObject):
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
                 # Check if the function is reducing or not.
+                # e.g. test_resample_apply_with_additional_args
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)

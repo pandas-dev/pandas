@@ -390,10 +390,16 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         if len(values) == 0:
             # GH #6265
+            if is_transform:
+                # GH#47787 see test_group_on_empty_multiindex
+                res_index = data.index
+            else:
+                res_index = self.grouper.result_index
+
             return self.obj._constructor(
                 [],
                 name=self.obj.name,
-                index=self.grouper.result_index,
+                index=res_index,
                 dtype=data.dtype,
             )
         assert values is not None
@@ -1146,14 +1152,12 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
-        result = self._op_via_apply("is_monotonic_increasing")
-        return result
+        return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
     @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
-        result = self._op_via_apply("is_monotonic_decreasing")
-        return result
+        return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
     def hist(
@@ -1191,8 +1195,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
-        result = self._op_via_apply("dtype")
-        return result
+        return self.apply(lambda ser: ser.dtype)
 
     @doc(Series.unique.__doc__)
     def unique(self) -> Series:
@@ -1438,9 +1441,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ):
 
         if len(values) == 0:
-            result = self.obj._constructor(
-                index=self.grouper.result_index, columns=data.columns
-            )
+            if is_transform:
+                # GH#47787 see test_group_on_empty_multiindex
+                res_index = data.index
+            else:
+                res_index = self.grouper.result_index
+
+            result = self.obj._constructor(index=res_index, columns=data.columns)
             result = result.astype(data.dtypes, copy=False)
             return result
 
@@ -1729,18 +1736,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # iterate through columns, see test_transform_exclude_nuisance
         #  gets here with non-unique columns
         output = {}
-        inds = []
         for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             output[i] = sgb.transform(wrapper)
-            inds.append(i)
-
-        if not output:
-            raise TypeError("Transform function invalid for data types")
-
-        columns = obj.columns.take(inds)
 
         result = self.obj._constructor(output, index=obj.index)
-        result.columns = columns
+        result.columns = obj.columns
         return result
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
@@ -2693,8 +2693,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
-        result = self._op_via_apply("dtypes")
-        return result
+        # error: Incompatible return value type (got "DataFrame", expected "Series")
+        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(
