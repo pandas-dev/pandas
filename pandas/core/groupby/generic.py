@@ -1731,13 +1731,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             output[i] = sgb.transform(wrapper)
             inds.append(i)
 
-        if not output:
-            raise TypeError("Transform function invalid for data types")
-
-        columns = obj.columns.take(inds)
-
         result = self.obj._constructor(output, index=obj.index)
-        result.columns = columns
+        result.columns = obj.columns
         return result
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):

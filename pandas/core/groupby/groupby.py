@@ -1169,36 +1169,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return self._reindex_output(result, qs=qs)
 
-    @final
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        """
-        Wraps the output of GroupBy transformations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, ArrayLike]
-            Data to wrap.
-
-        Returns
-        -------
-        Series or DataFrame
-            Series for SeriesGroupBy, DataFrame for DataFrameGroupBy
-        """
-        if isinstance(output, (Series, DataFrame)):
-            result = output
-        else:
-            result = self._indexed_output_to_ndframe(output)
-
-        if self.axis == 1:
-            # Only relevant for DataFrameGroupBy
-            result = result.T
-            result.columns = self.obj.columns
-
-        result.index = self.obj.index
-        return result
-
     def _wrap_applied_output(
         self,
         data,
@@ -1839,6 +1809,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
         # _wrap_agged_manager() returns. GH 35028
+        # e.g. test_dataframe_groupby_on_2_categoricals_when_observed_is_false
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
 
@@ -2844,7 +2815,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if isinstance(new_obj, Series):
             new_obj.name = obj.name
 
-        return self._wrap_transformed_output(new_obj)
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy
+            new_obj = new_obj.T
+            new_obj.columns = self.obj.columns
+
+        new_obj.index = self.obj.index
+        return new_obj
 
     @final
     @Substitution(name="groupby")
