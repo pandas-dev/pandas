@@ -607,6 +607,9 @@ cdef class SharedBlock:
             # object that only references this block
             self.refs = BlockValuesRefs(self)
         else:
+            # if refs are passed, this is the BlockValuesRefs object that is shared
+            # with the parent blocks which share the values, and a reference to this
+            # new block is added
             refs.add_reference(self)
             self.refs = refs
 
