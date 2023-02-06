@@ -873,7 +873,7 @@ class BaseBlockManager(DataManager):
                     # only one item and each mgr loc is a copy of that single
                     # item.
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=False)
+                        newblk = blk.copy(deep=not only_slice)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
                         refs.append(weakref.ref(blk))
