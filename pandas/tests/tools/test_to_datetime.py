@@ -1084,8 +1084,14 @@ class TestToDatetime:
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_index_equal(
             to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            Index([dt.item() for dt in dts_with_oob]),
+            Index(dts_with_oob),
         )
+
+    def test_out_of_bounds_errors_ignore(self):
+        # https://github.com/pandas-dev/pandas/issues/50587
+        result = to_datetime(np.datetime64("9999-01-01"), errors="ignore")
+        expected = np.datetime64("9999-01-01")
+        assert result == expected
 
     def test_to_datetime_tz(self, cache):
 
@@ -1723,11 +1729,13 @@ class TestToDatetimeUnit:
         # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with
         #  Y or M unit
+        warn_msg = "strings will be parsed as datetime strings"
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
         with pytest.raises(ValueError, match=msg):
-            to_datetime(["1.5"], unit=unit, errors="raise")
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                to_datetime(["1.5"], unit=unit, errors="raise")
 
         # with errors="ignore" we also end up raising within the Timestamp
         #  constructor; this may not be ideal
@@ -1742,7 +1750,8 @@ class TestToDatetimeUnit:
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        res = to_datetime(["1.5"], unit=unit, errors="coerce")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = to_datetime(["1.5"], unit=unit, errors="coerce")
         tm.assert_index_equal(res, expected)
 
         # round floats are OK

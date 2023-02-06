@@ -149,8 +149,6 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        # Docstring demonstrates the call raises a warning
-        ("_validators.validate_axis_style_args", "Use named arguments"),
     ]
 
     for item in items:
@@ -1295,6 +1293,22 @@ def string_storage(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "pandas",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
 
@@ -1523,6 +1537,43 @@ def any_numeric_ea_dtype(request):
     * 'Int64'
     * 'Float32'
     * 'Float64'
+    """
+    return request.param
+
+
+#  Unsupported operand types for + ("List[Union[str, ExtensionDtype, dtype[Any],
+#  Type[object]]]" and "List[str]")
+@pytest.fixture(
+    params=tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+    + tm.ALL_INT_PYARROW_DTYPES_STR_REPR
+    + tm.FLOAT_PYARROW_DTYPES_STR_REPR  # type: ignore[operator]
+)
+def any_numeric_ea_and_arrow_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
+    * 'uint8[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float32[pyarrow]'
+    * 'float64[pyarrow]'
     """
     return request.param
 

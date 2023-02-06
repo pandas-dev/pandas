@@ -23,8 +23,12 @@ from typing import (
 )
 import zipfile
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_nullable_dtypes,
+)
 
+from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     DtypeArg,
@@ -274,6 +278,14 @@ use_nullable_dtypes : bool, default False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present. Dtype takes precedence if given.
 
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
     .. versionadded:: 2.0
 
 Returns
@@ -380,7 +392,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -419,7 +431,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -458,7 +470,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -470,6 +482,12 @@ def read_excel(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     try:
         data = io.parse(
@@ -726,7 +744,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
         output = {}
 
+        last_sheetname = None
         for asheetname in sheets:
+            last_sheetname = asheetname
             if verbose:
                 print(f"Reading sheet {asheetname}")
 
@@ -878,10 +898,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
                 raise err
 
+        if last_sheetname is None:
+            raise ValueError("Sheet name is an empty list")
+
         if ret_dict:
             return output
         else:
-            return output[asheetname]
+            return output[last_sheetname]
 
 
 @doc(storage_options=_shared_docs["storage_options"])
