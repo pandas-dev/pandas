@@ -47,44 +47,71 @@ import _optional
 
 
 def pin_min_versions_to_ci_deps():
+    exclusion_list = {
+        "python=3.8[build=*_pypy]": None,
+        "actions-38-minimum_versions.yaml": None,
+    }
     toml_dependencies = get_versions_from_toml()
     all_yaml_files = list(YAML_PATH.iterdir())
     all_yaml_files.append(ENV_PATH)
-
     for curr_file in all_yaml_files:
         with open(curr_file) as yaml_f:
             data = yaml_f.read()
             yaml_file = yaml.safe_load(data)
             yaml_deps = yaml_file["dependencies"]
-            yaml_left = ""
             for dep_line in yaml_deps:
-                replace_text = ""
-                if ">=" in dep_line:
-                    yaml_package, yaml_version = str(dep_line).strip().split(">=")
-                    yaml_left = yaml_package + ">="
-                elif "=" in dep_line:
-                    yaml_package, yaml_version = str(dep_line).strip().split("=")
-                    yaml_left = yaml_package + "="
+                replace_text = operator = yaml_left = ""
+                search_text = str(dep_line)
+                if (
+                    str(dep_line) in exclusion_list
+                    or str(curr_file)[8:] in exclusion_list
+                ):
+                    continue
+                if "=" in dep_line:
+                    operator = "="
+                elif "==" in dep_line:
+                    operator = "=="
+                elif ">=" in dep_line:
+                    operator = ">="
+                elif "<" in dep_line:
+                    operator = "<"
+                elif ">" in dep_line:
+                    operator = ">"
                 else:
+                    operator = ""
+                if operator == "":
                     yaml_package, yaml_version = str(dep_line).strip(), None
+                    yaml_left = yaml_package
+                else:
+                    yaml_package, yaml_version = str(dep_line).strip().split(operator)
+                    if operator == "<" or operator == ">":
+                        if yaml_package in toml_dependencies:
+                            if yaml_version <= toml_dependencies[yaml_package]:
+                                yaml_left = yaml_package
+                            else:
+                                yaml_left = str(dep_line) + ", "
+                    else:
+                        yaml_left = yaml_package + operator
                 if yaml_package in toml_dependencies:
+                    if "=" not in yaml_left and ">" in yaml_left or "<" in yaml_left:
+                        if "," in yaml_left:
+                            # ex: "numpy<1.24.0," + ">=" + "1.2"
+                            replace_text = (
+                                yaml_left + ">=" + toml_dependencies[yaml_package]
+                            )
+                        else:
+                            replace_text = yaml_left + toml_dependencies[yaml_package]
                     # update yaml package version to TOML min version
-                    if yaml_version is not None:
+                    elif yaml_version is not None:
                         if toml_dependencies[yaml_package] > yaml_version:
                             # ex: "hypothesis>=" + "6.34.2"
                             replace_text = yaml_left + toml_dependencies[yaml_package]
-                            search_text = str(dep_line)
-                            data = data.replace(search_text, replace_text)
                     else:
                         # ex: "hypothesis + ">=" + 6.34.2"
                         replace_text = (
                             yaml_package + ">=" + toml_dependencies[yaml_package]
                         )
-                        search_text = str(dep_line)
-                        data = data.replace(search_text, replace_text)
-                else:
-                    pass
-                replace_text = ""
+                    data = data.replace(search_text, replace_text)
             os.remove(curr_file)
             with open(curr_file, "w") as f:
                 f.write(data)
