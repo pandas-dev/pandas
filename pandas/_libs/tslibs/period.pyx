@@ -2357,6 +2357,61 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
+    def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
+        """A faster alternative to `strftime` using string formatting.
+
+        `fmt_str` and `loc_s` should be created using `convert_strftime_format(fmt)`.
+
+        See also `self.strftime`, that relies on `period_format`.
+
+        Examples
+        --------
+
+        >>> from pandas._libs.tslibs import convert_strftime_format
+        >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
+        >>> a.strftime('%F-Q%q')
+        '2006-Q1'
+        >>> fast_fmt, loc_s = convert_strftime_format('%F-Q%q', target="period")
+        >>> a.fast_strftime(fast_fmt, loc_s)
+        '2006-Q1'
+        """
+        freq = self._dtype._dtype_code
+        value = self.ordinal
+
+        if value == NPY_NAT:
+            return "NaT"
+
+        cdef:
+            npy_datetimestruct dts, dts2
+            int quarter, y, h
+
+        # Fill dts with all fields
+        get_date_info(value, freq, &dts)
+
+        # Get the quarter and fiscal year
+        quarter = get_yq(value, freq, &dts2)
+
+        # Finally use the string template
+        y = dts.year
+        h = dts.hour
+        return fmt_str % {
+            "year": y,
+            "shortyear": y % 100,
+            "month": dts.month,
+            "day": dts.day,
+            "hour": h,
+            "hour12": 12 if h in (0, 12) else (h % 12),
+            "ampm": loc_s.pm if (h // 12) else loc_s.am,
+            "min": dts.min,
+            "sec": dts.sec,
+            "ms": dts.us // 1000,
+            "us": dts.us,
+            "ns": (dts.us * 1000) + (dts.ps // 1000),
+            "q": quarter,
+            "Fyear": dts2.year,
+            "fyear": dts2.year % 100,
+        }
+
     def strftime(self, fmt: str) -> str:
         r"""
         Returns a formatted string representation of the :class:`Period`.
