@@ -598,6 +598,8 @@ cdef class SharedBlock:
         placement : BlockPlacement
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        refs: BlockValuesRefs, optional
+            Ref tracking object or None if block does not have any refs.
         """
         self._mgr_locs = placement
         self.ndim = ndim
