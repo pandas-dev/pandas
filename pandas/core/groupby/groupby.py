@@ -2580,8 +2580,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        Grouper
-            Return a new grouper with our resampler appended.
+        pandas.api.typing.DatetimeIndexResamplerGroupby,
+        pandas.api.typing.PeriodIndexResamplerGroupby, or
+        pandas.api.typing.TimedeltaIndexResamplerGroupby
+            Return a new grouper, with type depending on the data being resampled,
+            with our resampler appended.
 
         See Also
         --------
@@ -2667,6 +2670,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def rolling(self, *args, **kwargs) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.RollingGroupby
         """
         from pandas.core.window import RollingGroupby
 
@@ -2685,6 +2692,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding
         functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExpandingGroupby
         """
         from pandas.core.window import ExpandingGroupby
 
@@ -2701,6 +2712,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindowGroupby
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 

@@ -69,7 +69,7 @@ class Expanding(RollingAndExpandingMixin):
 
     Returns
     -------
-    ``Expanding`` subclass
+    ``pandas.api.typing.Expanding`` subclass
 
     See Also
     --------

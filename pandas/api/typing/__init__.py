@@ -20,10 +20,7 @@ from pandas.core.window import (
 # TODO: Can't import Styler without importing jinja2
 # from pandas.io.formats.style import Styler
 from pandas.io.json._json import JsonReader
-from pandas.io.stata import (
-    StataReader,
-    StataWriter,
-)
+from pandas.io.stata import StataReader
 
 __all__ = [
     "DataFrameGroupBy",
@@ -33,7 +30,6 @@ __all__ = [
     "Resampler",
     "Rolling",
     "SeriesGroupBy",
-    "StataWriter",
     "StataReader",
     # See TODO above
     # "Styler",

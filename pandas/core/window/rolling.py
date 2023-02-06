@@ -962,9 +962,9 @@ class Window(BaseWindow):
 
     Returns
     -------
-    ``Window`` subclass if a ``win_type`` is passed
+    ``pandas.api.typing.Window`` subclass if a ``win_type`` is passed
 
-    ``Rolling`` subclass if ``win_type`` is not passed
+    ``pandas.api.typing.Rolling`` subclass if ``win_type`` is not passed
 
     See Also
     --------
