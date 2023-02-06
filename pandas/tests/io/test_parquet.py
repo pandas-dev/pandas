@@ -3,10 +3,7 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -40,13 +37,7 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    with catch_warnings():
-        # `np.bool` is a deprecated alias...
-        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
-        # accessing pd.Int64Index in pd namespace
-        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
-
-        import fastparquet
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
@@ -600,6 +591,7 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    @pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
@@ -647,6 +639,29 @@ class TestBasic(Base):
             # Only int and boolean
             result2 = result2.drop("c", axis=1)
             expected = expected.drop("c", axis=1)
+        tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
+    def test_use_nullable_dtypes_option(self, engine, request):
+        # GH#50748
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
+
+        table = pyarrow.table({"a": pyarrow.array([1, 2, 3, None], "int64")})
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            with pd.option_context("mode.nullable_dtypes", True):
+                result2 = read_parquet(path, engine=engine)
+
+        expected = pd.DataFrame({"a": pd.array([1, 2, 3, None], dtype="Int64")})
         tm.assert_frame_equal(result2, expected)
 
     @pytest.mark.parametrize(
@@ -829,6 +844,7 @@ class TestParquetPyArrow(Base):
 
         # GH #35791
         if partition_col:
+            expected_df = expected_df.astype(dict.fromkeys(partition_col, np.int32))
             partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(

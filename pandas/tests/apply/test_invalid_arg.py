@@ -277,7 +277,7 @@ def test_agg_none_to_type():
     df = DataFrame({"a": [None]})
     msg = re.escape("int() argument must be a string")
     with pytest.raises(TypeError, match=msg):
-        df.agg({"a": int})
+        df.agg({"a": lambda x: int(x.iloc[0])})
 
 
 def test_transform_none_to_type():
@@ -285,7 +285,7 @@ def test_transform_none_to_type():
     df = DataFrame({"a": [None]})
     msg = "argument must be a"
     with pytest.raises(TypeError, match=msg):
-        df.transform({"a": int})
+        df.transform({"a": lambda x: int(x.iloc[0])})
 
 
 @pytest.mark.parametrize(
@@ -348,7 +348,7 @@ def test_transform_wont_agg_series(string_series, func):
     warn = RuntimeWarning if func[0] == "sqrt" else None
     warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
+        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
             string_series.transform(func)
 
 

@@ -11,6 +11,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    RangeIndex,
     Series,
     get_dummies,
 )
@@ -101,7 +102,7 @@ class TestGetDummies:
         else:
             dtype_name = self.effective_dtype(dtype).name
 
-        expected = Series({dtype_name: 8})
+        expected = Series({dtype_name: 8}, name="count")
         result = result.dtypes.value_counts()
         result.index = [str(i) for i in result.index]
         tm.assert_series_equal(result, expected)
@@ -111,7 +112,7 @@ class TestGetDummies:
         expected_counts = {"int64": 1, "object": 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
-        expected = Series(expected_counts).sort_index()
+        expected = Series(expected_counts, name="count").sort_index()
         result = result.dtypes.value_counts()
         result.index = [str(i) for i in result.index]
         result = result.sort_index()
@@ -471,7 +472,7 @@ class TestGetDummies:
         s_series = Series(s_list)
         s_series_index = Series(s_list, list("ABC"))
 
-        expected = DataFrame(index=np.arange(3))
+        expected = DataFrame(index=RangeIndex(3))
 
         result = get_dummies(s_list, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
@@ -504,7 +505,7 @@ class TestGetDummies:
         res_just_na = get_dummies(
             [np.nan], dummy_na=True, drop_first=True, sparse=sparse
         )
-        exp_just_na = DataFrame(index=np.arange(1))
+        exp_just_na = DataFrame(index=RangeIndex(1))
         tm.assert_frame_equal(res_just_na, exp_just_na)
 
     def test_dataframe_dummies_drop_first(self, df, sparse):
@@ -656,3 +657,23 @@ class TestGetDummies:
 
         with pytest.raises(TypeError, match=msg):
             get_dummies(df, columns=values)
+
+    def test_get_dummies_ea_dtype_series(self, any_numeric_ea_and_arrow_dtype):
+        # GH#32430
+        ser = Series(list("abca"))
+        result = get_dummies(ser, dtype=any_numeric_ea_and_arrow_dtype)
+        expected = DataFrame(
+            {"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]},
+            dtype=any_numeric_ea_and_arrow_dtype,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_get_dummies_ea_dtype_dataframe(self, any_numeric_ea_and_arrow_dtype):
+        # GH#32430
+        df = DataFrame({"x": list("abca")})
+        result = get_dummies(df, dtype=any_numeric_ea_and_arrow_dtype)
+        expected = DataFrame(
+            {"x_a": [1, 0, 0, 1], "x_b": [0, 1, 0, 0], "x_c": [0, 0, 1, 0]},
+            dtype=any_numeric_ea_and_arrow_dtype,
+        )
+        tm.assert_frame_equal(result, expected)

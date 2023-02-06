@@ -621,6 +621,27 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op_name = op.__name__
         omask = None
 
+        if (
+            not hasattr(other, "dtype")
+            and is_list_like(other)
+            and len(other) == len(self)
+        ):
+            # Try inferring masked dtype instead of casting to object
+            inferred_dtype = lib.infer_dtype(other, skipna=True)
+            if inferred_dtype == "integer":
+                from pandas.core.arrays import IntegerArray
+
+                other = IntegerArray._from_sequence(other)
+            elif inferred_dtype in ["floating", "mixed-integer-float"]:
+                from pandas.core.arrays import FloatingArray
+
+                other = FloatingArray._from_sequence(other)
+
+            elif inferred_dtype in ["boolean"]:
+                from pandas.core.arrays import BooleanArray
+
+                other = BooleanArray._from_sequence(other)
+
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
@@ -975,7 +996,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         if dropna:
-            res = Series(value_counts, index=keys)
+            res = Series(value_counts, index=keys, name="count")
             res.index = res.index.astype(self.dtype)
             res = res.astype("Int64")
             return res
@@ -991,7 +1012,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(counts), dtype="bool")
         counts_array = IntegerArray(counts, mask)
 
-        return Series(counts_array, index=index)
+        return Series(counts_array, index=index, name="count")
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1039,6 +1060,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 raise NotImplementedError
             if self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
+
+                if is_integer_dtype(self.dtype):
+                    # We try to maintain int dtype if possible for not all-na case
+                    # as well
+                    res = np.zeros(res.shape, dtype=self.dtype.numpy_dtype)
             else:
                 out_mask = np.zeros(res.shape, dtype=bool)
         else:
@@ -1055,12 +1081,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data
         mask = self._mask
 
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        # median, skew, kurt, idxmin, idxmax
+        # median, skew, kurt, sem
         op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 

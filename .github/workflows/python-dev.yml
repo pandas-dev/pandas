@@ -23,12 +23,14 @@ name: Python Dev
 on:
   push:
     branches:
-      - main
-      - 1.5.x
+#      - main
+#      - 1.5.x
+      - None
   pull_request:
     branches:
-      - main
-      - 1.5.x
+#      - main
+#      - 1.5.x
+      - None
     paths-ignore:
       - "doc/**"
 
@@ -73,7 +75,7 @@ jobs:
       run: |
         python --version
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+        python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         python -m pip install git+https://github.com/nedbat/coveragepy.git
         python -m pip install -r ci/deps/requirements-minimal.txt pytest-cov
         python -m pip list

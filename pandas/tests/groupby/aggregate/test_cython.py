@@ -92,7 +92,8 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("a")["b"].mean(numeric_only=True)
 
     with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
@@ -117,7 +118,8 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("b").dates.mean(numeric_only=True)
 
 
@@ -212,7 +214,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = DataFrame([11, 12, 13], columns=["a"])
-    grps = range(0, 25, 5)
+    grps = np.arange(0, 25, 5, dtype=np.int_)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "sum", alt=None, numeric_only=True

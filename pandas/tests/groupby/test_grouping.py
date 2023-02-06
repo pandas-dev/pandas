@@ -403,8 +403,9 @@ class TestGrouping:
 
         result = s.groupby(mapping).mean()
         result2 = s.groupby(mapping).agg(np.mean)
-        expected = s.groupby([0, 0, 1, 1]).mean()
-        expected2 = s.groupby([0, 0, 1, 1]).mean()
+        exp_key = np.array([0, 0, 1, 1], dtype=np.int64)
+        expected = s.groupby(exp_key).mean()
+        expected2 = s.groupby(exp_key).mean()
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result, result2)
         tm.assert_series_equal(result, expected2)
@@ -692,7 +693,8 @@ class TestGrouping:
         gr = s.groupby([])
 
         result = gr.mean()
-        tm.assert_series_equal(result, s)
+        expected = s.set_axis(Index([], dtype=np.intp))
+        tm.assert_series_equal(result, expected)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1
@@ -1047,3 +1049,20 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_groups():
+    # GH#51182 check Grouper.groups does not raise AttributeError
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    grper = Grouper(key="a")
+    gb = df.groupby(grper)
+
+    msg = "Use GroupBy.groups instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.groups
+    assert res is gb.groups
+
+    msg = "Use GroupBy.grouper instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.grouper
+    assert res is gb.grouper

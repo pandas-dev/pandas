@@ -10,8 +10,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -31,7 +29,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestIndexConstructorInference:
@@ -86,12 +83,7 @@ class TestIndexConstructorInference:
     )
     def test_constructor_int_dtype_float(self, dtype):
         # GH#18400
-        if is_unsigned_integer_dtype(dtype):
-            expected_dtype = np.uint64
-        else:
-            expected_dtype = np.int64
-
-        expected = NumericIndex([0, 1, 2, 3], dtype=expected_dtype)
+        expected = Index([0, 1, 2, 3], dtype=dtype)
         result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
         tm.assert_index_equal(result, expected)
 
@@ -290,7 +282,7 @@ class TestDtypeEnforced:
     )
     def test_constructor_dtypes_to_int(self, vals, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
-        index = NumericIndex(vals, dtype=dtype)
+        index = Index(vals, dtype=dtype)
         assert index.dtype == dtype
 
     @pytest.mark.parametrize(
@@ -305,7 +297,7 @@ class TestDtypeEnforced:
     )
     def test_constructor_dtypes_to_float(self, vals, float_numpy_dtype):
         dtype = float_numpy_dtype
-        index = NumericIndex(vals, dtype=dtype)
+        index = Index(vals, dtype=dtype)
         assert index.dtype == dtype
 
     @pytest.mark.parametrize(

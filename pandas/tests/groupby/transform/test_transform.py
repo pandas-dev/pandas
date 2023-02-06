@@ -164,10 +164,6 @@ def test_transform_broadcast(tsframe, ts):
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
 
-    if transformation_func == "ngroup":
-        msg = "ngroup fails with axis=1: #45986"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
     result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
@@ -305,7 +301,7 @@ def test_transform_datetime_to_numeric():
         lambda x: x.dt.dayofweek - x.dt.dayofweek.min()
     )
 
-    expected = Series([0, 1], name="b")
+    expected = Series([0, 1], dtype=np.int32, name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -714,11 +710,6 @@ def test_cython_transform_frame(op, args, targop):
             # {"by": ['int','string']}]:
 
             gb = df.groupby(group_keys=False, **gb_target)
-            # allowlisted methods set the selection before applying
-            # bit a of hack to make sure the cythonized shift
-            # is equivalent to pre 0.17.1 behavior
-            if op == "shift":
-                gb._set_group_selection()
 
             if op != "shift" and "int" not in gb_target:
                 # numeric apply fastpath promotes dtype so have
@@ -1046,6 +1037,26 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_transform_dtype():
+    # GH 22243
+    df = DataFrame({"a": [1], "val": [1.35]})
+
+    result = df["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    expected1 = Series(["+1.35"], name="val", dtype="object")
+    tm.assert_series_equal(result, expected1)
+
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    tm.assert_series_equal(result, expected1)
+
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+({y})"))
+    expected2 = Series(["+(1.35)"], name="val", dtype="object")
+    tm.assert_series_equal(result, expected2)
+
+    df["val"] = df["val"].astype(object)
+    result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    tm.assert_series_equal(result, expected1)
+
+
 @pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
 def test_transform_absent_categories(func):
     # GH 16771
@@ -1362,10 +1373,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
-    msg = f"{transformation_func} is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
@@ -1411,7 +1419,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_str_transformer_series(request, dropna, transformation_func):
+def test_null_group_str_transformer_series(dropna, transformation_func):
     # GH 17093
     ser = Series([1, 2, 2], index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, ser)
@@ -1432,9 +1440,7 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
 
-    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
-    msg = f"{transformation_func} is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
+    with tm.assert_produces_warning(None):
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)

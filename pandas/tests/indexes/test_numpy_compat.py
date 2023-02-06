@@ -10,9 +10,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    NumericIndex,
+from pandas.api.types import (
+    is_complex_dtype,
+    is_numeric_dtype,
 )
 from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -68,11 +68,8 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif (
-        isinstance(index, NumericIndex)
-        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
-        or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
-        or index.dtype == bool
+    elif is_numeric_dtype(index) and not (
+        is_complex_dtype(index) and func in [np.deg2rad, np.rad2deg]
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
@@ -83,9 +80,15 @@ def test_numpy_ufuncs_basic(index, func):
             exp = Index(arr_result, name=index.name)
 
         tm.assert_index_equal(result, exp)
-        if type(index) is not Index or index.dtype == bool:
-            # i.e NumericIndex
-            assert isinstance(result, Float64Index)
+        if isinstance(index.dtype, np.dtype) and is_numeric_dtype(index):
+            if is_complex_dtype(index):
+                assert result.dtype == index.dtype
+            elif index.dtype in ["bool", "int8", "uint8"]:
+                assert result.dtype in ["float16", "float32"]
+            elif index.dtype in ["int16", "uint16", "float32"]:
+                assert result.dtype == "float32"
+            else:
+                assert result.dtype == "float64"
         else:
             # e.g. np.exp with Int64 -> Float64
             assert type(result) is Index
@@ -123,11 +126,8 @@ def test_numpy_ufuncs_other(index, func):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif (
-        isinstance(index, NumericIndex)
-        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
-        or (index.dtype.kind == "c" and func is not np.signbit)
-        or index.dtype == bool
+    elif is_numeric_dtype(index) and not (
+        is_complex_dtype(index) and func is np.signbit
     ):
         # Results in bool array
         result = func(index)

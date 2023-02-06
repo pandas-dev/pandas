@@ -16,6 +16,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
+    NaT,
     algos,
     lib,
 )
@@ -32,6 +33,7 @@ from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
     is_numeric_v_string_like,
+    is_object_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
@@ -83,6 +85,12 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     # _DTypeDict, Tuple[Any, Any]]]"
     values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
+    potential_na = False
+    if is_object_dtype(arr):
+        # pre-compute mask to avoid comparison to NA
+        potential_na = True
+        arr_mask = ~isna(arr)
+
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
@@ -93,10 +101,15 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
-            if not isinstance(new_mask, np.ndarray):
-                # usually BooleanArray
-                new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+            if potential_na:
+                new_mask = np.zeros(arr.shape, dtype=np.bool_)
+                new_mask[arr_mask] = arr[arr_mask] == x
+            else:
+                new_mask = arr == x
+
+                if not isinstance(new_mask, np.ndarray):
+                    # usually BooleanArray
+                    new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
             mask |= new_mask
 
     if na_mask.any():
@@ -445,6 +458,11 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
+    is_datetimelike = needs_i8_conversion(yvalues.dtype)
+
+    if is_datetimelike:
+        yvalues = yvalues.view("i8")
+
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
@@ -464,7 +482,10 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    yvalues[preserve_nans] = np.nan
+    if is_datetimelike:
+        yvalues[preserve_nans] = NaT.value
+    else:
+        yvalues[preserve_nans] = np.nan
     return
 
 

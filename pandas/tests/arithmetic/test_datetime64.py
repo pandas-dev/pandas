@@ -1100,7 +1100,9 @@ class TestDatetime64Arithmetic:
             dti = date_range("2016-01-01", periods=2, freq=freq, tz=tz)
 
         obj = box_with_array(dti)
-        other = np.array([4, -1], dtype=dtype)
+        other = np.array([4, -1])
+        if dtype is not None:
+            other = other.astype(dtype)
 
         msg = "|".join(
             [
@@ -1120,7 +1122,6 @@ class TestDatetime64Arithmetic:
         assert_invalid_addsub_type(obj, pd.array(other), msg)
         assert_invalid_addsub_type(obj, pd.Categorical(other), msg)
         assert_invalid_addsub_type(obj, pd.Index(other), msg)
-        assert_invalid_addsub_type(obj, pd.core.indexes.api.NumericIndex(other), msg)
         assert_invalid_addsub_type(obj, Series(other), msg)
 
     @pytest.mark.parametrize(

@@ -1,9 +1,9 @@
 cython
-hypothesis==6.52.1
+hypothesis>=6.34.2
 numpy
-pytest>=6.2.5
+pytest>=7.0.0
 pytest-asyncio>=0.17
-pytest-xdist
+pytest-xdist>=2.2.0
 python-dateutil
 pytz
 versioneer[toml]

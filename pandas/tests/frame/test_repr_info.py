@@ -280,22 +280,23 @@ NaT   4"""
         with option_context("display.max_columns", 20):
             assert "StringCol" in repr(df)
 
-    @pytest.mark.filterwarnings(
-        "ignore:.*DataFrame.to_latex` is expected to utilise:FutureWarning"
-    )
     def test_latex_repr(self):
-        result = r"""\begin{tabular}{llll}
+        pytest.importorskip("jinja2")
+        expected = r"""\begin{tabular}{llll}
 \toprule
-{} &         0 &  1 &  2 \\
+ & 0 & 1 & 2 \\
 \midrule
-0 &  $\alpha$ &  b &  c \\
-1 &         1 &  2 &  3 \\
+0 & $\alpha$ & b & c \\
+1 & 1 & 2 & 3 \\
 \bottomrule
 \end{tabular}
 """
-        with option_context("display.latex.escape", False, "display.latex.repr", True):
+        with option_context(
+            "display.latex.escape", False, "styler.render.repr", "latex"
+        ):
             df = DataFrame([[r"$\alpha$", "b", "c"], [1, 2, 3]])
-            assert result == df._repr_latex_()
+            result = df._repr_latex_()
+            assert result == expected
 
         # GH 12182
         assert df._repr_latex_() is None

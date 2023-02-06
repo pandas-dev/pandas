@@ -335,6 +335,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
+            out_unit=unit,
         )
         # We have to call this again after possibly inferring a tz above
         _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
@@ -803,7 +804,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
@@ -892,7 +893,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -1031,7 +1032,7 @@ default 'raise'
 
         if self.tz is not None:
             if tz is None:
-                new_dates = tz_convert_from_utc(self.asi8, self.tz)
+                new_dates = tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1067,7 +1068,7 @@ default 'raise'
 
         Returns
         -------
-        datetimes : ndarray[object]
+        numpy.ndarray
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
@@ -1384,7 +1385,7 @@ default 'raise'
         0    2000
         1    2001
         2    2002
-        dtype: int64
+        dtype: int32
         """,
     )
     month = _field_accessor(
@@ -1407,7 +1408,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     day = _field_accessor(
@@ -1430,7 +1431,7 @@ default 'raise'
         0    1
         1    2
         2    3
-        dtype: int64
+        dtype: int32
         """,
     )
     hour = _field_accessor(
@@ -1453,7 +1454,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     minute = _field_accessor(
@@ -1476,7 +1477,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     second = _field_accessor(
@@ -1499,7 +1500,7 @@ default 'raise'
         0    0
         1    1
         2    2
-        dtype: int64
+        dtype: int32
         """,
     )
     microsecond = _field_accessor(
@@ -1522,7 +1523,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     nanosecond = _field_accessor(
@@ -1545,7 +1546,7 @@ default 'raise'
         0       0
         1       1
         2       2
-        dtype: int64
+        dtype: int32
         """,
     )
     _dayofweek_doc = """
@@ -1580,7 +1581,7 @@ default 'raise'
     2017-01-06    4
     2017-01-07    5
     2017-01-08    6
-    Freq: D, dtype: int64
+    Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
     dayofweek = day_of_week
@@ -1966,6 +1967,7 @@ def _sequence_to_dt64ns(
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
+    out_unit: str | None = None,
 ):
     """
     Parameters
@@ -1977,6 +1979,8 @@ def _sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
+    out_unit : str or None, default None
+        Desired output resolution.
 
     Returns
     -------
@@ -2004,6 +2008,10 @@ def _sequence_to_dt64ns(
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
 
+    out_dtype = DT64NS_DTYPE
+    if out_unit is not None:
+        out_dtype = np.dtype(f"M8[{out_unit}]")
+
     if (
         is_object_dtype(data_dtype)
         or is_string_dtype(data_dtype)
@@ -2030,17 +2038,11 @@ def _sequence_to_dt64ns(
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                if data.dtype == "i8":
-                    # GH#42505
-                    # by convention, these are _already_ UTC, e.g
-                    return data.view(DT64NS_DTYPE), tz, None
+                assert data.dtype == "i8"
+                # GH#42505
+                # by convention, these are _already_ UTC, e.g
+                return data.view(DT64NS_DTYPE), tz, None
 
-                if timezones.is_utc(tz):
-                    # Fastpath, avoid copy made in tzconversion
-                    utc_vals = data.view("i8")
-                else:
-                    utc_vals = tz_convert_from_utc(data.view("i8"), tz)
-                data = utc_vals.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
 
@@ -2096,7 +2098,7 @@ def _sequence_to_dt64ns(
         # assume this data are epoch timestamps
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
-        result = data.view(DT64NS_DTYPE)
+        result = data.view(out_dtype)
 
     if copy:
         result = result.copy()
@@ -2182,8 +2184,8 @@ def objects_to_datetime64ns(
 
 def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     """
-    Convert data based on dtype conventions, issuing deprecation warnings
-    or errors where appropriate.
+    Convert data based on dtype conventions, issuing
+    errors where appropriate.
 
     Parameters
     ----------
@@ -2209,7 +2211,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.
         # Note: data.astype(np.int64) fails ARM tests, see
         # https://github.com/pandas-dev/pandas/issues/49468.
-        data = data.astype("M8[ns]").view("i8")
+        data = data.astype(DT64NS_DTYPE).view("i8")
         copy = False
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):

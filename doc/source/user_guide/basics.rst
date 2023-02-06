@@ -1479,11 +1479,6 @@ you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
    df.rename({"one": "foo", "two": "bar"}, axis="columns")
    df.rename({"a": "apple", "b": "banana", "d": "durian"}, axis="index")
 
-
-The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
-parameter that is by default ``False`` and copies the underlying data. Pass
-``inplace=True`` to rename the data in place.
-
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
 

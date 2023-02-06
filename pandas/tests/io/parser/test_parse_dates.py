@@ -18,7 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import parse_datetime_string
+from pandas._libs.tslibs.parsing import py_parse_datetime_string
 from pandas.compat.pyarrow import (
     pa_version_under6p0,
     pa_version_under7p0,
@@ -924,9 +924,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         tm.assert_frame_equal(df, expected)
     else:
         msg = "got an unexpected keyword argument 'day_first'"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             parser.read_csv(
                 StringIO(data),
                 names=["time", "Q", "NTU"],
@@ -1292,16 +1290,21 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_parse_dates_infer_datetime_format_warning(all_parsers):
-    # GH 49024
+@pytest.mark.parametrize(
+    "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
+)
+def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
+    # GH 49024, 51017
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
-    parser.read_csv_check_warnings(
-        UserWarning,
+
+    getattr(parser, reader)(
+        FutureWarning,
         "The argument 'infer_datetime_format' is deprecated",
         StringIO(data),
         parse_dates=["Date"],
         infer_datetime_format=True,
+        sep=",",
     )
 
 
@@ -1757,7 +1760,7 @@ def test_hypothesis_delimited_date(
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parse_datetime_string, date_string, dayfirst=dayfirst
+        py_parse_datetime_string, date_string, dayfirst=dayfirst
     )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,

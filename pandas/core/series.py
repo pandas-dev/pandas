@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+import sys
 from textwrap import dedent
 from typing import (
     IO,
@@ -18,6 +19,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 import weakref
 
 import numpy as np
@@ -32,7 +34,10 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    is_range_indexer,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -55,6 +60,7 @@ from pandas._typing import (
     NaPosition,
     QuantileInterpolation,
     Renamer,
+    Scalar,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -64,13 +70,19 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    _chained_assignment_msg,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -86,6 +98,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_dict_like,
+    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -129,7 +142,6 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     DatetimeIndex,
-    Float64Index,
     Index,
     MultiIndex,
     PeriodIndex,
@@ -187,8 +199,12 @@ _shared_doc_kwargs = {
     "duplicated": "Series",
     "optional_by": "",
     "optional_mapper": "",
-    "optional_labels": "",
-    "optional_axis": "",
+    "optional_reindex": """
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Unused.""",
     "replace_iloc": """
     This differs from updating with ``.loc`` or ``.iloc``, which require
     you to specify a location to update with some value.""",
@@ -202,6 +218,13 @@ def _coerce_method(converter):
 
     def wrapper(self):
         if len(self) == 1:
+            warnings.warn(
+                f"Calling {converter.__name__} on a single element Series is "
+                "deprecated and will raise a TypeError in the future. "
+                f"Use {converter.__name__}(ser.iloc[0]) instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return converter(self.iloc[0])
         raise TypeError(f"cannot convert the series to {converter}")
 
@@ -423,10 +446,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
+                if using_copy_on_write():
+                    data = data._mgr.copy(deep=False)
+                else:
+                    data = data._mgr
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
-            data = data._mgr
+                data = data._mgr
         elif is_dict_like(data):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
@@ -879,6 +906,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
+
+        if (
+            indices.ndim == 1
+            and using_copy_on_write()
+            and is_range_indexer(indices, len(self))
+        ):
+            return self.copy(deep=None)
+
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 
@@ -910,7 +945,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1059,6 +1094,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError(_chained_assignment_msg)
+
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
@@ -1231,6 +1270,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Set the _cacher attribute on the calling object with a weakref to
         cacher.
         """
+        if using_copy_on_write():
+            return
         self._cacher = (item, weakref.ref(cacher))
 
     def _clear_item_cache(self) -> None:
@@ -1254,6 +1295,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         See NDFrame._maybe_update_cacher.__doc__
         """
+        # for CoW, we never want to update the parent DataFrame cache
+        # if the Series changed, but don't keep track of any cacher
+        if using_copy_on_write():
+            return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
             assert self.ndim == 1
@@ -1263,13 +1308,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # a copy
             if ref is None:
                 del self._cacher
-            # for CoW, we never want to update the parent DataFrame cache
-            # if the Series changed, and always pop the cached item
-            elif (
-                not using_copy_on_write()
-                and len(self) == len(ref)
-                and self.name in ref.columns
-            ):
+            elif len(self) == len(ref) and self.name in ref.columns:
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
@@ -1458,17 +1497,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         To generate a new Series with the default set `drop` to True.
 
         >>> s.reset_index(drop=True)
-        0    1
-        1    2
-        2    3
-        3    4
-        Name: foo, dtype: int64
-
-        To update the Series in place, without generating a new one
-        set `inplace` to True. Note that it also requires ``drop=True``.
-
-        >>> s.reset_index(inplace=True, drop=True)
-        >>> s
         0    1
         1    2
         2    3
@@ -1817,7 +1845,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self):
+        if is_object_dtype(self) or is_extension_array_dtype(self):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -1977,6 +2005,8 @@ Name: Max Speed, dtype: float64
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+        if not as_index:
+            raise TypeError("as_index=False only valid with DataFrame")
         axis = self._get_axis_number(axis)
 
         return SeriesGroupBy(
@@ -2113,22 +2143,32 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: Literal[False] = ...
+        self,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, *, keep: DropKeep = ..., inplace: Literal[True]) -> None:
+    def drop_duplicates(
+        self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
+    ) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: bool = ...
+        self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
     ) -> Series | None:
         ...
 
     def drop_duplicates(
-        self, *, keep: DropKeep = "first", inplace: bool = False
+        self,
+        *,
+        keep: DropKeep = "first",
+        inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2144,6 +2184,11 @@ Name: Max Speed, dtype: float64
 
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
+
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -2195,11 +2240,9 @@ Name: Max Speed, dtype: float64
         Name: animal, dtype: object
 
         The value ``False`` for parameter 'keep' discards all sets of
-        duplicated entries. Setting the value of 'inplace' to ``True`` performs
-        the operation inplace and returns ``None``.
+        duplicated entries.
 
-        >>> s.drop_duplicates(keep=False, inplace=True)
-        >>> s
+        >>> s.drop_duplicates(keep=False)
         1       cow
         3    beetle
         5     hippo
@@ -2207,6 +2250,10 @@ Name: Max Speed, dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
+
+        if ignore_index:
+            result.index = default_index(len(result))
+
         if inplace:
             self._update_inplace(result)
             return None
@@ -2554,7 +2601,8 @@ Name: Max Speed, dtype: float64
 
         if is_list_like(q):
             result.name = self.name
-            return self._constructor(result, index=Float64Index(q), name=self.name)
+            idx = Index(q, dtype=np.float64)
+            return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
             return result.iloc[0]
@@ -3438,17 +3486,6 @@ Keep all original rows and also all original values
         0     NaN
         dtype: float64
 
-        Sort values inplace
-
-        >>> s.sort_values(ascending=False, inplace=True)
-        >>> s
-        3    10.0
-        4     5.0
-        2     3.0
-        1     1.0
-        0     NaN
-        dtype: float64
-
         Sort values putting NAs first
 
         >>> s.sort_values(na_position='first')
@@ -3547,6 +3584,11 @@ Keep all original rows and also all original values
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
+
+        if is_range_indexer(sorted_index, len(sorted_index)):
+            if inplace:
+                return self._update_inplace(self)
+            return self.copy(deep=None)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
@@ -3691,16 +3733,6 @@ Keep all original rows and also all original values
         3    a
         2    b
         1    c
-        dtype: object
-
-        Sort Inplace
-
-        >>> s.sort_index(inplace=True)
-        >>> s
-        1    c
-        2    b
-        3    a
-        4    d
         dtype: object
 
         By default NaNs are put at the end, but use `na_position` to place
@@ -4601,6 +4633,8 @@ Keep all original rows and also all original values
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
+            if using_copy_on_write():
+                return self.copy(deep=copy)
             if copy or copy is None:
                 return self.copy(deep=copy)
             return self
@@ -4820,21 +4854,47 @@ Keep all original rows and also all original values
     @doc(
         NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels=_shared_doc_kwargs["optional_labels"],
-        optional_axis=_shared_doc_kwargs["optional_axis"],
+        optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
-    def reindex(self, *args, **kwargs) -> Series:
-        if len(args) > 1:
-            raise TypeError("Only one positional argument ('index') is allowed")
-        if args:
-            (index,) = args
-            if "index" in kwargs:
-                raise TypeError(
-                    "'index' passed as both positional and keyword argument"
-                )
-            kwargs.update({"index": index})
-        return super().reindex(**kwargs)
+    def reindex(  # type: ignore[override]
+        self,
+        index=None,
+        *,
+        axis: Axis | None = None,
+        method: str | None = None,
+        copy: bool | None = None,
+        level: Level | None = None,
+        fill_value: Scalar | None = None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> Series:
+        return super().reindex(
+            index=index,
+            method=method,
+            copy=copy,
+            level=level,
+            fill_value=fill_value,
+            limit=limit,
+            tolerance=tolerance,
+        )
+
+    @doc(NDFrame.rename_axis)
+    def rename_axis(  # type: ignore[override]
+        self: Series,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
+        index=lib.no_default,
+        axis: Axis = 0,
+        copy: bool = True,
+        inplace: bool = False,
+    ) -> Series | None:
+        return super().rename_axis(
+            mapper=mapper,
+            index=index,
+            axis=axis,
+            copy=copy,
+            inplace=inplace,
+        )
 
     @overload
     def drop(
@@ -5463,6 +5523,7 @@ Keep all original rows and also all original values
         axis: Axis = ...,
         inplace: Literal[False] = ...,
         how: AnyAll | None = ...,
+        ignore_index: bool = ...,
     ) -> Series:
         ...
 
@@ -5473,6 +5534,7 @@ Keep all original rows and also all original values
         axis: Axis = ...,
         inplace: Literal[True],
         how: AnyAll | None = ...,
+        ignore_index: bool = ...,
     ) -> None:
         ...
 
@@ -5482,6 +5544,7 @@ Keep all original rows and also all original values
         axis: Axis = 0,
         inplace: bool = False,
         how: AnyAll | None = None,
+        ignore_index: bool = False,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
@@ -5497,6 +5560,10 @@ Keep all original rows and also all original values
             If True, do operation inplace and return None.
         how : str, optional
             Not in use. Kept for compatibility.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -5527,14 +5594,6 @@ Keep all original rows and also all original values
         1    2.0
         dtype: float64
 
-        Keep the Series with valid entries in the same variable.
-
-        >>> ser.dropna(inplace=True)
-        >>> ser
-        0    1.0
-        1    2.0
-        dtype: float64
-
         Empty strings are not considered NA values. ``None`` is considered an
         NA value.
 
@@ -5554,19 +5613,25 @@ Keep all original rows and also all original values
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
-            if inplace:
-                self._update_inplace(result)
-            else:
-                return result
         else:
             if not inplace:
-                return self.copy()
-        return None
+                result = self.copy(deep=None)
+            else:
+                result = self
+
+        if ignore_index:
+            result.index = default_index(len(result))
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods

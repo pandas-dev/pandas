@@ -808,8 +808,7 @@ class TestDataFrameSelectReindex:
         # reindex fails
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(index=list(range(len(df))))
+            df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
 
@@ -819,11 +818,9 @@ class TestDataFrameSelectReindex:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar"])
+            df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar", "foo"])
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -844,17 +841,18 @@ class TestDataFrameSelectReindex:
         # https://github.com/pandas-dev/pandas/issues/12392
         # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        with pytest.raises(TypeError, match=r".* is ambiguous."):
+        msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+        with pytest.raises(TypeError, match=msg):
             df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis=1)
+            df.reindex([0, 1], columns=["A"], axis=1)
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis="index")
+            df.reindex([0, 1], columns=["A"], axis="index")
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis="index")
@@ -869,7 +867,7 @@ class TestDataFrameSelectReindex:
             df.reindex(index=[0, 1], columns=[0, 1], axis="columns")
 
         with pytest.raises(TypeError, match="Cannot specify all"):
-            df.reindex([0, 1], [0], ["A"])
+            df.reindex(labels=[0, 1], index=[0], columns=["A"])
 
         # Mixing styles
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
@@ -1091,8 +1089,7 @@ class TestDataFrameSelectReindex:
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df2.reindex(["a", "b"])
+            df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"

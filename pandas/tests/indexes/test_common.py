@@ -18,18 +18,19 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_numeric_dtype,
+)
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -317,7 +318,7 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        dtype = index.dtype if is_numeric_dtype(index) else None
         unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
@@ -346,7 +347,7 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            dtype = index.dtype if is_numeric_dtype(index) else None
             unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
@@ -389,14 +390,7 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if (
-            isinstance(index, DatetimeIndex)
-            and index.tz is not None
-            and dtype == "datetime64[ns]"
-        ):
-            # This astype is deprecated in favor of tz_localize
-            warn = FutureWarning
-        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
             warn = np.ComplexWarning
 
@@ -436,7 +430,7 @@ class TestCommon:
 
         if len(index) == 0:
             return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+        elif is_integer_dtype(index.dtype):
             return
         elif index.dtype == bool:
             # values[1] = np.nan below casts to True!

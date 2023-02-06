@@ -1642,7 +1642,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Float64Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2164,7 +2164,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        dropped : MultiIndex
+        MultiIndex
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
@@ -3385,7 +3385,7 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
-                new_order = np.ones((n,))[indexer]
+                new_order = np.ones((n,), dtype=np.intp)[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
