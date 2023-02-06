@@ -163,15 +163,7 @@ def generate_property(name: str, klass: type[DataFrame | Series]):
 
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        if mgr.ndim == 1:
-            mgr = cast(SingleManager, mgr)
-            single = mgr
-        else:
-            mgr = cast(Manager2D, mgr)
-            single = mgr.iget(0)
-        ser = self.obj._constructor(single, name=self.obj.name)
-        # NB: caller is responsible for setting ser.index
-        return ser
+        return self.obj._constructor(mgr, name=self.obj.name)
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
@@ -1902,25 +1894,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return result
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
-        if not self.as_index:
-            # GH 41998 - empty mgr always gets index of length 0
-            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
-            index = Index(range(rows))
-            mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
-
-            result = self._insert_inaxis_grouper(result)
-            result = result._consolidate()
-        else:
-            index = self.grouper.result_index
-            mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
-
-        if self.axis == 1:
-            result = result.T
-
-        # Note: we really only care about inferring numeric dtypes here
-        return self._reindex_output(result).infer_objects(copy=False)
+        return self.obj._constructor(mgr)
 
     def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
