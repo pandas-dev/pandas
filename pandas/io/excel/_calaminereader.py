@@ -6,7 +6,10 @@ from datetime import (
     time,
 )
 from tempfile import NamedTemporaryFile
-from typing import Union
+from typing import (
+    Union,
+    cast,
+)
 
 from pandas._typing import (
     FilePath,
@@ -15,8 +18,10 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import stringify_path
 from pandas.io.excel._base import (
@@ -30,11 +35,21 @@ ValueT = Union[int, float, str, bool, time, date, datetime]
 class CalamineExcelReader(BaseExcelReader):
     _sheet_names: list[str] | None = None
 
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ) -> None:
+        """
+        Reader using calamine engine (xlsx/xls/xlsb/ods).
+
+        Parameters
+        ----------
+        filepath_or_buffer : str, path to be parsed or
+            an open readable stream.
+        {storage_options}
+        """
         import_optional_dependency("python_calamine")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
@@ -44,8 +59,9 @@ class CalamineExcelReader(BaseExcelReader):
 
         return CalamineReader
 
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         if hasattr(filepath_or_buffer, "read") and hasattr(filepath_or_buffer, "seek"):
+            filepath_or_buffer = cast(ReadBuffer, filepath_or_buffer)
             ext = inspect_excel_format(filepath_or_buffer)
             with NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp_file:
                 filepath_or_buffer.seek(0)
@@ -62,15 +78,15 @@ class CalamineExcelReader(BaseExcelReader):
 
     @property
     def sheet_names(self) -> list[str]:
-        return self.book.sheet_names
+        return self.book.sheet_names  # pyright: ignore
 
     def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)
-        return self.book.get_sheet_by_name(name)
+        return self.book.get_sheet_by_name(name)  # pyright: ignore
 
     def get_sheet_by_index(self, index: int):
         self.raise_if_bad_sheet_by_index(index)
-        return self.book.get_sheet_by_index(index)
+        return self.book.get_sheet_by_index(index)  # pyright: ignore
 
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
