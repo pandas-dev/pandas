@@ -895,7 +895,7 @@ cdef class BlockValuesRefs:
 
         Returns
         -------
-            bool
+        bool
         """
         self.referenced_blocks = [
             obj for obj in self.referenced_blocks if obj() is not None
