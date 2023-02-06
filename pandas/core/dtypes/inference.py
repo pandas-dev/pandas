@@ -119,6 +119,7 @@ def is_file_like(obj) -> bool:
     Examples
     --------
     >>> import io
+    >>> from pandas.api.types import is_file_like
     >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
@@ -275,6 +276,7 @@ def is_dict_like(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_dict_like
     >>> is_dict_like({1: 2})
     True
     >>> is_dict_like([1, 2, 3])
@@ -336,6 +338,7 @@ def is_hashable(obj) -> bool:
     Examples
     --------
     >>> import collections
+    >>> from pandas.api.types import is_hashable
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True
