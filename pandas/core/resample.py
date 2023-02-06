@@ -133,6 +133,7 @@ class Resampler(BaseGroupBy, PandasObject):
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
+    _internal_names_set = set({"obj", "ax"})
 
     # to the groupby descriptor
     _attributes = [
@@ -153,6 +154,7 @@ class Resampler(BaseGroupBy, PandasObject):
         axis: Axis = 0,
         kind=None,
         *,
+        gpr_index: Index,
         group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
     ) -> None:
@@ -166,7 +168,9 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = group_keys
         self.as_index = True
 
-        self._timegrouper._set_grouper(self._convert_obj(obj), sort=True)
+        self.obj, self.ax = self._timegrouper._set_grouper(
+            self._convert_obj(obj), sort=True, gpr_index=gpr_index
+        )
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
         if self._timegrouper.key is not None:
@@ -194,19 +198,6 @@ class Resampler(BaseGroupBy, PandasObject):
             return self[attr]
 
         return object.__getattribute__(self, attr)
-
-    # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
-    @property
-    def obj(self) -> NDFrame:  # type: ignore[override]
-        # error: Incompatible return value type (got "Optional[Any]",
-        # expected "NDFrameT")
-        return self._timegrouper.obj  # type: ignore[return-value]
-
-    @property
-    def ax(self):
-        # we can infer that this is a PeriodIndex/DatetimeIndex/TimedeltaIndex,
-        #  but skipping annotating bc the overrides overwhelming
-        return self._timegrouper.ax
 
     @property
     def _from_selection(self) -> bool:
@@ -1189,6 +1180,9 @@ class _GroupByMixin(PandasObject):
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
 
+        self.ax = parent.ax
+        self.obj = parent.obj
+
     @no_type_check
     def _apply(self, f, *args, **kwargs):
         """
@@ -1197,7 +1191,7 @@ class _GroupByMixin(PandasObject):
         """
 
         def func(x):
-            x = self._resampler_cls(x, timegrouper=self._timegrouper)
+            x = self._resampler_cls(x, timegrouper=self._timegrouper, gpr_index=self.ax)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -1226,8 +1220,7 @@ class _GroupByMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            # error: "GotItemMixin" has no attribute "obj"
-            subset = self.obj  # type: ignore[attr-defined]
+            subset = self.obj
 
         # Try to select from a DataFrame, falling back to a Series
         try:
@@ -1688,9 +1681,8 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        self._set_grouper(obj)
+        _, ax = self._set_grouper(obj, gpr_index=None)
 
-        ax = self.ax
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -1698,6 +1690,7 @@ class TimeGrouper(Grouper):
                 kind=kind,
                 axis=self.axis,
                 group_keys=self.group_keys,
+                gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
             return PeriodIndexResampler(
@@ -1706,10 +1699,15 @@ class TimeGrouper(Grouper):
                 kind=kind,
                 axis=self.axis,
                 group_keys=self.group_keys,
+                gpr_index=ax,
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
-                obj, timegrouper=self, axis=self.axis, group_keys=self.group_keys
+                obj,
+                timegrouper=self,
+                axis=self.axis,
+                group_keys=self.group_keys,
+                gpr_index=ax,
             )
 
         raise TypeError(
