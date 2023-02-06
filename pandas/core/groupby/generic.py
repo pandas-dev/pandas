@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
@@ -172,9 +173,18 @@ class SeriesGroupBy(GroupBy[Series]):
         # NB: caller is responsible for setting ser.index
         return ser
 
-    def _get_data_to_aggregate(self) -> SingleManager:
+    def _get_data_to_aggregate(
+        self, *, numeric_only: bool = False, name: str | None = None
+    ) -> SingleManager:
         ser = self._selected_obj
         single = ser._mgr
+        if numeric_only and not is_numeric_dtype(ser.dtype):
+            # GH#41291 match Series behavior
+            kwd_name = "numeric_only"
+            raise TypeError(
+                f"Cannot use {kwd_name}=True with "
+                f"{type(self).__name__}.{name} and non-numeric dtypes."
+            )
         return single
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1239,10 +1249,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     User-defined function for aggregation
 
     >>> df.groupby('A').agg(lambda x: sum(x) + 2)
-        B	       C
+        B          C
     A
-    1	5	2.590715
-    2	9	2.704907
+    1   5   2.590715
+    2   9   2.704907
 
     Different aggregations per column
 
@@ -1542,9 +1552,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_transform_numeric_ret
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
-        mgr: Manager2D = self._get_data_to_aggregate()
-        if numeric_only:
-            mgr = mgr.get_numeric_data(copy=False)
+        mgr: Manager2D = self._get_data_to_aggregate(
+            numeric_only=numeric_only, name=how
+        )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
             return self.grouper._cython_operation(
@@ -1864,12 +1874,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _get_data_to_aggregate(self) -> Manager2D:
+    def _get_data_to_aggregate(
+        self, *, numeric_only: bool = False, name: str | None = None
+    ) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._mgr
+            mgr = obj.T._mgr
         else:
-            return obj._mgr
+            mgr = obj._mgr
+
+        if numeric_only:
+            mgr = mgr.get_numeric_data(copy=False)
+        return mgr
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
