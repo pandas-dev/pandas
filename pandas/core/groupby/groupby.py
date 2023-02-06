@@ -8,7 +8,6 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
 import datetime
 from functools import (
     partial,
@@ -19,7 +18,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Generator,
     Hashable,
     Iterable,
     Iterator,
@@ -76,6 +74,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_numeric_dtype,
@@ -610,7 +609,6 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
-    _group_selection: IndexLabel | None = None
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -620,7 +618,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "group_keys",
         "keys",
         "level",
-        "mutated",
         "obj",
         "observed",
         "sort",
@@ -723,13 +720,22 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-
-        if self._selection is None or isinstance(self.obj, Series):
-            if self._group_selection is not None:
-                return self.obj[self._group_selection]
+        if isinstance(self.obj, Series):
             return self.obj
-        else:
-            return self.obj[self._selection]
+
+        if self._selection is not None:
+            if is_hashable(self._selection):
+                # i.e. a single key, so selecting it will return a Series.
+                #  In this case, _obj_with_exclusions would wrap the key
+                #  in a list and return a single-column DataFrame.
+                return self.obj[self._selection]
+
+            # Otherwise _selection is equivalent to _selection_list, so
+            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  that and avoid making a copy.
+            return self._obj_with_exclusions
+
+        return self.obj
 
     @final
     def _dir_additions(self) -> set[str]:
@@ -900,7 +906,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
         observed: bool = False,
-        mutated: bool = False,
         dropna: bool = True,
     ) -> None:
 
@@ -919,7 +924,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.sort = sort
         self.group_keys = group_keys
         self.observed = observed
-        self.mutated = mutated
         self.dropna = dropna
 
         if grouper is None:
@@ -930,7 +934,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 level=level,
                 sort=sort,
                 observed=observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
 
@@ -953,12 +956,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _op_via_apply(self, name: str, *args, **kwargs):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
-        with self._group_selection_context():
-            # need to setup the selection
-            # as are not passed directly but in the grouper
-            f = getattr(type(self._obj_with_exclusions), name)
-            if not callable(f):
-                return self.apply(lambda self: getattr(self, name))
+        if not callable(f):
+            return self.apply(lambda self: getattr(self, name))
 
         sig = inspect.signature(f)
 
@@ -999,56 +998,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     # -----------------------------------------------------------------
     # Selection
-
-    @final
-    def _set_group_selection(self) -> None:
-        """
-        Create group based selection.
-
-        Used when selection is not passed directly but instead via a grouper.
-
-        NOTE: this should be paired with a call to _reset_group_selection
-        """
-        # This is a no-op for SeriesGroupBy
-        grp = self.grouper
-        if (
-            grp.groupings is None
-            or self.obj.ndim == 1
-            or self._group_selection is not None
-        ):
-            return
-
-        groupers = self.exclusions
-
-        if len(groupers):
-            # GH12839 clear selected obj cache when group selection changes
-            ax = self.obj._info_axis
-            self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
-            self._reset_cache("_selected_obj")
-
-    @final
-    def _reset_group_selection(self) -> None:
-        """
-        Clear group based selection.
-
-        Used for methods needing to return info on each group regardless of
-        whether a group selection was previously set.
-        """
-        if self._group_selection is not None:
-            # GH12839 clear cached selection too when changing group selection
-            self._group_selection = None
-            self._reset_cache("_selected_obj")
-
-    @contextmanager
-    def _group_selection_context(self) -> Generator[GroupBy, None, None]:
-        """
-        Set / reset the _group_selection_context.
-        """
-        self._set_group_selection()
-        try:
-            yield self
-        finally:
-            self._reset_group_selection()
 
     def _iterate_slices(self) -> Iterable[Series]:
         raise AbstractMethodError(self)
@@ -1319,8 +1268,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if self.axis == 1:
             raise NotImplementedError("axis=1 is not supported.")
 
-        with self._group_selection_context():
-            data = self._selected_obj
+        data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         aggregator = executor.generate_shared_aggregator(
@@ -1447,8 +1395,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # fails on *some* columns, e.g. a numeric operation
                 # on a string grouper column
 
-                with self._group_selection_context():
-                    return self._python_apply_general(f, self._selected_obj)
+                return self._python_apply_general(f, self._obj_with_exclusions)
 
         return result
 
@@ -1491,7 +1438,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
-            not_indexed_same = mutated or self.mutated
+            not_indexed_same = mutated
 
         return self._wrap_applied_output(
             data,
@@ -1593,21 +1540,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
-        data = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
         is_ser = data.ndim == 1
-
-        if numeric_only:
-            if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
-                # GH#41291 match Series behavior
-                kwd_name = "numeric_only"
-                if how in ["any", "all"]:
-                    kwd_name = "bool_only"
-                raise TypeError(
-                    f"Cannot use {kwd_name}={numeric_only} with "
-                    f"{type(self).__name__}.{how} and non-numeric types."
-                )
-            if not is_ser:
-                data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
@@ -2087,15 +2021,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-            if (
-                numeric_only
-                and self.obj.ndim == 1
-                and not is_numeric_dtype(self.obj.dtype)
-            ):
-                raise TypeError(
-                    f"{type(self).__name__}.std called with "
-                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-                )
 
             def _preprocessing(values):
                 if isinstance(values, BaseMaskedArray):
@@ -2205,118 +2130,117 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
             )
+        name = "proportion" if normalize else "count"
 
-        with self._group_selection_context():
-            df = self.obj
+        df = self.obj
+        obj = self._obj_with_exclusions
 
-            in_axis_names = {
-                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
-            }
-            if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
-            else:
-                unique_cols = set(self._selected_obj.columns)
-                if subset is not None:
-                    subsetted = set(subset)
-                    clashing = subsetted & set(in_axis_names)
-                    if clashing:
-                        raise ValueError(
-                            f"Keys {clashing} in subset cannot be in "
-                            "the groupby column keys."
-                        )
-                    doesnt_exist = subsetted - unique_cols
-                    if doesnt_exist:
-                        raise ValueError(
-                            f"Keys {doesnt_exist} in subset do not "
-                            f"exist in the DataFrame."
-                        )
-                else:
-                    subsetted = unique_cols
-
-                keys = [
-                    # Can't use .values because the column label needs to be preserved
-                    self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
-                ]
-
-            groupings = list(self.grouper.groupings)
-            for key in keys:
-                grouper, _, _ = get_grouper(
-                    df,
-                    key=key,
-                    axis=self.axis,
-                    sort=self.sort,
-                    observed=False,
-                    dropna=dropna,
-                )
-                groupings += list(grouper.groupings)
-
-            # Take the size of the overall columns
-            gb = df.groupby(
-                groupings,
-                sort=self.sort,
-                observed=self.observed,
-                dropna=self.dropna,
-            )
-            result_series = cast(Series, gb.size())
-
-            # GH-46357 Include non-observed categories
-            # of non-grouping columns regardless of `observed`
-            if any(
-                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
-                and not grouping._observed
-                for grouping in groupings
-            ):
-                levels_list = [ping.result_index for ping in groupings]
-                multi_index, _ = MultiIndex.from_product(
-                    levels_list, names=[ping.name for ping in groupings]
-                ).sortlevel()
-                result_series = result_series.reindex(multi_index, fill_value=0)
-
-            if normalize:
-                # Normalize the results by dividing by the original group sizes.
-                # We are guaranteed to have the first N levels be the
-                # user-requested grouping.
-                levels = list(
-                    range(len(self.grouper.groupings), result_series.index.nlevels)
-                )
-                indexed_group_size = result_series.groupby(
-                    result_series.index.droplevel(levels),
-                    sort=self.sort,
-                    dropna=self.dropna,
-                ).transform("sum")
-                result_series /= indexed_group_size
-
-                # Handle groups of non-observed categories
-                result_series = result_series.fillna(0.0)
-
-            if sort:
-                # Sort the values and then resort by the main grouping
-                index_level = range(len(self.grouper.groupings))
-                result_series = result_series.sort_values(
-                    ascending=ascending
-                ).sort_index(level=index_level, sort_remaining=False)
-
-            result: Series | DataFrame
-            if self.as_index:
-                result = result_series
-            else:
-                # Convert to frame
-                name = "proportion" if normalize else "count"
-                index = result_series.index
-                columns = com.fill_missing_names(index.names)
-                if name in columns:
+        in_axis_names = {
+            grouping.name for grouping in self.grouper.groupings if grouping.in_axis
+        }
+        if isinstance(obj, Series):
+            _name = obj.name
+            keys = [] if _name in in_axis_names else [obj]
+        else:
+            unique_cols = set(obj.columns)
+            if subset is not None:
+                subsetted = set(subset)
+                clashing = subsetted & set(in_axis_names)
+                if clashing:
                     raise ValueError(
-                        f"Column label '{name}' is duplicate of result column"
+                        f"Keys {clashing} in subset cannot be in "
+                        "the groupby column keys."
                     )
-                result_series.name = name
-                result_series.index = index.set_names(range(len(columns)))
-                result_frame = result_series.reset_index()
-                result_frame.columns = columns + [name]
-                result = result_frame
-            return result.__finalize__(self.obj, method="value_counts")
+                doesnt_exist = subsetted - unique_cols
+                if doesnt_exist:
+                    raise ValueError(
+                        f"Keys {doesnt_exist} in subset do not "
+                        f"exist in the DataFrame."
+                    )
+            else:
+                subsetted = unique_cols
+
+            keys = [
+                # Can't use .values because the column label needs to be preserved
+                obj.iloc[:, idx]
+                for idx, _name in enumerate(obj.columns)
+                if _name not in in_axis_names and _name in subsetted
+            ]
+
+        groupings = list(self.grouper.groupings)
+        for key in keys:
+            grouper, _, _ = get_grouper(
+                df,
+                key=key,
+                axis=self.axis,
+                sort=self.sort,
+                observed=False,
+                dropna=dropna,
+            )
+            groupings += list(grouper.groupings)
+
+        # Take the size of the overall columns
+        gb = df.groupby(
+            groupings,
+            sort=self.sort,
+            observed=self.observed,
+            dropna=self.dropna,
+        )
+        result_series = cast(Series, gb.size())
+        result_series.name = name
+
+        # GH-46357 Include non-observed categories
+        # of non-grouping columns regardless of `observed`
+        if any(
+            isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
+            and not grouping._observed
+            for grouping in groupings
+        ):
+            levels_list = [ping.result_index for ping in groupings]
+            multi_index, _ = MultiIndex.from_product(
+                levels_list, names=[ping.name for ping in groupings]
+            ).sortlevel()
+            result_series = result_series.reindex(multi_index, fill_value=0)
+
+        if normalize:
+            # Normalize the results by dividing by the original group sizes.
+            # We are guaranteed to have the first N levels be the
+            # user-requested grouping.
+            levels = list(
+                range(len(self.grouper.groupings), result_series.index.nlevels)
+            )
+            indexed_group_size = result_series.groupby(
+                result_series.index.droplevel(levels),
+                sort=self.sort,
+                dropna=self.dropna,
+            ).transform("sum")
+            result_series /= indexed_group_size
+
+            # Handle groups of non-observed categories
+            result_series = result_series.fillna(0.0)
+
+        if sort:
+            # Sort the values and then resort by the main grouping
+            index_level = range(len(self.grouper.groupings))
+            result_series = result_series.sort_values(ascending=ascending).sort_index(
+                level=index_level, sort_remaining=False
+            )
+
+        result: Series | DataFrame
+        if self.as_index:
+            result = result_series
+        else:
+            # Convert to frame
+            index = result_series.index
+            columns = com.fill_missing_names(index.names)
+            if name in columns:
+                raise ValueError(f"Column label '{name}' is duplicate of result column")
+            result_series.name = name
+            result_series.index = index.set_names(range(len(columns)))
+            result_frame = result_series.reset_index()
+            result_frame.columns = columns + [name]
+            result = result_frame
+        return result.__finalize__(self.obj, method="value_counts")
 
     @final
     def sem(self, ddof: int = 1, numeric_only: bool = False):
@@ -2642,36 +2566,36 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         include=None,
         exclude=None,
     ) -> NDFrameT:
-        with self._group_selection_context():
-            selected_obj = self._selected_obj
-            if len(selected_obj) == 0:
-                described = selected_obj.describe(
+        obj = self._obj_with_exclusions
+
+        if len(obj) == 0:
+            described = obj.describe(
+                percentiles=percentiles, include=include, exclude=exclude
+            )
+            if obj.ndim == 1:
+                result = described
+            else:
+                result = described.unstack()
+            return result.to_frame().T.iloc[:0]
+
+        with com.temp_setattr(self, "as_index", True):
+            result = self._python_apply_general(
+                lambda x: x.describe(
                     percentiles=percentiles, include=include, exclude=exclude
-                )
-                if selected_obj.ndim == 1:
-                    result = described
-                else:
-                    result = described.unstack()
-                return result.to_frame().T.iloc[:0]
+                ),
+                obj,
+                not_indexed_same=True,
+            )
+        if self.axis == 1:
+            return result.T
 
-            with com.temp_setattr(self, "as_index", True):
-                result = self._python_apply_general(
-                    lambda x: x.describe(
-                        percentiles=percentiles, include=include, exclude=exclude
-                    ),
-                    selected_obj,
-                    not_indexed_same=True,
-                )
-            if self.axis == 1:
-                return result.T
+        # GH#49256 - properly handle the grouping column(s)
+        result = result.unstack()
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
 
-            # GH#49256 - properly handle the grouping column(s)
-            result = result.unstack()
-            if not self.as_index:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
-
-            return result
+        return result
 
     @final
     def resample(self, rule, *args, **kwargs):
@@ -3113,7 +3037,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=self.axis,
                 level=self.level,
                 sort=self.sort,
-                mutated=self.mutated,
             )
 
         grb = dropped.groupby(
@@ -3169,11 +3092,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
-            raise TypeError(
-                f"{type(self).__name__}.quantile called with "
-                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-            )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
@@ -3313,8 +3231,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-        data = mgr.get_numeric_data() if numeric_only else mgr
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         res_mgr = data.grouped_reduce(blk_func)
 
         if is_ser:
@@ -3391,25 +3308,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5    1
         dtype: int64
         """
-        with self._group_selection_context():
-            index = self._selected_obj._get_axis(self.axis)
-            comp_ids = self.grouper.group_info[0]
+        obj = self._obj_with_exclusions
+        index = obj._get_axis(self.axis)
+        comp_ids = self.grouper.group_info[0]
 
-            dtype: type
-            if self.grouper.has_dropped_na:
-                comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
-                dtype = np.float64
-            else:
-                dtype = np.int64
+        dtype: type
+        if self.grouper.has_dropped_na:
+            comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
+            dtype = np.float64
+        else:
+            dtype = np.int64
 
-            if any(ping._passed_categorical for ping in self.grouper.groupings):
-                # comp_ids reflect non-observed groups, we need only observed
-                comp_ids = rank_1d(comp_ids, ties_method="dense") - 1
+        if any(ping._passed_categorical for ping in self.grouper.groupings):
+            # comp_ids reflect non-observed groups, we need only observed
+            comp_ids = rank_1d(comp_ids, ties_method="dense") - 1
 
-            result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
-            if not ascending:
-                result = self.ngroups - 1 - result
-            return result
+        result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
+        if not ascending:
+            result = self.ngroups - 1 - result
+        return result
 
     @final
     @Substitution(name="groupby")
@@ -3466,10 +3383,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5    0
         dtype: int64
         """
-        with self._group_selection_context():
-            index = self._selected_obj._get_axis(self.axis)
-            cumcounts = self._cumcount_array(ascending=ascending)
-            return self._obj_1d_constructor(cumcounts, index)
+        index = self._obj_with_exclusions._get_axis(self.axis)
+        cumcounts = self._cumcount_array(ascending=ascending)
+        return self._obj_1d_constructor(cumcounts, index)
 
     @final
     @Substitution(name="groupby")
@@ -3772,10 +3688,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-
-        if numeric_only:
-            mgr = mgr.get_numeric_data()
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         res_mgr = mgr.grouped_reduce(blk_func)
 
@@ -3949,7 +3862,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
            A  B
         0  1  2
         """
-        self._reset_group_selection()
         mask = self._make_mask_from_positional_indexer(slice(None, n))
         return self._mask_selected_obj(mask)
 
@@ -3989,7 +3901,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  a  2
         3  b  2
         """
-        self._reset_group_selection()
         if n:
             mask = self._make_mask_from_positional_indexer(slice(-n, None))
         else:
@@ -4263,7 +4174,6 @@ def get_groupby(
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
     observed: bool = False,
-    mutated: bool = False,
     dropna: bool = True,
 ) -> GroupBy:
 
@@ -4291,7 +4201,6 @@ def get_groupby(
         sort=sort,
         group_keys=group_keys,
         observed=observed,
-        mutated=mutated,
         dropna=dropna,
     )
 

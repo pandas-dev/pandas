@@ -62,7 +62,6 @@ from pandas.core.tools.times import to_time
 if TYPE_CHECKING:
     from pandas.core.api import (
         DataFrame,
-        NumericIndex,
         PeriodIndex,
     )
 
@@ -110,7 +109,7 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
+@inherit_names(["is_normalized"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "tz",
@@ -249,7 +248,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
-    inferred_freq: str | None
     tz: dt.tzinfo | None
 
     # --------------------------------------------------------------------
@@ -283,16 +281,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
-    def to_julian_date(self) -> NumericIndex:
-        from pandas.core.indexes.api import NumericIndex
-
+    def to_julian_date(self) -> Index:
         arr = self._data.to_julian_date()
-        return NumericIndex._simple_new(arr, name=self.name)
+        return Index._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
     def isocalendar(self) -> DataFrame:
         df = self._data.isocalendar()
         return df.set_index(self)
+
+    @cache_readonly
+    def _resolution_obj(self) -> Resolution:
+        return self._data._resolution_obj
 
     # --------------------------------------------------------------------
     # Constructors

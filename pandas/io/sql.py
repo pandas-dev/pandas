@@ -79,14 +79,6 @@ if TYPE_CHECKING:
 # -- Helper functions
 
 
-def _cleanup_after_generator(generator, exit_stack: ExitStack):
-    """Does the cleanup after iterating through the generator."""
-    try:
-        yield from generator
-    finally:
-        exit_stack.close()
-
-
 def _process_parse_dates_argument(parse_dates):
     """Process parse_dates argument for read_sql functions"""
     # handle non-list entries for parse_dates gracefully
@@ -1086,6 +1078,7 @@ class SQLTable(PandasObject):
     def _query_iterator(
         self,
         result,
+        exit_stack: ExitStack,
         chunksize: str | None,
         columns,
         coerce_float: bool = True,
@@ -1094,28 +1087,29 @@ class SQLTable(PandasObject):
     ):
         """Return generator through chunked result set."""
         has_read_data = False
-        while True:
-            data = result.fetchmany(chunksize)
-            if not data:
-                if not has_read_data:
-                    yield DataFrame.from_records(
-                        [], columns=columns, coerce_float=coerce_float
-                    )
-                break
+        with exit_stack:
+            while True:
+                data = result.fetchmany(chunksize)
+                if not data:
+                    if not has_read_data:
+                        yield DataFrame.from_records(
+                            [], columns=columns, coerce_float=coerce_float
+                        )
+                    break
 
-            has_read_data = True
-            self.frame = _convert_arrays_to_dataframe(
-                data, columns, coerce_float, use_nullable_dtypes
-            )
+                has_read_data = True
+                self.frame = _convert_arrays_to_dataframe(
+                    data, columns, coerce_float, use_nullable_dtypes
+                )
 
-            self._harmonize_columns(
-                parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
-            )
+                self._harmonize_columns(
+                    parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
+                )
 
-            if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                if self.index is not None:
+                    self.frame.set_index(self.index, inplace=True)
 
-            yield self.frame
+                yield self.frame
 
     def read(
         self,
@@ -1140,16 +1134,14 @@ class SQLTable(PandasObject):
         column_names = result.keys()
 
         if chunksize is not None:
-            return _cleanup_after_generator(
-                self._query_iterator(
-                    result,
-                    chunksize,
-                    column_names,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    use_nullable_dtypes=use_nullable_dtypes,
-                ),
+            return self._query_iterator(
+                result,
                 exit_stack,
+                chunksize,
+                column_names,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             data = result.fetchall()
@@ -1694,6 +1686,7 @@ class SQLDatabase(PandasSQL):
     @staticmethod
     def _query_iterator(
         result,
+        exit_stack: ExitStack,
         chunksize: int,
         columns,
         index_col=None,
@@ -1704,31 +1697,32 @@ class SQLDatabase(PandasSQL):
     ):
         """Return generator through chunked result set"""
         has_read_data = False
-        while True:
-            data = result.fetchmany(chunksize)
-            if not data:
-                if not has_read_data:
-                    yield _wrap_result(
-                        [],
-                        columns,
-                        index_col=index_col,
-                        coerce_float=coerce_float,
-                        parse_dates=parse_dates,
-                        dtype=dtype,
-                        use_nullable_dtypes=use_nullable_dtypes,
-                    )
-                break
+        with exit_stack:
+            while True:
+                data = result.fetchmany(chunksize)
+                if not data:
+                    if not has_read_data:
+                        yield _wrap_result(
+                            [],
+                            columns,
+                            index_col=index_col,
+                            coerce_float=coerce_float,
+                            parse_dates=parse_dates,
+                            dtype=dtype,
+                            use_nullable_dtypes=use_nullable_dtypes,
+                        )
+                    break
 
-            has_read_data = True
-            yield _wrap_result(
-                data,
-                columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
-            )
+                has_read_data = True
+                yield _wrap_result(
+                    data,
+                    columns,
+                    index_col=index_col,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    dtype=dtype,
+                    use_nullable_dtypes=use_nullable_dtypes,
+                )
 
     def read_query(
         self,
@@ -1792,18 +1786,16 @@ class SQLDatabase(PandasSQL):
 
         if chunksize is not None:
             self.returns_generator = True
-            return _cleanup_after_generator(
-                self._query_iterator(
-                    result,
-                    chunksize,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                    use_nullable_dtypes=use_nullable_dtypes,
-                ),
+            return self._query_iterator(
+                result,
                 self.exit_stack,
+                chunksize,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             data = result.fetchall()

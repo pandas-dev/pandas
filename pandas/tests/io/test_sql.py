@@ -2440,7 +2440,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     def test_read_sql_nullable_dtypes(
         self, string_storage, func, option, dtype_backend
     ):
@@ -2475,7 +2474,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     def test_read_sql_nullable_dtypes_table(
         self, string_storage, func, option, dtype_backend
     ):

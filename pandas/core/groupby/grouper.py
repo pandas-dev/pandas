@@ -6,11 +6,12 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Hashable,
     Iterator,
+    cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -24,6 +25,7 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -268,7 +270,7 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self.grouper = None
+        self._grouper_deprecated = None
         self._gpr_index = None
         self.obj = None
         self.indexer = None
@@ -286,7 +288,7 @@ class Grouper:
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
-    ) -> tuple[Any, ops.BaseGrouper, NDFrameT]:
+    ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
@@ -296,15 +298,11 @@ class Grouper:
 
         Returns
         -------
-        a tuple of binner, grouper, obj (possibly sorted)
+        a tuple of grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
-        # "Optional[Any]"
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
-            self.obj,
+        grouper, _, obj = get_grouper(
+            cast(NDFrameT, self.obj),
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -312,10 +310,12 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
+        # Without setting this, subsequent lookups to .groups raise
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
-        # error: Incompatible return value type (got "Tuple[None, None, None]",
-        # expected "Tuple[Any, BaseGrouper, NDFrameT]")
-        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
+        return grouper, obj
 
     @final
     def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
@@ -334,7 +334,7 @@ class Grouper:
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self.grouper value before overriding
+        # Keep self._grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
             self._grouper = self._gpr_index
@@ -395,9 +395,26 @@ class Grouper:
 
     @final
     @property
+    def grouper(self):
+        warnings.warn(
+            f"{type(self).__name__}.grouper is deprecated and will be removed "
+            "in a future version. Use GroupBy.grouper instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._grouper_deprecated
+
+    @final
+    @property
     def groups(self):
+        warnings.warn(
+            f"{type(self).__name__}.groups is deprecated and will be removed "
+            "in a future version. Use GroupBy.groups instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         # error: "None" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[attr-defined]
+        return self._grouper_deprecated.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -506,7 +523,7 @@ class Grouping:
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
             assert self.obj is not None  # for mypy
-            _, newgrouper, newobj = self.grouping_vector._get_grouper(
+            newgrouper, newobj = self.grouping_vector._get_grouper(
                 self.obj, validate=False
             )
             self.obj = newobj
@@ -738,7 +755,6 @@ def get_grouper(
     level=None,
     sort: bool = True,
     observed: bool = False,
-    mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
@@ -815,7 +831,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -957,9 +973,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 
