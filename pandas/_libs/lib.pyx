@@ -2285,7 +2285,7 @@ def maybe_convert_numeric(
         ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT8, 0
         )
-        ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
+        ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
         ndarray arr_to_upcast = bools
 
