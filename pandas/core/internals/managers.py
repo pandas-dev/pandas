@@ -409,8 +409,15 @@ class BaseBlockManager(DataManager):
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
-    def interpolate(self: T, **kwargs) -> T:
-        return self.apply("interpolate", **kwargs)
+    def interpolate(self: T, inplace: bool, **kwargs) -> T:
+        if inplace:
+            # TODO(CoW) can be optimized to only copy those blocks that have refs
+            if using_copy_on_write() and any(
+                not self._has_no_reference_block(i) for i in range(len(self.blocks))
+            ):
+                self = self.copy()
+
+        return self.apply("interpolate", inplace=inplace, **kwargs)
 
     def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         axis = self._normalize_axis(axis)
@@ -1320,11 +1327,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
-            # error: No overload variant of "__getitem__" of "BlockPlacement" matches
-            # argument type "ndarray[Any, Any]"  [call-overload]
+            # Argument 1 to "BlockPlacement" has incompatible type "BlockPlacement";
+            # expected "Union[int, slice, ndarray[Any, Any]]"
             first_nb = new_block_2d(
                 value,
-                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[call-overload]
+                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[arg-type]
             )
         else:
             first_nb = nbs_tup[0]

@@ -258,9 +258,7 @@ class Block(PandasObject):
         #  is from internals.concat, and we can verify that never happens
         #  with 1-column blocks, i.e. never for ExtensionBlock.
 
-        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
-        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
-        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
+        new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
 
@@ -1180,6 +1178,7 @@ class Block(PandasObject):
 
     def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: AxisInt = 0,
         index: Index | None = None,
@@ -1212,15 +1211,15 @@ class Block(PandasObject):
             # split improves performance in ndarray.copy()
             return self.split_and_operate(
                 type(self).interpolate,
-                method,
-                axis,
-                index,
-                inplace,
-                limit,
-                limit_direction,
-                limit_area,
-                fill_value,
-                downcast,
+                method=method,
+                axis=axis,
+                index=index,
+                inplace=inplace,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                downcast=downcast,
                 **kwargs,
             )
 
@@ -1598,9 +1597,9 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    # error: Signature of "interpolate" incompatible with supertype "Block"
-    def interpolate(  # type: ignore[override]
+    def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: int = 0,
         inplace: bool = False,
@@ -1975,6 +1974,38 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
 
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
+
+    def interpolate(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        index: Index | None = None,
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
+    ):
+        values = self.values
+
+        # error: Non-overlapping equality check (left operand type:
+        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
+        # "Literal['linear']")  [comparison-overlap]
+        if method == "linear":  # type: ignore[comparison-overlap]
+            # TODO: GH#50950 implement for arbitrary EAs
+            data_out = values._ndarray if inplace else values._ndarray.copy()
+            missing.interpolate_array_2d(
+                data_out, method=method, limit=limit, index=index, axis=axis
+            )
+            new_values = type(values)._simple_new(data_out, dtype=values.dtype)
+            return self.make_block_same_class(new_values)
+
+        elif values.ndim == 2 and axis == 0:
+            # NDArrayBackedExtensionArray.fillna assumes axis=1
+            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+        else:
+            new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
