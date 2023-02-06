@@ -330,10 +330,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
+        if item is Ellipsis:
             # TODO: should be handled by pyarrow?
             item = slice(None)
 
