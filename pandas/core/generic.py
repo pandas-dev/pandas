@@ -8783,7 +8783,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
         return get_resampler(
-            self,
+            cast("Series | DataFrame", self),
             freq=rule,
             label=label,
             closed=closed,
