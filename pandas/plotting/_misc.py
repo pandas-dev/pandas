@@ -214,7 +214,7 @@ def radviz(
 
     Returns
     -------
-    class:`matplotlib.axes.Axes`
+    :class:`matplotlib.axes.Axes`
 
     See Also
     --------
@@ -274,12 +274,13 @@ def andrews_curves(
 
     Andrews curves have the functional form:
 
-    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) +
-           x_4 sin(2t) + x_5 cos(2t) + ...
+    .. math::
+        f(t) = \\frac{x_1}{\\sqrt{2}} + x_2 \\sin(t) + x_3 \\cos(t) +
+        x_4 \\sin(2t) + x_5 \\cos(2t) + \\cdots
 
-    Where x coefficients correspond to the values of each dimension and t is
-    linearly spaced between -pi and +pi. Each row of frame then corresponds to
-    a single curve.
+    Where :math:`x` coefficients correspond to the values of each dimension
+    and :math:`t` is linearly spaced between :math:`-\\pi` and :math:`+\\pi`.
+    Each row of frame then corresponds to a single curve.
 
     Parameters
     ----------
@@ -302,7 +303,7 @@ def andrews_curves(
 
     Returns
     -------
-    class:`matplotlip.axis.Axes`
+    :class:`matplotlib.axes.Axes`
 
     Examples
     --------
@@ -369,8 +370,8 @@ def bootstrap_plot(
 
     See Also
     --------
-    DataFrame.plot : Basic plotting for DataFrame objects.
-    Series.plot : Basic plotting for Series objects.
+    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
+    pandas.Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -434,7 +435,7 @@ def parallel_coordinates(
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -485,7 +486,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -529,7 +530,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
