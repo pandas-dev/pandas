@@ -352,13 +352,24 @@ class TestAstype:
     def test_astype_float_to_uint_negatives_raise(
         self, float_numpy_dtype, any_unsigned_int_numpy_dtype
     ):
-        # GH#45151
-        # TODO: same for EA float/uint dtypes
+        # GH#45151 We don't cast negative numbers to nonsense values
+        # TODO: same for EA float/uint dtypes, signed integers?
         arr = np.arange(5).astype(float_numpy_dtype) - 3  # includes negatives
         ser = Series(arr)
 
-        with pytest.raises(ValueError, match="losslessly"):
+        msg = "Cannot losslessly cast from .* to .*"
+        with pytest.raises(ValueError, match=msg):
             ser.astype(any_unsigned_int_numpy_dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            ser.to_frame().astype(any_unsigned_int_numpy_dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            # We currently catch and re-raise in Index.astype
+            Index(ser).astype(any_unsigned_int_numpy_dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            ser.array.astype(any_unsigned_int_numpy_dtype)
 
     def test_astype_cast_object_int(self):
         arr = Series(["1", "2", "3", "4"], dtype=object)
