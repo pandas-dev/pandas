@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -505,8 +504,6 @@ def array_equivalent(
         # fastpath when we require that the dtypes match (Block.equals)
         if left.dtype.kind in ["f", "c"]:
             return _array_equivalent_float(left, right)
-        elif is_datetimelike_v_numeric(left.dtype, right.dtype):
-            return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
         elif is_string_or_object_np_dtype(left.dtype):
@@ -528,10 +525,6 @@ def array_equivalent(
         if not (left.size and right.size):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
-
-    elif is_datetimelike_v_numeric(left, right):
-        # GH#29553 avoid numpy deprecation warning
-        return False
 
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # datetime64, timedelta64, Period
