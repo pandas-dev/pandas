@@ -10,6 +10,7 @@ from typing import (
     Iterator,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -23,6 +24,7 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -267,7 +269,7 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self.grouper = None
+        self._grouper_deprecated = None
         self._gpr_index = None
         self.obj = None
         self.indexer = None
@@ -307,6 +309,10 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
+        # Without setting this, subsequent lookups to .groups raise
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
@@ -329,7 +335,7 @@ class Grouper:
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self.grouper value before overriding
+        # Keep self._grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
             self._grouper = gpr_index
@@ -389,9 +395,26 @@ class Grouper:
 
     @final
     @property
+    def grouper(self):
+        warnings.warn(
+            f"{type(self).__name__}.grouper is deprecated and will be removed "
+            "in a future version. Use GroupBy.grouper instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._grouper_deprecated
+
+    @final
+    @property
     def groups(self):
+        warnings.warn(
+            f"{type(self).__name__}.groups is deprecated and will be removed "
+            "in a future version. Use GroupBy.groups instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         # error: "None" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[attr-defined]
+        return self._grouper_deprecated.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:

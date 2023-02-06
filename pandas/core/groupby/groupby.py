@@ -956,9 +956,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _op_via_apply(self, name: str, *args, **kwargs):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
-        if not callable(f):
-            return self.apply(lambda self: getattr(self, name))
-
         sig = inspect.signature(f)
 
         # a little trickery for aggregation functions that need an axis
@@ -980,9 +977,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self.apply(curried)
 
         is_transform = name in base.transformation_kernels
-        # Transform needs to keep the same schema, including when empty
-        if is_transform and self._obj_with_exclusions.empty:
-            return self._obj_with_exclusions
         result = self._python_apply_general(
             curried,
             self._obj_with_exclusions,
@@ -1105,6 +1099,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
+    @final
     def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
@@ -1131,7 +1126,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _wrap_aggregated_output(
         self,
-        output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike],
+        result: Series | DataFrame,
         qs: npt.NDArray[np.float64] | None = None,
     ):
         """
@@ -1139,22 +1134,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        output : Series, DataFrame, or Mapping[base.OutputKey, ArrayLike]
-           Data to wrap.
+        result : Series, DataFrame
 
         Returns
         -------
         Series or DataFrame
         """
-
-        if isinstance(output, (Series, DataFrame)):
-            # We get here (for DataFrameGroupBy) if we used Manager.grouped_reduce,
-            #  in which case our columns are already set correctly.
-            # ATM we do not get here for SeriesGroupBy; when we do, we will
-            #  need to require that result.name already match self.obj.name
-            result = output
-        else:
-            result = self._indexed_output_to_ndframe(output)
+        # ATM we do not get here for SeriesGroupBy; when we do, we will
+        #  need to require that result.name already match self.obj.name
 
         if not self.as_index:
             # `not self.as_index` is only relevant for DataFrameGroupBy,
@@ -1182,36 +1169,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: Do this more systematically
 
         return self._reindex_output(result, qs=qs)
-
-    @final
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        """
-        Wraps the output of GroupBy transformations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, ArrayLike]
-            Data to wrap.
-
-        Returns
-        -------
-        Series or DataFrame
-            Series for SeriesGroupBy, DataFrame for DataFrameGroupBy
-        """
-        if isinstance(output, (Series, DataFrame)):
-            result = output
-        else:
-            result = self._indexed_output_to_ndframe(output)
-
-        if self.axis == 1:
-            # Only relevant for DataFrameGroupBy
-            result = result.T
-            result.columns = self.obj.columns
-
-        result.index = self.obj.index
-        return result
 
     def _wrap_applied_output(
         self,
@@ -1456,7 +1413,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         output: dict[base.OutputKey, ArrayLike] = {}
 
         if self.ngroups == 0:
-            # agg_series below assumes ngroups > 0
+            # e.g. test_evaluate_with_empty_groups different path gets different
+            #  result dtype in empty case.
             return self._python_apply_general(f, self._selected_obj, is_agg=True)
 
         for idx, obj in enumerate(self._iterate_slices()):
@@ -1466,9 +1424,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             output[key] = result
 
         if not output:
+            # e.g. test_groupby_crash_on_nunique, test_margins_no_values_no_cols
             return self._python_apply_general(f, self._selected_obj)
 
-        return self._wrap_aggregated_output(output)
+        res = self._indexed_output_to_ndframe(output)
+        return self._wrap_aggregated_output(res)
 
     @final
     def _agg_general(
@@ -1540,21 +1500,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
-        data = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
         is_ser = data.ndim == 1
-
-        if numeric_only:
-            if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
-                # GH#41291 match Series behavior
-                kwd_name = "numeric_only"
-                if how in ["any", "all"]:
-                    kwd_name = "bool_only"
-                raise TypeError(
-                    f"Cannot use {kwd_name}={numeric_only} with "
-                    f"{type(self).__name__}.{how} and non-numeric types."
-                )
-            if not is_ser:
-                data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
@@ -1850,6 +1797,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
         # _wrap_agged_manager() returns. GH 35028
+        # e.g. test_dataframe_groupby_on_2_categoricals_when_observed_is_false
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
 
@@ -2034,15 +1982,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-            if (
-                numeric_only
-                and self.obj.ndim == 1
-                and not is_numeric_dtype(self.obj.dtype)
-            ):
-                raise TypeError(
-                    f"{type(self).__name__}.std called with "
-                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-                )
 
             def _preprocessing(values):
                 if isinstance(values, BaseMaskedArray):
@@ -2577,6 +2516,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
+        # TODO: 2023-02-05 all tests that get here have self.as_index
         return self._apply_to_column_groupbys(
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
@@ -2854,7 +2794,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if isinstance(new_obj, Series):
             new_obj.name = obj.name
 
-        return self._wrap_transformed_output(new_obj)
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy
+            new_obj = new_obj.T
+            new_obj.columns = self.obj.columns
+
+        new_obj.index = self.obj.index
+        return new_obj
 
     @final
     @Substitution(name="groupby")
@@ -3114,11 +3060,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
-            raise TypeError(
-                f"{type(self).__name__}.quantile called with "
-                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
-            )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
@@ -3258,8 +3199,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-        data = mgr.get_numeric_data() if numeric_only else mgr
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         res_mgr = data.grouped_reduce(blk_func)
 
         if is_ser:
@@ -3716,10 +3656,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
-        mgr = self._get_data_to_aggregate()
-
-        if numeric_only:
-            mgr = mgr.get_numeric_data()
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         res_mgr = mgr.grouped_reduce(blk_func)
 
