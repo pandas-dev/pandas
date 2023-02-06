@@ -1099,6 +1099,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
+    @final
     def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
