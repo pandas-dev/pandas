@@ -199,7 +199,6 @@ class TestFeather:
         res = read_feather(url)
         tm.assert_frame_equal(expected, res)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("option", [True, False])
     def test_read_json_nullable(self, string_storage, dtype_backend, option):
         # GH#50765
