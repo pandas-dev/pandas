@@ -2679,7 +2679,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
-        return self.apply(lambda df: df.dtypes)
+        # error: Incompatible return value type (got "DataFrame", expected "Series")
+        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(

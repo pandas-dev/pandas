@@ -1427,8 +1427,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # e.g. test_groupby_crash_on_nunique, test_margins_no_values_no_cols
             return self._python_apply_general(f, self._selected_obj)
 
-        result = self._indexed_output_to_ndframe(output)
-        return self._wrap_aggregated_output(result)
+        res = self._indexed_output_to_ndframe(output)
+        return self._wrap_aggregated_output(res)
 
     @final
     def _agg_general(
