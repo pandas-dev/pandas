@@ -1767,11 +1767,11 @@ class TestToDatetimeUnit:
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
 
     def test_unit_array_mixed_nans(self, cache):
-        values = [11111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
+        values = [11111111111111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
         result = to_datetime(values, unit="D", errors="ignore", cache=cache)
         expected = Index(
             [
-                Timestamp(11111111, unit="D"),
+                11111111111111111,
                 Timestamp("1970-01-02"),
                 Timestamp("1970-01-02"),
                 NaT,
@@ -1790,7 +1790,7 @@ class TestToDatetimeUnit:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot convert input 11111111 with the unit 'D'"
+        msg = "cannot convert input 11111111111111111 with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
