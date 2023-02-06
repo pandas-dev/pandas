@@ -65,15 +65,14 @@ Below is a possibly non-exhaustive list of changes:
 
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
-   the index dtype follows the dtype of the numpy array. For example, it would for all
-   signed integer arrays previously return an index with ``int64`` dtype, but will now
-   reuse the dtype of the supplied numpy array. So ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems.
+   for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
+   it previously would have been ``int64``` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
-2. The various numeric datetime attributes of :class:`DateTimeIndex` (:attr:`~Date_TimeIndex.day`,
-   :attr:`~DateTimeIndex.month`, :attr:`~DateTimeIndex.year` etc.) were previously in of
+2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
+   :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) were previously in of
    dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
-   ``int32`` on ``DateTimeIndex`` also:
+   ``int32`` on ``DatetimeIndex`` also:
 
    .. ipython:: python
 
@@ -92,7 +91,7 @@ Below is a possibly non-exhaustive list of changes:
            ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
        )
        ser = pd.Series.sparse.from_coo(A)
-       ser.index.dtype
+       ser.index.dtypes
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
