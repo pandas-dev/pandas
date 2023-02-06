@@ -29,12 +29,9 @@ from pandas._typing import (
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex,
     ABCIndex,
     ABCMultiIndex,
-    ABCPeriodIndex,
 )
-from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index
 
@@ -63,6 +60,7 @@ class CSVFormatter:
         chunksize: int | None = None,
         quotechar: str | None = '"',
         date_format: str | None = None,
+        fast_strftime: bool = True,
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions = None,
@@ -86,6 +84,7 @@ class CSVFormatter:
         self.escapechar = escapechar
         self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
+        self.fast_strftime = fast_strftime
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
 
@@ -172,6 +171,7 @@ class CSVFormatter:
             "na_rep": self.na_rep,
             "float_format": self.float_format,
             "date_format": self.date_format,
+            "fast_strftime": self.fast_strftime,
             "quoting": self.quoting,
             "decimal": self.decimal,
         }

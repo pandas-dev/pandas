@@ -44,6 +44,8 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
     get_unit_from_dtype,
     iNaT,
     periods_per_day,
@@ -1151,6 +1153,7 @@ class DataFrameRenderer:
         lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
+        fast_strftime: bool = True,
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
@@ -1181,6 +1184,7 @@ class DataFrameRenderer:
             chunksize=chunksize,
             quotechar=quotechar,
             date_format=date_format,
+            fast_strftime=fast_strftime,
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
@@ -1623,11 +1627,13 @@ class Datetime64Formatter(GenericArrayFormatter):
         values: np.ndarray | Series | DatetimeIndex | DatetimeArray,
         nat_rep: str = "NaT",
         date_format: None = None,
+        fast_strftime: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
+        self.fast_strftime = fast_strftime
 
     def _format_strings(self) -> list[str]:
         """we by definition have DO NOT have a TZ"""
@@ -1640,7 +1646,9 @@ class Datetime64Formatter(GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._data._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format
+            na_rep=self.nat_rep,
+            date_format=self.date_format,
+            fast_strftime=self.fast_strftime,
         )
         return fmt_values.tolist()
 
@@ -1782,28 +1790,53 @@ def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
     nat_rep: str = "NaT",
     date_format: str | None = None,
+    str_date_fmt: str | None = None,
+    loc_s: object | None = None,
 ) -> str:
     if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
-        return x.strftime(date_format)
+        if str_date_fmt:
+            # Faster, using string formatting
+            return x.fast_strftime(str_date_fmt, loc_s)
+        else:
+            # Slower
+            return x.strftime(date_format)
     else:
         # Timestamp._date_repr relies on string formatting (faster than strftime)
         return x._date_repr
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only: bool,
+    nat_rep: str = "NaT",
+    date_format: str | None = None,
+    fast_strftime: bool = True,
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
     if is_dates_only:
+        str_date_fmt = loc_s = None
+        if date_format is not None and fast_strftime:
+            try:
+                # Try to get the string formatting template for this format
+                str_date_fmt, loc_s = convert_strftime_format(date_format)
+            except UnsupportedStrFmtDirective:
+                # Unsupported directive: fallback to standard `strftime`
+                pass
+
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
+            x,
+            nat_rep=nat_rep,
+            date_format=date_format,
+            str_date_fmt=str_date_fmt,
+            loc_s=loc_s,
         )
     else:
+        # Relies on datetime.str, which is fast already
+        # TODO why is date_format not used in this case ? This seems like a bug?
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
@@ -1827,9 +1860,13 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
         values = self.values.astype(object)
-        ido = is_dates_only(values)
+        # When there is a timezone `is_dates_only` always returns `False` since dates
+        # are not universal dates but have 00:00:00 timestamps in the given timezone.
+        assert not is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
+            is_dates_only=False,
+            date_format=self.date_format,
+            fast_strftime=self.fast_strftime,
         )
         fmt_values = [formatter(x) for x in values]
 
@@ -1849,6 +1886,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self) -> list[str]:
+        # Note: `get_format_timedelta64` uses fast formatting
         formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )

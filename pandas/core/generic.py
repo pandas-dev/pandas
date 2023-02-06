@@ -3497,6 +3497,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         lineterminator: str | None = ...,
         chunksize: int | None = ...,
         date_format: str | None = ...,
+        fast_strftime: bool_t = ...,
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
@@ -3524,6 +3525,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         lineterminator: str | None = ...,
         chunksize: int | None = ...,
         date_format: str | None = ...,
+        fast_strftime: bool_t = ...,
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
@@ -3556,6 +3558,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
+        fast_strftime: bool_t = True,
         doublequote: bool_t = True,
         escapechar: str | None = None,
         decimal: str = ".",
@@ -3648,6 +3651,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Rows to write at a time.
         date_format : str, default None
             Format string for datetime objects.
+        fast_strftime : bool, default True
+            If `True` (default) and the format permits it, a faster formatting
+            method will be used. See `convert_strftime_format`.
+
+            .. versionadded:: 1.5.4
+
         doublequote : bool, default True
             Control quoting of `quotechar` inside a field.
         escapechar : str, default None
@@ -3730,6 +3739,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             quotechar=quotechar,
             date_format=date_format,
+            fast_strftime=fast_strftime,
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
