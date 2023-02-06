@@ -68,6 +68,10 @@ from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
 )
+from pandas._libs.tslibs.strftime import (
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
+)
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
@@ -112,6 +116,7 @@ def format_array_from_datetime(
     str format=None,
     object na_rep=None,
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
+    fast_strftime=True,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -125,18 +130,22 @@ def format_array_from_datetime(
     na_rep : optional, default is None
           a nat format
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    fast_strftime : bool, default True
+          If `True` (default) and the format permits it, a faster formatting
+          method will be used. See `convert_strftime_format`.
 
     Returns
     -------
     np.ndarray[object]
     """
     cdef:
-        int64_t val, ns, N = values.size
+        int64_t val, ns, y, h, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
         bint basic_format = False, basic_format_day = False
         _Timestamp ts
         object res
         npy_datetimestruct dts
+        object str_format, loc_s
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -173,6 +182,18 @@ def format_array_from_datetime(
             # Default format for dates
             basic_format_day = True
 
+        elif fast_strftime:
+            if format is None:
+                # We'll fallback to the Timestamp.str method
+                fast_strftime = False
+            else:
+                try:
+                    # Try to get the string formatting template for this format
+                    str_format, loc_s = convert_strftime_format(format)
+                except UnsupportedStrFmtDirective:
+                    # Unsupported directive: fallback to standard `strftime`
+                    fast_strftime = False
+
     assert not (basic_format_day and basic_format)
 
     for i in range(N):
@@ -200,6 +221,31 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
+        elif fast_strftime:
+
+            if tz is None:
+                pandas_datetime_to_datetimestruct(val, reso, &dts)
+
+                # Use string formatting for faster strftime
+                y = dts.year
+                h = dts.hour
+                result[i] = str_format % {
+                    "year": y,
+                    "shortyear": y % 100,
+                    "month": dts.month,
+                    "day": dts.day,
+                    "hour": dts.hour,
+                    "hour12": 12 if h in (0, 12) else (h % 12),
+                    "ampm": loc_s.pm if (h // 12) else loc_s.am,
+                    "min": dts.min,
+                    "sec": dts.sec,
+                    "us": dts.us,
+                }
+            else:
+                ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
+
+                # Use string formatting for faster strftime
+                res = ts.fast_strftime(str_format, loc_s)
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
