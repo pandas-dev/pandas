@@ -1298,7 +1298,8 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame(
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
-        with tm.assert_produces_warning(RuntimeWarning) and NUMEXPR_INSTALLED:
+        warning = RuntimeWarning if NUMEXPR_INSTALLED else None
+        with tm.assert_produces_warning(warning):
             result = df.eval("c = b - a")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 1]],
@@ -1310,7 +1311,8 @@ class TestDataFrameQueryBacktickQuoting:
     def test_ea_dtypes_and_scalar(self):
         # GH#29618
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
-        with tm.assert_produces_warning(RuntimeWarning) and NUMEXPR_INSTALLED:
+        warning = RuntimeWarning if NUMEXPR_INSTALLED else None
+        with tm.assert_produces_warning(warning):
             result = df.eval("c = b - 1")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
