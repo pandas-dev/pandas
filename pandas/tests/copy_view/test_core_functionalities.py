@@ -9,6 +9,7 @@ from pandas.tests.copy_view.util import get_array
 def test_assigning_to_same_variable_removes_references(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3]})
     df = df.reset_index()
+    assert df._mgr._has_no_reference(1)
     arr = get_array(df, "a")
     df.iloc[0, 1] = 100  # Write into a
 
@@ -20,7 +21,9 @@ def test_setitem_dont_track_unnecessary_references(using_copy_on_write):
 
     df["b"] = 100
     arr = get_array(df, "a")
-    df.iloc[0, 0] = 100  # Check that we correctly removed the reference
+    # We split the block in setitem, if we are not careful the new blocks will
+    # reference each other triggering a copy
+    df.iloc[0, 0] = 100
     assert np.shares_memory(arr, get_array(df, "a"))
 
 
@@ -44,8 +47,12 @@ def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write, reques
     df["b"] = 100
     arr = get_array(df, "a")
     view = None  # noqa
-    df.iloc[0, 0] = 100  # Check that we correctly release the reference
+    df.iloc[0, 0] = 100
     if using_copy_on_write:
+        # Setitem split the block. Since the old block shared data with view
+        # all the new blocks are referencing view and each other. When view
+        # goes out of scope, they don't share data with any other block,
+        # so we should not trigger a copy
         mark = pytest.mark.xfail(
             reason="blk.delete does not track references correctly"
         )
