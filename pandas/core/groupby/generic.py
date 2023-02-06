@@ -1249,10 +1249,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     User-defined function for aggregation
 
     >>> df.groupby('A').agg(lambda x: sum(x) + 2)
-        B          C
+        B	       C
     A
-    1   5   2.590715
-    2   9   2.704907
+    1	5	2.590715
+    2	9	2.704907
 
     Different aggregations per column
 
