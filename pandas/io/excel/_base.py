@@ -1448,6 +1448,7 @@ class ExcelFile:
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
            .. versionadded:: 1.3.0
+
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.

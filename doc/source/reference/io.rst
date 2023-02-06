@@ -41,6 +41,8 @@ Excel
    read_excel
    DataFrame.to_excel
    ExcelFile
+   ExcelFile.book
+   ExcelFile.sheet_names
    ExcelFile.parse
 
 .. currentmodule:: pandas.io.formats.style
