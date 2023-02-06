@@ -703,14 +703,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
+        self, *, na_rep: str | float = "NaT", date_format=None, fast_strftime=True, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
+            self.asi8,
+            tz=self.tz,
+            format=fmt,
+            na_rep=na_rep,
+            reso=self._creso,
+            fast_strftime=fast_strftime,
         )
 
     # -----------------------------------------------------------------

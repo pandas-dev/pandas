@@ -24,7 +24,9 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Timedelta,
+    UnsupportedStrFmtDirective,
     astype_overflowsafe,
+    convert_strftime_format,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     get_unit_from_dtype,
     iNaT,
@@ -642,16 +644,34 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
+        self, *, na_rep: str | float = "NaT", date_format=None, fast_strftime=True, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
+
+        TODO maybe rather align with the way it is done in datetimes.py ?
+         (delegate all to a tslib.format_array_from_period cython numpy method)
         """
         values = self.astype(object)
 
         # Create the formatter function
         if date_format:
-            formatter = lambda per: per.strftime(date_format)
+            if fast_strftime:
+                try:
+                    # Try to get the string formatting template for this format
+                    str_format, loc_s = convert_strftime_format(
+                        date_format, target="period"
+                    )
+                except UnsupportedStrFmtDirective:
+                    # Unsupported directive: fallback to standard `strftime`
+                    fast_strftime = False
+
+            if fast_strftime:
+                # Faster: python string formatting
+                formatter = lambda per: per.fast_strftime(str_format, loc_s)
+            else:
+                # Slower: strftime
+                formatter = lambda per: per.strftime(date_format)
         else:
             # Uses `_Period.str` which in turn uses `format_period`
             formatter = lambda per: str(per)
