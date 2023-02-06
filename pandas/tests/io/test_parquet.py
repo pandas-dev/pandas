@@ -591,6 +591,7 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    @pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
@@ -640,6 +641,7 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes_option(self, engine, request):
         # GH#50748
         import pyarrow.parquet as pq
