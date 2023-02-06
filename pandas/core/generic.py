@@ -11950,7 +11950,7 @@ Examples
 True
 >>> pd.Series([True, False]).all()
 False
->>> pd.Series([], dtype="float64").all()
+>>> pd.Series([], dtype='float64').all()
 True
 >>> pd.Series([np.nan]).all()
 True
@@ -12319,7 +12319,7 @@ is True.
 False
 >>> pd.Series([True, False]).any()
 True
->>> pd.Series([], dtype="float64").any()
+>>> pd.Series([], dtype='float64').any()
 False
 >>> pd.Series([np.nan]).any()
 False
@@ -12330,7 +12330,7 @@ True
 
 Whether each column contains at least one True element (the default).
 
->>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+>>> df = pd.DataFrame({'A': [1, 2], 'B': [0, 2], 'C': [0, 0]})
 >>> df
    A  B  C
 0  1  0  0
@@ -12344,7 +12344,7 @@ dtype: bool
 
 Aggregating over the columns.
 
->>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+>>> df = pd.DataFrame({'A': [True, False], 'B': [1, 2]})
 >>> df
        A  B
 0   True  1
@@ -12355,7 +12355,7 @@ Aggregating over the columns.
 1    True
 dtype: bool
 
->>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+>>> df = pd.DataFrame({'A': [True, False], 'B': [1, 0]})
 >>> df
        A  B
 0   True  1
