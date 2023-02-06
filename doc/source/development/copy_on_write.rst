@@ -20,7 +20,7 @@ keeps track of all ``Blocks`` that share values with another block internally to
 be able to tell when a copy needs to be triggered. The reference tracking
 mechanism is implemented on the Block level.
 
-We use a custom reference tracker object, e.g. ``BlockValuesRefs`` that keeps
+We use a custom reference tracker object, ``BlockValuesRefs``, that keeps
 track of every block, whose values share memory with each other. The reference
 is held through a weak-reference. Every two blocks that share some memory should
 point to the same ``BlockValuesRefs`` object. If one block goes out of
