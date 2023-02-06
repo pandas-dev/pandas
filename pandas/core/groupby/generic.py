@@ -1726,10 +1726,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # iterate through columns, see test_transform_exclude_nuisance
         #  gets here with non-unique columns
         output = {}
-        inds = []
         for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             output[i] = sgb.transform(wrapper)
-            inds.append(i)
 
         result = self.obj._constructor(output, index=obj.index)
         result.columns = obj.columns
