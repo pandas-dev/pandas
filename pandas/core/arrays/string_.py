@@ -414,14 +414,14 @@ class StringArray(BaseStringArray, PandasArray):
             if isna(value):
                 value = libmissing.NA
             elif not isinstance(value, str):
-                raise ValueError(
+                raise TypeError(
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise ValueError("Must provide strings.")
+                raise TypeError("Must provide strings.")
 
             value[isna(value)] = libmissing.NA
 

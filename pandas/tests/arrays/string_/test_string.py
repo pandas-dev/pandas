@@ -53,14 +53,14 @@ def test_setitem_validates(cls):
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
     if cls is pd.arrays.StringArray:
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
 
@@ -403,12 +403,10 @@ def test_fillna_args(dtype, request):
     tm.assert_extension_array_equal(res, expected)
 
     if dtype.storage == "pyarrow":
-        err = TypeError
         msg = "Invalid value '1' for dtype string"
     else:
-        err = ValueError
         msg = "Cannot set non-string value '1' into a StringArray."
-    with pytest.raises(err, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
 
@@ -574,7 +572,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 
 
