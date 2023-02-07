@@ -2501,6 +2501,16 @@ class TestToDatetimeMisc:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
+    def test_string_invalid_operation(self, cache):
+        invalid = np.array(["87156549591102612381000001219H5"], dtype=object)
+        # GH #51084
+
+        with pytest.raises(ValueError, match="Unknown datetime string format"):
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                to_datetime(invalid, errors="raise", cache=cache)
+
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 

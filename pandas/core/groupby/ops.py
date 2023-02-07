@@ -678,11 +678,6 @@ class BaseGrouper:
         for example for grouper list to groupby, need to pass the list
     sort : bool, default True
         whether this grouper will give sorted result or not
-    group_keys : bool, default True
-    indexer : np.ndarray[np.intp], optional
-        the indexer created by Grouper
-        some groupers (TimeGrouper) will sort its axis and its
-        group_info is also sorted, so need the indexer to reorder
 
     """
 
@@ -693,8 +688,6 @@ class BaseGrouper:
         axis: Index,
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
-        group_keys: bool = True,
-        indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
@@ -702,8 +695,6 @@ class BaseGrouper:
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
-        self.group_keys = group_keys
-        self.indexer = indexer
         self.dropna = dropna
 
     @property
@@ -744,7 +735,7 @@ class BaseGrouper:
         Generator yielding subsetted objects
         """
         ids, _, ngroups = self.group_info
-        return get_splitter(data, ids, ngroups, axis=axis)
+        return _get_splitter(data, ids, ngroups, axis=axis)
 
     @final
     @cache_readonly
@@ -887,14 +878,10 @@ class BaseGrouper:
 
         return comp_ids, obs_group_ids, ngroups
 
-    @final
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
         ids, _, _ = self.group_info
-        if self.indexer is not None:
-            sorter = np.lexsort((ids, self.indexer))
-            ids = ids[sorter]
         return ids
 
     @final
@@ -1018,13 +1005,12 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        ids, _, ngroups = self.group_info
+        _, _, ngroups = self.group_info
 
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        # equiv: splitter = self._get_splitter(obj, axis=0)
-        splitter = get_splitter(obj, ids, ngroups, axis=0)
+        splitter = self._get_splitter(obj, axis=0)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -1048,7 +1034,10 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    indexer : np.ndarray[np.intp]
+    indexer : np.ndarray[np.intp], optional
+        the indexer created by Grouper
+        some groupers (TimeGrouper) will sort its axis and its
+        group_info is also sorted, so need the indexer to reorder
 
     Examples
     --------
@@ -1101,6 +1090,15 @@ class BinGrouper(BaseGrouper):
     def nkeys(self) -> int:
         # still matches len(self.groupings), but we can hard-code
         return 1
+
+    @cache_readonly
+    def codes_info(self) -> npt.NDArray[np.intp]:
+        # return the codes of items in original grouped axis
+        ids, _, _ = self.group_info
+        if self.indexer is not None:
+            sorter = np.lexsort((ids, self.indexer))
+            ids = ids[sorter]
+        return ids
 
     def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
         """
@@ -1269,7 +1267,7 @@ class FrameSplitter(DataSplitter):
         return df.__finalize__(sdata, method="groupby")
 
 
-def get_splitter(
+def _get_splitter(
     data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
