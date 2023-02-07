@@ -88,7 +88,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
-    is_any_numeric_dtype,
+    is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
@@ -317,7 +317,6 @@ class Index(IndexOpsMixin, PandasObject):
     DatetimeIndex : Index of datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    NumericIndex : Index of numpy int/uint/float data.
 
     Notes
     -----
@@ -539,7 +538,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
-        # _ensure_array _may_ be unnecessary once NumericIndex etc are gone
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
         return klass._simple_new(arr, name)
 
@@ -596,18 +594,11 @@ class Index(IndexOpsMixin, PandasObject):
 
             return TimedeltaIndex
 
-        elif dtype.kind in ["i", "f", "u"]:
-            from pandas.core.api import NumericIndex
-
-            return NumericIndex
-
         elif dtype.kind == "O":
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(
-            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
-        ):
+        elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
 
         raise NotImplementedError(dtype)
@@ -1207,10 +1198,6 @@ class Index(IndexOpsMixin, PandasObject):
         Return a string representation for this object.
         """
         klass_name = type(self).__name__
-        from pandas.core.indexes.numeric import NumericIndex
-
-        if type(self) is NumericIndex:
-            klass_name = "Index"
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
@@ -1746,13 +1733,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    )
-        >>> idx.set_names(['kind', 'year'], inplace=True)
-        >>> idx
-        MultiIndex([('python', 2018),
-                    ('python', 2019),
-                    ( 'cobra', 2018),
-                    ( 'cobra', 2019)],
-                   names=['kind', 'year'])
+        >>> idx = idx.set_names(['kind', 'year'])
         >>> idx.set_names('species', level=0)
         MultiIndex([('python', 2018),
                     ('python', 2019),
@@ -2448,7 +2429,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             f"{type(self).__name__}.is_numeric is deprecated. "
-            "Use pandas.api.types.is_numeric_dtype instead",
+            "Use pandas.api.types.is_any_real_numeric_dtype instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -5375,6 +5356,7 @@ class Index(IndexOpsMixin, PandasObject):
                 for c in self._comparables
             )
             and type(self) == type(other)
+            and self.dtype == other.dtype
         )
 
     @final
@@ -6047,8 +6029,8 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (is_bool_dtype(other) and is_any_numeric_dtype(self)) or (
-            is_bool_dtype(self) and is_any_numeric_dtype(other)
+        if (is_bool_dtype(other) and is_any_real_numeric_dtype(self)) or (
+            is_bool_dtype(self) and is_any_real_numeric_dtype(other)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1

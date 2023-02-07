@@ -190,10 +190,7 @@ class BaseNumPyTests:
 
 
 class TestCasting(BaseNumPyTests, base.BaseCastingTests):
-    @skip_nested
-    def test_astype_str(self, data):
-        # ValueError: setting an array element with a sequence
-        super().test_astype_str(data)
+    pass
 
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):

@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+from __future__ import annotations
 
 from collections import abc
 from datetime import (
@@ -31,6 +32,7 @@ import operator
 import os
 from typing import (
     Callable,
+    Hashable,
     Iterator,
 )
 
@@ -1293,6 +1295,22 @@ def string_storage(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "pandas",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
 
@@ -1865,7 +1883,7 @@ def fsspectest():
         (pd.NA, pd.NA, pd.NA),
     ]
 )
-def names(request):
+def names(request) -> tuple[Hashable, Hashable, Hashable]:
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """
@@ -1921,7 +1939,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager():
+def using_array_manager() -> bool:
     """
     Fixture to check if the array manager is being used.
     """
@@ -1942,7 +1960,7 @@ if zoneinfo is not None:
 
 
 @pytest.fixture(params=warsaws)
-def warsaw(request):
+def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
