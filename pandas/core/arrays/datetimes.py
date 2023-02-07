@@ -2500,9 +2500,7 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     start = Timestamp(start)  # type: ignore[arg-type]
-    # Non-overlapping identity check (left operand type: "Timestamp", right
-    # operand type: "NaTType")
-    if start is not NaT:  # type: ignore[comparison-overlap]
+    if start is not NaT:
         start = start.as_unit(unit)
     else:
         start = None
@@ -2510,9 +2508,7 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
-    # Non-overlapping identity check (left operand type: "Timestamp", right
-    # operand type: "NaTType")
-    if end is not NaT:  # type: ignore[comparison-overlap]
+    if end is not NaT:
         end = end.as_unit(unit)
     else:
         end = None
