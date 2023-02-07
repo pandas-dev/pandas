@@ -22,6 +22,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs import convert_strftime_format
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -3174,6 +3175,81 @@ class TestNaTFormatting:
         assert str(NaT) == "NaT"
 
 
+class TestFastStrfTimeScalars:
+    """
+    Test that `convert_strftime_format` and `fast_strftime`
+    work well together and rely on runtime locale
+    """
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_timestamp_locale(self, locale_str):
+        """Test for Timestamps"""
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="datetime")
+            assert str_tmp == "%(ampm)s"
+
+            # Now what about the classes ?
+            # Timestamp
+            am_ts = Timestamp(2020, 1, 1, 1)
+            assert am_local == am_ts.strftime("%p")
+            assert am_local == am_ts.fast_strftime(str_tmp, loc_s)
+            pm_ts = Timestamp(2020, 1, 1, 13)
+            assert pm_local == pm_ts.strftime("%p")
+            assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_locale(self, locale_str):
+        """Test for Periods"""
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="period")
+            assert str_tmp == "%(ampm)s"
+
+            # Period
+            am_per = pd.Period("2018-03-11 01:00", freq="H")
+            assert am_local == am_per.strftime("%p")
+            assert am_local == am_per.fast_strftime(str_tmp, loc_s)
+            pm_per = pd.Period("2018-03-11 13:00", freq="H")
+            assert pm_local == pm_per.strftime("%p")
+            assert pm_local == pm_per.fast_strftime(str_tmp, loc_s)
+
+
 class TestPeriodIndexFormat:
     def test_period_format_and_strftime_default(self):
         per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
@@ -3193,26 +3269,69 @@ class TestPeriodIndexFormat:
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
-    def test_period_custom(self):
+    @pytest.mark.parametrize("fast_strftime", (False, True))
+    def test_period_custom(self, fast_strftime):
         # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
         per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        formatted = per.format(
+            date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime,
+        )
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
         per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        formatted = per.format(
+            date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime,
+        )
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
         per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        formatted = per.format(
+            date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime,
+        )
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
+
+    @pytest.mark.parametrize("fast_strftime", (False, True))
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_custom_pm(self, fast_strftime, locale_str):
+        """Test that using %p in the custom format work well"""
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # 9 digits
+            p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+            formatted = p.format(
+                date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+                fast_strftime=fast_strftime
+            )
+            assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
+            assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
+            # fmt: on
 
     def test_period_tz(self):
         # Formatting periods created from a datetime with timezone.
@@ -3296,9 +3415,51 @@ class TestPeriodIndexFormat:
 
 class TestDatetimeIndexFormat:
     def test_datetime(self):
+        """Test default `format()` with tz-naive datetime index."""
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
         assert formatted[0] == "2003-01-01 12:00:00"
         assert formatted[1] == "NaT"
+
+    def test_datetime_tz(self):
+        """Test default `format()` with tz-aware datetime index."""
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+        # Since tz is currently set as utc, we'll see 2012
+        assert dt.format()[0] == "2012-12-31 23:00:00+00:00"
+        # If we set tz as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        assert dt.format()[0] == "2013-01-01 00:00:00+01:00"
+
+    def test_datetime_tz_custom(self):
+        """Test `format()` with tz-aware dt and a custom format string."""
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
+
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
+        # If tz is currently set as utc, we'll see 2012
+        assert (
+            dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+            == "2012-12-31__foo__23:00:00"
+        )
+        # same with fancy format
+        assert (
+            dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+            == f"2012-12-31__foo__11:00:00{pm_local}"
+        )
+
+        # If tz is currently set as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        assert (
+            dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+            == "2013-01-01__foo__00:00:00"
+        )
+        # same with fancy format
+        assert (
+            dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+            == f"2013-01-01__foo__12:00:00{am_local}"
+        )
 
     def test_date(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
