@@ -9,7 +9,7 @@ from pandas._typing import (
     DtypeObj,
     type_t,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
@@ -17,7 +17,7 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
@@ -73,8 +73,8 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if pa_version_under6p0:
-            raise ImportError("pyarrow>=6.0.0 is required for ArrowDtype")
+        if pa_version_under7p0:
+            raise ImportError("pyarrow>=7.0.0 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
