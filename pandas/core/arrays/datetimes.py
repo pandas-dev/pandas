@@ -1203,7 +1203,8 @@ default 'raise'
         locale : str, optional
             Locale determining the language in which to return the month name.
             Default is English locale (``'en_US.utf8'``). Use the command
-            ``locale -a`` on your terminal to look for your locale language code.
+            ``locale -a`` on your terminal on Unix systems to find your locale
+            language code.
 
         Returns
         -------
@@ -1235,9 +1236,6 @@ default 'raise'
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
         names in Brazilian Portuguese language.
 
-        To know your locale code you can just use ``locale -a`` in your terminal
-        to look for your specific language code.
-
         >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
@@ -1262,7 +1260,8 @@ default 'raise'
         locale : str, optional
             Locale determining the language in which to return the day name.
             Default is English locale (``'en_US.utf8'``). Use the command
-            ``locale -a`` on your terminal to look for your locale language code.
+            ``locale -a`` on your terminal on Unix systems to find your locale
+            language code.
 
         Returns
         -------
@@ -1293,9 +1292,6 @@ default 'raise'
         Using the ``locale`` parameter you can set a different locale language,
         for example: ``idx.day_name(locale='pt_BR.utf8')`` will return day
         names in Brazilian Portuguese language.
-
-        To know your locale code you can just use ``locale -a`` in your terminal
-        to look for your specific language code.
 
         >>> idx = pd.date_range(start='2018-01-01', freq='D', periods=3)
         >>> idx
