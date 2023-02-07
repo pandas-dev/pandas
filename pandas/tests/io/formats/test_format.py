@@ -3461,7 +3461,6 @@ def test_filepath_or_buffer_arg(
         assert_filepath_or_buffer_equals(expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     if method in ["to_latex"]:  # uses styler implementation

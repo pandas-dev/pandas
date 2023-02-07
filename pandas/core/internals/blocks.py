@@ -261,10 +261,6 @@ class Block(PandasObject):
         new_mgr_locs = self._mgr_locs[slicer]
 
         new_values = self._slice(slicer)
-
-        if new_values.ndim != self.values.ndim:
-            raise ValueError("Only same dim slicing is allowed")
-
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final
@@ -677,10 +673,7 @@ class Block(PandasObject):
             # GH#38086 faster if we know we dont need to check for regex
             masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
-        # error: Argument 1 to "extract_bool_array" has incompatible type
-        # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
-        # ndarray]"
-        masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
+        masks = [extract_bool_array(x) for x in masks]
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
@@ -1599,6 +1592,7 @@ class EABackedBlock(Block):
 
     def interpolate(
         self,
+        *,
         method: FillnaOptions = "pad",
         axis: int = 0,
         inplace: bool = False,
@@ -1973,6 +1967,38 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
 
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
+
+    def interpolate(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        index: Index | None = None,
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
+    ):
+        values = self.values
+
+        # error: Non-overlapping equality check (left operand type:
+        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
+        # "Literal['linear']")  [comparison-overlap]
+        if method == "linear":  # type: ignore[comparison-overlap]
+            # TODO: GH#50950 implement for arbitrary EAs
+            data_out = values._ndarray if inplace else values._ndarray.copy()
+            missing.interpolate_array_2d(
+                data_out, method=method, limit=limit, index=index, axis=axis
+            )
+            new_values = type(values)._simple_new(data_out, dtype=values.dtype)
+            return self.make_block_same_class(new_values)
+
+        elif values.ndim == 2 and axis == 0:
+            # NDArrayBackedExtensionArray.fillna assumes axis=1
+            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+        else:
+            new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):

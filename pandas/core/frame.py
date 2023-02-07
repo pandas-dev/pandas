@@ -2633,13 +2633,15 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriter117 as statawriter,
             )
         else:  # versions 118 and 119
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriterUTF8 as statawriter,
             )
 
@@ -4512,17 +4514,6 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4
         4  5   2
 
-        Use ``inplace=True`` to modify the original DataFrame.
-
-        >>> df.eval('C = A + B', inplace=True)
-        >>> df
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
-
         Multiple columns can be assigned to using multi-line expressions:
 
         >>> df.eval(
@@ -4995,14 +4986,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
-        0  1   4
-        1  2   5
-        2  3   6
-
-        Now, update the labels without copying the underlying data.
-
-        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
-           i  ii
         0  1   4
         1  2   5
         2  3   6
@@ -5533,8 +5516,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
@@ -6372,13 +6354,6 @@ class DataFrame(NDFrame, OpsMixin):
                name        toy       born
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
-
-        Keep the DataFrame with valid entries in the same variable.
-
-        >>> df.dropna(inplace=True)
-        >>> df
-             name        toy       born
-        1  Batman  Batmobile 1940-04-25
         """
         if (how is not no_default) and (thresh is not no_default):
             raise TypeError(

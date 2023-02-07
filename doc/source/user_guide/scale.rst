@@ -333,6 +333,7 @@ Dask implements the most used parts of the pandas API. For example, we can do
 a familiar groupby aggregation.
 
 .. ipython:: python
+   :okwarning:
 
    %time ddf.groupby("name")[["x", "y"]].mean().compute().head()
 
@@ -356,6 +357,7 @@ we need to supply the divisions manually.
 Now we can do things like fast random access with ``.loc``.
 
 .. ipython:: python
+   :okwarning:
 
    ddf.loc["2002-01-01 12:01":"2002-01-01 12:05"].compute()
 
@@ -369,6 +371,7 @@ results will fit in memory, so we can safely call ``compute`` without running
 out of memory. At that point it's just a regular pandas object.
 
 .. ipython:: python
+   :okwarning:
 
    @savefig dask_resample.png
    ddf[["x", "y"]].resample("1D").mean().cumsum().compute().plot()
