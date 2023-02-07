@@ -19,6 +19,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 import weakref
 
 import numpy as np
@@ -81,6 +82,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -216,6 +218,13 @@ def _coerce_method(converter):
 
     def wrapper(self):
         if len(self) == 1:
+            warnings.warn(
+                f"Calling {converter.__name__} on a single element Series is "
+                "deprecated and will raise a TypeError in the future. "
+                f"Use {converter.__name__}(ser.iloc[0]) instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return converter(self.iloc[0])
         raise TypeError(f"cannot convert the series to {converter}")
 
@@ -3361,8 +3370,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def sort_values(
         self,
         *,
@@ -5122,8 +5130,7 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,

@@ -597,15 +597,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_datetime64_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
-        pandas.api.types.is_dict_like \
-        pandas.api.types.is_file_like \
         pandas.api.types.is_float_dtype \
-        pandas.api.types.is_hashable \
         pandas.api.types.is_int64_dtype \
         pandas.api.types.is_integer_dtype \
         pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_iterator \
-        pandas.api.types.is_list_like \
         pandas.api.types.is_named_tuple \
         pandas.api.types.is_numeric_dtype \
         pandas.api.types.is_object_dtype \

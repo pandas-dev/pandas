@@ -308,7 +308,7 @@ result
 
 See Also
 --------
-Series.plot.hist: Make a histogram.
+pandas.Series.plot.hist: Make a histogram.
 matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
 
 Notes
