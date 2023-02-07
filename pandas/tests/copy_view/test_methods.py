@@ -769,6 +769,20 @@ def test_infer_objects(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_infer_objects_no_reference(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+    df = df.infer_objects()
+
+    arr_a = get_array(df, "b")
+    arr_b = get_array(df, "b")
+
+    df.iloc[0, 0] = 0
+    df.iloc[0, 1] = "d"
+    if using_copy_on_write:
+        assert not np.shares_memory(arr_a, get_array(df, "a"))
+        assert not np.shares_memory(arr_b, get_array(df, "b"))
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [

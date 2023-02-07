@@ -11,7 +11,6 @@ from typing import (
     cast,
     final,
 )
-import weakref
 
 import numpy as np
 
@@ -130,10 +129,10 @@ def maybe_split(meth: F) -> F:
     def newfunc(self, *args, **kwargs) -> list[Block]:
 
         if self.ndim == 1 or self.shape[0] == 1:
-            return meth(self, *args, **kwargs, original_block=self)
+            return meth(self, *args, **kwargs)
         else:
             # Split and operate column-by-column
-            return self.split_and_operate(meth, *args, **kwargs, original_block=self)
+            return self.split_and_operate(meth, *args, **kwargs)
 
     return cast(F, newfunc)
 
@@ -157,7 +156,6 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-    _ref = None
 
     @final
     @cache_readonly
@@ -209,7 +207,9 @@ class Block(PandasObject):
         self._mgr_locs = new_mgr_locs
 
     @final
-    def make_block(self, values, placement=None) -> Block:
+    def make_block(
+        self, values, placement=None, refs: BlockValuesRefs | None = None
+    ) -> Block:
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -221,7 +221,7 @@ class Block(PandasObject):
 
         # TODO: perf by not going through new_block
         # We assume maybe_coerce_values has already been called
-        return new_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim, refs=refs)
 
     @final
     def make_block_same_class(
@@ -378,7 +378,7 @@ class Block(PandasObject):
             vals = self.values[slice(i, i + 1)]
 
             bp = BlockPlacement(ref_loc)
-            nb = type(self)(vals, placement=bp, ndim=2)
+            nb = type(self)(vals, placement=bp, ndim=2, refs=self.refs)
             new_blocks.append(nb)
         return new_blocks
 
@@ -456,17 +456,15 @@ class Block(PandasObject):
         self,
         *,
         copy: bool = True,
-        using_copy_on_write: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
-        if not copy and using_copy_on_write:
-            result = self.copy(deep=False)
-            result._ref = weakref.ref(self)
-            return [result]
+        if not copy and using_cow:
+            return [self.copy(deep=False)]
         return [self.copy()] if copy else [self]
 
     # ---------------------------------------------------------------------
@@ -2049,12 +2047,11 @@ class ObjectBlock(NumpyBlock):
     is_object = True
 
     @maybe_split
-    def convert(  # type: ignore[override]
+    def convert(
         self,
         *,
-        original_block: Block,
         copy: bool = True,
-        using_copy_on_write: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -2063,10 +2060,8 @@ class ObjectBlock(NumpyBlock):
         if self.dtype != _dtype_obj:
             # GH#50067 this should be impossible in ObjectBlock, but until
             #  that is fixed, we short-circuit here.
-            if using_copy_on_write:
-                result = self.copy(deep=False)
-                result._ref = weakref.ref(original_block)
-                return [result]
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
 
         values = self.values
@@ -2082,15 +2077,14 @@ class ObjectBlock(NumpyBlock):
             convert_period=True,
             convert_interval=True,
         )
-        ref = None
+        refs = None
         if copy and res_values is values:
             res_values = values.copy()
-        elif res_values is values and using_copy_on_write:
-            ref = weakref.ref(original_block)
+        elif res_values is values and using_cow:
+            refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
-        result = self.make_block(res_values)
-        result._ref = ref
+        result = self.make_block(res_values, refs=refs)
         return [result]
 
 

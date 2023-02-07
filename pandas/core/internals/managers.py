@@ -431,16 +431,7 @@ class BaseBlockManager(DataManager):
             else:
                 copy = True
 
-        mgr = self.apply(
-            "convert",
-            copy=copy,
-            using_copy_on_write=using_copy_on_write(),
-        )
-        refs = [getattr(blk, "_ref", None) for blk in mgr.blocks]
-        if any(ref is not None for ref in refs):
-            mgr.refs = refs
-            mgr.parent = self
-        return mgr
+        return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
         inplace = validate_bool_kwarg(inplace, "inplace")
