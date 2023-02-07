@@ -95,14 +95,6 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        expected = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0],
-                "B": [1.0, 4.0, 9.0, 9.0],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
 
         result = df.set_index("C").interpolate()
         expected = df.set_index("C")
@@ -327,20 +319,24 @@ class TestDataFrameInterpolate:
             df.interpolate()
 
     def test_interp_inplace(self, using_copy_on_write):
-        # TODO(CoW) inplace keyword (it is still mutating the parent)
-        if using_copy_on_write:
-            pytest.skip("CoW: inplace keyword not yet handled")
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
+        expected_cow = df.copy()
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected_cow)
 
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
-        tm.assert_frame_equal(result, expected.astype("int64"))
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected.astype("int64"))
+        else:
+            tm.assert_frame_equal(result, expected_cow)
 
     def test_interp_inplace_row(self):
         # GH 10395

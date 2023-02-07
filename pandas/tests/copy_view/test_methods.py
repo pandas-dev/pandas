@@ -1252,6 +1252,25 @@ def test_putmask(using_copy_on_write):
         assert view.iloc[0, 0] == 5
 
 
+@pytest.mark.parametrize("method", ["pad", "nearest", "linear"])
+def test_interpolate_no_op(using_copy_on_write, method):
+    df = DataFrame({"a": [1, 2]})
+    df_orig = df.copy()
+
+    result = df.interpolate(method=method)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+
+    result.iloc[0, 0] = 100
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
