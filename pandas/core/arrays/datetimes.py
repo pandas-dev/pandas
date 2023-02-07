@@ -228,7 +228,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "nanosecond",
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_ops: list[str] = (
+        _field_ops + _object_ops + _bool_ops + _other_ops + ["unit"]
+    )
     _datetimelike_methods: list[str] = [
         "to_period",
         "tz_localize",
@@ -240,6 +242,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "ceil",
         "month_name",
         "day_name",
+        "as_unit",
     ]
 
     # ndim is inherited from ExtensionArray, must exist to ensure
