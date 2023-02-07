@@ -229,7 +229,7 @@ def format_array_from_datetime(
                 # Use string formatting for faster strftime
                 y = dts.year
                 h = dts.hour
-                result[i] = str_format % {
+                res = str_format % {
                     "year": y,
                     "shortyear": y % 100,
                     "month": dts.month,
