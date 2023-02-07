@@ -783,9 +783,9 @@ Deprecations
 - Deprecated calling ``float`` or ``int`` on a single element :class:`Series` to return a ``float`` or ``int`` respectively. Extract the element before calling ``float`` or ``int`` instead (:issue:`51101`)
 - Deprecated :meth:`Grouper.groups`, use :meth:`Groupby.groups` instead (:issue:`51182`)
 - Deprecated :meth:`Grouper.grouper`, use :meth:`Groupby.grouper` instead (:issue:`51182`)
-- Deprecated :meth:`Grouper.obj`, use :meth:`Groupby.obj` instead (:issue:`??`)
-- Deprecated :meth:`Grouper.indexer`, use :meth:`Resampler.indexer` instead (:issue:`??`)
-- Deprecated :meth:`Grouper.ax`, use :meth:`Resampler.ax` instead (:issue:`??`)
+- Deprecated :meth:`Grouper.obj`, use :meth:`Groupby.obj` instead (:issue:`51206`)
+- Deprecated :meth:`Grouper.indexer`, use :meth:`Resampler.indexer` instead (:issue:`51206`)
+- Deprecated :meth:`Grouper.ax`, use :meth:`Resampler.ax` instead (:issue:`51206`)
 -
 
 .. ---------------------------------------------------------------------------
