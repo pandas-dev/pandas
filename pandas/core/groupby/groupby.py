@@ -3064,7 +3064,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             if isinstance(values, ExtensionArray):
-                return values.groupby_quantile(
+                return values._groupby_quantile(
                     qs=qs,
                     interpolation=interpolation,
                     ngroups=ngroups,

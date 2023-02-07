@@ -33,7 +33,7 @@ def groupby_quantile_ndim_compat(
     """
     Compatibility layer to handle either 1D arrays or 2D ndarrays in
     GroupBy.quantile. Located here to be available to
-    ExtensionArray.groupby_quantile for dispatching after casting to numpy.
+    ExtensionArray._groupby_quantile for dispatching after casting to numpy.
 
     Parameters
     ----------

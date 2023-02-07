@@ -1390,7 +1390,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
 
     @doc(ExtensionArray.groupby_quantile)
-    def groupby_quantile(
+    def _groupby_quantile(
         self,
         *,
         qs: npt.NDArray[np.float64],

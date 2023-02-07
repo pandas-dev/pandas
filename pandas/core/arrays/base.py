@@ -1696,7 +1696,7 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def groupby_quantile(
+    def _groupby_quantile(
         self,
         *,
         qs: npt.NDArray[np.float64],
