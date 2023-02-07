@@ -81,7 +81,11 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
-cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT reso=NPY_FR_ns) except? -1:
+cdef int64_t cast_from_unit(
+        object ts,
+        str unit,
+        NPY_DATETIMEUNIT reso=NPY_FR_ns
+) except? -1:
     """
     Return a casting of the unit represented to nanoseconds
     round the fractional part of a float to our precision, p.
@@ -146,7 +150,10 @@ cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT reso=NPY_FR_ns
         ) from err
 
 
-cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_reso = NPY_DATETIMEUNIT.NPY_FR_ns):
+cpdef inline (int64_t, int) precision_from_unit(
+        str unit,
+        NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns,
+):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
@@ -197,7 +204,11 @@ cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_r
         m = 1_000_000_000 // multiplier
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        if out_reso not in [NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_us, NPY_DATETIMEUNIT.NPY_FR_ms]:
+        if out_reso not in [
+            NPY_DATETIMEUNIT.NPY_FR_ns,
+            NPY_DATETIMEUNIT.NPY_FR_us,
+            NPY_DATETIMEUNIT.NPY_FR_ms,
+        ]:
             raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
         m = 1_000_000 // multiplier
         p = 6
