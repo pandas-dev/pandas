@@ -104,10 +104,6 @@ cdef int64_t cast_from_unit(
         int p
 
     m, p = precision_from_unit(unit, reso)
-    print("unit", unit)
-    print("reso", reso)
-    print("ts", ts)
-    print("m", m)
 
     # just give me the unit back
     if ts is None:
