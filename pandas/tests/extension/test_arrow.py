@@ -529,17 +529,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         )
         if all_numeric_reductions in {"skew", "kurt"}:
             request.node.add_marker(xfail_mark)
-        # elif (
-        #     all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
-        #     and pa_version_under6p0
-        # ):
-        #     request.node.add_marker(xfail_mark)
-        # elif (
-        #     all_numeric_reductions in {"var", "std", "median"}
-        #     and pa_version_under7p0
-        #     and pa.types.is_decimal(pa_dtype)
-        # ):
-        #     request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"var", "std", "median"}
+            and pa_version_under7p0
+            and pa.types.is_decimal(pa_dtype)
+        ):
+            request.node.add_marker(xfail_mark)
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
 
