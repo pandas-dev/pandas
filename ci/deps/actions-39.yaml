@@ -41,7 +41,7 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pymysql
-  - pyarrow
+  - pyarrow<11
   - pyreadstat
   - pytables
   - python-snappy

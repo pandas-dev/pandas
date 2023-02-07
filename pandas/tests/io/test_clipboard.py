@@ -1,10 +1,15 @@
 import os
+import subprocess
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_linux,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -409,8 +414,10 @@ class TestClipboard:
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
+        if is_ci_environment() and is_platform_linux():
+            # Clipboard can sometimes keep previous param causing flaky CI failures
+            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine

@@ -42,7 +42,7 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  - pyarrow<11
   - pyreadstat
   - python-snappy
   - pyxlsb

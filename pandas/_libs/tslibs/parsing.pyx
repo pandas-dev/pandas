@@ -40,6 +40,8 @@ cnp.import_array()
 
 # dateutil compat
 
+from decimal import InvalidOperation
+
 from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
@@ -264,14 +266,26 @@ cdef bint _does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def parse_datetime_string(
+def py_parse_datetime_string(
+    str date_string, bint dayfirst=False, bint yearfirst=False
+):
+    # Python-accessible version for testing (we can't just make
+    #  parse_datetime_string cpdef bc it has a pointer argument)
+    cdef:
+        NPY_DATETIMEUNIT out_bestunit
+
+    return parse_datetime_string(date_string, dayfirst, yearfirst, &out_bestunit)
+
+
+cdef datetime parse_datetime_string(
     # NB: This will break with np.str_ (GH#32264) even though
     #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
     #  the argument is *exactly* 'str'
     str date_string,
-    bint dayfirst=False,
-    bint yearfirst=False,
-) -> datetime:
+    bint dayfirst,
+    bint yearfirst,
+    NPY_DATETIMEUNIT* out_bestunit
+):
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -287,7 +301,6 @@ def parse_datetime_string(
 
     cdef:
         datetime dt
-        NPY_DATETIMEUNIT out_bestunit
         bint is_quarter = 0
 
     if not _does_string_look_like_datetime(date_string):
@@ -299,13 +312,13 @@ def parse_datetime_string(
                       yearfirst=yearfirst)
         return dt
 
-    dt = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
+    dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
     if dt is not None:
         return dt
 
     try:
         dt = _parse_dateabbr_string(
-            date_string, _DEFAULT_DATETIME, None, &out_bestunit, &is_quarter
+            date_string, _DEFAULT_DATETIME, None, out_bestunit, &is_quarter
         )
         return dt
     except DateParseError:
@@ -315,7 +328,7 @@ def parse_datetime_string(
 
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
-                        ignoretz=False, out_bestunit=&out_bestunit)
+                        ignoretz=False, out_bestunit=out_bestunit)
     return dt
 
 
@@ -635,7 +648,10 @@ cdef datetime dateutil_parse(
         str reso = None
         dict repl = {}
 
-    res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    try:
+        res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    except InvalidOperation:
+        res = None
 
     if res is None:
         raise DateParseError(
@@ -675,6 +691,18 @@ cdef datetime dateutil_parse(
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
+            # GH#50791
+            if res.tzname != "UTC":
+                # If the system is localized in UTC (as many CI runs are)
+                #  we get tzlocal, once the deprecation is enforced will get
+                #  timezone.utc, not raise.
+                warnings.warn(
+                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "keyword or call tz_localize after construction instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level()
+                )
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
@@ -868,7 +896,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     try:
         parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
 
