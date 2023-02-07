@@ -65,15 +65,14 @@ Below is a possibly non-exhaustive list of changes:
 
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
-   the index dtype follows the dtype of the numpy array. For example, it would for all
-   signed integer arrays previously return an index with ``int64`` dtype, but will now
-   reuse the dtype of the supplied numpy array. So ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems.
+   for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
+   it previously would have been ``int64``` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
-2. The various numeric datetime attributes of :class:`DateTimeIndex` (:attr:`~Date_TimeIndex.day`,
-   :attr:`~DateTimeIndex.month`, :attr:`~DateTimeIndex.year` etc.) were previously in of
+2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
+   :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) were previously in of
    dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
-   ``int32`` on ``DateTimeIndex`` also:
+   ``int32`` on ``DatetimeIndex`` also:
 
    .. ipython:: python
 
@@ -92,7 +91,7 @@ Below is a possibly non-exhaustive list of changes:
            ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
        )
        ser = pd.Series.sparse.from_coo(A)
-       ser.index.dtype
+       ser.index.dtypes
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
@@ -669,7 +668,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-| pyarrow         | 6.0.0           |    X    |
+| pyarrow         | 7.0.0           |    X    |
 +-----------------+-----------------+---------+
 | matplotlib      | 3.6.1           |    X    |
 +-----------------+-----------------+---------+
@@ -780,6 +779,10 @@ Deprecations
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
 - Deprecated ``all`` and ``any`` reductions with ``datetime64`` and :class:`DatetimeTZDtype` dtypes, use e.g. ``(obj != pd.Timestamp(0), tz=obj.tz).all()`` instead (:issue:`34479`)
+- Deprecated unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` (:issue:`50977`)
+- Deprecated calling ``float`` or ``int`` on a single element :class:`Series` to return a ``float`` or ``int`` respectively. Extract the element before calling ``float`` or ``int`` instead (:issue:`51101`)
+- Deprecated :meth:`Grouper.groups`, use :meth:`Groupby.groups` instead (:issue:`51182`)
+- Deprecated :meth:`Grouper.grouper`, use :meth:`Groupby.grouper` instead (:issue:`51182`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -1131,6 +1134,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with unit of "Y" or "M" giving incorrect results, not matching pointwise :class:`Timestamp` results (:issue:`50870`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with datetime or timedelta dtypes incorrectly raising ``ValueError`` (:issue:`11312`)
 - Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
+- Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
 -
 
 Timedelta
@@ -1195,6 +1199,7 @@ Indexing
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
+- Bug in :meth:`DataFrame.loc` modifying object when setting incompatible value with an empty indexer (:issue:`45981`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :meth:`DataFrame.iloc` raising ``IndexError`` when indexer is a :class:`Series` with numeric extension array dtype (:issue:`49521`)
@@ -1319,6 +1324,7 @@ ExtensionArray
 - Bug in :meth:`api.types.is_numeric_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``_is_numeric`` returned ``True`` (:issue:`50563`)
 - Bug in :meth:`api.types.is_integer_dtype`, :meth:`api.types.is_unsigned_integer_dtype`, :meth:`api.types.is_signed_integer_dtype`, :meth:`api.types.is_float_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` if ``kind`` returned the corresponding NumPy type (:issue:`50667`)
 - Bug in :class:`Series` constructor unnecessarily overflowing for nullable unsigned integer dtypes (:issue:`38798`, :issue:`25880`)
+- Bug in setting non-string value into ``StringArray`` raising ``ValueError`` instead of ``TypeError`` (:issue:`49632`)
 
 Styler
 ^^^^^^
@@ -1333,6 +1339,7 @@ Metadata
 Other
 ^^^^^
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
+- Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 -
 
 .. ***DO NOT USE THIS SECTION***
