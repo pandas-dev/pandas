@@ -1538,13 +1538,16 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
+        keep_default_na: bool = True,
+        na_filter: bool = True,
+        verbose: bool = False,							 					   							  
         parse_dates: list | dict | bool = False,
         date_parser: Callable | None = None,
         thousands: str | None = None,
         comment: str | None = None,
+        decimal: str = ".",				   
         skipfooter: int = 0,
         use_nullable_dtypes: bool = False,
-        **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
         Parse specified sheet(s) into a DataFrame.
@@ -1570,13 +1573,16 @@ class ExcelFile:
             skiprows=skiprows,
             nrows=nrows,
             na_values=na_values,
+            keep_default_na=keep_default_na,
+            na_filter=na_filter,
+            verbose=verbose,				
             parse_dates=parse_dates,
             date_parser=date_parser,
             thousands=thousands,
+            decimal=decimal,				
             comment=comment,
             skipfooter=skipfooter,
             use_nullable_dtypes=use_nullable_dtypes,
-            **kwds,
         )
 
     @property
