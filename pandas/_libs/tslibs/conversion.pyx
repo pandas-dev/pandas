@@ -173,6 +173,8 @@ cpdef inline (int64_t, int) precision_from_unit(
         multiplier = 1_000
     elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
         multiplier = 1
+    else:
+        raise ValueError(f"Invalid out_reso: {out_reso}")
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         # each 400 years we have 97 leap years, for an average of 97/400=.2425
