@@ -60,7 +60,7 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin):
+class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
