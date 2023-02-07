@@ -745,15 +745,6 @@ class BaseGrouper:
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
 
-    def _get_grouper(self):
-        """
-        We are a grouper as part of another's groupings.
-
-        We have a specific method of grouping, so cannot
-        convert to a Index for our grouper.
-        """
-        return self.groupings[0].grouping_vector
-
     @final
     @cache_readonly
     def group_keys_seq(self):
@@ -1028,7 +1019,6 @@ class BaseGrouper:
     ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
-        counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
@@ -1044,7 +1034,6 @@ class BaseGrouper:
                 libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
-            counts[i] = group.shape[0]
             result[i] = res
 
         return result
@@ -1111,15 +1100,6 @@ class BinGrouper(BaseGrouper):
     def nkeys(self) -> int:
         # still matches len(self.groupings), but we can hard-code
         return 1
-
-    def _get_grouper(self):
-        """
-        We are a grouper as part of another's groupings.
-
-        We have a specific method of grouping, so cannot
-        convert to a Index for our grouper.
-        """
-        return self
 
     def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
         """
