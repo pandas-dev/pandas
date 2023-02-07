@@ -1,11 +1,12 @@
 """
 Helpers for sharing tests between DataFrame/Series
 """
+from pandas._typing import DtypeObj
 
 from pandas import DataFrame
 
 
-def get_dtype(obj):
+def get_dtype(obj) -> DtypeObj:
     if isinstance(obj, DataFrame):
         # Note: we are assuming only one column
         return obj.dtypes.iat[0]
