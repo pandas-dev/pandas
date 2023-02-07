@@ -161,9 +161,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
-        # error: Incompatible types in assignment (expression has type "Union
-        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
-        self.axis = axis  # type: ignore[assignment]
+        self.axis = obj._get_axis_number(axis)
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
