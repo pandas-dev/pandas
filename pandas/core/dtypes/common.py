@@ -1177,6 +1177,7 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_any_real_numeric_dtype
     >>> is_any_real_numeric_dtype(int)
     True
     >>> is_any_real_numeric_dtype(float)

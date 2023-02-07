@@ -276,6 +276,7 @@ def is_iterator(obj: object) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_iterator
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
@@ -1126,6 +1127,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_list_like
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
