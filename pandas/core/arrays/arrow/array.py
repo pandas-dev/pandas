@@ -1659,7 +1659,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(result)
 
     def _str_removeprefix(self, prefix: str) -> Series:
-        raise NotImplementedError
+        raise NotImplementedError("str.removeprefix not supported.")
         # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
         # starts_with = pc.starts_with(self._data, pattern=prefix)
         # removed = pc.utf8_slice_codeunits(self._data, len(prefix))
@@ -1673,40 +1673,42 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(result)
 
     def _str_casefold(self):
-        raise NotImplementedError
+        raise NotImplementedError("str.casefold not supported.")
 
     def _str_encode(self, encoding, errors: str = "strict"):
-        raise NotImplementedError
+        raise NotImplementedError("str.encode not supported.")
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        raise NotImplementedError
+        raise NotImplementedError("str.extract not supported.")
 
     def _str_findall(self, pat, flags: int = 0):
-        raise NotImplementedError
+        raise NotImplementedError("str.findall not supported.")
 
     def _str_get_dummies(self, sep: str = "|"):
-        raise NotImplementedError
+        raise NotImplementedError("str.get_dummies not supported.")
 
     def _str_index(self, sub, start: int = 0, end=None):
-        raise NotImplementedError
+        raise NotImplementedError("str.index not supported.")
 
     def _str_rindex(self, sub, start: int = 0, end=None):
-        raise NotImplementedError
+        raise NotImplementedError("str.rindex not supported.")
 
     def _str_normalize(self, form):
-        raise NotImplementedError
+        raise NotImplementedError("str.normalize not supported.")
 
     def _str_rfind(self, sub, start: int = 0, end=None):
-        raise NotImplementedError
+        raise NotImplementedError("str.rfind not supported.")
 
-    def _str_split(self, pat=None, n=-1, expand: bool = False):
-        raise NotImplementedError
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
+        raise NotImplementedError("str.split not supported.")
 
     def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError
+        raise NotImplementedError("str.rsplit not supported.")
 
     def _str_translate(self, table):
-        raise NotImplementedError
+        raise NotImplementedError("str.translate not supported.")
 
     def _str_wrap(self, width, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("str.wrap not supported.")

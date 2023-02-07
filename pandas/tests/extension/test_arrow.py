@@ -1857,13 +1857,6 @@ def test_str_join():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["partition", "rpartition"])
-def test_str_partition_unsupported(method):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="str."):
-        getattr(ser.str, method)("", False)
-
-
 @pytest.mark.parametrize(
     "start, stop, step, exp",
     [
@@ -1877,3 +1870,125 @@ def test_str_slice(start, stop, step, exp):
     result = ser.str.slice(start, stop, step)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, repl, exp",
+    [
+        [1, 2, "x", ["axcd", None]],
+        [None, 2, "x", ["xcd", None]],
+        [None, 2, None, ["cd", None]],
+    ],
+)
+def test_str_slice_replace(start, stop, repl, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice_replace(start, stop, repl)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, method, exp",
+    [
+        ["a1c", "isalnum", True],
+        ["!|,", "isalnum", False],
+        ["aaa", "isalpha", True],
+        ["!!!", "isalpha", False],
+        ["٠", "isdecimal", True],
+        ["~!", "isdecimal", False],
+        ["2", "isdigit", True],
+        ["~", "isdigit", False],
+        ["aaa", "islower", True],
+        ["aaA", "islower", False],
+        ["123", "isnumeric", True],
+        ["11I", "isnumeric", False],
+        [" ", "isspace", True],
+        ["", "isspace", False],
+        ["The That", "istitle", True],
+        ["the That", "istitle", False],
+        ["AAA", "isupper", True],
+        ["AAc", "isupper", False],
+    ],
+)
+def test_str_is_functions(value, method, exp):
+    ser = pd.Series([value, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["capitalize", "Abc def"],
+        ["title", "Abc Def"],
+        ["swapcase", "AbC Def"],
+        ["lower", "abc def"],
+        ["upper", "ABC DEF"],
+    ],
+)
+def test_str_transform_functions(method, exp):
+    ser = pd.Series(["aBc dEF", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_len():
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.len()
+    expected = pd.Series([4, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, to_strip, val",
+    [
+        ["strip", None, " abc "],
+        ["strip", "x", "xabcx"],
+        ["lstrip", None, " abc"],
+        ["lstrip", "x", "xabc"],
+        ["rstrip", None, "abc "],
+        ["rstrip", "x", "abcx"],
+    ],
+)
+def test_str_strip(method, to_strip, val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)(to_strip=to_strip)
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", ["abc123", "abc"])
+def test_str_removesuffix(val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.removesuffix("123")
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ["partition", ("abc", False)],
+        ["rpartition", ("abc", False)],
+        ["removeprefix", ("abc",)],
+        ["casefold", ()],
+        ["encode", ("abc",)],
+        ["extract", (r"[ab](\d)",)],
+        ["findall", ("abc",)],
+        ["get_dummies", ()],
+        ["index", ("abc",)],
+        ["rindex", ("abc",)],
+        ["normalize", ("abc",)],
+        ["rfind", ("abc",)],
+        ["split", ()],
+        ["rsplit", ()],
+        ["translate", ("abc",)],
+        ["wrap", ("abc",)],
+    ],
+)
+def test_str_unsupported_methods(method, args):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match=f"str.{method} not supported."):
+        getattr(ser.str, method)(*args)
