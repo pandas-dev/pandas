@@ -388,8 +388,15 @@ class BaseBlockManager(DataManager):
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
-    def interpolate(self: T, **kwargs) -> T:
-        return self.apply("interpolate", **kwargs)
+    def interpolate(self: T, inplace: bool, **kwargs) -> T:
+        if inplace:
+            # TODO(CoW) can be optimized to only copy those blocks that have refs
+            if using_copy_on_write() and any(
+                not self._has_no_reference_block(i) for i in range(len(self.blocks))
+            ):
+                self = self.copy()
+
+        return self.apply("interpolate", inplace=inplace, **kwargs)
 
     def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         axis = self._normalize_axis(axis)
@@ -1446,9 +1453,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 result_blocks = extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
-            index = Index([None])  # placeholder
+            nrows = 0
         else:
-            index = Index(range(result_blocks[0].values.shape[-1]))
+            nrows = result_blocks[0].values.shape[-1]
+        index = Index(range(nrows))
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 

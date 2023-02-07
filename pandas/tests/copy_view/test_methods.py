@@ -1196,6 +1196,22 @@ def test_asfreq_noop(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_interpolate_creates_copy(using_copy_on_write):
+    # GH#51126
+    df = DataFrame({"a": [1.5, np.nan, 3]})
+    view = df[:]
+    expected = df.copy()
+
+    df.ffill(inplace=True)
+    df.iloc[0, 0] = 100.5
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(view, expected)
+    else:
+        expected = DataFrame({"a": [100.5, 1.5, 3]})
+        tm.assert_frame_equal(view, expected)
+
+
 def test_isetitem(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()

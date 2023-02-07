@@ -6218,17 +6218,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: category
         Categories (2, int64): [2 < 1]
 
-        Note that using ``copy=False`` and changing data on a new
-        pandas object may propagate changes:
-
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = s1.astype('int64', copy=False)
-        >>> s2[0] = 10
-        >>> s1  # note that s1[0] has changed too
-        0    10
-        1     2
-        dtype: int64
-
         Create a series of dates:
 
         >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
@@ -8796,7 +8785,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
         return get_resampler(
-            self,
+            cast("Series | DataFrame", self),
             freq=rule,
             label=label,
             closed=closed,
@@ -11874,12 +11863,14 @@ The standard deviation of the columns can be found as follows:
 >>> df.std()
 age       18.786076
 height     0.237417
+dtype: float64
 
 Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 
 >>> df.std(ddof=0)
 age       16.269219
-height     0.205609"""
+height     0.205609
+dtype: float64"""
 
 _var_examples = """
 
@@ -11900,12 +11891,14 @@ person_id
 >>> df.var()
 age       352.916667
 height      0.056367
+dtype: float64
 
 Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
 
 >>> df.var(ddof=0)
 age       264.687500
-height      0.042275"""
+height      0.042275
+dtype: float64"""
 
 _bool_doc = """
 {desc}
