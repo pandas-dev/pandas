@@ -8,6 +8,7 @@ from pandas.tests.api.test_api import Base
 class TestTypes(Base):
 
     allowed = [
+        "is_any_real_numeric_dtype",
         "is_bool",
         "is_bool_dtype",
         "is_categorical_dtype",
