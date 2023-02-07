@@ -536,10 +536,6 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.parametrize(
-        "dtype_backend",
-        ["pandas", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
-    )
     @pytest.mark.parametrize("option", [True, False])
     def test_use_nullable_dtypes(self, read_ext, dtype_backend, option):
         # GH#36712
