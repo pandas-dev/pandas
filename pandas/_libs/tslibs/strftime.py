@@ -51,6 +51,13 @@ _COMMON_MAP = {
 _DATETIME_MAP = {
     "%f": ("us", "06d"),  # Microsecond as decimal number, 0-padded to 6 digits
 }
+_DATETIME_UNSUPPORTED = (
+    "%F",
+    "%q",
+    "%l",
+    "%u",
+    "%n",
+)
 
 _PERIOD_MAP = {
     "%f": (
@@ -63,6 +70,7 @@ _PERIOD_MAP = {
     "%u": ("us", "06d"),  # Microsecond as decimal number, 0-padded 6 digits
     "%n": ("ns", "09d"),  # Nanosecond as decimal number, 0-padded 9 digits
 }
+_PERIOD_UNSUPPORTED = ()
 
 
 class LocaleSpecificDtStrings:
@@ -207,15 +215,18 @@ def convert_strftime_format(
     """
     if target in ("datetime", "date", "time"):
         directive_maps = (_COMMON_MAP, _DATETIME_MAP)
+        unsupported = (_COMMON_UNSUPPORTED, _DATETIME_UNSUPPORTED)
     elif target == "period":
         directive_maps = (_COMMON_MAP, _PERIOD_MAP)
+        unsupported = (_COMMON_UNSUPPORTED, _PERIOD_UNSUPPORTED)
     else:
         raise ValueError(f"Invalid target: {repr(target)}")
 
     # Raise if unsupported directive found in `strftime_fmt`
-    for key in _COMMON_UNSUPPORTED:
-        if key in strftime_fmt:
-            raise UnsupportedStrFmtDirective(f"Unsupported directive: '{key}'")
+    for _u in unsupported:
+        for key in _u:
+            if key in strftime_fmt:
+                raise UnsupportedStrFmtDirective(f"Unsupported directive: '{key}'")
 
     # Mapping between strftime and string formatting, according to both styles
     if new_style_fmt:
