@@ -348,7 +348,12 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg, self.axis, *self.args, **self.kwargs)
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            arg, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
