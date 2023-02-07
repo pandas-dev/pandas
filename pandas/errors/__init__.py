@@ -339,6 +339,7 @@ class ChainedAssignmentError(ValueError):
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
     >>> df["A"][0:3] = 10 # doctest: +SKIP
     ... # ChainedAssignmentError: ...
+    >>> pd.options.mode.copy_on_write = False
     """
 
 

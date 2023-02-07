@@ -80,3 +80,26 @@ def test_spss_usecols(datapath):
 
     with pytest.raises(TypeError, match="usecols must be list-like."):
         pd.read_spss(fname, usecols="VAR00002")
+
+
+def test_spss_umlauts_use_nullable_dtypes(datapath, dtype_backend):
+    # test file from the Haven project (https://haven.tidyverse.org/)
+    fname = datapath("io", "data", "spss", "umlauts.sav")
+
+    with pd.option_context("mode.dtype_backend", dtype_backend):
+        df = pd.read_spss(fname, convert_categoricals=False, use_nullable_dtypes=True)
+    expected = pd.DataFrame({"var1": [1.0, 2.0, 1.0, 3.0]}, dtype="Int64")
+
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+
+        from pandas.arrays import ArrowExtensionArray
+
+        expected = pd.DataFrame(
+            {
+                col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                for col in expected.columns
+            }
+        )
+
+    tm.assert_frame_equal(df, expected)

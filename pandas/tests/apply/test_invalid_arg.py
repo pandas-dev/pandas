@@ -277,7 +277,7 @@ def test_agg_none_to_type():
     df = DataFrame({"a": [None]})
     msg = re.escape("int() argument must be a string")
     with pytest.raises(TypeError, match=msg):
-        df.agg({"a": int})
+        df.agg({"a": lambda x: int(x.iloc[0])})
 
 
 def test_transform_none_to_type():
@@ -285,7 +285,7 @@ def test_transform_none_to_type():
     df = DataFrame({"a": [None]})
     msg = "argument must be a"
     with pytest.raises(TypeError, match=msg):
-        df.transform({"a": int})
+        df.transform({"a": lambda x: int(x.iloc[0])})
 
 
 @pytest.mark.parametrize(
