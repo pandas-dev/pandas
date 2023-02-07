@@ -950,9 +950,10 @@ class ArrayManager(BaseArrayManager):
             result_indices.append(i)
 
         if len(result_arrays) == 0:
-            index = Index([None])  # placeholder
+            nrows = 0
         else:
-            index = Index(range(result_arrays[0].shape[0]))
+            nrows = result_arrays[0].shape[0]
+        index = Index(range(nrows))
 
         columns = self.items
 

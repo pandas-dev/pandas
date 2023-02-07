@@ -343,6 +343,14 @@ def test_scalar_raises():
         pd.array(1)
 
 
+def test_dataframe_raises():
+    # GH#51167 don't accidentally cast to StringArray by doing inference on columns
+    df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+    msg = "Cannot pass DataFrame to 'pandas.array'"
+    with pytest.raises(TypeError, match=msg):
+        pd.array(df)
+
+
 def test_bounds_check():
     # GH21796
     with pytest.raises(

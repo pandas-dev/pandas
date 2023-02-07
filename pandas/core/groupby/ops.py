@@ -15,7 +15,6 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
-    NoReturn,
     Sequence,
     final,
 )
@@ -227,9 +226,10 @@ class WrappedCythonOp:
 
         Raises
         ------
+        TypeError
+            This is not a valid operation for this dtype.
         NotImplementedError
-            This is either not a valid function for this dtype, or
-            valid but not implemented in cython.
+            This may be a valid operation, but does not have a cython implementation.
         """
         how = self.how
 
@@ -238,15 +238,15 @@ class WrappedCythonOp:
             return
 
         if isinstance(dtype, CategoricalDtype):
-            # NotImplementedError for methods that can fall back to a
-            #  non-cython implementation.
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
+            if how in ["min", "max", "rank"] and not dtype.ordered:
+                # raise TypeError instead of NotImplementedError to ensure we
+                #  don't go down a group-by-group path, since in the empty-groups
+                #  case that would fail to raise
+                raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
             if how not in ["rank"]:
                 # only "rank" is implemented in cython
-                raise NotImplementedError(f"{dtype} dtype not supported")
-            if not dtype.ordered:
-                # TODO: TypeError?
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
@@ -678,7 +678,6 @@ class BaseGrouper:
     sort : bool, default True
         whether this grouper will give sorted result or not
     group_keys : bool, default True
-    mutated : bool, default False
     indexer : np.ndarray[np.intp], optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
@@ -694,7 +693,6 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
-        mutated: bool = False,
         indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
     ) -> None:
@@ -704,7 +702,6 @@ class BaseGrouper:
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
         self.group_keys = group_keys
-        self.mutated = mutated
         self.indexer = indexer
         self.dropna = dropna
 
@@ -748,15 +745,6 @@ class BaseGrouper:
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
 
-    def _get_grouper(self):
-        """
-        We are a grouper as part of another's groupings.
-
-        We have a specific method of grouping, so cannot
-        convert to a Index for our grouper.
-        """
-        return self.groupings[0].grouping_vector
-
     @final
     @cache_readonly
     def group_keys_seq(self):
@@ -772,7 +760,7 @@ class BaseGrouper:
     def apply(
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
-        mutated = self.mutated
+        mutated = False
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self.group_keys_seq
         result_values = []
@@ -906,9 +894,6 @@ class BaseGrouper:
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
-            ids = ensure_platform_int(ids)
-            # TODO: if numpy annotates np.lexsort, this ensure_platform_int
-            #  may become unnecessary
         return ids
 
     @final
@@ -1012,21 +997,14 @@ class BaseGrouper:
         # test_groupby_empty_with_category gets here with self.ngroups == 0
         #  and len(obj) > 0
 
-        if len(obj) == 0:
-            # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            result = self._aggregate_series_pure_python(obj, func)
-
-        elif not isinstance(obj._values, np.ndarray):
-            result = self._aggregate_series_pure_python(obj, func)
-
+        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        else:
-            result = self._aggregate_series_pure_python(obj, func)
+        result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -1041,7 +1019,6 @@ class BaseGrouper:
     ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
-        counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
@@ -1057,7 +1034,6 @@ class BaseGrouper:
                 libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
-            counts[i] = group.shape[0]
             result[i] = res
 
         return result
@@ -1071,7 +1047,6 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    mutated : bool, default False
     indexer : np.ndarray[np.intp]
 
     Examples
@@ -1094,18 +1069,15 @@ class BinGrouper(BaseGrouper):
 
     bins: npt.NDArray[np.int64]
     binlabels: Index
-    mutated: bool
 
     def __init__(
         self,
         bins,
         binlabels,
-        mutated: bool = False,
         indexer=None,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self.mutated = mutated
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
@@ -1128,15 +1100,6 @@ class BinGrouper(BaseGrouper):
     def nkeys(self) -> int:
         # still matches len(self.groupings), but we can hard-code
         return 1
-
-    def _get_grouper(self):
-        """
-        We are a grouper as part of another's groupings.
-
-        We have a specific method of grouping, so cannot
-        convert to a Index for our grouper.
-        """
-        return self
 
     def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
         """
@@ -1223,12 +1186,6 @@ class BinGrouper(BaseGrouper):
         )
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
-        # -> np.ndarray[object]
-        raise NotImplementedError(
-            "This should not be reached; use _aggregate_series_pure_python"
-        )
-
 
 def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
     if isinstance(obj, Series):
@@ -1261,7 +1218,7 @@ class DataSplitter(Generic[NDFrameT]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> npt.NDArray[np.intp]:
+    def _slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
@@ -1271,20 +1228,20 @@ class DataSplitter(Generic[NDFrameT]):
         return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self) -> Iterator:
-        sdata = self.sorted_data
+        sdata = self._sorted_data
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
             return
 
-        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
+        starts, ends = lib.generate_slices(self._slabels, self.ngroups)
 
         for start, end in zip(starts, ends):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
-    def sorted_data(self) -> NDFrameT:
+    def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:

@@ -64,7 +64,7 @@ def test_apply_iteration():
     df = DataFrame({"open": 1, "close": 2}, index=ind)
     tg = Grouper(freq="M")
 
-    _, grouper, _ = tg._get_grouper(df)
+    grouper, _ = tg._get_grouper(df)
 
     # Errors
     grouped = df.groupby(grouper, group_keys=False)

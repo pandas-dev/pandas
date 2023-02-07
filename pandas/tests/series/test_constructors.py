@@ -52,6 +52,16 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_from_ints_with_non_nano_dt64_dtype(self, index_or_series):
+        values = np.arange(10)
+
+        res = index_or_series(values, dtype="M8[s]")
+        expected = index_or_series(values.astype("M8[s]"))
+        tm.assert_equal(res, expected)
+
+        res = index_or_series(list(values), dtype="M8[s]")
+        tm.assert_equal(res, expected)
+
     def test_from_na_value_and_interval_of_datetime_dtype(self):
         # GH#41805
         ser = Series([None], dtype="interval[datetime64[ns]]")
@@ -134,10 +144,6 @@ class TestSeriesConstructors:
         # Pass in scalar is disabled
         scalar = Series(0.5)
         assert not isinstance(scalar, float)
-
-        # Coercion
-        assert float(Series([1.0])) == 1.0
-        assert int(Series([1.0])) == 1
 
     def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
         # GH 28401

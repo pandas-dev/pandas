@@ -252,7 +252,8 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int64": 1,
                 "object": 1,
                 "datetime64[ns]": 2,
-            }
+            },
+            name="count",
         )
         result = result.sort_index()
         expected = expected.sort_index()
