@@ -1752,7 +1752,6 @@ __all__ = [
     "is_nested_list_like",
     "is_number",
     "is_numeric_dtype",
-    "is_numeric_v_string_like",
     "is_object_dtype",
     "is_period_dtype",
     "is_re",
