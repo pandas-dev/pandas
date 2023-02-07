@@ -166,13 +166,13 @@ cpdef inline (int64_t, int) precision_from_unit(
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
     if out_reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        multiplier = 1
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        multiplier = 1_000
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        multiplier = 1_000_000
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
         multiplier = 1_000_000_000
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
+        multiplier = 1_000_000
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+        multiplier = 1_000
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
+        multiplier = 1
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         # each 400 years we have 97 leap years, for an average of 97/400=.2425
@@ -197,26 +197,16 @@ cpdef inline (int64_t, int) precision_from_unit(
         m = multiplier * 60
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        m = 1_000_000_000 // multiplier
+        m = multiplier
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        if out_reso not in [
-            NPY_DATETIMEUNIT.NPY_FR_ns,
-            NPY_DATETIMEUNIT.NPY_FR_us,
-            NPY_DATETIMEUNIT.NPY_FR_ms,
-        ]:
-            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
-        m = 1_000_000 // multiplier
+        m = multiplier // 1_000
         p = 6
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        if out_reso not in [NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_us]:
-            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
-        m = 1_000 // multiplier
+        m = multiplier // 1_000_000
         p = 3
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        if out_reso != NPY_DATETIMEUNIT.NPY_FR_ns:
-            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
-        m = 1
+        m = multiplier // 1_000_000_000
         p = 0
     else:
         raise ValueError(f"cannot cast unit {unit}")
