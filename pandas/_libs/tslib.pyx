@@ -182,19 +182,21 @@ def format_array_from_datetime(
             # Default format for dates
             basic_format_day = True
 
-        elif fast_strftime:
-            if format is None:
-                # We'll fallback to the Timestamp.str method
-                fast_strftime = False
-            else:
-                try:
-                    # Try to get the string formatting template for this format
-                    str_format, loc_s = convert_strftime_format(format, target="datetime")
-                except UnsupportedStrFmtDirective:
-                    # Unsupported directive: fallback to standard `strftime`
-                    fast_strftime = False
-
+    # Sanity check - these flags are exclusive
     assert not (basic_format_day and basic_format)
+
+    if not basic_format_day and not basic_format and fast_strftime:
+        # Preprocessing for fast_strftime
+        if format is None:
+            # We'll fallback to the Timestamp.str method
+            fast_strftime = False
+        else:
+            try:
+                # Try to get the string formatting template for this format
+                str_format, loc_s = convert_strftime_format(format, target="datetime")
+            except UnsupportedStrFmtDirective:
+                # Unsupported directive: fallback to standard `strftime`
+                fast_strftime = False
 
     for i in range(N):
         # Analogous to: utc_val = values[i]
