@@ -17,6 +17,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 def import_module(name):
@@ -34,7 +35,7 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-def test_dask(df):
+def test_dask(df, request):
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
@@ -43,6 +44,14 @@ def test_dask(df):
     try:
         toolz = import_module("toolz")  # noqa:F841
         dask = import_module("dask")  # noqa:F841
+
+        if Version(dask.__version__) < Version("2023.1.1"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Used pandas.core.strings.StringMethods which moved",
+                    raises=AttributeError,
+                )
+            )
 
         import dask.dataframe as dd
 
