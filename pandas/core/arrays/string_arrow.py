@@ -117,6 +117,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
 
+    def __len__(self) -> int:
+        """
+        Length of this array.
+
+        Returns
+        -------
+        length : int
+        """
+        return len(self._data)
+
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
