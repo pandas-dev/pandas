@@ -653,6 +653,7 @@ Data type introspection
 .. autosummary::
    :toctree: api/
 
+    api.types.is_any_real_numeric_dtype
     api.types.is_bool_dtype
     api.types.is_categorical_dtype
     api.types.is_complex_dtype
@@ -666,7 +667,6 @@ Data type introspection
     api.types.is_integer_dtype
     api.types.is_interval_dtype
     api.types.is_numeric_dtype
-    api.types.is_any_real_numeric_dtype
     api.types.is_object_dtype
     api.types.is_period_dtype
     api.types.is_signed_integer_dtype
