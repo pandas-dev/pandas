@@ -183,6 +183,7 @@ class CSVFormatter:
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
+            # TODO This branch seems unreachable, remove the if ?
             data_index = Index(
                 [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
             )

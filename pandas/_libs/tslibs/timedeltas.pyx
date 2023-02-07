@@ -1403,6 +1403,7 @@ cdef class _Timedelta(timedelta):
         comp_dict = self.components._asdict()
         comp_dict['sign'] = sign
 
+        # TODO make marginally faster using old-style python formatting ?
         return fmt.format(**comp_dict)
 
     def __repr__(self) -> str:
