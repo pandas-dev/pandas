@@ -100,6 +100,10 @@ cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT reso=NPY_FR_ns
         int p
 
     m, p = precision_from_unit(unit, reso)
+    print("unit", unit)
+    print("reso", reso)
+    print("ts", ts)
+    print("m", m)
 
     # just give me the unit back
     if ts is None:
@@ -142,7 +146,7 @@ cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT reso=NPY_FR_ns
         ) from err
 
 
-cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns):
+cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_reso = NPY_DATETIMEUNIT.NPY_FR_ns):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
@@ -154,57 +158,59 @@ cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_r
     """
     cdef:
         int64_t m
+        int64_t multiplier
         int p
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
-        int64_t multiplier
 
     if out_reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        multiplier = 1_000_000_000
-        p = 0
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        multiplier = 1_000_000
-        p = 3
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        multiplier = 1_000
-        p = 6
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
         multiplier = 1
-        p = 9
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
+        multiplier = 1_000
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+        multiplier = 1_000_000
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
+        multiplier = 1_000_000_000
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         # each 400 years we have 97 leap years, for an average of 97/400=.2425
         #  extra days each year. We get 31556952 by writing
         #  3600*24*365.2425=31556952
         m = multiplier * 31556952
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
         # 2629746 comes from dividing the "Y" case by 12.
         m = multiplier * 2629746
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
         m = multiplier * 3600 * 24 * 7
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
         m = multiplier * 3600 * 24
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
         m = multiplier * 3600
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
         m = multiplier * 60
-        #p = 9
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        m = multiplier
-        #p = 9
+        m = 1_000_000_000 // multiplier
+        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        m = multiplier
-        #p = 6
+        if out_reso not in [NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_us, NPY_DATETIMEUNIT.NPY_FR_ms]:
+            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
+        m = 1_000_000 // multiplier
+        p = 6
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        m = multiplier
-        #p = 3
+        if out_reso not in [NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_us]:
+            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
+        m = 1_000 // multiplier
+        p = 3
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        m = multiplier
-        #p = 0
+        if out_reso != NPY_DATETIMEUNIT.NPY_FR_ns:
+            raise ValueError(f"cannot cast unit {unit} to reso {out_reso}")
+        m = 1
+        p = 0
     else:
         raise ValueError(f"cannot cast unit {unit}")
     return m, p
