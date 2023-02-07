@@ -2360,7 +2360,8 @@ cdef class _Period(PeriodMixin):
     def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` and `loc_s` should be created using `convert_strftime_format(fmt)`.
+        `fmt_str` and `loc_s` should be created using
+        `convert_strftime_format(fmt, target="period")`.
 
         See also `self.strftime`, that relies on `period_format`.
 

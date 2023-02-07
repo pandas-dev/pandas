@@ -189,7 +189,7 @@ def format_array_from_datetime(
             else:
                 try:
                     # Try to get the string formatting template for this format
-                    str_format, loc_s = convert_strftime_format(format)
+                    str_format, loc_s = convert_strftime_format(format, target="datetime")
                 except UnsupportedStrFmtDirective:
                     # Unsupported directive: fallback to standard `strftime`
                     fast_strftime = False

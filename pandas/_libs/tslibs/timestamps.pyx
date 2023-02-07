@@ -1435,7 +1435,8 @@ class Timestamp(_Timestamp):
     def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` and `loc_s` should be created using `convert_strftime_format(fmt)`.
+        `fmt_str` and `loc_s` should be created using
+        `convert_strftime_format(fmt, target="datetime")`.
 
         See also `self.strftime`, that relies on `datetime.strftime`.
 
@@ -1443,7 +1444,7 @@ class Timestamp(_Timestamp):
         --------
         >>> from pandas._libs.tslibs import convert_strftime_format
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> fmt, loc_s = convert_strftime_format('%Y-%m-%dT%H:%M:%S')
+        >>> fmt, loc_s = convert_strftime_format('%Y-%m-%dT%H:%M:%S', target="datetime")
         >>> ts.fast_strftime(fmt, loc_s)
         '2020-03-14T15:32:52'
         """

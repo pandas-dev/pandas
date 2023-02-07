@@ -1822,7 +1822,8 @@ def get_format_datetime64(
         if date_format is not None and fast_strftime:
             try:
                 # Try to get the string formatting template for this format
-                str_date_fmt, loc_s = convert_strftime_format(date_format)
+                str_date_fmt, loc_s = convert_strftime_format(date_format,
+                                                              target="datetime")
             except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
                 pass

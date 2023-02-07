@@ -127,7 +127,7 @@ def get_current_locale_specific_string() -> LocaleSpecificDtStrings:
 
 def convert_strftime_format(
     strftime_fmt: str,
-    target: str = "datetime",
+    target: str,
     new_style_fmt: bool = False,
 ) -> Tuple[str, LocaleSpecificDtStrings]:
     """Convert a strftime formatting string into a formatting template string.
