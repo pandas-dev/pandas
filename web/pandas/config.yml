@@ -1,10 +1,10 @@
 main:
   templates_path: _templates
   base_template: "layout.html"
+  production_url: "https://pandas.pydata.org/"
   ignore:
   - _templates/layout.html
   - config.yml
-  - try.md  # the binder page will be added later
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.current_year
@@ -19,40 +19,40 @@ main:
   - fenced_code
   - meta
 static:
-  logo: /static/img/pandas_white.svg
+  logo: static/img/pandas_white.svg
   css:
-  - /static/css/pandas.css
+  - static/css/pandas.css
 navbar:
   - name: "About us"
     target:
     - name: "About pandas"
-      target: /about/
+      target: about/
     - name: "Project roadmap"
-      target: /about/roadmap.html
+      target: about/roadmap.html
     - name: "Governance"
-      target: /about/governance.html
+      target: about/governance.html
     - name: "Team"
-      target: /about/team.html
+      target: about/team.html
     - name: "Sponsors"
-      target: /about/sponsors.html
+      target: about/sponsors.html
     - name: "Citing and logo"
-      target: /about/citing.html
+      target: about/citing.html
   - name: "Getting started"
-    target: /getting_started.html
+    target: getting_started.html
   - name: "Documentation"
-    target: /docs/
+    target: docs/
   - name: "Community"
     target:
     - name: "Blog"
-      target: /community/blog/
+      target: community/blog/
     - name: "Ask a question (StackOverflow)"
       target: https://stackoverflow.com/questions/tagged/pandas
     - name: "Code of conduct"
-      target: /community/coc.html
+      target: community/coc.html
     - name: "Ecosystem"
-      target: /community/ecosystem.html
+      target: community/ecosystem.html
   - name: "Contribute"
-    target: /contribute.html
+    target: contribute.html
 blog:
   num_posts: 50
   posts_path: community/blog
@@ -64,6 +64,7 @@ blog:
   - https://jorisvandenbossche.github.io/feeds/pandas.atom.xml
   - https://datapythonista.me/blog/feeds/pandas.atom.xml
   - https://numfocus.org/tag/pandas/feed/
+  - https://phofl.github.io/feeds/pandas.atom.xml
 maintainers:
   active:
   - wesm
@@ -101,62 +102,90 @@ maintainers:
   - jschendel
   - charlesdong1991
   - dsaxton
+workgroups:
   coc:
-  - Safia Abdalla
-  - Tom Augspurger
-  - Joris Van den Bossche
-  - Camille Scott
-  - Nathaniel Smith
-  numfocus:
-  - Wes McKinney
-  - Jeff Reback
-  - Joris Van den Bossche
-  - Tom Augspurger
-  - Matthew Roeschke
+    name: Code of Conduct
+    contact: coc@pandas.pydata.org
+    responsibilities: "Make sure pandas is the welcoming and inclusive community we want it to be. Keeping the CoC updated, and addressing violation reports."
+    members:
+    - Tom Augspurger
+    - Bijay Regmi
+    - Wuraola Oyewusi
+    - Мария Чакчурина
+  finance:
+    name: Finance
+    contact: finance@pandas.pydata.org
+    responsibilities: "Approve the project expenses."
+    members:
+    - Wes McKinney
+    - Jeff Reback
+    - Joris Van den Bossche
+    - Tom Augspurger
+    - Matthew Roeschke
+  infrastructure:
+    name: Infrastructure
+    contact: infrastructure@pandas.pydata.org
+    responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
+    members:
+    - Marc Garcia
+    - Matthew Roeschke
+    - Thomas Li
+  communications:
+    name: Communications
+    contact: communications@pandas.pydata.org
+    responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
+    members:
+    - Marco Gorelli
+    - Marc Garcia
 sponsors:
   active:
   - name: "NumFOCUS"
     url: https://numfocus.org/
-    logo: /static/img/partners/numfocus.svg
+    logo: static/img/partners/numfocus.svg
     kind: numfocus
   - name: "Two Sigma"
     url: https://www.twosigma.com/
-    logo: /static/img/partners/two_sigma.svg
+    logo: static/img/partners/two_sigma.svg
     kind: partner
     description: "Jeff Reback"
   - name: "Voltron Data"
     url: https://voltrondata.com/
-    logo: /static/img/partners/voltron_data.svg
+    logo: static/img/partners/voltron_data.svg
     kind: partner
     description: "Joris Van den Bossche"
   - name: "d-fine GmbH"
     url: https://www.d-fine.com/en/
-    logo: /static/img/partners/dfine.svg
+    logo: static/img/partners/dfine.svg
     kind: partner
     description: "Patrick Hoefler"
   - name: "Quansight"
     url: https://quansight.com/
-    logo: /static/img/partners/quansight_labs.svg
+    logo: static/img/partners/quansight_labs.svg
     kind: partner
     description: "Marco Gorelli"
   - name: "Nvidia"
     url: https://www.nvidia.com
-    logo: /static/img/partners/nvidia.svg
+    logo: static/img/partners/nvidia.svg
     kind: partner
     description: "Matthew Roeschke"
+  - name: "Intel"
+    url: https://www.intel.com/
+    logo: /static/img/partners/intel.svg
+    kind: partner
+    description: "Brock Mendel"
   - name: "Tidelift"
     url: https://tidelift.com
-    logo: /static/img/partners/tidelift.svg
+    logo: static/img/partners/tidelift.svg
     kind: regular
     description: "<i>pandas</i> is part of the <a href=\"https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme\">Tidelift subscription</a>. You can support pandas by becoming a Tidelift subscriber."
   - name: "Chan Zuckerberg Initiative"
     url: https://chanzuckerberg.com/
-    logo: /static/img/partners/czi.svg
+    logo: static/img/partners/czi.svg
     kind: regular
     description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
   - name: "Bodo"
     url: https://www.bodo.ai/
-    logo: /static/img/partners/bodo.svg
+    logo: static/img/partners/bodo.svg
     kind: regular
     description: "Bodo's parallel computing platform uses pandas API, and Bodo financially supports pandas development to help improve pandas, in particular the pandas API"
   inkind:  # not included in active so they don't appear in the home page

@@ -5,12 +5,12 @@ from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 import itertools
 import locale
 from operator import methodcaller
-import os
 from pathlib import Path
 import re
 from shutil import get_terminal_size
@@ -46,8 +46,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
 
@@ -106,11 +106,6 @@ def assert_filepath_or_buffer_equals(
     return _assert_filepath_or_buffer_equals
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 def has_info_repr(df):
     r = repr(df)
     c1 = r.split("\n")[0].startswith("<class")
@@ -140,7 +135,7 @@ def has_horizontally_truncated_repr(df):
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
-    for ix, l in enumerate(r.splitlines()):
+    for ix, _ in enumerate(r.splitlines()):
         if not r.split()[cand_col] == "...":
             return False
     return True
@@ -171,7 +166,6 @@ def has_expanded_repr(df):
     return False
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
     def test_eng_float_formatter(self, float_frame):
         df = float_frame
@@ -200,7 +194,8 @@ class TestDataFrameFormatting:
     )
     def test_show_counts(self, row, columns, show_counts, result):
 
-        df = DataFrame(1, columns=range(10), index=range(10))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
         df.iloc[1, 1] = np.nan
 
         with option_context(
@@ -209,20 +204,6 @@ class TestDataFrameFormatting:
             with StringIO() as buf:
                 df.info(buf=buf, show_counts=show_counts)
                 assert ("non-null" in buf.getvalue()) is result
-
-    def test_show_null_counts_deprecation(self):
-        # GH37999
-        df = DataFrame(1, columns=range(10), index=range(10))
-        with tm.assert_produces_warning(
-            FutureWarning, match="null_counts is deprecated.+"
-        ):
-            buf = StringIO()
-            df.info(buf=buf, null_counts=True)
-            assert "non-null" in buf.getvalue()
-
-        # GH37999
-        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
-            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -1009,12 +990,10 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1265,8 +1244,6 @@ class TestDataFrameFormatting:
             dtype="int64",
         )
 
-        import re
-
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
         assert nmatches == 1
@@ -1353,7 +1330,6 @@ class TestDataFrameFormatting:
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
-            index=np.arange(200),
         )
 
         biggie.loc[:20, "A"] = np.nan
@@ -1429,25 +1405,25 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
-        # GH 13998, GH 22505
+        # GH 13998, GH 22505, # GH 49230
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n 1  \\\n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n11  \\\n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x   \n 11  \\\n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1700,6 +1676,20 @@ c  10  11  12  13  14\
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
         assert max(len(line) for line in s.split("\n")) == 80
+
+    def test_to_string_header_false(self):
+        # GH 49230
+        df = DataFrame([1, 2])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a   \n0  1\n1  2"
+        assert s == expected
+
+        df = DataFrame([[1, 2], [3, 4]])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a      \n0  1  2\n1  3  4"
+        assert s == expected
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -2460,12 +2450,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
@@ -3607,7 +3591,6 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
-@pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",
@@ -3622,6 +3605,8 @@ def test_filepath_or_buffer_arg(
     filepath_or_buffer_id,
 ):
     df = DataFrame([data])
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
 
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
@@ -3629,19 +3614,18 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        expected_warning = FutureWarning if method == "to_latex" else None
-        with tm.assert_produces_warning(expected_warning):
-            with pytest.raises(LookupError, match="unknown encoding"):
-                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        with pytest.raises(LookupError, match="unknown encoding"):
+            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
         assert_filepath_or_buffer_equals(expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())

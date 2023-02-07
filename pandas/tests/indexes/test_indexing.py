@@ -19,6 +19,8 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
+from pandas.core.dtypes.common import is_float_dtype
+
 from pandas import (
     NA,
     DatetimeIndex,
@@ -31,11 +33,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
 
 
 class TestTake:
@@ -114,12 +111,12 @@ class TestContains:
             (Index([0, 1, 2, np.nan]), 4),
             (Index([0, 1, 2, np.inf]), np.nan),
             (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
+            # Checking if np.inf in int64 Index should not cause an OverflowError
             # Related to GH 16957
-            (Int64Index([0, 1, 2]), np.inf),
-            (Int64Index([0, 1, 2]), np.nan),
-            (UInt64Index([0, 1, 2]), np.inf),
-            (UInt64Index([0, 1, 2]), np.nan),
+            (Index([0, 1, 2], dtype=np.int64), np.inf),
+            (Index([0, 1, 2], dtype=np.int64), np.nan),
+            (Index([0, 1, 2], dtype=np.uint64), np.inf),
+            (Index([0, 1, 2], dtype=np.uint64), np.nan),
         ],
     )
     def test_index_not_contains(self, index, val):
@@ -139,20 +136,20 @@ class TestContains:
         # GH#19860
         assert val not in index
 
-    def test_contains_with_float_index(self):
+    def test_contains_with_float_index(self, any_real_numpy_dtype):
         # GH#22085
-        integer_index = Int64Index([0, 1, 2, 3])
-        uinteger_index = UInt64Index([0, 1, 2, 3])
-        float_index = Float64Index([0.1, 1.1, 2.2, 3.3])
+        dtype = any_real_numpy_dtype
+        data = [0, 1, 2, 3] if not is_float_dtype(dtype) else [0.1, 1.1, 2.2, 3.3]
+        index = Index(data, dtype=dtype)
 
-        for index in (integer_index, uinteger_index):
+        if not is_float_dtype(index.dtype):
             assert 1.1 not in index
             assert 1.0 in index
             assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
+        else:
+            assert 1.1 in index
+            assert 1.0 not in index
+            assert 1 not in index
 
     def test_contains_requires_hashable_raises(self, index):
         if isinstance(index, MultiIndex):
@@ -290,11 +287,9 @@ class TestPutmask:
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx[1.0]
-
-    expected = idx[1]
-    assert result == expected
+    msg = "Indexing with a float is no longer supported"
+    with pytest.raises(IndexError, match=msg):
+        idx[1.0]
 
 
 @pytest.mark.parametrize(

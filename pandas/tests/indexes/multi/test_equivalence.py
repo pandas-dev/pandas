@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+
 import pandas as pd
 from pandas import (
     Index,
@@ -191,18 +193,7 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # subclass-specific keywords to pd.Index
-        mi3 = Index(mi.tolist(), names=mi.names)
-
-    msg = r"Unexpected keyword arguments {'names'}"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            # subclass-specific keywords to pd.Index
-            Index(mi.tolist(), names=mi.names, tupleize_cols=False)
-
     mi4 = Index(mi.tolist(), tupleize_cols=False)
-    assert mi.identical(mi3)
     assert not mi.identical(mi4)
     assert mi.equals(mi4)
 
@@ -264,7 +255,7 @@ def test_is_all_dates(idx):
 
 def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not idx.is_numeric()
+    assert not is_any_real_numeric_dtype(idx)
 
 
 def test_multiindex_compare():

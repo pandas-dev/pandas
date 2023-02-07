@@ -27,6 +27,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_any_real_numeric_dtype,
     is_categorical_dtype,
     is_extension_array_dtype,
     is_float,
@@ -55,7 +56,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -74,7 +75,6 @@ from pandas.plotting._matplotlib.tools import (
     get_all_lines,
     get_xlim,
     handle_shared_axes,
-    table,
 )
 
 if TYPE_CHECKING:
@@ -257,7 +257,7 @@ class MPLPlot(ABC):
         # Probably better to accept either.
         if "cmap" in kwds and colormap:
             raise TypeError("Only specify one of `cmap` and `colormap`.")
-        elif "cmap" in kwds:
+        if "cmap" in kwds:
             self.colormap = kwds.pop("cmap")
         else:
             self.colormap = colormap
@@ -358,16 +358,15 @@ class MPLPlot(ABC):
                 raise ValueError(
                     f"Column label(s) {list(bad_labels)} not found in the DataFrame."
                 )
-            else:
-                unique_columns = set(group)
-                duplicates = seen_columns.intersection(unique_columns)
-                if duplicates:
-                    raise ValueError(
-                        "Each column should be in only one subplot. "
-                        f"Columns {duplicates} were found in multiple subplots."
-                    )
-                seen_columns = seen_columns.union(unique_columns)
-                out.append(tuple(idx_locs))
+            unique_columns = set(group)
+            duplicates = seen_columns.intersection(unique_columns)
+            if duplicates:
+                raise ValueError(
+                    "Each column should be in only one subplot. "
+                    f"Columns {duplicates} were found in multiple subplots."
+                )
+            seen_columns = seen_columns.union(unique_columns)
+            out.append(tuple(idx_locs))
 
         unseen_columns = columns.difference(seen_columns)
         for column in unseen_columns:
@@ -457,6 +456,7 @@ class MPLPlot(ABC):
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
+    @abstractmethod
     def _args_adjust(self) -> None:
         pass
 
@@ -602,9 +602,9 @@ class MPLPlot(ABC):
             self.subplots = True
             data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
-        # GH16953, _convert is needed as fallback, for ``Series``
+        # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data._convert(datetime=True, timedelta=True)
+        data = data.infer_objects(copy=False)
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -646,7 +646,7 @@ class MPLPlot(ABC):
         else:
             data = self.table
         ax = self._get_ax(0)
-        table(ax, data)
+        tools.table(ax, data)
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
@@ -666,9 +666,9 @@ class MPLPlot(ABC):
         else:  # pragma no cover
             raise ValueError
 
+    @abstractmethod
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
-        pass
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
@@ -841,13 +841,11 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif index.is_numeric():
-                """
-                Matplotlib supports numeric values or datetime objects as
-                xaxis values. Taking LBYL approach here, by the time
-                matplotlib raises exception when using non numeric/datetime
-                values for xaxis, several actions are already taken by plt.
-                """
+            elif is_any_real_numeric_dtype(index):
+                # Matplotlib supports numeric values or datetime objects as
+                # xaxis values. Taking LBYL approach here, by the time
+                # matplotlib raises exception when using non numeric/datetime
+                # values for xaxis, several actions are already taken by plt.
                 x = index._mpl_repr()
             elif is_datetype:
                 self.data = self.data[notna(self.data.index)]
@@ -1140,9 +1138,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not self.data.columns.holds_integer():
+        if is_integer(x) and not self.data.columns._holds_integer():
             x = self.data.columns[x]
-        if is_integer(y) and not self.data.columns.holds_integer():
+        if is_integer(y) and not self.data.columns._holds_integer():
             y = self.data.columns[y]
 
         # Scatter plot allows to plot objects data
@@ -1183,11 +1181,7 @@ class PlanePlot(MPLPlot, ABC):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        with warnings.catch_warnings():
-            # https://github.com/matplotlib/matplotlib/issues/23614
-            # False positive deprecation warning until matplotlib=3.6
-            warnings.filterwarnings("ignore", "Auto-removal of grids")
-            return self.fig.colorbar(img, ax=ax, **kwds)
+        return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):
@@ -1203,7 +1197,7 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
-        if is_integer(c) and not self.data.columns.holds_integer():
+        if is_integer(c) and not self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1218,7 +1212,7 @@ class ScatterPlot(PlanePlot):
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is None and color is None:
+        if c is None and color is None:
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
@@ -1230,19 +1224,13 @@ class ScatterPlot(PlanePlot):
             c_values = c
 
         if self.colormap is not None:
-            if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[self.colormap]
-            else:
-                cmap = self.plt.cm.get_cmap(self.colormap)
+            cmap = mpl.colormaps.get_cmap(self.colormap)
         else:
             # cmap is only used if c_values are integers, otherwise UserWarning
             if is_integer_dtype(c_values):
                 # pandas uses colormap, matplotlib uses cmap.
                 cmap = "Greys"
-                if mpl_ge_3_6_0():
-                    cmap = mpl.colormaps[cmap]
-                else:
-                    cmap = self.plt.cm.get_cmap(cmap)
+                cmap = mpl.colormaps[cmap]
             else:
                 cmap = None
 
@@ -1293,6 +1281,9 @@ class ScatterPlot(PlanePlot):
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
 
+    def _args_adjust(self) -> None:
+        pass
+
 
 class HexBinPlot(PlanePlot):
     @property
@@ -1301,7 +1292,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not self.data.columns.holds_integer():
+        if is_integer(C) and not self.data.columns._holds_integer():
             C = self.data.columns[C]
         self.C = C
 
@@ -1310,10 +1301,7 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
-        else:
-            cmap = self.plt.cm.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:
@@ -1326,6 +1314,9 @@ class HexBinPlot(PlanePlot):
             self._plot_colorbar(ax)
 
     def _make_legend(self) -> None:
+        pass
+
+    def _args_adjust(self) -> None:
         pass
 
 
@@ -1487,6 +1478,9 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
+    def _args_adjust(self) -> None:
+        pass
+
     def _post_plot_logic(self, ax: Axes, data) -> None:
         from matplotlib.ticker import FixedLocator
 
@@ -1591,6 +1585,9 @@ class AreaPlot(LinePlot):
         res = [rect]
         return res
 
+    def _args_adjust(self) -> None:
+        pass
+
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
 
@@ -1671,8 +1668,6 @@ class BarPlot(MPLPlot):
         return self.bottom
 
     def _make_plot(self) -> None:
-        import matplotlib as mpl
-
         colors = self._get_colors()
         ncolors = len(colors)
 
@@ -1875,5 +1870,8 @@ class PiePlot(MPLPlot):
 
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
-            for p, l in zip(patches, leglabels):
-                self._append_legend_handles_labels(p, l)
+            for _patch, _leglabel in zip(patches, leglabels):
+                self._append_legend_handles_labels(_patch, _leglabel)
+
+    def _post_plot_logic(self, ax: Axes, data) -> None:
+        pass

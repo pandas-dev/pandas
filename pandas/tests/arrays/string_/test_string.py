@@ -5,7 +5,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -53,14 +52,14 @@ def test_setitem_validates(cls):
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
     if cls is pd.arrays.StringArray:
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
 
@@ -73,17 +72,7 @@ def test_setitem_with_scalar_string(dtype):
     tm.assert_extension_array_equal(arr, expected)
 
 
-def test_astype_roundtrip(dtype, request):
-    if dtype.storage == "pyarrow":
-        reason = "ValueError: Could not convert object to NumPy datetime"
-        mark = pytest.mark.xfail(reason=reason, raises=ValueError)
-        request.node.add_marker(mark)
-    else:
-        mark = pytest.mark.xfail(
-            reason="GH#36153 casting from StringArray to dt64 fails", raises=ValueError
-        )
-        request.node.add_marker(mark)
-
+def test_astype_roundtrip(dtype):
     ser = pd.Series(pd.date_range("2000", periods=12))
     ser[0] = None
 
@@ -300,13 +289,9 @@ def test_constructor_nan_like(na):
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
-    if cls is ArrowStringArray and copy is False:
-        mark = pytest.mark.xfail(
-            raises=AssertionError, reason="numpy array are different"
-        )
-        request.node.add_marker(mark)
 
     nan_arr = np.array(["a", np.nan], dtype=object)
+    expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
 
     result = cls._from_sequence(nan_arr, copy=copy)
@@ -319,9 +304,7 @@ def test_from_sequence_no_mutate(copy, cls, request):
         expected = cls(na_arr)
 
     tm.assert_extension_array_equal(result, expected)
-
-    expected = nan_arr if copy else na_arr
-    tm.assert_numpy_array_equal(nan_arr, expected)
+    tm.assert_numpy_array_equal(nan_arr, expected_input)
 
 
 def test_astype_int(dtype):
@@ -374,11 +357,6 @@ def test_reduce_missing(skipna, dtype):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
-    if dtype.storage == "pyarrow" and pa_version_under6p0:
-        reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
-
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -391,7 +369,7 @@ def test_min_max(method, skipna, dtype, request):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_min_max_numpy(method, box, dtype, request):
-    if dtype.storage == "pyarrow" and (pa_version_under6p0 or box is pd.array):
+    if dtype.storage == "pyarrow" and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
@@ -408,14 +386,6 @@ def test_min_max_numpy(method, box, dtype, request):
 def test_fillna_args(dtype, request):
     # GH 37987
 
-    if dtype.storage == "pyarrow":
-        reason = (
-            "Regex pattern \"Cannot set non-string value '1' into "
-            "a StringArray.\" does not match 'Scalar must be NA or str'"
-        )
-        mark = pytest.mark.xfail(raises=AssertionError, reason=reason)
-        request.node.add_marker(mark)
-
     arr = pd.array(["a", pd.NA], dtype=dtype)
 
     res = arr.fillna(value="b")
@@ -426,8 +396,11 @@ def test_fillna_args(dtype, request):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    msg = "Cannot set non-string value '1' into a StringArray."
-    with pytest.raises(ValueError, match=msg):
+    if dtype.storage == "pyarrow":
+        msg = "Invalid value '1' for dtype string"
+    else:
+        msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
 
@@ -484,18 +457,18 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
 def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype="Int64", name="count")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64")
+    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64", name="count")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize(dtype):
     ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64", name="proportion") / 3
     tm.assert_series_equal(result, expected)
 
 
@@ -593,7 +566,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 
 

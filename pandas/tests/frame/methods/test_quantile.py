@@ -26,37 +26,6 @@ def interp_method(request):
 
 class TestDataFrameQuantile:
     @pytest.mark.parametrize(
-        "non_num_col",
-        [
-            pd.date_range("2014-01-01", periods=3, freq="m"),
-            ["a", "b", "c"],
-            [DataFrame, Series, Timestamp],
-        ],
-    )
-    def test_numeric_only_default_false_warning(
-        self, non_num_col, interp_method, request, using_array_manager
-    ):
-        # GH #7308
-        interpolation, method = interp_method
-        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]})
-        df["C"] = non_num_col
-
-        expected = Series(
-            [2.0, 3.0],
-            index=["A", "B"],
-            name=0.5,
-        )
-        if interpolation == "nearest":
-            expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Axis name incorrectly set.")
-            )
-        with tm.assert_produces_warning(FutureWarning, match="numeric_only"):
-            result = df.quantile(0.5, interpolation=interpolation, method=method)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "df,expected",
         [
             [
@@ -78,7 +47,7 @@ class TestDataFrameQuantile:
         # GH#17198
         # GH#24600
         result = df.quantile()
-
+        expected = expected.astype("Sparse[float]")
         tm.assert_series_equal(result, expected)
 
     def test_quantile(
@@ -139,8 +108,7 @@ class TestDataFrameQuantile:
         rs = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            xp = df.median().rename(0.5)
+        xp = df.median(numeric_only=True).rename(0.5)
         if interpolation == "nearest":
             xp = (xp + 0.5).astype(np.int64)
         if method == "table" and using_array_manager:
@@ -452,7 +420,7 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         result = df[["a", "c"]].quantile([0.5], numeric_only=True)
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -483,7 +451,7 @@ class TestDataFrameQuantile:
             interpolation=interpolation,
             method=method,
         )
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("invalid", [-1, 2, [0.5, -1], [0.5, 2]])
@@ -751,9 +719,6 @@ class TestDataFrameQuantile:
         exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The behavior of DatetimeArray._from_sequence:FutureWarning"
-    )
     def test_quantile_empty_no_rows_dt64(self, interp_method):
         interpolation, method = interp_method
         # datetimes
@@ -915,13 +880,9 @@ class TestQuantileExtensionDtype:
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
-    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, request, obj, index):
         obj.iloc[:] = index._na_value
-
-        # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
-        obj = obj.astype(index.dtype)
+        # Check dtypes were preserved; this was once a problem see GH#39763
         assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling
@@ -932,15 +893,8 @@ class TestQuantileExtensionDtype:
         qs = [0.5, 0, 1]
         result = self.compute_quantile(obj, qs)
 
-        if np_version_under1p21 and index.dtype == "timedelta64[ns]":
-            msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
-            request.node.add_marker(mark)
-
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
         expected = Series(expected, index=qs, name="A")
-        if expected.dtype == "Int64":
-            expected = expected.astype("Float64")
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 

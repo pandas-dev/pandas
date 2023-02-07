@@ -56,9 +56,7 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    with tm.assert_produces_warning(FutureWarning):
-        # subclass-specific kwargs to pd.Index
-        multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
+    multi_idx = MultiIndex.from_tuples([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
@@ -148,7 +146,6 @@ def test_setting_names_from_levels_raises():
         new.index.name = "bar"
 
     assert pd.Index._no_setting_name is False
-    assert pd.core.api.NumericIndex._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
 
 

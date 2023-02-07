@@ -29,8 +29,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.tools.datetimes import to_datetime
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+from pandas.tseries import (
+    frequencies,
+    offsets,
+)
 
 
 @pytest.fixture(
@@ -385,7 +387,7 @@ def test_invalid_index_types_unicode():
     # see gh-10822
     #
     # Odd error message on conversions to datetime for unicode.
-    msg = "Unknown string format"
+    msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
         frequencies.infer_freq(tm.makeStringIndex(10))
@@ -420,7 +422,7 @@ def test_series_invalid_type(end):
 
 def test_series_inconvertible_string():
     # see gh-6407
-    msg = "Unknown string format"
+    msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
         frequencies.infer_freq(Series(["foo", "bar"]))
@@ -525,3 +527,13 @@ def test_infer_freq_non_nano():
     tda = TimedeltaArray._simple_new(arr2, dtype=arr2.dtype)
     res2 = frequencies.infer_freq(tda)
     assert res2 == "L"
+
+
+def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
+    tz = tz_aware_fixture
+
+    dti = date_range("2016-01-01", periods=365, freq="B", tz=tz)
+    dta = dti._data.as_unit("s")
+
+    res = frequencies.infer_freq(dta)
+    assert res == "B"

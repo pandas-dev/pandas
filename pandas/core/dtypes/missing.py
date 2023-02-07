@@ -18,7 +18,6 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
-    Period,
     iNaT,
 )
 
@@ -29,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -314,10 +312,8 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
         result = np.zeros(values.shape, dtype=bool)
     else:
 
-        if values.ndim == 1:
+        if values.ndim in {1, 2}:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
-        elif values.ndim == 2:
-            result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
         else:
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
@@ -508,8 +504,6 @@ def array_equivalent(
         # fastpath when we require that the dtypes match (Block.equals)
         if left.dtype.kind in ["f", "c"]:
             return _array_equivalent_float(left, right)
-        elif is_datetimelike_v_numeric(left.dtype, right.dtype):
-            return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
         elif is_string_or_object_np_dtype(left.dtype):
@@ -531,10 +525,6 @@ def array_equivalent(
         if not (left.size and right.size):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
-
-    elif is_datetimelike_v_numeric(left, right):
-        # GH#29553 avoid numpy deprecation warning
-        return False
 
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # datetime64, timedelta64, Period
@@ -565,16 +555,7 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
 
-        if left.flags["F_CONTIGUOUS"] and right.flags["F_CONTIGUOUS"]:
-            # we can improve performance by doing a copy-free ravel
-            # e.g. in frame_methods.Equals.time_frame_nonunique_equal
-            #  if we transposed the frames
-            left = left.ravel("K")
-            right = right.ravel("K")
-
-        return lib.array_equivalent_object(
-            ensure_object(left.ravel()), ensure_object(right.ravel())
-        )
+        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
 
     for left_value, right_value in zip(left, right):
         if left_value is NaT and right_value is not NaT:
@@ -594,6 +575,10 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
                 if "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
+            except ValueError:
+                # numpy can raise a ValueError if left and right cannot be
+                # compared (e.g. nested arrays)
+                return False
     return True
 
 
@@ -758,10 +743,8 @@ def isna_all(arr: ArrayLike) -> bool:
     if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif (
-        (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"])
-        or isinstance(dtype, DatetimeTZDtype)
-        or dtype.type is Period
+    elif (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]) or isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type
         # "Callable[[Any], Any]", variable has type "ufunc")

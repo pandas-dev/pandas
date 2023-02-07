@@ -64,7 +64,7 @@ def test_apply_iteration():
     df = DataFrame({"open": 1, "close": 2}, index=ind)
     tg = Grouper(freq="M")
 
-    _, grouper, _ = tg._get_grouper(df)
+    grouper, _ = tg._get_grouper(df)
 
     # Errors
     grouped = df.groupby(grouper, group_keys=False)
@@ -78,17 +78,18 @@ def test_apply_iteration():
 
 
 @pytest.mark.parametrize(
-    "name, func",
+    "func",
     [
-        ("Int64Index", tm.makeIntIndex),
-        ("Index", tm.makeStringIndex),
-        ("Float64Index", tm.makeFloatIndex),
-        ("MultiIndex", lambda m: tm.makeCustomIndex(m, 2)),
+        tm.makeIntIndex,
+        tm.makeStringIndex,
+        tm.makeFloatIndex,
+        (lambda m: tm.makeCustomIndex(m, 2)),
     ],
 )
-def test_fails_on_no_datetime_index(name, func):
+def test_fails_on_no_datetime_index(func):
     n = 2
     index = func(n)
+    name = type(index).__name__
     df = DataFrame({"a": np.random.randn(n)}, index=index)
 
     msg = (
@@ -321,29 +322,27 @@ def test_groupby_resample_interpolate():
         .interpolate(method="linear")
     )
 
-    msg = "containing strings is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected_ind = pd.MultiIndex.from_tuples(
-            [
-                (50, "2018-01-07"),
-                (50, Timestamp("2018-01-08")),
-                (50, Timestamp("2018-01-09")),
-                (50, Timestamp("2018-01-10")),
-                (50, Timestamp("2018-01-11")),
-                (50, Timestamp("2018-01-12")),
-                (50, Timestamp("2018-01-13")),
-                (50, Timestamp("2018-01-14")),
-                (50, Timestamp("2018-01-15")),
-                (50, Timestamp("2018-01-16")),
-                (50, Timestamp("2018-01-17")),
-                (50, Timestamp("2018-01-18")),
-                (50, Timestamp("2018-01-19")),
-                (50, Timestamp("2018-01-20")),
-                (50, Timestamp("2018-01-21")),
-                (60, Timestamp("2018-01-14")),
-            ],
-            names=["volume", "week_starting"],
-        )
+    expected_ind = pd.MultiIndex.from_tuples(
+        [
+            (50, Timestamp("2018-01-07")),
+            (50, Timestamp("2018-01-08")),
+            (50, Timestamp("2018-01-09")),
+            (50, Timestamp("2018-01-10")),
+            (50, Timestamp("2018-01-11")),
+            (50, Timestamp("2018-01-12")),
+            (50, Timestamp("2018-01-13")),
+            (50, Timestamp("2018-01-14")),
+            (50, Timestamp("2018-01-15")),
+            (50, Timestamp("2018-01-16")),
+            (50, Timestamp("2018-01-17")),
+            (50, Timestamp("2018-01-18")),
+            (50, Timestamp("2018-01-19")),
+            (50, Timestamp("2018-01-20")),
+            (50, Timestamp("2018-01-21")),
+            (60, Timestamp("2018-01-14")),
+        ],
+        names=["volume", "week_starting"],
+    )
 
     expected = DataFrame(
         data={

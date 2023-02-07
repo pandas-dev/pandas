@@ -647,24 +647,21 @@ This allows for *formulaic evaluation*.  The assignment target can be a
 new column name or an existing column name, and it must be a valid Python
 identifier.
 
-The ``inplace`` keyword determines whether this assignment will performed
-on the original :class:`DataFrame` or return a copy with the new column.
-
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.eval("c = a + b", inplace=True)
-   df.eval("d = a + b + c", inplace=True)
-   df.eval("a = 1", inplace=True)
+   df = df.eval("c = a + b")
+   df = df.eval("d = a + b + c")
+   df = df.eval("a = 1")
    df
 
-When ``inplace`` is set to ``False``, the default, a copy of the :class:`DataFrame` with the
+A copy of the :class:`DataFrame` with the
 new or modified columns is returned and the original frame is unchanged.
 
 .. ipython:: python
 
    df
-   df.eval("e = a - c", inplace=False)
+   df.eval("e = a - c")
    df
 
 As a convenience, multiple assignments can be performed by using a
@@ -677,7 +674,6 @@ multi-line string.
    c = a + b
    d = a + b + c
    a = 1""",
-       inplace=False,
    )
 
 The equivalent in standard Python would be
@@ -690,21 +686,12 @@ The equivalent in standard Python would be
    df["a"] = 1
    df
 
-The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
-whether the query modifies the original frame.
-
-.. ipython:: python
-
-   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.query("a > 2")
-   df.query("a > 2", inplace=True)
-   df
-
 Local variables
 ~~~~~~~~~~~~~~~
 
 You must *explicitly reference* any local variable that you want to use in an
-expression by placing the ``@`` character in front of the name. For example,
+expression by placing the ``@`` character in front of the name. This mechanism is
+the same for both :meth:`DataFrame.query` and :meth:`DataFrame.eval`. For example,
 
 .. ipython:: python
 
@@ -820,17 +807,12 @@ significant performance benefit.  Here is a plot showing the running time of
 :func:`pandas.eval` as function of the size of the frame involved in the
 computation. The two lines are two different engines.
 
+..
+    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
 
 .. image:: ../_static/eval-perf.png
 
-
-.. note::
-
-   Operations with smallish objects (around 15k-20k rows) are faster using
-   plain Python:
-
-       .. image:: ../_static/eval-perf-small.png
-
+You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your frame has more than approximately 100,000 rows.
 
 This plot was created using a :class:`DataFrame` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.

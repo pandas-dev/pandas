@@ -19,25 +19,6 @@ def test_write_append_mode_raises(ext):
             ExcelWriter(f, engine="odf", mode="a")
 
 
-def test_kwargs(ext):
-    # GH 42286
-    # GH 43445
-    # test for error: OpenDocumentSpreadsheet does not accept any arguments
-    kwargs = {"kwarg": 1}
-    with tm.ensure_clean(ext) as f:
-        msg = re.escape("Use of **kwargs is deprecated")
-        error = re.escape(
-            "OpenDocumentSpreadsheet() got an unexpected keyword argument 'kwarg'"
-        )
-        with pytest.raises(
-            TypeError,
-            match=error,
-        ):
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                with ExcelWriter(f, engine="odf", **kwargs) as _:
-                    pass
-
-
 @pytest.mark.parametrize("engine_kwargs", [None, {"kwarg": 1}])
 def test_engine_kwargs(ext, engine_kwargs):
     # GH 42286

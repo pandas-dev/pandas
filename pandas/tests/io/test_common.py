@@ -50,7 +50,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # https://github.com/cython/cython/issues/1720
-@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -148,7 +147,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
         from pyarrow import csv
 
@@ -317,12 +316,6 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
-    )
-    @pytest.mark.filterwarnings(  # pytables np.object usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -337,12 +330,11 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlwt"}, "xlwt"),
+            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
@@ -352,6 +344,8 @@ Look,a snake,🐍"""
         ],
     )
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
+        if writer_name in ["to_latex"]:  # uses Styler implementation
+            pytest.importorskip("jinja2")
         p1 = tm.ensure_clean("string")
         p2 = tm.ensure_clean("fspath")
         df = pd.DataFrame({"A": [1, 2]})
@@ -362,18 +356,19 @@ Look,a snake,🐍"""
             writer = getattr(df, writer_name)
 
             writer(string, **writer_kwargs)
-            with open(string, "rb") as f:
-                expected = f.read()
-
             writer(mypath, **writer_kwargs)
-            with open(fspath, "rb") as f:
-                result = f.read()
+            with open(string, "rb") as f_str, open(fspath, "rb") as f_path:
+                if writer_name == "to_excel":
+                    # binary representation of excel contains time creation
+                    # data that causes flaky CI failures
+                    result = pd.read_excel(f_str, **writer_kwargs)
+                    expected = pd.read_excel(f_path, **writer_kwargs)
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    result = f_str.read()
+                    expected = f_path.read()
+                    assert result == expected
 
-            assert result == expected
-
-    @pytest.mark.filterwarnings(  # pytables np.object usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-    )
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll

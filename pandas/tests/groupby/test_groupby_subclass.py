@@ -9,7 +9,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -25,8 +24,6 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip(f"Not applicable for Series and {groupby_func}")
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
 
     grouped = obj.groupby(np.arange(0, 10))
 
@@ -104,7 +101,5 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("Buyer").resample("5D").sum()
+    result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

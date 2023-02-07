@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    NaT,
     Series,
     date_range,
 )
@@ -12,6 +13,28 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_datetimelike_values(self, frame_or_series):
+        # GH#11312, GH#51005
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = NaT
+
+        res = frame_or_series(ser).interpolate()
+        expected = frame_or_series(orig)
+        tm.assert_equal(res, expected)
+
+        # datetime64tz cast
+        ser_tz = ser.dt.tz_localize("US/Pacific")
+        res_tz = frame_or_series(ser_tz).interpolate()
+        expected_tz = frame_or_series(orig.dt.tz_localize("US/Pacific"))
+        tm.assert_equal(res_tz, expected_tz)
+
+        # timedelta64 cast
+        ser_td = ser - ser[0]
+        res_td = frame_or_series(ser_td).interpolate()
+        expected_td = frame_or_series(orig - orig[0])
+        tm.assert_equal(res_td, expected_td)
+
     def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
         # GH#44749
         if using_array_manager and frame_or_series is DataFrame:
@@ -396,16 +419,4 @@ class TestDataFrameInterpolate:
         )
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
-        tm.assert_frame_equal(result, expected)
-
-    def test_interpolate_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.interpolate "
-            r"except for the argument 'method' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate("pad", 0)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

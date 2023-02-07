@@ -66,7 +66,6 @@ Indexing, iteration
    DataFrame.keys
    DataFrame.iterrows
    DataFrame.itertuples
-   DataFrame.lookup
    DataFrame.pop
    DataFrame.tail
    DataFrame.xs
@@ -84,6 +83,7 @@ Binary operator functions
 .. autosummary::
    :toctree: api/
 
+   DataFrame.__add__
    DataFrame.add
    DataFrame.sub
    DataFrame.mul
@@ -250,7 +250,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   DataFrame.append
    DataFrame.assign
    DataFrame.compare
    DataFrame.join

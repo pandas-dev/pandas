@@ -20,6 +20,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Index,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
@@ -29,11 +30,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -154,7 +150,7 @@ class TestMerge:
         df_empty = DataFrame()
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
         result = merge(df_empty, df_a, left_index=True, right_index=True)
-        expected = DataFrame({"a": []}, index=[], dtype="int64")
+        expected = DataFrame({"a": []}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_common(self, df, df2):
@@ -355,7 +351,7 @@ class TestMerge:
         lkey = np.array([1])
         rkey = np.array([2])
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how="outer")
-        assert df["key_0"].dtype == "int64"
+        assert df["key_0"].dtype == np.int_
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
@@ -379,9 +375,8 @@ class TestMerge:
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how="outer")
-        tm.assert_series_equal(
-            merged["key_0"], Series([1, 1, 1, 1, 2, 2, 3, 4, 5], name="key_0")
-        )
+        expected = Series([1, 1, 1, 1, 2, 2, 3, 4, 5], dtype=np.int_, name="key_0")
+        tm.assert_series_equal(merged["key_0"], expected)
 
         left = DataFrame({"value": np.arange(3)})
         right = DataFrame({"rvalue": np.arange(6)})
@@ -461,11 +456,7 @@ class TestMerge:
         left = DataFrame(columns=["a", "b", "c"])
         right = DataFrame(columns=["x", "y", "z"])
 
-        exp_in = DataFrame(
-            columns=["a", "b", "c", "x", "y", "z"],
-            index=pd.Index([], dtype=object),
-            dtype=object,
-        )
+        exp_in = DataFrame(columns=["a", "b", "c", "x", "y", "z"], dtype=object)
 
         result = merge(left, right, how=join_type, **kwarg)
         tm.assert_frame_equal(result, exp_in)
@@ -487,8 +478,6 @@ class TestMerge:
             columns=["a", "b", "c", "x", "y", "z"],
         )
         exp_in = exp_out[0:0]  # make empty DataFrame keeping dtype
-        # result will have object dtype
-        exp_in.index = exp_in.index.astype(object)
 
         def check1(exp, kwarg):
             result = merge(left, right, how="inner", **kwarg)
@@ -730,15 +719,13 @@ class TestMerge:
         ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"datetime64[{unit}]"
-        df2 = ser.astype(dtype).to_frame("days")
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
-            # TODO(2.0): cast to nearest (second) instead of ns
-            # coerces to datetime64[ns], thus should not be affected
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype
+        df2 = ser.astype(exp_dtype).to_frame("days")
         assert df2["days"].dtype == exp_dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
@@ -759,14 +746,18 @@ class TestMerge:
     def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = DataFrame({"entity_id": [101, 102]})
-        s = Series([None, None], index=[101, 102], name="days")
+        ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"m8[{unit}]"
-        df2 = s.astype(dtype).to_frame("days")
         if unit in ["D", "h", "m"]:
-            # We get nearest supported unit, i.e. "s"
-            assert df2["days"].dtype == "m8[s]"
+            # We cannot astype, instead do nearest supported unit, i.e. "s"
+            msg = "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+
+            df2 = ser.astype("m8[s]").to_frame("days")
         else:
+            df2 = ser.astype(dtype).to_frame("days")
             assert df2["days"].dtype == dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
@@ -1255,7 +1246,18 @@ class TestMerge:
             merge(left_w_dups, right_w_dups, on="a", validate="one_to_many")
 
         # Check invalid arguments
-        msg = "Not a valid argument for validate"
+        msg = (
+            '"jibberish" is not a valid argument. '
+            "Valid arguments are:\n"
+            '- "1:1"\n'
+            '- "1:m"\n'
+            '- "m:1"\n'
+            '- "m:m"\n'
+            '- "one_to_one"\n'
+            '- "one_to_many"\n'
+            '- "many_to_one"\n'
+            '- "many_to_many"'
+        )
         with pytest.raises(ValueError, match=msg):
             merge(left, right, on="a", validate="jibberish")
 
@@ -1318,8 +1320,13 @@ class TestMerge:
                     ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT]
                 ),
             ),
-            (Float64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
-            (Int64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
+            *[
+                (
+                    Index([1, 2, 3], dtype=dtyp),
+                    Index([1, 2, 3, None, None, None], dtype=np.float64),
+                )
+                for dtyp in tm.ALL_REAL_NUMPY_DTYPES
+            ],
             (
                 IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
                 IntervalIndex.from_tuples(
@@ -1659,7 +1666,10 @@ class TestMergeDtypes:
         d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
         d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_numeric_ea_dtype)
+        exp_index = RangeIndex(len(expected_data))
+        expected = DataFrame(
+            expected_data, index=exp_index, columns=["id"], dtype=any_numeric_ea_dtype
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1676,7 +1686,10 @@ class TestMergeDtypes:
         d1 = DataFrame([("a",)], columns=["id"], dtype=any_string_dtype)
         d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_string_dtype)
+        exp_idx = RangeIndex(len(expected_data))
+        expected = DataFrame(
+            expected_data, index=exp_idx, columns=["id"], dtype=any_string_dtype
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -2130,15 +2143,13 @@ class TestMergeOnIndexes:
 
 @pytest.mark.parametrize(
     "index",
-    [
+    [Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES]
+    + [
         CategoricalIndex(["A", "B"], categories=["A", "B"], name="index_col"),
-        Float64Index([1.0, 2.0], name="index_col"),
-        Int64Index([1, 2], name="index_col"),
-        UInt64Index([1, 2], name="index_col"),
         RangeIndex(start=0, stop=2, name="index_col"),
         DatetimeIndex(["2018-01-01", "2018-01-02"], name="index_col"),
     ],
-    ids=lambda x: type(x).__name__,
+    ids=lambda x: f"{type(x).__name__}[{x.dtype}]",
 )
 def test_merge_index_types(index):
     # gh-20777
@@ -2207,6 +2218,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
 
 def test_merge_series_multilevel():
     # GH#47946
+    # GH 40993: For raising, enforced in 2.0
     a = DataFrame(
         {"A": [1, 2, 3, 4]},
         index=MultiIndex.from_product([["a", "b"], [0, 1]], names=["outer", "inner"]),
@@ -2216,13 +2228,10 @@ def test_merge_series_multilevel():
         index=MultiIndex.from_product([["a", "b"], [1, 2]], names=["outer", "inner"]),
         name=("B", "C"),
     )
-    expected = DataFrame(
-        {"A": [2, 4], ("B", "C"): [1, 3]},
-        index=MultiIndex.from_product([["a", "b"], [1]], names=["outer", "inner"]),
-    )
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(a, b, on=["outer", "inner"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(
+        MergeError, match="Not allowed to merge between different levels"
+    ):
+        merge(a, b, on=["outer", "inner"])
 
 
 @pytest.mark.parametrize(
@@ -2303,12 +2312,12 @@ def test_merge_suffix_error(col1, col2, suffixes):
 
 
 @pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
-def test_merge_suffix_warns(suffixes):
+def test_merge_suffix_raises(suffixes):
     a = DataFrame({"a": [1, 2, 3]})
     b = DataFrame({"b": [3, 4, 5]})
 
-    with tm.assert_produces_warning(FutureWarning):
-        merge(a, b, left_index=True, right_index=True, suffixes={"left", "right"})
+    with pytest.raises(TypeError, match="Passing 'suffixes' as a"):
+        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
 @pytest.mark.parametrize(
@@ -2458,7 +2467,7 @@ def test_categorical_non_unique_monotonic(n_categories):
     df2 = DataFrame(
         [[6]],
         columns=["value"],
-        index=CategoricalIndex([0], categories=np.arange(n_categories)),
+        index=CategoricalIndex([0], categories=list(range(n_categories))),
     )
 
     result = merge(df1, df2, how="left", left_index=True, right_index=True)
@@ -2609,20 +2618,16 @@ def test_merge_result_empty_index_and_on():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_suffixes_produce_dup_columns_warns():
-    # GH#22818
+def test_merge_suffixes_produce_dup_columns_raises():
+    # GH#22818; Enforced in 2.0
     left = DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})
     right = DataFrame({"a": [1, 2, 3], "b": 2})
-    expected = DataFrame(
-        [[1, 1, 2, 2], [2, 1, 2, 2], [3, 1, 2, 2]], columns=["a", "b_x", "b_x", "b_y"]
-    )
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(left, right, on="a")
-    tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+        merge(left, right, on="a")
+
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
         merge(right, left, on="a", suffixes=("_y", "_x"))
-    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_duplicate_columns_with_suffix_no_warning():
@@ -2635,24 +2640,22 @@ def test_merge_duplicate_columns_with_suffix_no_warning():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_duplicate_columns_with_suffix_causing_another_duplicate():
-    # GH#22818
+def test_merge_duplicate_columns_with_suffix_causing_another_duplicate_raises():
+    # GH#22818, Enforced in 2.0
     # This should raise warning because suffixes cause another collision
     left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "b_x"])
     right = DataFrame({"a": [1, 3], "b": 2})
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(left, right, on="a")
-    expected = DataFrame([[1, 1, 1, 1, 2]], columns=["a", "b_x", "b_x", "b_x", "b_y"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+        merge(left, right, on="a")
 
 
 def test_merge_string_float_column_result():
     # GH 13353
-    df1 = DataFrame([[1, 2], [3, 4]], columns=pd.Index(["a", 114.0]))
+    df1 = DataFrame([[1, 2], [3, 4]], columns=Index(["a", 114.0]))
     df2 = DataFrame([[9, 10], [11, 12]], columns=["x", "y"])
     result = merge(df2, df1, how="inner", left_index=True, right_index=True)
     expected = DataFrame(
-        [[9, 10, 1, 2], [11, 12, 3, 4]], columns=pd.Index(["x", "y", "a", 114.0])
+        [[9, 10, 1, 2], [11, 12, 3, 4]], columns=Index(["x", "y", "a", 114.0])
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2708,8 +2711,32 @@ def test_merge_outer_with_NaN(dtype):
 
 def test_merge_different_index_names():
     # GH#45094
-    left = DataFrame({"a": [1]}, index=pd.Index([1], name="c"))
-    right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
+    left = DataFrame({"a": [1]}, index=Index([1], name="c"))
+    right = DataFrame({"a": [1]}, index=Index([1], name="d"))
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_ea(any_numeric_ea_dtype, join_type):
+    # GH#44240
+    left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
+    right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype)
+    result = left.merge(right, how=join_type)
+    expected = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2}, dtype=any_numeric_ea_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
+    # GH#44240
+    left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
+    right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype.lower())
+    result = left.merge(right, how=join_type)
+    expected = DataFrame(
+        {
+            "a": Series([1, 2, 3], dtype=any_numeric_ea_dtype),
+            "b": Series([1, 1, 1], dtype=any_numeric_ea_dtype),
+            "c": Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
+        }
+    )
     tm.assert_frame_equal(result, expected)

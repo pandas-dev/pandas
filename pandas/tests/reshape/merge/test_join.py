@@ -420,18 +420,18 @@ class TestJoin:
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
 
-    def test_join_hierarchical_mixed(self):
+    def test_join_hierarchical_mixed_raises(self):
         # GH 2024
+        # GH 40993: For raising, enforced in 2.0
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        msg = "merging between different levels is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = merge(new_df, other_df, left_index=True, right_index=True)
-        assert ("b", "mean") in result
-        assert "b" in result
+        with pytest.raises(
+            pd.errors.MergeError, match="Not allowed to merge between different levels"
+        ):
+            merge(new_df, other_df, left_index=True, right_index=True)
 
     def test_join_float64_float32(self):
 
@@ -569,9 +569,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            mn = grouped.mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            grouped.mean()
+        mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 
         # it works!
@@ -642,11 +642,12 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        with tm.assert_produces_warning(FutureWarning):
-            dta = dta.merge(w, left_index=True, right_index=True)
-        expected = concat([x, y, z, w], axis=1)
-        expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
-        tm.assert_frame_equal(dta, expected)
+        # GH 40991: As of 2.0 causes duplicate columns
+        with pytest.raises(
+            pd.errors.MergeError,
+            match="Passing 'suffixes' which cause duplicate columns",
+        ):
+            dta.merge(w, left_index=True, right_index=True)
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475
@@ -950,8 +951,48 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
         expected = expected.set_index("A")
     elif exp == "empty":
-        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how, values",
+    [
+        ("inner", [0, 1, 2]),
+        ("outer", [0, 1, 2]),
+        ("left", [0, 1, 2]),
+        ("right", [0, 2, 1]),
+    ],
+)
+def test_join_multiindex_categorical_output_index_dtype(how, values):
+    # GH#50906
+    df1 = DataFrame(
+        {
+            "a": Categorical([0, 1, 2]),
+            "b": Categorical([0, 1, 2]),
+            "c": [0, 1, 2],
+        }
+    ).set_index(["a", "b"])
+
+    df2 = DataFrame(
+        {
+            "a": Categorical([0, 2, 1]),
+            "b": Categorical([0, 2, 1]),
+            "d": [0, 2, 1],
+        }
+    ).set_index(["a", "b"])
+
+    expected = DataFrame(
+        {
+            "a": Categorical(values),
+            "b": Categorical(values),
+            "c": values,
+            "d": values,
+        }
+    ).set_index(["a", "b"])
+
+    result = df1.join(df2, how=how)
     tm.assert_frame_equal(result, expected)

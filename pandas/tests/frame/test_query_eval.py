@@ -3,7 +3,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import UndefinedVariableError
+from pandas.errors import (
+    NumExprClobberingError,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -448,7 +451,8 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(np.random.randn(n, 3))
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
+        df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -533,7 +537,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.errors import NumExprClobberingError
 
         engine, parser = self.engine, self.parser
 
@@ -808,7 +811,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(np.random.randn(n, 3))
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
+        df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -861,6 +865,22 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             "df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]", engine=engine, parser=parser
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_query_numexpr_with_min_and_max_columns(self):
+        df = DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
+        regex_to_match = (
+            r"Variables in expression \"\(min\) == \(1\)\" "
+            r"overlap with builtins: \('min'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("min == 1")
+
+        regex_to_match = (
+            r"Variables in expression \"\(max\) == \(1\)\" "
+            r"overlap with builtins: \('max'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("max == 1")
 
 
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
@@ -1112,7 +1132,7 @@ class TestDataFrameEvalWithFrame:
 
 
 class TestDataFrameQueryBacktickQuoting:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def df(self):
         """
         Yields a dataframe with strings that may or may not need escaping

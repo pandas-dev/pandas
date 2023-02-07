@@ -25,7 +25,7 @@ contributing them to the project::
 
 The script validates the doctests, formatting in docstrings, and
 imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, and ``doctests``
+parameters ``docstrings``, ``code``, and ``doctests``
 (e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
@@ -43,7 +43,7 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
+like ``black``, ``ruff``,
 ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
@@ -338,7 +338,22 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+inspiration.
+
+As a general tip, you can use the search functionality in your integrated development
+environment (IDE) or the git grep command in a terminal to find test files in which the method
+is called. If you are unsure of the best location to put your test, take your best guess,
+but note that reviewers may request that you move the test to a different location.
+
+To use git grep, you can run the following command in a terminal:
+
+``git grep "function_name("``
+
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
+codebase and determine the best location to add a test for it.
+
+Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
@@ -768,6 +783,7 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
+.. _contributing.running_tests:
 
 Running the test suite
 ----------------------
@@ -776,6 +792,14 @@ The tests can then be run directly inside your Git clone (without having to
 install pandas) by typing::
 
     pytest pandas
+
+.. note::
+
+    If a handful of tests don't pass, it may not be an issue with your pandas installation.
+    Some tests (e.g. some SQLAlchemy ones) require additional setup, others might start
+    failing because a non-pinned library released a new version, and others might be flaky
+    if run in parallel. As long as you can import pandas from your locally built version,
+    your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
 entire suite.

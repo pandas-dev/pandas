@@ -103,9 +103,10 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.sum()
+    msg = "category type does not support sum operations"
+    with pytest.raises(TypeError, match=msg):
+        gb.sum()
+    result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     # GH 8623
@@ -146,11 +147,7 @@ def test_basic():  # TODO: split this test
     tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
 
     gbc = df.groupby(c, observed=False)
-    with tm.assert_produces_warning(
-        FutureWarning, match="scalar max", check_stacklevel=False
-    ):
-        # stacklevel is thrown off (i think) bc the stack goes through numpy C code
-        result = gbc.transform(lambda xs: np.max(xs))
+    result = gbc.transform(lambda xs: np.max(xs, axis=0))
     tm.assert_frame_equal(result, df[["a"]])
 
     with tm.assert_produces_warning(None):
@@ -274,7 +271,7 @@ def test_sorting_with_different_categoricals():
     index = Categorical(index, categories=["low", "med", "high"], ordered=True)
     index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
     index = MultiIndex.from_arrays(index, names=["group", "dose"])
-    expected = Series([2] * 6, index=index, name="dose")
+    expected = Series([2] * 6, index=index, name="count")
     tm.assert_series_equal(result, expected)
 
 
@@ -294,13 +291,7 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = DataFrame([0, 1, 2.0], index=idx, columns=["values"])
 
-    # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
-    #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
-    #  when we expect Series(0., index=["values"])
-    with tm.assert_produces_warning(
-        FutureWarning, match="Select only valid", check_stacklevel=False
-    ):
-        result = grouped.apply(lambda x: np.mean(x))
+    result = grouped.apply(lambda x: np.mean(x, axis=0))
     tm.assert_frame_equal(result, expected)
 
     result = grouped.mean()
@@ -316,7 +307,6 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -346,7 +336,9 @@ def test_observed(observed):
 
     gb = df.groupby(["A", "B"], observed=observed)
     exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
-    expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
+    expected = DataFrame(
+        {"values": [1, 2, 3, 4], "C": ["foo", "bar", "foo", "bar"]}, index=exp_index
+    )
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
@@ -487,6 +479,60 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keys, expected_values, expected_index_levels",
+    [
+        ("a", [15, 9, 0], CategoricalIndex([1, 2, 3], name="a")),
+        (
+            ["a", "b"],
+            [7, 8, 0, 0, 0, 9, 0, 0, 0],
+            [CategoricalIndex([1, 2, 3], name="a"), Index([4, 5, 6])],
+        ),
+        (
+            ["a", "a2"],
+            [15, 0, 0, 0, 9, 0, 0, 0, 0],
+            [
+                CategoricalIndex([1, 2, 3], name="a"),
+                CategoricalIndex([1, 2, 3], name="a"),
+            ],
+        ),
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_unobserved_in_index(keys, expected_values, expected_index_levels, test_series):
+    # GH#49354 - ensure unobserved cats occur when grouping by index levels
+    df = DataFrame(
+        {
+            "a": Categorical([1, 1, 2], categories=[1, 2, 3]),
+            "a2": Categorical([1, 1, 2], categories=[1, 2, 3]),
+            "b": [4, 5, 6],
+            "c": [7, 8, 9],
+        }
+    ).set_index(["a", "a2"])
+    if "b" not in keys:
+        # Only keep b when it is used for grouping for consistent columns in the result
+        df = df.drop(columns="b")
+
+    gb = df.groupby(keys, observed=False)
+    if test_series:
+        gb = gb["c"]
+    result = gb.sum()
+
+    if len(keys) == 1:
+        index = expected_index_levels
+    else:
+        codes = [[0, 0, 0, 1, 1, 1, 2, 2, 2], 3 * [0, 1, 2]]
+        index = MultiIndex(
+            expected_index_levels,
+            codes=codes,
+            names=keys,
+        )
+    expected = DataFrame({"c": expected_values}, index=index)
+    if test_series:
+        expected = expected["c"]
+    tm.assert_equal(result, expected)
+
+
 def test_observed_groups_with_nan(observed):
     # GH 24740
     df = DataFrame(
@@ -515,11 +561,7 @@ def test_observed_nth():
     df = DataFrame({"cat": cat, "ser": ser})
 
     result = df.groupby("cat", observed=False)["ser"].nth(0)
-
-    index = Categorical(["a", "b", "c"], categories=["a", "b", "c"])
-    expected = Series([1, np.nan, np.nan], index=index, name="ser")
-    expected.index.name = "cat"
-
+    expected = df["ser"].iloc[[0]]
     tm.assert_series_equal(result, expected)
 
 
@@ -770,18 +812,21 @@ def test_preserve_categories():
 
     # ordered=True
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=True)})
-    index = CategoricalIndex(categories, categories, ordered=True, name="A")
+    sort_index = CategoricalIndex(categories, categories, ordered=True, name="A")
+    nosort_index = CategoricalIndex(list("bac"), categories, ordered=True, name="A")
     tm.assert_index_equal(
-        df.groupby("A", sort=True, observed=False).first().index, index
+        df.groupby("A", sort=True, observed=False).first().index, sort_index
     )
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     tm.assert_index_equal(
-        df.groupby("A", sort=False, observed=False).first().index, index
+        df.groupby("A", sort=False, observed=False).first().index, nosort_index
     )
 
     # ordered=False
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
     sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
     # GH#48749 - don't change order of categories
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     nosort_index = CategoricalIndex(list("bac"), list("abc"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
@@ -811,12 +856,14 @@ def test_preserve_categorical_dtype():
         }
     )
     for col in ["C1", "C2"]:
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result1 = df.groupby(by=col, as_index=False, observed=False).mean()
-            result2 = (
-                df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
-            )
+        result1 = df.groupby(by=col, as_index=False, observed=False).mean(
+            numeric_only=True
+        )
+        result2 = (
+            df.groupby(by=col, as_index=True, observed=False)
+            .mean(numeric_only=True)
+            .reset_index()
+        )
         expected = exp_full.reindex(columns=result1.columns)
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
@@ -924,8 +971,11 @@ def test_sort():
     tm.assert_series_equal(res, exp)
 
 
-def test_sort2():
+@pytest.mark.parametrize("ordered", [True, False])
+def test_sort2(sort, ordered):
     # dataframe groupby sort was being ignored # GH 8868
+    # GH#48749 - don't change order of categories
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     df = DataFrame(
         [
             ["(7.5, 10]", 10, 10],
@@ -938,53 +988,28 @@ def test_sort2():
         ],
         columns=["range", "foo", "bar"],
     )
-    df["range"] = Categorical(df["range"], ordered=True)
-    index = CategoricalIndex(
-        ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"], name="range", ordered=True
-    )
-    expected_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=index
-    )
+    df["range"] = Categorical(df["range"], ordered=ordered)
+    result = df.groupby("range", sort=sort, observed=False).first()
 
-    col = "range"
-    result_sort = df.groupby(col, sort=True, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    # when categories is ordered, group is ordered by category's order
-    expected_sort = result_sort
-    result_sort = df.groupby(col, sort=False, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    df["range"] = Categorical(df["range"], ordered=False)
-    index = CategoricalIndex(
-        ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"], name="range"
-    )
-    expected_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=index
+    if sort:
+        data_values = [[1, 60], [5, 30], [6, 40], [10, 10]]
+        index_values = ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"]
+    else:
+        data_values = [[10, 10], [5, 30], [6, 40], [1, 60]]
+        index_values = ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"]
+    expected = DataFrame(
+        data_values,
+        columns=["foo", "bar"],
+        index=CategoricalIndex(index_values, name="range", ordered=ordered),
     )
 
-    index = CategoricalIndex(
-        ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"],
-        # GH#48749 - don't change order of categories
-        categories=["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"],
-        name="range",
-    )
-    expected_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=["foo", "bar"]
-    )
-
-    col = "range"
-
-    # this is an unordered categorical, but we allow this ####
-    result_sort = df.groupby(col, sort=True, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    result_nosort = df.groupby(col, sort=False, observed=False).first()
-    tm.assert_frame_equal(result_nosort, expected_nosort)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_sort_datetimelike():
+@pytest.mark.parametrize("ordered", [True, False])
+def test_sort_datetimelike(sort, ordered):
     # GH10505
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
 
     # use same data as test_groupby_sort_categorical, which category is
     # corresponding to datetime.month
@@ -1006,80 +1031,30 @@ def test_sort_datetimelike():
     )
 
     # ordered=True
-    df["dt"] = Categorical(df["dt"], ordered=True)
-    index = [
-        datetime(2011, 1, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 7, 1),
-    ]
-    result_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"]
-    )
-    result_sort.index = CategoricalIndex(index, name="dt", ordered=True)
-
-    index = [
-        datetime(2011, 7, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 1, 1),
-    ]
-    result_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]], columns=["foo", "bar"]
-    )
-    result_nosort.index = CategoricalIndex(
-        index, categories=index, name="dt", ordered=True
-    )
-
-    col = "dt"
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first()
-    )
-
-    # when categories is ordered, group is ordered by category's order
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=False, observed=False).first()
-    )
-
-    # ordered = False
-    df["dt"] = Categorical(df["dt"], ordered=False)
-    sort_index = CategoricalIndex(
-        [
+    df["dt"] = Categorical(df["dt"], ordered=ordered)
+    if sort:
+        data_values = [[1, 60], [5, 30], [6, 40], [10, 10]]
+        index_values = [
             datetime(2011, 1, 1),
             datetime(2011, 2, 1),
             datetime(2011, 5, 1),
             datetime(2011, 7, 1),
-        ],
-        name="dt",
-    )
-    result_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=sort_index
-    )
-
-    nosort_index = CategoricalIndex(
-        [
+        ]
+    else:
+        data_values = [[10, 10], [5, 30], [6, 40], [1, 60]]
+        index_values = [
             datetime(2011, 7, 1),
             datetime(2011, 2, 1),
             datetime(2011, 5, 1),
             datetime(2011, 1, 1),
-        ],
-        # GH#48749 - don't change order of categories
-        categories=sort_index.categories,
-        name="dt",
-    )
-    result_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]],
+        ]
+    expected = DataFrame(
+        data_values,
         columns=["foo", "bar"],
-        index=nosort_index,
+        index=CategoricalIndex(index_values, name="dt", ordered=ordered),
     )
-
-    col = "dt"
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first()
-    )
-    tm.assert_frame_equal(
-        result_nosort, df.groupby(col, sort=False, observed=False).first()
-    )
+    result = df.groupby("dt", sort=sort, observed=False).first()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_empty_sum():
@@ -1234,11 +1209,12 @@ def df_cat(df):
 
 @pytest.mark.parametrize("operation", ["agg", "apply"])
 def test_seriesgroupby_observed_true(df_cat, operation):
-    # GH 24880
-    lev_a = Index(["foo", "foo", "bar", "bar"], dtype=df_cat["A"].dtype, name="A")
-    lev_b = Index(["one", "two", "one", "three"], dtype=df_cat["B"].dtype, name="B")
+    # GH#24880
+    # GH#49223 - order of results was wrong when grouping by index levels
+    lev_a = Index(["bar", "bar", "foo", "foo"], dtype=df_cat["A"].dtype, name="A")
+    lev_b = Index(["one", "three", "one", "two"], dtype=df_cat["B"].dtype, name="B")
     index = MultiIndex.from_arrays([lev_a, lev_b])
-    expected = Series(data=[1, 3, 2, 4], index=index, name="C")
+    expected = Series(data=[2, 4, 1, 3], index=index, name="C").sort_index()
 
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
@@ -1249,6 +1225,7 @@ def test_seriesgroupby_observed_true(df_cat, operation):
 @pytest.mark.parametrize("observed", [False, None])
 def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     # GH 24880
+    # GH#49223 - order of results was wrong when grouping by index levels
     index, _ = MultiIndex.from_product(
         [
             CategoricalIndex(["bar", "foo"], ordered=False),
@@ -1272,16 +1249,16 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
             True,
             MultiIndex.from_arrays(
                 [
-                    Index(["foo"] * 4 + ["bar"] * 4, dtype="category", name="A"),
+                    Index(["bar"] * 4 + ["foo"] * 4, dtype="category", name="A"),
                     Index(
-                        ["one", "one", "two", "two", "one", "one", "three", "three"],
+                        ["one", "one", "three", "three", "one", "one", "two", "two"],
                         dtype="category",
                         name="B",
                     ),
                     Index(["min", "max"] * 4),
                 ]
             ),
-            [1, 1, 3, 3, 2, 2, 4, 4],
+            [2, 2, 4, 4, 1, 1, 3, 3],
         ),
         (
             False,
@@ -1335,7 +1312,6 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
@@ -1531,7 +1507,7 @@ def test_groupby_agg_categorical_columns(func, expected_values):
 
 def test_groupby_agg_non_numeric():
     df = DataFrame({"A": Categorical(["a", "a", "b"], categories=["a", "b", "c"])})
-    expected = DataFrame({"A": [2, 1]}, index=[1, 2])
+    expected = DataFrame({"A": [2, 1]}, index=np.array([1, 2]))
 
     result = df.groupby([1, 2, 1]).agg(Series.nunique)
     tm.assert_frame_equal(result, expected)
@@ -1562,9 +1538,7 @@ def test_read_only_category_no_sort():
     df = DataFrame(
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
-    expected = DataFrame(
-        data={"a": [2.0, 6.0]}, index=CategoricalIndex([1, 2], name="b")
-    )
+    expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex(cats, name="b"))
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 
@@ -1857,9 +1831,12 @@ def test_category_order_reducer(
     if (
         reduction_func in ("idxmax", "idxmin")
         and not observed
-        and index_kind == "range"
+        and index_kind != "multi"
     ):
         msg = "GH#10694 - idxmax/min fail with unused categories"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    elif reduction_func == "corrwith" and not as_index:
+        msg = "GH#49950 - corrwith with as_index=False may not have grouping column"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
     elif index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
@@ -1880,10 +1857,7 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    msg = "is deprecated and will be removed in a future version"
-    warn = FutureWarning if reduction_func == "mad" else None
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, reduction_func)(*args)
+    op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
     else:
@@ -1917,10 +1891,7 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    msg = "is deprecated and will be removed in a future version"
-    warn = FutureWarning if transformation_func == "tshift" else None
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, transformation_func)(*args)
+    op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
@@ -2025,11 +1996,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
-    # TODO: GH#49223 - Order of values should be the same for all index_kinds
-    if index_kind == "range":
-        data = [3, 2, 1] if ordered else [2, 1, 3]
-    else:
-        data = [3, 2, 1] if sort else [2, 1, 3]
+    data = [3, 2, 1] if sort else [2, 1, 3]
 
     index = CategoricalIndex(
         data, categories=grouper.categories, ordered=ordered, name="a"

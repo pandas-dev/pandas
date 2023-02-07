@@ -4,11 +4,16 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
-    TYPE_CHECKING,
     Any,
     Literal,
 )
 
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
+
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -23,14 +28,17 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
 )
 
-from pandas.io.common import get_handle
+from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.frame import DataFrame
 
-if TYPE_CHECKING:
-    from pandas import DataFrame
+from pandas.io.common import get_handle
 
 
 def read_orc(
-    path: FilePath | ReadBuffer[bytes], columns: list[str] | None = None, **kwargs
+    path: FilePath | ReadBuffer[bytes],
+    columns: list[str] | None = None,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    **kwargs,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
@@ -47,6 +55,24 @@ def read_orc(
         ``file://localhost/path/to/table.orc``.
     columns : list, default None
         If not None, only these columns will be read from the file.
+        Output always follows the ordering of the file and not the columns list.
+        This mirrors the original behaviour of
+        :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
+    use_nullable_dtypes : bool, default False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
@@ -63,9 +89,34 @@ def read_orc(
 
     orc = import_optional_dependency("pyarrow.orc")
 
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     with get_handle(path, "rb", is_text=False) as handles:
         orc_file = orc.ORCFile(handles.handle)
-        return orc_file.read(columns=columns, **kwargs).to_pandas()
+        pa_table = orc_file.read(columns=columns, **kwargs)
+    if use_nullable_dtypes:
+        dtype_backend = get_option("mode.dtype_backend")
+        if dtype_backend == "pyarrow":
+            df = DataFrame(
+                {
+                    col_name: ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
+            )
+        else:
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping()
+            df = pa_table.to_pandas(types_mapper=mapping.get)
+        return df
+    else:
+        return pa_table.to_pandas()
 
 
 def to_orc(

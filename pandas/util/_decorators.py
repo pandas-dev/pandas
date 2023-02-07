@@ -77,7 +77,7 @@ def deprecate(
     if alternative.__doc__:
         if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
-        empty1, summary, empty2, doc = alternative.__doc__.split("\n", 3)
+        empty1, summary, empty2, doc_string = alternative.__doc__.split("\n", 3)
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
@@ -87,7 +87,7 @@ def deprecate(
         .. deprecated:: {version}
             {msg}
 
-        {dedent(doc)}"""
+        {dedent(doc_string)}"""
         )
     # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
     # Callable[...,Any]]", expected "Callable[[F], F]")
@@ -206,8 +206,7 @@ def deprecate_kwarg(
                         f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
-                else:
-                    kwargs[new_arg_name] = new_arg_value
+                kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
         return cast(F, wrapper)
@@ -229,7 +228,7 @@ def _format_argument_list(allow_args: list[str]) -> str:
 
     Returns
     -------
-    s : str
+    str
         The substring describing the argument list in best way to be
         inserted to the warning message.
 
@@ -338,36 +337,6 @@ def deprecate_nonkeyword_arguments(
     return decorate
 
 
-def rewrite_axis_style_signature(
-    name: str, extra_params: list[tuple[str, Any]]
-) -> Callable[[F], F]:
-    def decorate(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable[..., Any]:
-            return func(*args, **kwargs)
-
-        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-        params = [
-            inspect.Parameter("self", kind),
-            inspect.Parameter(name, kind, default=None),
-            inspect.Parameter("index", kind, default=None),
-            inspect.Parameter("columns", kind, default=None),
-            inspect.Parameter("axis", kind, default=None),
-        ]
-
-        for pname, default in extra_params:
-            params.append(inspect.Parameter(pname, kind, default=default))
-
-        sig = inspect.Signature(params)
-
-        # https://github.com/python/typing/issues/598
-        # error: "F" has no attribute "__signature__"
-        func.__signature__ = sig  # type: ignore[attr-defined]
-        return cast(F, wrapper)
-
-    return decorate
-
-
 def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
@@ -398,12 +367,8 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
             if docstring is None:
                 continue
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
-                # "_docstring_components"
-                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore[union-attr]
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues] # noqa: E501
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
@@ -536,6 +501,5 @@ __all__ = [
     "deprecate_nonkeyword_arguments",
     "doc",
     "future_version_msg",
-    "rewrite_axis_style_signature",
     "Substitution",
 ]

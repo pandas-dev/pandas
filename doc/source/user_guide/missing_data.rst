@@ -472,7 +472,7 @@ at the new values.
 
 .. _scipy: https://scipy.org/
 .. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _guide: https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 
@@ -684,12 +684,6 @@ Replacing more than one value is possible by passing a list.
    df00 = df.iloc[0, 0]
    df.replace([1.5, df00], [np.nan, "a"])
    df[1].dtype
-
-You can also operate on the DataFrame in place:
-
-.. ipython:: python
-
-   df.replace(1.5, np.nan, inplace=True)
 
 Missing data casting rules and indexing
 ---------------------------------------

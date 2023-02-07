@@ -50,7 +50,6 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -168,9 +167,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
-...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
+...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -178,6 +177,7 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file in 10,000 line chunks:
+
 >>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
@@ -419,7 +419,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - stata_epoch
+                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -1222,7 +1222,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
-        self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
+        self.byteorder = ">" if self.path_or_buf.read(3) == b"MSF" else "<"
         self.path_or_buf.read(15)  # </byteorder><K>
         nvar_type = "H" if self.format_version <= 118 else "I"
         nvar_size = 2 if self.format_version <= 118 else 4
@@ -1414,7 +1414,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.byteorder = (
-            struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 and ">" or "<"
+            ">" if struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 else "<"
         )
         self.filetype = struct.unpack("b", self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused
@@ -1726,7 +1726,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
@@ -2009,9 +2009,9 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2418,7 +2418,6 @@ class StataWriter(StataParser):
 
     def _update_strl_names(self) -> None:
         """No-op, forward compatibility"""
-        pass
 
     def _validate_variable_name(self, name: str) -> str:
         """
@@ -2702,19 +2701,15 @@ supported types."""
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_file_close_tag(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_characteristics(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_strls(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_expansion_fields(self) -> None:
         """Write 5 zeros for expansion fields"""
@@ -3439,7 +3434,6 @@ class StataWriter117(StataWriter):
 
     def _write_expansion_fields(self) -> None:
         """No-op in dta 117+"""
-        pass
 
     def _write_value_labels(self) -> None:
         self._update_map("value_labels")

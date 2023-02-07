@@ -10,18 +10,22 @@ from typing import (
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
-from pandas._typing import Dtype
+from pandas._typing import NpDtype
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    pandas_dtype,
 )
 
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    default_index,
+)
 from pandas.core.series import Series
 
 
@@ -33,7 +37,7 @@ def get_dummies(
     columns=None,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Dtype | None = None,
+    dtype: NpDtype | None = None,
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
@@ -228,7 +232,7 @@ def _get_dummies_1d(
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Dtype | None = None,
+    dtype: NpDtype | None = None,
 ) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
@@ -237,11 +241,9 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.dtype(bool)
-    # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
-    # dtype[Any], Type[object]]"; expected "Type[Any]"
-    dtype = np.dtype(dtype)  # type: ignore[arg-type]
+    _dtype = pandas_dtype(dtype)
 
-    if is_object_dtype(dtype):
+    if is_object_dtype(_dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
@@ -249,7 +251,7 @@ def _get_dummies_1d(
         if isinstance(data, Series):
             index = data.index
         else:
-            index = Index(range(len(data)))
+            index = default_index(len(data))
         return DataFrame(index=index)
 
     # if all NaN
@@ -316,7 +318,12 @@ def _get_dummies_1d(
 
     else:
         # take on axis=1 + transpose to ensure ndarray layout is column-major
-        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=1).T
+        eye_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            eye_dtype = _dtype
+        else:
+            eye_dtype = np.bool_
+        dummy_mat = np.eye(number_of_cols, dtype=eye_dtype).take(codes, axis=1).T
 
         if not dummy_na:
             # reset NaN GH4446
@@ -326,7 +333,7 @@ def _get_dummies_1d(
             # remove first GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+        return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
 
 def from_dummies(
@@ -508,7 +515,7 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
-        elif any(assigned == 0):
+        if any(assigned == 0):
             if isinstance(default_category, dict):
                 cats.append(default_category[prefix])
             else:

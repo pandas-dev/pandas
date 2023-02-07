@@ -14,22 +14,11 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @skip_pyarrow
-@pytest.mark.parametrize("kwargs", [{}, {"mangle_dupe_cols": True}])
-def test_basic(all_parsers, kwargs):
-    # TODO: add test for condition "mangle_dupe_cols=False"
-    # once it is actually supported (gh-12935)
+def test_basic(all_parsers):
     parser = all_parsers
 
     data = "a,a,b,b,b\n1,2,3,4,5"
-    if "mangle_dupe_cols" in kwargs:
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="the 'mangle_dupe_cols' keyword is deprecated",
-            check_stacklevel=False,
-        ):
-            result = parser.read_csv(StringIO(data), sep=",", **kwargs)
-    else:
-        result = parser.read_csv(StringIO(data), sep=",", **kwargs)
+    result = parser.read_csv(StringIO(data), sep=",")
 
     expected = DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
     tm.assert_frame_equal(result, expected)

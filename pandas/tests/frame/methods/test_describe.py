@@ -274,12 +274,12 @@ class TestDataFrameDescribe:
             },
             index=["count", "mean", "min", "25%", "50%", "75%", "max", "std"],
         )
-        result = df.describe(include="all", datetime_is_numeric=True)
+        result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
         df = DataFrame({"a": date_range("2012", periods=3), "b": [1, 2, 3]})
-        result = df.describe(datetime_is_numeric=True)
+        result = df.describe()
         expected = DataFrame(
             {
                 "a": [
@@ -307,36 +307,22 @@ class TestDataFrameDescribe:
         df = DataFrame({"s1": s1, "s2": s2})
 
         s1_ = s1.describe()
-        s2_ = Series(
-            [
-                5,
-                5,
-                s2.value_counts().index[0],
-                1,
-                start.tz_localize(tz),
-                end.tz_localize(tz),
-            ],
-            index=["count", "unique", "top", "freq", "first", "last"],
-        )
+        s2_ = s2.describe()
         idx = [
             "count",
-            "unique",
-            "top",
-            "freq",
-            "first",
-            "last",
             "mean",
-            "std",
             "min",
             "25%",
             "50%",
             "75%",
             "max",
+            "std",
         ]
-        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).loc[idx]
+        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).reindex(
+            idx, copy=False
+        )
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.describe(include="all")
+        result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_describe_percentiles_integer_idx(self):
@@ -402,7 +388,9 @@ class TestDataFrameDescribe:
         # GH#48778
 
         df = DataFrame({"a": [1, pd.NA, pd.NA], "b": pd.NA}, dtype=any_numeric_ea_dtype)
-        result = df.describe()
+        # Warning from numpy for taking std of single element
+        with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+            result = df.describe()
         expected = DataFrame(
             {"a": [1.0, 1.0, pd.NA] + [1.0] * 5, "b": [0.0] + [pd.NA] * 7},
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],

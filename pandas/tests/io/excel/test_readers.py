@@ -5,6 +5,7 @@ from datetime import (
 from functools import partial
 import os
 from pathlib import Path
+import platform
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -41,7 +42,6 @@ engine_params = [
         "openpyxl",
         marks=[
             td.skip_if_no("openpyxl"),
-            pytest.mark.filterwarnings("ignore:.*html argument"),
         ],
     ),
     pytest.param(
@@ -536,10 +536,11 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    def test_use_nullable_dtypes(self, read_ext):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_use_nullable_dtypes(self, read_ext, dtype_backend, option):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame(
             {
@@ -557,15 +558,39 @@ class TestReaders:
         )
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
-            result = pd.read_excel(
-                file_path, sheet_name="test", use_nullable_dtypes=True
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if not option:
+                    result = pd.read_excel(
+                        file_path, sheet_name="test", use_nullable_dtypes=True
+                    )
+                else:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = pd.read_excel(file_path, sheet_name="test")
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                    for col in df.columns
+                }
             )
-        tm.assert_frame_equal(result, df)
+            # pyarrow by default infers timestamp resolution as us, not ns
+            expected["i"] = ArrowExtensionArray(
+                expected["i"].array._data.cast(pa.timestamp(unit="us"))
+            )
+            # pyarrow supports a null type, so don't have to default to Int64
+            expected["j"] = ArrowExtensionArray(pa.array([None, None]))
+        else:
+            expected = df
+        tm.assert_frame_equal(result, expected)
 
     def test_use_nullabla_dtypes_and_dtype(self, read_ext):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
@@ -576,15 +601,14 @@ class TestReaders:
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullabla_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, string_storage):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         import pyarrow as pa
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
 
             df = DataFrame(
                 {
@@ -598,7 +622,7 @@ class TestReaders:
                     file_path, sheet_name="test", use_nullable_dtypes=True
                 )
 
-            if storage == "python":
+            if string_storage == "python":
                 expected = DataFrame(
                     {
                         "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -874,18 +898,13 @@ class TestReaders:
             url_table = pd.read_excel("file://localhost/" + localtable)
         except URLError:
             # fails on some systems
-            import platform
-
             platform_info = " ".join(platform.uname()).strip()
             pytest.skip(f"failing on {platform_info}")
 
         tm.assert_frame_equal(url_table, local_table)
 
     def test_read_from_pathlib_path(self, read_ext):
-
         # GH12655
-        from pathlib import Path
-
         str_path = "test1" + read_ext
         expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
 
@@ -1308,31 +1327,6 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_squeeze(self, read_ext):
-        # GH 12157
-        f = "test_squeeze" + read_ext
-
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="The squeeze argument has been deprecated "
-            "and will be removed in a future version. "
-            'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
-        ):
-            actual = pd.read_excel(
-                f, sheet_name="two_columns", index_col=0, squeeze=True
-            )
-            expected = Series([2, 3, 4], [4, 5, 6], name="b")
-            expected.index.name = "a"
-            tm.assert_series_equal(actual, expected)
-
-            actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-            expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
-            tm.assert_frame_equal(actual, expected)
-
-            actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-            expected = Series([1, 2, 3], name="a")
-            tm.assert_series_equal(actual, expected)
-
     def test_deprecated_kwargs(self, read_ext):
         with pytest.raises(TypeError, match="but 3 positional arguments"):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
@@ -1650,7 +1644,7 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 

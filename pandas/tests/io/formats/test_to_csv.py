@@ -3,6 +3,7 @@ import os
 import sys
 from zipfile import ZipFile
 
+from _csv import Error
 import numpy as np
 import pytest
 
@@ -93,8 +94,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path) as f:
                 assert f.read() == expected
-
-        from _csv import Error
 
         with tm.ensure_clean("test.csv") as path:
             with pytest.raises(Error, match="escapechar"):
@@ -451,9 +450,7 @@ $1$,$2$
         # see gh-19589
         obj = frame_or_series(pd.Series([1], ind, name="data"))
 
-        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
-            # GH#9568 standardize on lineterminator matching stdlib
-            result = obj.to_csv(line_terminator="\n", header=True)
+        result = obj.to_csv(lineterminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):

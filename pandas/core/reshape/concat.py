@@ -14,20 +14,21 @@ from typing import (
     cast,
     overload,
 )
-import warnings
+import weakref
 
 import numpy as np
+
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._typing import (
     Axis,
     AxisInt,
     HashableT,
 )
-from pandas.util._decorators import (
-    cache_readonly,
-    deprecate_nonkeyword_arguments,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -52,6 +53,7 @@ from pandas.core.indexes.api import (
     get_unanimous_names,
 )
 from pandas.core.internals import concatenate_managers
+from pandas.core.internals.construction import dict_to_mgr
 
 if TYPE_CHECKING:
     from pandas import (
@@ -67,6 +69,7 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -83,6 +86,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[Series] | Mapping[HashableT, Series],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -99,6 +103,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -115,6 +120,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -131,6 +137,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -144,9 +151,9 @@ def concat(
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -155,7 +162,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort: bool = False,
-    copy: bool = True,
+    copy: bool | None = None,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -195,10 +202,7 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'.
-        This has no effect when ``join='inner'``, which already preserves
-        the order of the non-concatenation axis.
+        Sort non-concatenation axis if it is not already aligned.
 
         .. versionchanged:: 1.0.0
 
@@ -366,6 +370,12 @@ def concat(
     0   1   2
     1   3   4
     """
+    if copy is None:
+        if using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
     op = _Concatenator(
         objs,
         axis=axis,
@@ -526,18 +536,25 @@ class _Concatenator:
                     )
 
                 else:
-                    name = getattr(obj, "name", None)
+                    original_obj = obj
+                    name = new_name = getattr(obj, "name", None)
                     if ignore_index or name is None:
-                        name = current_column
+                        new_name = current_column
                         current_column += 1
 
                     # doing a row-wise concatenation so need everything
                     # to line up
                     if self._is_frame and axis == 1:
-                        name = 0
+                        new_name = 0
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor({name: obj})
+                    obj = sample._constructor(obj, columns=[name], copy=False)
+                    if using_copy_on_write():
+                        # TODO(CoW): Remove when ref tracking in constructors works
+                        obj._mgr.parent = original_obj  # type: ignore[union-attr]
+                        obj._mgr.refs = [weakref.ref(original_obj._mgr.blocks[0])]  # type: ignore[union-attr]  # noqa: E501
+
+                    obj.columns = [new_name]
 
                 self.objs.append(obj)
 
@@ -549,11 +566,8 @@ class _Concatenator:
         self.levels = levels
 
         if not is_bool(sort):
-            warnings.warn(
-                "Passing non boolean values for sort is deprecated and "
-                "will error in a future version!",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
         self.sort = sort
 
@@ -590,7 +604,22 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index, copy=self.copy)
+                mgr = dict_to_mgr(
+                    data,
+                    index,
+                    None,
+                    copy=self.copy,
+                    typ=get_option("mode.data_manager"),
+                )
+                if using_copy_on_write() and not self.copy:
+                    parents = [obj._mgr for obj in self.objs]
+                    mgr.parent = parents  # type: ignore[union-attr]
+                    refs = [
+                        weakref.ref(obj._mgr.blocks[0])  # type: ignore[union-attr]
+                        for obj in self.objs
+                    ]
+                    mgr.refs = refs  # type: ignore[union-attr]
+                df = cons(mgr, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -617,7 +646,7 @@ class _Concatenator:
             new_data = concatenate_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
-            if not self.copy:
+            if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
             cons = sample._constructor

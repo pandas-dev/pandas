@@ -14,7 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn
@@ -56,7 +55,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = Int64Index([f(x) for x in rng])
+        exp = Index([f(x) for x in rng], dtype=np.int32)
         tm.assert_index_equal(result, exp)
 
     def test_pass_TimedeltaIndex_to_index(self):
@@ -70,15 +69,16 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
-        tm.assert_index_equal(rng.days, Index([1, 1], dtype="int64"))
+        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int32))
         tm.assert_index_equal(
             rng.seconds,
-            Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype="int64"),
+            Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype=np.int32),
         )
         tm.assert_index_equal(
-            rng.microseconds, Index([100 * 1000 + 123, 100 * 1000 + 123], dtype="int64")
+            rng.microseconds,
+            Index([100 * 1000 + 123, 100 * 1000 + 123], dtype=np.int32),
         )
-        tm.assert_index_equal(rng.nanoseconds, Index([456, 456], dtype="int64"))
+        tm.assert_index_equal(rng.nanoseconds, Index([456, 456], dtype=np.int32))
 
         msg = "'TimedeltaIndex' object has no attribute '{}'"
         with pytest.raises(AttributeError, match=msg.format("hours")):
@@ -141,9 +141,12 @@ class TestTimedeltaIndex(DatetimeLike):
 
         # We don't support "D" reso, so we use the pre-2.0 behavior
         #  casting to float64
-        result = td.astype("timedelta64[D]")
-        expected = index_or_series([31, 31, 31, np.nan])
-        tm.assert_equal(result, expected)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[D\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td.astype("timedelta64[D]")
 
         result = td / np.timedelta64(1, "s")
         expected = index_or_series(

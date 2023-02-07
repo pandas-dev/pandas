@@ -3,7 +3,11 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 
-from pandas import Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     SparseArray,
@@ -39,12 +43,9 @@ class TestAstype:
 
     def test_astype_bool(self):
         a = SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = a.astype(bool)
-        expected = SparseArray(
-            [True, False, False, True], dtype=SparseDtype(bool, False)
-        )
-        tm.assert_sp_array_equal(result, expected)
+        result = a.astype(bool)
+        expected = np.array([1, 0, 0, 1], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
 
         # update fill value
         result = a.astype(SparseDtype(bool, False))
@@ -57,12 +58,8 @@ class TestAstype:
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
         typ = np.dtype(any_real_numpy_dtype)
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            res = arr.astype(typ)
-        assert res.dtype == SparseDtype(typ, 1)
-        assert res.sp_values.dtype == typ
-
-        tm.assert_numpy_array_equal(np.asarray(res.to_dense()), vals.astype(typ))
+        res = arr.astype(typ)
+        tm.assert_numpy_array_equal(res, vals.astype(any_real_numpy_dtype))
 
     @pytest.mark.parametrize(
         "arr, dtype, expected",
@@ -100,22 +97,13 @@ class TestAstype:
         ],
     )
     def test_astype_more(self, arr, dtype, expected):
-
-        if isinstance(dtype, SparseDtype):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn, match="astype from SparseDtype"):
-            result = arr.astype(dtype)
+        result = arr.astype(arr.dtype.update_dtype(dtype))
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):
         arr = SparseArray([1.0, np.nan])
         with pytest.raises(ValueError, match="Cannot convert non-finite"):
-            msg = "astype from SparseDtype"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                arr.astype(int)
+            arr.astype(int)
 
     def test_astype_copy_false(self):
         # GH#34456 bug caused by using .view instead of .astype in astype_nansafe
@@ -126,3 +114,34 @@ class TestAstype:
         result = arr.astype(dtype, copy=False)
         expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
         tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_dt64_to_int64(self):
+        # GH#49631 match non-sparse behavior
+        values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
+
+        arr = SparseArray(values)
+        result = arr.astype("int64")
+        expected = values.astype("int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        # we should also be able to cast to equivalent Sparse[int64]
+        dtype_int64 = SparseDtype("int64", np.iinfo(np.int64).min)
+        result2 = arr.astype(dtype_int64)
+        tm.assert_numpy_array_equal(result2.to_numpy(), expected)
+
+        # GH#50087 we should match the non-sparse behavior regardless of
+        #  if we have a fill_value other than NaT
+        dtype = SparseDtype("datetime64[ns]", values[1])
+        arr3 = SparseArray(values, dtype=dtype)
+        result3 = arr3.astype("int64")
+        tm.assert_numpy_array_equal(result3, expected)
+
+
+def test_dtype_sparse_with_fill_value_not_present_in_data():
+    # GH 49987
+    df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
+    result = df["A"].astype(SparseDtype("category", fill_value="c"))
+    expected = Series(
+        ["a", "b", "b"], name="A", dtype=SparseDtype("object", fill_value="c")
+    )
+    tm.assert_series_equal(result, expected)

@@ -5,11 +5,11 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestDataFrameTruncate:
@@ -66,12 +66,6 @@ class TestDataFrameTruncate:
                 before=ts.index[-1] - ts.index.freq, after=ts.index[0] + ts.index.freq
             )
 
-    def test_truncate_copy(self, datetime_frame):
-        index = datetime_frame.index
-        truncated = datetime_frame.truncate(index[5], index[10])
-        truncated.values[:] = 5.0
-        assert not (datetime_frame.values[5:11] == 5).any()
-
     def test_truncate_nonsortedindex(self, frame_or_series):
         # GH#17935
 
@@ -114,13 +108,13 @@ class TestDataFrameTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    @pytest.mark.parametrize("klass", [Int64Index, DatetimeIndex])
+    @pytest.mark.parametrize("dtyp", [*tm.ALL_REAL_NUMPY_DTYPES, "datetime64[ns]"])
     def test_truncate_decreasing_index(
-        self, before, after, indices, klass, frame_or_series
+        self, before, after, indices, dtyp, frame_or_series
     ):
         # https://github.com/pandas-dev/pandas/issues/33756
-        idx = klass([3, 2, 1, 0])
-        if klass is DatetimeIndex:
+        idx = Index([3, 2, 1, 0], dtype=dtyp)
+        if isinstance(idx, DatetimeIndex):
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]

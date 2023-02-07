@@ -44,6 +44,10 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
+    from pandas.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -88,6 +92,7 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # scalars
 
@@ -188,8 +193,8 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-AnyStr_cov = TypeVar("AnyStr_cov", str, bytes, covariant=True)
-AnyStr_con = TypeVar("AnyStr_con", str, bytes, contravariant=True)
+AnyStr_co = TypeVar("AnyStr_co", str, bytes, covariant=True)
+AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
@@ -212,14 +217,14 @@ class BaseBuffer(Protocol):
         ...
 
 
-class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
-    def read(self, __n: int = ...) -> AnyStr_cov:
+class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
+    def read(self, __n: int = ...) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
-class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
-    def write(self, __b: AnyStr_con) -> Any:
+class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
+    def write(self, __b: AnyStr_contra) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -238,8 +243,8 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
         ...
 
 
-class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
-    def __iter__(self) -> Iterator[AnyStr_cov]:
+class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
+    def __iter__(self) -> Iterator[AnyStr_co]:
         # for engine=python
         ...
 
@@ -247,7 +252,7 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
         # for _MMapWrapper
         ...
 
-    def readline(self) -> AnyStr_cov:
+    def readline(self) -> AnyStr_co:
         # for engine=python
         ...
 
@@ -342,6 +347,12 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+
+# join
+JoinHow = Literal["left", "right", "inner", "outer"]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[

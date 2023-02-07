@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -11,6 +12,7 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     DatetimeTZDtype,
+    Index,
     Interval,
     IntervalDtype,
     NaT,
@@ -22,7 +24,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.api import UInt64Index
 
 
 def _check_cast(df, v):
@@ -372,10 +373,36 @@ class TestAstype:
     )
     def test_astype_column_metadata(self, dtype):
         # GH#19920
-        columns = UInt64Index([100, 200, 300], name="foo")
+        columns = Index([100, 200, 300], dtype=np.uint64, name="foo")
         df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_datetime_unit(self, unit):
+        vals = [
+            ["2015-01-01", "2015-01-02", "2015-01-03"],
+            ["2017-01-01", "2017-01-02", "2017-02-03"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        with pytest.raises(TypeError, match="Cannot cast"):
+            df.astype(f"M8[{unit}]")
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_timedelta_unit(self, unit):
+        vals = [
+            ["1 Day", "2 Days", "3 Days"],
+            ["4 Days", "5 Days", "6 Days"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # TODO: this is ValueError while for DatetimeArray it is TypeError;
+            #  get these consistent
+            df.astype(f"m8[{unit}]")
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -415,54 +442,48 @@ class TestAstype:
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         ser = df.iloc[:, 0]
-        idx = pd.Index(ser)
+        idx = Index(ser)
         dta = ser._values
-
-        result = df.astype(dtype)
 
         if unit in ["ns", "us", "ms", "s"]:
             # GH#48928
-            exp_dtype = dtype
+            result = df.astype(dtype)
         else:
             # we use the nearest supported dtype (i.e. M8[s])
-            exp_dtype = "M8[s]"
-        # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
-        #  can simplify this
-        exp_values = arr.astype(exp_dtype)
-        exp_dta = pd.core.arrays.DatetimeArray._simple_new(
-            exp_values, dtype=exp_values.dtype
-        )
-        exp_df = DataFrame(exp_dta)
-        assert (exp_df.dtypes == exp_dtype).all()
-
-        tm.assert_frame_equal(result, exp_df)
-
-        # TODO(2.0): make Series/DataFrame raise like Index and DTA?
-        res_ser = ser.astype(dtype)
-        exp_ser = exp_df.iloc[:, 0]
-        assert exp_ser.dtype == exp_dtype
-        tm.assert_series_equal(res_ser, exp_ser)
-
-        if unit in ["ns", "us", "ms", "s"]:
-            exp_dta = exp_ser._values
-
-            res_index = idx.astype(dtype)
-            # TODO(2.0): should be able to just call pd.Index(exp_ser)
-            exp_index = pd.DatetimeIndex._simple_new(exp_dta, name=idx.name)
-            assert exp_index.dtype == exp_dtype
-            tm.assert_index_equal(res_index, exp_index)
-
-            res_dta = dta.astype(dtype)
-            assert exp_dta.dtype == exp_dtype
-            tm.assert_extension_array_equal(res_dta, exp_dta)
-        else:
-            msg = rf"Cannot cast DatetimeIndex to dtype datetime64\[{unit}\]"
-            with pytest.raises(TypeError, match=msg):
-                idx.astype(dtype)
-
             msg = rf"Cannot cast DatetimeArray to dtype datetime64\[{unit}\]"
             with pytest.raises(TypeError, match=msg):
+                df.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
+                ser.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg.replace("Array", "Index")):
+                idx.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
                 dta.astype(dtype)
+
+            return
+
+        exp_df = DataFrame(arr.astype(dtype))
+        assert (exp_df.dtypes == dtype).all()
+        tm.assert_frame_equal(result, exp_df)
+
+        res_ser = ser.astype(dtype)
+        exp_ser = exp_df.iloc[:, 0]
+        assert exp_ser.dtype == dtype
+        tm.assert_series_equal(res_ser, exp_ser)
+
+        exp_dta = exp_ser._values
+
+        res_index = idx.astype(dtype)
+        exp_index = Index(exp_ser)
+        assert exp_index.dtype == dtype
+        tm.assert_index_equal(res_index, exp_index)
+
+        res_dta = dta.astype(dtype)
+        assert exp_dta.dtype == dtype
+        tm.assert_extension_array_equal(res_dta, exp_dta)
 
     @pytest.mark.parametrize("unit", ["ns"])
     def test_astype_to_timedelta_unit_ns(self, unit):
@@ -483,22 +504,35 @@ class TestAstype:
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
+        ser = df.iloc[:, 0]
+        tdi = Index(ser)
+        tda = tdi._values
+
         if unit in ["us", "ms", "s"]:
             assert (df.dtypes == dtype).all()
+            result = df.astype(dtype)
         else:
             # We get the nearest supported unit, i.e. "s"
             assert (df.dtypes == "m8[s]").all()
 
+            msg = (
+                rf"Cannot convert from timedelta64\[s\] to timedelta64\[{unit}\]. "
+                "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            )
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tdi.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tda.astype(dtype)
+
+            return
+
         result = df.astype(dtype)
-        if unit in ["m", "h", "D"]:
-            # We don't support these, so we use the pre-2.0 logic to convert to float
-            #  (xref GH#48979)
-
-            expected = DataFrame(df.values.astype(dtype).astype(float))
-        else:
-            # The conversion is a no-op, so we just get a copy
-            expected = df
-
+        # The conversion is a no-op, so we just get a copy
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -664,7 +698,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
@@ -834,3 +868,24 @@ def test_frame_astype_no_copy():
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
+
+
+@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow is required for this test")
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_astype_copies(dtype):
+    # GH#50984
+    df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
+    result = df.astype("int64[pyarrow]", copy=True)
+    df.iloc[0, 0] = 100
+    expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", [None, 1, 1.5, np.nan, NaT])
+def test_astype_to_string_not_modifying_input(string_storage, val):
+    # GH#51073
+    df = DataFrame({"a": ["a", "b", val]})
+    expected = df.copy()
+    with option_context("mode.string_storage", string_storage):
+        df.astype("string", copy=False)
+    tm.assert_frame_equal(df, expected)

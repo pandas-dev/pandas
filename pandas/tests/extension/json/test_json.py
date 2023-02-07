@@ -140,7 +140,7 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         self.assert_frame_equal(a.to_frame(), a.to_frame())
 
         b = pd.Series(data.take([0, 0, 1]))
-        msg = r"ExtensionArray are different"
+        msg = r"Series are different"
         with pytest.raises(AssertionError, match=msg):
             self.assert_series_equal(a, b)
 
@@ -277,6 +277,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         reason="combine for JSONArray not supported - "
         "may pass depending on random data",
         strict=False,
+        raises=AssertionError,
     )
     def test_combine_first(self, data):
         super().test_combine_first(data)

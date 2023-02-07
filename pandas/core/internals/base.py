@@ -134,7 +134,6 @@ class DataManager(PandasObject):
         self: T,
         f,
         align_keys: list[str] | None = None,
-        ignore_failures: bool = False,
         **kwargs,
     ) -> T:
         raise AbstractMethodError(self)
@@ -190,12 +189,7 @@ class SingleDataManager(DataManager):
 
         arr[indexer] = value
 
-    def grouped_reduce(self, func, ignore_failures: bool = False):
-        """
-        ignore_failures : bool, default False
-            Not used; for compatibility with ArrayManager/BlockManager.
-        """
-
+    def grouped_reduce(self, func):
         arr = self.array
         res = func(arr)
         index = default_index(len(res))

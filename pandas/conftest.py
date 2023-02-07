@@ -62,6 +62,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -79,7 +80,7 @@ else:
     has_pyarrow = True
 
 zoneinfo = None
-if pd.compat.PY39:
+if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 
@@ -91,10 +92,6 @@ if pd.compat.PY39:
     except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
         zoneinfo = None
 
-# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
-suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
-    "ignore:Promotion of numbers and bools:FutureWarning"
-)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -150,13 +147,8 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        # Deprecations where the docstring will emit a warning
-        ("DataFrame.append", "The frame.append method is deprecated"),
-        ("Series.append", "The series.append method is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        # Docstring demonstrates the call raises a warning
-        ("_validators.validate_axis_style_args", "Use named arguments"),
     ]
 
     for item in items:
@@ -173,7 +165,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-        item.add_marker(suppress_npdev_promotion_warning)
 
         for (mark, kwd, skip_if_found, arg_name) in marks:
             if kwd in item.keywords:
@@ -527,7 +518,7 @@ def multiindex_year_month_day_dataframe_random_data():
     """
     tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
-    # use Int64Index, to make sure things work
+    # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd
@@ -593,24 +584,21 @@ indices_dict = {
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
     "timedelta": tm.makeTimedeltaIndex(100),
-    "int": tm.makeIntIndex(100),
-    "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
-    "float": tm.makeFloatIndex(100),
-    "complex64": tm.makeFloatIndex(100).astype("complex64"),
-    "complex128": tm.makeFloatIndex(100).astype("complex128"),
-    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
-    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
-    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
-    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
-    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
-    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
-    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
-    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
-    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
-    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
+    "int8": tm.makeIntIndex(100, dtype="int8"),
+    "int16": tm.makeIntIndex(100, dtype="int16"),
+    "int32": tm.makeIntIndex(100, dtype="int32"),
+    "int64": tm.makeIntIndex(100, dtype="int64"),
+    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
+    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
+    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
+    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
+    "float32": tm.makeFloatIndex(100, dtype="float32"),
+    "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
+    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
+    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -670,8 +658,10 @@ index_flat2 = index_flat
         key
         for key, value in indices_dict.items()
         if not (
-            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
-            or key.startswith("num_")
+            key.startswith("int")
+            or key.startswith("uint")
+            or key.startswith("float")
+            or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
     ]
@@ -1037,6 +1027,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1047,6 +1038,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 
@@ -1124,6 +1116,17 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
@@ -1163,8 +1166,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
                 raise ValueError(
                     f"Could not find file {path} and --strict-data-files is set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -1262,9 +1264,7 @@ def string_dtype(request):
 @pytest.fixture(
     params=[
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1280,10 +1280,26 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "pandas",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
     """
     Parametrized fixture for pd.options.mode.string_storage.
 
@@ -1323,9 +1339,7 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1481,7 +1495,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
@@ -1523,6 +1537,43 @@ def any_numeric_ea_dtype(request):
     * 'Int64'
     * 'Float32'
     * 'Float64'
+    """
+    return request.param
+
+
+#  Unsupported operand types for + ("List[Union[str, ExtensionDtype, dtype[Any],
+#  Type[object]]]" and "List[str]")
+@pytest.fixture(
+    params=tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+    + tm.ALL_INT_PYARROW_DTYPES_STR_REPR
+    + tm.FLOAT_PYARROW_DTYPES_STR_REPR  # type: ignore[operator]
+)
+def any_numeric_ea_and_arrow_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
+    * 'uint8[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float32[pyarrow]'
+    * 'float64[pyarrow]'
     """
     return request.param
 
@@ -1727,7 +1778,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
@@ -1899,3 +1950,16 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request):
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param

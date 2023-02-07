@@ -8,11 +8,9 @@ from pandas.core.dtypes.common import is_number
 
 from pandas import (
     DataFrame,
-    Index,
     Series,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.apply.common import (
     frame_transform_kernels,
     series_transform_kernels,
@@ -150,8 +148,8 @@ def test_agg_cython_table_series(series, func, expected):
         tm.get_cython_table_params(
             Series(dtype=np.float64),
             [
-                ("cumprod", Series([], Index([]), dtype=np.float64)),
-                ("cumsum", Series([], Index([]), dtype=np.float64)),
+                ("cumprod", Series([], dtype=np.float64)),
+                ("cumsum", Series([], dtype=np.float64)),
             ],
         ),
         tm.get_cython_table_params(
@@ -251,8 +249,6 @@ def test_transform_groupby_kernel_series(request, string_series, op):
         request.node.add_marker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    op = maybe_normalize_deprecated_kernels(op)
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
     expected = string_series.groupby(ones).transform(op, *args)
@@ -262,8 +258,6 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    op = maybe_normalize_deprecated_kernels(op)
 
     if op == "ngroup":
         request.node.add_marker(

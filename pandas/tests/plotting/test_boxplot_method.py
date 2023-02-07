@@ -13,6 +13,7 @@ from pandas import (
     MultiIndex,
     Series,
     date_range,
+    plotting,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -22,7 +23,6 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
@@ -362,8 +362,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = np.random.choice(["male", "female"], size=n)
+        gender = np.random.RandomState(42).choice(["male", "female"], size=n)
         df = DataFrame({"height": height, "weight": weight, "gender": gender})
         gb = df.groupby("gender")
 

@@ -1,5 +1,6 @@
 """
-The following are faster versions of struct.unpack that avoid the overhead of Python function calls.
+The following are faster versions of struct.unpack that avoid the overhead of Python
+function calls.
 
 In the SAS7BDAT parser, they may be called up to (n_rows * n_cols) times.
 """
@@ -80,13 +81,13 @@ cdef extern from *:
     uint64_t _byteswap8(uint64_t)
 
 
-cdef inline float _byteswap_float(float num):
+cdef float _byteswap_float(float num):
     cdef uint32_t *intptr = <uint32_t *>&num
     intptr[0] = _byteswap4(intptr[0])
     return num
 
 
-cdef inline double _byteswap_double(double num):
+cdef double _byteswap_double(double num):
     cdef uint64_t *intptr = <uint64_t *>&num
     intptr[0] = _byteswap8(intptr[0])
     return num

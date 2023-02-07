@@ -37,7 +37,6 @@ from pandas._typing import (
     RandomState,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -148,15 +147,13 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float: bool = False):
+def cast_scalar_indexer(val):
     """
-    To avoid numpy DeprecationWarnings, cast float to integer where valid.
+    Disallow indexing with a float key, even if that key is a round number.
 
     Parameters
     ----------
     val : scalar
-    warn_float : bool, default False
-        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -164,14 +161,11 @@ def cast_scalar_indexer(val, warn_float: bool = False):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
-        if warn_float:
-            warnings.warn(
-                "Indexing with a float is deprecated, and will raise an IndexError "
-                "in pandas 2.0. You can manually convert to an integer key instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return int(val)
+        raise IndexError(
+            # GH#34193
+            "Indexing with a float is no longer supported. Manually convert "
+            "to an integer key instead."
+        )
     return val
 
 
@@ -242,7 +236,17 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    try:
+        with warnings.catch_warnings():
+            # Can remove warning filter once NumPy 1.24 is min version
+            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            result = np.asarray(values, dtype=dtype)
+    except ValueError:
+        # Using try/except since it's more performant than checking is_list_like
+        # over each element
+        # error: Argument 1 to "construct_1d_object_array_from_listlike"
+        # has incompatible type "Iterable[Any]"; expected "Sized"
+        return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
@@ -309,6 +313,18 @@ def is_null_slice(obj) -> bool:
         and obj.start is None
         and obj.stop is None
         and obj.step is None
+    )
+
+
+def is_empty_slice(obj) -> bool:
+    """
+    We have an empty slice, e.g. no values are selected.
+    """
+    return (
+        isinstance(obj, slice)
+        and obj.start is not None
+        and obj.stop is not None
+        and obj.start == obj.stop
     )
 
 
@@ -393,7 +409,7 @@ def standardize_mapping(into):
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == defaultdict:
+    if into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
@@ -636,65 +652,3 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
-
-
-def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
-    """Determine the Boolean value of numeric_only.
-
-    See GH#46560 for details on the deprecation.
-
-    Parameters
-    ----------
-    numeric_only : bool, None, or lib.no_default
-        Value passed to the method.
-
-    Returns
-    -------
-    Resolved value of numeric_only.
-    """
-    if numeric_only is lib.no_default:
-        # Methods that behave like numeric_only=True and only got the numeric_only
-        # arg in 1.5.0 default to lib.no_default
-        result = True
-    elif numeric_only is None:
-        # Methods that had the numeric_only arg prior to 1.5.0 and try all columns
-        # first default to None
-        result = False
-    else:
-        result = numeric_only
-    return result
-
-
-def deprecate_numeric_only_default(
-    cls: type, name: str, deprecate_none: bool = False
-) -> None:
-    """Emit FutureWarning message for deprecation of numeric_only.
-
-    See GH#46560 for details on the deprecation.
-
-    Parameters
-    ----------
-    cls : type
-        pandas type that is generating the warning.
-    name : str
-        Name of the method that is generating the warning.
-    deprecate_none : bool, default False
-        Whether to also warn about the deprecation of specifying ``numeric_only=None``.
-    """
-    if name in ["all", "any"]:
-        arg_name = "bool_only"
-    else:
-        arg_name = "numeric_only"
-
-    msg = (
-        f"The default value of {arg_name} in {cls.__name__}.{name} is "
-        "deprecated. In a future version, it will default to False. "
-    )
-    if deprecate_none:
-        msg += f"In addition, specifying '{arg_name}=None' is deprecated. "
-    msg += (
-        f"Select only valid columns or specify the value of {arg_name} to silence "
-        "this warning."
-    )
-
-    warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
