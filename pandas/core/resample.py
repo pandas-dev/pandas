@@ -133,7 +133,7 @@ class Resampler(BaseGroupBy, PandasObject):
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
-    _internal_names_set = set({"obj", "ax"})
+    _internal_names_set = set({"obj", "ax", "_indexer"})
 
     # to the groupby descriptor
     _attributes = [
@@ -168,7 +168,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = group_keys
         self.as_index = True
 
-        self.obj, self.ax = self._timegrouper._set_grouper(
+        self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
         )
         self.binner, self.grouper = self._get_binner()
@@ -235,7 +235,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
-        bin_grouper = BinGrouper(bins, binlabels, indexer=self._timegrouper.indexer)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
     @Substitution(
@@ -1681,7 +1681,7 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        _, ax = self._set_grouper(obj, gpr_index=None)
+        _, ax, indexer = self._set_grouper(obj, gpr_index=None)
 
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
