@@ -38,12 +38,12 @@ dependencies:
   - lxml
   - matplotlib>=3.6.1
   - numba>=0.53.1
-  - numexpr>=2.8.0  # pin for "Run checks on imported code" job
+  - numexpr>=2.8.0 # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
   - py
   - psycopg2
-  - pyarrow
+  - pyarrow<11
   - pymysql
   - pyreadstat
   - pytables
@@ -78,19 +78,19 @@ dependencies:
   - black=22.10.0
   - cpplint
   - flake8=6.0.0
-  - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.991
+  - isort>=5.2.1 # check that imports are in the right order
+  - mypy=1.0
   - pre-commit>=2.15.0
   - pyupgrade
   - ruff=0.0.215
 
   # documentation
-  - gitpython  # obtain contributors from git for whatsnew
+  - gitpython # obtain contributors from git for whatsnew
   - gitdb
-  - natsort  # DataFrame.sort_values doctest
+  - natsort # DataFrame.sort_values doctest
   - numpydoc
   - pydata-sphinx-theme<0.11
-  - pytest-cython  # doctest
+  - pytest-cython # doctest
   - sphinx
   - sphinx-panels
   - sphinx-copybutton
@@ -109,7 +109,7 @@ dependencies:
   - ipykernel
 
   # web
-  - jinja2  # in optional dependencies, but documented here as needed
+  - jinja2 # in optional dependencies, but documented here as needed
   - markdown
   - feedparser
   - pyyaml

@@ -49,11 +49,12 @@ import _optional
 def pin_min_versions_to_ci_deps():
     exclusion_list = {
         "python=3.8[build=*_pypy]": None,
-        "actions-38-minimum_versions.yaml": None,
+        # "actions-38-minimum_versions.yaml": None,
     }
     toml_dependencies = get_versions_from_toml()
     all_yaml_files = list(YAML_PATH.iterdir())
     all_yaml_files.append(ENV_PATH)
+    print("BLAH", all_yaml_files)
     for curr_file in all_yaml_files:
         with open(curr_file) as yaml_f:
             data = yaml_f.read()
