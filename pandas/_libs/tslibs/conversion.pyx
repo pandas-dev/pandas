@@ -81,7 +81,7 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
-cdef int64_t cast_from_unit(object ts, str unit) except? -1:
+cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT reso=NPY_FR_ns) except? -1:
     """
     Return a casting of the unit represented to nanoseconds
     round the fractional part of a float to our precision, p.
@@ -99,7 +99,7 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
         int64_t m
         int p
 
-    m, p = precision_from_unit(unit)
+    m, p = precision_from_unit(unit, reso)
 
     # just give me the unit back
     if ts is None:
@@ -119,7 +119,7 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
         if is_float_object(ts):
             ts = int(ts)
         dt64obj = np.datetime64(ts, unit)
-        return get_datetime64_nanos(dt64obj, NPY_FR_ns)
+        return get_datetime64_nanos(dt64obj, reso)
 
     # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
@@ -142,7 +142,7 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1:
         ) from err
 
 
-cpdef inline (int64_t, int) precision_from_unit(str unit):
+cpdef inline (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
@@ -156,41 +156,55 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
         int64_t m
         int p
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
+        int64_t multiplier
+
+    if out_reso == NPY_DATETIMEUNIT.NPY_FR_ns:
+        multiplier = 1_000_000_000
+        p = 0
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
+        multiplier = 1_000_000
+        p = 3
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+        multiplier = 1_000
+        p = 6
+    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
+        multiplier = 1
+        p = 9
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         # each 400 years we have 97 leap years, for an average of 97/400=.2425
         #  extra days each year. We get 31556952 by writing
         #  3600*24*365.2425=31556952
-        m = 1_000_000_000 * 31556952
-        p = 9
+        m = multiplier * 31556952
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
         # 2629746 comes from dividing the "Y" case by 12.
-        m = 1_000_000_000 * 2629746
-        p = 9
+        m = multiplier * 2629746
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
-        m = 1_000_000_000 * 3600 * 24 * 7
-        p = 9
+        m = multiplier * 3600 * 24 * 7
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
-        m = 1_000_000_000 * 3600 * 24
-        p = 9
+        m = multiplier * 3600 * 24
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
-        m = 1_000_000_000 * 3600
-        p = 9
+        m = multiplier * 3600
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
-        m = 1_000_000_000 * 60
-        p = 9
+        m = multiplier * 60
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        m = 1_000_000_000
-        p = 9
+        m = multiplier
+        #p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        m = 1_000_000
-        p = 6
+        m = multiplier
+        #p = 6
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        m = 1000
-        p = 3
+        m = multiplier
+        #p = 3
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        m = 1
-        p = 0
+        m = multiplier
+        #p = 0
     else:
         raise ValueError(f"cannot cast unit {unit}")
     return m, p
@@ -299,16 +313,10 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             else:
                 in_reso = abbrev_to_npy_unit(unit)
             reso = get_supported_reso(in_reso)
-            try:
-                value = convert_reso(ts, in_reso, reso, False)
-            except OverflowError:
-                # GH#26651 re-raise as OutOfBoundsDatetime
-                raise OutOfBoundsDatetime(
-                    f"cannot convert input {ts} with the unit '{unit}'"
-                )
-            obj.value = value
+            ts = cast_from_unit(ts, unit, reso)
+            obj.value = ts
             obj.creso = reso
-            pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
+            pandas_datetime_to_datetimestruct(ts, reso, &obj.dts)
     elif is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
