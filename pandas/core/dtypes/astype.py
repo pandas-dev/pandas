@@ -268,24 +268,22 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         # Only equal numpy dtypes avoid a copy
         return False
 
-    if is_string_dtype(dtype) and is_string_dtype(new_dtype):
+    elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
         return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
         # When the underlying array has dtype object, we don't have to make a copy
         return True
 
-    elif is_string_dtype(dtype) or is_string_dtype(new_dtype):
-        return False
-
     elif dtype.kind in "mM" and new_dtype.kind in "mM":
         return True
 
-    elif getattr(dtype, "numpy_dtype", dtype) == getattr(
-        new_dtype, "numpy_dtype", new_dtype
-    ):
-        # If underlying numpy dtype is the same, no copy is made, e.g.
-        # int64 -> Int64 or int64[pyarrow]
-        return True
+    numpy_dtype = getattr(dtype, "numpy_dtype", None)
+    new_numpy_dtype = getattr(new_dtype, "numpy_dtype", None)
 
-    return False
+    if numpy_dtype is not None and new_numpy_dtype is not None:
+        # if both have NumPy dtype then they are only views if they are equal
+        return numpy_dtype == new_numpy_dtype
+
+    # Assume this is a view since we don't know for sure if a copy was made
+    return True

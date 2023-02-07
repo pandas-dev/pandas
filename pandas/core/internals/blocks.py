@@ -11,11 +11,8 @@ from typing import (
     cast,
     final,
 )
-import weakref
 
 import numpy as np
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     Timestamp,
@@ -162,7 +159,6 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-    _ref = None
 
     @final
     @cache_readonly
@@ -214,7 +210,9 @@ class Block(PandasObject):
         self._mgr_locs = new_mgr_locs
 
     @final
-    def make_block(self, values, placement=None) -> Block:
+    def make_block(
+        self, values, placement=None, refs: BlockValuesRefs | None = None
+    ) -> Block:
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -226,7 +224,7 @@ class Block(PandasObject):
 
         # TODO: perf by not going through new_block
         # We assume maybe_coerce_values has already been called
-        return new_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim, refs=refs)
 
     @final
     def make_block_same_class(
@@ -476,7 +474,11 @@ class Block(PandasObject):
 
     @final
     def astype(
-        self, dtype: DtypeObj, copy: bool = False, errors: IgnoreRaise = "raise"
+        self,
+        dtype: DtypeObj,
+        copy: bool = False,
+        errors: IgnoreRaise = "raise",
+        using_cow: bool = False,
     ) -> Block:
         """
         Coerce to the new dtype.
@@ -489,6 +491,8 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        using_cow: bool, default False
+            Signaling if copy on write copy logic is used.
 
         Returns
         -------
@@ -499,16 +503,18 @@ class Block(PandasObject):
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
         new_values = maybe_coerce_values(new_values)
-        newb = self.make_block(new_values)
+
+        refs = None
+        if using_cow and astype_is_view(values.dtype, new_values.dtype):
+            refs = self.refs
+
+        newb = self.make_block(new_values, refs=refs)
         if newb.shape != self.shape:
             raise TypeError(
                 f"cannot set astype for copy = [{copy}] for dtype "
                 f"({self.dtype.name} [{self.shape}]) to different shape "
                 f"({newb.dtype.name} [{newb.shape}])"
             )
-        if using_copy_on_write():
-            if astype_is_view(values.dtype, new_values.dtype):
-                newb._ref = weakref.ref(self)
         return newb
 
     @final

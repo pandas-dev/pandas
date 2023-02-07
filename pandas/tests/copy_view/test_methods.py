@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas import (
     DataFrame,
@@ -556,7 +556,7 @@ def test_astype_single_dtype(using_copy_on_write):
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 @pytest.mark.parametrize("new_dtype", ["int64", "Int64", "int64[pyarrow]"])
 def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
-    if new_dtype == "int64[pyarrow]" and pa_version_under6p0:
+    if new_dtype == "int64[pyarrow]" and pa_version_under7p0:
         pytest.skip("pyarrow not installed")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     df_orig = df.copy()
@@ -581,7 +581,7 @@ def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
 
 @pytest.mark.parametrize("dtype", ["float64", "int32", "Int32", "int32[pyarrow]"])
 def test_astype_different_target_dtype(using_copy_on_write, dtype):
-    if dtype == "int32[pyarrow]" and pa_version_under6p0:
+    if dtype == "int32[pyarrow]" and pa_version_under7p0:
         pytest.skip("pyarrow not installed")
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
