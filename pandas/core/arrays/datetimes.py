@@ -1242,7 +1242,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='M')
-        >>> idx.month_name(locale='pt_BR.utf8')
+        >>> idx.month_name(locale='pt_BR.utf8') # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
         """
         values = self._local_timestamps()
@@ -1301,7 +1301,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> idx.day_name(locale='pt_BR.utf8')
+        >>> idx.day_name(locale='pt_BR.utf8') # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
         """
         values = self._local_timestamps()
