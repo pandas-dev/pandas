@@ -1810,3 +1810,70 @@ def test_str_fullmatch(pat, case, na, exp):
     result = ser.str.match(pat, case=case, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "sub, start, end, exp, exp_typ",
+    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [2, None], pa.int64()]],
+)
+def test_str_find(sub, start, end, exp, exp_typ):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub, start=start, end=end)
+    expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_notimplemented():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="find not implemented"):
+        ser.str.find("ab", start=1)
+
+
+@pytest.mark.parametrize(
+    "i, exp",
+    [
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_get(i, exp):
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.get(i)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    reason="TODO: StringMethods._validate should support Arrow list types",
+    raises=AttributeError,
+)
+def test_str_join():
+    ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
+    result = ser.str.join("=")
+    expected = pd.Series(["a=b=c", "1=2=3", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_str_partition_unsupported(method):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="str."):
+        getattr(ser.str, method)("", False)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, exp",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [None, 2, 1, ["bc", None]],
+    ],
+)
+def test_str_slice(start, stop, step, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice(start, stop, step)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)

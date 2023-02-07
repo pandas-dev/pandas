@@ -1567,10 +1567,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(pc.binary_join(self._data, sep))
 
     def _str_partition(self, sep: str, expand: bool):
-        raise NotImplementedError
+        raise NotImplementedError("str.partition not supported.")
 
     def _str_rpartition(self, sep: str, expand: bool):
-        raise NotImplementedError
+        raise NotImplementedError("str.rpartition not supported.")
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
