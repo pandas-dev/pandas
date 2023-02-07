@@ -19,10 +19,7 @@ import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import py_parse_datetime_string
-from pandas.compat.pyarrow import (
-    pa_version_under6p0,
-    pa_version_under7p0,
-)
+from pandas.compat.pyarrow import pa_version_under7p0
 
 import pandas as pd
 from pandas import (
@@ -456,7 +453,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         columns=["X0", "X2", "X3", "X4", "X5", "X6", "X7"],
         index=index,
     )
-    if parser.engine == "pyarrow" and not pa_version_under6p0:
+    if parser.engine == "pyarrow" and not pa_version_under7p0:
         # https://github.com/pandas-dev/pandas/issues/44231
         # pyarrow 6.0 starts to infer time type
         expected["X2"] = pd.to_datetime("1970-01-01" + expected["X2"]).dt.time

@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -650,7 +650,7 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
+@pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
     import pyarrow as pa

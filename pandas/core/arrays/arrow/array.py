@@ -26,7 +26,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
@@ -54,7 +53,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -199,8 +198,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under6p0:
-            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under7p0:
+            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -529,11 +528,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # let ExtensionArray.arg{max|min} raise
             return getattr(super(), f"arg{method}")(skipna=skipna)
 
-        if pa_version_under6p0:
-            raise NotImplementedError(
-                f"arg{method} only implemented for pyarrow version >= 6.0"
-            )
-
         data = self._data
         if pa.types.is_duration(data.type):
             data = data.cast(pa.int64())
@@ -567,11 +561,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under6p0:
-            fallback_performancewarning(version="6")
-            return super().dropna()
-        else:
-            return type(self)(pc.drop_null(self._data))
+        return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -1293,9 +1283,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
             Sorted, if possible.
         """
-        if pa_version_under6p0:
-            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
-
         pa_type = self._data.type
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
