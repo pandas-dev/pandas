@@ -1389,7 +1389,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
 
-    @doc(ExtensionArray.groupby_quantile)
+    @doc(ExtensionArray._groupby_quantile)
     def _groupby_quantile(
         self,
         *,
