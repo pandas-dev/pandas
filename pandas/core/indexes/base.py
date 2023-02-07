@@ -2267,8 +2267,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >> idx = pd.Index([True, False, True])
-        >> idx.is_boolean()  # doctest: +SKIP
+        >>> idx = pd.Index([True, False, True])
+        >>> idx.is_boolean()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index(["True", "False", "True"])
