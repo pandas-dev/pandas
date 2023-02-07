@@ -29,7 +29,6 @@ from pandas.compat import (
     PY311,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
@@ -51,7 +50,7 @@ from pandas.api.types import (
 )
 from pandas.tests.extension import base
 
-pa = pytest.importorskip("pyarrow", minversion="6.0.0")
+pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
@@ -275,13 +274,6 @@ class TestConstructors(base.BaseConstructorsTests):
         assert isinstance(result._data, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
-        if pa_version_under6p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="month_day_nano_interval not implemented by pyarrow.",
-                )
-            )
         with pytest.raises(NotImplementedError, match="Converting strings to"):
             ArrowExtensionArray._from_sequence_of_strings(
                 ["12-1"], dtype=pa.month_day_nano_interval()
@@ -320,13 +312,6 @@ class TestConstructors(base.BaseConstructorsTests):
                         ),
                     )
                 )
-        elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support string cast from {pa_dtype}",
-                )
-            )
         pa_array = data._data.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
@@ -525,28 +510,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         )
         if all_numeric_reductions in {"skew", "kurt"}:
             request.node.add_marker(xfail_mark)
-        elif (
-            all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
-            and pa_version_under6p0
-        ):
-            request.node.add_marker(xfail_mark)
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
-        elif (
-            all_numeric_reductions in {"sum", "mean"}
-            and skipna is False
-            and pa_version_under6p0
-            and (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype))
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AssertionError,
-                    reason=(
-                        f"{all_numeric_reductions} with skip_nulls={skipna} did not "
-                        f"return NA for {pa_dtype} with pyarrow={pa.__version__}"
-                    ),
-                )
-            )
 
         elif all_numeric_reductions in [
             "mean",
@@ -784,12 +749,6 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    def test_dropna_array(self, data_missing):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under6p0, check_stacklevel=False
-        ):
-            super().test_dropna_array(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data):
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
@@ -910,11 +869,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         ):
             super().test_value_counts_with_normalize(data)
 
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argmin/max only implemented for pyarrow version >= 6.0",
-    )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -943,13 +897,6 @@ class TestBaseMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
-        if pa_version_under6p0 and skipna:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
@@ -1062,14 +1009,29 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         else:
             expected_data = expected
             original_dtype = obj.dtype
-        pa_array = pa.array(expected_data._values).cast(original_dtype.pyarrow_dtype)
-        pd_array = type(expected_data._values)(pa_array)
+
+        pa_expected = pa.array(expected_data._values)
+
+        if pa.types.is_duration(pa_expected.type):
+            # pyarrow sees sequence of datetime/timedelta objects and defaults
+            #  to "us" but the non-pointwise op retains unit
+            unit = original_dtype.pyarrow_dtype.unit
+            if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
+                # pydatetime/pytimedelta objects have microsecond reso, so we
+                #  take the higher reso of the original and microsecond. Note
+                #  this matches what we would do with DatetimeArray/TimedeltaArray
+                unit = "us"
+            pa_expected = pa_expected.cast(f"duration[{unit}]")
+        else:
+            pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
+
+        pd_expected = type(expected_data._values)(pa_expected)
         if was_frame:
             expected = pd.DataFrame(
-                pd_array, index=expected.index, columns=expected.columns
+                pd_expected, index=expected.index, columns=expected.columns
             )
         else:
-            expected = pd.Series(pd_array)
+            expected = pd.Series(pd_expected)
         return expected
 
     def _is_temporal_supported(self, opname, pa_dtype):
@@ -1103,7 +1065,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             opname == "__rpow__"
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
                 reason=(
@@ -1122,7 +1084,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif (
             opname in {"__rtruediv__", "__rfloordiv__"}
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
                 raises=pa.ArrowInvalid,
@@ -1149,7 +1111,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+        if (
+            (
+                all_arithmetic_operators == "__floordiv__"
+                and pa.types.is_integer(pa_dtype)
+            )
+            or pa.types.is_duration(pa_dtype)
+            or pa.types.is_timestamp(pa_dtype)
+        ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
@@ -1173,7 +1142,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+        if (
+            (
+                all_arithmetic_operators == "__floordiv__"
+                and pa.types.is_integer(pa_dtype)
+            )
+            or pa.types.is_duration(pa_dtype)
+            or pa.types.is_timestamp(pa_dtype)
+        ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
@@ -1195,7 +1171,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 "__rsub__",
             )
             and pa.types.is_unsigned_integer(pa_dtype)
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1217,18 +1193,41 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
 
-        if pa.types.is_floating(pa_dtype) or (
-            pa.types.is_integer(pa_dtype) and all_arithmetic_operators != "__truediv__"
+        if (
+            pa.types.is_floating(pa_dtype)
+            or (
+                pa.types.is_integer(pa_dtype)
+                and all_arithmetic_operators != "__truediv__"
+            )
+            or pa.types.is_duration(pa_dtype)
+            or pa.types.is_timestamp(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if not (
-            pa.types.is_integer(pa_dtype)
-            or pa.types.is_floating(pa_dtype)
-            or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype))
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # i.e. timestamp, date, time, but not timedelta; these *should*
+            #  raise when trying to add
+            ser = pd.Series(data)
+            if pa_version_under7p0:
+                msg = "Function add_checked has no kernel matching input types"
+            else:
+                msg = "Function 'add_checked' has no kernel matching input types"
+            with pytest.raises(NotImplementedError, match=msg):
+                # TODO: this is a pa.lib.ArrowNotImplementedError, might
+                #  be better to reraise a TypeError; more consistent with
+                #  non-pyarrow cases
+                ser + data
+
+            return
+
+        if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
+            pa.types.is_binary(pa_dtype)
+            or pa.types.is_string(pa_dtype)
+            or pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1378,11 +1377,6 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    pa_version_under6p0,
-    raises=NotImplementedError,
-    reason="mode only supported for pyarrow version >= 6.0",
-)
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",

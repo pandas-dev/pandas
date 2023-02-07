@@ -1773,11 +1773,8 @@ def test_s3_parser_consistency():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     # GH#50500
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
     data = """<?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
 <row>
@@ -1809,6 +1806,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
     else:
+        pa = pytest.importorskip("pyarrow")
         string_array = ArrowStringArray(pa.array(["x", "y"]))
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
@@ -1831,6 +1829,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     )
 
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(
