@@ -179,37 +179,28 @@ cpdef inline (int64_t, int) precision_from_unit(
         #  extra days each year. We get 31556952 by writing
         #  3600*24*365.2425=31556952
         m = multiplier * 31556952
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
         # 2629746 comes from dividing the "Y" case by 12.
         m = multiplier * 2629746
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
         m = multiplier * 3600 * 24 * 7
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
         m = multiplier * 3600 * 24
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
         m = multiplier * 3600
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
         m = multiplier * 60
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
         m = multiplier
-        p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
         m = multiplier // 1_000
-        p = 6
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         m = multiplier // 1_000_000
-        p = 3
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         m = multiplier // 1_000_000_000
-        p = 0
     else:
         raise ValueError(f"cannot cast unit {unit}")
+    p = min(9, len(str(m))-1)
     return m, p
 
 
