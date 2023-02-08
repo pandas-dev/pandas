@@ -1934,3 +1934,207 @@ def test_str_unsupported_methods(method, args):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match=f"str.{method} not supported."):
         getattr(ser.str, method)(*args)
+
+
+def test_unsupported_dt(data):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not pa.types.is_temporal(pa_dtype):
+        with pytest.raises(
+            AttributeError, match="Can only use .dt accessor with datetimelike values"
+        ):
+            pd.Series(data).dt
+
+
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ["day", 2],
+        ["day_of_week", 0],
+        ["dayofweek", 0],
+        ["weekday", 0],
+        ["day_of_year", 2],
+        ["dayofyear", 2],
+        ["hour", 3],
+        ["minute", 4],
+        pytest.param(
+            "is_leap_year",
+            False,
+            marks=pytest.mark.xfail(
+                pa_version_under8p0,
+                raises=NotImplementedError,
+                reason="is_leap_year not implemented for pyarrow < 8.0",
+            ),
+        ),
+        ["microsecond", 5],
+        ["month", 1],
+        ["nanosecond", 6],
+        ["quarter", 1],
+        ["second", 7],
+        ["date", date(2023, 1, 2)],
+        ["time", time(3, 4, 7, 5)],
+    ],
+)
+def test_dt_properties(prop, expected):
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2023,
+                month=1,
+                day=2,
+                hour=3,
+                minute=4,
+                second=7,
+                microsecond=5,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = getattr(ser.dt, prop)
+    exp_type = None
+    if isinstance(expected, date):
+        exp_type = pa.date64()
+    elif isinstance(expected, time):
+        exp_type = pa.time64("ns")
+    expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_time_preserve_unit(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.time
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([time(3, 0), None], type=pa.time64(unit)))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+def test_dt_tz(tz):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
+    )
+    result = ser.dt.tz
+    assert result == tz
+
+
+def test_dt_isocalendar():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_strftime(request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S")
+    expected = pd.Series(
+        ["2023-01-02T03:00:00.000000000", None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_tz_options_not_supported(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous is not supported."):
+        getattr(ser.dt, method)("1H", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent is not supported."):
+        getattr(ser.dt, method)("1H", nonexistent="NaT")
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_unsupported_freq(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(ValueError, match="freq='1B' is not supported"):
+        getattr(ser.dt, method)("1B")
+
+    with pytest.raises(ValueError, match="Must specify a valid frequency: None"):
+        getattr(ser.dt, method)(None)
+
+
+@pytest.mark.xfail(
+    pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
+)
+@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_ceil_year_floor(freq, method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=1), None],
+    )
+    pa_dtype = ArrowDtype(pa.timestamp("ns"))
+    expected = getattr(ser.dt, method)(f"1{freq}").astype(pa_dtype)
+    result = getattr(ser.astype(pa_dtype).dt, method)(f"1{freq}")
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_tz_localize_unsupported_tz_options():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", nonexistent="NaT")
+
+
+def test_dt_tz_localize_none():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
+    )
+    result = ser.dt.tz_localize(None)
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_tz_localize(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.tz_localize("US/Pacific")
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    )
+    tm.assert_series_equal(result, expected)

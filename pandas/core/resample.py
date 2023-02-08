@@ -40,10 +40,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    DataError,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -423,15 +420,13 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
         try:
-            if isinstance(obj, ABCDataFrame) and callable(how):
-                # Check if the function is reducing or not.
-                # e.g. test_resample_apply_with_additional_args
-                result = grouped._aggregate_item_by_item(how, *args, **kwargs)
+            if callable(how):
+                # TODO: test_resample_apply_with_additional_args fails if we go
+                #  through the non-lambda path, not clear that it should.
+                func = lambda x: how(x, *args, **kwargs)
+                result = grouped.aggregate(func)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except DataError:
-            # got TypeErrors on aggregation
-            result = grouped.apply(how, *args, **kwargs)
         except (AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
             # alternatively we want to evaluate only a column of the input

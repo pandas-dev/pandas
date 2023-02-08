@@ -4,6 +4,7 @@ from typing import (
     final,
     overload,
 )
+import weakref
 
 import numpy as np
 
@@ -59,8 +60,13 @@ class SharedBlock:
     _mgr_locs: BlockPlacement
     ndim: int
     values: ArrayLike
+    refs: BlockValuesRefs
     def __init__(
-        self, values: ArrayLike, placement: BlockPlacement, ndim: int
+        self,
+        values: ArrayLike,
+        placement: BlockPlacement,
+        ndim: int,
+        refs: BlockValuesRefs | None = ...,
     ) -> None: ...
 
 class NumpyBlock(SharedBlock):
@@ -87,3 +93,9 @@ class BlockManager:
     ) -> None: ...
     def get_slice(self: T, slobj: slice, axis: int = ...) -> T: ...
     def _rebuild_blknos_and_blklocs(self) -> None: ...
+
+class BlockValuesRefs:
+    referenced_blocks: list[weakref.ref]
+    def __init__(self, blk: SharedBlock) -> None: ...
+    def add_reference(self, blk: SharedBlock) -> None: ...
+    def has_reference(self) -> bool: ...
