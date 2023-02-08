@@ -79,7 +79,7 @@ dependencies:
   - cpplint
   - flake8=6.0.0
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.991
+  - mypy=1.0
   - pre-commit>=2.15.0
   - pyupgrade
   - ruff=0.0.215

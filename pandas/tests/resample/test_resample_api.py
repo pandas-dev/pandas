@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -907,7 +908,8 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+        msg = rf"Cannot use numeric_only=True with SeriesGroupBy\.{method}"
+        with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
@@ -916,3 +918,43 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, raises",
+    [
+        ("sum", True),
+        ("prod", True),
+        ("min", True),
+        ("max", True),
+        ("first", False),
+        ("last", False),
+        ("median", False),
+        ("mean", True),
+        ("std", True),
+        ("var", True),
+        ("sem", False),
+        ("ohlc", False),
+        ("nunique", False),
+    ],
+)
+def test_args_kwargs_depr(method, raises):
+    index = date_range("20180101", periods=3, freq="h")
+    df = Series([2, 4, 6], index=index)
+    resampled = df.resample("30min")
+    args = ()
+
+    func = getattr(resampled, method)
+
+    error_msg = "numpy operations are not valid with resample."
+    error_msg_type = "too many arguments passed in"
+    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
+
+    if raises:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                func(*args, 1, 2, 3)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(TypeError, match=error_msg_type):
+                func(*args, 1, 2, 3)

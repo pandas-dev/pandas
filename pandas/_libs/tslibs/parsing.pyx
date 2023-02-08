@@ -40,6 +40,8 @@ cnp.import_array()
 
 # dateutil compat
 
+from decimal import InvalidOperation
+
 from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
@@ -646,7 +648,10 @@ cdef datetime dateutil_parse(
         str reso = None
         dict repl = {}
 
-    res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    try:
+        res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    except InvalidOperation:
+        res = None
 
     if res is None:
         raise DateParseError(
@@ -891,7 +896,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     try:
         parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
 

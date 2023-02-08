@@ -29,7 +29,6 @@ from pandas.compat import (
     PY311,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
@@ -52,7 +51,7 @@ from pandas.api.types import (
 )
 from pandas.tests.extension import base
 
-pa = pytest.importorskip("pyarrow", minversion="6.0.0")
+pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
@@ -276,13 +275,6 @@ class TestConstructors(base.BaseConstructorsTests):
         assert isinstance(result._data, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
-        if pa_version_under6p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="month_day_nano_interval not implemented by pyarrow.",
-                )
-            )
         with pytest.raises(NotImplementedError, match="Converting strings to"):
             ArrowExtensionArray._from_sequence_of_strings(
                 ["12-1"], dtype=pa.month_day_nano_interval()
@@ -321,13 +313,6 @@ class TestConstructors(base.BaseConstructorsTests):
                         ),
                     )
                 )
-        elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support string cast from {pa_dtype}",
-                )
-            )
         pa_array = data._data.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
@@ -526,28 +511,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         )
         if all_numeric_reductions in {"skew", "kurt"}:
             request.node.add_marker(xfail_mark)
-        elif (
-            all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
-            and pa_version_under6p0
-        ):
-            request.node.add_marker(xfail_mark)
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
-        elif (
-            all_numeric_reductions in {"sum", "mean"}
-            and skipna is False
-            and pa_version_under6p0
-            and (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype))
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AssertionError,
-                    reason=(
-                        f"{all_numeric_reductions} with skip_nulls={skipna} did not "
-                        f"return NA for {pa_dtype} with pyarrow={pa.__version__}"
-                    ),
-                )
-            )
 
         elif all_numeric_reductions in [
             "mean",
@@ -785,12 +750,6 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    def test_dropna_array(self, data_missing):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under6p0, check_stacklevel=False
-        ):
-            super().test_dropna_array(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data):
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
@@ -911,11 +870,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         ):
             super().test_value_counts_with_normalize(data)
 
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argmin/max only implemented for pyarrow version >= 6.0",
-    )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -944,13 +898,6 @@ class TestBaseMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
-        if pa_version_under6p0 and skipna:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
@@ -1119,7 +1066,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             opname == "__rpow__"
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
                 reason=(
@@ -1138,7 +1085,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif (
             opname in {"__rtruediv__", "__rfloordiv__"}
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
                 raises=pa.ArrowInvalid,
@@ -1225,7 +1172,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 "__rsub__",
             )
             and pa.types.is_unsigned_integer(pa_dtype)
-            and not pa_version_under6p0
+            and not pa_version_under7p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1431,11 +1378,6 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    pa_version_under6p0,
-    raises=NotImplementedError,
-    reason="mode only supported for pyarrow version >= 6.0",
-)
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",

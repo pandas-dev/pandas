@@ -708,6 +708,7 @@ def test_cython_transform_frame(op, args, targop):
             {"by": "string"},
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
+            # TODO: remove or enable commented-out code
 
             gb = df.groupby(group_keys=False, **gb_target)
 
