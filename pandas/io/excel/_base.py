@@ -485,6 +485,7 @@ def read_excel(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
+
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True

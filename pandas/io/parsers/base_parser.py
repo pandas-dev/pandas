@@ -1096,7 +1096,7 @@ def _make_date_converter(
     date_parser=None,
     dayfirst: bool = False,
     cache_dates: bool = True,
-    date_format=None,
+    date_format: str | None = None,
 ):
     if date_parser is not None:
         warnings.warn(
