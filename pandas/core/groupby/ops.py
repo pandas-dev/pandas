@@ -56,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_period_dtype,
     is_sparse,
-    is_string_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -77,6 +76,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -96,8 +96,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
-    from pandas.core.arrays.string_ import StringDtype
     from pandas.core.generic import NDFrame
 
 
@@ -389,7 +387,7 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
-        elif is_string_dtype(values.dtype):
+        elif isinstance(values.dtype, StringDtype):
             # StringArray
             npvalues = values.to_numpy(object, na_value=np.nan)
         else:
@@ -405,9 +403,9 @@ class WrappedCythonOp:
         """
         Construct an ExtensionArray result from an ndarray result.
         """
-        dtype: BaseMaskedDtype | StringDtype | ArrowDtype
+        dtype: BaseMaskedDtype | StringDtype
 
-        if is_string_dtype(values.dtype):
+        if isinstance(values.dtype, StringDtype):
             dtype = values.dtype
             string_array_cls = dtype.construct_array_type()
             return string_array_cls._from_sequence(res_values, dtype=dtype)
