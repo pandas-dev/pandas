@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import weakref
 
 import numpy as np
 
@@ -551,8 +550,9 @@ class _Concatenator:
                     obj = sample._constructor(obj, columns=[name], copy=False)
                     if using_copy_on_write():
                         # TODO(CoW): Remove when ref tracking in constructors works
-                        obj._mgr.parent = original_obj  # type: ignore[union-attr]
-                        obj._mgr.refs = [weakref.ref(original_obj._mgr.blocks[0])]  # type: ignore[union-attr]  # noqa: E501
+                        for i, block in enumerate(original_obj._mgr.blocks):  # type: ignore[union-attr]  # noqa
+                            obj._mgr.blocks[i].refs = block.refs  # type: ignore[union-attr]  # noqa
+                            obj._mgr.blocks[i].refs.add_reference(obj._mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
 
                     obj.columns = [new_name]
 
@@ -612,13 +612,9 @@ class _Concatenator:
                     typ=get_option("mode.data_manager"),
                 )
                 if using_copy_on_write() and not self.copy:
-                    parents = [obj._mgr for obj in self.objs]
-                    mgr.parent = parents  # type: ignore[union-attr]
-                    refs = [
-                        weakref.ref(obj._mgr.blocks[0])  # type: ignore[union-attr]
-                        for obj in self.objs
-                    ]
-                    mgr.refs = refs  # type: ignore[union-attr]
+                    for i, obj in enumerate(self.objs):
+                        mgr.blocks[i].refs = obj._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
+                        mgr.blocks[i].refs.add_reference(mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
                 df = cons(mgr, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
