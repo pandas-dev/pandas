@@ -259,7 +259,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
 
     Returns
     -------
-    True if new data is a view, False otherwise
+    True if new data is a view or not guaranteed to be a copy, False otherwise
     """
     if dtype == new_dtype:
         return True
