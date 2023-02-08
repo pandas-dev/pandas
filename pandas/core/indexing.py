@@ -2017,7 +2017,13 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        if is_full_setter:
+        is_null_setter = com.is_empty_slice(pi) or is_array_like(pi) and len(pi) == 0
+
+        if is_null_setter:
+            # no-op, don't cast dtype later
+            return
+
+        elif is_full_setter:
 
             try:
                 self.obj._mgr.column_setitem(
