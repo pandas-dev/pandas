@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,7 +26,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
@@ -53,7 +53,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -198,8 +198,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under6p0:
-            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under7p0:
+            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -220,6 +220,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(scalars, cls):
             scalars = scalars._data
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            if copy and is_array_like(scalars):
+                # pa array should not get updated when numpy array is updated
+                scalars = deepcopy(scalars)
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -326,10 +329,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
+        if item is Ellipsis:
             # TODO: should be handled by pyarrow?
             item = slice(None)
 
@@ -525,11 +525,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # let ExtensionArray.arg{max|min} raise
             return getattr(super(), f"arg{method}")(skipna=skipna)
 
-        if pa_version_under6p0:
-            raise NotImplementedError(
-                f"arg{method} only implemented for pyarrow version >= 6.0"
-            )
-
         data = self._data
         if pa.types.is_duration(data.type):
             data = data.cast(pa.int64())
@@ -563,11 +558,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under6p0:
-            fallback_performancewarning(version="6")
-            return super().dropna()
-        else:
-            return type(self)(pc.drop_null(self._data))
+        return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -930,7 +921,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index).astype("Int64")
+        return Series(counts, index=index, name="count").astype("Int64")
 
     @classmethod
     def _concat_same_type(
@@ -1251,7 +1242,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_dtype = self._data.type
 
         data = self._data
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
             nbits = pa_dtype.bit_width
@@ -1262,7 +1253,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
-        if pa.types.is_temporal(pa_dtype) and interpolation in ["lower", "higher"]:
+        if pa.types.is_temporal(pa_dtype):
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32())
+            else:
+                result = result.cast(pa.int64())
             result = result.cast(pa_dtype)
 
         return type(self)(result)
@@ -1284,9 +1280,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
             Sorted, if possible.
         """
-        if pa_version_under6p0:
-            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
-
         pa_type = self._data.type
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width

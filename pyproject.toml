@@ -63,8 +63,8 @@ fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
 gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
-parquet = ['pyarrow>=6.0.0']
-feather = ['pyarrow>=6.0.0']
+parquet = ['pyarrow>=7.0.0']
+feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
         'tables>=3.6.1']
@@ -97,7 +97,7 @@ all = ['beautifulsoup4>=4.9.3',
        'openpyxl>=3.0.7',
        'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
-       'pyarrow>=6.0.0',
+       'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
        'PyQt5>=5.15.1',
        'pyreadstat>=1.1.2',
@@ -147,8 +147,8 @@ test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asy
 test-command = "python {project}/ci/test_wheels.py"
 
 [tool.cibuildwheel.macos]
-archs = "x86_64 universal2"
-test-skip = "*_arm64 *_universal2:arm64"
+archs = "x86_64 arm64"
+test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
 repair-wheel-command = "python ci/fix_wheels.py {wheel} {dest_dir}"
@@ -314,7 +314,6 @@ disable = [
   "unnecessary-lambda-assignment",
 
   # pylint type "R": refactor, for bad code smell
-  "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",

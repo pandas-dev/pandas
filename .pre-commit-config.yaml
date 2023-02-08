@@ -92,7 +92,7 @@ repos:
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.11.4
+    rev: 5.12.0
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
@@ -135,11 +135,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.276
+        - pyright@1.1.292
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]
