@@ -439,7 +439,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         return get_format_timedelta64(self, box=True)
 
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None, fast_strftime=True, **kwargs
+        self,
+        *,
+        na_rep: str | float = "NaT",
+        date_format=None,
+        fast_strftime=True,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 

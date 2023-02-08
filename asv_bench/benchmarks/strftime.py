@@ -76,24 +76,3 @@ class BusinessHourStrftime:
 
     def time_frame_offset_repr(self, obs):
         self.data["off"].apply(repr)
-
-
-if __name__ == '__main__':
-    for cls in (DatetimeStrftime, BusinessHourStrftime):
-        all_params = dict()
-        all_p_values = cls.params
-        if len(cls.param_names) == 1:
-            all_p_values = (all_p_values, )
-        for p_name, p_values in zip(cls.param_names, all_p_values):
-            all_params[p_name] = p_values
-
-        from itertools import product
-        for case in product(*all_params.values()):
-            p_dict = {p_name: p_val for p_name, p_val in zip(all_params.keys(), case)}
-            print(f"{cls.__name__} - {p_dict}")
-            o = cls()
-            o.setup(**p_dict)
-            for m_name, m in cls.__dict__.items():
-                if callable(m):
-                    print(m_name)
-                    m(o, **p_dict)

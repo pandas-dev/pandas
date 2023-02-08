@@ -3164,6 +3164,7 @@ class TestFastStrfTimeScalars:
     Test that `convert_strftime_format` and `fast_strftime`
     work well together and rely on runtime locale
     """
+
     @pytest.mark.parametrize(
         "locale_str",
         [
@@ -3311,10 +3312,14 @@ class TestPeriodIndexFormat:
             p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
             formatted = p.format(
                 date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                fast_strftime=fast_strftime
+                fast_strftime=fast_strftime,
             )
-            assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
-            assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
+            assert (
+                formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
+            )
+            assert (
+                formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
+            )
             # fmt: on
 
     def test_period_tz(self):

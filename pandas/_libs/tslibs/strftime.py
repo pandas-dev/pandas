@@ -118,7 +118,6 @@ def get_current_locale_specific_string() -> LocaleSpecificDtStrings:
 
     This function caches results in the `_locale_specifics` dict.
     """
-    global _locale_specifics
 
     # Get current locale
     current_locale = locale.setlocale(locale.LC_ALL)

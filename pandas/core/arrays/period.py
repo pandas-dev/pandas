@@ -621,7 +621,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None, fast_strftime=True, **kwargs
+        self,
+        *,
+        na_rep: str | float = "NaT",
+        date_format=None,
+        fast_strftime=True,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
