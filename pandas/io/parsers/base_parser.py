@@ -115,7 +115,7 @@ class ParserBase:
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
-        self.date_parser = kwds.pop("date_parser", None)
+        self.date_parser = kwds.pop("date_parser", lib.no_default)
         self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
@@ -1093,12 +1093,12 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=None,
+    date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
     date_format: str | None = None,
 ):
-    if date_parser is not None:
+    if date_parser is not lib.no_default:
         warnings.warn(
             "The argument 'date_parser' is deprecated and will "
             "be removed in a future version. "
@@ -1107,11 +1107,11 @@ def _make_date_converter(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-    if date_parser is not None and date_format is not None:
+    if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
     def converter(*date_cols):
-        if date_parser is None:
+        if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
 
             return tools.to_datetime(
@@ -1170,7 +1170,7 @@ parser_defaults = {
     "parse_dates": False,
     "keep_date_col": False,
     "dayfirst": False,
-    "date_parser": None,
+    "date_parser": lib.no_default,
     "date_format": None,
     "usecols": None,
     # 'iterator': False,
