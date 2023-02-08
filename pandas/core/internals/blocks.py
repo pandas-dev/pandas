@@ -433,7 +433,10 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks([blk.convert() for blk in blocks])
+            copy = True if not using_cow else False
+            return extend_blocks(
+                [blk.convert(using_cow=using_cow, copy=copy) for blk in blocks]
+            )
 
         if downcast is None:
             return blocks

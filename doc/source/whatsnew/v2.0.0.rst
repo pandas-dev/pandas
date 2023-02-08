@@ -223,6 +223,9 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
+  - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
+  - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
   - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :func:`concat`
 
