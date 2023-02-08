@@ -675,17 +675,15 @@ def test_subset_chained_getitem_series(backend, method, using_copy_on_write):
         assert subset.iloc[0] == 0
 
 
-def test_subset_chained_single_block_row(
-    backend, using_copy_on_write, using_array_manager
-):
-    dtype_backend, DataFrame, Series = backend
+def test_subset_chained_single_block_row(using_copy_on_write, using_array_manager):
+    # not parametrizing this for dtype backend, since this explicitly tests single block
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
 
     # modify subset -> don't modify parent
     subset = df[:].iloc[0].iloc[0:2]
     subset.iloc[0] = 0
-    if using_copy_on_write or using_array_manager or dtype_backend == "nullable":
+    if using_copy_on_write or using_array_manager:
         tm.assert_frame_equal(df, df_orig)
     else:
         assert df.iloc[0, 0] == 0
@@ -694,7 +692,7 @@ def test_subset_chained_single_block_row(
     subset = df[:].iloc[0].iloc[0:2]
     df.iloc[0, 0] = 0
     expected = Series([1, 4], index=["a", "b"], name=0)
-    if using_copy_on_write or using_array_manager or dtype_backend == "nullable":
+    if using_copy_on_write or using_array_manager:
         tm.assert_series_equal(subset, expected)
     else:
         assert subset.iloc[0] == 0
@@ -914,17 +912,16 @@ def test_column_as_series_set_with_upcast(
     if dtype_backend == "nullable":
         with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
+        expected = Series([1, 2, 3], name="a")
     elif using_copy_on_write or using_array_manager:
         s[0] = "foo"
+        expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = "foo"
-
-    if dtype_backend == "nullable":
-        expected = Series([1, 2, 3], name="a")
-    else:
         expected = Series(["foo", 2, 3], dtype=object, name="a")
+
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
