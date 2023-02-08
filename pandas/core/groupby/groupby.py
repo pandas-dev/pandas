@@ -2722,7 +2722,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @final
-    @Substitution(name="groupby")
     def rolling(self, *args, **kwargs) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
