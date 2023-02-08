@@ -1600,3 +1600,13 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+def test_duration_from_strings_with_nat(unit):
+    # GH51175
+    strings = ["1000", "NaT"]
+    pa_type = pa.duration(unit)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([1000, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
