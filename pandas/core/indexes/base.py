@@ -5681,9 +5681,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind in ["i", "u", "f"]:
-            return False
-        return not self._holds_integer()
+        return not is_numeric_dtype(self.dtype) or is_bool_dtype(self.dtype)
 
     _index_shared_docs[
         "get_indexer_non_unique"
