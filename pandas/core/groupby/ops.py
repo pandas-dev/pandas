@@ -96,6 +96,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from pandas.core.arrays.arrow.dtype import ArrowDtype
     from pandas.core.arrays.string_ import StringDtype
     from pandas.core.generic import NDFrame
 
@@ -404,7 +405,7 @@ class WrappedCythonOp:
         """
         Construct an ExtensionArray result from an ndarray result.
         """
-        dtype: BaseMaskedDtype | StringDtype
+        dtype: BaseMaskedDtype | StringDtype | ArrowDtype
 
         if is_string_dtype(values.dtype):
             dtype = values.dtype
