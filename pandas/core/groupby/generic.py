@@ -1266,7 +1266,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
             index = self.grouper.result_index
-            return self.obj._constructor(result, index=index, columns=data.columns)
+            result = self.obj._constructor(result, index=index, columns=data.columns)
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
+            return result
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
