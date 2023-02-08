@@ -271,7 +271,6 @@ class Block(PandasObject):
 
         new_values = self._slice(slicer)
         refs = self.refs if isinstance(slicer, slice) else None
-        refs = self.refs if isinstance(slicer, slice) else None
         return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
