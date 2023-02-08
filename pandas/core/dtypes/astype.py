@@ -277,7 +277,9 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return True
 
     elif dtype.kind in "mM" and new_dtype.kind in "mM":
-        return True
+        #  Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+        #  attribute "unit"
+        return dtype.unit == new_dtype.unit  # type: ignore[union-attr]
 
     numpy_dtype = getattr(dtype, "numpy_dtype", None)
     new_numpy_dtype = getattr(new_dtype, "numpy_dtype", None)

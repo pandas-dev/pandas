@@ -6,6 +6,7 @@ from pandas.compat import pa_version_under7p0
 from pandas import (
     DataFrame,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -142,3 +143,34 @@ def test_astype_dict_dtypes(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_astype_different_datetime_resos(using_copy_on_write):
+    df = DataFrame({"a": date_range("2019-12-31", periods=2, freq="D")})
+    result = df.astype("datetime64[ms]")
+
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    if using_copy_on_write:
+        assert result._mgr._has_no_reference(0)
+
+
+def test_astype_different_timezones(using_copy_on_write):
+    df = DataFrame(
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+    )
+    result = df.astype("datetime64[ns, Europe/Berlin]")
+    if using_copy_on_write:
+        assert not result._mgr._has_no_reference(0)
+        assert np.shares_memory(get_array(df, "a").asi8, get_array(result, "a").asi8)
+
+
+def test_astype_different_timezones_different_reso(using_copy_on_write):
+    df = DataFrame(
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+    )
+    result = df.astype("datetime64[ms, Europe/Berlin]")
+    if using_copy_on_write:
+        assert result._mgr._has_no_reference(0)
+        assert not np.shares_memory(
+            get_array(df, "a").asi8, get_array(result, "a").asi8
+        )
