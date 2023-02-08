@@ -369,7 +369,10 @@ class BaseArrayManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T, copy: bool) -> T:
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            copy = True
+
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
@@ -947,9 +950,10 @@ class ArrayManager(BaseArrayManager):
             result_indices.append(i)
 
         if len(result_arrays) == 0:
-            index = Index([None])  # placeholder
+            nrows = 0
         else:
-            index = Index(range(result_arrays[0].shape[0]))
+            nrows = result_arrays[0].shape[0]
+        index = Index(range(nrows))
 
         columns = self.items
 

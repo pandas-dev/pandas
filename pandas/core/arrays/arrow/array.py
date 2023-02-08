@@ -23,10 +23,11 @@ from pandas._typing import (
     Scalar,
     SortKind,
     TakeIndexer,
+    TimeAmbiguous,
+    TimeNonexistent,
     npt,
 )
 from pandas.compat import (
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
@@ -54,7 +55,9 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under6p0:
+from pandas.tseries.frequencies import to_offset
+
+if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -199,8 +202,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under6p0:
-            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under7p0:
+            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -330,10 +333,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
+        if item is Ellipsis:
             # TODO: should be handled by pyarrow?
             item = slice(None)
 
@@ -529,11 +529,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # let ExtensionArray.arg{max|min} raise
             return getattr(super(), f"arg{method}")(skipna=skipna)
 
-        if pa_version_under6p0:
-            raise NotImplementedError(
-                f"arg{method} only implemented for pyarrow version >= 6.0"
-            )
-
         data = self._data
         if pa.types.is_duration(data.type):
             data = data.cast(pa.int64())
@@ -567,11 +562,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under6p0:
-            fallback_performancewarning(version="6")
-            return super().dropna()
-        else:
-            return type(self)(pc.drop_null(self._data))
+        return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -1292,9 +1283,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
             Sorted, if possible.
         """
-        if pa_version_under6p0:
-            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
-
         pa_type = self._data.type
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
@@ -1434,3 +1422,154 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
+
+    @property
+    def _dt_day(self):
+        return type(self)(pc.day(self._data))
+
+    @property
+    def _dt_day_of_week(self):
+        return type(self)(pc.day_of_week(self._data))
+
+    _dt_dayofweek = _dt_day_of_week
+    _dt_weekday = _dt_day_of_week
+
+    @property
+    def _dt_day_of_year(self):
+        return type(self)(pc.day_of_year(self._data))
+
+    _dt_dayofyear = _dt_day_of_year
+
+    @property
+    def _dt_hour(self):
+        return type(self)(pc.hour(self._data))
+
+    def _dt_isocalendar(self):
+        return type(self)(pc.iso_calendar(self._data))
+
+    @property
+    def _dt_is_leap_year(self):
+        return type(self)(pc.is_leap_year(self._data))
+
+    @property
+    def _dt_microsecond(self):
+        return type(self)(pc.microsecond(self._data))
+
+    @property
+    def _dt_minute(self):
+        return type(self)(pc.minute(self._data))
+
+    @property
+    def _dt_month(self):
+        return type(self)(pc.month(self._data))
+
+    @property
+    def _dt_nanosecond(self):
+        return type(self)(pc.nanosecond(self._data))
+
+    @property
+    def _dt_quarter(self):
+        return type(self)(pc.quarter(self._data))
+
+    @property
+    def _dt_second(self):
+        return type(self)(pc.second(self._data))
+
+    @property
+    def _dt_date(self):
+        return type(self)(self._data.cast(pa.date64()))
+
+    @property
+    def _dt_time(self):
+        unit = (
+            self.dtype.pyarrow_dtype.unit
+            if self.dtype.pyarrow_dtype.unit in {"us", "ns"}
+            else "ns"
+        )
+        return type(self)(self._data.cast(pa.time64(unit)))
+
+    @property
+    def _dt_tz(self):
+        return self.dtype.pyarrow_dtype.tz
+
+    def _dt_strftime(self, format: str):
+        return type(self)(pc.strftime(self._data, format=format))
+
+    def _round_temporally(
+        self,
+        method: Literal["ceil", "floor", "round"],
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        if ambiguous != "raise":
+            raise NotImplementedError("ambiguous is not supported.")
+        if nonexistent != "raise":
+            raise NotImplementedError("nonexistent is not supported.")
+        offset = to_offset(freq)
+        if offset is None:
+            raise ValueError(f"Must specify a valid frequency: {freq}")
+        pa_supported_unit = {
+            "A": "year",
+            "AS": "year",
+            "Q": "quarter",
+            "QS": "quarter",
+            "M": "month",
+            "MS": "month",
+            "W": "week",
+            "D": "day",
+            "H": "hour",
+            "T": "minute",
+            "S": "second",
+            "L": "millisecond",
+            "U": "microsecond",
+            "N": "nanosecond",
+        }
+        unit = pa_supported_unit.get(offset._prefix, None)
+        if unit is None:
+            raise ValueError(f"{freq=} is not supported")
+        multiple = offset.n
+        rounding_method = getattr(pc, f"{method}_temporal")
+        return type(self)(rounding_method(self._data, multiple=multiple, unit=unit))
+
+    def _dt_ceil(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("ceil", freq, ambiguous, nonexistent)
+
+    def _dt_floor(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("floor", freq, ambiguous, nonexistent)
+
+    def _dt_round(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("round", freq, ambiguous, nonexistent)
+
+    def _dt_tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        if ambiguous != "raise":
+            raise NotImplementedError(f"{ambiguous=} is not supported")
+        if nonexistent != "raise":
+            raise NotImplementedError(f"{nonexistent=} is not supported")
+        if tz is None:
+            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
+            return type(self)(self._data.cast(new_type))
+        pa_tz = str(tz)
+        return type(self)(
+            self._data.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
+        )
