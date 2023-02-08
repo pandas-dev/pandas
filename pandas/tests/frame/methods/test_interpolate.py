@@ -326,17 +326,17 @@ class TestDataFrameInterpolate:
         return_value = result["a"].interpolate(inplace=True)
         assert return_value is None
         if using_copy_on_write:
-            tm.assert_frame_equal(result, expected)
-        else:
             tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
         if using_copy_on_write:
-            tm.assert_frame_equal(result, expected.astype("int64"))
-        else:
             tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
         # GH 10395
