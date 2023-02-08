@@ -269,11 +269,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._aggregate_named(func, *args, **kwargs)
 
                 # result is a dict whose keys are the elements of result_index
-                index = self.grouper.result_index
-                result = Series(result, index=index)
-                if not self.as_index:
-                    result = self._insert_inaxis_grouper(result)
-                    result.index = default_index(len(result))
+                result = Series(result, index=self.grouper.result_index)
+                result = self._wrap_aggregated_output(result)
                 return result
 
     agg = aggregate
@@ -1358,17 +1355,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
 
         result: dict[Hashable, NDFrame | np.ndarray] = {}
-        if self.axis == 0:
-            # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self.grouper.get_iterator(obj, self.axis):
-                fres = func(data, *args, **kwargs)
-                result[name] = fres
-        else:
-            # we get here in a number of test_multilevel tests
-            for name in self.indices:
-                grp_df = self.get_group(name, obj=obj)
-                fres = func(grp_df, *args, **kwargs)
-                result[name] = fres
+        for name, grp_df in self.grouper.get_iterator(obj, self.axis):
+            fres = func(grp_df, *args, **kwargs)
+            result[name] = fres
 
         result_index = self.grouper.result_index
         other_ax = obj.axes[1 - self.axis]
