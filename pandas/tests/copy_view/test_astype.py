@@ -72,7 +72,8 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     df2 = df.astype(dtype)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    assert df2._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert df2._mgr._has_no_reference(0)
 
     df2.iloc[0, 0] = 5
     tm.assert_frame_equal(df, df_orig)
