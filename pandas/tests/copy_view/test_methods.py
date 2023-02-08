@@ -770,33 +770,39 @@ def test_infer_objects(using_copy_on_write):
 
 
 def test_infer_objects_no_reference(using_copy_on_write):
-    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "1"})
     df = df.infer_objects()
 
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
+    arr_d = get_array(df, "d")
 
     df.iloc[0, 0] = 0
     df.iloc[0, 1] = "d"
+    df.iloc[0, 3] = 100
     if using_copy_on_write:
         assert np.shares_memory(arr_a, get_array(df, "a"))
         # TODO(CoW): Block splitting causes references here
         assert not np.shares_memory(arr_b, get_array(df, "b"))
+        assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
 def test_infer_objects_reference(using_copy_on_write):
-    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "1"})
     view = df[:]  # noqa: F841
     df = df.infer_objects()
 
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
+    arr_d = get_array(df, "d")
 
     df.iloc[0, 0] = 0
     df.iloc[0, 1] = "d"
+    df.iloc[0, 3] = 100
     if using_copy_on_write:
         assert not np.shares_memory(arr_a, get_array(df, "a"))
         assert not np.shares_memory(arr_b, get_array(df, "b"))
+        assert not np.shares_memory(arr_d, get_array(df, "d"))
 
 
 @pytest.mark.parametrize(
