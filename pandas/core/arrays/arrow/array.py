@@ -134,7 +134,7 @@ ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArra
 def get_unit_from_pa_dtype(pa_dtype):
     # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
     if pa_version_under11p0:
-        unit = str(pa_dtype).split("[")[-1][:-1]
+        unit = str(pa_dtype).split("[", 1)[-1][:-1]
         if unit not in ["s", "ms", "us", "ns"]:
             raise ValueError(pa_dtype)
         return unit
