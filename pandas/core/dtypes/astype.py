@@ -282,6 +282,12 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     numpy_dtype = getattr(dtype, "numpy_dtype", None)
     new_numpy_dtype = getattr(new_dtype, "numpy_dtype", None)
 
+    if numpy_dtype is None and isinstance(dtype, np.dtype):
+        numpy_dtype = dtype
+
+    if new_numpy_dtype is None and isinstance(new_dtype, np.dtype):
+        numpy_dtype = new_dtype
+
     if numpy_dtype is not None and new_numpy_dtype is not None:
         # if both have NumPy dtype then they are only views if they are equal
         return numpy_dtype == new_numpy_dtype
