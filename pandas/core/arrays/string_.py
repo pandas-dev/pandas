@@ -21,7 +21,7 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -115,9 +115,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under6p0:
+        if storage == "pyarrow" and pa_version_under7p0:
             raise ImportError(
-                "pyarrow>=6.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 

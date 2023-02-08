@@ -223,6 +223,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
@@ -263,6 +264,7 @@ Alternatively, copy on write can be enabled locally through:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added support for ``dt`` accessor methods when using :class:`ArrowDtype` with a ``pyarrow.timestamp`` type (:issue:`50954`)
 - :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 - :meth:`.DataFrameGroupBy.quantile`, :meth:`.SeriesGroupBy.quantile` and :meth:`.DataFrameGroupBy.std` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
@@ -650,7 +652,7 @@ If installed, we now require:
 +-------------------+-----------------+----------+---------+
 | Package           | Minimum Version | Required | Changed |
 +===================+=================+==========+=========+
-| mypy (dev)        | 0.991           |          |    X    |
+| mypy (dev)        | 1.0             |          |    X    |
 +-------------------+-----------------+----------+---------+
 | pytest (dev)      | 7.0.0           |          |    X    |
 +-------------------+-----------------+----------+---------+
@@ -668,7 +670,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-| pyarrow         | 6.0.0           |    X    |
+| pyarrow         | 7.0.0           |    X    |
 +-----------------+-----------------+---------+
 | matplotlib      | 3.6.1           |    X    |
 +-----------------+-----------------+---------+
@@ -760,6 +762,7 @@ Other API changes
 - The levels of the index of the :class:`Series` returned from ``Series.sparse.from_coo`` now always have dtype ``int32``. Previously they had dtype ``int64`` (:issue:`50926`)
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 - The methods :meth:`Series.round`, :meth:`DataFrame.__invert__`, :meth:`Series.__invert__`, :meth:`DataFrame.swapaxes`, :meth:`DataFrame.first`, :meth:`DataFrame.last`, :meth:`Series.first`, :meth:`Series.last` and :meth:`DataFrame.align` will now always return new objects (:issue:`51032`)
+- Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.deprecations:
@@ -774,7 +777,7 @@ Deprecations
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
 - :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
-- :meth:`Index.is_numeric` has been deprecated. Use :func:`pandas.api.types.is_numeric_dtype` instead (:issue:`50042`)
+- :meth:`Index.is_numeric` has been deprecated. Use :func:`pandas.api.types.is_any_real_numeric_dtype` instead (:issue:`50042`,:issue:`51152`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
@@ -786,6 +789,10 @@ Deprecations
 - Deprecated :meth:`Grouper.obj`, use :meth:`Groupby.obj` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.indexer`, use :meth:`Resampler.indexer` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.ax`, use :meth:`Resampler.ax` instead (:issue:`51206`)
+- Deprecated :meth:`Series.pad` in favor of :meth:`Series.ffill` (:issue:`33396`)
+- Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
+- Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
+- Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -1138,6 +1145,7 @@ Datetimelike
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with datetime or timedelta dtypes incorrectly raising ``ValueError`` (:issue:`11312`)
 - Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
 - Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
+- Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
 -
 
 Timedelta
