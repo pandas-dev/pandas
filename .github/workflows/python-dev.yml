@@ -23,14 +23,12 @@ name: Python Dev
 on:
   push:
     branches:
-#      - main
-#      - 1.5.x
-      - None
+      - main
+      - 1.5.x
   pull_request:
     branches:
-#      - main
-#      - 1.5.x
-      - None
+      - main
+      - 1.5.x
     paths-ignore:
       - "doc/**"
 
