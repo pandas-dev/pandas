@@ -219,9 +219,16 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            data = self._obj_with_exclusions
+            result = self._aggregate_with_numba(
+                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self.grouper.result_index
+            result = self.obj._constructor(result.ravel(), index=index, name=data.name)
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
+            return result
 
         relabeling = func is None
         columns = None
@@ -1257,9 +1264,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            data = self._obj_with_exclusions
+            result = self._aggregate_with_numba(
+                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self.grouper.result_index
+            result = self.obj._constructor(result, index=index, columns=data.columns)
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
+            return result
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
