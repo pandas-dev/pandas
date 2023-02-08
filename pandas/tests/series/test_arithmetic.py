@@ -287,6 +287,20 @@ class TestSeriesArithmetic:
         assert ser.index is dti
         assert ser_utc.index is dti_utc
 
+    def test_alignment_categorical(self):
+        # GH13365
+        cat = Categorical(["3z53", "3z53", "LoJG", "LoJG", "LoJG", "N503"])
+        ser1 = Series(2, index=cat)
+        ser2 = Series(2, index=cat[:-1])
+        result = ser1 * ser2
+
+        exp_index = ["3z53"] * 4 + ["LoJG"] * 9 + ["N503"]
+        exp_index = pd.CategoricalIndex(exp_index, categories=cat.categories)
+        exp_values = [4.0] * 13 + [np.nan]
+        expected = Series(exp_values, exp_index)
+
+        tm.assert_series_equal(result, expected)
+
     def test_arithmetic_with_duplicate_index(self):
 
         # GH#8363
