@@ -46,7 +46,7 @@ def test_basic_indexing():
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
-    # GHxxxxx
+    # GH51053
     dtype = any_numeric_dtype
     idx = Index([1, 0, 1], dtype=dtype)
     ser = Series(range(3), index=idx)
@@ -56,7 +56,7 @@ def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
 
 
 def test_setitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
-    # GHxxxxx
+    # GH51053
     dtype = any_numeric_dtype
     idx = Index([1, 0, 1], dtype=dtype)
     ser = Series(range(3), index=idx)

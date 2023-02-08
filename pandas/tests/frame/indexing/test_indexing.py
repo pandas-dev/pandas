@@ -58,7 +58,7 @@ class TestDataFrameIndexing:
             float_frame["random"]
 
     def test_getitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
-        # GHxxxxx
+        # GH51053
         dtype = any_numeric_dtype
         idx = Index([1, 0, 1], dtype=dtype)
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
@@ -81,7 +81,7 @@ class TestDataFrameIndexing:
         tm.assert_numpy_array_equal(ad, res.values)
 
     def test_setitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
-        # GHxxxxx
+        # GH51053
         dtype = any_numeric_dtype
         idx = Index([1, 0, 1], dtype=dtype)
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
