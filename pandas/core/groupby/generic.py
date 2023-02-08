@@ -1311,19 +1311,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = self._aggregate_frame(func)
 
                 else:
-                    sobj = self._selected_obj
-
-                    if isinstance(sobj, Series):
-                        # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = self._obj_with_exclusions.columns.copy()
-                    else:
-                        # Retain our column names
-                        result.columns._set_names(
-                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
-                        )
-                        # select everything except for the last level, which is the one
-                        # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.droplevel(-1)
+                    # GH#32040, GH#35246
+                    # e.g. test_groupby_as_index_select_column_sum_empty_df
+                    result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
