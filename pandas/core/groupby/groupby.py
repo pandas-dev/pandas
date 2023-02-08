@@ -1270,9 +1270,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.take(np.argsort(sorted_index), axis=0)
 
     @final
-    def _aggregate_with_numba(
-        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
-    ):
+    def _aggregate_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby aggregation routine with the numba engine.
 
@@ -1280,7 +1278,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(data)
+        data = self._obj_with_exclusions
+        df = data if data.ndim == 2 else data.to_frame()
+
+        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
         numba_agg_func = numba_.generate_numba_agg_func(
             func, **get_jit_arguments(engine_kwargs, kwargs)
@@ -1290,10 +1291,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sorted_index,
             starts,
             ends,
-            len(data.columns),
+            len(df.columns),
             *args,
         )
-        return result
+
+        index = self.grouper.result_index
+        if data.ndim == 1:
+            result_kwargs = {"name": data.name}
+            result = result.ravel()
+        else:
+            result_kwargs = {"columns": data.columns}
+        result = data._constructor(result, index=index, **result_kwargs)
+        return self._wrap_aggregated_output(result)
 
     # -----------------------------------------------------------------
     # apply/agg/transform
