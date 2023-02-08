@@ -1,6 +1,7 @@
 import numpy as np
 
 cimport numpy as cnp
+from libc.math cimport log10
 from numpy cimport (
     int32_t,
     int64_t,
@@ -84,7 +85,7 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 cdef int64_t cast_from_unit(
         object ts,
         str unit,
-        NPY_DATETIMEUNIT reso=NPY_FR_ns
+        NPY_DATETIMEUNIT out_reso=NPY_FR_ns
 ) except? -1:
     """
     Return a casting of the unit represented to nanoseconds
@@ -103,7 +104,7 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
 
-    m, p = precision_from_unit(unit, reso)
+    m, p = precision_from_unit(unit, out_reso)
 
     # just give me the unit back
     if ts is None:
@@ -123,7 +124,7 @@ cdef int64_t cast_from_unit(
         if is_float_object(ts):
             ts = int(ts)
         dt64obj = np.datetime64(ts, unit)
-        return get_datetime64_nanos(dt64obj, reso)
+        return get_datetime64_nanos(dt64obj, out_reso)
 
     # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
@@ -165,16 +166,7 @@ cpdef inline (int64_t, int) precision_from_unit(
         int p
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
-    if out_reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        multiplier = 1_000_000_000
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        multiplier = 1_000_000
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        multiplier = 1_000
-    elif out_reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        multiplier = 1
-    else:
-        raise ValueError(f"Invalid out_reso: {out_reso}")
+    multiplier = periods_per_second(out_reso)
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         # each 400 years we have 97 leap years, for an average of 97/400=.2425
@@ -202,7 +194,7 @@ cpdef inline (int64_t, int) precision_from_unit(
         m = multiplier // 1_000_000_000
     else:
         raise ValueError(f"cannot cast unit {unit}")
-    p = min(9, len(str(m))-1)
+    p = <int>log10(m)  # number of digits in 'm' minus 1
     return m, p
 
 
