@@ -6,13 +6,15 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Hashable,
     Iterator,
     final,
 )
+import warnings
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._typing import (
     ArrayLike,
@@ -22,6 +24,7 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -266,7 +269,7 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self.grouper = None
+        self._grouper_deprecated = None
         self._gpr_index = None
         self.obj = None
         self.indexer = None
@@ -284,7 +287,7 @@ class Grouper:
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
-    ) -> tuple[Any, ops.BaseGrouper, NDFrameT]:
+    ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
@@ -294,15 +297,11 @@ class Grouper:
 
         Returns
         -------
-        a tuple of binner, grouper, obj (possibly sorted)
+        a tuple of grouper, obj (possibly sorted)
         """
-        self._set_grouper(obj)
-        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
-        # "Optional[Any]"
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
-            self.obj,
+        obj, _ = self._set_grouper(obj)
+        grouper, _, obj = get_grouper(
+            obj,
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -310,13 +309,17 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
+        # Without setting this, subsequent lookups to .groups raise
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
-        # error: Incompatible return value type (got "Tuple[None, None, None]",
-        # expected "Tuple[Any, BaseGrouper, NDFrameT]")
-        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
+        return grouper, obj
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
+    def _set_grouper(
+        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
+    ):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -326,25 +329,29 @@ class Grouper:
         obj : Series or DataFrame
         sort : bool, default False
             whether the resulting grouper should be sorted
+        gpr_index : Index or None, default None
+
+        Returns
+        -------
+        NDFrame
+        Index
         """
         assert obj is not None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self.grouper value before overriding
+        # Keep self._grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
-            self._grouper = self._gpr_index
+            self._grouper = gpr_index
             self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self._gpr_index, "name", None) == key and isinstance(
-                obj, Series
-            ):
+            if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -390,12 +397,30 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
+        return obj, ax
+
+    @final
+    @property
+    def grouper(self):
+        warnings.warn(
+            f"{type(self).__name__}.grouper is deprecated and will be removed "
+            "in a future version. Use GroupBy.grouper instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._grouper_deprecated
 
     @final
     @property
     def groups(self):
+        warnings.warn(
+            f"{type(self).__name__}.groups is deprecated and will be removed "
+            "in a future version. Use GroupBy.groups instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         # error: "None" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[attr-defined]
+        return self._grouper_deprecated.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -425,19 +450,26 @@ class Grouping:
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
+    dropna : bool, default True
+        Whether to drop NA groups.
+    uniques : Array-like, optional
+        When specified, will be used for unique values. Enables including empty groups
+        in the result for a BinGrouper. Must not contain duplicates.
 
-    Returns
+    Attributes
     -------
-    **Attributes**:
-      * indices : dict of {group -> index_list}
-      * codes : ndarray, group codes
-      * group_index : unique groups
-      * groups : dict of {group -> label_list}
+    indices : dict
+        Mapping of {group -> index_list}
+    codes : ndarray
+        Group codes
+    group_index : Index or None
+        unique groups
+    groups : dict
+        Mapping of {group -> label_list}
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
-    _passed_categorical: bool
     _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
@@ -452,10 +484,11 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
+        uniques: ArrayLike | None = None,
     ) -> None:
         self.level = level
         self._orig_grouper = grouper
-        self.grouping_vector = _convert_grouper(index, grouper)
+        grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
         self._orig_cats = None
         self._index = index
@@ -464,15 +497,13 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
-
-        self._passed_categorical = False
+        self._uniques = uniques
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouping_vector
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
@@ -480,77 +511,83 @@ class Grouping:
                 index_level = index.get_level_values(ilevel)
             else:
                 index_level = index
-            (
-                self.grouping_vector,  # Index
-                self._codes,
-                self._group_index,
-            ) = index_level._get_grouper_for_level(mapper, dropna=dropna)
+
+            if grouping_vector is None:
+                grouping_vector = index_level
+            else:
+                mapper = grouping_vector
+                grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
-        elif isinstance(self.grouping_vector, Grouper):
+        elif isinstance(grouping_vector, Grouper):
             # get the new grouper; we already have disambiguated
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
             assert self.obj is not None  # for mypy
-            _, newgrouper, newobj = self.grouping_vector._get_grouper(
-                self.obj, validate=False
-            )
+            newgrouper, newobj = grouping_vector._get_grouper(self.obj, validate=False)
             self.obj = newobj
 
-            ng = newgrouper._get_grouper()
             if isinstance(newgrouper, ops.BinGrouper):
-                # in this case we have `ng is newgrouper`
-                self.grouping_vector = ng
+                # TODO: can we unwrap this and get a tighter typing
+                #  for self.grouping_vector?
+                grouping_vector = newgrouper
             else:
                 # ops.BaseGrouper
+                # TODO: 2023-02-03 no test cases with len(newgrouper.groupings) > 1.
+                #  If that were to occur, would we be throwing out information?
+                # error: Cannot determine type of "grouping_vector"  [has-type]
+                ng = newgrouper.groupings[0].grouping_vector  # type: ignore[has-type]
                 # use Index instead of ndarray so we can recover the name
-                self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
+                grouping_vector = Index(ng, name=newgrouper.result_index.name)
 
         elif not isinstance(
-            self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
+            grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
         ):
             # no level passed
-            if getattr(self.grouping_vector, "ndim", 1) != 1:
-                t = self.name or str(type(self.grouping_vector))
+            if getattr(grouping_vector, "ndim", 1) != 1:
+                t = str(type(grouping_vector))
                 raise ValueError(f"Grouper for '{t}' not 1-dimensional")
 
-            self.grouping_vector = index.map(self.grouping_vector)
+            grouping_vector = index.map(grouping_vector)
 
             if not (
-                hasattr(self.grouping_vector, "__len__")
-                and len(self.grouping_vector) == len(index)
+                hasattr(grouping_vector, "__len__")
+                and len(grouping_vector) == len(index)
             ):
-                grper = pprint_thing(self.grouping_vector)
+                grper = pprint_thing(grouping_vector)
                 errmsg = (
                     "Grouper result violates len(labels) == "
                     f"len(data)\nresult: {grper}"
                 )
-                self.grouping_vector = None  # Try for sanity
                 raise AssertionError(errmsg)
 
-        if isinstance(self.grouping_vector, np.ndarray):
-            if self.grouping_vector.dtype.kind in ["m", "M"]:
+        if isinstance(grouping_vector, np.ndarray):
+            if grouping_vector.dtype.kind in ["m", "M"]:
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
-                self.grouping_vector = Series(self.grouping_vector).to_numpy()
-        elif is_categorical_dtype(self.grouping_vector):
+                grouping_vector = Series(grouping_vector).to_numpy()
+        elif is_categorical_dtype(grouping_vector):
             # a passed Categorical
-            self._passed_categorical = True
-
-            self._orig_cats = self.grouping_vector.categories
-            self.grouping_vector, self._all_grouper = recode_for_groupby(
-                self.grouping_vector, sort, observed
+            self._orig_cats = grouping_vector.categories
+            grouping_vector, self._all_grouper = recode_for_groupby(
+                grouping_vector, sort, observed
             )
+
+        self.grouping_vector = grouping_vector
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
     def __iter__(self) -> Iterator:
         return iter(self.indices)
+
+    @cache_readonly
+    def _passed_categorical(self) -> bool:
+        return is_categorical_dtype(self.grouping_vector)
 
     @cache_readonly
     def name(self) -> Hashable:
@@ -600,10 +637,6 @@ class Grouping:
 
     @property
     def codes(self) -> npt.NDArray[np.signedinteger]:
-        if self._codes is not None:
-            # _codes is set in __init__ for MultiIndex cases
-            return self._codes
-
         return self._codes_and_uniques[0]
 
     @cache_readonly
@@ -612,13 +645,12 @@ class Grouping:
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index._values
-
-        elif self._all_grouper is not None:
+        if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
+
+        elif self._passed_categorical:
+            return self.group_index._values
 
         return self._codes_and_uniques[1]
 
@@ -629,22 +661,36 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            categories = self._all_grouper.categories
+            cats = self._orig_cats
             # set_categories is dynamically added
-            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
+            return group_idx.set_categories(cats)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
     def group_index(self) -> Index:
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index
-
-        uniques = self._codes_and_uniques[1]
+        codes, uniques = self._codes_and_uniques
+        if not self._dropna and self._passed_categorical:
+            assert isinstance(uniques, Categorical)
+            if self._sort and (codes == len(uniques)).any():
+                # Add NA value on the end when sorting
+                uniques = Categorical.from_codes(
+                    np.append(uniques.codes, [-1]), uniques.categories
+                )
+            elif len(codes) > 0:
+                # Need to determine proper placement of NA value when not sorting
+                cat = self.grouping_vector
+                na_idx = (cat.codes < 0).argmax()
+                if cat.codes[na_idx] < 0:
+                    # count number of unique codes that comes before the nan value
+                    na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    uniques = Categorical.from_codes(
+                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                    )
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
+        uniques: ArrayLike
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
@@ -663,18 +709,39 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+
+            codes = cat.codes
+            if not self._dropna:
+                na_mask = codes < 0
+                if np.any(na_mask):
+                    if self._sort:
+                        # Replace NA codes with `largest code + 1`
+                        na_code = len(categories)
+                        codes = np.where(na_mask, na_code, codes)
+                    else:
+                        # Insert NA code into the codes based on first appearance
+                        # A negative code must exist, no need to check codes[na_idx] < 0
+                        na_idx = na_mask.argmax()
+                        # count number of unique codes that comes before the nan value
+                        na_code = algorithms.nunique_ints(codes[:na_idx])
+                        codes = np.where(codes >= na_code, codes + 1, codes)
+                        codes = np.where(na_mask, na_code, codes)
+
             if not self._observed:
                 uniques = uniques.reorder_categories(self._orig_cats)
-            return cat.codes, uniques
+
+            return codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            # error: Incompatible types in assignment (expression has type "Union
-            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
-            uniques = (
-                self.grouping_vector.result_index._values  # type: ignore[assignment]
-            )
+            uniques = self.grouping_vector.result_index._values
+        elif self._uniques is not None:
+            # GH#50486 Code grouping_vector using _uniques; allows
+            # including uniques that are not present in grouping_vector.
+            cat = Categorical(self.grouping_vector, categories=self._uniques)
+            codes = cat.codes
+            uniques = self._uniques
         else:
             # GH35667, replace dropna=False with use_na_sentinel=False
             # error: Incompatible types in assignment (expression has type "Union[
@@ -696,7 +763,6 @@ def get_grouper(
     level=None,
     sort: bool = True,
     observed: bool = False,
-    mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
@@ -773,7 +839,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -838,7 +904,7 @@ def get_grouper(
             try:
                 items.get_loc(key)
             except (KeyError, TypeError, InvalidIndexError):
-                # TypeError shows up here if we pass e.g. Int64Index
+                # TypeError shows up here if we pass e.g. an Index
                 return False
 
         return True
@@ -847,6 +913,13 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
+        if using_copy_on_write():
+            # For the CoW case, we need an equality check as the identity check
+            # no longer works (each Series from column access is a new object)
+            try:
+                return gpr.equals(obj[gpr.name])
+            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
@@ -879,7 +952,7 @@ def get_grouper(
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.add(gpr.key)
-            in_axis = False
+            in_axis = True
         else:
             in_axis = False
 
@@ -908,9 +981,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 

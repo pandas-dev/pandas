@@ -21,11 +21,14 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 import zipfile
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_nullable_dtypes,
+)
 
+from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     DtypeArg,
@@ -44,7 +47,6 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -276,6 +278,14 @@ use_nullable_dtypes : bool, default False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present. Dtype takes precedence if given.
 
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
     .. versionadded:: 2.0
 
 Returns
@@ -382,7 +392,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -421,7 +431,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -460,7 +470,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -472,6 +482,12 @@ def read_excel(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     try:
         data = io.parse(
@@ -728,7 +744,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
         output = {}
 
+        last_sheetname = None
         for asheetname in sheets:
+            last_sheetname = asheetname
             if verbose:
                 print(f"Reading sheet {asheetname}")
 
@@ -880,10 +898,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
                 raise err
 
+        if last_sheetname is None:
+            raise ValueError("Sheet name is an empty list")
+
         if ret_dict:
             return output
         else:
-            return output[asheetname]
+            return output[last_sheetname]
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1136,40 +1157,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         This attribute can be used to access engine-specific features.
         """
 
-    @book.setter
-    @abc.abstractmethod
-    def book(self, other) -> None:
-        """
-        Set book instance. Class type will depend on the engine used.
-        """
-
-    def write_cells(
-        self,
-        cells,
-        sheet_name: str | None = None,
-        startrow: int = 0,
-        startcol: int = 0,
-        freeze_panes: tuple[int, int] | None = None,
-    ) -> None:
-        """
-        Write given formatted cells into Excel an excel sheet
-
-        .. deprecated:: 1.5.0
-
-        Parameters
-        ----------
-        cells : generator
-            cell of formatted data to save to Excel sheet
-        sheet_name : str, default None
-            Name of Excel sheet, if None, then use self.cur_sheet
-        startrow : upper left cell row to dump data frame
-        startcol : upper left cell column to dump data frame
-        freeze_panes: int tuple of length 2
-            contains the bottom-most row and right-most column to freeze
-        """
-        self._deprecate("write_cells")
-        return self._write_cells(cells, sheet_name, startrow, startcol, freeze_panes)
-
     @abc.abstractmethod
     def _write_cells(
         self,
@@ -1193,15 +1180,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
-
-    def save(self) -> None:
-        """
-        Save workbook to disk.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("save")
-        return self._save()
 
     @abc.abstractmethod
     def _save(self) -> None:
@@ -1232,7 +1210,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
-        # cast ExcelWriter to avoid adding 'if self.handles is not None'
+        # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
         )
@@ -1264,29 +1242,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str) -> None:
-        """
-        Deprecate attribute or method for ExcelWriter.
-        """
-        warnings.warn(
-            f"{attr} is not part of the public API, usage can give unexpected "
-            "results and will be removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    def _deprecate_set_book(self) -> None:
-        """
-        Deprecate setting the book attribute - GH#48780.
-        """
-        warnings.warn(
-            "Setting the `book` attribute is not part of the public API, "
-            "usage can give unexpected or corrupted results and will be "
-            "removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     @property
     def date_format(self) -> str:
         """
@@ -1307,36 +1262,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         How to behave when writing to a sheet that already exists in append mode.
         """
         return self._if_sheet_exists
-
-    @property
-    def cur_sheet(self):
-        """
-        Current sheet for writing.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("cur_sheet")
-        return self._cur_sheet
-
-    @property
-    def handles(self) -> IOHandles[bytes]:
-        """
-        Handles to Excel sheets.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("handles")
-        return self._handles
-
-    @property
-    def path(self):
-        """
-        Path to Excel file.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("path")
-        return self._path
 
     def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")

@@ -34,10 +34,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_cannot_add,
@@ -205,13 +201,13 @@ class TestDatetime64SeriesComparison:
         expected,
     ):
         box = index_or_series
-        l, r = pair
+        lhs, rhs = pair
         if reverse:
             # add lhs / rhs switched data
-            l, r = r, l
+            lhs, rhs = rhs, lhs
 
-        left = Series(l, dtype=dtype)
-        right = box(r, dtype=dtype)
+        left = Series(lhs, dtype=dtype)
+        right = box(rhs, dtype=dtype)
 
         result = op(left, right)
 
@@ -307,43 +303,60 @@ class TestDatetime64SeriesComparison:
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
+        box = box_with_array
 
         ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), NaT])
-        ser = tm.box_expected(ser, box_with_array)
+        ser = tm.box_expected(ser, box)
         xbox = get_upcast_box(ser, ser, True)
 
         result = ser != ser
         expected = tm.box_expected([False, False, True], xbox)
         tm.assert_equal(result, expected)
 
-        warn = FutureWarning if box_with_array is pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
-            result = ser != ser[0]
-        expected = tm.box_expected([False, True, True], xbox)
-        tm.assert_equal(result, expected)
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser != ser[0]
 
-        with tm.assert_produces_warning(warn):
+        else:
+            result = ser != ser[0]
+            expected = tm.box_expected([False, True, True], xbox)
+            tm.assert_equal(result, expected)
+
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser != ser[2]
+        else:
             result = ser != ser[2]
-        expected = tm.box_expected([True, True, True], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([True, True, True], xbox)
+            tm.assert_equal(result, expected)
 
         result = ser == ser
         expected = tm.box_expected([True, True, False], xbox)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser == ser[0]
+        else:
             result = ser == ser[0]
-        expected = tm.box_expected([True, False, False], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([True, False, False], xbox)
+            tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser == ser[2]
+        else:
             result = ser == ser[2]
-        expected = tm.box_expected([False, False, False], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([False, False, False], xbox)
+            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "datetimelike",
@@ -1006,7 +1019,7 @@ class TestDatetime64Arithmetic:
         expected = dti - dti
 
         obj = tm.box_expected(dti, box_with_array)
-        expected = tm.box_expected(expected, box_with_array)
+        expected = tm.box_expected(expected, box_with_array).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = obj - obj.astype(object)
@@ -1087,7 +1100,9 @@ class TestDatetime64Arithmetic:
             dti = date_range("2016-01-01", periods=2, freq=freq, tz=tz)
 
         obj = box_with_array(dti)
-        other = np.array([4, -1], dtype=dtype)
+        other = np.array([4, -1])
+        if dtype is not None:
+            other = other.astype(dtype)
 
         msg = "|".join(
             [
@@ -1107,7 +1122,6 @@ class TestDatetime64Arithmetic:
         assert_invalid_addsub_type(obj, pd.array(other), msg)
         assert_invalid_addsub_type(obj, pd.Categorical(other), msg)
         assert_invalid_addsub_type(obj, pd.Index(other), msg)
-        assert_invalid_addsub_type(obj, pd.core.indexes.api.NumericIndex(other), msg)
         assert_invalid_addsub_type(obj, Series(other), msg)
 
     @pytest.mark.parametrize(
@@ -1555,10 +1569,13 @@ class TestDatetime64DateOffsetArithmetic:
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
-        expected = tm.box_expected(expected, box_with_array)
+        expected = tm.box_expected(expected, box_with_array).astype(object)
 
         if box_other:
             other = tm.box_expected(other, box_with_array)
+            if box_with_array is pd.array and op is roperator.radd:
+                # We expect a PandasArray, not ndarray[object] here
+                expected = pd.array(expected, dtype=object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
@@ -1682,7 +1699,7 @@ class TestDatetime64OverflowHandling:
         dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
         dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
 
-        tsneg = Timestamp("1950-01-01")
+        tsneg = Timestamp("1950-01-01").as_unit("ns")
         ts_neg_variants = [
             tsneg,
             tsneg.to_pydatetime(),
@@ -1690,7 +1707,7 @@ class TestDatetime64OverflowHandling:
             tsneg.to_datetime64().astype("datetime64[D]"),
         ]
 
-        tspos = Timestamp("1980-01-01")
+        tspos = Timestamp("1980-01-01").as_unit("ns")
         ts_pos_variants = [
             tspos,
             tspos.to_pydatetime(),
@@ -2356,7 +2373,7 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(
             [op(dti[n], other[n]) for n in range(len(dti))], name=names[2], freq="infer"
         )
-        expected = tm.box_expected(expected, xbox)
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(res, expected)
 
     @pytest.mark.parametrize("other_box", [pd.Index, np.array])
@@ -2371,14 +2388,14 @@ class TestDatetimeIndexArithmetic:
         xbox = get_upcast_box(dtarr, other)
 
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
-        expected = tm.box_expected(expected, xbox)
+        expected = tm.box_expected(expected, xbox).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
-        expected = tm.box_expected(expected, xbox)
+        expected = tm.box_expected(expected, xbox).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr - other
@@ -2418,15 +2435,11 @@ def test_dt64arr_addsub_object_dtype_2d():
     with tm.assert_produces_warning(PerformanceWarning):
         expected = (dta[:, 0] + other[:, 0]).reshape(-1, 1)
 
-    assert isinstance(result, DatetimeArray)
-    assert result.freq is None
-    tm.assert_numpy_array_equal(result._data, expected._data)
+    tm.assert_numpy_array_equal(result, expected)
 
     with tm.assert_produces_warning(PerformanceWarning):
         # Case where we expect to get a TimedeltaArray back
         result2 = dta - dta.astype(object)
 
-    assert isinstance(result2, TimedeltaArray)
     assert result2.shape == (4, 1)
-    assert result2.freq is None
-    assert (result2.asi8 == 0).all()
+    assert all(td.value == 0 for td in result2.ravel())

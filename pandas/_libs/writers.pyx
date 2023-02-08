@@ -89,14 +89,14 @@ def convert_json_to_lines(arr: str) -> str:
         unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
 
-    newline = ord('\n')
-    comma = ord(',')
-    left_bracket = ord('{')
-    right_bracket = ord('}')
+    newline = ord("\n")
+    comma = ord(",")
+    left_bracket = ord("{")
+    right_bracket = ord("}")
     quote = ord('"')
-    backslash = ord('\\')
+    backslash = ord("\\")
 
-    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
+    narr = np.frombuffer(arr.encode("utf-8"), dtype="u1").copy()
     length = narr.shape[0]
     for i in range(length):
         val = narr[i]
@@ -114,7 +114,7 @@ def convert_json_to_lines(arr: str) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tobytes().decode('utf-8') + '\n'  # GH:36888
+    return narr.tobytes().decode("utf-8") + "\n"  # GH:36888
 
 
 # stata, pytables
@@ -161,15 +161,13 @@ cpdef inline Py_ssize_t word_len(object val):
 def string_array_replace_from_nan_rep(
     ndarray[object, ndim=1] arr,
     object nan_rep,
-    object replace=np.nan
 ) -> None:
     """
-    Replace the values in the array with 'replacement' if
-    they are 'nan_rep'. Return the same array.
+    Replace the values in the array with np.nan if they are nan_rep.
     """
     cdef:
         Py_ssize_t length = len(arr), i = 0
 
     for i in range(length):
         if arr[i] == nan_rep:
-            arr[i] = replace
+            arr[i] = np.nan

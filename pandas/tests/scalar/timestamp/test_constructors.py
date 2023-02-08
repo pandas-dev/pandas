@@ -1,5 +1,6 @@
 import calendar
 from datetime import (
+    date,
     datetime,
     timedelta,
     timezone,
@@ -23,6 +24,64 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_string_invalid_raises(self):
+        # dateutil (weirdly) parses "200622-12-31" as
+        #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
+        #  which besides being mis-parsed, is a tzoffset that will cause
+        #  str(ts) to raise ValueError.  Ensure we raise in the constructor
+        #  instead.
+        # see test_to_datetime_malformed_raise for analogous to_datetime test
+        with pytest.raises(ValueError, match="gives an invalid tzoffset"):
+            Timestamp("200622-12-31")
+
+    def test_constructor_str_infer_reso(self):
+        # non-iso8601 path
+
+        # _parse_delimited_date path
+        ts = Timestamp("01/30/2023")
+        assert ts.unit == "s"
+
+        # _parse_dateabbr_string path
+        ts = Timestamp("2015Q1")
+        assert ts.unit == "s"
+
+        # dateutil_parse path
+        ts = Timestamp("2016-01-01 1:30:01 PM")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2016 June 3 15:25:01.345")
+        assert ts.unit == "ms"
+
+    def test_constructor_from_iso8601_str_with_offset_reso(self):
+        # GH#49737
+        ts = Timestamp("2016-01-01 04:05:06-01:00")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2016-01-01 04:05:06.000-01:00")
+        assert ts.unit == "ms"
+
+        ts = Timestamp("2016-01-01 04:05:06.000000-01:00")
+        assert ts.unit == "us"
+
+        ts = Timestamp("2016-01-01 04:05:06.000000001-01:00")
+        assert ts.unit == "ns"
+
+    def test_constructor_from_date_second_reso(self):
+        # GH#49034 constructing from a pydate object gets lowest supported
+        #  reso, i.e. seconds
+        obj = date(2012, 9, 1)
+        ts = Timestamp(obj)
+        assert ts.unit == "s"
+
+    @pytest.mark.parametrize("typ", [int, float])
+    def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
+        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        val = typ(150000000)
+
+        msg = f"cannot convert input {val} with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(val, unit="D")
+
     @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
         # GH#47266 avoid the conversions in cast_from_unit
@@ -97,24 +156,28 @@ class TestTimestampConstructors:
             (dateutil.tz.tzoffset(None, 18000), 5),
         ]
 
-        for date_str, date, expected in tests:
-            for result in [Timestamp(date_str), Timestamp(date)]:
+        for date_str, date_obj, expected in tests:
+            for result in [Timestamp(date_str), Timestamp(date_obj)]:
+                result = result.as_unit("ns")  # test originally written before non-nano
                 # only with timestring
-                assert result.value == expected
+                assert result.as_unit("ns").value == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
-                assert result.value == expected
+                assert result.as_unit("ns").value == expected
 
             # with timezone
             for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
+                for result in [Timestamp(date_str, tz=tz), Timestamp(date_obj, tz=tz)]:
+                    result = result.as_unit(
+                        "ns"
+                    )  # test originally written before non-nano
                     expected_tz = expected - offset * 3600 * 1_000_000_000
-                    assert result.value == expected_tz
+                    assert result.as_unit("ns").value == expected_tz
 
                     # should preserve tz
                     result = Timestamp(result)
-                    assert result.value == expected_tz
+                    assert result.as_unit("ns").value == expected_tz
 
                     # should convert to UTC
                     if tz is not None:
@@ -122,7 +185,7 @@ class TestTimestampConstructors:
                     else:
                         result = Timestamp(result, tz="UTC")
                     expected_utc = expected - offset * 3600 * 1_000_000_000
-                    assert result.value == expected_utc
+                    assert result.as_unit("ns").value == expected_utc
 
     def test_constructor_with_stringoffset(self):
         # GH 7833
@@ -154,26 +217,26 @@ class TestTimestampConstructors:
         for date_str, expected in tests:
             for result in [Timestamp(date_str)]:
                 # only with timestring
-                assert result.value == expected
+                assert result.as_unit("ns").value == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
-                assert result.value == expected
+                assert result.as_unit("ns").value == expected
 
             # with timezone
             for tz, offset in timezones:
                 result = Timestamp(date_str, tz=tz)
                 expected_tz = expected
-                assert result.value == expected_tz
+                assert result.as_unit("ns").value == expected_tz
 
                 # should preserve tz
                 result = Timestamp(result)
-                assert result.value == expected_tz
+                assert result.as_unit("ns").value == expected_tz
 
                 # should convert to UTC
                 result = Timestamp(result).tz_convert("UTC")
                 expected_utc = expected
-                assert result.value == expected_utc
+                assert result.as_unit("ns").value == expected_utc
 
         # This should be 2013-11-01 05:00 in UTC
         # converted to Chicago tz
@@ -389,12 +452,13 @@ class TestTimestampConstructors:
                 nanosecond=1,
                 tz="UTC",
             ),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, None, nanosecond=1),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=pytz.UTC, nanosecond=1),
         ],
     )
     def test_constructor_nanosecond(self, result):
         # GH 18898
+        # As of 2.0 (GH 49416), nanosecond should not be accepted positionally
         expected = Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), tz=result.tz)
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
@@ -402,7 +466,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        msg = "could not convert string to Timestamp"
+        msg = f"Unknown datetime string format, unable to parse: 2014-11-02 01:00{z}"
         with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 
@@ -468,11 +532,17 @@ class TestTimestampConstructors:
             Timestamp(too_high)
 
     def test_out_of_bounds_string(self):
-        msg = "Out of bounds"
+        msg = "Cannot cast .* to unit='ns' without overflow"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("1676-01-01")
+            Timestamp("1676-01-01").as_unit("ns")
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2263-01-01")
+            Timestamp("2263-01-01").as_unit("ns")
+
+        ts = Timestamp("2263-01-01")
+        assert ts.unit == "s"
+
+        ts = Timestamp("1676-01-01")
+        assert ts.unit == "s"
 
     def test_barely_out_of_bounds(self):
         # GH#19529
@@ -517,9 +587,21 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
     def test_out_of_bounds_string_consistency(self, arg):
         # GH 15829
-        msg = "Out of bounds"
+        msg = "|".join(
+            [
+                "Cannot cast 1-01-01 00:00:00 to unit='ns' without overflow",
+                "Out of bounds nanosecond timestamp: 1-01-01 00:00:00",
+            ]
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp(arg)
+            Timestamp(arg).as_unit("ns")
+
+        if arg == "0001-01-01":
+            # only the 4-digit year goes through ISO path which gets second reso
+            #  instead of ns reso
+            ts = Timestamp(arg)
+            assert ts.unit == "s"
+            assert ts.year == ts.month == ts.day == 1
 
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp

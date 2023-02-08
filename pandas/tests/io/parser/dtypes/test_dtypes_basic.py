@@ -18,6 +18,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
+    IntegerArray,
     StringArray,
 )
 
@@ -446,12 +447,11 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 
 
 @pytest.mark.usefixtures("pyarrow_xfail")
-@pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullable_dtypes_string(all_parsers, storage):
+def test_use_nullable_dtypes_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
-    with pd.option_context("mode.string_storage", storage):
+    with pd.option_context("mode.string_storage", string_storage):
 
         parser = all_parsers
 
@@ -461,7 +461,7 @@ b,
 """
         result = parser.read_csv(StringIO(data), use_nullable_dtypes=True)
 
-        if storage == "python":
+        if string_storage == "python":
             expected = DataFrame(
                 {
                     "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -493,19 +493,13 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
+    engine = parser.engine
 
     data = """a,b,c,d,e,f,g,h,i,j
 1,2.5,True,a,,,,,12-31-2019,
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
-    with pd.option_context("io.nullable_backend", "pyarrow"):
-        if parser.engine != "pyarrow":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Not implemented with engine={parser.engine}",
-                )
-            )
+    with pd.option_context("mode.dtype_backend", "pyarrow"):
         result = parser.read_csv(
             StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
         )
@@ -518,9 +512,48 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
                 "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
                 "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
                 "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
-                "h": pd.Series(["", "a"], dtype=pd.ArrowDtype(pa.string())),
+                "h": pd.Series(
+                    [pd.NA if engine != "pyarrow" else "", "a"],
+                    dtype=pd.ArrowDtype(pa.string()),
+                ),
                 "i": pd.Series([Timestamp("2019-12-31")] * 2),
                 "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
             }
         )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.usefixtures("pyarrow_xfail")
+def test_use_nullable_dtypes_option(all_parsers):
+    # GH#50748
+
+    parser = all_parsers
+
+    data = """a
+1
+3
+"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = parser.read_csv(StringIO(data))
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_int_avoid_overflow(all_parsers):
+    # GH#32134
+    parser = all_parsers
+    data = """a,b
+1,1
+,1
+1582218195625938945,1
+"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
+    expected = DataFrame(
+        {
+            "a": IntegerArray(
+                np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
+            ),
+            "b": 1,
+        }
+    )
     tm.assert_frame_equal(result, expected)

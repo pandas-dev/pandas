@@ -24,7 +24,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -41,10 +41,7 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -152,14 +149,6 @@ usecols : list-like or callable, optional
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
-
-    .. deprecated:: 1.5.0
-        Not implemented, and a new argument to specify the pattern for the
-        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -258,6 +247,10 @@ infer_datetime_format : bool, default False
     format of the datetime strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
+
+    .. deprecated:: 2.0.0
+        A strict version of this argument is now the default, passing it has no effect.
+
 keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
@@ -278,7 +271,6 @@ cache_dates : bool, default True
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
 
-    .. versionadded:: 0.25.0
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
@@ -325,7 +317,7 @@ comment : str, optional
     `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
-encoding : str, optional
+encoding : str, optional, default "utf-8"
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
@@ -406,10 +398,13 @@ use_nullable_dtypes : bool = False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
-    The nullable dtype implementation can be configured by setting the global
-    ``io.nullable_backend`` configuration option to ``"pandas"`` to use
-    numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
-    nullable dtypes (using ``pd.ArrowDtype``).
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
     .. versionadded:: 2.0
 
@@ -461,7 +456,6 @@ _pyarrow_unsupported = {
     "decimal",
     "iterator",
     "dayfirst",
-    "infer_datetime_format",
     "verbose",
     "skipinitialspace",
     "low_memory",
@@ -567,14 +561,6 @@ def _read(
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
-    elif (
-        kwds.get("use_nullable_dtypes", False)
-        and get_option("io.nullable_backend") == "pyarrow"
-    ):
-        raise NotImplementedError(
-            f"use_nullable_dtypes=True and engine={kwds['engine']} with "
-            "io.nullable_backend set to 'pyarrow' is not implemented."
-        )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
 
@@ -604,7 +590,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -620,7 +605,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -645,7 +630,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -661,7 +646,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -677,7 +661,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -702,7 +686,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -718,7 +702,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -734,7 +717,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -759,7 +742,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -775,7 +758,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -791,7 +773,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -816,12 +798,11 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -842,7 +823,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -861,7 +841,7 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -890,8 +870,18 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -906,6 +896,7 @@ def read_csv(
         on_bad_lines,
         names,
         defaults={"delimiter": ","},
+        use_nullable_dtypes=use_nullable_dtypes,
     )
     kwds.update(kwds_defaults)
 
@@ -923,7 +914,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -939,7 +929,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -964,7 +954,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -980,7 +970,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -996,7 +985,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1021,7 +1010,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -1037,7 +1026,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1053,7 +1041,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1078,7 +1066,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -1094,7 +1082,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1110,7 +1097,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1135,12 +1122,11 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
@@ -1161,7 +1147,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1180,7 +1165,7 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -1209,8 +1194,19 @@ def read_table(
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1225,6 +1221,7 @@ def read_table(
         on_bad_lines,
         names,
         defaults={"delimiter": "\t"},
+        use_nullable_dtypes=use_nullable_dtypes,
     )
     kwds.update(kwds_defaults)
 
@@ -1237,6 +1234,7 @@ def read_fwf(
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1268,6 +1266,23 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+            This is only implemented for the ``pyarrow`` or ``python``
+            engines.
+
+        .. versionadded:: 2.0
+
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1291,6 +1306,12 @@ def read_fwf(
         raise ValueError("Must specify either colspecs or widths")
     if colspecs not in (None, "infer") and widths is not None:
         raise ValueError("You must specify only one of 'widths' and 'colspecs'")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
@@ -1324,6 +1345,7 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+    kwds["use_nullable_dtypes"] = use_nullable_dtypes
     return _read(filepath_or_buffer, kwds)
 
 
@@ -1406,9 +1428,6 @@ class TextFileReader(abc.Iterator):
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
                 )
-            if argname == "mangle_dupe_cols" and value is False:
-                # GH12935
-                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
@@ -1764,10 +1783,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         transformed content.
     encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    infer_datetime_format: bool, default False
-        If True and `parse_dates` is True for a column, try to infer the
-        datetime format based on the first datetime string. If the format
-        can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are `None` or `high` for the ordinary converter,
@@ -1864,6 +1879,7 @@ def _refine_defaults_read(
     on_bad_lines: str | Callable,
     names: Sequence[Hashable] | None | lib.NoDefault,
     defaults: dict[str, Any],
+    use_nullable_dtypes: bool | lib.NoDefault,
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
 
@@ -1976,6 +1992,13 @@ def _refine_defaults_read(
         kwds["on_bad_lines"] = on_bad_lines
     else:
         raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+    kwds["use_nullable_dtypes"] = use_nullable_dtypes
 
     return kwds
 

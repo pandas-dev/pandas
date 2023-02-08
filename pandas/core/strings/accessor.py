@@ -319,7 +319,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index._with_infer(result, name=name)
+                return Index(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.
@@ -456,7 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -1480,7 +1479,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series or Index of object
+        Series or pandas.Index
             Series or Index of repeated string objects specified by
             input parameter repeats.
 
@@ -1602,7 +1601,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    filled : Series/Index of objects.
+    Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1881,7 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        encoded : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2248,7 +2247,7 @@ class StringMethods(NoNewAttributesMixin):
         This is also available on Index
 
         >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
-        Int64Index([0, 0, 2, 1], dtype='int64')
+        Index([0, 0, 2, 1], dtype='int64')
         """
         result = self._data.array._str_count(pat, flags)
         return self._wrap_result(result, returns_string=False)
@@ -2768,7 +2767,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        normalized : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
@@ -2978,7 +2977,7 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["casefold"] = {
         "type": "be casefolded",
         "method": "casefold",
-        "version": "\n    .. versionadded:: 0.25.0\n",
+        "version": "",
     }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])

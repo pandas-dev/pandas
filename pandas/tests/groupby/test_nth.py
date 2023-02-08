@@ -603,13 +603,31 @@ def test_nth_column_order():
 def test_nth_nan_in_grouper(dropna):
     # GH 26011
     df = DataFrame(
-        [[np.nan, 0, 1], ["abc", 2, 3], [np.nan, 4, 5], ["def", 6, 7], [np.nan, 8, 9]],
-        columns=list("abc"),
+        {
+            "a": [np.nan, "a", np.nan, "b", np.nan],
+            "b": [0, 2, 4, 6, 8],
+            "c": [1, 3, 5, 7, 9],
+        }
     )
     result = df.groupby("a").nth(0, dropna=dropna)
     expected = df.iloc[[1, 3]]
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [None, "any", "all"])
+def test_nth_nan_in_grouper_series(dropna):
+    # GH 26454
+    df = DataFrame(
+        {
+            "a": [np.nan, "a", np.nan, "b", np.nan],
+            "b": [0, 2, 4, 6, 8],
+        }
+    )
+    result = df.groupby("a")["b"].nth(0, dropna=dropna)
+    expected = df["b"].iloc[[1, 3]]
+
+    tm.assert_series_equal(result, expected)
 
 
 def test_first_categorical_and_datetime_data_nat():

@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_interval_dtype,
     is_number,
     is_numeric_dtype,
@@ -74,8 +75,8 @@ def assert_almost_equal(
     right : object
     check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
-        then `RangeIndex` and `Int64Index` are also considered equivalent
-        when doing type checking.
+        then `RangeIndex` and `Index` with int64 dtype are also considered
+        equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
 
@@ -196,7 +197,7 @@ def assert_index_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        Int64Index as well.
+        Index with an int64 dtype as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -347,8 +348,6 @@ def assert_class_equal(
     """
     Checks classes are equal.
     """
-    from pandas.core.indexes.numeric import NumericIndex
-
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -358,12 +357,19 @@ def assert_class_equal(
 
         return type(x).__name__
 
+    def is_class_equiv(idx: Index) -> bool:
+        """Classes that are a RangeIndex (sub-)instance or exactly an `Index` .
+
+        This only checks class equivalence. There is a separate check that the
+        dtype is int64.
+        """
+        return type(idx) is Index or isinstance(idx, RangeIndex)
+
     if type(left) == type(right):
         return
 
     if exact == "equiv":
-        # accept equivalence of NumericIndex (sub-)classes
-        if isinstance(left, NumericIndex) and isinstance(right, NumericIndex):
+        if is_class_equiv(left) and is_class_equiv(right):
             return
 
     msg = f"{obj} classes are different"
@@ -469,7 +475,7 @@ def assert_categorical_equal(
     ):
         exact = "equiv"
     else:
-        # We still want to require exact matches for NumericIndex
+        # We still want to require exact matches for Index
         exact = True
 
     if check_category_order:
@@ -510,7 +516,7 @@ def assert_interval_array_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        Int64Index as well.
+        Index with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -531,7 +537,7 @@ def assert_interval_array_equal(
 def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
@@ -541,7 +547,7 @@ def assert_datetime_array_equal(
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
@@ -552,7 +558,7 @@ def assert_timedelta_array_equal(
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
 
@@ -680,6 +686,7 @@ def assert_extension_array_equal(
     check_exact: bool = False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
+    obj: str = "ExtensionArray",
 ) -> None:
     """
     Check that left and right ExtensionArrays are equal.
@@ -702,6 +709,11 @@ def assert_extension_array_equal(
         Absolute tolerance. Only used when check_exact is False.
 
         .. versionadded:: 1.1.0
+    obj : str, default 'ExtensionArray'
+        Specify object name being compared, internally used to show appropriate
+        assertion message.
+
+        .. versionadded:: 2.0.0
 
     Notes
     -----
@@ -719,7 +731,7 @@ def assert_extension_array_equal(
     assert isinstance(left, ExtensionArray), "left is not an ExtensionArray"
     assert isinstance(right, ExtensionArray), "right is not an ExtensionArray"
     if check_dtype:
-        assert_attr_equal("dtype", left, right, obj="ExtensionArray")
+        assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if (
         isinstance(left, DatetimeLikeArrayMixin)
@@ -729,21 +741,24 @@ def assert_extension_array_equal(
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
         assert_numpy_array_equal(
-            np.asarray(left.asi8), np.asarray(right.asi8), index_values=index_values
+            np.asarray(left.asi8),
+            np.asarray(right.asi8),
+            index_values=index_values,
+            obj=obj,
         )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(
-        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+        left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
         assert_numpy_array_equal(
-            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+            left_valid, right_valid, obj=obj, index_values=index_values
         )
     else:
         _testing.assert_almost_equal(
@@ -752,7 +767,7 @@ def assert_extension_array_equal(
             check_dtype=bool(check_dtype),
             rtol=rtol,
             atol=atol,
-            obj="ExtensionArray",
+            obj=obj,
             index_values=index_values,
         )
 
@@ -909,6 +924,7 @@ def assert_series_equal(
                 right_values,
                 check_dtype=check_dtype,
                 index_values=np.asarray(left.index),
+                obj=str(obj),
             )
         else:
             assert_numpy_array_equal(
@@ -955,6 +971,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     elif is_extension_array_dtype_and_needs_i8_conversion(
         left.dtype, right.dtype
@@ -964,6 +981,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
@@ -972,6 +990,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     else:
         _testing.assert_almost_equal(
@@ -1322,12 +1341,14 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -
 
     assert_series_equal(ser.loc[l_slc], expected)
 
-    if not ser.index.is_integer():
+    if not is_integer_dtype(ser.index):
         # For integer indices, .loc and plain getitem are position-based.
         assert_series_equal(ser[l_slc], expected)
 
 
-def assert_metadata_equivalent(left, right) -> None:
+def assert_metadata_equivalent(
+    left: DataFrame | Series, right: DataFrame | Series | None = None
+) -> None:
     """
     Check that ._metadata attributes are equivalent.
     """

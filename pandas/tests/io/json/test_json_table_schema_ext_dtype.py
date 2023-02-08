@@ -8,9 +8,13 @@ import json
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
+    Index,
     array,
+    read_json,
 )
+import pandas._testing as tm
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.series import Series
@@ -44,7 +48,7 @@ class TestBuildSchema:
             "fields": [
                 {"name": "index", "type": "integer"},
                 {"name": "A", "type": "any", "extDtype": "DateDtype"},
-                {"name": "B", "type": "any", "extDtype": "decimal"},
+                {"name": "B", "type": "number", "extDtype": "decimal"},
                 {"name": "C", "type": "any", "extDtype": "string"},
                 {"name": "D", "type": "integer", "extDtype": "Int64"},
             ],
@@ -78,10 +82,10 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_ext_decimal_array_dtype(self, decimal_data):
-        assert as_json_table_type(decimal_data.dtype) == "any"
+        assert as_json_table_type(decimal_data.dtype) == "number"
 
     def test_as_json_table_type_ext_decimal_dtype(self):
-        assert as_json_table_type(DecimalDtype()) == "any"
+        assert as_json_table_type(DecimalDtype()) == "number"
 
     @pytest.mark.parametrize(
         "string_data",
@@ -176,7 +180,7 @@ class TestTableOrient:
 
         fields = [
             {"name": "id", "type": "integer"},
-            {"name": "a", "type": "any", "extDtype": "decimal"},
+            {"name": "a", "type": "number", "extDtype": "decimal"},
         ]
 
         schema = {"fields": fields, "primaryKey": ["id"]}
@@ -253,7 +257,7 @@ class TestTableOrient:
         fields = [
             OrderedDict({"name": "idx", "type": "integer"}),
             OrderedDict({"name": "A", "type": "any", "extDtype": "DateDtype"}),
-            OrderedDict({"name": "B", "type": "any", "extDtype": "decimal"}),
+            OrderedDict({"name": "B", "type": "number", "extDtype": "decimal"}),
             OrderedDict({"name": "C", "type": "any", "extDtype": "string"}),
             OrderedDict({"name": "D", "type": "integer", "extDtype": "Int64"}),
         ]
@@ -273,3 +277,43 @@ class TestTableOrient:
         expected = OrderedDict([("schema", schema), ("data", data)])
 
         assert result == expected
+
+    def test_json_ext_dtype_reading_roundtrip(self):
+        # GH#40255
+        df = DataFrame(
+            {
+                "a": Series([2, NA], dtype="Int64"),
+                "b": Series([1.5, NA], dtype="Float64"),
+                "c": Series([True, NA], dtype="boolean"),
+            },
+            index=Index([1, NA], dtype="Int64"),
+        )
+        expected = df.copy()
+        data_json = df.to_json(orient="table", indent=4)
+        result = read_json(data_json, orient="table")
+        tm.assert_frame_equal(result, expected)
+
+    def test_json_ext_dtype_reading(self):
+        # GH#40255
+        data_json = """{
+            "schema":{
+                "fields":[
+                    {
+                        "name":"a",
+                        "type":"integer",
+                        "extDtype":"Int64"
+                    }
+                ],
+            },
+            "data":[
+                {
+                    "a":2
+                },
+                {
+                    "a":null
+                }
+            ]
+        }"""
+        result = read_json(data_json, orient="table")
+        expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)

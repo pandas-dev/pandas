@@ -7,6 +7,7 @@ from collections import (
     defaultdict,
 )
 import copy
+import sys
 from typing import (
     Any,
     DefaultDict,
@@ -20,7 +21,6 @@ from pandas._typing import (
     IgnoreRaise,
     Scalar,
 )
-from pandas.util._decorators import deprecate
 
 import pandas as pd
 from pandas import DataFrame
@@ -64,8 +64,6 @@ def nested_to_record(
 
     max_level: int, optional, default: None
         The max depth to normalize.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -148,13 +146,18 @@ def _normalise_json(
     if isinstance(data, dict):
         for key, value in data.items():
             new_key = f"{key_string}{separator}{key}"
+
+            if not key_string:
+                if sys.version_info < (3, 9):
+                    from pandas.util._str_methods import removeprefix
+
+                    new_key = removeprefix(new_key, separator)
+                else:
+                    new_key = new_key.removeprefix(separator)
+
             _normalise_json(
                 data=value,
-                # to avoid adding the separator to the start of every key
-                # GH#43831 avoid adding key if key_string blank
-                key_string=new_key
-                if new_key[: len(separator)] != separator
-                else new_key[len(separator) :],
+                key_string=new_key,
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
@@ -241,7 +244,7 @@ def _simple_json_normalize(
     return normalised_json_object
 
 
-def _json_normalize(
+def json_normalize(
     data: dict | list[dict],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
@@ -282,8 +285,6 @@ def _json_normalize(
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -533,8 +534,3 @@ def _json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
-
-
-json_normalize = deprecate(
-    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
-)

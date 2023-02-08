@@ -253,14 +253,14 @@ MultiIndex
 ----------
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
 
-   MultiIndex
+   IndexSlice
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
-   IndexSlice
+   MultiIndex
 
 MultiIndex constructors
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -298,6 +298,7 @@ MultiIndex components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.drop
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -384,6 +385,7 @@ Conversion
 .. autosummary::
    :toctree: api/
 
+   DatetimeIndex.as_unit
    DatetimeIndex.to_period
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
@@ -422,6 +424,7 @@ Conversion
 .. autosummary::
    :toctree: api/
 
+   TimedeltaIndex.as_unit
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round

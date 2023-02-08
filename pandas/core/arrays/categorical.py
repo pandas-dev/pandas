@@ -11,7 +11,6 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -48,6 +47,8 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_any_real_numeric_dtype,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -248,7 +249,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
-    `Categoricals` can only take on only a limited, and usually fixed, number
+    `Categoricals` can only take on a limited, and usually fixed, number
     of possible values (`categories`). In contrast to statistical categorical
     variables, a `Categorical` might have an order, but numerical operations
     (additions, divisions, ...) are not possible.
@@ -472,10 +473,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = self._ndarray.dtype
         return dtype.type(-1)
 
-    @property
-    def _constructor(self) -> type[Categorical]:
-        return Categorical
-
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -511,7 +508,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast("Union[str, CategoricalDtype]", dtype)
+            dtype = cast(CategoricalDtype, dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
@@ -599,13 +596,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if dtype.categories.is_numeric():
+            if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
             elif is_timedelta64_dtype(dtype.categories):
                 cats = to_timedelta(inferred_categories, errors="coerce")
-            elif dtype.categories.is_boolean():
+            elif is_bool_dtype(dtype.categories):
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
@@ -936,7 +933,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with renamed categories.
 
         Raises
@@ -1002,7 +999,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with reordered categories.
 
         Raises
@@ -1042,7 +1039,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with new categories added.
 
         Raises
@@ -1111,7 +1108,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with removed categories.
 
         Raises
@@ -1141,14 +1138,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not is_list_like(removals):
             removals = [removals]
 
-        removal_set = set(removals)
-        not_included = removal_set - set(self.dtype.categories)
-        new_categories = [c for c in self.dtype.categories if c not in removal_set]
-
-        # GH 10156
-        if any(isna(removals)):
-            not_included = {x for x in not_included if notna(x)}
-            new_categories = [x for x in new_categories if notna(x)]
+        removals = {x for x in set(removals) if notna(x)}
+        new_categories = self.dtype.categories.difference(removals)
+        not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
             raise ValueError(f"removals must all be in old categories: {not_included}")
@@ -1161,7 +1153,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical
+        Categorical
             Categorical with unused categories dropped.
 
         See Also
@@ -1508,7 +1500,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64")
+        return Series(count, index=CategoricalIndex(ix), dtype="int64", name="count")
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
@@ -1568,9 +1560,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the indices that would sort the Categorical.
 
-        .. versionchanged:: 0.25.0
-
-           Changed to sort missing values at the end.
+        Missing values are sorted at the end.
 
         Parameters
         ----------
@@ -1684,13 +1674,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [5, 2, 2, 1, 1]
         Categories (3, int64): [1, 2, 5]
 
-        Inplace sorting can be done as well:
-
-        >>> c.sort_values(inplace=True)
-        >>> c
-        [1, 1, 2, 2, 5]
-        Categories (3, int64): [1, 2, 5]
-        >>>
         >>> c = pd.Categorical([1, 2, 2, 1, 5])
 
         'sort_values' behaviour with NaNs. Note that 'na_position'
@@ -1769,7 +1752,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif self.categories.is_numeric():
+        elif is_any_real_numeric_dtype(self.categories):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
@@ -2279,42 +2262,37 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return algorithms.isin(self.codes, code_values)
 
     def _replace(self, *, to_replace, value, inplace: bool = False):
+        from pandas import Index
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
-        # other cases, like if both to_replace and value are list-like or if
-        # to_replace is a dict, are handled separately in NDFrame
-        if not is_list_like(to_replace):
-            to_replace = [to_replace]
+        mask = isna(np.asarray(value))
+        if mask.any():
+            removals = np.asarray(to_replace)[mask]
+            removals = cat.categories[cat.categories.isin(removals)]
+            new_cat = cat.remove_categories(removals)
+            NDArrayBacked.__init__(cat, new_cat.codes, new_cat.dtype)
 
-        categories = cat.categories.tolist()
-        removals = set()
-        for replace_value in to_replace:
-            if value == replace_value:
-                continue
-            if replace_value not in cat.categories:
-                continue
-            if isna(value):
-                removals.add(replace_value)
-                continue
+        ser = cat.categories.to_series()
+        ser = ser.replace(to_replace=to_replace, value=value)
 
-            index = categories.index(replace_value)
+        all_values = Index(ser)
 
-            if value in cat.categories:
-                value_index = categories.index(value)
-                cat._codes[cat._codes == index] = value_index
-                removals.add(replace_value)
-            else:
-                categories[index] = value
-                cat._set_categories(categories)
+        # GH51016: maintain order of existing categories
+        idxr = cat.categories.get_indexer_for(all_values)
+        locs = np.arange(len(ser))
+        locs = np.where(idxr == -1, locs, idxr)
+        locs = locs.argsort()
 
-        if len(removals):
-            new_categories = [c for c in categories if c not in removals]
-            new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
-            codes = recode_for_categories(
-                cat.codes, cat.categories, new_dtype.categories
-            )
-            NDArrayBacked.__init__(cat, codes, new_dtype)
+        new_categories = ser.take(locs)
+        new_categories = new_categories.drop_duplicates(keep="first")
+        new_categories = Index(new_categories)
+        new_codes = recode_for_categories(
+            cat._codes, all_values, new_categories, copy=False
+        )
+        new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
+        NDArrayBacked.__init__(cat, new_codes, new_dtype)
 
         if not inplace:
             return cat

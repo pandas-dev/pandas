@@ -53,6 +53,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -256,24 +260,34 @@ def check_iris_frame(frame: DataFrame):
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
+    assert frame.shape in ((150, 5), (8, 5))
 
 
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
     if isinstance(conn, sqlite3.Connection):
         cur = conn.cursor()
-        result = cur.execute(stmt)
+        return cur.execute(stmt).fetchone()[0]
     else:
-        from sqlalchemy import text
+        from sqlalchemy import (
+            create_engine,
+            text,
+        )
         from sqlalchemy.engine import Engine
 
         stmt = text(stmt)
-        if isinstance(conn, Engine):
+        if isinstance(conn, str):
+            try:
+                engine = create_engine(conn)
+                with engine.connect() as conn:
+                    return conn.execute(stmt).scalar_one()
+            finally:
+                engine.dispose()
+        elif isinstance(conn, Engine):
             with conn.connect() as conn:
-                result = conn.execute(stmt)
+                return conn.execute(stmt).scalar_one()
         else:
-            result = conn.execute(stmt)
-    return result.fetchone()[0]
+            return conn.execute(stmt).scalar_one()
 
 
 @pytest.fixture
@@ -384,6 +398,7 @@ def mysql_pymysql_engine(iris_path, types_data):
     engine = sqlalchemy.create_engine(
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -410,7 +425,8 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -431,9 +447,16 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def sqlite_engine():
+def sqlite_str():
+    pytest.importorskip("sqlalchemy")
+    with tm.ensure_clean() as name:
+        yield "sqlite:///" + name
+
+
+@pytest.fixture
+def sqlite_engine(sqlite_str):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine("sqlite://")
+    engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
     yield engine
     engine.dispose()
 
@@ -441,6 +464,15 @@ def sqlite_engine():
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
     yield sqlite_engine.connect()
+
+
+@pytest.fixture
+def sqlite_iris_str(sqlite_str, iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_iris(engine, iris_path, "sqlite")
+    engine.dispose()
+    return sqlite_str
 
 
 @pytest.fixture
@@ -481,11 +513,13 @@ postgresql_connectable = [
 sqlite_connectable = [
     "sqlite_engine",
     "sqlite_conn",
+    "sqlite_str",
 ]
 
 sqlite_iris_connectable = [
     "sqlite_iris_engine",
     "sqlite_iris_conn",
+    "sqlite_iris_str",
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
@@ -537,10 +571,47 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris(conn, request):
+def test_read_iris_query(conn, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
-        iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    iris_frame = read_sql_query("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris where 0=1", conn)
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_iris_query_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_query("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris where 0=1", conn, chunksize=7))
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = read_sql_table("iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("iris", conn)
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_table("iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
 
 
@@ -657,6 +728,26 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
         assert result_count == expected_count
     result = sql.read_sql_table("test_frame", conn)
     tm.assert_frame_equal(result, expected)
+
+
+def test_execute_typeerror(sqlite_iris_engine):
+    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="`pandas.io.sql.execute` is deprecated and "
+            "will be removed in the future version.",
+        ):
+            sql.execute("select * from iris", sqlite_iris_engine)
+
+
+def test_execute_deprecated(sqlite_buildin_iris):
+    # GH50185
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+    ):
+        sql.execute("select * from iris", sqlite_buildin_iris)
 
 
 class MixInBase:
@@ -952,7 +1043,8 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
+        with sql.pandasSQL_builder(self.conn) as pandas_sql:
+            iris_results = pandas_sql.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
@@ -1391,7 +1483,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
-            {"time": to_datetime(["201412120154", "201412110254"], utc=True)}
+            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
         )
         db = sql.SQLDatabase(self.conn)
         table = sql.SQLTable("test_type", db, frame=df)
@@ -1573,7 +1665,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
-            {"time": to_datetime(["201412120154", "201412110254"], utc=True)}
+            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
         )
         db = sql.SQLiteDatabase(self.conn)
         table = sql.SQLiteTable("test_type", db, frame=df)
@@ -2266,6 +2358,165 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
+    @pytest.mark.parametrize("option", [True, False])
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+    def test_read_sql_nullable_dtypes(
+        self, string_storage, func, option, dtype_backend
+    ):
+        # GH#50048
+        table = "test"
+        df = self.nullable_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = getattr(pd, func)(f"Select * from {table}", self.conn)
+                else:
+                    result = getattr(pd, func)(
+                        f"Select * from {table}", self.conn, use_nullable_dtypes=True
+                    )
+        expected = self.nullable_expected(string_storage, dtype_backend)
+        tm.assert_frame_equal(result, expected)
+
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                iterator = getattr(pd, func)(
+                    f"Select * from {table}",
+                    self.conn,
+                    use_nullable_dtypes=True,
+                    chunksize=3,
+                )
+                expected = self.nullable_expected(string_storage, dtype_backend)
+                for result in iterator:
+                    tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("option", [True, False])
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
+    def test_read_sql_nullable_dtypes_table(
+        self, string_storage, func, option, dtype_backend
+    ):
+        # GH#50048
+        table = "test"
+        df = self.nullable_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = getattr(pd, func)(table, self.conn)
+                else:
+                    result = getattr(pd, func)(
+                        table, self.conn, use_nullable_dtypes=True
+                    )
+        expected = self.nullable_expected(string_storage, dtype_backend)
+        tm.assert_frame_equal(result, expected)
+
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                iterator = getattr(pd, func)(
+                    table,
+                    self.conn,
+                    use_nullable_dtypes=True,
+                    chunksize=3,
+                )
+                expected = self.nullable_expected(string_storage, dtype_backend)
+                for result in iterator:
+                    tm.assert_frame_equal(result, expected)
+
+    def nullable_data(self) -> DataFrame:
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+
+        string_array: StringArray | ArrowStringArray
+        string_array_na: StringArray | ArrowStringArray
+        if storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, pd.NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+
+            from pandas.arrays import ArrowExtensionArray
+
+            df = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                    for col in df.columns
+                }
+            )
+        return df
+
+    def test_chunksize_empty_dtypes(self):
+        # GH#50245
+        dtypes = {"a": "int64", "b": "object"}
+        df = DataFrame(columns=["a", "b"]).astype(dtypes)
+        expected = df.copy()
+        df.to_sql("test", self.conn, index=False, if_exists="replace")
+
+        for result in read_sql_query(
+            "SELECT * FROM test",
+            self.conn,
+            dtype=dtypes,
+            chunksize=1,
+        ):
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("use_nullable_dtypes", [True, False])
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+    def test_read_sql_dtype(self, func, use_nullable_dtypes):
+        # GH#50797
+        table = "test"
+        df = DataFrame({"a": [1, 2, 3], "b": 5})
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        result = getattr(pd, func)(
+            f"Select * from {table}",
+            self.conn,
+            dtype={"a": np.float64},
+            use_nullable_dtypes=use_nullable_dtypes,
+        )
+        expected = DataFrame(
+            {
+                "a": Series([1, 2, 3], dtype=np.float64),
+                "b": Series(
+                    [5, 5, 5], dtype="int64" if not use_nullable_dtypes else "Int64"
+                ),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -2349,6 +2600,20 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         assert list(df.columns) == ["id", "string_column"]
 
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().nullable_expected(storage, dtype_backend)
+        if dtype_backend == "pandas":
+            df = df.astype({"e": "Int64", "f": "Int64"})
+        else:
+            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
+
+        return df
+
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
+        # GH#50048 Not supported for sqlite
+        pass
+
 
 @pytest.mark.db
 class TestMySQLAlchemy(_TestSQLAlchemy):
@@ -2375,6 +2640,15 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
 
     def test_default_type_conversion(self):
         pass
+
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().nullable_expected(storage, dtype_backend)
+        if dtype_backend == "pandas":
+            df = df.astype({"e": "Int64", "f": "Int64"})
+        else:
+            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
+
+        return df
 
 
 @pytest.mark.db
@@ -2692,7 +2966,8 @@ def format_query(sql, *args):
 
 def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con).fetchall()
+    with sql.pandasSQL_builder(con) as pandas_sql:
+        res = pandas_sql.execute(query).fetchall()
     return None if res is None else list(res)
 
 
@@ -2717,7 +2992,7 @@ class TestXSQLite:
 
         frame["txt"] = ["a"] * len(frame)
         frame2 = frame.copy()
-        new_idx = Index(np.arange(len(frame2))) + 10
+        new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
         frame2["Idx"] = new_idx.copy()
         assert (
             sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False)
@@ -2757,7 +3032,8 @@ class TestXSQLite:
         ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
 
         row = frame.iloc[0]
-        sql.execute(ins, sqlite_buildin, params=tuple(row))
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute(ins, tuple(row))
         sqlite_buildin.commit()
 
         result = sql.read_sql("select * from test", sqlite_buildin)
@@ -2792,11 +3068,12 @@ class TestXSQLite:
         cur = sqlite_buildin.cursor()
         cur.execute(create_sql)
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', sqlite_buildin)
-        sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', sqlite_buildin)
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
 
-        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', sqlite_buildin)
+            with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
 
     def test_execute_closed_connection(self):
         create_sql = """
@@ -2812,7 +3089,8 @@ class TestXSQLite:
             cur = conn.cursor()
             cur.execute(create_sql)
 
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', conn)
+            with sql.pandasSQL_builder(conn) as pandas_sql:
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
 
         msg = "Cannot operate on a closed database."
         with pytest.raises(sqlite3.ProgrammingError, match=msg):

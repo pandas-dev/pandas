@@ -629,8 +629,6 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 Named aggregation
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.25.0
-
 To support column-specific aggregation *with control over the output column names*, pandas
 accepts the special syntax in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg`, known as "named aggregation", where
 
@@ -771,17 +769,15 @@ as the one being grouped. The transform function must:
   the first group chunk using chunk.apply.
 * Not perform in-place operations on the group chunk. Group chunks should
   be treated as immutable, and changes to a group chunk may produce unexpected
-  results. For example, when using ``fillna``, ``inplace`` must be ``False``
-  (``grouped.transform(lambda x: x.fillna(inplace=False))``).
+  results.
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
@@ -1086,6 +1082,7 @@ The dimension of the returned result can also change:
     def f(group):
         return pd.DataFrame({'original': group,
                              'demeaned': group - group.mean()})
+
     grouped.apply(f)
 
 ``apply`` on a Series can operate on a returned value from the applied function,

@@ -31,9 +31,11 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
+    is_bool_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
@@ -49,7 +51,13 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    BooleanArray,
+    ExtensionArray,
+    FloatingArray,
+    IntegerArray,
+)
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -580,63 +588,59 @@ def _extract_index(data) -> Index:
     """
     Try to infer an Index from the passed data, raise ValueError on failure.
     """
-    index = None
+    index: Index
     if len(data) == 0:
-        index = Index([])
-    else:
-        raw_lengths = []
-        indexes: list[list[Hashable] | Index] = []
+        return default_index(0)
 
-        have_raw_arrays = False
-        have_series = False
-        have_dicts = False
+    raw_lengths = []
+    indexes: list[list[Hashable] | Index] = []
 
-        for val in data:
-            if isinstance(val, ABCSeries):
-                have_series = True
-                indexes.append(val.index)
-            elif isinstance(val, dict):
-                have_dicts = True
-                indexes.append(list(val.keys()))
-            elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
-                have_raw_arrays = True
-                raw_lengths.append(len(val))
-            elif isinstance(val, np.ndarray) and val.ndim > 1:
-                raise ValueError("Per-column arrays must each be 1-dimensional")
+    have_raw_arrays = False
+    have_series = False
+    have_dicts = False
 
-        if not indexes and not raw_lengths:
-            raise ValueError("If using all scalar values, you must pass an index")
+    for val in data:
+        if isinstance(val, ABCSeries):
+            have_series = True
+            indexes.append(val.index)
+        elif isinstance(val, dict):
+            have_dicts = True
+            indexes.append(list(val.keys()))
+        elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
+            have_raw_arrays = True
+            raw_lengths.append(len(val))
+        elif isinstance(val, np.ndarray) and val.ndim > 1:
+            raise ValueError("Per-column arrays must each be 1-dimensional")
+
+    if not indexes and not raw_lengths:
+        raise ValueError("If using all scalar values, you must pass an index")
+
+    if have_series:
+        index = union_indexes(indexes)
+    elif have_dicts:
+        index = union_indexes(indexes, sort=False)
+
+    if have_raw_arrays:
+        lengths = list(set(raw_lengths))
+        if len(lengths) > 1:
+            raise ValueError("All arrays must be of the same length")
+
+        if have_dicts:
+            raise ValueError(
+                "Mixing dicts with non-Series may lead to ambiguous ordering."
+            )
 
         if have_series:
-            index = union_indexes(indexes)
-        elif have_dicts:
-            index = union_indexes(indexes, sort=False)
-
-        if have_raw_arrays:
-            lengths = list(set(raw_lengths))
-            if len(lengths) > 1:
-                raise ValueError("All arrays must be of the same length")
-
-            if have_dicts:
-                raise ValueError(
-                    "Mixing dicts with non-Series may lead to ambiguous ordering."
+            if lengths[0] != len(index):
+                msg = (
+                    f"array length {lengths[0]} does not match index "
+                    f"length {len(index)}"
                 )
+                raise ValueError(msg)
+        else:
+            index = default_index(lengths[0])
 
-            if have_series:
-                assert index is not None  # for mypy
-                if lengths[0] != len(index):
-                    msg = (
-                        f"array length {lengths[0]} does not match index "
-                        f"length {len(index)}"
-                    )
-                    raise ValueError(msg)
-            else:
-                index = default_index(lengths[0])
-
-    # error: Argument 1 to "ensure_index" has incompatible type "Optional[Index]";
-    # expected "Union[Union[Union[ExtensionArray, ndarray], Index, Series],
-    # Sequence[Any]]"
-    return ensure_index(index)  # type: ignore[arg-type]
+    return ensure_index(index)
 
 
 def reorder_arrays(
@@ -760,13 +764,13 @@ def to_arrays(
         # see test_from_records_with_index_data, test_from_records_bad_index_column
         if columns is not None:
             arrays = [
-                data._ixs(i, axis=1).values
+                data._ixs(i, axis=1)._values
                 for i, col in enumerate(data.columns)
                 if col in columns
             ]
         else:
             columns = data.columns
-            arrays = [data._ixs(i, axis=1).values for i in range(len(columns))]
+            arrays = [data._ixs(i, axis=1)._values for i in range(len(columns))]
 
         return arrays, columns
 
@@ -904,7 +908,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(contents) and contents[0].dtype == np.object_:
-        contents = _convert_object_array(contents, dtype=dtype)
+        contents = convert_object_array(contents, dtype=dtype)
 
     return contents, columns
 
@@ -967,8 +971,11 @@ def _validate_or_indexify_columns(
     return columns
 
 
-def _convert_object_array(
-    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
+def convert_object_array(
+    content: list[npt.NDArray[np.object_]],
+    dtype: DtypeObj | None,
+    use_nullable_dtypes: bool = False,
+    coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -977,20 +984,37 @@ def _convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
+    use_nullable_dtypes: Controls if nullable dtypes are returned.
+    coerce_float: Cast floats that are integers to int.
 
     Returns
     -------
     List[ArrayLike]
     """
     # provide soft conversion of object dtypes
+
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr)
+            arr = lib.maybe_convert_objects(
+                arr,
+                try_float=coerce_float,
+                convert_to_nullable_dtype=use_nullable_dtypes,
+            )
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
+                    if use_nullable_dtypes and arr.dtype == np.dtype("O"):
+                        arr = StringDtype().construct_array_type()._from_sequence(arr)
+                elif use_nullable_dtypes and isinstance(arr, np.ndarray):
+                    if is_integer_dtype(arr.dtype):
+                        arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_bool_dtype(arr.dtype):
+                        arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_float_dtype(arr.dtype):
+                        arr = FloatingArray(arr, np.isnan(arr))
+
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with

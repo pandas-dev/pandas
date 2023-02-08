@@ -6,11 +6,14 @@ channels:
 dependencies:
   - python=3.8.0
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
-  - pytest>=6.0
+
+  # test dependencies
+  - pytest>=7.0.0
   - pytest-cov
-  - pytest-xdist>=1.31
+  - pytest-xdist>=2.2.0
   - psutil
   - pytest-asyncio>=0.17
   - boto3
@@ -28,7 +31,7 @@ dependencies:
   - fastparquet=0.6.3
   - fsspec=2021.07.0
   - html5lib=1.1
-  - hypothesis=6.13.0
+  - hypothesis=6.34.2
   - gcsfs=2021.07.0
   - jinja2=3.0.0
   - lxml=4.6.3
@@ -40,7 +43,7 @@ dependencies:
   - openpyxl=3.0.7
   - pandas-gbq=0.15.0
   - psycopg2=2.8.6
-  - pyarrow=6.0.0
+  - pyarrow=7.0.0
   - pymysql=1.0.2
   - pyreadstat=1.1.2
   - pytables=3.6.1
@@ -51,7 +54,7 @@ dependencies:
   - sqlalchemy=1.4.16
   - tabulate=0.8.9
   - tzdata=2022a
-  - xarray=0.19.0
+  - xarray=0.21.0
   - xlrd=2.0.1
   - xlsxwriter=1.4.3
   - zstandard=0.15.2

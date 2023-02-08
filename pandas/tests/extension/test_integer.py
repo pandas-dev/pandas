@@ -16,6 +16,11 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
@@ -196,7 +201,7 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    _combine_le_expected_dtype = object  # TODO: can we make this boolean?
 
 
 class TestCasting(base.BaseCastingTests):
@@ -211,17 +216,70 @@ class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
-        result = getattr(s, op_name)(skipna=skipna)
-        if not skipna and s.isna().any():
-            expected = pd.NA
+        if op_name == "count":
+            result = getattr(s, op_name)()
+            expected = getattr(s.dropna().astype("int64"), op_name)()
         else:
+            result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(s.dropna().astype("int64"), op_name)(skipna=skipna)
+            if not skipna and s.isna().any():
+                expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
+
+
+class TestAccumulation(base.BaseAccumulateTests):
+    def check_accumulate(self, s, op_name, skipna):
+        # overwrite to ensure pd.NA is tested instead of np.nan
+        # https://github.com/pandas-dev/pandas/issues/30958
+        length = 64
+        if not IS64 or is_platform_windows():
+            if not s.dtype.itemsize == 8:
+                length = 32
+
+        if s.dtype.name.startswith("U"):
+            expected_dtype = f"UInt{length}"
+        else:
+            expected_dtype = f"Int{length}"
+
+        if op_name == "cumsum":
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(s.astype("float64"), op_name)(skipna=skipna),
+                    dtype=expected_dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+        elif op_name in ["cummax", "cummin"]:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(s.astype("float64"), op_name)(skipna=skipna),
+                    dtype=s.dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+        elif op_name == "cumprod":
+            result = getattr(s[:12], op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(s[:12].astype("float64"), op_name)(skipna=skipna),
+                    dtype=expected_dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+
+        else:
+            raise NotImplementedError(f"{op_name} not supported")
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass
 
 
 class TestPrinting(base.BasePrintingTests):

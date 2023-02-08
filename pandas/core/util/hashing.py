@@ -71,12 +71,14 @@ def combine_hash_arrays(
 
     mult = np.uint64(1000003)
     out = np.zeros_like(first) + np.uint64(0x345678)
+    last_i = 0
     for i, a in enumerate(arrays):
         inverse_i = num_items - i
         out ^= a
         out *= mult
         mult += np.uint64(82520 + inverse_i + inverse_i)
-    assert i + 1 == num_items, "Fed in wrong num_items"
+        last_i = i
+    assert last_i + 1 == num_items, "Fed in wrong num_items"
     out += np.uint64(97531)
     return out
 
@@ -344,9 +346,7 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(
-                codes, Index._with_infer(categories), ordered=False, fastpath=True
-            )
+            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
             return _hash_categorical(cat, encoding, hash_key)
 
         try:

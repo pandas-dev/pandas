@@ -221,9 +221,9 @@ def test_open_file(request, all_parsers):
         file = Path(path)
         file.write_bytes(b"\xe4\na\n1")
 
-        # should not trigger a ResourceWarning
-        warnings.simplefilter("always", category=ResourceWarning)
         with warnings.catch_warnings(record=True) as record:
+            # should not trigger a ResourceWarning
+            warnings.simplefilter("always", category=ResourceWarning)
             with pytest.raises(csv.Error, match="Could not determine delimiter"):
                 parser.read_csv(file, sep=None, encoding_errors="replace")
             assert len(record) == 0, record[0].message
@@ -241,8 +241,10 @@ def test_bad_header_uniform_error(all_parsers):
     data = "+++123456789...\ncol1,col2,col3,col4\n1,2,3,4\n"
     msg = "Expected 2 fields in line 2, saw 4"
     if parser.engine == "c":
-        msg = "Could not construct index. Requested to use 1 "
-        "number of columns, but 3 left to parse."
+        msg = (
+            "Could not construct index. Requested to use 1 "
+            "number of columns, but 3 left to parse."
+        )
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")

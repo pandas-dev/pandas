@@ -812,7 +812,7 @@ class TestDateRangeTZ:
 
         dr = date_range("2012-11-02", periods=10, tz=tzstr)
         result = dr.hour
-        expected = pd.Index([0] * 10)
+        expected = pd.Index([0] * 10, dtype="int32")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
@@ -847,19 +847,23 @@ class TestDateRangeTZ:
 
 class TestGenRangeGeneration:
     def test_generate(self):
-        rng1 = list(generate_range(START, END, periods=None, offset=BDay()))
-        rng2 = list(generate_range(START, END, periods=None, offset="B"))
+        rng1 = list(generate_range(START, END, periods=None, offset=BDay(), unit="ns"))
+        rng2 = list(generate_range(START, END, periods=None, offset="B", unit="ns"))
         assert rng1 == rng2
 
     def test_generate_cday(self):
-        rng1 = list(generate_range(START, END, periods=None, offset=CDay()))
-        rng2 = list(generate_range(START, END, periods=None, offset="C"))
+        rng1 = list(generate_range(START, END, periods=None, offset=CDay(), unit="ns"))
+        rng2 = list(generate_range(START, END, periods=None, offset="C", unit="ns"))
         assert rng1 == rng2
 
     def test_1(self):
         rng = list(
             generate_range(
-                start=datetime(2009, 3, 25), end=None, periods=2, offset=BDay()
+                start=datetime(2009, 3, 25),
+                end=None,
+                periods=2,
+                offset=BDay(),
+                unit="ns",
             )
         )
         expected = [datetime(2009, 3, 25), datetime(2009, 3, 26)]
@@ -872,6 +876,7 @@ class TestGenRangeGeneration:
                 end=datetime(2008, 1, 3),
                 periods=None,
                 offset=BDay(),
+                unit="ns",
             )
         )
         expected = [datetime(2008, 1, 1), datetime(2008, 1, 2), datetime(2008, 1, 3)]
@@ -884,6 +889,7 @@ class TestGenRangeGeneration:
                 end=datetime(2008, 1, 6),
                 periods=None,
                 offset=BDay(),
+                unit="ns",
             )
         )
         expected = []
@@ -974,7 +980,7 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        msg = "could not convert string to Timestamp"
+        msg = "Unknown datetime string format, unable to parse: 2007/100/1"
         with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 

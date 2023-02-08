@@ -28,8 +28,8 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
     PeriodDtypeBase,
+    abbrev_to_npy_unit,
 )
 from pandas._typing import (
     Dtype,
@@ -278,6 +278,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
                 if dtype == "category":
+                    if ordered is None and cls.is_dtype(values):
+                        # GH#49309 preserve orderedness
+                        ordered = values.dtype.ordered
+
                     dtype = CategoricalDtype(categories, ordered)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")
@@ -718,13 +722,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
-        reso = {
-            "s": NpyDatetimeUnit.NPY_FR_s,
-            "ms": NpyDatetimeUnit.NPY_FR_ms,
-            "us": NpyDatetimeUnit.NPY_FR_us,
-            "ns": NpyDatetimeUnit.NPY_FR_ns,
-        }[self.unit]
-        return reso.value
+        return abbrev_to_npy_unit(self.unit)
 
     @property
     def unit(self) -> str_type:

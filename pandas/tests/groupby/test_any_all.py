@@ -68,7 +68,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
     grp_by = df.groupby([0])
     result = getattr(grp_by, bool_agg_func)()
 
-    expected = df
+    expected = df.set_axis(np.array([0]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -92,7 +92,7 @@ def test_masked_kleene_logic(bool_agg_func, skipna, data):
     # The result should match aggregating on the whole series. Correctness
     # there is verified in test_reductions.py::test_any_all_boolean_kleene_logic
     expected_data = getattr(ser, bool_agg_func)(skipna=skipna)
-    expected = Series(expected_data, dtype="boolean")
+    expected = Series(expected_data, index=np.array([0]), dtype="boolean")
 
     result = ser.groupby([0, 0, 0]).agg(bool_agg_func, skipna=skipna)
     tm.assert_series_equal(result, expected)
@@ -135,7 +135,7 @@ def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
     )
     result = df.groupby([1, 1]).agg("all", skipna=False)
 
-    expected = DataFrame({"col1": exp_col1, "col2": exp_col2}, index=[1])
+    expected = DataFrame({"col1": exp_col1, "col2": exp_col2}, index=np.array([1]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -148,7 +148,7 @@ def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
     expected_res = True
     if not skipna and bool_agg_func == "all":
         expected_res = pd.NA
-    expected = frame_or_series([expected_res], index=[1], dtype="boolean")
+    expected = frame_or_series([expected_res], index=np.array([1]), dtype="boolean")
 
     result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=skipna)
     tm.assert_equal(result, expected)
@@ -167,11 +167,10 @@ def test_object_type_missing_vals(bool_agg_func, data, expected_res, frame_or_se
     # GH#37501
     obj = frame_or_series(data, dtype=object)
     result = obj.groupby([1] * len(data)).agg(bool_agg_func)
-    expected = frame_or_series([expected_res], index=[1], dtype="bool")
+    expected = frame_or_series([expected_res], index=np.array([1]), dtype="bool")
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_object_NA_raises_with_skipna_false(bool_agg_func):
     # GH#37501

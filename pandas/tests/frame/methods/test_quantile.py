@@ -420,7 +420,7 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         result = df[["a", "c"]].quantile([0.5], numeric_only=True)
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -451,7 +451,7 @@ class TestDataFrameQuantile:
             interpolation=interpolation,
             method=method,
         )
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("invalid", [-1, 2, [0.5, -1], [0.5, 2]])
@@ -880,13 +880,9 @@ class TestQuantileExtensionDtype:
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
-    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, request, obj, index):
         obj.iloc[:] = index._na_value
-
-        # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
-        obj = obj.astype(index.dtype)
+        # Check dtypes were preserved; this was once a problem see GH#39763
         assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling
@@ -897,15 +893,8 @@ class TestQuantileExtensionDtype:
         qs = [0.5, 0, 1]
         result = self.compute_quantile(obj, qs)
 
-        if np_version_under1p21 and index.dtype == "timedelta64[ns]":
-            msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
-            request.node.add_marker(mark)
-
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
         expected = Series(expected, index=qs, name="A")
-        if expected.dtype == "Int64":
-            expected = expected.astype("Float64")
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 

@@ -3,7 +3,11 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 
-from pandas import Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     SparseArray,
@@ -119,3 +123,25 @@ class TestAstype:
         result = arr.astype("int64")
         expected = values.astype("int64")
         tm.assert_numpy_array_equal(result, expected)
+
+        # we should also be able to cast to equivalent Sparse[int64]
+        dtype_int64 = SparseDtype("int64", np.iinfo(np.int64).min)
+        result2 = arr.astype(dtype_int64)
+        tm.assert_numpy_array_equal(result2.to_numpy(), expected)
+
+        # GH#50087 we should match the non-sparse behavior regardless of
+        #  if we have a fill_value other than NaT
+        dtype = SparseDtype("datetime64[ns]", values[1])
+        arr3 = SparseArray(values, dtype=dtype)
+        result3 = arr3.astype("int64")
+        tm.assert_numpy_array_equal(result3, expected)
+
+
+def test_dtype_sparse_with_fill_value_not_present_in_data():
+    # GH 49987
+    df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
+    result = df["A"].astype(SparseDtype("category", fill_value="c"))
+    expected = Series(
+        ["a", "b", "b"], name="A", dtype=SparseDtype("object", fill_value="c")
+    )
+    tm.assert_series_equal(result, expected)

@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
@@ -285,7 +286,7 @@ class TestBlock:
     def test_delete(self, fblock):
         newb = fblock.copy()
         locs = newb.mgr_locs
-        nb = newb.delete(0)
+        nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
 
         assert nb is not newb
@@ -299,21 +300,25 @@ class TestBlock:
         newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
+        assert len(nb) == 2
         assert newb.mgr_locs is locs
 
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            nb[1].mgr_locs.as_array, np.array([4], dtype=np.intp)
         )
         assert not (newb.values[1] == 2).all()
-        assert (nb.values[1] == 2).all()
+        assert (nb[1].values[0] == 2).all()
 
         newb = fblock.copy()
-        locs = newb.mgr_locs
         nb = newb.delete(2)
+        assert len(nb) == 1
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
-        assert (nb.values[1] == 1).all()
+        assert (nb[0].values[1] == 1).all()
 
         newb = fblock.copy()
 
@@ -328,14 +333,18 @@ class TestBlock:
         assert isinstance(blk.values, TimedeltaArray)
 
         nb = blk.delete(1)
-        assert isinstance(nb.values, TimedeltaArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, TimedeltaArray)
+        assert isinstance(nb[1].values, TimedeltaArray)
 
         df = DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
         nb = blk.delete([1, 3])
-        assert isinstance(nb.values, DatetimeArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, DatetimeArray)
+        assert isinstance(nb[1].values, DatetimeArray)
 
     def test_split(self):
         # GH#37799
@@ -469,7 +478,7 @@ class TestBlockManager:
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values._data.base is blk.values._data.base
+                assert cp_blk.values._ndarray.base is blk.values._ndarray.base
 
         # copy(deep=True) consolidates, so the block-wise assertions will
         #  fail is mgr is not consolidated
@@ -591,7 +600,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
+        new_mgr = mgr.convert(copy=True)
         _compare(mgr, new_mgr)
 
         # convert
@@ -599,9 +608,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
@@ -612,9 +621,9 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == np.object_
+        assert new_mgr.iget(1).dtype == np.object_
         assert new_mgr.iget(2).dtype == np.object_
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
@@ -874,6 +883,30 @@ class TestBlockManager:
         )
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
+
+    def test_iset_split_block(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 0, 0, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 2
+
+    def test_iset_split_block_values(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]), np.array([list(range(10))]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 2, 2, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 3
 
 
 def _as_array(mgr):
@@ -1323,10 +1356,6 @@ class TestCanHoldElement:
         elem = element(dti)
         self.check_series_setitem(elem, pi, False)
 
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
-
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1349,23 +1378,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:

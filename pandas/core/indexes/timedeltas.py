@@ -6,6 +6,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    Resolution,
     Timedelta,
     to_offset,
 )
@@ -112,6 +113,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
+    # error: Signature of "_resolution_obj" incompatible with supertype
+    # "DatetimeIndexOpsMixin"
+    @property
+    def _resolution_obj(self) -> Resolution | None:  # type: ignore[override]
+        return self._data._resolution_obj
+
     # -------------------------------------------------------------------
     # Constructors
 
@@ -174,7 +181,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label
 
@@ -189,7 +196,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         except TypeError as err:
             raise KeyError(key) from err
 
-        return Index.get_loc(self, key, method, tolerance)
+        return Index.get_loc(self, key)
 
     def _parse_with_reso(self, label: str):
         # the "with_reso" is a no-op for TimedeltaIndex

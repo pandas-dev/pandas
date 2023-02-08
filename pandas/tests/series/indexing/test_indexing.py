@@ -10,6 +10,7 @@ from pandas.errors import IndexingError
 from pandas import (
     NA,
     DataFrame,
+    Index,
     IndexSlice,
     MultiIndex,
     Series,
@@ -286,9 +287,7 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
     assert result.name == ser.name
 
 
-"""
-miscellaneous methods
-"""
+# miscellaneous methods
 
 
 @pytest.mark.parametrize(
@@ -368,11 +367,29 @@ def test_loc_setitem_nested_data_enlargement():
     tm.assert_series_equal(ser, expected)
 
 
+def test_loc_ea_numeric_index_oob_slice_end():
+    # GH#50161
+    ser = Series(1, index=Index([0, 1, 2], dtype="Int64"))
+    result = ser.loc[2:3]
+    expected = Series(1, index=Index([2], dtype="Int64"))
+    tm.assert_series_equal(result, expected)
+
+
 def test_getitem_bool_int_key():
     # GH#48653
     ser = Series({True: 1, False: 0})
     with pytest.raises(KeyError, match="0"):
         ser.loc[0]
+
+
+@pytest.mark.parametrize("val", [{}, {"b": "x"}])
+@pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
+def test_setitem_empty_indexer(indexer, val):
+    # GH#45981
+    df = DataFrame({"a": [1, 2], **val})
+    expected = df.copy()
+    df.loc[indexer] = 1.5
+    tm.assert_frame_equal(df, expected)
 
 
 class TestDeprecatedIndexers:

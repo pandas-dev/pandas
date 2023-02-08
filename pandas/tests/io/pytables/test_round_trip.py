@@ -252,13 +252,15 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int64": 1,
                 "object": 1,
                 "datetime64[ns]": 2,
-            }
+            },
+            name="count",
         )
         result = result.sort_index()
         expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
 
     s = tm.makeStringSeries()
@@ -302,7 +304,7 @@ def test_index_types(setup_path):
     with catch_warnings(record=True):
         values = np.random.randn(2)
 
-        func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
+        func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
     with catch_warnings(record=True):
         ser = Series(values, [0, "y"])
@@ -348,7 +350,7 @@ def test_index_types(setup_path):
         _check_roundtrip(ser, func, path=setup_path)
 
 
-def test_timeseries_preepoch(setup_path):
+def test_timeseries_preepoch(setup_path, request):
 
     dr = bdate_range("1/1/1940", "1/1/1960")
     ts = Series(np.random.randn(len(dr)), index=dr)
@@ -356,9 +358,10 @@ def test_timeseries_preepoch(setup_path):
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
         if is_platform_windows():
-            pytest.xfail("known failure on some windows platforms")
-        else:
-            raise
+            request.node.add_marker(
+                pytest.mark.xfail("known failure on some windows platforms")
+            )
+        raise
 
 
 @pytest.mark.parametrize(

@@ -70,7 +70,7 @@ tiebreakers = {
 }
 
 
-cdef inline bint are_diff(object left, object right):
+cdef bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
@@ -180,7 +180,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
-        assert arr.dtype.name == 'int64'
+        assert arr.dtype.name == "int64"
         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
@@ -257,7 +257,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     cdef:
         numeric_t t
 
@@ -268,7 +268,7 @@ cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
@@ -514,9 +514,9 @@ def validate_limit(nobs: int | None, limit=None) -> int:
         lim = nobs
     else:
         if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
+            raise ValueError("Limit must be an integer")
         if limit < 1:
-            raise ValueError('Limit must be greater than 0')
+            raise ValueError("Limit must be greater than 0")
         lim = limit
 
     return lim
@@ -647,40 +647,37 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
                 val = values[j, i]
 
 
-"""
-Backfilling logic for generating fill vector
-
-Diagram of what's going on
-
-Old      New    Fill vector    Mask
-         .        0               1
-         .        0               1
-         .        0               1
-A        A        0               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-B        B        1               1
-         .        2               1
-         .        2               1
-         .        2               1
-C        C        2               1
-         .                        0
-         .                        0
-D
-"""
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
     ndarray[numeric_object_t] old,
     ndarray[numeric_object_t] new,
     limit=None
-) -> ndarray:
-    # -> ndarray[intp_t, ndim=1]
+) -> ndarray:  # -> ndarray[intp_t, ndim=1]
+    """
+    Backfilling logic for generating fill vector
+
+    Diagram of what's going on
+
+    Old      New    Fill vector    Mask
+            .        0               1
+            .        0               1
+            .        0               1
+    A        A        0               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+    B        B        1               1
+            .        2               1
+            .        2               1
+            .        2               1
+    C        C        2               1
+            .                        0
+            .                        0
+    D
+    """
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t, ndim=1] indexer
@@ -958,7 +955,7 @@ def rank_1d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     N = len(values)
     if labels is not None:
@@ -984,7 +981,7 @@ def rank_1d(
     # with mask, without obfuscating location of missing data
     # in values array
     if numeric_object_t is object and values.dtype != np.object_:
-        masked_vals = values.astype('O')
+        masked_vals = values.astype("O")
     else:
         masked_vals = values.copy()
 
@@ -1005,7 +1002,7 @@ def rank_1d(
     # If descending, fill with highest value since descending
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
@@ -1345,7 +1342,7 @@ def rank_2d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = (
@@ -1362,14 +1359,14 @@ def rank_2d(
 
     if numeric_object_t is object:
         if values.dtype != np.object_:
-            values = values.astype('O')
+            values = values.astype("O")
 
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     if check_mask:
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
-            mask = missing.isnaobj2d(values).view(np.uint8)
+            mask = missing.isnaobj(values).view(np.uint8)
         elif numeric_object_t is float64_t or numeric_object_t is float32_t:
             mask = np.isnan(values).view(np.uint8)
         else:
@@ -1385,7 +1382,7 @@ def rank_2d(
         order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
-    out = np.empty((n, k), dtype='f8', order='F')
+    out = np.empty((n, k), dtype="f8", order="F")
     grp_sizes = np.ones(n, dtype=np.int64)
 
     # lexsort is slower, so only use if we need to worry about the mask

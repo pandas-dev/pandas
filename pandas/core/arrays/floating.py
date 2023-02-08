@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_float_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
     NumericArray,
@@ -116,8 +116,10 @@ class FloatingArray(NumericArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = np.nan
     # Fill values used for any/all
-    _truthy_value = 1.0
-    _falsey_value = 0.0
+    # Incompatible types in assignment (expression has type "float", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = 1.0  # type: ignore[assignment]
+    _falsey_value = 0.0  # type: ignore[assignment]
 
 
 _dtype_docstring = """

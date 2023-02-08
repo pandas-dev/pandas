@@ -1,5 +1,8 @@
 from collections import deque
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from enum import Enum
 import functools
 import operator
@@ -7,7 +10,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -444,7 +446,9 @@ class TestFrameFlexComparisons:
         const = 2
 
         result = getattr(df, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
+        tm.assert_series_equal(
+            result, Series([2], index=[np.dtype(bool)], name="count")
+        )
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_df_flex_cmp_constant_return_types_empty(self, opname):
@@ -454,7 +458,9 @@ class TestFrameFlexComparisons:
 
         empty = df.iloc[:0]
         result = getattr(empty, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
+        tm.assert_series_equal(
+            result, Series([2], index=[np.dtype(bool)], name="count")
+        )
 
     def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):
         ii = pd.IntervalIndex.from_breaks([1, 2, 3])
@@ -1065,7 +1071,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
 
         skip = {
             (operator.truediv, "bool"),
@@ -1097,10 +1103,14 @@ class TestFrameArithmetic:
                 msg = None
             elif dtype == "complex128":
                 msg = "ufunc 'remainder' not supported for the input types"
-                warn = UserWarning  # "evaluating in Python space because ..."
             elif op is operator.sub:
                 msg = "numpy boolean subtract, the `-` operator, is "
-                warn = UserWarning  # "evaluating in Python space because ..."
+                if (
+                    dtype == "bool"
+                    and expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                ):
+                    warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1164,19 +1174,15 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # Automatic alignment for comparisons deprecated
-        result = df == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="not aligned"):
+        # Automatic alignment for comparisons deprecated GH#36795, enforced 2.0
+        df == ser
 
-    # non-float case should not raise on comparison
+    # non-float case should not raise TypeError on comparison
     df2 = DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="not aligned"):
         # Automatic alignment for comparisons deprecated
-        result = df2 == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+        df2 == ser
 
 
 def test_zero_len_frame_with_series_corner_cases():
@@ -1189,7 +1195,6 @@ def test_zero_len_frame_with_series_corner_cases():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_frame_single_columns_object_sum_axis_1():
     # GH 13758
     data = {
@@ -1214,10 +1219,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
         result = df_moscow + df
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
@@ -1539,7 +1544,10 @@ class TestFrameArithmeticUnsorted:
         result3 = func(float_frame, 0)
         tm.assert_numpy_array_equal(result3.values, func(float_frame.values, 0))
 
-        msg = "Can only compare identically-labeled DataFrame"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
@@ -1932,15 +1940,19 @@ def test_dataframe_blockwise_slicelike():
     # GH#34367
     arr = np.random.randint(0, 1000, (100, 10))
     df1 = DataFrame(arr)
-    df2 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df2 = df1.copy().astype({1: "float", 3: "float", 7: "float"})
     df2.iloc[0, [1, 3, 7]] = np.nan
 
-    df3 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df3 = df1.copy().astype({5: "float"})
     df3.iloc[0, [5]] = np.nan
 
-    df4 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df4 = df1.copy().astype({2: "float", 3: "float", 4: "float"})
     df4.iloc[0, np.arange(2, 5)] = np.nan
-    df5 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df5 = df1.copy().astype({4: "float", 5: "float", 6: "float"})
     df5.iloc[0, np.arange(4, 7)] = np.nan
 
     for left, right in [(df1, df2), (df2, df3), (df4, df5)]:

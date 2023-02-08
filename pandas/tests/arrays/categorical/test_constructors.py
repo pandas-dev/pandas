@@ -29,10 +29,16 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
+    def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
+        # GH#49309 we should preserve orderedness in `res`
+        cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
+
+        res = Categorical(cat, dtype="category")
+        assert res.dtype.ordered
+
     def test_categorical_disallows_scalar(self):
         # GH#38433
         with pytest.raises(TypeError, match="Categorical input must be list-like"):
@@ -67,7 +73,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = Int64Index([1, 2, 3])
+        expected = Index([1, 2, 3], dtype=np.int64)
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -646,7 +647,7 @@ def test_selection_api_validation():
     # non DatetimeIndex
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
-        "but got an instance of 'Int64Index'"
+        "but got an instance of 'Index'"
     )
     with pytest.raises(TypeError, match=msg):
         df.resample("2D", level="v")
@@ -903,18 +904,57 @@ def test_series_downsample_method(method, numeric_only, expected_data):
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
     df = Series(["cat_1", "cat_2"], index=index)
     resampled = df.resample("Y")
+    kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with tm.assert_produces_warning(
-            FutureWarning, match="This will raise a TypeError"
-        ):
-            with pytest.raises(NotImplementedError, match="not implement numeric_only"):
-                func(numeric_only=numeric_only)
+        msg = rf"Cannot use numeric_only=True with SeriesGroupBy\.{method}"
+        with pytest.raises(TypeError, match=msg):
+            func(**kwargs)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
-            func(numeric_only=numeric_only)
+            func(**kwargs)
     else:
-        result = func(numeric_only=numeric_only)
+        result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, raises",
+    [
+        ("sum", True),
+        ("prod", True),
+        ("min", True),
+        ("max", True),
+        ("first", False),
+        ("last", False),
+        ("median", False),
+        ("mean", True),
+        ("std", True),
+        ("var", True),
+        ("sem", False),
+        ("ohlc", False),
+        ("nunique", False),
+    ],
+)
+def test_args_kwargs_depr(method, raises):
+    index = date_range("20180101", periods=3, freq="h")
+    df = Series([2, 4, 6], index=index)
+    resampled = df.resample("30min")
+    args = ()
+
+    func = getattr(resampled, method)
+
+    error_msg = "numpy operations are not valid with resample."
+    error_msg_type = "too many arguments passed in"
+    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
+
+    if raises:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                func(*args, 1, 2, 3)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(TypeError, match=error_msg_type):
+                func(*args, 1, 2, 3)
