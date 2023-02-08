@@ -435,3 +435,4 @@ cdef dict npy_unit_to_attrname = {
     NPY_DATETIMEUNIT.NPY_FR_us: "microsecond",
     NPY_DATETIMEUNIT.NPY_FR_ns: "nanosecond",
 }
+cdef dict attrname_to_npy_unit = {v: k for k, v in npy_unit_to_attrname.items()}

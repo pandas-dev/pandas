@@ -33,7 +33,6 @@ from pandas._libs.util cimport (
 @cython.final
 @cython.freelist(32)
 cdef class BlockPlacement:
-    # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
         ndarray _as_array  # Note: this still allows `None`; will be intp_t
@@ -581,9 +580,16 @@ cdef class SharedBlock:
     """
     cdef:
         public BlockPlacement _mgr_locs
+        public BlockValuesRefs refs
         readonly int ndim
 
-    def __cinit__(self, values, placement: BlockPlacement, ndim: int):
+    def __cinit__(
+        self,
+        values,
+        placement: BlockPlacement,
+        ndim: int,
+        refs: BlockValuesRefs | None = None,
+    ):
         """
         Parameters
         ----------
@@ -592,9 +598,22 @@ cdef class SharedBlock:
         placement : BlockPlacement
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        refs: BlockValuesRefs, optional
+            Ref tracking object or None if block does not have any refs.
         """
         self._mgr_locs = placement
         self.ndim = ndim
+        if refs is None:
+            # if no refs are passed, that means we are creating a Block from
+            # new values that it uniquely owns -> start a new BlockValuesRefs
+            # object that only references this block
+            self.refs = BlockValuesRefs(self)
+        else:
+            # if refs are passed, this is the BlockValuesRefs object that is shared
+            # with the parent blocks which share the values, and a reference to this
+            # new block is added
+            refs.add_reference(self)
+            self.refs = refs
 
     cpdef __reduce__(self):
         args = (self.values, self.mgr_locs.indexer, self.ndim)
@@ -620,9 +639,15 @@ cdef class NumpyBlock(SharedBlock):
     cdef:
         public ndarray values
 
-    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+    def __cinit__(
+        self,
+        ndarray values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement, ndim and refs
         self.values = values
 
     cpdef NumpyBlock getitem_block_index(self, slice slicer):
@@ -632,7 +657,7 @@ cdef class NumpyBlock(SharedBlock):
         Assumes self.ndim == 2
         """
         new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
 
 cdef class NDArrayBackedBlock(SharedBlock):
@@ -642,9 +667,15 @@ cdef class NDArrayBackedBlock(SharedBlock):
     cdef public:
         NDArrayBacked values
 
-    def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+    def __cinit__(
+        self,
+        NDArrayBacked values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement, ndim and refs
         self.values = values
 
     cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
@@ -654,16 +685,22 @@ cdef class NDArrayBackedBlock(SharedBlock):
         Assumes self.ndim == 2
         """
         new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
 
 cdef class Block(SharedBlock):
     cdef:
         public object values
 
-    def __cinit__(self, object values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
+    def __cinit__(
+        self,
+        object values,
+        BlockPlacement placement,
+        int ndim,
+        refs: BlockValuesRefs | None = None,
+    ):
+        # set values here; the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement, ndim and refs
         self.values = values
 
 
@@ -674,15 +711,11 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
-        public list refs
-        public object parent
 
     def __cinit__(
         self,
         blocks=None,
         axes=None,
-        refs=None,
-        parent=None,
         verify_integrity=True,
     ):
         # None as defaults for unpickling GH#42345
@@ -696,8 +729,6 @@ cdef class BlockManager:
 
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
-        self.refs = refs
-        self.parent = parent
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -806,16 +837,12 @@ cdef class BlockManager:
             ndarray blknos, blklocs
 
         nbs = []
-        nrefs = []
         for blk in self.blocks:
             nb = blk.getitem_block_index(slobj)
             nbs.append(nb)
-            nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(
-            tuple(nbs), new_axes, nrefs, parent=self, verify_integrity=False
-        )
+        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -828,7 +855,7 @@ cdef class BlockManager:
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
-            new_blocks, new_refs = self._slice_take_blocks_ax0(slobj)
+            new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
             return self._get_index_slice(slobj)
         else:
@@ -837,6 +864,40 @@ cdef class BlockManager:
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(
-            tuple(new_blocks), new_axes, new_refs, parent=self, verify_integrity=False
-        )
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
+
+
+cdef class BlockValuesRefs:
+    """Tracks all references to a given array.
+
+    Keeps track of all blocks (through weak references) that reference the same
+    data.
+    """
+    cdef:
+        public object referenced_blocks
+
+    def __cinit__(self, blk: SharedBlock) -> None:
+        self.referenced_blocks = weakref.WeakSet([blk])
+
+    def add_reference(self, blk: SharedBlock) -> None:
+        """Adds a new reference to our reference collection.
+
+        Parameters
+        ----------
+        blk: SharedBlock
+            The block that the new references should point to.
+        """
+        self.referenced_blocks.add(blk)
+
+    def has_reference(self) -> bool:
+        """Checks if block has foreign references.
+
+        A reference is only relevant if it is still alive. The reference to
+        ourselves does not count.
+
+        Returns
+        -------
+        bool
+        """
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1

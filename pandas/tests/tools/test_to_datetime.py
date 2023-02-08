@@ -1084,8 +1084,14 @@ class TestToDatetime:
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_index_equal(
             to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            Index([dt.item() for dt in dts_with_oob]),
+            Index(dts_with_oob),
         )
+
+    def test_out_of_bounds_errors_ignore(self):
+        # https://github.com/pandas-dev/pandas/issues/50587
+        result = to_datetime(np.datetime64("9999-01-01"), errors="ignore")
+        expected = np.datetime64("9999-01-01")
+        assert result == expected
 
     def test_to_datetime_tz(self, cache):
 
@@ -1723,11 +1729,13 @@ class TestToDatetimeUnit:
         # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with
         #  Y or M unit
+        warn_msg = "strings will be parsed as datetime strings"
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
         with pytest.raises(ValueError, match=msg):
-            to_datetime(["1.5"], unit=unit, errors="raise")
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                to_datetime(["1.5"], unit=unit, errors="raise")
 
         # with errors="ignore" we also end up raising within the Timestamp
         #  constructor; this may not be ideal
@@ -1742,7 +1750,8 @@ class TestToDatetimeUnit:
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        res = to_datetime(["1.5"], unit=unit, errors="coerce")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = to_datetime(["1.5"], unit=unit, errors="coerce")
         tm.assert_index_equal(res, expected)
 
         # round floats are OK
@@ -2491,6 +2500,16 @@ class TestToDatetimeMisc:
         msg = "Cannot cast 139999 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
+
+    def test_string_invalid_operation(self, cache):
+        invalid = np.array(["87156549591102612381000001219H5"], dtype=object)
+        # GH #51084
+
+        with pytest.raises(ValueError, match="Unknown datetime string format"):
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                to_datetime(invalid, errors="raise", cache=cache)
 
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858

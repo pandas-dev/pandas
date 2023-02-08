@@ -29,7 +29,7 @@ from pandas._typing import (
     Frequency,
     NpDtype,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -99,7 +100,6 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
-    RNGContext,
     decompress_file,
     ensure_clean,
     ensure_safe_environment_variables,
@@ -108,7 +108,6 @@ from pandas._testing.contexts import (
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
@@ -192,16 +191,22 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+    ALL_INT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in ALL_INT_PYARROW_DTYPES
+    ]
 
     # pa.float16 doesn't seem supported
     # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    FLOAT_PYARROW_DTYPES_STR_REPR = [
+        str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
+    ]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -234,6 +239,9 @@ if not pa_version_under6p0:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+else:
+    FLOAT_PYARROW_DTYPES_STR_REPR = []
+    ALL_INT_PYARROW_DTYPES_STR_REPR = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -348,7 +356,7 @@ def makeBoolIndex(k: int = 10, name=None) -> Index:
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
-def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> NumericIndex:
+def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
@@ -363,17 +371,17 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> NumericI
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
-    return NumericIndex(values, dtype=dtype, name=name)
+    return Index(values, dtype=dtype, name=name)
 
 
-def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> NumericIndex:
+def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_signed_integer_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> NumericIndex:
+def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_unsigned_integer_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
@@ -384,7 +392,7 @@ def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
     return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
-def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> NumericIndex:
+def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
@@ -1125,7 +1133,6 @@ __all__ = [
     "raise_assert_detail",
     "rands",
     "reset_display_options",
-    "RNGContext",
     "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",

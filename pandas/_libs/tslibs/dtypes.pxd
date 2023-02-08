@@ -12,6 +12,7 @@ cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
 
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
+cdef dict attrname_to_npy_unit
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pyx file
