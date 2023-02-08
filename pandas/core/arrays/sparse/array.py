@@ -912,11 +912,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
-            # Non-overlapping identity check (left operand type:
-            # "Union[Union[Union[int, integer[Any]], Union[slice, List[int],
-            # ndarray[Any, Any]]], Tuple[Union[int, ellipsis], ...]]",
-            # right operand type: "ellipsis")
-            if key is Ellipsis:  # type: ignore[comparison-overlap]
+            if key is Ellipsis:
                 raise ValueError("Cannot slice with Ellipsis")
 
         if is_integer(key):
