@@ -29,6 +29,7 @@ from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -128,6 +129,16 @@ if TYPE_CHECKING:
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
+
+
+def get_unit_from_pa_dtype(pa_dtype):
+    # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
+    if pa_version_under11p0:
+        unit = str(pa_dtype).split("[")[-1][:-1]
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError(pa_dtype)
+        return unit
+    return pa_dtype.unit
 
 
 def to_pyarrow_type(
@@ -1090,10 +1101,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
-                # TODO: with time types we should probably retain "unit",
-                #  but not clear how to get that since pa_type.unit raises
-                #  AttributeError
-                result = result.cast(pa.duration("ns"))
+                unit = get_unit_from_pa_dtype(pa_type)
+                result = result.cast(pa.duration(unit))
             elif pa.types.is_date(pa_type):
                 # go with closest available unit, i.e. "s"
                 result = result.cast(pa.duration("s"))
