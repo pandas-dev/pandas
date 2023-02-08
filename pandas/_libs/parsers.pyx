@@ -2042,7 +2042,7 @@ def _compute_na_values():
         np.uint16: uint16info.max,
         np.uint8: uint8info.max,
         np.bool_: uint8info.max,
-        np.object_: np.nan   # oof
+        np.object_: np.nan,
     }
     return na_values
 
