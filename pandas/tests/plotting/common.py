@@ -560,8 +560,6 @@ def _check_plot_works(f, default_axes=False, **kwargs):
         with tm.ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
 
-    except Exception as err:
-        raise err
     finally:
         tm.close(fig)
 
