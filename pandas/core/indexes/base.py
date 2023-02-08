@@ -2268,15 +2268,15 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index([True, False, True])
-        >>> idx.is_boolean()
+        >>> idx.is_boolean()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index(["True", "False", "True"])
-        >>> idx.is_boolean()
+        >>> idx.is_boolean()  # doctest: +SKIP
         False
 
         >>> idx = pd.Index([True, False, "True"])
-        >>> idx.is_boolean()
+        >>> idx.is_boolean()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2312,15 +2312,15 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3, 4])
-        >>> idx.is_integer()
+        >>> idx.is_integer()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
-        >>> idx.is_integer()
+        >>> idx.is_integer()  # doctest: +SKIP
         False
 
         >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
-        >>> idx.is_integer()
+        >>> idx.is_integer()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2360,19 +2360,19 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
-        >>> idx.is_floating()
+        >>> idx.is_floating()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1.0, 2.0, np.nan, 4.0])
-        >>> idx.is_floating()
+        >>> idx.is_floating()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4, np.nan])
-        >>> idx.is_floating()
+        >>> idx.is_floating()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4])
-        >>> idx.is_floating()
+        >>> idx.is_floating()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2408,23 +2408,23 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
-        >>> idx.is_numeric()
+        >>> idx.is_numeric()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4.0])
-        >>> idx.is_numeric()
+        >>> idx.is_numeric()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4])
-        >>> idx.is_numeric()
+        >>> idx.is_numeric()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4.0, np.nan])
-        >>> idx.is_numeric()
+        >>> idx.is_numeric()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 2, 3, 4.0, np.nan, "Apple"])
-        >>> idx.is_numeric()
+        >>> idx.is_numeric()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2460,20 +2460,20 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
-        >>> idx.is_object()
+        >>> idx.is_object()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index(["Apple", "Mango", 2.0])
-        >>> idx.is_object()
+        >>> idx.is_object()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
         ...                 "Watermelon"]).astype("category")
-        >>> idx.is_object()
+        >>> idx.is_object()  # doctest: +SKIP
         False
 
         >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
-        >>> idx.is_object()
+        >>> idx.is_object()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2511,11 +2511,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
         ...                 "Watermelon"]).astype("category")
-        >>> idx.is_categorical()
+        >>> idx.is_categorical()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 3, 5, 7])
-        >>> idx.is_categorical()
+        >>> idx.is_categorical()  # doctest: +SKIP
         False
 
         >>> s = pd.Series(["Peter", "Victor", "Elisabeth", "Mar"])
@@ -2525,7 +2525,7 @@ class Index(IndexOpsMixin, PandasObject):
         2    Elisabeth
         3          Mar
         dtype: object
-        >>> s.index.is_categorical()
+        >>> s.index.is_categorical()  # doctest: +SKIP
         False
         """
         warnings.warn(
@@ -2564,11 +2564,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([pd.Interval(left=0, right=5),
         ...                 pd.Interval(left=5, right=10)])
-        >>> idx.is_interval()
+        >>> idx.is_interval()  # doctest: +SKIP
         True
 
         >>> idx = pd.Index([1, 3, 5, 7])
-        >>> idx.is_interval()
+        >>> idx.is_interval()  # doctest: +SKIP
         False
         """
         warnings.warn(
