@@ -90,10 +90,7 @@ from pandas.errors import (
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
-from pandas.util._decorators import (
-    doc,
-    rewrite_axis_style_signature,
-)
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
@@ -511,38 +508,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _construct_axes_from_arguments(
-        cls, args, kwargs, require_all: bool_t = False, sentinel=None
-    ):
-        """
-        Construct and returns axes if supplied in args/kwargs.
-
-        If require_all, raise if all axis arguments are not supplied
-        return a tuple of (axes, kwargs).
-
-        sentinel specifies the default parameter when an axis is not
-        supplied; useful to distinguish when a user explicitly passes None
-        in scenarios where None has special meaning.
-        """
-        # construct the args
-        args = list(args)
-        for a in cls._AXIS_ORDERS:
-
-            # look for a argument by position
-            if a not in kwargs:
-                try:
-                    kwargs[a] = args.pop(0)
-                except IndexError as err:
-                    if require_all:
-                        raise TypeError(
-                            "not enough/duplicate arguments specified!"
-                        ) from err
-
-        axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
-        return axes, kwargs
-
-    @final
-    @classmethod
     def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
@@ -803,8 +768,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
-            new_mgr.parent = self._mgr
-            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
+            new_mgr.blocks[0].refs.add_reference(
+                new_mgr.blocks[0]  # type: ignore[arg-type]
+            )
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         elif (copy or copy is None) and self._mgr.is_single_block:
@@ -1077,8 +1044,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: Literal[False] = ...,
-        **kwargs,
     ) -> NDFrameT:
         ...
 
@@ -1087,8 +1057,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: Literal[True],
-        **kwargs,
     ) -> None:
         ...
 
@@ -1097,18 +1070,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool_t | None = ...,
         inplace: bool_t = ...,
-        **kwargs,
     ) -> NDFrameT | None:
         ...
 
-    @rewrite_axis_style_signature("mapper", [("copy", True)])
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
+        index=lib.no_default,
+        columns=lib.no_default,
+        axis: Axis = 0,
+        copy: bool_t | None = None,
         inplace: bool_t = False,
-        **kwargs,
     ) -> NDFrameT | None:
         """
         Set the name of the axis for the index or columns.
@@ -1129,7 +1107,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and/or ``columns``.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default True
+        copy : bool, default None
             Also copy underlying data.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
@@ -1233,22 +1211,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
-        kwargs["inplace"] = inplace
-        axes, kwargs = self._construct_axes_from_arguments(
-            (), kwargs, sentinel=lib.no_default
-        )
-        copy: bool_t | None = kwargs.pop("copy", None)
+        axes = {"index": index, "columns": columns}
 
-        inplace = kwargs.pop("inplace", False)
-        axis = kwargs.pop("axis", 0)
         if axis is not None:
             axis = self._get_axis_number(axis)
-
-        if kwargs:
-            raise TypeError(
-                "rename_axis() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
-            )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -4530,7 +4496,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
-            axes, _ = self._construct_axes_from_arguments((index, columns), {})
+            axes = {"index": index}
+            if self.ndim == 2:
+                axes["columns"] = columns
         else:
             raise ValueError(
                 "Need to specify at least one of 'labels', 'index' or 'columns'"
@@ -6250,17 +6218,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: category
         Categories (2, int64): [2 < 1]
 
-        Note that using ``copy=False`` and changing data on a new
-        pandas object may propagate changes:
-
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = s1.astype('int64', copy=False)
-        >>> s2[0] = 10
-        >>> s1  # note that s1[0] has changed too
-        0    10
-        1     2
-        dtype: int64
-
         Create a series of dates:
 
         >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
@@ -6469,7 +6426,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self: NDFrameT, copy: bool_t = True) -> NDFrameT:
+    def infer_objects(self: NDFrameT, copy: bool_t | None = None) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
 
@@ -7044,7 +7001,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    pad = ffill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def pad(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.pad is deprecated. Use {klass}.ffill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.pad/Series.pad is deprecated. Use "
+            "DataFrame.ffill/Series.ffill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def bfill(
@@ -7100,7 +7084,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    backfill = bfill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def backfill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.backfill is deprecated. Use {klass}.backfill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.backfill/Series.backfill is deprecated. Use "
+            "DataFrame.bfill/Series.bfill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def replace(
@@ -8828,7 +8839,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
         return get_resampler(
-            self,
+            cast("Series | DataFrame", self),
             freq=rule,
             label=label,
             closed=closed,
@@ -11906,12 +11917,14 @@ The standard deviation of the columns can be found as follows:
 >>> df.std()
 age       18.786076
 height     0.237417
+dtype: float64
 
 Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 
 >>> df.std(ddof=0)
 age       16.269219
-height     0.205609"""
+height     0.205609
+dtype: float64"""
 
 _var_examples = """
 
@@ -11932,12 +11945,14 @@ person_id
 >>> df.var()
 age       352.916667
 height      0.056367
+dtype: float64
 
 Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
 
 >>> df.var(ddof=0)
 age       264.687500
-height      0.042275"""
+height      0.042275
+dtype: float64"""
 
 _bool_doc = """
 {desc}

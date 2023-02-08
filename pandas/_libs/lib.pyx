@@ -276,6 +276,7 @@ def is_iterator(obj: object) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_iterator
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
@@ -739,6 +740,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        bint already_copied = True
 
     if hasattr(arr, "to_numpy"):
 
@@ -757,6 +759,8 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+    elif not copy and result is arr:
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -767,6 +771,10 @@ cpdef ndarray[object] ensure_string_array(
 
         if isinstance(val, str):
             continue
+
+        elif not already_copied:
+            result = result.copy()
+            already_copied = True
 
         if not checknull(val):
             if not util.is_float_object(val):
@@ -1119,6 +1127,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_list_like
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})

@@ -17,7 +17,7 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -40,7 +40,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -50,8 +50,8 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under6p0:
-        msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under7p0:
+        msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -163,13 +163,13 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             if isna(value):
                 value = None
             elif not isinstance(value, str):
-                raise ValueError("Scalar must be NA or str")
+                raise TypeError("Scalar must be NA or str")
         else:
             value = np.array(value, dtype=object, copy=True)
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise ValueError("Scalar must be NA or str")
+                    raise TypeError("Scalar must be NA or str")
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:

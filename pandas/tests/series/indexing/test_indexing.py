@@ -382,6 +382,16 @@ def test_getitem_bool_int_key():
         ser.loc[0]
 
 
+@pytest.mark.parametrize("val", [{}, {"b": "x"}])
+@pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
+def test_setitem_empty_indexer(indexer, val):
+    # GH#45981
+    df = DataFrame({"a": [1, 2], **val})
+    expected = df.copy()
+    df.loc[indexer] = 1.5
+    tm.assert_frame_equal(df, expected)
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):

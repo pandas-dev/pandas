@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -870,7 +870,7 @@ def test_frame_astype_no_copy():
     assert np.shares_memory(df.b.values, result.b.values)
 
 
-@pytest.mark.skipif(pa_version_under6p0, reason="pyarrow is required for this test")
+@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow is required for this test")
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_astype_copies(dtype):
     # GH#50984
@@ -879,3 +879,13 @@ def test_astype_copies(dtype):
     df.iloc[0, 0] = 100
     expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", [None, 1, 1.5, np.nan, NaT])
+def test_astype_to_string_not_modifying_input(string_storage, val):
+    # GH#51073
+    df = DataFrame({"a": ["a", "b", val]})
+    expected = df.copy()
+    with option_context("mode.string_storage", string_storage):
+        df.astype("string", copy=False)
+    tm.assert_frame_equal(df, expected)

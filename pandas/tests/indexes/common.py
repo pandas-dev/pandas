@@ -28,7 +28,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -317,9 +316,7 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        new_index_cls = (
-            NumericIndex if isinstance(idx, RangeIndex) else idx._constructor
-        )
+        new_index_cls = idx._constructor
         expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
@@ -523,7 +520,7 @@ class Base:
         elif index.dtype == bool:
             # can't hold NAs
             return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+        elif isinstance(index, Index) and is_integer_dtype(index.dtype):
             return
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
@@ -592,7 +589,7 @@ class Base:
         idx = simple_index
 
         result = idx.map(lambda x: x)
-        # RangeIndex are equivalent to the similar NumericIndex with int64 dtype
+        # RangeIndex are equivalent to the similar Index with int64 dtype
         tm.assert_index_equal(result, idx, exact="equiv")
 
     @pytest.mark.parametrize(
@@ -615,7 +612,7 @@ class Base:
         identity = mapper(idx.values, idx)
 
         result = idx.map(identity)
-        # RangeIndex are equivalent to the similar NumericIndex with int64 dtype
+        # RangeIndex are equivalent to the similar Index with int64 dtype
         tm.assert_index_equal(result, idx, exact="equiv")
 
         # empty mappable
@@ -753,7 +750,7 @@ class Base:
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
     def test_append_preserves_dtype(self, simple_index):
-        # In particular NumericIndex with dtype float32
+        # In particular Index with dtype float32
         index = simple_index
         N = len(index)
 
@@ -812,6 +809,15 @@ class Base:
         msg = f"{type(idx).__name__}.holds_integer is deprecated. "
         with tm.assert_produces_warning(FutureWarning, match=msg):
             idx.holds_integer()
+
+    def test_is_numeric_is_deprecated(self, simple_index):
+        # GH50042
+        idx = simple_index
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=f"{type(idx).__name__}.is_numeric is deprecated. ",
+        ):
+            idx.is_numeric()
 
     def test_is_categorical_is_deprecated(self, simple_index):
         # GH50042
@@ -917,19 +923,19 @@ class NumericBase(Base):
 
         # float conversions
         arr = np.arange(5, dtype="int64") * 3.2
-        expected = NumericIndex(arr, dtype=np.float64)
+        expected = Index(arr, dtype=np.float64)
         fidx = idx * 3.2
         tm.assert_index_equal(fidx, expected)
         fidx = 3.2 * idx
         tm.assert_index_equal(fidx, expected)
 
         # interops with numpy arrays
-        expected = NumericIndex(arr, dtype=np.float64)
+        expected = Index(arr, dtype=np.float64)
         a = np.zeros(5, dtype="float64")
         result = fidx - a
         tm.assert_index_equal(result, expected)
 
-        expected = NumericIndex(-arr, dtype=np.float64)
+        expected = Index(-arr, dtype=np.float64)
         a = np.zeros(5, dtype="float64")
         result = a - fidx
         tm.assert_index_equal(result, expected)
