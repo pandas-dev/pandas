@@ -20,50 +20,30 @@ def test_consolidate(using_copy_on_write):
     subset = df[:]
 
     # each block of subset references a block of df
-    assert subset._mgr.refs is not None and all(
-        ref is not None for ref in subset._mgr.refs
-    )
+    assert all(blk.refs.has_reference() for blk in subset._mgr.blocks)
 
     # consolidate the two int64 blocks
     subset._consolidate_inplace()
 
     # the float64 block still references the parent one because it still a view
-    assert subset._mgr.refs[0] is not None
+    assert subset._mgr.blocks[0].refs.has_reference()
     # equivalent of assert np.shares_memory(df["b"].values, subset["b"].values)
     # but avoids caching df["b"]
     assert np.shares_memory(get_array(df, "b"), get_array(subset, "b"))
 
     # the new consolidated int64 block does not reference another
-    assert subset._mgr.refs[1] is None
+    assert not subset._mgr.blocks[1].refs.has_reference()
 
     # the parent dataframe now also only is linked for the float column
-    assert df._mgr._has_no_reference(0)
-    assert not df._mgr._has_no_reference(1)
-    assert df._mgr._has_no_reference(2)
+    assert not df._mgr.blocks[0].refs.has_reference()
+    assert df._mgr.blocks[1].refs.has_reference()
+    assert not df._mgr.blocks[2].refs.has_reference()
 
     # and modifying subset still doesn't modify parent
     if using_copy_on_write:
         subset.iloc[0, 1] = 0.0
-        assert df._mgr._has_no_reference(1)
+        assert not df._mgr.blocks[1].refs.has_reference()
         assert df.loc[0, "b"] == 0.1
-
-
-@td.skip_array_manager_invalid_test
-def test_clear_parent(using_copy_on_write):
-    # ensure to clear parent reference if we are no longer viewing data from parent
-    if not using_copy_on_write:
-        pytest.skip("test only relevant when using copy-on-write")
-
-    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-    subset = df[:]
-    assert subset._mgr.parent is not None
-
-    # replacing existing columns loses the references to the parent df
-    subset["a"] = 0
-    assert subset._mgr.parent is not None
-    # when losing the last reference, also the parent should be reset
-    subset["b"] = 0
-    assert subset._mgr.parent is None
 
 
 @pytest.mark.single_cpu

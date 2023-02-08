@@ -18,7 +18,7 @@ def test_series_from_series(using_copy_on_write):
     assert np.shares_memory(ser.values, result.values)
 
     if using_copy_on_write:
-        assert result._mgr.refs is not None
+        assert result._mgr.blocks[0].refs.has_reference()
 
     if using_copy_on_write:
         # mutating new series copy doesn't mutate original
@@ -72,4 +72,4 @@ def test_series_from_series_with_reindex(using_copy_on_write):
     result = Series(ser, index=[0, 1, 2, 3])
     assert not np.shares_memory(ser.values, result.values)
     if using_copy_on_write:
-        assert result._mgr.refs is None or result._mgr.refs[0] is None
+        assert not result._mgr.blocks[0].refs.has_reference()
