@@ -433,9 +433,7 @@ class Block(PandasObject):
         if downcast is None:
             return blocks
 
-        return extend_blocks(
-            [b._downcast_2d(downcast) for b in blocks]  # type: ignore[call-arg]
-        )
+        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
 
     @final
     @maybe_split
