@@ -7049,7 +7049,6 @@ class DataFrame(NDFrame, OpsMixin):
         John    2
         Anne    1
         Beth    1
-        dtype: int64
         Name: count, dtype: int64
         """
         if subset is None:
