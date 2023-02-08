@@ -171,6 +171,7 @@ def test_data_frame_value_counts_subset(nulls_fixture, columns):
     expected = pd.Series(
         data=[2, 1, 1],
         index=pd.Index(["John", "Anne", "Beth"], name=columns[0]),
+        name="count",
     )
 
     tm.assert_series_equal(result, expected)
