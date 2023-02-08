@@ -313,7 +313,7 @@ _num_index_shared_docs[
     Immutable sequence used for indexing and alignment.
 
     .. deprecated:: 1.4.0
-        In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
+        In pandas v2.0 %(klass)s will be removed and :class:`Index` used instead.
         %(klass)s will remain fully functional for the duration of pandas 1.x.
 
     The basic object storing axis labels for all pandas objects.
