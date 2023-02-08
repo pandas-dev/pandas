@@ -1572,6 +1572,10 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.engine import Engine
         from sqlalchemy.schema import MetaData
 
+        # self.exit_stack cleans up the Engine and Connection and commits the
+        # transaction if any of those objects was created below.
+        # Cleanup happens either in self.__exit__ or at the end of the iterator
+        # returned by read_sql when chunksize is not None.
         self.exit_stack = ExitStack()
         if isinstance(con, str):
             con = create_engine(con)
