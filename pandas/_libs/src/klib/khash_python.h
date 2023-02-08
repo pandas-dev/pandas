@@ -308,6 +308,7 @@ khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
 #define _PandasHASH_XXROTATE(x) ((x << 13) | (x >> 19))  /* Rotate left 13 bits */
 #endif
 
+
 Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
     Py_ssize_t i, len = Py_SIZE(key);
     PyObject **item = key->ob_item;
@@ -318,9 +319,7 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
         if (lane == (Py_uhash_t)-1) {
             return -1;
         }
-        acc += lane * _PandasHASH_XXPRIME_2;
-        acc = _PandasHASH_XXROTATE(acc);
-        acc *= _PandasHASH_XXPRIME_1;
+        acc = tuple_update_uhash(acc, lane);
     }
 
     /* Add input length, mangled to keep the historical value of hash(()). */
@@ -330,101 +329,6 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
         return 1546275796;
     }
     return acc;
-}
-
-
-// TODO: if nanos is most common/important, might be most performant to
-// make that canonical and others cast to that?
-Py_hash_t PANDAS_INLINE hash_datetime_value_and_reso(npy_datetime value, NPY_DATETIMEUNIT unit, npy_datetimestruct* dts) {
-    // If we cannot cast to pydatetime, then the question is if there are
-    // other-resolution datetime64 objects that we might be equal to whose
-    // hashes we need to match. We let year-reso objects return value, and make
-    // higher-resolution cases responsible for checking of they match.
-    if (unit == NPY_FR_Y) {
-        if (value == -1) {
-            // https://github.com/pandas-dev/pandas/pull/50960#discussion_r1088695136
-            return -2;
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_M) {
-        if ((value % 12) == 0) {
-            return hash_datetime_value_and_reso(value / 12, NPY_FR_Y, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_W) {
-        if (dts->day == 1) {
-            value = (dts->year - 1970) * 12 + dts->month;
-            return hash_datetime_value_and_reso(value, NPY_FR_M, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_D) {
-        if ((value % 7) == 0) {
-            return hash_datetime_value_and_reso(value / 7, NPY_FR_W, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_h) {
-        if ((value % 24) == 0) {
-            return hash_datetime_value_and_reso(value / 24, NPY_FR_D, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_m) {
-        if ((value % 60) == 0) {
-            return hash_datetime_value_and_reso(value / 60, NPY_FR_h, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_s) {
-        if ((value % 60) == 0) {
-            return hash_datetime_value_and_reso(value / 60, NPY_FR_m, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_ms) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_s, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_us) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ns, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_ns) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_us, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_ps) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ns, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_fs) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_ps, dts);
-        }
-        return value;
-    }
-    else if (unit == NPY_FR_as) {
-        if ((value % 1000) == 0) {
-            return hash_datetime_value_and_reso(value / 1000, NPY_FR_fs, dts);
-        }
-        return value;
-    }
-    else {
-        // i.e. NPY_FR_GENERIC
-        // we default to treating these like nanos
-        return hash_datetime_value_and_reso(value, NPY_FR_ns, dts);
-    }
 }
 
 
@@ -464,7 +368,7 @@ Py_hash_t np_datetime64_object_hash(PyObject* key) {
         return hash;
     }
 
-    return hash_datetime_value_and_reso(value, unit, &dts);
+    return hash_datetime_from_struct(&dts);
 }
 
 

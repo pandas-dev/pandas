@@ -71,6 +71,8 @@ cdef extern from "src/datetime/np_datetime.h":
                                              pandas_timedeltastruct *result
                                              ) nogil
 
+    int64_t hash_datetime_from_struct(npy_datetimestruct* dts)
+
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)

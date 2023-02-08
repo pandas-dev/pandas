@@ -8,6 +8,7 @@ shadows the python class, where we do any heavy lifting.
 """
 
 import warnings
+
 cimport cython
 
 import numpy as np
@@ -86,6 +87,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
+    hash_datetime_from_struct,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -295,11 +297,12 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
 
     def __hash__(_Timestamp self):
-        if self.nanosecond:
-            return hash(self.value)
-        if not (1 <= self.year <= 9999):
+        cdef:
+            npy_datetimestruct dts
+        if not (1 <= self.year <= 9999) or self.nanosecond:
             # out of bounds for pydatetime
-            return hash(self.value)
+            pydatetime_to_dtstruct(self, &dts)
+            return hash_datetime_from_struct(&dts)
         if self.fold:
             return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)

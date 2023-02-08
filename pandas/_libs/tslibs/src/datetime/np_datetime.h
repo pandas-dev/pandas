@@ -99,4 +99,7 @@ PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(
         PyArray_Descr *dtype);
 
 
+Py_hash_t hash_datetime_from_struct(npy_datetimestruct* dts);
+Py_uhash_t tuple_update_uhash(Py_uhash_t acc, Py_uhash_t lane);
+
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_

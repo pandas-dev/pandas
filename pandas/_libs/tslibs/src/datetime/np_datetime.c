@@ -1091,3 +1091,55 @@ PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
     return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
 }
+
+
+// we could use any hashing algorithm, this is the original CPython's for tuples
+
+#if SIZEOF_PY_UHASH_T > 4
+#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
+#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
+#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
+#define _PandasHASH_XXROTATE(x) ((x << 31) | (x >> 33))  /* Rotate left 31 bits */
+#else
+#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
+#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
+#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
+#define _PandasHASH_XXROTATE(x) ((x << 13) | (x >> 19))  /* Rotate left 13 bits */
+#endif
+
+
+Py_uhash_t tuple_update_uhash(Py_uhash_t acc, Py_uhash_t lane) {
+    acc += lane * _PandasHASH_XXPRIME_2;
+    acc = _PandasHASH_XXROTATE(acc);
+    acc *= _PandasHASH_XXPRIME_1;
+    return acc;
+}
+
+// https://github.com/pandas-dev/pandas/pull/50960
+Py_hash_t hash_datetime_from_struct(npy_datetimestruct* dts) {
+    /*
+     * If we cannot cast to datetime, use the datetime struct values directly
+     * and mix them similar to a tuple.
+     */
+
+    Py_uhash_t acc = _PandasHASH_XXPRIME_5;
+#if 64 <= SIZEOF_PY_UHASH_T
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->year);
+#else
+    /* Mix lower and uper bits of the year if int64 is larger */
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->year);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)(dts->year >> SIZEOF_PY_UHASH_T));
+#endif
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->month);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->day);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->min);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->sec);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->us);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->ps);
+    acc = tuple_update_uhash(acc, (Py_uhash_t)dts->as);
+    /* should be a need to mix length, as it is fixed anyway? */
+    if (acc == (Py_uhash_t)-1) {
+        acc = (Py_uhash_t)-2;
+    }
+    return acc;
+}
