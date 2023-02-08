@@ -780,6 +780,7 @@ def test_infer_objects_no_reference(using_copy_on_write):
     df.iloc[0, 1] = "d"
     if using_copy_on_write:
         assert np.shares_memory(arr_a, get_array(df, "a"))
+        # TODO(CoW): Block splitting causes references here
         assert not np.shares_memory(arr_b, get_array(df, "b"))
 
 
