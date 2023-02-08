@@ -6,6 +6,7 @@ from pandas.compat import pa_version_under7p0
 from pandas import (
     DataFrame,
     Series,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm
@@ -174,3 +175,20 @@ def test_astype_different_timezones_different_reso(using_copy_on_write):
         assert not np.shares_memory(
             get_array(df, "a").asi8, get_array(result, "a").asi8
         )
+
+
+@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow not installed")
+def test_astype_arrow_timestamp(using_copy_on_write):
+    df = DataFrame(
+        {
+            "a": [
+                Timestamp("2020-01-01 01:01:01.000001"),
+                Timestamp("2020-01-01 01:01:01.000001"),
+            ]
+        },
+        dtype="M8[ns]",
+    )
+    result = df.astype("timestamp[ns][pyarrow]")
+    if using_copy_on_write:
+        assert not result._mgr._has_no_reference(0)
+        assert np.shares_memory(get_array(df, "a").asi8, get_array(result, "a")._data)
