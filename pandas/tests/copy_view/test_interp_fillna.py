@@ -119,7 +119,6 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
 
 
 def test_interpolate_object_convert_no_op(using_copy_on_write):
-    # Check that "method is set to None" case works correctly
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")
     df.interpolate(method="pad", inplace=True)
