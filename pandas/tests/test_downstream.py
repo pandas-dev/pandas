@@ -45,7 +45,7 @@ def test_dask(df, request):
         toolz = import_module("toolz")  # noqa:F841
         dask = import_module("dask")  # noqa:F841
 
-        if Version(dask.__version__) < Version("2023.1.1"):
+        if Version(dask.__version__) <= Version("2023.1.1"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Used pandas.core.strings.StringMethods which moved",
@@ -62,15 +62,32 @@ def test_dask(df, request):
         pd.set_option("compute.use_numexpr", olduse)
 
 
-def test_dask_ufunc():
+def test_dask_ufunc(request):
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
         dask = import_module("dask")  # noqa:F841
+
+        if Version(dask.__version__) <= Version("2023.1.1"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Used pandas.core.strings.StringMethods which moved",
+                    raises=AttributeError,
+                )
+            )
+
         import dask.array as da
         import dask.dataframe as dd
+
+        if Version(dask.__version__) < Version("2023.1.1"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Used pandas.core.strings.StringMethods which moved",
+                    raises=AttributeError,
+                )
+            )
 
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
@@ -83,9 +100,19 @@ def test_dask_ufunc():
 
 
 @td.skip_if_no("dask")
-def test_construct_dask_float_array_int_dtype_match_ndarray():
+def test_construct_dask_float_array_int_dtype_match_ndarray(request):
     # GH#40110 make sure we treat a float-dtype dask array with the same
     #  rules we would for an ndarray
+
+    dask = pytest.importorskip("dask")
+    if Version(dask.__version__) <= Version("2023.1.1"):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Used pandas.core.strings.StringMethods which moved",
+                raises=AttributeError,
+            )
+        )
+
     import dask.dataframe as dd
 
     arr = np.array([1, 2.5, 3])
