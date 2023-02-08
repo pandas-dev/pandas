@@ -138,8 +138,8 @@ The option will only work for functions with the keyword ``use_nullable_dtypes``
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
-* :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
-* :func:`read_clipboard` (with ``engine="python"``)
+* :func:`read_csv`
+* :func:`read_clipboard`
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`

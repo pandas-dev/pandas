@@ -500,13 +500,6 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     with pd.option_context("mode.dtype_backend", "pyarrow"):
-        if engine == "c":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Not implemented with engine={parser.engine}",
-                )
-            )
         result = parser.read_csv(
             StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
         )
@@ -520,7 +513,7 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
                 "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
                 "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
                 "h": pd.Series(
-                    [pd.NA if engine == "python" else "", "a"],
+                    [pd.NA if engine != "pyarrow" else "", "a"],
                     dtype=pd.ArrowDtype(pa.string()),
                 ),
                 "i": pd.Series([Timestamp("2019-12-31")] * 2),
