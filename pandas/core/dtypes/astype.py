@@ -269,6 +269,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        # Potentially! a copy when converting from object to string
         return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
