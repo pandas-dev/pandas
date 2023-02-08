@@ -3874,7 +3874,7 @@ class Index(IndexOpsMixin, PandasObject):
             engine = self._engine
             with warnings.catch_warnings():
                 # TODO: We need to fix this. Casting to int64 in cython
-                warnings.filterwarnings("ignore")
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
                 return engine.get_indexer_with_fill(  # type: ignore[union-attr]
                     target=target._values,
                     values=self._values,

@@ -1611,7 +1611,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                 casted = np.array(arr, dtype=dtype, copy=False)
         else:
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
                 casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
@@ -1624,7 +1624,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
         return casted
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         if np.array_equal(arr, casted):
             return casted
 

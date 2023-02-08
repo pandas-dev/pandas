@@ -155,7 +155,7 @@ def _astype_float_to_int_nansafe(
         if not (values >= 0).all():
             raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         return values.astype(dtype, copy=copy)
 
 
