@@ -1265,21 +1265,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
 
-        if using_copy_on_write():
-            if self.refs is not None:
-                self.refs.extend([self.refs[blkno_l]] * len(nbs_tup))
-            else:
-                pass
-                # This can happen if we have inplace=True
-                # new_ref = weakref.ref(self.blocks[blkno_l])
-                # self.refs = [None] * len(self.blocks) + [new_ref] * len(nbs_tup)
-                # if value is None:
-                #     self.refs[blkno_l] = new_ref
-
-        if value is not None:
-            # Only clear if we set new values
-            self._clear_reference_block(blkno_l)
-
         nr_blocks = len(self.blocks)
         blocks_tup = (
             self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
