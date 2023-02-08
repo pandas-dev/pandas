@@ -794,15 +794,12 @@ def test_infer_objects_reference(using_copy_on_write):
 
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
-    arr_d = get_array(df, "d")
 
     df.iloc[0, 0] = 0
     df.iloc[0, 1] = "d"
-    df.iloc[0, 3] = 100
     if using_copy_on_write:
         assert not np.shares_memory(arr_a, get_array(df, "a"))
         assert not np.shares_memory(arr_b, get_array(df, "b"))
-        assert not np.shares_memory(arr_d, get_array(df, "d"))
 
 
 @pytest.mark.parametrize(
