@@ -970,3 +970,10 @@ class TestFillnaPad:
         filled = ser.fillna(method="pad")
 
         tm.assert_series_equal(filled, expected)
+
+    @pytest.mark.parametrize("func", ["pad", "backfill"])
+    def test_pad_backfill_deprecated(self, func):
+        # GH#33396
+        ser = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(ser, func)()
