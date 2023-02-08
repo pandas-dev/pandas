@@ -377,7 +377,7 @@ class Block(PandasObject):
             vals = self.values[slice(i, i + 1)]
 
             bp = BlockPlacement(ref_loc)
-            nb = type(self)(vals, placement=bp, ndim=2)
+            nb = type(self)(vals, placement=bp, ndim=2, refs=self.refs)
             new_blocks.append(nb)
         return new_blocks
 
@@ -453,12 +453,15 @@ class Block(PandasObject):
         self,
         *,
         copy: bool = True,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
+        if not copy and using_cow:
+            return [self.copy(deep=False)]
         return [self.copy()] if copy else [self]
 
     # ---------------------------------------------------------------------
@@ -2056,6 +2059,7 @@ class ObjectBlock(NumpyBlock):
         self,
         *,
         copy: bool = True,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -2064,6 +2068,8 @@ class ObjectBlock(NumpyBlock):
         if self.dtype != _dtype_obj:
             # GH#50067 this should be impossible in ObjectBlock, but until
             #  that is fixed, we short-circuit here.
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
 
         values = self.values
@@ -2079,10 +2085,14 @@ class ObjectBlock(NumpyBlock):
             convert_period=True,
             convert_interval=True,
         )
+        refs = None
         if copy and res_values is values:
             res_values = values.copy()
+        elif res_values is values and using_cow:
+            refs = self.refs
+
         res_values = ensure_block_shape(res_values, self.ndim)
-        return [self.make_block(res_values)]
+        return [self.make_block(res_values, refs=refs)]
 
 
 # -----------------------------------------------------------------

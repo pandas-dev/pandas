@@ -436,11 +436,14 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
-    def convert(self: T, copy: bool) -> T:
-        return self.apply(
-            "convert",
-            copy=copy,
-        )
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
+
+        return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
         inplace = validate_bool_kwarg(inplace, "inplace")
