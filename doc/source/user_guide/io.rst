@@ -810,7 +810,7 @@ Specifying date columns
 +++++++++++++++++++++++
 
 To better facilitate working with datetime data, :func:`read_csv`
-uses the keyword arguments ``parse_dates`` and ``date_parser``
+uses the keyword arguments ``parse_dates`` and ``date_format``
 to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 

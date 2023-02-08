@@ -775,6 +775,8 @@ def test_csv_custom_parser(all_parsers):
     )
     expected = parser.read_csv(StringIO(data), parse_dates=True)
     tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(StringIO(data), date_format="%Y%m%d")
+    tm.assert_frame_equal(result, expected)
 
 
 @xfail_pyarrow

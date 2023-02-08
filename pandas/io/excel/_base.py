@@ -397,6 +397,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | None = ...,
+    date_format: str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -436,6 +437,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | None = ...,
+    date_format: str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -483,7 +485,6 @@ def read_excel(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
-
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True

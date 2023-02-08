@@ -1098,6 +1098,18 @@ def _make_date_converter(
     cache_dates: bool = True,
     date_format=None,
 ):
+    if date_parser is not None:
+        warnings.warn(
+            "The argument 'date_parser' is deprecated and will "
+            "be removed in a future version. "
+            "Please use 'date_format' instead, or read your data in as 'object' dtype "
+            "and then call 'to_datetime'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if date_parser is not None and date_format is not None:
+        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
+
     def converter(*date_cols):
         if date_parser is None:
             strs = parsing.concat_date_cols(date_cols)
