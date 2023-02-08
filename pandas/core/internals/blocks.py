@@ -268,7 +268,6 @@ class Block(PandasObject):
 
         new_values = self._slice(slicer)
         refs = self.refs if isinstance(slicer, slice) else None
-        refs = self.refs if isinstance(slicer, slice) else None
         return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
@@ -440,7 +439,7 @@ class Block(PandasObject):
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype, original_block) -> list[Block]:
+    def _downcast_2d(self, dtype) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
@@ -2081,8 +2080,7 @@ class ObjectBlock(NumpyBlock):
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
-        result = self.make_block(res_values, refs=refs)
-        return [result]
+        return [self.make_block(res_values, refs=refs)]
 
 
 # -----------------------------------------------------------------
