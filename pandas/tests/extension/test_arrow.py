@@ -1804,7 +1804,7 @@ def test_str_join():
     [
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
-        [None, 2, 1, ["bc", None]],
+        [1, 3, 1, ["bc", None]],
     ],
 )
 def test_str_slice(start, stop, step, exp):
@@ -1879,7 +1879,7 @@ def test_str_transform_functions(method, exp):
 def test_str_len():
     ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.len()
-    expected = pd.Series([4, None], dtype=ArrowDtype(pa.int64()))
+    expected = pd.Series([4, None], dtype=ArrowDtype(pa.int32()))
     tm.assert_series_equal(result, expected)
 
 
