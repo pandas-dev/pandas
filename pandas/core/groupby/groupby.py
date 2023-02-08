@@ -1380,9 +1380,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             this can be coincidental leading to value-dependent behavior.
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
-            and should not have group keys prepended. This is used
-            in _make_wrapper which generates both transforms (e.g. diff)
-            and non-transforms (e.g. corr)
+            and should not have group keys prepended.
         is_agg : bool, default False
             Indicator for whether the function is an aggregation. When the
             result is empty, we don't want to warn for this case.
@@ -4110,15 +4108,8 @@ def get_groupby(
     obj: NDFrame,
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
-    level=None,
     grouper: ops.BaseGrouper | None = None,
-    exclusions=None,
-    selection=None,
-    as_index: bool = True,
-    sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
-    observed: bool = False,
-    dropna: bool = True,
 ) -> GroupBy:
 
     klass: type[GroupBy]
@@ -4137,15 +4128,8 @@ def get_groupby(
         obj=obj,
         keys=by,
         axis=axis,
-        level=level,
         grouper=grouper,
-        exclusions=exclusions,
-        selection=selection,
-        as_index=as_index,
-        sort=sort,
         group_keys=group_keys,
-        observed=observed,
-        dropna=dropna,
     )
 
 
