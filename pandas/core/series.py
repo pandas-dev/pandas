@@ -19,6 +19,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 import weakref
 
 import numpy as np
@@ -81,6 +82,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -216,6 +218,13 @@ def _coerce_method(converter):
 
     def wrapper(self):
         if len(self) == 1:
+            warnings.warn(
+                f"Calling {converter.__name__} on a single element Series is "
+                "deprecated and will raise a TypeError in the future. "
+                f"Use {converter.__name__}(ser.iloc[0]) instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return converter(self.iloc[0])
         raise TypeError(f"cannot convert the series to {converter}")
 
@@ -1494,17 +1503,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    4
         Name: foo, dtype: int64
 
-        To update the Series in place, without generating a new one
-        set `inplace` to True. Note that it also requires ``drop=True``.
-
-        >>> s.reset_index(inplace=True, drop=True)
-        >>> s
-        0    1
-        1    2
-        2    3
-        3    4
-        Name: foo, dtype: int64
-
         The `level` parameter is interesting for Series with a multi-level
         index.
 
@@ -2242,11 +2240,9 @@ Name: Max Speed, dtype: float64
         Name: animal, dtype: object
 
         The value ``False`` for parameter 'keep' discards all sets of
-        duplicated entries. Setting the value of 'inplace' to ``True`` performs
-        the operation inplace and returns ``None``.
+        duplicated entries.
 
-        >>> s.drop_duplicates(keep=False, inplace=True)
-        >>> s
+        >>> s.drop_duplicates(keep=False)
         1       cow
         3    beetle
         5     hippo
@@ -3374,8 +3370,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def sort_values(
         self,
         *,
@@ -3483,17 +3478,6 @@ Keep all original rows and also all original values
         Sort values descending order
 
         >>> s.sort_values(ascending=False)
-        3    10.0
-        4     5.0
-        2     3.0
-        1     1.0
-        0     NaN
-        dtype: float64
-
-        Sort values inplace
-
-        >>> s.sort_values(ascending=False, inplace=True)
-        >>> s
         3    10.0
         4     5.0
         2     3.0
@@ -3748,16 +3732,6 @@ Keep all original rows and also all original values
         3    a
         2    b
         1    c
-        dtype: object
-
-        Sort Inplace
-
-        >>> s.sort_index(inplace=True)
-        >>> s
-        1    c
-        2    b
-        3    a
-        4    d
         dtype: object
 
         By default NaNs are put at the end, but use `na_position` to place
@@ -5156,8 +5130,7 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
@@ -5615,14 +5588,6 @@ Keep all original rows and also all original values
         Drop NA values from a Series.
 
         >>> ser.dropna()
-        0    1.0
-        1    2.0
-        dtype: float64
-
-        Keep the Series with valid entries in the same variable.
-
-        >>> ser.dropna(inplace=True)
-        >>> ser
         0    1.0
         1    2.0
         dtype: float64

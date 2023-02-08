@@ -47,6 +47,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -595,7 +596,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if dtype.categories.is_numeric():
+            if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
@@ -1673,13 +1674,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [5, 2, 2, 1, 1]
         Categories (3, int64): [1, 2, 5]
 
-        Inplace sorting can be done as well:
-
-        >>> c.sort_values(inplace=True)
-        >>> c
-        [1, 1, 2, 2, 5]
-        Categories (3, int64): [1, 2, 5]
-        >>>
         >>> c = pd.Categorical([1, 2, 2, 1, 5])
 
         'sort_values' behaviour with NaNs. Note that 'na_position'
@@ -1758,7 +1752,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif self.categories.is_numeric():
+        elif is_any_real_numeric_dtype(self.categories):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)

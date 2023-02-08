@@ -768,8 +768,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
-            new_mgr.parent = self._mgr
-            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
+            new_mgr.blocks[0].refs.add_reference(
+                new_mgr.blocks[0]  # type: ignore[arg-type]
+            )
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         elif (copy or copy is None) and self._mgr.is_single_block:
@@ -6216,17 +6218,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: category
         Categories (2, int64): [2 < 1]
 
-        Note that using ``copy=False`` and changing data on a new
-        pandas object may propagate changes:
-
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = s1.astype('int64', copy=False)
-        >>> s2[0] = 10
-        >>> s1  # note that s1[0] has changed too
-        0    10
-        1     2
-        dtype: int64
-
         Create a series of dates:
 
         >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
@@ -6435,7 +6426,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self: NDFrameT, copy: bool_t = True) -> NDFrameT:
+    def infer_objects(self: NDFrameT, copy: bool_t | None = None) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
 
@@ -7010,7 +7001,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    pad = ffill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def pad(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.pad is deprecated. Use {klass}.ffill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.pad/Series.pad is deprecated. Use "
+            "DataFrame.ffill/Series.ffill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def bfill(
@@ -7066,7 +7084,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    backfill = bfill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def backfill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.backfill is deprecated. Use {klass}.backfill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.backfill/Series.backfill is deprecated. Use "
+            "DataFrame.bfill/Series.bfill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def replace(
@@ -8794,7 +8839,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
         return get_resampler(
-            self,
+            cast("Series | DataFrame", self),
             freq=rule,
             label=label,
             closed=closed,
@@ -11872,12 +11917,14 @@ The standard deviation of the columns can be found as follows:
 >>> df.std()
 age       18.786076
 height     0.237417
+dtype: float64
 
 Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 
 >>> df.std(ddof=0)
 age       16.269219
-height     0.205609"""
+height     0.205609
+dtype: float64"""
 
 _var_examples = """
 
@@ -11898,12 +11945,14 @@ person_id
 >>> df.var()
 age       352.916667
 height      0.056367
+dtype: float64
 
 Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
 
 >>> df.var(ddof=0)
 age       264.687500
-height      0.042275"""
+height      0.042275
+dtype: float64"""
 
 _bool_doc = """
 {desc}

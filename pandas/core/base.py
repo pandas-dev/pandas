@@ -1161,7 +1161,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = uniques.astype(np.float32)
 
         if isinstance(self, ABCIndex):
-            # preserve e.g. NumericIndex, preserve MultiIndex
+            # preserve e.g. MultiIndex
             uniques = self._constructor(uniques)
         else:
             from pandas import Index
