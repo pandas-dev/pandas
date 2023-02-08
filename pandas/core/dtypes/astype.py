@@ -269,7 +269,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
-        # Potentially! a copy when converting from object to string
+        # Potentially! a view when converting from object to string
         return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
@@ -291,7 +291,10 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         numpy_dtype = new_dtype
 
     if numpy_dtype is not None and new_numpy_dtype is not None:
-        # if both have NumPy dtype then they are only views if they are equal
+        # if both have NumPy dtype or one of them is a numpy dtype
+        # they are only a view when the numpy dtypes are equal, e.g.
+        # int64 -> Int64 or int64[pyarrow]
+        # int64 -> Int32 copies
         return numpy_dtype == new_numpy_dtype
 
     # Assume this is a view since we don't know for sure if a copy was made
