@@ -267,6 +267,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_integer \
         pandas.api.types.pandas_dtype \
         pandas.read_clipboard \
+        pandas.ExcelFile \
         pandas.ExcelFile.parse \
         pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
