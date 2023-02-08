@@ -238,6 +238,9 @@ Copy-on-Write improvements
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
 
+- The :class:`DataFrame` constructor now will keep track of references when called
+  with another :class:`DataFrame` or ``BlockManager``.
+
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
   will now always raise an exception when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary

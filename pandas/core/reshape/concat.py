@@ -548,7 +548,7 @@ class _Concatenator:
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
                     obj = sample._constructor(obj, columns=[name], copy=False)
-                    if using_copy_on_write():
+                    if isinstance(original_obj, ABCSeries) and using_copy_on_write():
                         # TODO(CoW): Remove when ref tracking in constructors works
                         for i, block in enumerate(original_obj._mgr.blocks):  # type: ignore[union-attr]  # noqa
                             obj._mgr.blocks[i].refs = block.refs  # type: ignore[union-attr]  # noqa
