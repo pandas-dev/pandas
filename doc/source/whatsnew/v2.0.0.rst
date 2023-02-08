@@ -1301,6 +1301,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 - Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
+- Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
 -
 
 Reshaping
