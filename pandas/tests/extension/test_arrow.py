@@ -1526,7 +1526,7 @@ def test_to_numpy_with_defaults(data):
 
 
 def test_to_numpy_int_with_na():
-    # ensure to_numpy does not convert int to float
+    # GH51227: ensure to_numpy does not convert int to float
     data = [1, None]
     arr = pd.array(data, dtype="int64[pyarrow]")
     result = arr.to_numpy()
