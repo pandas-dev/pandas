@@ -1380,9 +1380,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             this can be coincidental leading to value-dependent behavior.
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
-            and should not have group keys prepended. This is used
-            in _make_wrapper which generates both transforms (e.g. diff)
-            and non-transforms (e.g. corr)
+            and should not have group keys prepended.
         is_agg : bool, default False
             Indicator for whether the function is an aggregation. When the
             result is empty, we don't want to warn for this case.
@@ -1501,7 +1499,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  that goes through SeriesGroupBy
 
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
-        is_ser = data.ndim == 1
 
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
@@ -1523,16 +1520,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         new_mgr = data.grouped_reduce(array_func)
-
         res = self._wrap_agged_manager(new_mgr)
-        if is_ser:
-            if self.as_index:
-                res.index = self.grouper.result_index
-            else:
-                res = self._insert_inaxis_grouper(res)
-            return self._reindex_output(res)
-        else:
-            return res
+        out = self._wrap_aggregated_output(res)
+        if data.ndim == 2:
+            # TODO: don't special-case DataFrame vs Series
+            out = out.infer_objects(copy=False)
+        return out
 
     def _cython_transform(
         self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
@@ -1793,19 +1786,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)
+        new_obj = self._wrap_agged_manager(new_mgr)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_manager() returns. GH 35028
+        # _wrap_aggregated_output() returns. GH 35028
         # e.g. test_dataframe_groupby_on_2_categoricals_when_observed_is_false
         with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_manager(new_mgr)
-
-        if result.ndim == 1:
-            if self.as_index:
-                result.index = self.grouper.result_index
-            else:
-                result = self._insert_inaxis_grouper(result)
+            result = self._wrap_aggregated_output(new_obj)
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2790,9 +2778,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mgr = obj._mgr
         res_mgr = mgr.apply(blk_func)
 
-        new_obj = obj._constructor(res_mgr)
-        if isinstance(new_obj, Series):
-            new_obj.name = obj.name
+        new_obj = self._wrap_agged_manager(res_mgr)
 
         if self.axis == 1:
             # Only relevant for DataFrameGroupBy
@@ -3197,15 +3183,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 out = out.reshape(ncols, ngroups * nqs)
             return post_processor(out, inference, result_mask, orig_vals)
 
-        obj = self._obj_with_exclusions
-        is_ser = obj.ndim == 1
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         res_mgr = data.grouped_reduce(blk_func)
 
-        if is_ser:
-            res = self._wrap_agged_manager(res_mgr)
-        else:
-            res = obj._constructor(res_mgr)
+        res = self._wrap_agged_manager(res_mgr)
 
         if orig_scalar:
             # Avoid expensive MultiIndex construction
@@ -3652,19 +3633,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result.T
 
-        obj = self._obj_with_exclusions
-
         # Operate block-wise instead of column-by-column
-        is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         res_mgr = mgr.grouped_reduce(blk_func)
 
-        if is_ser:
-            out = self._wrap_agged_manager(res_mgr)
-        else:
-            out = obj._constructor(res_mgr)
-
+        out = self._wrap_agged_manager(res_mgr)
         return self._wrap_aggregated_output(out)
 
     @final
@@ -4134,15 +4108,8 @@ def get_groupby(
     obj: NDFrame,
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
-    level=None,
     grouper: ops.BaseGrouper | None = None,
-    exclusions=None,
-    selection=None,
-    as_index: bool = True,
-    sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
-    observed: bool = False,
-    dropna: bool = True,
 ) -> GroupBy:
 
     klass: type[GroupBy]
@@ -4161,15 +4128,8 @@ def get_groupby(
         obj=obj,
         keys=by,
         axis=axis,
-        level=level,
         grouper=grouper,
-        exclusions=exclusions,
-        selection=selection,
-        as_index=as_index,
-        sort=sort,
         group_keys=group_keys,
-        observed=observed,
-        dropna=dropna,
     )
 
 
