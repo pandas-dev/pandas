@@ -137,13 +137,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     _bool_ops: list[str] = []
     _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
         "floor",
         "ceil",
+        "as_unit",
     ]
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
