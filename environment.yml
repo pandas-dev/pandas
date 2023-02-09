@@ -78,7 +78,7 @@ dependencies:
   - black=22.10.0
   - cpplint
   - flake8=6.0.0
-  - isort>=5.2.1 # check that imports are in the right order
+  - isort>=5.2.1  # check that imports are in the right order
   - mypy=1.0
   - pre-commit>=2.15.0
   - pyupgrade

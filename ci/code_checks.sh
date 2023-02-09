@@ -187,7 +187,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.show_versions \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.unit \
         pandas.Timestamp.as_unit \
         pandas.Timestamp.ctime \
         pandas.Timestamp.date \
@@ -579,13 +578,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
-        pandas.DataFrame.copy \
         pandas.DataFrame.plot.line \
-        pandas.DataFrame.std \
-        pandas.DataFrame.var \
         pandas.Index.factorize \
         pandas.Period.strftime \
-        pandas.Series.copy \
         pandas.Series.factorize \
         pandas.Series.floordiv \
         pandas.Series.plot.line \
@@ -593,8 +588,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.sparse.density \
         pandas.Series.sparse.npoints \
         pandas.Series.sparse.sp_values \
-        pandas.Series.std \
-        pandas.Series.var \
         pandas.Timestamp.fromtimestamp \
         pandas.api.types.infer_dtype \
         pandas.api.types.is_bool_dtype \
@@ -604,21 +597,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_datetime64_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
-        pandas.api.types.is_dict_like \
-        pandas.api.types.is_file_like \
         pandas.api.types.is_float_dtype \
-        pandas.api.types.is_hashable \
         pandas.api.types.is_int64_dtype \
         pandas.api.types.is_integer_dtype \
         pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_iterator \
-        pandas.api.types.is_list_like \
-        pandas.api.types.is_named_tuple \
         pandas.api.types.is_numeric_dtype \
         pandas.api.types.is_object_dtype \
         pandas.api.types.is_period_dtype \
-        pandas.api.types.is_re \
-        pandas.api.types.is_re_compilable \
         pandas.api.types.is_signed_integer_dtype \
         pandas.api.types.is_sparse \
         pandas.api.types.is_string_dtype \
