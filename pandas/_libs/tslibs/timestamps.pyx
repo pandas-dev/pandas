@@ -1023,19 +1023,20 @@ cdef class _Timestamp(ABCTimestamp):
         stamp = self._repr_base
         zone = None
 
-        try:
-            stamp += self.strftime("%z")
-        except ValueError:
-            year2000 = self.replace(year=2000)
-            stamp += year2000.strftime("%z")
+        if self.tzinfo is not None:
+            try:
+                stamp += self.strftime("%z")
+            except ValueError:
+                year2000 = self.replace(year=2000)
+                stamp += year2000.strftime("%z")
 
-        if self.tzinfo:
-            zone = get_timezone(self.tzinfo)
-        try:
-            stamp += zone.strftime(" %%Z")
-        except AttributeError:
-            # e.g. tzlocal has no `strftime`
-            pass
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+            try:
+                stamp += zone.strftime(" %%Z")
+            except AttributeError:
+                # e.g. tzlocal has no `strftime`
+                pass
 
         tz = f", tz='{zone}'" if zone is not None else ""
 
