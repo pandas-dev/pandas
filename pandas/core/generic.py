@@ -2711,7 +2711,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
             connectable. See `here \
-                <https://docs.sqlalchemy.org/en/14/core/connections.html>`_.
+                <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
             If passing a sqlalchemy.engine.Connection which is already in a transaction,
             the transaction will not be committed.  If passing a sqlite3.Connection,
             it will not be possible to roll back the record insertion.
@@ -2761,7 +2761,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
             reflect the exact number of written rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
-            `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__.
+            `SQLAlchemy <https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.rowcount>`__.
 
             .. versionadded:: 1.4.0
 
@@ -2805,7 +2805,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.to_sql('users', con=engine)
         3
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> from sqlalchemy import text
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
@@ -2821,7 +2823,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
         2
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
          (1, 'User 7')]
@@ -2831,7 +2834,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
         Specify the dtype (especially useful for integers with missing values).
@@ -2851,7 +2855,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...           dtype={"A": Integer()})
         3
 
-        >>> engine.execute("SELECT * FROM integers").fetchall()
+        >>> with engine.connect() as conn:
+        ...   conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa:E501
         from pandas.io import sql
