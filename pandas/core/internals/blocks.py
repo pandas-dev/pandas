@@ -560,7 +560,12 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self if inplace else self.copy()
+            if using_cow and (self.refs.has_reference() or not inplace):
+                blk = self.copy()
+            elif using_cow:
+                blk = self.copy(deep=False)
+            else:
+                blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]

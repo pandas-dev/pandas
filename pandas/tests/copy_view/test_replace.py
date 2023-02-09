@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    Categorical,
+    DataFrame,
+)
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -144,3 +147,51 @@ def test_replace_inplace_reference_no_op(using_copy_on_write, to_replace):
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
         assert not view._mgr._has_no_reference(0)
+
+
+@pytest.mark.parametrize("val", [1, 1.5])
+def test_replace_categorical_inplace_reference(using_copy_on_write, val):
+    df = DataFrame({"a": Categorical([1, 2, 3])})
+    df_orig = df.copy()
+    arr_a = get_array(df, "a")
+    view = df[:]  # noqa
+    df.replace(to_replace=1, value=val, inplace=True)
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a").codes, arr_a.codes)
+        assert df._mgr._has_no_reference(0)
+        assert view._mgr._has_no_reference(0)
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
+
+
+@pytest.mark.parametrize("val", [1, 1.5])
+def test_replace_categorical_inplace(using_copy_on_write, val):
+    df = DataFrame({"a": Categorical([1, 2, 3])})
+    arr_a = get_array(df, "a")
+    df.replace(to_replace=1, value=val, inplace=True)
+
+    assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
+
+    expected = DataFrame({"a": Categorical([val, 2, 3])})
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("val", [1, 1.5])
+def test_replace_categorical(using_copy_on_write, val):
+    df = DataFrame({"a": Categorical([1, 2, 3])})
+    df_orig = df.copy()
+    df2 = df.replace(to_replace=1, value=val)
+
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
+        assert df2._mgr._has_no_reference(0)
+    assert not np.shares_memory(get_array(df, "a").codes, get_array(df2, "a").codes)
+    tm.assert_frame_equal(df, df_orig)
+
+    arr_a = get_array(df2, "a").codes
+    df2.iloc[0, 0] = 2.0
+    assert np.shares_memory(get_array(df2, "a").codes, arr_a)
