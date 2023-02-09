@@ -915,7 +915,7 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
-    def setitem(self, indexer, value) -> Block:
+    def setitem(self, indexer, value, using_cow: bool = False) -> Block:
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -960,10 +960,19 @@ class Block(PandasObject):
                     # checking lib.is_scalar here fails on
                     #  test_iloc_setitem_custom_object
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
+
+            if using_cow and self.refs.has_reference():
+                values = values.copy()
+                self = type(self)(
+                    values.T if values.ndim == 2 else values,
+                    self._mgr_locs,
+                    ndim=self.ndim,
+                )
+
             values[indexer] = casted
         return self
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -991,11 +1000,21 @@ class Block(PandasObject):
         new = extract_array(new, extract_numpy=True)
 
         if noop:
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
 
         try:
             casted = np_can_hold_element(values.dtype, new)
+
+            if using_cow and self.refs.has_reference():
+                # Do this here to avoid copying twice
+                values = values.copy()
+                self = type(self)(values, self._mgr_locs, ndim=self.ndim)
+
             putmask_without_repeat(values.T, mask, casted)
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
 
@@ -1007,7 +1026,7 @@ class Block(PandasObject):
                     return self.coerce_to_target_dtype(new).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
-                    nb = self.setitem(indexer, new[indexer])
+                    nb = self.setitem(indexer, new[indexer], using_cow=using_cow)
                     return [nb]
 
             else:
@@ -1022,7 +1041,7 @@ class Block(PandasObject):
                         n = new[:, i : i + 1]
 
                     submask = orig_mask[:, i : i + 1]
-                    rbs = nb.putmask(submask, n)
+                    rbs = nb.putmask(submask, n, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1523,7 +1542,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -1541,7 +1560,16 @@ class EABackedBlock(Block):
         mask = self._maybe_squeeze_arg(mask)
 
         if not mask.any():
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
+
+        if using_cow and self.refs.has_reference():
+            # Do this here to avoid copying twice
+            values = values.copy()
+            self = type(self)(
+                values.T if values.ndim == 2 else values, self._mgr_locs, ndim=self.ndim
+            )
 
         try:
             # Caller is responsible for ensuring matching lengths
