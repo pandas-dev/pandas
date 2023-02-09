@@ -1138,12 +1138,7 @@ class Parser:
                     return data, False
                 return data.fillna(np.nan), True
 
-            # error: Non-overlapping identity check (left operand type:
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object],
-            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
-            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]]", right operand type: "Literal[True]")
-            elif self.dtype is True:  # type: ignore[comparison-overlap]
+            elif self.dtype is True:
                 pass
             else:
                 # dtype to force
