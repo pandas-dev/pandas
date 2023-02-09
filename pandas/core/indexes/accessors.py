@@ -215,7 +215,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         result = (
             cast(ArrowExtensionArray, self._parent.array)
             ._dt_isocalendar()
-            ._data.combine_chunks()
+            ._pa_array.combine_chunks()
         )
         iso_calendar_df = DataFrame(
             {
