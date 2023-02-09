@@ -579,9 +579,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
         pandas.DataFrame.plot.line \
-        pandas.Index.factorize \
         pandas.Period.strftime \
-        pandas.Series.factorize \
         pandas.Series.floordiv \
         pandas.Series.plot.line \
         pandas.Series.rfloordiv \
@@ -609,7 +607,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_unsigned_integer_dtype \
         pandas.core.groupby.DataFrameGroupBy.take \
         pandas.core.groupby.SeriesGroupBy.take \
-        pandas.factorize \
         pandas.io.formats.style.Styler.concat \
         pandas.io.formats.style.Styler.export \
         pandas.io.formats.style.Styler.set_td_classes \
