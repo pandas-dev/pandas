@@ -73,7 +73,7 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_oob_non_nano(self):
-        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[m]")
+        arr = np.array([pd.NaT._value + 1], dtype="timedelta64[m]")
 
         msg = (
             "Cannot convert -9223372036854775807 minutes to "
@@ -218,7 +218,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize("val", [np.nan, pd.NaT])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
-        assert actual.value == np.timedelta64("NaT").astype("int64")
+        assert actual._value == np.timedelta64("NaT").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -280,7 +280,7 @@ class TestTimedeltas:
         arg2 = arg.view("m8[ns]")
         result = to_timedelta(arg2)
         assert isinstance(result, pd.Timedelta)
-        assert result.value == dt64.view("i8")
+        assert result._value == dt64.view("i8")
 
     def test_to_timedelta_numeric_ea(self, any_numeric_ea_dtype):
         # GH#48796

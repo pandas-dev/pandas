@@ -16,7 +16,7 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_get_loc_naive_dti_aware_str_deprecated(self):
         # GH#46903
-        ts = Timestamp("20130101").value
+        ts = Timestamp("20130101")._value
         dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(range(100), index=dti)
 

@@ -159,7 +159,7 @@ def test_roundtrip_tz_aware_index(setup_path):
         store.put("frame", df, format="fixed")
         recons = store["frame"]
         tm.assert_frame_equal(recons, df)
-        assert recons.index[0].value == 946706400000000000
+        assert recons.index[0]._value == 946706400000000000
 
 
 def test_store_index_name_with_tz(setup_path):

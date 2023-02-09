@@ -132,7 +132,7 @@ class TestNonNano:
         expected = dta[0]
 
         assert type(res) is pd.Timestamp
-        assert res.value == expected.value
+        assert res._value == expected._value
         assert res._creso == expected._creso
         assert res == expected
 

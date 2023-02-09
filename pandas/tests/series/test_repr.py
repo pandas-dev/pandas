@@ -241,7 +241,7 @@ class TestSeriesRepr:
         repr(ts)
 
     def test_series_repr_nat(self):
-        series = Series([0, 1000, 2000, pd.NaT.value], dtype="M8[ns]")
+        series = Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")
 
         result = repr(series)
         expected = (

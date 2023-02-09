@@ -2560,9 +2560,9 @@ class TestLocBooleanMask:
         df_copy = df.copy()
         ser = Series([td1])
 
-        expected = df["col"].iloc[1].value
+        expected = df["col"].iloc[1]._value
         df.loc[[True, False]] = ser
-        result = df["col"].iloc[1].value
+        result = df["col"].iloc[1]._value
 
         assert expected == result
         tm.assert_frame_equal(df, df_copy)

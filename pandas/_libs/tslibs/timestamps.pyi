@@ -32,7 +32,7 @@ class Timestamp(datetime):
     max: ClassVar[Timestamp]
 
     resolution: ClassVar[Timedelta]
-    value: int  # np.int64
+    _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
         cls: type[_DatetimeT],
@@ -55,6 +55,8 @@ class Timestamp(datetime):
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _tzinfo | None
     ) -> Timestamp: ...
+    @property
+    def value(self) -> int: ...  # np.int64
     @property
     def year(self) -> int: ...
     @property

@@ -73,7 +73,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             dt_cls([pd.NaT, Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, Timestamp("2011-01-01").value], freq="D")
+            dt_cls([pd.NaT, Timestamp("2011-01-01")._value], freq="D")
 
     # TODO: better place for tests shared by DTI/TDI?
     @pytest.mark.parametrize(
@@ -805,7 +805,7 @@ class TestDatetimeIndex:
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
         ts = Timestamp("2018-01-01", tz=tz).as_unit("ns")
-        result = klass(box([ts.value]), dtype=dtype)
+        result = klass(box([ts._value]), dtype=dtype)
         expected = klass([ts])
         assert result == expected
 
@@ -1200,6 +1200,6 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     # Check that we adjust value for fold correctly
     # based on timestamps since utc
     ts = Timestamp(ts_input, tz=tz, fold=fold)
-    result = ts.value
+    result = ts._value
     expected = value_out
     assert result == expected

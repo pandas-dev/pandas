@@ -510,7 +510,7 @@ class JoinUnit:
 
                 if isinstance(empty_dtype, DatetimeTZDtype):
                     # NB: exclude e.g. pyarrow[dt64tz] dtypes
-                    i8values = np.full(self.shape, fill_value.value)
+                    i8values = np.full(self.shape, fill_value._value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_1d_only_ea_dtype(empty_dtype):

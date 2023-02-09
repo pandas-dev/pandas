@@ -200,7 +200,7 @@ class TestTimestampArithmetic:
         now = datetime.utcnow()
         ts = Timestamp(now).as_unit("ns")
         result = ts + other
-        valdiff = result.value - ts.value
+        valdiff = result._value - ts._value
         assert valdiff == expected_difference
 
         ts2 = Timestamp(now)

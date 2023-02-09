@@ -26,7 +26,7 @@ from pandas.core.arrays import period_array
 
 class TestSeriesFillNA:
     def test_fillna_nat(self):
-        series = Series([0, 1, 2, NaT.value], dtype="M8[ns]")
+        series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
 
         filled = series.fillna(method="pad")
         filled2 = series.fillna(value=series.values[2])
@@ -44,7 +44,7 @@ class TestSeriesFillNA:
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
 
-        series = Series([NaT.value, 0, 1, 2], dtype="M8[ns]")
+        series = Series([NaT._value, 0, 1, 2], dtype="M8[ns]")
 
         filled = series.fillna(method="bfill")
         filled2 = series.fillna(value=series[1])

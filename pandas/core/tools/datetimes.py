@@ -518,8 +518,8 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             fvalues = (arg * mult).astype("f8", copy=False)
             fvalues[mask] = 0
 
-            if (fvalues < Timestamp.min.value).any() or (
-                fvalues > Timestamp.max.value
+            if (fvalues < Timestamp.min._value).any() or (
+                fvalues > Timestamp.max._value
             ).any():
                 if errors != "raise":
                     arg = arg.astype(object)

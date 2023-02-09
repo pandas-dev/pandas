@@ -57,7 +57,7 @@ def test_tzlocal_offset():
     offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
     offset = offset.total_seconds()
 
-    assert ts.value + offset == Timestamp("2011-01-01").value
+    assert ts._value + offset == Timestamp("2011-01-01")._value
 
 
 def test_tzlocal_is_not_utc():
