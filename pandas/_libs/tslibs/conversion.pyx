@@ -297,9 +297,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.value = NPY_NAT
         else:
             if unit is None:
-                in_reso = abbrev_to_npy_unit("ns")
-            else:
-                in_reso = abbrev_to_npy_unit(unit)
+                unit = "ns"
+            in_reso = abbrev_to_npy_unit(unit)
             reso = get_supported_reso(in_reso)
             ts = cast_from_unit(ts, unit, reso)
             obj.value = ts
