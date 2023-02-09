@@ -39,7 +39,7 @@ jobs:
             elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
                 export IS_SCHEDULE_DISPATCH="true"
             # Look for the build label
-            elif ! (curl https://api.github.com/repos/pandas-dev/pandas/issues/$CIRCLE_PR_NUMBER | grep -q 'Build'); then
+            elif ! (curl https://api.github.com/repos/pandas-dev/pandas/issues/$CIRCLE_PR_NUMBER | jq '.labels' | grep -q 'Build'); then
                 circleci-agent step halt
             fi
       - run:
