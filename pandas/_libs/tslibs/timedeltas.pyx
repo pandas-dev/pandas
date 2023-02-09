@@ -1036,6 +1036,23 @@ cdef class _Timedelta(timedelta):
 
     @property
     def days(self) -> int:  # TODO(cython3): make cdef property
+        """
+        Returns the days of the timedelta.
+
+        Returns
+        -------
+        int
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(1, "d")
+        >>> td.days
+        1
+
+        >>> td = pd.Timedelta('4 min 3 us 42 ns')
+        >>> td.days
+        0
+        """
         # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
         #  (or be incorrect)
         self._ensure_components()
@@ -1062,11 +1079,13 @@ cdef class _Timedelta(timedelta):
         Examples
         --------
         **Using string input**
+
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.seconds
         120
 
         **Using integer input**
+
         >>> td = pd.Timedelta(42, unit='s')
         >>> td.seconds
         42
@@ -1284,6 +1303,13 @@ cdef class _Timedelta(timedelta):
     def components(self):
         """
         Return a components namedtuple-like.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('2 day 4 min 3 us 42 ns')
+        >>> td.components
+        Components(days=2, hours=0, minutes=4, seconds=0, milliseconds=0,
+            microseconds=3, nanoseconds=42)
         """
         self._ensure_components()
         # return the named tuple
