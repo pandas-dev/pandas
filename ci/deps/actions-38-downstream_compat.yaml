@@ -40,7 +40,7 @@ dependencies:
   - openpyxl>=3.0.7
   - odfpy>=1.4.1
   - psycopg2>=2.8.6
-  - pyarrow>=6.0.0
+  - pyarrow<11, >=7.0.0
   - pymysql>=1.0.2
   - pyreadstat>=1.1.2
   - pytables>=3.6.1
@@ -48,7 +48,7 @@ dependencies:
   - pyxlsb>=1.0.8
   - s3fs>=2021.08.0
   - scipy>=1.7.1
-  - sqlalchemy<1.4.46, >=1.4.16
+  - sqlalchemy>=1.4.16
   - tabulate>=0.8.9
   - xarray>=0.21.0
   - xlrd>=2.0.1
