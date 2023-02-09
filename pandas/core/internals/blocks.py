@@ -665,6 +665,7 @@ class Block(PandasObject):
         dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -674,7 +675,11 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self if inplace else self.copy()
+            if using_cow and inplace:
+                # TODO(CoW): Optimize
+                blk = self.copy()
+            else:
+                blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
@@ -703,7 +708,11 @@ class Block(PandasObject):
 
         masks = [extract_bool_array(x) for x in masks]
 
-        rb = [self if inplace else self.copy()]
+        if using_cow and inplace:
+            # TODO(CoW): Optimize
+            rb = [self.copy()]
+        else:
+            rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []

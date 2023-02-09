@@ -473,6 +473,7 @@ class BaseBlockManager(DataManager):
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
+            using_cow=using_copy_on_write(),
         )
         bm._consolidate_inplace()
         return bm
