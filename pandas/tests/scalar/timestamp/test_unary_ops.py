@@ -374,7 +374,7 @@ class TestTimestampUnaryOps:
         ts = ts.as_unit("ms")
         result = ts.replace(year=99_999)
         assert result.year == 99_999
-        assert result.value == Timestamp(np.datetime64("99999-01-01", "ms")).value
+        assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(
