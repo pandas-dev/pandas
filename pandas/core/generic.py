@@ -9581,9 +9581,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
-            # CoW: Make sure reference goes out of scope
-            _ = None
+            # CoW: Make sure reference is not kept alive
+            cond = cond.align(self, join="right", broadcast_axis=1, copy=False)[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -9619,16 +9618,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # align with me
             if other.ndim <= self.ndim:
 
-                _, other = self.align(
+                # CoW: Make sure reference is not kept alive
+                other = self.align(
                     other,
                     join="left",
                     axis=axis,
                     level=level,
                     fill_value=None,
                     copy=False,
-                )
-                # CoW: Make sure reference goes out of scope
-                _ = None
+                )[1]
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
