@@ -1066,3 +1066,16 @@ def test_grouper_groups():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         res = grper.grouper
     assert res is gb.grouper
+
+    msg = "Grouper.obj is deprecated and will be removed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.obj
+    assert res is gb.obj
+
+    msg = "Use Resampler.ax instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.ax
+
+    msg = "Grouper.indexer is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.indexer
