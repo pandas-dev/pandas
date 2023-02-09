@@ -21,6 +21,7 @@ from typing import (
 
 import numpy as np
 
+import pandas as pd
 from pandas._libs import (
     NaT,
     lib,
@@ -883,14 +884,64 @@ class BaseGrouper:
         ids, _, _ = self.group_info
         return ids
 
+    # TODO
+    #  ISSUE: https://github.com/pandas-dev/pandas/issues/28572
     @final
     def _get_compressed_codes(
         self,
     ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
+
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self._sort)
+            # print(group_index)
+
+            full_array, min_array = compress_group_index(group_index, sort=self._sort)
+            # print(full_array)
+            # print(min_array)
+            # print(dir(min_array))
+
+            set_full_array = set(full_array)
+            set_min_array = set(min_array)
+
+            # check_df = pd.DataFrame(data=full_array, columns=["array_value"])
+            # print(check_df["array_value"].groupby(by=min_array, axis=0).sum())
+
+            # print(set_full_array)
+            # check = len(np.where(full_array == 9)[0])
+            # check_2 = len(np.where(full_array == 0)[0])
+            # print(check)
+            # print(check_2)
+            # # full_array[2] = 0
+            # check_2 = len(np.where(full_array == 2)[0])
+            # print(check_2)
+
+            if set_full_array != set_min_array:
+            # if set_full_array != min_array:
+                print("-- YUP --")
+            #
+            #     missing_index = int(list(set_full_array - set_min_array)[0])
+            #     print(missing_index)
+            #     print(np.where(group_index == 7)[0])
+            #     print(np.where(group_index == missing_index)[0])
+            #     # full_array[missing_index] = 0
+            #     # group_index[missing_index] = 0
+            #     # min_array[missing_index] = 0
+            #     # np.append(group_index, [0], axis=missing_index)
+            #     print(np.where(group_index == missing_index)[0])
+            #     # print(full_array)
+            #     print(min_array)
+            #
+            #     fixed_min_array = np.array(sorted(list(set_min_array) + [missing_index]))
+            #     print(fixed_min_array)
+            #     # fixed_full_array = np.array(sorted(list(group_index) + list(missing_index)))
+            #     # print(fixed_full_array)
+            #     return full_array, fixed_min_array
+
+            return full_array, min_array
+
+
+            # return compress_group_index(group_index, sort=self._sort)
             # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]

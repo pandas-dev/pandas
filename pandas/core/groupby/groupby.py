@@ -1497,7 +1497,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
-
+        print(self)
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         def array_func(values: ArrayLike) -> ArrayLike:
@@ -1519,12 +1519,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
+        # print(data)
+        # print(array_func)
         new_mgr = data.grouped_reduce(array_func)
+        # print(new_mgr)
         res = self._wrap_agged_manager(new_mgr)
+        print(res)
         out = self._wrap_aggregated_output(res)
+        # print("-- OI --")
+        # print(res)
         if data.ndim == 2:
             # TODO: don't special-case DataFrame vs Series
             out = out.infer_objects(copy=False)
+        # print(out)
         return out
 
     def _cython_transform(
