@@ -46,7 +46,7 @@ Previously it was only possible to use ``int64``, ``uint64`` & ``float64`` dtype
     In [3]: pd.Index([1, 2, 3], dtype=np.float32)
     Out[3]: Float64Index([1.0, 2.0, 3.0], dtype="float64")
 
-:class:`Int64Index`, :class:`UInt64Index` & :class:`Float64Index` were depreciated in pandas
+:class:`Int64Index`, :class:`UInt64Index` & :class:`Float64Index` were deprecated in pandas
 version 1.4 and have now been removed. Instead :class:`Index` should be used directly, and
 can it now take all numpy numeric dtypes, i.e.
 ``int8``/ ``int16``/``int32``/``int64``/``uint8``/``uint16``/``uint32``/``uint64``/``float32``/``float64`` dtypes:
@@ -57,7 +57,7 @@ can it now take all numpy numeric dtypes, i.e.
     pd.Index([1, 2, 3], dtype=np.uint16)
     pd.Index([1, 2, 3], dtype=np.float32)
 
-The ability for ``Index`` to hold the numpy numeric dtypes has meant some changes in Pandas
+The ability for :class:`Index` to hold the numpy numeric dtypes has meant some changes in Pandas
 functionality. In particular, operations that previously were forced to create 64-bit indexes,
 can now create indexes with lower bit sizes, e.g. 32-bit indexes.
 
@@ -247,11 +247,15 @@ Copy-on-Write improvements
   can never update the original Series or DataFrame. Therefore, an informative
   error is raised to the user instead of silently doing nothing (:issue:`49467`)
 
-Copy-on-Write can be enabled through
+Copy-on-Write can be enabled through one of
 
 .. code-block:: python
 
     pd.set_option("mode.copy_on_write", True)
+
+
+.. code-block:: python
+
     pd.options.mode.copy_on_write = True
 
 Alternatively, copy on write can be enabled locally through:
@@ -283,7 +287,7 @@ Other enhancements
 - Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
 - Improve exception message when using :func:`.testing.assert_frame_equal` on a :class:`DataFrame` to include the column that is compared (:issue:`50323`)
 - Improved error message for :func:`merge_asof` when join-columns were duplicated (:issue:`50102`)
-- Added support for extension array dtypes to :func:`get_dummies` (:func:`32430`)
+- Added support for extension array dtypes to :func:`get_dummies` (:issue:`32430`)
 - Added :meth:`Index.infer_objects` analogous to :meth:`Series.infer_objects` (:issue:`50034`)
 - Added ``copy`` parameter to :meth:`Series.infer_objects` and :meth:`DataFrame.infer_objects`, passing ``False`` will avoid making copies for series or columns that are already non-object or where no better dtype can be inferred (:issue:`50096`)
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
@@ -691,18 +695,18 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 
 *Old behavior*:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
-     In [1]: ser = pd.Series(['13-01-2000', '12-01-2000'])
-     In [2]: pd.to_datetime(ser)
-     Out[2]:
-     0   2000-01-13
-     1   2000-12-01
-     dtype: datetime64[ns]
+   In [1]: ser = pd.Series(['13-01-2000', '12-01-2000'])
+   In [2]: pd.to_datetime(ser)
+   Out[2]:
+   0   2000-01-13
+   1   2000-12-01
+   dtype: datetime64[ns]
 
 *New behavior*:
 
-  .. ipython:: python
+.. ipython:: python
     :okwarning:
 
      ser = pd.Series(['13-01-2000', '12-01-2000'])
@@ -740,7 +744,7 @@ Other API changes
 - :func:`pandas.testing.assert_index_equal` with parameter ``exact="equiv"`` now considers two indexes equal when both are either a :class:`RangeIndex` or :class:`Index` with an ``int64`` dtype. Previously it meant either a :class:`RangeIndex` or a :class:`Int64Index` (:issue:`51098`)
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
 - :func:`to_datetime` and :class:`DatetimeIndex` now allow sequences containing both ``datetime`` objects and numeric entries, matching :class:`Series` behavior (:issue:`49037`, :issue:`50453`)
-- :func:`api.dtypes.is_string_dtype` now only returns ``True`` for array-likes with ``dtype=object`` when the elements are inferred to be strings (:issue:`15585`)
+- :func:`pandas.api.types.is_string_dtype` now only returns ``True`` for array-likes with ``dtype=object`` when the elements are inferred to be strings (:issue:`15585`)
 - Passing a sequence containing ``datetime`` objects and ``date`` objects to :class:`Series` constructor will return with ``object`` dtype instead of ``datetime64[ns]`` dtype, consistent with :class:`Index` behavior (:issue:`49341`)
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
 - Passing a sequence containing a type that cannot be converted to :class:`Timedelta` to :func:`to_timedelta` or to the :class:`Series` or :class:`DataFrame` constructor with ``dtype="timedelta64[ns]"`` or to :class:`TimedeltaIndex` now raises ``TypeError`` instead of ``ValueError`` (:issue:`49525`)
@@ -783,7 +787,7 @@ Deprecations
 - :meth:`Index.is_numeric` has been deprecated. Use :func:`pandas.api.types.is_any_real_numeric_dtype` instead (:issue:`50042`,:issue:`51152`)
 - :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_object` has been deprecated. Use :func:`pandas.api.types.is_object_dtype` instead (:issue:`50042`)
-- :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_intterval_dtype` instead (:issue:`50042`)
+- :meth:`Index.is_interval` has been deprecated. Use :func:`pandas.api.types.is_interval_dtype` instead (:issue:`50042`)
 - Deprecated ``all`` and ``any`` reductions with ``datetime64`` and :class:`DatetimeTZDtype` dtypes, use e.g. ``(obj != pd.Timestamp(0), tz=obj.tz).all()`` instead (:issue:`34479`)
 - Deprecated unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` (:issue:`50977`)
 - Deprecated calling ``float`` or ``int`` on a single element :class:`Series` to return a ``float`` or ``int`` respectively. Extract the element before calling ``float`` or ``int`` instead (:issue:`51101`)
@@ -1174,7 +1178,7 @@ Numeric
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
-- Bug in :meth:`query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
+- Bug in :meth:`DataFrame.query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
 
 Conversion
 ^^^^^^^^^^
@@ -1195,7 +1199,7 @@ Conversion
 
 Strings
 ^^^^^^^
-- Bug in :func:`pandas.api.dtypes.is_string_dtype` that would not return ``True`` for :class:`StringDtype` or :class:`ArrowDtype` with ``pyarrow.string()`` (:issue:`15585`)
+- Bug in :func:`pandas.api.types.is_string_dtype` that would not return ``True`` for :class:`StringDtype` or :class:`ArrowDtype` with ``pyarrow.string()`` (:issue:`15585`)
 - Bug in converting string dtypes to "datetime64[ns]" or "timedelta64[ns]" incorrectly raising ``TypeError`` (:issue:`36153`)
 -
 
