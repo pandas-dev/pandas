@@ -663,6 +663,8 @@ If installed, we now require:
 +-------------------+-----------------+----------+---------+
 | python-dateutil   | 2.8.2           |    X     |    X    |
 +-------------------+-----------------+----------+---------+
+| tzdata            | 2022.1          |on Windows|    X    |
++-------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
