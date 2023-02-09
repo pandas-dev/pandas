@@ -219,7 +219,7 @@ class TestSeriesRepr:
 \end{tabular}
 """
         with option_context(
-            "display.latex.escape", False, "styler.render.repr", "latex"
+            "styler.format.escape", None, "styler.render.repr", "latex"
         ):
             s = Series([r"$\alpha$", "b", "c"])
             assert result == s._repr_latex_()

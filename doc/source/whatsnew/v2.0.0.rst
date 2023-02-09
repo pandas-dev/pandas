@@ -629,7 +629,9 @@ The arguments signature is similar, albeit ``col_space`` has been removed since
 it is ignored by LaTeX engines. This render engine also requires ``jinja2`` as a
 dependency which needs to be installed, since rendering is based upon jinja2 templates.
 
-The pandas options below are no longer used and will be removed in future releases.
+The pandas latex options below are no longer used and have been removed. The generic
+max rows and columns arguments remain but for this functionality should be replaced
+by the Styler equivalents.
 The alternative options giving similar functionality are indicated below:
 
 - ``display.latex.escape``: replaced with ``styler.format.escape``,
@@ -642,6 +644,13 @@ The alternative options giving similar functionality are indicated below:
 - ``display.max_rows`` and ``display.max_columns``: replace with
   ``styler.render.max_rows``, ``styler.render.max_columns`` and
   ``styler.render.max_elements``.
+
+Note that due to this change some defaults have also changed:
+
+- ``multirow`` now defaults to *True*.
+- ``multirow_align`` defaults to *"r"* instead of *"l"*.
+- ``multicol_align`` defaults to *"r"* instead of *"l"*.
+- ``escape`` now defaults to *False*.
 
 Note that the behaviour of ``_repr_latex_`` is also changed. Previously
 setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
