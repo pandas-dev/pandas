@@ -40,7 +40,7 @@ def groupby_series(request):
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_string(how, by, groupby_series, groupby_func, as_index, sort):
+def test_groupby_raises_string(how, by, groupby_series, groupby_func):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -50,12 +50,14 @@ def test_groupby_raises_string(how, by, groupby_series, groupby_func, as_index, 
         }
     )
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by, as_index=as_index, sort=sort)
+    gb = df.groupby(by=by)
 
     if groupby_series:
-        if groupby_func == "corrwith":
-            pytest.skip()
         gb = gb["d"]
+
+        if groupby_func == "corrwith":
+            assert not hasattr(gb, "corrwith")
+            return
 
     klass, msg = {
         "all": (None, ""),
@@ -175,7 +177,7 @@ def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_datetime(how, by, groupby_series, groupby_func, as_index, sort):
+def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -185,12 +187,14 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func, as_index
         }
     )
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by, as_index=as_index, sort=sort)
+    gb = df.groupby(by=by)
 
     if groupby_series:
-        if groupby_func == "corrwith":
-            pytest.skip()
         gb = gb["d"]
+
+        if groupby_func == "corrwith":
+            assert not hasattr(gb, "corrwith")
+            return
 
     klass, msg = {
         "all": (None, ""),
@@ -299,7 +303,7 @@ def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_category(how, by, groupby_series, groupby_func, as_index, sort):
+def test_groupby_raises_category(how, by, groupby_series, groupby_func):
     # GH#50749
     df = DataFrame(
         {
@@ -314,12 +318,14 @@ def test_groupby_raises_category(how, by, groupby_series, groupby_func, as_index
         }
     )
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by, as_index=as_index, sort=sort)
+    gb = df.groupby(by=by)
 
     if groupby_series:
-        if groupby_func == "corrwith":
-            pytest.skip()
         gb = gb["d"]
+
+        if groupby_func == "corrwith":
+            assert not hasattr(gb, "corrwith")
+            return
 
     klass, msg = {
         "all": (None, ""),
@@ -508,9 +514,11 @@ def test_groupby_raises_category_on_category(
     gb = df.groupby(by=by, observed=observed)
 
     if groupby_series:
-        if groupby_func == "corrwith":
-            pytest.skip()
         gb = gb["d"]
+
+        if groupby_func == "corrwith":
+            assert not hasattr(gb, "corrwith")
+            return
 
     empty_groups = any(group.empty for group in gb.groups.values())
 
