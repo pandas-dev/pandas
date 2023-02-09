@@ -52,7 +52,15 @@ The project governance is available in the [project governance page]({{ base_url
 ### {{ workgroup.name }}
 
 <ul>
-    <li><b>Contact:</b> <a href="mailto:{{ workgroup.contact }}">{{ workgroup.contact }}</a></li>
+    <li><b>Contact:</b>
+        <script TYPE="text/javascript">
+            var email='{{ workgroup.contact }}'
+            document.write(
+              '<a href="mailto:' + email + '">' 
+              + email + '</a>'
+            )
+        </script>
+    </li>
     <li><b>Responsibilities:</b> {{ workgroup.responsibilities }}</li>
     <li><b>Members:</b>
         <ul>
