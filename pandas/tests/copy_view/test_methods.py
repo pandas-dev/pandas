@@ -1272,6 +1272,16 @@ def test_asfreq_noop(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_iterrows(using_copy_on_write):
+    df = DataFrame({"a": 0, "b": 1}, index=[1, 2, 3])
+    df_orig = df.copy()
+
+    for _, sub in df.iterrows():
+        sub.iloc[0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
 def test_interpolate_creates_copy(using_copy_on_write):
     # GH#51126
     df = DataFrame({"a": [1.5, np.nan, 3]})

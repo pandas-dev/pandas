@@ -222,6 +222,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
+  - :meth:`DataFrame.iterrows`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
   - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :meth:`DataFrame.astype` / :meth:`Series.astype`
