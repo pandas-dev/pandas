@@ -1351,7 +1351,9 @@ class TestDataFrameQueryBacktickQuoting:
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
     def test_query_ea_equality_comparison(self, dtype, engine):
         # GH#50261
-        warning = RuntimeWarning if engine == "numexpr" and NUMEXPR_INSTALLED else None
+        warning = RuntimeWarning if engine == "numexpr" else None
+        if engine == "numexpr" and not NUMEXPR_INSTALLED:
+            pytest.skip("numexpr not installed")
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = DataFrame(
