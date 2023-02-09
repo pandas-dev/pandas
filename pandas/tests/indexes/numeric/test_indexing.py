@@ -4,12 +4,14 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 from pandas import (
+    NA,
     Index,
     RangeIndex,
     Series,
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
 
 
 @pytest.fixture
@@ -313,6 +315,76 @@ class TestGetIndexer:
         indexer = index_large.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
+
+    @pytest.mark.parametrize("val, val2", [(4, 5), (4, 4), (4, NA), (NA, NA)])
+    def test_get_loc_masked(self, val, val2, any_numeric_ea_dtype):
+        # GH#39133
+        idx = Index([1, 2, 3, val, val2], dtype=any_numeric_ea_dtype)
+        result = idx.get_loc(2)
+        assert result == 1
+
+        with pytest.raises(KeyError, match="9"):
+            idx.get_loc(9)
+
+    def test_get_loc_masked_na(self, any_numeric_ea_dtype):
+        # GH#39133
+        idx = Index([1, 2, NA], dtype=any_numeric_ea_dtype)
+        result = idx.get_loc(NA)
+        assert result == 2
+
+        idx = Index([1, 2, NA, NA], dtype=any_numeric_ea_dtype)
+        result = idx.get_loc(NA)
+        tm.assert_numpy_array_equal(result, np.array([False, False, True, True]))
+
+        idx = Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        with pytest.raises(KeyError, match="NA"):
+            idx.get_loc(NA)
+
+    def test_get_loc_masked_na_and_nan(self):
+        # GH#39133
+        idx = Index(
+            FloatingArray(
+                np.array([1, 2, 1, np.nan]), mask=np.array([False, False, True, False])
+            )
+        )
+        result = idx.get_loc(NA)
+        assert result == 2
+        result = idx.get_loc(np.nan)
+        assert result == 3
+
+        idx = Index(
+            FloatingArray(np.array([1, 2, 1.0]), mask=np.array([False, False, True]))
+        )
+        result = idx.get_loc(NA)
+        assert result == 2
+        with pytest.raises(KeyError, match="nan"):
+            idx.get_loc(np.nan)
+
+        idx = Index(
+            FloatingArray(
+                np.array([1, 2, np.nan]), mask=np.array([False, False, False])
+            )
+        )
+        result = idx.get_loc(np.nan)
+        assert result == 2
+        with pytest.raises(KeyError, match="NA"):
+            idx.get_loc(NA)
+
+    @pytest.mark.parametrize("val", [4, 2])
+    def test_get_indexer_masked_na(self, any_numeric_ea_dtype, val):
+        # GH#39133
+        idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_dtype)
+        result = idx.get_indexer_for([1, NA, 5])
+        expected = np.array([0, 2, -1])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+    def test_get_indexer_masked_na_boolean(self):
+        # GH#39133
+        idx = Index([True, False, NA], dtype="boolean")
+        result = idx.get_loc(False)
+        assert result == 1
+        result = idx.get_loc(NA)
+        assert result == 2
 
 
 class TestWhere:

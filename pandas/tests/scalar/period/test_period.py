@@ -399,6 +399,19 @@ class TestPeriodConstruction:
         assert result == expected
         assert isinstance(result, Period)
 
+    def test_parse_week_str_roundstrip(self):
+        # GH#50803
+        per = Period("2017-01-23/2017-01-29")
+        assert per.freq.freqstr == "W-SUN"
+
+        per = Period("2017-01-24/2017-01-30")
+        assert per.freq.freqstr == "W-MON"
+
+        msg = "Could not parse as weekly-freq Period"
+        with pytest.raises(ValueError, match=msg):
+            # not 6 days apart
+            Period("2016-01-23/2017-01-29")
+
     def test_period_from_ordinal(self):
         p = Period("2011-01", freq="M")
         res = Period._from_ordinal(p.ordinal, freq="M")
@@ -614,7 +627,7 @@ class TestPeriodMethods:
         def _ex(p):
             if p.freq == "B":
                 return p.start_time + Timedelta(days=1, nanoseconds=-1)
-            return Timestamp((p + p.freq).start_time.value - 1)
+            return Timestamp((p + p.freq).start_time._value - 1)
 
         for fcode in from_lst:
             p = Period("1982", freq=fcode)
@@ -826,7 +839,7 @@ class TestPeriodProperties:
         p = Period("2012", freq="A")
 
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
 
         xp = _ex(2013, 1, 1)
         assert xp == p.end_time
@@ -878,7 +891,7 @@ class TestPeriodProperties:
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
 
         p = Period("2013-1-1", "W-SAT")
         xp = _ex(2013, 1, 6)
