@@ -1185,6 +1185,7 @@ Conversion
 - Bug in :meth:`DataFrame.astype` not copying data when converting to pyarrow dtype (:issue:`50984`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
+- Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising for extension array dtypes (:issue:`29618`, :issue:`50261`, :issue:`31913`)
 -
 
 Strings
