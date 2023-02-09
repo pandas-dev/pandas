@@ -668,7 +668,7 @@ class TestFreqConversion:
         start = per.start_time
         expected = Timestamp("2020-01-30 15:57:27.576166")
         assert start == expected
-        assert start.value == per.ordinal * 1000
+        assert start._value == per.ordinal * 1000
 
         per2 = Period("2300-01-01", "us")
         msg = "2300-01-01"

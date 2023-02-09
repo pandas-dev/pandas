@@ -138,8 +138,8 @@ The option will only work for functions with the keyword ``use_nullable_dtypes``
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
-* :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
-* :func:`read_clipboard` (with ``engine="python"``)
+* :func:`read_csv`
+* :func:`read_clipboard`
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
@@ -223,6 +223,8 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
+  - :meth:`DataFrame.astype` / :meth:`Series.astype`
   - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
@@ -263,6 +265,7 @@ Alternatively, copy on write can be enabled locally through:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added support for ``dt`` accessor methods when using :class:`ArrowDtype` with a ``pyarrow.timestamp`` type (:issue:`50954`)
 - :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 - :meth:`.DataFrameGroupBy.quantile`, :meth:`.SeriesGroupBy.quantile` and :meth:`.DataFrameGroupBy.std` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
@@ -784,6 +787,10 @@ Deprecations
 - Deprecated calling ``float`` or ``int`` on a single element :class:`Series` to return a ``float`` or ``int`` respectively. Extract the element before calling ``float`` or ``int`` instead (:issue:`51101`)
 - Deprecated :meth:`Grouper.groups`, use :meth:`Groupby.groups` instead (:issue:`51182`)
 - Deprecated :meth:`Grouper.grouper`, use :meth:`Groupby.grouper` instead (:issue:`51182`)
+- Deprecated :meth:`Series.pad` in favor of :meth:`Series.ffill` (:issue:`33396`)
+- Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
+- Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
+- Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -1295,6 +1302,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 - Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
+- Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
 -
 
 Reshaping
