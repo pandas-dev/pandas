@@ -398,7 +398,11 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        new_result = result.astype(dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "overflow encountered in cast", RuntimeWarning
+            )
+            new_result = result.astype(dtype)
 
         # Adjust tolerances based on floating point size
         size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
@@ -1602,7 +1606,9 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                 )
                 casted = np.array(arr, dtype=dtype, copy=False)
         else:
-            casted = arr.astype(dtype, copy=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
@@ -1614,7 +1620,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
         return casted
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         if np.array_equal(arr, casted):
             return casted
 
@@ -1817,7 +1823,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # see test_where_complex GH#6345
                 return dtype.type(element)
 
-            casted = dtype.type(element)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                casted = dtype.type(element)
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize
