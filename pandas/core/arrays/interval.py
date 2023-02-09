@@ -1051,8 +1051,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if not len(self) or periods == 0:
             return self.copy()
 
-        if isna(fill_value):
-            fill_value = self.dtype.na_value
+        self._validate_scalar(fill_value)
 
         # ExtensionArray.shift doesn't work for two reasons
         # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
