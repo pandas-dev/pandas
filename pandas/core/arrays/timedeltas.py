@@ -137,13 +137,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     _bool_ops: list[str] = []
     _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
         "floor",
         "ceil",
+        "as_unit",
     ]
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
@@ -151,7 +152,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
         y = x.view("i8")
-        if y == NaT.value:
+        if y == NaT._value:
             return NaT
         return Timedelta._from_value_and_reso(y, reso=self._creso)
 
@@ -298,7 +299,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq, unit=unit)
         else:
-            index = np.linspace(start.value, end.value, periods).astype("i8")
+            index = np.linspace(start._value, end._value, periods).astype("i8")
 
         if not left_closed:
             index = index[1:]
@@ -316,7 +317,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value.value, "ns")
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit).asm8
 
@@ -726,10 +727,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        ndarray, Float64Index or Series
+        ndarray, Index or Series
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
-            the return type is a Float64Index. When the calling object
+            the return type is an Index with a float64 dtype. When the calling object
             is a Series, the return type is Series of type `float64` whose
             index is the same as the original.
 
@@ -769,8 +770,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                        dtype='timedelta64[ns]', freq=None)
 
         >>> idx.total_seconds()
-        NumericIndex([0.0, 86400.0, 172800.0, 259200.0, 345600.0],
-                     dtype='float64')
+        Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
         return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
@@ -781,7 +781,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        timedeltas : ndarray[object]
+        numpy.ndarray
         """
         return ints_to_pytimedelta(self._ndarray)
 

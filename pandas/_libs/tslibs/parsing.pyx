@@ -12,7 +12,12 @@ from cpython.datetime cimport (
     datetime,
     datetime_new,
     import_datetime,
+    timedelta,
+    tzinfo,
 )
+
+from datetime import timezone
+
 from cpython.object cimport PyObject_Str
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
@@ -35,6 +40,8 @@ cnp.import_array()
 
 # dateutil compat
 
+from decimal import InvalidOperation
+
 from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
@@ -49,17 +56,25 @@ from dateutil.tz import (
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.dtypes cimport (
+    attrname_to_npy_unit,
+    npy_unit_to_attrname,
+)
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
     string_to_dts,
 )
+
 from pandas._libs.tslibs.strptime import array_strptime
+
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
     is_array,
@@ -87,6 +102,14 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 
 cdef:
     set _not_datelike_strings = {"a", "A", "m", "M", "p", "P", "t", "T"}
+
+    # _timestamp_units -> units that we round to nanos
+    set _timestamp_units = {
+        NPY_DATETIMEUNIT.NPY_FR_ns,
+        NPY_DATETIMEUNIT.NPY_FR_ps,
+        NPY_DATETIMEUNIT.NPY_FR_fs,
+        NPY_DATETIMEUNIT.NPY_FR_as,
+    }
 
 # ----------------------------------------------------------------------
 cdef:
@@ -120,7 +143,9 @@ cdef int _parse_4digit(const char* s):
     return result
 
 
-cdef object _parse_delimited_date(str date_string, bint dayfirst):
+cdef datetime _parse_delimited_date(
+    str date_string, bint dayfirst, NPY_DATETIMEUNIT* out_bestunit
+):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
 
@@ -138,12 +163,12 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
     ----------
     date_string : str
     dayfirst : bool
+    out_bestunit : NPY_DATETIMEUNIT*
+        For specifying identified resolution.
 
     Returns:
     --------
     datetime or None
-    str or None
-        Describing resolution of the parsed string.
     """
     cdef:
         const char* buf
@@ -157,45 +182,45 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
         month = _parse_2digit(buf)
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
-        reso = "day"
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
         can_swap = 1
     elif length == 9 and _is_delimiter(buf[1]) and _is_delimiter(buf[4]):
         # parsing M?DD?YYYY and D?MM?YYYY dates
         month = _parse_1digit(buf)
         day = _parse_2digit(buf + 2)
         year = _parse_4digit(buf + 5)
-        reso = "day"
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
         can_swap = 1
     elif length == 9 and _is_delimiter(buf[2]) and _is_delimiter(buf[4]):
         # parsing MM?D?YYYY and DD?M?YYYY dates
         month = _parse_2digit(buf)
         day = _parse_1digit(buf + 3)
         year = _parse_4digit(buf + 5)
-        reso = "day"
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
         can_swap = 1
     elif length == 8 and _is_delimiter(buf[1]) and _is_delimiter(buf[3]):
         # parsing M?D?YYYY and D?M?YYYY dates
         month = _parse_1digit(buf)
         day = _parse_1digit(buf + 2)
         year = _parse_4digit(buf + 4)
-        reso = "day"
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
         can_swap = 1
     elif length == 7 and _is_delimiter(buf[2]):
         # parsing MM?YYYY dates
         if buf[2] == b".":
             # we cannot reliably tell whether e.g. 10.2010 is a float
             # or a date, thus we refuse to parse it here
-            return None, None
+            return None
         month = _parse_2digit(buf)
         year = _parse_4digit(buf + 3)
-        reso = "month"
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
     else:
-        return None, None
+        return None
 
     if month < 0 or day < 0 or year < 1000:
         # some part is not an integer, so
         # date_string can't be converted to date, above format
-        return None, None
+        return None
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
@@ -203,7 +228,7 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
             day, month = month, day
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
-        return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
+        return datetime_new(year, month, day, 0, 0, 0, 0, None)
 
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
@@ -241,14 +266,26 @@ cdef bint _does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def parse_datetime_string(
+def py_parse_datetime_string(
+    str date_string, bint dayfirst=False, bint yearfirst=False
+):
+    # Python-accessible version for testing (we can't just make
+    #  parse_datetime_string cpdef bc it has a pointer argument)
+    cdef:
+        NPY_DATETIMEUNIT out_bestunit
+
+    return parse_datetime_string(date_string, dayfirst, yearfirst, &out_bestunit)
+
+
+cdef datetime parse_datetime_string(
     # NB: This will break with np.str_ (GH#32264) even though
     #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
     #  the argument is *exactly* 'str'
     str date_string,
-    bint dayfirst=False,
-    bint yearfirst=False,
-) -> datetime:
+    bint dayfirst,
+    bint yearfirst,
+    NPY_DATETIMEUNIT* out_bestunit
+):
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -264,6 +301,7 @@ def parse_datetime_string(
 
     cdef:
         datetime dt
+        bint is_quarter = 0
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
@@ -274,45 +312,23 @@ def parse_datetime_string(
                       yearfirst=yearfirst)
         return dt
 
-    dt, _ = _parse_delimited_date(date_string, dayfirst)
+    dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
     if dt is not None:
         return dt
 
     try:
-        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
+        dt = _parse_dateabbr_string(
+            date_string, _DEFAULT_DATETIME, None, out_bestunit, &is_quarter
+        )
         return dt
     except DateParseError:
         raise
     except ValueError:
         pass
 
-    try:
-        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst)
-    except TypeError:
-        # following may be raised from dateutil
-        # TypeError: 'NoneType' object is not iterable
-        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
-    except OverflowError as err:
-        # with e.g. "08335394550" dateutil raises when trying to pass
-        #  year=8335394550 to datetime.replace
-        raise OutOfBoundsDatetime(
-            f'Parsing "{date_string}" to datetime overflows'
-            ) from err
-    if dt.tzinfo is not None:
-        # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
-        #  bounds, which is invalid (can be constructed, but raises if we call
-        #  str(dt)).  Check that and raise here if necessary.
-        try:
-            dt.utcoffset()
-        except ValueError as err:
-            # offset must be a timedelta strictly between -timedelta(hours=24)
-            #  and timedelta(hours=24)
-            raise ValueError(
-                f'Parsed string "{date_string}" gives an invalid tzoffset, '
-                "which must be between -timedelta(hours=24) and timedelta(hours=24)"
-            )
-
+    dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
+                        dayfirst=dayfirst, yearfirst=yearfirst,
+                        ignoretz=False, out_bestunit=out_bestunit)
     return dt
 
 
@@ -360,70 +376,66 @@ def parse_datetime_string_with_reso(
         bint string_to_dts_failed
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
-        int out_local
+        int out_local = 0
         int out_tzoffset
+        tzinfo tz
+        bint is_quarter = 0
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
-    parsed, reso = _parse_delimited_date(date_string, dayfirst)
-    if parsed is not None:
-        return parsed, reso
-
     # Try iso8601 first, as it handles nanoseconds
-    # TODO: does this render some/all of parse_delimited_date redundant?
     string_to_dts_failed = string_to_dts(
         date_string, &dts, &out_bestunit, &out_local,
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        timestamp_units = {NPY_DATETIMEUNIT.NPY_FR_ns,
-                           NPY_DATETIMEUNIT.NPY_FR_ps,
-                           NPY_DATETIMEUNIT.NPY_FR_fs,
-                           NPY_DATETIMEUNIT.NPY_FR_as}
-        if out_bestunit in timestamp_units or out_local:
-            # TODO: the not-out_local case we could do without Timestamp;
-            #  avoid circular import
+        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+        # The new resolution will just be nano
+        # GH#50417
+        if out_bestunit in _timestamp_units:
+            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
+
+        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
+            # TODO: avoid circular import
             from pandas import Timestamp
             parsed = Timestamp(date_string)
         else:
-            parsed = datetime(
-                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
+            if out_local:
+                tz = timezone(timedelta(minutes=out_tzoffset))
+            else:
+                tz = None
+            parsed = datetime_new(
+                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz
             )
-        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
-        # The new resolution will just be nano
-        # GH 50417
-        if out_bestunit in timestamp_units:
-            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
-        reso = {
-            NPY_DATETIMEUNIT.NPY_FR_Y: "year",
-            NPY_DATETIMEUNIT.NPY_FR_M: "month",
-            NPY_DATETIMEUNIT.NPY_FR_D: "day",
-            NPY_DATETIMEUNIT.NPY_FR_h: "hour",
-            NPY_DATETIMEUNIT.NPY_FR_m: "minute",
-            NPY_DATETIMEUNIT.NPY_FR_s: "second",
-            NPY_DATETIMEUNIT.NPY_FR_ms: "millisecond",
-            NPY_DATETIMEUNIT.NPY_FR_us: "microsecond",
-            NPY_DATETIMEUNIT.NPY_FR_ns: "nanosecond",
-            }[out_bestunit]
+
+        reso = npy_unit_to_attrname[out_bestunit]
+        return parsed, reso
+
+    parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
+    if parsed is not None:
+        reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
 
     try:
-        return _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        parsed = _parse_dateabbr_string(
+            date_string, _DEFAULT_DATETIME, freq, &out_bestunit, &is_quarter
+        )
     except DateParseError:
         raise
     except ValueError:
         pass
+    else:
+        if is_quarter:
+            reso = "quarter"
+        else:
+            reso = npy_unit_to_attrname[out_bestunit]
+        return parsed, reso
 
-    try:
-        parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
-                                      dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False)
-    except (ValueError, OverflowError) as err:
-        # TODO: allow raise of errors within instead
-        raise DateParseError(err)
-    if parsed is None:
-        raise DateParseError(f"Could not parse {date_string}")
+    parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
+                            dayfirst=dayfirst, yearfirst=yearfirst,
+                            ignoretz=False, out_bestunit=&out_bestunit)
+    reso = npy_unit_to_attrname[out_bestunit]
     return parsed, reso
 
 
@@ -474,8 +486,9 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef object _parse_dateabbr_string(str date_string, datetime default,
-                                   str freq=None):
+cdef datetime _parse_dateabbr_string(str date_string, datetime default,
+                                     str freq, NPY_DATETIMEUNIT* out_bestunit,
+                                     bint* is_quarter):
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     cdef:
         datetime ret
@@ -485,7 +498,9 @@ cdef object _parse_dateabbr_string(str date_string, datetime default,
         const char* buf
 
     if date_string in nat_strings:
-        return NaT, ""
+        # default to nanos, could also reasonably do NPY_FR_GENERIC
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_ns
+        return NaT
 
     date_string = date_string.upper()
     date_len = len(date_string)
@@ -494,7 +509,8 @@ cdef object _parse_dateabbr_string(str date_string, datetime default,
         # parse year only like 2000
         try:
             ret = default.replace(year=int(date_string))
-            return ret, "year"
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_Y
+            return ret
         except ValueError:
             pass
 
@@ -547,7 +563,10 @@ cdef object _parse_dateabbr_string(str date_string, datetime default,
                                      f"freq: {freq}")
 
             ret = default.replace(year=year, month=month)
-            return ret, "quarter"
+            # Monthly is as close as we can get to a non-existent NPY_FR_Q
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
+            is_quarter[0] = 1
+            return ret
 
         except DateParseError:
             raise
@@ -560,7 +579,8 @@ cdef object _parse_dateabbr_string(str date_string, datetime default,
         month = int(date_string[4:6])
         try:
             ret = default.replace(year=year, month=month)
-            return ret, "month"
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
+            return ret
         except ValueError as err:
             # We can infer that none of the patterns below will match
             raise ValueError(f"Unable to parse {date_string}") from err
@@ -568,7 +588,8 @@ cdef object _parse_dateabbr_string(str date_string, datetime default,
     for pat in ["%Y-%m", "%b %Y", "%b-%Y"]:
         try:
             ret = datetime.strptime(date_string, pat)
-            return ret, "month"
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
+            return ret
         except ValueError:
             pass
 
@@ -610,12 +631,13 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
     return year, month
 
 
-cdef dateutil_parse(
+cdef datetime dateutil_parse(
     str timestr,
-    object default,
-    bint ignoretz=False,
-    bint dayfirst=False,
-    bint yearfirst=False,
+    datetime default,
+    bint ignoretz,
+    bint dayfirst,
+    bint yearfirst,
+    NPY_DATETIMEUNIT* out_bestunit
 ):
     """ lifted from dateutil to get resolution"""
 
@@ -623,13 +645,18 @@ cdef dateutil_parse(
         str attr
         datetime ret
         object res
-        object reso = None
+        str reso = None
         dict repl = {}
 
-    res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    try:
+        res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
+    except InvalidOperation:
+        res = None
 
     if res is None:
-        raise ValueError(f"Unknown datetime string format, unable to parse: {timestr}")
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {timestr}"
+        )
 
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
@@ -639,7 +666,7 @@ cdef dateutil_parse(
             reso = attr
 
     if reso is None:
-        raise ValueError(f"Unable to parse datetime string: {timestr}")
+        raise DateParseError(f"Unable to parse datetime string: {timestr}")
 
     if reso == "microsecond":
         if repl["microsecond"] == 0:
@@ -647,17 +674,56 @@ cdef dateutil_parse(
         elif repl["microsecond"] % 1000 == 0:
             reso = "millisecond"
 
-    ret = default.replace(**repl)
+    try:
+        ret = default.replace(**repl)
+    except ValueError as err:
+        # e.g. "day is out of range for month"
+        # we re-raise to match dateutil's exception message
+        raise DateParseError(str(err) + ": " + timestr) from err
+    except OverflowError as err:
+        # with e.g. "08335394550" dateutil raises when trying to pass
+        #  year=8335394550 to datetime.replace
+        raise OutOfBoundsDatetime(
+            f'Parsing "{timestr}" to datetime overflows'
+        ) from err
+
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
+            # GH#50791
+            if res.tzname != "UTC":
+                # If the system is localized in UTC (as many CI runs are)
+                #  we get tzlocal, once the deprecation is enforced will get
+                #  timezone.utc, not raise.
+                warnings.warn(
+                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "keyword or call tz_localize after construction instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level()
+                )
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
-    return ret, reso
+
+            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            #  bounds, which is invalid (can be constructed, but raises if we call
+            #  str(ret)).  Check that and raise here if necessary.
+            try:
+                ret.utcoffset()
+            except ValueError as err:
+                # offset must be a timedelta strictly between -timedelta(hours=24)
+                #  and timedelta(hours=24)
+                raise ValueError(
+                    f'Parsed string "{timestr}" gives an invalid tzoffset, '
+                    "which must be between -timedelta(hours=24) and timedelta(hours=24)"
+                )
+
+    out_bestunit[0] = attrname_to_npy_unit[reso]
+    return ret
 
 
 # ----------------------------------------------------------------------
@@ -830,7 +896,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     try:
         parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
 

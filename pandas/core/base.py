@@ -213,11 +213,11 @@ class SelectionMixin(Generic[NDFrameT]):
     @final
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj[self._selection_list]
-
         if isinstance(self.obj, ABCSeries):
             return self.obj
+
+        if self._selection is not None:
+            return self.obj._getitem_nocopy(self._selection_list)
 
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
@@ -966,7 +966,7 @@ class IndexOpsMixin(OpsMixin):
         1.0    1
         2.0    1
         4.0    1
-        dtype: int64
+        Name: count, dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
         dividing all values by the sum of values.
@@ -977,7 +977,7 @@ class IndexOpsMixin(OpsMixin):
         1.0    0.2
         2.0    0.2
         4.0    0.2
-        dtype: float64
+        Name: proportion, dtype: float64
 
         **bins**
 
@@ -990,7 +990,7 @@ class IndexOpsMixin(OpsMixin):
         (0.996, 2.0]    2
         (2.0, 3.0]      2
         (3.0, 4.0]      1
-        dtype: int64
+        Name: count, dtype: int64
 
         **dropna**
 
@@ -1002,7 +1002,7 @@ class IndexOpsMixin(OpsMixin):
         2.0    1
         4.0    1
         NaN    1
-        dtype: int64
+        Name: count, dtype: int64
         """
         return algorithms.value_counts(
             self,
@@ -1161,7 +1161,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = uniques.astype(np.float32)
 
         if isinstance(self, ABCIndex):
-            # preserve e.g. NumericIndex, preserve MultiIndex
+            # preserve e.g. MultiIndex
             uniques = self._constructor(uniques)
         else:
             from pandas import Index

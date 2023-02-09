@@ -70,7 +70,9 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -83,12 +85,12 @@ from pandas import (
     Index,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     concat,
     isna,
 )
-from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -2049,7 +2051,7 @@ class IndexCol:
 
     def convert(
         self, values: np.ndarray, nan_rep, encoding: str, errors: str
-    ) -> tuple[np.ndarray, np.ndarray] | tuple[DatetimeIndex, DatetimeIndex]:
+    ) -> tuple[np.ndarray, np.ndarray] | tuple[Index, Index]:
         """
         Convert the data from this selection to the appropriate pandas type.
         """
@@ -2242,13 +2244,9 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self) -> bool:
         return False
 
-    # error: Return type "Tuple[Int64Index, Int64Index]" of "convert"
-    # incompatible with return type "Union[Tuple[ndarray[Any, Any],
-    # ndarray[Any, Any]], Tuple[DatetimeIndex, DatetimeIndex]]" in
-    # supertype "IndexCol"
-    def convert(  # type: ignore[override]
+    def convert(
         self, values: np.ndarray, nan_rep, encoding: str, errors: str
-    ) -> tuple[Int64Index, Int64Index]:
+    ) -> tuple[Index, Index]:
         """
         Convert the data from this selection to the appropriate pandas type.
 
@@ -2261,7 +2259,7 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        index = Int64Index(np.arange(len(values)))
+        index = RangeIndex(len(values))
         return index, index
 
     def set_attr(self) -> None:
@@ -2559,7 +2557,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not Index(self.values).is_object():
+        if not is_object_dtype(Index(self.values)):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -4864,11 +4862,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     atom = DataIndexableCol._get_atom(converted)
 
     if (
-        isinstance(index, Int64Index)
+        (isinstance(index.dtype, np.dtype) and is_integer_dtype(index))
         or needs_i8_conversion(index.dtype)
         or is_bool_dtype(index.dtype)
     ):
-        # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+        # Includes Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
         return IndexCol(

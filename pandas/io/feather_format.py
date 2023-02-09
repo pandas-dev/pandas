@@ -6,6 +6,9 @@ from typing import (
     Sequence,
 )
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -21,7 +24,6 @@ from pandas import (
 )
 from pandas.core.api import (
     DataFrame,
-    NumericIndex,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -66,7 +68,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not (isinstance(df.index, NumericIndex) and df.index.dtype == "int64"):
+    if not df.index.dtype == "int64":
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "
@@ -103,7 +105,7 @@ def read_feather(
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ):
     """
     Load a feather-format object from the file path.
@@ -128,11 +130,13 @@ def read_feather(
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0
 
@@ -142,6 +146,12 @@ def read_feather(
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False

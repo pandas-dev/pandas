@@ -996,7 +996,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         if dropna:
-            res = Series(value_counts, index=keys)
+            res = Series(value_counts, index=keys, name="count")
             res.index = res.index.astype(self.dtype)
             res = res.astype("Int64")
             return res
@@ -1012,7 +1012,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(counts), dtype="bool")
         counts_array = IntegerArray(counts, mask)
 
-        return Series(counts_array, index=index)
+        return Series(counts_array, index=index, name="count")
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1081,12 +1081,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data
         mask = self._mask
 
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        # median, skew, kurt, idxmin, idxmax
+        # median, skew, kurt, sem
         op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 

@@ -32,6 +32,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
@@ -529,6 +530,15 @@ def nanany(
     >>> nanops.nanany(s)
     False
     """
+    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+        # GH#34479
+        warnings.warn(
+            "'any' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).any() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
     # For object type, any won't necessarily return
@@ -575,6 +585,15 @@ def nanall(
     >>> nanops.nanall(s)
     False
     """
+    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+        # GH#34479
+        warnings.warn(
+            "'all' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).all() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
     # For object type, all won't necessarily return
@@ -761,15 +780,15 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             res = np.nanmedian(x[_mask])
         return res
 
-    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
+    values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask, fill_value=0)
     if not is_float_dtype(values.dtype):
         try:
             values = values.astype("f8")
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
             raise TypeError(str(err)) from err
-        if mask is not None:
-            values[mask] = np.nan
+    if mask is not None:
+        values[mask] = np.nan
 
     notempty = values.size
 
@@ -1043,8 +1062,11 @@ def nansem(
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
 
+    if not skipna and mask is not None and mask.any():
+        return np.nan
+
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
+    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)
 
@@ -1225,6 +1247,8 @@ def nanskew(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
@@ -1313,6 +1337,8 @@ def nankurt(
     if skipna and mask is not None:
         values = values.copy()
         np.putmask(values, mask, 0)
+    elif not skipna and mask is not None and mask.any():
+        return np.nan
 
     mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:

@@ -18,7 +18,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
@@ -379,7 +378,7 @@ class TestIntervalIndex:
         # interval
         interval = Interval(breaks[0], breaks[1])
         result = index._maybe_convert_i8(interval)
-        expected = Interval(breaks[0].value, breaks[1].value)
+        expected = Interval(breaks[0]._value, breaks[1]._value)
         assert result == expected
 
         # datetimelike index
@@ -389,7 +388,7 @@ class TestIntervalIndex:
 
         # datetimelike scalar
         result = index._maybe_convert_i8(breaks[0])
-        expected = breaks[0].value
+        expected = breaks[0]._value
         assert result == expected
 
         # list-like of datetimelike scalars
@@ -406,12 +405,12 @@ class TestIntervalIndex:
         index = IntervalIndex.from_breaks(breaks)
 
         to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = Float64Index([np.nan] * 3)
+        expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
         to_convert = to_convert.insert(0, breaks[0])
-        expected = expected.insert(0, float(breaks[0].value))
+        expected = expected.insert(0, float(breaks[0]._value))
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 

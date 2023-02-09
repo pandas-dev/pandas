@@ -9,6 +9,9 @@ from typing import (
 )
 from warnings import catch_warnings
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -453,7 +456,7 @@ def read_parquet(
     engine: str = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -494,13 +497,15 @@ def read_parquet(
 
         .. versionadded:: 1.2.0
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
 
-        .. versionadded:: 2.0.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+            .. versionadded:: 2.0.0
 
     **kwargs
         Any additional kwargs are passed to the engine.
@@ -510,6 +515,12 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     return impl.read(
         path,

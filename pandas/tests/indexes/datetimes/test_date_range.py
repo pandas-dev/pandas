@@ -980,7 +980,7 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        msg = "Unknown string format: 2007/100/1"
+        msg = "Unknown datetime string format, unable to parse: 2007/100/1"
         with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 
@@ -1236,7 +1236,7 @@ class TestDateRangeNonNano:
         # but we can losslessly cast to "us"
         dti = date_range(start, end, periods=2, unit="us")
         rng = np.array(
-            [start.as_unit("us").value, end.as_unit("us").value], dtype=np.int64
+            [start.as_unit("us")._value, end.as_unit("us")._value], dtype=np.int64
         )
         expected = DatetimeIndex(rng.view("M8[us]"))
         tm.assert_index_equal(dti, expected)
