@@ -1066,6 +1066,7 @@ Performance improvements
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 - Performance improvement for indexing operations with nullable dtypes (:issue:`49420`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
+- Performance improvement for :func:`api.types.infer_dtype` (:issue:`51054`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
 - Performance improvement in :meth:`~arrays.IntervalArray.from_tuples` (:issue:`50620`)
