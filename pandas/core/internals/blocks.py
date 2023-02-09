@@ -421,7 +421,9 @@ class Block(PandasObject):
         return self.astype(new_dtype, copy=False)
 
     @final
-    def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
+    def _maybe_downcast(
+        self, blocks: list[Block], downcast=None, using_cow: bool = False
+    ) -> list[Block]:
         if downcast is False:
             return blocks
 
@@ -431,23 +433,30 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks([blk.convert() for blk in blocks])
+            return extend_blocks(
+                [blk.convert(copy=not using_cow, using_cow=using_cow) for blk in blocks]
+            )
 
         if downcast is None:
             return blocks
 
-        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
+        return extend_blocks(
+            [b._downcast_2d(downcast, using_cow=using_cow) for b in blocks]
+        )
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype) -> list[Block]:
+    def _downcast_2d(self, dtype, using_cow: bool = False) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
         Refactored to allow use of maybe_split.
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
-        return [self.make_block(new_values)]
+        refs = None
+        if using_cow and new_values is self.values:
+            refs = self.refs
+        return [self.make_block(new_values, refs=refs)]
 
     def convert(
         self,
@@ -1152,7 +1161,12 @@ class Block(PandasObject):
         return [self.make_block(result)]
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1171,19 +1185,25 @@ class Block(PandasObject):
         if noop:
             # we can't process the value, but nothing to do
             if inplace:
+                if using_cow:
+                    return [self.copy(deep=False)]
                 # Arbitrarily imposing the convention that we ignore downcast
                 #  on no-op when inplace=True
                 return [self]
             else:
                 # GH#45423 consistent downcasting on no-ops.
-                nb = self.copy()
-                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                nb = self.copy(deep=not using_cow)
+                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
                 return nbs
 
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
+            if using_cow and self.refs.has_reference():
+                # TODO(CoW): If using_cow is implemented for putmask we can defer
+                # the copy
+                self = self.copy()
             nbs = self.putmask(mask.T, value)
         else:
             # without _downcast, we would break
@@ -1194,7 +1214,10 @@ class Block(PandasObject):
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
         return extend_blocks(
-            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+            [
+                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                for blk in nbs
+            ]
         )
 
     def interpolate(
@@ -1662,12 +1685,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     values: ExtensionArray
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         if is_interval_dtype(self.dtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
-                value=value, limit=limit, inplace=inplace, downcast=downcast
+                value=value,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
+                using_cow=using_cow,
             )
         new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values)
