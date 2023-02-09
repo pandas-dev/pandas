@@ -204,7 +204,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.utctimetuple \
         pandas.Timestamp.weekday \
         pandas.arrays.DatetimeArray \
-        pandas.Timedelta.components \
         pandas.Timedelta.view \
         pandas.Timedelta.as_unit \
         pandas.Timedelta.ceil \
