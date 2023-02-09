@@ -54,3 +54,6 @@ dependencies:
   - xlrd
   - xlsxwriter
   - zstandard
+
+  - pip:
+      - tzdata>=2022.1
