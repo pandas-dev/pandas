@@ -61,4 +61,4 @@ dependencies:
 
   - pip:
     - pyqt5==5.15.1
-    - tzdata>=2022.1
+    - tzdata==2022.1

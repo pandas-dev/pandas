@@ -398,6 +398,7 @@ repos:
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
         additional_dependencies: [tomli]
+        pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
