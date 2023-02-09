@@ -1719,15 +1719,15 @@ class TestDatetime64OverflowHandling:
             with pytest.raises(OverflowError, match=msg):
                 dtimax - variant
 
-        expected = Timestamp.max.value - tspos.value
+        expected = Timestamp.max._value - tspos._value
         for variant in ts_pos_variants:
             res = dtimax - variant
-            assert res[1].value == expected
+            assert res[1]._value == expected
 
-        expected = Timestamp.min.value - tsneg.value
+        expected = Timestamp.min._value - tsneg._value
         for variant in ts_neg_variants:
             res = dtimin - variant
-            assert res[1].value == expected
+            assert res[1]._value == expected
 
         for variant in ts_pos_variants:
             with pytest.raises(OverflowError, match=msg):
@@ -1742,13 +1742,13 @@ class TestDatetime64OverflowHandling:
         ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"])
 
         # General tests
-        expected = Timestamp.max.value - ts_pos[1].value
+        expected = Timestamp.max._value - ts_pos[1]._value
         result = dtimax - ts_pos
-        assert result[1].value == expected
+        assert result[1]._value == expected
 
-        expected = Timestamp.min.value - ts_neg[1].value
+        expected = Timestamp.min._value - ts_neg[1]._value
         result = dtimin - ts_neg
-        assert result[1].value == expected
+        assert result[1]._value == expected
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
             dtimax - ts_neg
@@ -2442,4 +2442,4 @@ def test_dt64arr_addsub_object_dtype_2d():
         result2 = dta - dta.astype(object)
 
     assert result2.shape == (4, 1)
-    assert all(td.value == 0 for td in result2.ravel())
+    assert all(td._value == 0 for td in result2.ravel())
