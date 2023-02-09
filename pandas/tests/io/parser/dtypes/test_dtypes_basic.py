@@ -500,13 +500,6 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     with pd.option_context("mode.dtype_backend", "pyarrow"):
-        if engine == "c":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Not implemented with engine={parser.engine}",
-                )
-            )
         result = parser.read_csv(
             StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
         )
@@ -520,13 +513,29 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
                 "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
                 "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
                 "h": pd.Series(
-                    [pd.NA if engine == "python" else "", "a"],
+                    [pd.NA if engine != "pyarrow" else "", "a"],
                     dtype=pd.ArrowDtype(pa.string()),
                 ),
                 "i": pd.Series([Timestamp("2019-12-31")] * 2),
                 "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
             }
         )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.usefixtures("pyarrow_xfail")
+def test_use_nullable_dtypes_option(all_parsers):
+    # GH#50748
+
+    parser = all_parsers
+
+    data = """a
+1
+3
+"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = parser.read_csv(StringIO(data))
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)
 
 

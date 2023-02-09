@@ -18,11 +18,8 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat.pyarrow import (
-    pa_version_under6p0,
-    pa_version_under7p0,
-)
+from pandas._libs.tslibs.parsing import py_parse_datetime_string
+from pandas.compat.pyarrow import pa_version_under7p0
 
 import pandas as pd
 from pandas import (
@@ -456,7 +453,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         columns=["X0", "X2", "X3", "X4", "X5", "X6", "X7"],
         index=index,
     )
-    if parser.engine == "pyarrow" and not pa_version_under6p0:
+    if parser.engine == "pyarrow" and not pa_version_under7p0:
         # https://github.com/pandas-dev/pandas/issues/44231
         # pyarrow 6.0 starts to infer time type
         expected["X2"] = pd.to_datetime("1970-01-01" + expected["X2"]).dt.time
@@ -1290,16 +1287,21 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_parse_dates_infer_datetime_format_warning(all_parsers):
-    # GH 49024
+@pytest.mark.parametrize(
+    "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
+)
+def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
+    # GH 49024, 51017
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
-    parser.read_csv_check_warnings(
-        UserWarning,
+
+    getattr(parser, reader)(
+        FutureWarning,
         "The argument 'infer_datetime_format' is deprecated",
         StringIO(data),
         parse_dates=["Date"],
         infer_datetime_format=True,
+        sep=",",
     )
 
 
@@ -1755,7 +1757,7 @@ def test_hypothesis_delimited_date(
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parse_datetime_string, date_string, dayfirst=dayfirst
+        py_parse_datetime_string, date_string, dayfirst=dayfirst
     )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,

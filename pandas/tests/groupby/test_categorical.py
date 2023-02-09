@@ -103,9 +103,6 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    msg = "category type does not support sum operations"
-    with pytest.raises(TypeError, match=msg):
-        gb.sum()
     result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
@@ -271,7 +268,7 @@ def test_sorting_with_different_categoricals():
     index = Categorical(index, categories=["low", "med", "high"], ordered=True)
     index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
     index = MultiIndex.from_arrays(index, names=["group", "dose"])
-    expected = Series([2] * 6, index=index, name="dose")
+    expected = Series([2] * 6, index=index, name="count")
     tm.assert_series_equal(result, expected)
 
 
