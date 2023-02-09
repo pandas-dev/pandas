@@ -1269,7 +1269,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
             result = result.iloc[:, order]
-            result.columns = columns
+            result = cast(DataFrame, result)
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[List[str]]", variable has type
+            # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
+            # Index, Series], Sequence[Any]]")
+            result.columns = columns  # type: ignore[assignment]
 
         if result is None:
 
@@ -1309,6 +1314,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 else:
                     # GH#32040, GH#35246
                     # e.g. test_groupby_as_index_select_column_sum_empty_df
+                    result = cast(DataFrame, result)
                     result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:

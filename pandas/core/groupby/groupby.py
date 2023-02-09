@@ -1161,8 +1161,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         result.index = index
 
-        result = self._maybe_transpose_result(result)
-        return self._reindex_output(result, qs=qs)
+        # error: Argument 1 to "_maybe_transpose_result" of "GroupBy" has
+        # incompatible type "Union[Series, DataFrame]"; expected "NDFrameT"
+        res = self._maybe_transpose_result(result)  # type: ignore[arg-type]
+        return self._reindex_output(res, qs=qs)
 
     def _wrap_applied_output(
         self,
