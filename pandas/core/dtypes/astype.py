@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -154,7 +155,9 @@ def _astype_float_to_int_nansafe(
         # GH#45151
         if not (values >= 0).all():
             raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
-    return values.astype(dtype, copy=copy)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        return values.astype(dtype, copy=copy)
 
 
 def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
