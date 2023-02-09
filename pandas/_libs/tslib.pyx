@@ -705,7 +705,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
                     # datetime64, tznaive pydatetime, int, float
                     ts = ts.tz_localize(tz)
                 ts = ts.as_unit("ns")
-                ival = ts.value
+                ival = ts._value
 
         # Analogous to: result[i] = ival
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival

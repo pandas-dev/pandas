@@ -110,7 +110,7 @@ def test_equality(klass, value, request):
             pytest.mark.xfail(reason="Period cannot parse empty string")
         )
 
-    assert klass(value).value == iNaT
+    assert klass(value)._value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])
