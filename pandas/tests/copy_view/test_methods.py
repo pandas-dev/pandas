@@ -1291,8 +1291,8 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
         assert df._mgr._has_no_reference(1) is not exp
         assert not df._mgr._has_no_reference(2)
         tm.assert_frame_equal(view, df_orig)
-    else:
-        # Without CoW the original will be modified
+    elif val == 5:
+        # Without CoW the original will be modified, the other case upcasts, e.g. copy
         assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
         assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
         assert view.iloc[0, 0] == 5
