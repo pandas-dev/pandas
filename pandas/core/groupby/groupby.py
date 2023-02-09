@@ -1008,17 +1008,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         from pandas.core.reshape.concat import concat
 
-        def reset_identity(values):
-            # reset the identities of the components
-            # of the values to prevent aliasing
-            for v in com.not_none(*values):
-                ax = v._get_axis(self.axis)
-                ax._reset_identity()
-            return values
-
         if self.group_keys and not is_transform:
 
-            values = reset_identity(values)
             if self.as_index:
 
                 # possible MI return case
@@ -1063,7 +1054,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result.reindex(ax, axis=self.axis, copy=False)
 
         else:
-            values = reset_identity(values)
             result = concat(values, axis=self.axis)
 
         name = self.obj.name if self.obj.ndim == 1 else self._selection
@@ -1124,6 +1114,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AbstractMethodError(self)
 
     @final
+    def _maybe_transpose_result(self, result: NDFrameT) -> NDFrameT:
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy, no-op for SeriesGroupBy
+            result = result.T
+            if result.index.equals(self.obj.index):
+                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
+                # e.g. test_groupby_crash_on_nunique
+                result.index = self.obj.index.copy()
+        return result
+
+    @final
     def _wrap_aggregated_output(
         self,
         result: Series | DataFrame,
@@ -1160,15 +1161,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         result.index = index
 
-        if self.axis == 1:
-            # Only relevant for DataFrameGroupBy, no-op for SeriesGroupBy
-            result = result.T
-            if result.index.equals(self.obj.index):
-                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
-                result.index = self.obj.index.copy()
-                # TODO: Do this more systematically
-
-        return self._reindex_output(result, qs=qs)
+        # error: Argument 1 to "_maybe_transpose_result" of "GroupBy" has
+        # incompatible type "Union[Series, DataFrame]"; expected "NDFrameT"
+        res = self._maybe_transpose_result(result)  # type: ignore[arg-type]
+        return self._reindex_output(res, qs=qs)
 
     def _wrap_applied_output(
         self,
@@ -1242,9 +1238,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return data._constructor(result, index=index, **result_kwargs)
 
     @final
-    def _transform_with_numba(
-        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
-    ):
+    def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby transform routine with the numba engine.
 
@@ -1252,7 +1246,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(data)
+        data = self._obj_with_exclusions
+        df = data if data.ndim == 2 else data.to_frame()
+
+        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
         numba_transform_func = numba_.generate_numba_transform_func(
             func, **get_jit_arguments(engine_kwargs, kwargs)
@@ -1262,17 +1259,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sorted_index,
             starts,
             ends,
-            len(data.columns),
+            len(df.columns),
             *args,
         )
         # result values needs to be resorted to their original positions since we
         # evaluated the data sorted by group
-        return result.take(np.argsort(sorted_index), axis=0)
+        result = result.take(np.argsort(sorted_index), axis=0)
+        index = data.index
+        if data.ndim == 1:
+            result_kwargs = {"name": data.name}
+            result = result.ravel()
+        else:
+            result_kwargs = {"columns": data.columns}
+        return data._constructor(result, index=index, **result_kwargs)
 
     @final
-    def _aggregate_with_numba(
-        self, data: DataFrame, func, *args, engine_kwargs=None, **kwargs
-    ):
+    def _aggregate_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby aggregation routine with the numba engine.
 
@@ -1280,7 +1282,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(data)
+        data = self._obj_with_exclusions
+        df = data if data.ndim == 2 else data.to_frame()
+
+        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
         numba_agg_func = numba_.generate_numba_agg_func(
             func, **get_jit_arguments(engine_kwargs, kwargs)
@@ -1290,10 +1295,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sorted_index,
             starts,
             ends,
-            len(data.columns),
+            len(df.columns),
             *args,
         )
-        return result
+        index = self.grouper.result_index
+        if data.ndim == 1:
+            result_kwargs = {"name": data.name}
+            result = result.ravel()
+        else:
+            result_kwargs = {"columns": data.columns}
+        res = data._constructor(result, index=index, **result_kwargs)
+        if not self.as_index:
+            res = self._insert_inaxis_grouper(res)
+            res.index = default_index(len(res))
+        return res
 
     # -----------------------------------------------------------------
     # apply/agg/transform
@@ -1536,19 +1551,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            data = self._obj_with_exclusions
-            df = data if data.ndim == 2 else data.to_frame()
-            result = self._transform_with_numba(
-                df, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            return self._transform_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            if self.obj.ndim == 2:
-                return cast(DataFrame, self.obj)._constructor(
-                    result, index=data.index, columns=data.columns
-                )
-            else:
-                return cast(Series, self.obj)._constructor(
-                    result.ravel(), index=data.index, name=data.name
-                )
 
         # optimized transforms
         func = com.get_cython_func(func) or func

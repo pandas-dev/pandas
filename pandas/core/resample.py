@@ -130,7 +130,7 @@ class Resampler(BaseGroupBy, PandasObject):
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
-    _internal_names_set = set({"obj", "ax"})
+    _internal_names_set = set({"obj", "ax", "_indexer"})
 
     # to the groupby descriptor
     _attributes = [
@@ -163,7 +163,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = group_keys
         self.as_index = True
 
-        self.obj, self.ax = self._timegrouper._set_grouper(
+        self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
         )
         self.binner, self.grouper = self._get_binner()
@@ -230,7 +230,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
-        bin_grouper = BinGrouper(bins, binlabels, indexer=self._timegrouper.indexer)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
     @Substitution(
@@ -1674,7 +1674,7 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        _, ax = self._set_grouper(obj, gpr_index=None)
+        _, ax, indexer = self._set_grouper(obj, gpr_index=None)
 
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
@@ -2128,19 +2128,19 @@ def _adjust_dates_anchored(
 
     origin_nanos = 0  # origin == "epoch"
     if origin == "start_day":
-        origin_nanos = first.normalize().value
+        origin_nanos = first.normalize()._value
     elif origin == "start":
-        origin_nanos = first.value
+        origin_nanos = first._value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.as_unit("ns").value
+        origin_nanos = origin.as_unit("ns")._value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin_last.value - first.value) // freq.nanos
+        sub_freq_times = (origin_last._value - first._value) // freq.nanos
         if closed == "left":
             sub_freq_times += 1
         first = origin_last - sub_freq_times * freq
-        origin_nanos = first.value
-    origin_nanos += offset.value if offset else 0
+        origin_nanos = first._value
+    origin_nanos += offset._value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
     # Perform the calculation in UTC in order to avoid localizing on an
@@ -2152,34 +2152,34 @@ def _adjust_dates_anchored(
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
 
-    foffset = (first.value - origin_nanos) % freq.nanos
-    loffset = (last.value - origin_nanos) % freq.nanos
+    foffset = (first._value - origin_nanos) % freq.nanos
+    loffset = (last._value - origin_nanos) % freq.nanos
 
     if closed == "right":
         if foffset > 0:
             # roll back
-            fresult_int = first.value - foffset
+            fresult_int = first._value - foffset
         else:
-            fresult_int = first.value - freq.nanos
+            fresult_int = first._value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq.nanos - loffset)
         else:
             # already the end of the road
-            lresult_int = last.value
+            lresult_int = last._value
     else:  # closed == 'left'
         if foffset > 0:
-            fresult_int = first.value - foffset
+            fresult_int = first._value - foffset
         else:
             # start of the road
-            fresult_int = first.value
+            fresult_int = first._value
 
         if loffset > 0:
             # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq.nanos - loffset)
         else:
-            lresult_int = last.value + freq.nanos
+            lresult_int = last._value + freq.nanos
     fresult = Timestamp(fresult_int)
     lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:
