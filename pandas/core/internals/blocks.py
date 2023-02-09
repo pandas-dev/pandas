@@ -742,7 +742,7 @@ class Block(PandasObject):
                     to_replace=src,
                     value=dest,
                     mask=m,  # type: ignore[arg-type]
-                    inplace=True,
+                    inplace=inplace,
                     regex=regex,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
