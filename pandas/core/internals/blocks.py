@@ -1579,7 +1579,6 @@ class EABackedBlock(Block):
             return [self]
 
         if using_cow and self.refs.has_reference():
-            # Do this here to avoid copying twice
             values = values.copy()
             self = type(self)(
                 values.T if values.ndim == 2 else values, self._mgr_locs, ndim=self.ndim
