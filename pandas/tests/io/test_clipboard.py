@@ -426,9 +426,6 @@ class TestClipboard:
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
 
-        if dtype_backend == "pyarrow" and engine == "c":
-            pytest.skip(reason="c engine not yet supported")
-
         if string_storage == "python":
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
             string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))

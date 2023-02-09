@@ -204,7 +204,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.utctimetuple \
         pandas.Timestamp.weekday \
         pandas.arrays.DatetimeArray \
-        pandas.Timedelta.components \
         pandas.Timedelta.view \
         pandas.Timedelta.as_unit \
         pandas.Timedelta.ceil \
@@ -590,9 +589,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.sparse.sp_values \
         pandas.Timestamp.fromtimestamp \
         pandas.api.types.infer_dtype \
-        pandas.api.types.is_bool_dtype \
-        pandas.api.types.is_categorical_dtype \
-        pandas.api.types.is_complex_dtype \
         pandas.api.types.is_datetime64_any_dtype \
         pandas.api.types.is_datetime64_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
