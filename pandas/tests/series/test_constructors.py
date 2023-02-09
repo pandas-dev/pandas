@@ -873,13 +873,16 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
-        assert s[1] == 5
+        if using_copy_on_write:
+            assert s[1] == 2
+        else:
+            assert s[1] == 5
 
     def test_constructor_datelike_coercion(self):
 
