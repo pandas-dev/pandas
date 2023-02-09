@@ -11,7 +11,6 @@ from typing import (
     cast,
     final,
 )
-import weakref
 
 import numpy as np
 
@@ -160,7 +159,6 @@ class Block(PandasObject):
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-    _ref = None
 
     @final
     @cache_readonly
@@ -547,8 +545,7 @@ class Block(PandasObject):
         inplace: bool = False,
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
-        original_blocks: list[Block] = [],
-        using_copy_on_write: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -573,12 +570,8 @@ class Block(PandasObject):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            if using_copy_on_write and original_blocks:
-                result = self.copy(deep=False)
-                result._ref = result._ref = weakref.ref(
-                    original_blocks[self.mgr_locs.as_array[0]]
-                )
-                return [result]
+            if using_cow:
+                return [self.copy(deep=False)]
             else:
                 return [self] if inplace else [self.copy()]
 
@@ -587,31 +580,26 @@ class Block(PandasObject):
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            if using_copy_on_write and original_blocks:
-                result = self.copy(deep=False)
-                result._ref = result._ref = weakref.ref(
-                    original_blocks[self.mgr_locs.as_array[0]]
-                )
-                return [result]
+            if using_cow:
+                return [self.copy(deep=False)]
             else:
                 return [self] if inplace else [self.copy()]
 
         elif self._can_hold_element(value):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
-            if using_copy_on_write:
-                if original_blocks:
-                    blk = self.copy()
+            if using_cow:
+                if inplace:
+                    blk = self.copy(deep=self.refs.has_reference())
                 else:
-                    # In case we made a copy before, e.g. coerce to target dtype
-                    blk = self
+                    blk = self.copy()
             else:
                 blk = self if inplace else self.copy()
             putmask_inplace(blk.values, mask, value)
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(copy=False)
+                blocks = blk.convert(copy=False, using_cow=using_cow)
             else:
                 blocks = [blk]
             return blocks
@@ -631,13 +619,6 @@ class Block(PandasObject):
         else:
             # split so that we only upcast where necessary
             blocks = []
-            if original_blocks:
-                _original_blocks = [original_blocks[self.mgr_locs.as_array[0]]] * len(
-                    self
-                )
-            else:
-                _original_blocks = []
-
             for i, nb in enumerate(self._split()):
                 blocks.extend(
                     type(self).replace(
@@ -646,8 +627,7 @@ class Block(PandasObject):
                         value=value,
                         inplace=True,
                         mask=mask[i : i + 1],
-                        original_blocks=[self] * (self.mgr_locs.as_array.max() + 1),
-                        using_copy_on_write=using_copy_on_write,
+                        using_cow=using_cow,
                     )
                 )
             return blocks
@@ -701,8 +681,6 @@ class Block(PandasObject):
         dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
-        original_blocks: list[Block] = [],
-        using_copy_on_write: bool = False,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -723,14 +701,7 @@ class Block(PandasObject):
         ]
         if not len(pairs):
             # shortcut, nothing to replace
-            if using_copy_on_write and original_blocks:
-                nb = self.copy(deep=False)
-                nb._ref = nb._ref = weakref.ref(
-                    original_blocks[self.mgr_locs.as_array[0]]
-                )
-                return [nb]
-            else:
-                return [self] if inplace else [self.copy()]
+            return [self] if inplace else [self.copy()]
 
         src_len = len(pairs) - 1
 
@@ -748,11 +719,7 @@ class Block(PandasObject):
 
         masks = [extract_bool_array(x) for x in masks]
 
-        if using_copy_on_write:
-            # TODO(CoW): Optimize to avoid as many copies as possible
-            rb = [self.copy()]
-        else:
-            rb = [self if inplace else self.copy()]
+        rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
@@ -775,10 +742,8 @@ class Block(PandasObject):
                     to_replace=src,
                     value=dest,
                     mask=m,  # type: ignore[arg-type]
-                    inplace=True,  # We already made a copy if inplace=False
+                    inplace=True,
                     regex=regex,
-                    # TODO(CoW): Optimize to avoid as many copies as possible
-                    using_copy_on_write=False,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
@@ -795,8 +760,6 @@ class Block(PandasObject):
         mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
-        original_blocks: list[Block] = [],
-        using_copy_on_write: bool = False,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -842,8 +805,6 @@ class Block(PandasObject):
                 value=value,
                 inplace=inplace,
                 mask=mask,
-                original_blocks=original_blocks,
-                using_copy_on_write=using_copy_on_write,
             )
 
     # ---------------------------------------------------------------------
