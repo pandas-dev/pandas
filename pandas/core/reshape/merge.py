@@ -2119,7 +2119,7 @@ class _AsOfMerge(_OrderedMerge):
                     lvs = ensure_wrapped_if_datetimelike(left_values)
                     tolerance = tolerance.as_unit(lvs.unit)
 
-                tolerance = tolerance.value
+                tolerance = tolerance._value
 
             # TODO: require left_values.dtype == right_values.dtype, or at least
             #  comparable for e.g. dt64tz
@@ -2149,10 +2149,14 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(lbv.dtype)
             by_type_caster = _type_casters[by_type]
-            # error: Cannot call function of unknown type
-            left_by_values = by_type_caster(lbv)  # type: ignore[operator]
-            # error: Cannot call function of unknown type
-            right_by_values = by_type_caster(rbv)  # type: ignore[operator]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            left_by_values = by_type_caster(lbv)  # type: ignore[assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            right_by_values = by_type_caster(rbv)  # type: ignore[assignment]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
