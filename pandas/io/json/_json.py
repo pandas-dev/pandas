@@ -21,7 +21,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
 
 from pandas._libs import lib
 from pandas._libs.json import (
@@ -841,6 +844,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.handles: IOHandles[str] | None = None
         self.use_nullable_dtypes = use_nullable_dtypes
 
+        if self.engine not in {"pyarrow", "ujson"}:
+            raise ValueError(
+                f"The engine type {self.engine} is currently not supported."
+            )
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
@@ -859,12 +866,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     "currently pyarrow engine only supports "
                     "the line-delimited JSON format"
                 )
-        if self.engine not in {"pyarrow", "ujson"}:
-            raise ValueError(
-                f"The engine type {self.engine} is currently not supported."
-            )
-
-        if self.engine == "pyarrow":
             self.data = filepath_or_buffer
         elif self.engine == "ujson":
             data = self._get_data_from_filepath(filepath_or_buffer)
@@ -955,8 +956,23 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         with self:
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
-                table = pyarrow_json.read_json(self.data)
-                obj = table.to_pandas()
+                pa_table = pyarrow_json.read_json(self.data)
+                if (
+                    self.use_nullable_dtypes
+                    and get_option("mode.dtype_backend") == "pyarrow"
+                ):
+                    from pandas.arrays import ArrowExtensionArray
+
+                    obj = DataFrame(
+                        {
+                            col_name: ArrowExtensionArray(pa_col)
+                            for col_name, pa_col in zip(
+                                pa_table.column_names, pa_table.itercolumns()
+                            )
+                        }
+                    )
+                    return obj
+                obj = pa_table.to_pandas()
             elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:

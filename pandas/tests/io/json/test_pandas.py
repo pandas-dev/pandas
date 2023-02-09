@@ -1956,3 +1956,10 @@ class TestPandasContainer:
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 
         tm.assert_series_equal(result, expected)
+
+
+def test_invalid_engine():
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="The engine type foo"):
+        read_json(out, engine="foo")

@@ -1,5 +1,4 @@
 from io import StringIO
-import os
 from pathlib import Path
 from typing import Iterator
 
@@ -21,20 +20,16 @@ def lines_json_df():
     return df.to_json(lines=True, orient="records")
 
 
-def test_read_jsonl(request, engine):
+def test_read_jsonl():
     # GH9180
-    if engine == "pyarrow":
-        reason = "Pyarrow only supports a file path as an input and line delimited json"
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-    result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True, engine=engine)
+    result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_jsonl_engine_pyarrow(json_dir_path, engine):
+def test_read_jsonl_engine_pyarrow(datapath, engine):
     result = read_json(
-        os.path.join(json_dir_path, "line_delimited.json"),
+        datapath("io", "json", "data", "line_delimited.json"),
         lines=True,
         engine=engine,
     )
@@ -46,7 +41,7 @@ def test_read_datetime(request, engine):
     # GH33787
     if engine == "pyarrow":
         reason = "Pyarrow only supports a file path as an input and line delimited json"
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     df = DataFrame(
         [([1, 2], ["2020-03-05", "2020-04-08T09:58:49+00:00"], "hector")],
@@ -61,23 +56,20 @@ def test_read_datetime(request, engine):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_jsonl_unicode_chars(request, engine):
+def test_read_jsonl_unicode_chars():
     # GH15132: non-ascii unicode characters
     # \u201d == RIGHT DOUBLE QUOTATION MARK
-    if engine == "pyarrow":
-        reason = "Pyarrow only supports a file path as an input and line delimited json"
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
 
     # simulate file handle
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     json = StringIO(json)
-    result = read_json(json, lines=True, engine=engine)
+    result = read_json(json, lines=True)
     expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-    result = read_json(json, lines=True, engine=engine)
+    result = read_json(json, lines=True)
     expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
@@ -122,7 +114,7 @@ def test_readjson_chunks(request, lines_json_df, chunksize, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     unchunked = read_json(StringIO(lines_json_df), lines=True)
     with read_json(
@@ -171,7 +163,7 @@ def test_readjson_each_chunk(request, lines_json_df, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     # Other tests check that the final result of read_json(chunksize=True)
     # is correct. This checks the intermediate chunks.
@@ -189,7 +181,7 @@ def test_readjson_chunks_from_file(request, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     with tm.ensure_clean("test.json") as path:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
@@ -240,14 +232,7 @@ def test_readjson_invalid_chunksize(lines_json_df, chunksize, engine):
 
 
 @pytest.mark.parametrize("chunksize", [None, 1, 2])
-def test_readjson_chunks_multiple_empty_lines(request, chunksize, engine):
-    if engine == "pyarrow":
-        reason = (
-            "Pyarrow only supports a file path as an input and line delimited json"
-            "and doesn't support chunksize parameter."
-        )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
-
+def test_readjson_chunks_multiple_empty_lines(chunksize):
     j = """
 
     {"A":1,"B":4}
@@ -265,7 +250,7 @@ def test_readjson_chunks_multiple_empty_lines(request, chunksize, engine):
     {"A":3,"B":6}
     """
     orig = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-    test = read_json(j, lines=True, chunksize=chunksize, engine=engine)
+    test = read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         with test:
             test = pd.concat(test)
@@ -278,7 +263,7 @@ def test_readjson_unicode(request, monkeypatch, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     with tm.ensure_clean("test.json") as path:
         monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale: "cp949")
@@ -291,21 +276,14 @@ def test_readjson_unicode(request, monkeypatch, engine):
 
 
 @pytest.mark.parametrize("nrows", [1, 2])
-def test_readjson_nrows(request, nrows, engine):
+def test_readjson_nrows(nrows, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows param
-    if engine == "pyarrow":
-        reason = (
-            "Pyarrow only supports a file path as an input and line delimited json"
-            "and doesn't support chunksize parameter."
-        )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
-
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
-    result = read_json(jsonl, lines=True, nrows=nrows, engine=engine)
+    result = read_json(jsonl, lines=True, nrows=nrows)
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
@@ -319,7 +297,7 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
@@ -353,7 +331,7 @@ def test_readjson_lines_chunks_fileurl(request, datapath, engine):
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
         )
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     df_list_expected = [
         DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
