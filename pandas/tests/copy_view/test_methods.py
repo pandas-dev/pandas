@@ -22,7 +22,8 @@ def test_copy(using_copy_on_write):
     # the deep copy doesn't share memory
     assert not np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
     if using_copy_on_write:
-        assert df_copy._mgr.refs is None
+        assert not df_copy._mgr.blocks[0].refs.has_reference()
+        assert not df_copy._mgr.blocks[1].refs.has_reference()
 
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
@@ -36,7 +37,8 @@ def test_copy_shallow(using_copy_on_write):
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
     if using_copy_on_write:
-        assert df_copy._mgr.refs is not None
+        assert df_copy._mgr.blocks[0].refs.has_reference()
+        assert df_copy._mgr.blocks[1].refs.has_reference()
 
     if using_copy_on_write:
         # mutating shallow copy doesn't mutate original
@@ -456,6 +458,41 @@ def test_align_series(using_copy_on_write):
     tm.assert_series_equal(ser_other, ser_orig)
 
 
+def test_align_copy_false(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    df2, df3 = df.align(df, copy=False)
+
+    assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    if using_copy_on_write:
+        df2.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+        df3.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+
+def test_align_with_series_copy_false(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    ser = Series([1, 2, 3], name="x")
+    ser_orig = ser.copy()
+    df_orig = df.copy()
+    df2, ser2 = df.align(ser, copy=False, axis=0)
+
+    assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    assert np.shares_memory(get_array(ser, "x"), get_array(ser2, "x"))
+
+    if using_copy_on_write:
+        df2.loc[0, "a"] = 0
+        tm.assert_frame_equal(df, df_orig)  # Original is unchanged
+
+        ser2.loc[0] = 0
+        tm.assert_series_equal(ser, ser_orig)  # Original is unchanged
+
+
 def test_to_frame(using_copy_on_write):
     # Case: converting a Series to a DataFrame with to_frame
     ser = Series([1, 2, 3])
@@ -709,6 +746,82 @@ def test_head_tail(method, using_copy_on_write):
         # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
         df2.iloc[0, 0] = 1
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_infer_objects(using_copy_on_write):
+    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+    df_orig = df.copy()
+    df2 = df.infer_objects()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    df2.iloc[0, 0] = 0
+    df2.iloc[0, 1] = "d"
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_infer_objects_no_reference(using_copy_on_write):
+    df = DataFrame(
+        {
+            "a": [1, 2],
+            "b": "c",
+            "c": 1,
+            "d": Series(
+                [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
+            ),
+            "e": "b",
+        }
+    )
+    df = df.infer_objects()
+
+    arr_a = get_array(df, "a")
+    arr_b = get_array(df, "b")
+    arr_d = get_array(df, "d")
+
+    df.iloc[0, 0] = 0
+    df.iloc[0, 1] = "d"
+    df.iloc[0, 3] = Timestamp("2018-12-31")
+    if using_copy_on_write:
+        assert np.shares_memory(arr_a, get_array(df, "a"))
+        # TODO(CoW): Block splitting causes references here
+        assert not np.shares_memory(arr_b, get_array(df, "b"))
+        assert np.shares_memory(arr_d, get_array(df, "d"))
+
+
+def test_infer_objects_reference(using_copy_on_write):
+    df = DataFrame(
+        {
+            "a": [1, 2],
+            "b": "c",
+            "c": 1,
+            "d": Series(
+                [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
+            ),
+        }
+    )
+    view = df[:]  # noqa: F841
+    df = df.infer_objects()
+
+    arr_a = get_array(df, "a")
+    arr_b = get_array(df, "b")
+    arr_d = get_array(df, "d")
+
+    df.iloc[0, 0] = 0
+    df.iloc[0, 1] = "d"
+    df.iloc[0, 3] = Timestamp("2018-12-31")
+    if using_copy_on_write:
+        assert not np.shares_memory(arr_a, get_array(df, "a"))
+        assert not np.shares_memory(arr_b, get_array(df, "b"))
+        assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
 @pytest.mark.parametrize(
@@ -1064,6 +1177,28 @@ def test_squeeze(using_copy_on_write):
         assert df.loc[0, "a"] == 0
 
 
+def test_items(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df_orig = df.copy()
+
+    # Test this twice, since the second time, the item cache will be
+    # triggered, and we want to make sure it still works then.
+    for i in range(2):
+        for name, ser in df.items():
+
+            assert np.shares_memory(get_array(ser, name), get_array(df, name))
+
+            # mutating df triggers a copy-on-write for that column / block
+            ser.iloc[0] = 0
+
+            if using_copy_on_write:
+                assert not np.shares_memory(get_array(ser, name), get_array(df, name))
+                tm.assert_frame_equal(df, df_orig)
+            else:
+                # Original frame will be modified
+                assert df.loc[0, name] == 0
+
+
 @pytest.mark.parametrize(
     "replace_kwargs",
     [
@@ -1135,6 +1270,22 @@ def test_asfreq_noop(using_copy_on_write):
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_interpolate_creates_copy(using_copy_on_write):
+    # GH#51126
+    df = DataFrame({"a": [1.5, np.nan, 3]})
+    view = df[:]
+    expected = df.copy()
+
+    df.ffill(inplace=True)
+    df.iloc[0, 0] = 100.5
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(view, expected)
+    else:
+        expected = DataFrame({"a": [100.5, 1.5, 3]})
+        tm.assert_frame_equal(view, expected)
 
 
 def test_isetitem(using_copy_on_write):
