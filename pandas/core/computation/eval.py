@@ -345,7 +345,7 @@ def eval(
             )
         ):
             warnings.warn(
-                "Engine is switched to 'python' because numexpr does not support "
+                "Engine has switched to 'python' because numexpr does not support "
                 "extension array dtypes. Please set your engine to python manually.",
                 RuntimeWarning,
                 stacklevel=find_stack_level(),
