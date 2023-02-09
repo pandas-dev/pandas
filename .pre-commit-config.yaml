@@ -397,7 +397,7 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-        additional_dependencies: [tomli]
+        additional_dependencies: [tomli, pyyaml]
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
