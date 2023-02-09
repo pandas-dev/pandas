@@ -97,6 +97,7 @@ Function application
    DataFrameGroupBy.quantile
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
+   DataFrameGroupBy.rolling
    DataFrameGroupBy.sample
    DataFrameGroupBy.sem
    DataFrameGroupBy.shift
@@ -152,6 +153,7 @@ Function application
    SeriesGroupBy.quantile
    SeriesGroupBy.rank
    SeriesGroupBy.resample
+   SeriesGroupBy.rolling
    SeriesGroupBy.sample
    SeriesGroupBy.sem
    SeriesGroupBy.shift

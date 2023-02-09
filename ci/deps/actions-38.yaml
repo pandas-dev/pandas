@@ -34,6 +34,18 @@ dependencies:
   - jinja2>=3.0.0
   - lxml>=4.6.3
   - matplotlib>=3.6.1
+  - numba
+  - numexpr
+  - openpyxl
+  - odfpy
+  - pandas-gbq
+  - psycopg2
+  - pyarrow<11
+  - pymysql
+  - pyreadstat
+  - pytables
+  - python-snappy
+  - pyxlsb
   - numba>=0.53.1
   - numexpr>=2.7.3
   - openpyxl>=3.0.7

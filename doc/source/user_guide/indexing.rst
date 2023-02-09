@@ -231,7 +231,7 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
 
 You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
 if you try to use attribute access to create a new column, it creates a new attribute rather than a
-new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+new column and will this raise a ``UserWarning``:
 
 .. code-block:: ipython
 
@@ -1074,15 +1074,7 @@ This can be done intuitively like so:
    df2[df2 < 0] = 0
    df2
 
-By default, ``where`` returns a modified copy of the data. There is an
-optional parameter ``inplace`` so that the original data can be modified
-without creating a copy:
-
-.. ipython:: python
-
-   df_orig = df.copy()
-   df_orig.where(df > 0, -df, inplace=True)
-   df_orig
+``where`` returns a modified copy of the data.
 
 .. note::
 
@@ -1238,18 +1230,6 @@ If instead you don't want to or cannot name your index, you can use the name
    If for some reason you have a column named ``index``, then you can refer to
    the index as ``ilevel_0`` as well, but at this point you should consider
    renaming your columns to something less ambiguous.
-
-
-The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
-whether the query modifies the original frame.
-
-.. ipython:: python
-
-   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.query("a > 2")
-   df.query("a > 2", inplace=True)
-   df
-
 
 :class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1582,8 +1562,27 @@ lookups, data alignment, and reindexing. The easiest way to create an
    index
    'd' in index
 
-You can also pass a ``name`` to be stored in the index:
+or using numbers:
 
+.. ipython:: python
+
+   index = pd.Index([1, 5, 12])
+   index
+   5 in index
+
+If no dtype is given, ``Index`` tries to infer the dtype from the data.
+It is also possible to give an explicit dtype when instantiating an :class:`Index`:
+
+.. ipython:: python
+
+   index = pd.Index(['e', 'd', 'a', 'b'], dtype="string")
+   index
+   index = pd.Index([1, 5, 12], dtype="int8")
+   index
+   index = pd.Index([1, 5, 12], dtype="float32")
+   index
+
+You can also pass a ``name`` to be stored in the index:
 
 .. ipython:: python
 
@@ -1616,7 +1615,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind = pd.Index([1, 2, 3])
   ind.rename("apple")
   ind
-  ind.set_names(["apple"], inplace=True)
+  ind = ind.set_names(["apple"])
   ind.name = "bob"
   ind
 
@@ -1736,14 +1735,11 @@ the given columns to a MultiIndex:
    frame = frame.set_index(['a', 'b'], append=True)
    frame
 
-Other options in ``set_index`` allow you not drop the index columns or to add
-the index in-place (without creating a new object):
+Other options in ``set_index`` allow you not drop the index columns.
 
 .. ipython:: python
 
    data.set_index('c', drop=False)
-   data.set_index(['a', 'b'], inplace=True)
-   data
 
 Reset the index
 ~~~~~~~~~~~~~~~

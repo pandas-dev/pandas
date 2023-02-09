@@ -948,17 +948,13 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_use_nullable_dtypes(string_storage, dtype_backend):
     # GH#50289
-
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
         arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
     else:
+        pa = pytest.importorskip("pyarrow")
         arr = ArrowStringArray(pa.array(["a", "b"]))
         arr_na = ArrowStringArray(pa.array([None, "a"]))
 
@@ -983,6 +979,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
         }
     )
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(
