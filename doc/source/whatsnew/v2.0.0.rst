@@ -138,8 +138,8 @@ The option will only work for functions with the keyword ``use_nullable_dtypes``
 Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
-* :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
-* :func:`read_clipboard` (with ``engine="python"``)
+* :func:`read_csv`
+* :func:`read_clipboard`
 * :func:`read_fwf`
 * :func:`read_excel`
 * :func:`read_html`
@@ -1301,6 +1301,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list when resampling on time index (:issue:`50840`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 - Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
+- Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
 -
 
 Reshaping
