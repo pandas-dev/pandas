@@ -30,6 +30,7 @@ from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 
 
@@ -159,6 +160,7 @@ __all__ = [
     "pa_version_under7p0",
     "pa_version_under8p0",
     "pa_version_under9p0",
+    "pa_version_under11p0",
     "IS64",
     "PY39",
     "PY310",
