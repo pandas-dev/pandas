@@ -41,7 +41,10 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.astype import astype_array_safe
+from pandas.core.dtypes.astype import (
+    astype_array_safe,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
@@ -470,7 +473,11 @@ class Block(PandasObject):
 
     @final
     def astype(
-        self, dtype: DtypeObj, copy: bool = False, errors: IgnoreRaise = "raise"
+        self,
+        dtype: DtypeObj,
+        copy: bool = False,
+        errors: IgnoreRaise = "raise",
+        using_cow: bool = False,
     ) -> Block:
         """
         Coerce to the new dtype.
@@ -483,6 +490,8 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        using_cow: bool, default False
+            Signaling if copy on write copy logic is used.
 
         Returns
         -------
@@ -493,7 +502,12 @@ class Block(PandasObject):
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
         new_values = maybe_coerce_values(new_values)
-        newb = self.make_block(new_values)
+
+        refs = None
+        if using_cow and astype_is_view(values.dtype, new_values.dtype):
+            refs = self.refs
+
+        newb = self.make_block(new_values, refs=refs)
         if newb.shape != self.shape:
             raise TypeError(
                 f"cannot set astype for copy = [{copy}] for dtype "
