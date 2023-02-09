@@ -52,7 +52,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self):
+    def test_interp_basic(self, using_copy_on_write):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -75,8 +75,12 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        assert not np.shares_memory(cvalues, result["C"]._values)
-        assert not np.shares_memory(dvalues, result["D"]._values)
+        if using_copy_on_write:
+            assert np.shares_memory(cvalues, result["C"]._values)
+            assert np.shares_memory(dvalues, result["D"]._values)
+        else:
+            assert not np.shares_memory(cvalues, result["C"]._values)
+            assert not np.shares_memory(dvalues, result["D"]._values)
 
         res = df.interpolate(inplace=True)
         assert res is None

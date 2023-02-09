@@ -30,7 +30,7 @@ def test_interpolate_no_op(using_copy_on_write, method):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.parametrize("func", ["pad", "ffill", "backfill", "bfill"])
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
 def test_interp_fill_functions(using_copy_on_write, func):
     # Check that these takes the same code paths as interpolate
     df = DataFrame({"a": [1, 2]})
@@ -144,7 +144,8 @@ def test_interpolate_downcast(using_copy_on_write):
     arr_a = get_array(df, "a")
     df.interpolate(method="pad", inplace=True, downcast="infer")
 
-    assert df._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
     assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
