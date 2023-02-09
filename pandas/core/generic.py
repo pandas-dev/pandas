@@ -768,8 +768,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
-            new_mgr.parent = self._mgr
-            new_mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+            new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
+            new_mgr.blocks[0].refs.add_reference(
+                new_mgr.blocks[0]  # type: ignore[arg-type]
+            )
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         elif (copy or copy is None) and self._mgr.is_single_block:
@@ -2709,7 +2711,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
             connectable. See `here \
-                <https://docs.sqlalchemy.org/en/14/core/connections.html>`_.
+                <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
             If passing a sqlalchemy.engine.Connection which is already in a transaction,
             the transaction will not be committed.  If passing a sqlite3.Connection,
             it will not be possible to roll back the record insertion.
@@ -2759,7 +2761,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
             reflect the exact number of written rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
-            `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__.
+            `SQLAlchemy <https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.rowcount>`__.
 
             .. versionadded:: 1.4.0
 
@@ -2803,7 +2805,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.to_sql('users', con=engine)
         3
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> from sqlalchemy import text
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
@@ -2819,7 +2823,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
         2
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
          (1, 'User 7')]
@@ -2829,7 +2834,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
-        >>> engine.execute("SELECT * FROM users").fetchall()
+        >>> with engine.connect() as conn:
+        ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
         Specify the dtype (especially useful for integers with missing values).
@@ -2849,7 +2855,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...           dtype={"A": Integer()})
         3
 
-        >>> engine.execute("SELECT * FROM integers").fetchall()
+        >>> with engine.connect() as conn:
+        ...   conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa:E501
         from pandas.io import sql
@@ -6118,7 +6125,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def astype(
-        self: NDFrameT, dtype, copy: bool_t = True, errors: IgnoreRaise = "raise"
+        self: NDFrameT, dtype, copy: bool_t | None = None, errors: IgnoreRaise = "raise"
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -6255,7 +6262,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for i, (col_name, col) in enumerate(self.items()):
                 cdt = dtype_ser.iat[i]
                 if isna(cdt):
-                    res_col = col.copy() if copy else col
+                    res_col = col.copy(deep=copy)
                 else:
                     try:
                         res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
@@ -6282,7 +6289,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 33113: handle empty frame or series
         if not results:
-            return self.copy()
+            return self.copy(deep=None)
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
@@ -6424,7 +6431,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self: NDFrameT, copy: bool_t = True) -> NDFrameT:
+    def infer_objects(self: NDFrameT, copy: bool_t | None = None) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
 
@@ -6999,7 +7006,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    pad = ffill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def pad(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.pad is deprecated. Use {klass}.ffill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.pad/Series.pad is deprecated. Use "
+            "DataFrame.ffill/Series.ffill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def bfill(
@@ -7055,7 +7089,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    backfill = bfill
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def backfill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ) -> NDFrameT | None:
+        """
+        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+
+        .. deprecated:: 2.0
+
+            {klass}.backfill is deprecated. Use {klass}.backfill instead.
+
+        Returns
+        -------
+        {klass} or None
+            Object with missing values filled or None if ``inplace=True``.
+        """
+        warnings.warn(
+            "DataFrame.backfill/Series.backfill is deprecated. Use "
+            "DataFrame.bfill/Series.bfill instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @overload
     def replace(
@@ -10741,7 +10802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         periods : int, default 1
             Periods to shift for forming percent change.
-        fill_method : str, default 'pad'
+        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
             How to handle NAs **before** computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
