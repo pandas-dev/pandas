@@ -1405,7 +1405,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         from pandas.core.arrays import BooleanArray
 
-        result = np.zeros(ngroups * 1, dtype=np.int8).reshape(-1, 1)
+        result = np.zeros(ngroups, dtype=np.int8).reshape(-1, 1)
         vals = self._data.astype(bool, copy=False).view(np.int8).reshape(-1, 1)
         mask = self.isna().view(np.uint8).reshape(-1, 1)
 
@@ -1428,7 +1428,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
         from pandas.core.arrays import FloatingArray
 
-        result = np.zeros(ngroups * 1, dtype=np.float64).reshape(-1, 1)
+        result = np.zeros(ngroups, dtype=np.float64).reshape(-1, 1)
         counts = np.zeros(ngroups, dtype=np.int64)
         vals = self._data.astype(np.float64, copy=False).reshape(-1, 1)
         mask = self.isna().view(np.uint8).reshape(-1, 1)
