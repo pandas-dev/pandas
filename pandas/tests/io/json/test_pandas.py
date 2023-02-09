@@ -1959,6 +1959,7 @@ class TestPandasContainer:
 
 
 def test_invalid_engine():
+    # GH 48893
     ser = Series(range(1))
     out = ser.to_json()
     with pytest.raises(ValueError, match="The engine type foo"):

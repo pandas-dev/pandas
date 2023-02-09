@@ -2250,6 +2250,16 @@ For line-delimited json files, pandas can also return an iterator which reads in
       for chunk in reader:
           print(chunk)
 
+Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
+
+.. ipython:: python
+
+   from io import BytesIO
+   df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
+   df
+
+.. versionadded:: 2.0.0
+
 .. _io.table_schema:
 
 Table schema

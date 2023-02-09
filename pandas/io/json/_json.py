@@ -663,8 +663,11 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{'ujson', 'pyarrow'}}, default "ujson"
-        Parser engine to use.
+    engine : {{"ujson", "pyarrow"}}, default "ujson"
+        Parser engine to use. The ``"pyarrow"`` engine is only available when
+        ``lines=True``.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -957,22 +960,24 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 pa_table = pyarrow_json.read_json(self.data)
-                if (
-                    self.use_nullable_dtypes
-                    and get_option("mode.dtype_backend") == "pyarrow"
-                ):
-                    from pandas.arrays import ArrowExtensionArray
+                if self.use_nullable_dtypes:
+                    if get_option("mode.dtype_backend") == "pyarrow":
+                        from pandas.arrays import ArrowExtensionArray
 
-                    obj = DataFrame(
-                        {
-                            col_name: ArrowExtensionArray(pa_col)
-                            for col_name, pa_col in zip(
-                                pa_table.column_names, pa_table.itercolumns()
-                            )
-                        }
-                    )
-                    return obj
-                obj = pa_table.to_pandas()
+                        return DataFrame(
+                            {
+                                col_name: ArrowExtensionArray(pa_col)
+                                for col_name, pa_col in zip(
+                                    pa_table.column_names, pa_table.itercolumns()
+                                )
+                            }
+                        )
+                    elif get_option("mode.dtype_backend") == "pandas":
+                        from pandas.io._util import _arrow_dtype_mapping
+
+                        mapping = _arrow_dtype_mapping()
+                        return pa_table.to_pandas(types_mapper=mapping.get)
+                return pa_table.to_pandas()
             elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
@@ -987,10 +992,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                         obj = self._get_object_parser(self._combine_lines(data_lines))
                 else:
                     obj = self._get_object_parser(self.data)
-        if self.use_nullable_dtypes:
-            return obj.convert_dtypes(infer_objects=False)
-        else:
-            return obj
+                if self.use_nullable_dtypes:
+                    return obj.convert_dtypes(infer_objects=False)
+                else:
+                    return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
         """

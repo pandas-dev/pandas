@@ -40,6 +40,7 @@ def test_read_jsonl_engine_pyarrow(datapath, engine):
 def test_read_datetime(request, engine):
     # GH33787
     if engine == "pyarrow":
+        # GH 48893
         reason = "Pyarrow only supports a file path as an input and line delimited json"
         request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
@@ -110,6 +111,7 @@ def test_readjson_chunks(request, lines_json_df, chunksize, engine):
     # GH17048: memory usage when lines=True
 
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -136,6 +138,7 @@ def test_readjson_chunksize_requires_lines(lines_json_df, engine):
 
 def test_readjson_chunks_series(request, engine):
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -159,6 +162,7 @@ def test_readjson_chunks_series(request, engine):
 
 def test_readjson_each_chunk(request, lines_json_df, engine):
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -177,6 +181,7 @@ def test_readjson_each_chunk(request, lines_json_df, engine):
 
 def test_readjson_chunks_from_file(request, engine):
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -259,6 +264,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
 def test_readjson_unicode(request, monkeypatch, engine):
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -293,6 +299,7 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows and chunksize param
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
@@ -327,6 +334,7 @@ def test_readjson_lines_chunks_fileurl(request, datapath, engine):
     # GH 27135
     # Test reading line-format JSON from file url
     if engine == "pyarrow":
+        # GH 48893
         reason = (
             "Pyarrow only supports a file path as an input and line delimited json"
             "and doesn't support chunksize parameter."
