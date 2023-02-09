@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+from __future__ import annotations
 
 from collections import abc
 from datetime import (
@@ -31,6 +32,7 @@ import operator
 import os
 from typing import (
     Callable,
+    Hashable,
     Iterator,
 )
 
@@ -1407,7 +1409,7 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_FLOAT_DTYPES)
 def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -1612,9 +1614,7 @@ def any_real_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_REAL_DTYPES)
 def any_real_numeric_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
@@ -1674,12 +1674,7 @@ def any_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES
-    + tm.COMPLEX_DTYPES
-    + tm.ALL_INT_EA_DTYPES
-    + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
     Parameterized fixture for all numeric dtypes.
@@ -1881,7 +1876,7 @@ def fsspectest():
         (pd.NA, pd.NA, pd.NA),
     ]
 )
-def names(request):
+def names(request) -> tuple[Hashable, Hashable, Hashable]:
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """
@@ -1937,7 +1932,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager():
+def using_array_manager() -> bool:
     """
     Fixture to check if the array manager is being used.
     """
@@ -1958,7 +1953,7 @@ if zoneinfo is not None:
 
 
 @pytest.fixture(params=warsaws)
-def warsaw(request):
+def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """

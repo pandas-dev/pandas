@@ -5,7 +5,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -53,14 +52,14 @@ def test_setitem_validates(cls):
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
     if cls is pd.arrays.StringArray:
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
 
@@ -358,11 +357,6 @@ def test_reduce_missing(skipna, dtype):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
-    if dtype.storage == "pyarrow" and pa_version_under6p0:
-        reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
-
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -375,7 +369,7 @@ def test_min_max(method, skipna, dtype, request):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_min_max_numpy(method, box, dtype, request):
-    if dtype.storage == "pyarrow" and (pa_version_under6p0 or box is pd.array):
+    if dtype.storage == "pyarrow" and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
@@ -403,12 +397,10 @@ def test_fillna_args(dtype, request):
     tm.assert_extension_array_equal(res, expected)
 
     if dtype.storage == "pyarrow":
-        err = TypeError
         msg = "Invalid value '1' for dtype string"
     else:
-        err = ValueError
         msg = "Cannot set non-string value '1' into a StringArray."
-    with pytest.raises(err, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
 
@@ -574,7 +566,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 
 

@@ -257,7 +257,7 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result.delta == off.delta / 1000
 
-    if cls._nanos_inc < Timedelta(seconds=1).value:
+    if cls._nanos_inc < Timedelta(seconds=1)._value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)
