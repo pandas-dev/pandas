@@ -2607,13 +2607,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind in "iufc":  # fastpath
-            return {
-                "i": "integer",
-                "u": "integer",
-                "f": "floating",
-                "c": "complex",
-            }[self.dtype.kind]
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
