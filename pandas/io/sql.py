@@ -69,21 +69,14 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from sqlalchemy import Table
+    from sqlalchemy.sql.expression import (
+        Select,
+        TextClause,
+    )
 
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
-
-
-def _convert_params(sql, params):
-    """Convert SQL and params args to DBAPI2.0 compliant format."""
-    args = [sql]
-    if params is not None:
-        if hasattr(params, "keys"):  # test if params is a mapping
-            args += [params]
-        else:
-            args += [list(params)]
-    return args
 
 
 def _process_parse_dates_argument(parse_dates):
@@ -224,8 +217,7 @@ def execute(sql, con, params=None):
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
         raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
     with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
-        args = _convert_params(sql, params)
-        return pandas_sql.execute(*args)
+        return pandas_sql.execute(sql, params)
 
 
 # -----------------------------------------------------------------------------
@@ -348,7 +340,7 @@ def read_sql_table(
         else using_nullable_dtypes()
     )
 
-    with pandasSQL_builder(con, schema=schema) as pandas_sql:
+    with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
             raise ValueError(f"Table {table_name} not found")
 
@@ -951,7 +943,8 @@ class SQLTable(PandasObject):
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
-        self.table.create(bind=self.pd_sql.con)
+        with self.pd_sql.run_transaction():
+            self.table.create(bind=self.pd_sql.con)
 
     def create(self) -> None:
         if self.exists():
@@ -1221,7 +1214,7 @@ class SQLTable(PandasObject):
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
-        columns = [
+        columns: list[Any] = [
             Column(name, typ, index=is_index)
             for name, typ, is_index in column_names_and_types
         ]
@@ -1451,7 +1444,7 @@ class PandasSQL(PandasObject, ABC):
         pass
 
     @abstractmethod
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
         pass
 
     @abstractmethod
@@ -1511,7 +1504,7 @@ class SQLAlchemyEngine(BaseEngine):
 
         try:
             return table.insert(chunksize=chunksize, method=method)
-        except exc.SQLAlchemyError as err:
+        except exc.StatementError as err:
             # GH34431
             # https://stackoverflow.com/a/67358288/6067848
             msg = r"""(\(1054, "Unknown column 'inf(e0)?' in 'field list'"\))(?#
@@ -1579,13 +1572,18 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.engine import Engine
         from sqlalchemy.schema import MetaData
 
+        # self.exit_stack cleans up the Engine and Connection and commits the
+        # transaction if any of those objects was created below.
+        # Cleanup happens either in self.__exit__ or at the end of the iterator
+        # returned by read_sql when chunksize is not None.
         self.exit_stack = ExitStack()
         if isinstance(con, str):
             con = create_engine(con)
+            self.exit_stack.callback(con.dispose)
         if isinstance(con, Engine):
             con = self.exit_stack.enter_context(con.connect())
-            if need_transaction:
-                self.exit_stack.enter_context(con.begin())
+        if need_transaction and not con.in_transaction():
+            self.exit_stack.enter_context(con.begin())
         self.con = con
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
@@ -1596,11 +1594,18 @@ class SQLDatabase(PandasSQL):
 
     @contextmanager
     def run_transaction(self):
-        yield self.con
+        if not self.con.in_transaction():
+            with self.con.begin():
+                yield self.con
+        else:
+            yield self.con
 
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.con.execute(*args, **kwargs)
+        args = [] if params is None else [params]
+        if isinstance(sql, str):
+            return self.con.exec_driver_sql(sql, *args)
+        return self.con.execute(sql, *args)
 
     def read_table(
         self,
@@ -1780,9 +1785,7 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
-        args = _convert_params(sql, params)
-
-        result = self.execute(*args)
+        result = self.execute(sql, params)
         columns = result.keys()
 
         if chunksize is not None:
@@ -1838,13 +1841,14 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import (
-                TypeEngine,
-                to_instance,
-            )
+            from sqlalchemy.types import TypeEngine
 
             for col, my_type in dtype.items():
-                if not isinstance(to_instance(my_type), TypeEngine):
+                if isinstance(my_type, type) and issubclass(my_type, TypeEngine):
+                    pass
+                elif isinstance(my_type, TypeEngine):
+                    pass
+                else:
                     raise ValueError(f"The type of {col} is not a SQLAlchemy type")
 
         table = SQLTable(
@@ -2005,7 +2009,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
-            self.get_table(table_name, schema).drop(bind=self.con)
+            with self.run_transaction():
+                self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
 
     def _create_sql_schema(
@@ -2238,21 +2243,24 @@ class SQLiteDatabase(PandasSQL):
         finally:
             cur.close()
 
-    def execute(self, *args, **kwargs):
+    def execute(self, sql: str | Select | TextClause, params=None):
+        if not isinstance(sql, str):
+            raise TypeError("Query must be a string unless using sqlalchemy.")
+        args = [] if params is None else [params]
         cur = self.con.cursor()
         try:
-            cur.execute(*args, **kwargs)
+            cur.execute(sql, *args)
             return cur
         except Exception as exc:
             try:
                 self.con.rollback()
             except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
-                    f"Execution failed on sql: {args[0]}\n{exc}\nunable to rollback"
+                    f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
 
-            ex = DatabaseError(f"Execution failed on sql '{args[0]}': {exc}")
+            ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
             raise ex from exc
 
     @staticmethod
@@ -2305,9 +2313,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
-
-        args = _convert_params(sql, params)
-        cursor = self.execute(*args)
+        cursor = self.execute(sql, params)
         columns = [col_desc[0] for col_desc in cursor.description]
 
         if chunksize is not None:

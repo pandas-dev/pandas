@@ -5868,7 +5868,7 @@ If you have an SQLAlchemy description of your database you can express where con
        sa.Column("Col_3", sa.Boolean),
    )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
+   pd.read_sql(sa.select(data_table).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5876,7 +5876,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
 
     import datetime as dt
 
-    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam("date"))
+    expr = sa.select(data_table).where(data_table.c.Date > sa.bindparam("date"))
     pd.read_sql(expr, engine, params={"date": dt.datetime(2010, 10, 18)})
 
 
