@@ -52,6 +52,16 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_from_ints_with_non_nano_dt64_dtype(self, index_or_series):
+        values = np.arange(10)
+
+        res = index_or_series(values, dtype="M8[s]")
+        expected = index_or_series(values.astype("M8[s]"))
+        tm.assert_equal(res, expected)
+
+        res = index_or_series(list(values), dtype="M8[s]")
+        tm.assert_equal(res, expected)
+
     def test_from_na_value_and_interval_of_datetime_dtype(self):
         # GH#41805
         ser = Series([None], dtype="interval[datetime64[ns]]")
@@ -134,10 +144,6 @@ class TestSeriesConstructors:
         # Pass in scalar is disabled
         scalar = Series(0.5)
         assert not isinstance(scalar, float)
-
-        # Coercion
-        assert float(Series([1.0])) == 1.0
-        assert int(Series([1.0])) == 1
 
     def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
         # GH 28401
@@ -798,7 +804,7 @@ class TestSeriesConstructors:
         # Long-standing behavior (for Series, new in 2.0 for DataFrame)
         #  has been to ignore the dtype on these;
         #  not clear if this is what we want long-term
-        expected = frame_or_series(arr)
+        # expected = frame_or_series(arr)
 
         # GH#49599 as of 2.0 we raise instead of silently retaining float dtype
         msg = "Trying to coerce float values to integer"
@@ -810,7 +816,7 @@ class TestSeriesConstructors:
 
         # pre-2.0, when we had NaNs, we silently ignored the integer dtype
         arr[0] = np.nan
-        expected = frame_or_series(arr)
+        # expected = frame_or_series(arr)
 
         msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
         with pytest.raises(IntCastingNaNError, match=msg):
@@ -867,13 +873,16 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
-        assert s[1] == 5
+        if using_copy_on_write:
+            assert s[1] == 2
+        else:
+            assert s[1] == 5
 
     def test_constructor_datelike_coercion(self):
 
@@ -901,7 +910,7 @@ class TestSeriesConstructors:
 
     def test_constructor_mixed_int_and_timestamp(self, frame_or_series):
         # specifically Timestamp with nanos, not datetimes
-        objs = [Timestamp(9), 10, NaT.value]
+        objs = [Timestamp(9), 10, NaT._value]
         result = frame_or_series(objs, dtype="M8[ns]")
 
         expected = frame_or_series([Timestamp(9), Timestamp(10), NaT])
