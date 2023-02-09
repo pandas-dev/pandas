@@ -1680,7 +1680,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             result = pc.utf8_rtrim(self._data, characters=to_strip)
         return type(self)(result)
 
-    def _str_removeprefix(self, prefix: str) -> Series:
+    def _str_removeprefix(self, prefix: str):
         raise NotImplementedError("str.removeprefix not supported.")
         # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
         # starts_with = pc.starts_with(self._data, pattern=prefix)
@@ -1688,7 +1688,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         # result = pc.if_else(starts_with, removed, self._data)
         # return type(self)(result)
 
-    def _str_removesuffix(self, suffix: str) -> Series:
+    def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._data, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._data, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._data)
