@@ -688,7 +688,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> codes
-    array([0, 0, 1, 2, 0]...)
+    array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -697,7 +697,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> codes
-    array([1, 1, 0, 2, 1]...)
+    array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -707,7 +707,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> codes
-    array([ 0, -1,  1,  2,  0]...)
+    array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -718,7 +718,7 @@ def factorize(
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     ['a', 'c']
     Categories (3, object): ['a', 'b', 'c']
@@ -732,7 +732,7 @@ def factorize(
     >>> cat = pd.Series(['a', 'a', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
 
