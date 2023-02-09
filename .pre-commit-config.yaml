@@ -135,11 +135,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.284
+        - pyright@1.1.292
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]

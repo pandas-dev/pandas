@@ -27,10 +27,10 @@ from pandas.compat.numpy import (
     np_version_under1p21,
 )
 from pandas.compat.pyarrow import (
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 
 
@@ -157,10 +157,10 @@ def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
 __all__ = [
     "is_numpy_dev",
     "np_version_under1p21",
-    "pa_version_under6p0",
     "pa_version_under7p0",
     "pa_version_under8p0",
     "pa_version_under9p0",
+    "pa_version_under11p0",
     "IS64",
     "PY39",
     "PY310",

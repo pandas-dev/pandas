@@ -1049,3 +1049,33 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_groups():
+    # GH#51182 check Grouper.groups does not raise AttributeError
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    grper = Grouper(key="a")
+    gb = df.groupby(grper)
+
+    msg = "Use GroupBy.groups instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.groups
+    assert res is gb.groups
+
+    msg = "Use GroupBy.grouper instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.grouper
+    assert res is gb.grouper
+
+    msg = "Grouper.obj is deprecated and will be removed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.obj
+    assert res is gb.obj
+
+    msg = "Use Resampler.ax instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.ax
+
+    msg = "Grouper.indexer is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.indexer
