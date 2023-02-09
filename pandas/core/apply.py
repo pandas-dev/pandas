@@ -212,7 +212,7 @@ class Apply(metaclass=abc.ABCMeta):
             func = cast(AggFuncTypeDict, func)
             return self.transform_dict_like(func)
 
-        # func is either str or callable
+        # The type of "func" is either str or callable
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
