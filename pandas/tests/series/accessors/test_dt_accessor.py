@@ -55,6 +55,7 @@ ok_for_dt_methods = [
     "day_name",
     "month_name",
     "isocalendar",
+    "as_unit",
 ]
 ok_for_td = TimedeltaArray._datetimelike_ops
 ok_for_td_methods = [
@@ -64,6 +65,7 @@ ok_for_td_methods = [
     "round",
     "floor",
     "ceil",
+    "as_unit",
 ]
 
 
