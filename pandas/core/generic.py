@@ -10797,7 +10797,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         periods : int, default 1
             Periods to shift for forming percent change.
-        fill_method : {{'backfill', 'bfill', 'ffill', None}}, default 'pad'
+        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
             How to handle NAs **before** computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
