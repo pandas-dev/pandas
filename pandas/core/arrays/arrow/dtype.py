@@ -6,6 +6,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -98,7 +99,7 @@ class ArrowDtype(StorageExtensionDtype):
     @property
     def type(self):
         """
-        Returns pyarrow.DataType.
+        Returns associated scalar type.
         """
         pa_type = self.pyarrow_dtype
         if pa.types.is_integer(pa_type):
@@ -125,6 +126,8 @@ class ArrowDtype(StorageExtensionDtype):
             return date
         elif pa.types.is_time(pa_type):
             return time
+        elif pa.types.is_decimal(pa_type):
+            return Decimal
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
