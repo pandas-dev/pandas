@@ -2120,7 +2120,7 @@ def _adjust_dates_anchored(
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
-    unit="ns",
+    unit: str = "ns",
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
