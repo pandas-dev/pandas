@@ -903,7 +903,7 @@ def test_set_value_copy_only_necessary_column(
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
     # TODO multi-block only for now
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1.5})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     view = df[:]
 
