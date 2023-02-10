@@ -1341,7 +1341,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if values.ndim == 1:
                 values = values.copy()
             else:
-                # Use [blk_loc] as indexer to keep ndim=2
+                # Use [blk_loc] as indexer to keep ndim=2, this already results in a
+                # copy
                 values = values[[blk_loc]]
             self._iset_split_block(blkno, [blk_loc], values)
 
