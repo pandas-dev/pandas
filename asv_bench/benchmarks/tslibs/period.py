@@ -72,6 +72,12 @@ class PeriodUnaryMethods:
     def time_asfreq(self, freq):
         self.per.asfreq("A")
 
+    def time_str(self, freq):
+        str(self.per)
+
+    def time_repr(self, freq):
+        repr(self.per)
+
 
 class PeriodConstructor:
     params = [["D"], [True, False]]
