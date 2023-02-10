@@ -453,7 +453,6 @@ _pyarrow_unsupported = {
     "quoting",
     "lineterminator",
     "converters",
-    "decimal",
     "iterator",
     "dayfirst",
     "verbose",

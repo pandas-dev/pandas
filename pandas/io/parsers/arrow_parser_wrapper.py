@@ -52,6 +52,7 @@ class ArrowParserWrapper(ParserBase):
             "na_values": "null_values",
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
+            "decimal": "decimal_point",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
@@ -69,13 +70,20 @@ class ArrowParserWrapper(ParserBase):
             for option_name, option_value in self.kwds.items()
             if option_value is not None
             and option_name
-            in ("include_columns", "null_values", "true_values", "false_values")
+            in (
+                "include_columns",
+                "null_values",
+                "true_values",
+                "false_values",
+                "decimal_point",
+            )
         }
         self.read_options = {
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
             if self.header is not None
             else self.kwds["skiprows"],
+            "encoding": self.encoding,
         }
 
     def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
