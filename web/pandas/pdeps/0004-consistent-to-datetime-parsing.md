@@ -58,11 +58,8 @@ Concretely, the suggestion is:
 If a user has dates in a mixed format, they can still use flexible parsing and accept
 the risks that poses, e.g.:
 ```ipython
-In [3]: pd.Series(['12-01-2000 00:00:00', '13-01-2000 00:00:00']).apply(pd.to_datetime)
-Out[3]:
-0   2000-12-01
-1   2000-01-13
-dtype: datetime64[ns]
+In [3]: pd.to_datetime(['12-01-2000 00:00:00', '13-01-2000 00:00:00'], format='mixed')
+Out[3]: DatetimeIndex(['2000-12-01', '2000-01-13'], dtype='datetime64[ns]', freq=None)
 ```
 or, if their dates are all ISO8601,
 ```ipython
