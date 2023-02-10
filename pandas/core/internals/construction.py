@@ -559,16 +559,13 @@ def _homogenize(
 
     for val in data:
         if isinstance(val, ABCSeries):
-            orig = val
             if dtype is not None:
                 val = val.astype(dtype, copy=False)
             if val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            if val is orig:
-                val = val.copy(deep=False)
-            if isinstance(val._mgr, BlockManager):
+            if isinstance(val._mgr, SingleBlockManager):
                 refs.append(val._mgr._block.refs)
             else:
                 refs.append(None)

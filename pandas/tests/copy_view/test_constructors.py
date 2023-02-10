@@ -103,23 +103,25 @@ def test_dataframe_from_dict_of_series(
     )
 
     # the shallow copy still shares memory
-    assert np.shares_memory(get_array(result, "a"), s1.values)
+    assert np.shares_memory(get_array(result, "a"), get_array(s1))
 
     # mutating the new dataframe doesn't mutate original
     result.iloc[0, 0] = 10
     if using_copy_on_write:
-        assert not np.shares_memory(get_array(result, "a"), s1.values)
+        assert not np.shares_memory(get_array(result, "a"), get_array(s1))
         tm.assert_series_equal(s1, s1_orig)
     else:
         assert s1.iloc[0] == 10
 
     # the same when modifying the parent series
+    s1 = Series([1, 2, 3])
+    s2 = Series([4, 5, 6])
     result = DataFrame(
         {"a": s1, "b": s2}, index=index, columns=columns, dtype=dtype, copy=False
     )
     s1.iloc[0] = 10
     if using_copy_on_write:
-        assert not np.shares_memory(get_array(result, "a"), s1.values)
+        assert not np.shares_memory(get_array(result, "a"), get_array(s1))
         tm.assert_frame_equal(result, expected)
     else:
         assert result.iloc[0, 0] == 10
@@ -137,6 +139,7 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
 
     # df should own its memory, so mutating shouldn't trigger a copy
     arr_before = get_array(df, "a")
+    assert not np.shares_memory(arr_before, get_array(s1))
     df.iloc[0, 0] = 100
     arr_after = get_array(df, "a")
     assert np.shares_memory(arr_before, arr_after)
@@ -153,6 +156,7 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 
     # df should own its memory, so mutating shouldn't trigger a copy
     arr_before = get_array(df, "a")
+    assert not np.shares_memory(arr_before, get_array(s1))
     df.iloc[0, 0] = 100
     arr_after = get_array(df, "a")
     assert np.shares_memory(arr_before, arr_after)
