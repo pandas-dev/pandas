@@ -276,6 +276,7 @@ def is_iterator(obj: object) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_iterator
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
@@ -492,7 +493,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# Can add const once https://github.com/cython/cython/issues/1772 resolved
+# TODO(cython3): Can add const once cython#1772 is resolved
 def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -739,6 +740,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        bint already_copied = True
 
     if hasattr(arr, "to_numpy"):
 
@@ -757,6 +759,8 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+    elif not copy and result is arr:
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -767,6 +771,10 @@ cpdef ndarray[object] ensure_string_array(
 
         if isinstance(val, str):
             continue
+
+        elif not already_copied:
+            result = result.copy()
+            already_copied = True
 
         if not checknull(val):
             if not util.is_float_object(val):
@@ -1119,6 +1127,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_list_like
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
@@ -1358,7 +1367,7 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base", "type"]:
+    for attr in ["kind", "name", "base", "type"]:
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
@@ -1477,23 +1486,17 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(value, "inferred_type") and skipna is False:
+    elif hasattr(type(value), "inferred_type") and skipna is False:
         # Index, use the cached attribute if possible, populate the cache otherwise
         return value.inferred_type
     elif hasattr(value, "dtype"):
-        # this will handle ndarray-like
-        # e.g. categoricals
-        dtype = value.dtype
-        if not cnp.PyArray_DescrCheck(dtype):
-            # i.e. not isinstance(dtype, np.dtype)
-            inferred = _try_infer_map(value.dtype)
-            if inferred is not None:
-                return inferred
+        inferred = _try_infer_map(value.dtype)
+        if inferred is not None:
+            return inferred
+        elif not cnp.PyArray_DescrCheck(value.dtype):
             return "unknown-array"
-
         # Unwrap Series/Index
         values = np.asarray(value)
-
     else:
         if not isinstance(value, list):
             value = list(value)
@@ -1503,10 +1506,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
-    val = _try_infer_map(values.dtype)
-    if val is not None:
+    inferred = _try_infer_map(values.dtype)
+    if inferred is not None:
         # Anything other than object-dtype should return here.
-        return val
+        return inferred
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_

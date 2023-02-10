@@ -149,8 +149,6 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy.engine import Engine
 
     iris = iris_table_metadata(dialect)
-    iris.drop(conn, checkfirst=True)
-    iris.create(bind=conn)
 
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
@@ -160,9 +158,14 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         if isinstance(conn, Engine):
             with conn.connect() as conn:
                 with conn.begin():
+                    iris.drop(conn, checkfirst=True)
+                    iris.create(bind=conn)
                     conn.execute(stmt)
         else:
-            conn.execute(stmt)
+            with conn.begin():
+                iris.drop(conn, checkfirst=True)
+                iris.create(bind=conn)
+                conn.execute(stmt)
 
 
 def create_and_load_iris_view(conn):
@@ -180,7 +183,8 @@ def create_and_load_iris_view(conn):
                 with conn.begin():
                     conn.execute(stmt)
         else:
-            conn.execute(stmt)
+            with conn.begin():
+                conn.execute(stmt)
 
 
 def types_table_metadata(dialect: str):
@@ -243,16 +247,19 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
     from sqlalchemy.engine import Engine
 
     types = types_table_metadata(dialect)
-    types.drop(conn, checkfirst=True)
-    types.create(bind=conn)
 
     stmt = insert(types).values(types_data)
     if isinstance(conn, Engine):
         with conn.connect() as conn:
             with conn.begin():
+                types.drop(conn, checkfirst=True)
+                types.create(bind=conn)
                 conn.execute(stmt)
     else:
-        conn.execute(stmt)
+        with conn.begin():
+            types.drop(conn, checkfirst=True)
+            types.create(bind=conn)
+            conn.execute(stmt)
 
 
 def check_iris_frame(frame: DataFrame):
@@ -260,24 +267,30 @@ def check_iris_frame(frame: DataFrame):
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
+    assert frame.shape in ((150, 5), (8, 5))
 
 
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
     if isinstance(conn, sqlite3.Connection):
         cur = conn.cursor()
-        result = cur.execute(stmt)
+        return cur.execute(stmt).fetchone()[0]
     else:
-        from sqlalchemy import text
+        from sqlalchemy import create_engine
         from sqlalchemy.engine import Engine
 
-        stmt = text(stmt)
-        if isinstance(conn, Engine):
+        if isinstance(conn, str):
+            try:
+                engine = create_engine(conn)
+                with engine.connect() as conn:
+                    return conn.exec_driver_sql(stmt).scalar_one()
+            finally:
+                engine.dispose()
+        elif isinstance(conn, Engine):
             with conn.connect() as conn:
-                result = conn.execute(stmt)
+                return conn.exec_driver_sql(stmt).scalar_one()
         else:
-            result = conn.execute(stmt)
-    return result.fetchone()[0]
+            return conn.exec_driver_sql(stmt).scalar_one()
 
 
 @pytest.fixture
@@ -388,6 +401,7 @@ def mysql_pymysql_engine(iris_path, types_data):
     engine = sqlalchemy.create_engine(
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -406,7 +420,8 @@ def mysql_pymysql_engine(iris_path, types_data):
 
 @pytest.fixture
 def mysql_pymysql_conn(mysql_pymysql_engine):
-    yield mysql_pymysql_engine.connect()
+    with mysql_pymysql_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -414,7 +429,8 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+        poolclass=sqlalchemy.pool.NullPool,
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -431,20 +447,38 @@ def postgresql_psycopg2_engine(iris_path, types_data):
 
 @pytest.fixture
 def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
-    yield postgresql_psycopg2_engine.connect()
+    with postgresql_psycopg2_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
-def sqlite_engine():
+def sqlite_str():
+    pytest.importorskip("sqlalchemy")
+    with tm.ensure_clean() as name:
+        yield "sqlite:///" + name
+
+
+@pytest.fixture
+def sqlite_engine(sqlite_str):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine("sqlite://")
+    engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
     yield engine
     engine.dispose()
 
 
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
-    yield sqlite_engine.connect()
+    with sqlite_engine.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def sqlite_iris_str(sqlite_str, iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_iris(engine, iris_path, "sqlite")
+    engine.dispose()
+    return sqlite_str
 
 
 @pytest.fixture
@@ -455,7 +489,8 @@ def sqlite_iris_engine(sqlite_engine, iris_path):
 
 @pytest.fixture
 def sqlite_iris_conn(sqlite_iris_engine):
-    yield sqlite_iris_engine.connect()
+    with sqlite_iris_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -485,11 +520,13 @@ postgresql_connectable = [
 sqlite_connectable = [
     "sqlite_engine",
     "sqlite_conn",
+    "sqlite_str",
 ]
 
 sqlite_iris_connectable = [
     "sqlite_iris_engine",
     "sqlite_iris_conn",
+    "sqlite_iris_str",
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
@@ -505,10 +542,18 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql(conn, test_frame1, request):
+    # GH 51086 if conn is sqlite_engine
+    conn = request.getfixturevalue(conn)
+    test_frame1.to_sql("test", conn, if_exists="append", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
         assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == len(test_frame1)
@@ -519,7 +564,7 @@ def test_to_sql(conn, method, test_frame1, request):
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
         assert pandasSQL.has_table("test_frame")
@@ -530,7 +575,7 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
         assert pandasSQL.has_table("test_frame")
 
@@ -541,10 +586,83 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris(conn, request):
+def test_read_iris_query(conn, request):
     conn = request.getfixturevalue(conn)
-    with pandasSQL_builder(conn) as pandasSQL:
-        iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    iris_frame = read_sql_query("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("SELECT * FROM iris where 0=1", conn)
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_iris_query_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_query("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("SELECT * FROM iris where 0=1", conn, chunksize=7))
+    assert iris_frame.shape == (0, 5)
+    assert "SepalWidth" in iris_frame.columns
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_query_expression_with_parameter(conn, request):
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy import (
+        MetaData,
+        Table,
+        create_engine,
+        select,
+    )
+
+    metadata = MetaData()
+    autoload_con = create_engine(conn) if isinstance(conn, str) else conn
+    iris = Table("iris", metadata, autoload_with=autoload_con)
+    iris_frame = read_sql_query(
+        select(iris), conn, params={"name": "Iris-setosa", "length": 5.1}
+    )
+    check_iris_frame(iris_frame)
+    if isinstance(conn, str):
+        autoload_con.dispose()
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_iris_query_string_with_parameter(conn, request):
+    for db, query in SQL_STRINGS["read_parameters"].items():
+        if db in conn:
+            break
+    else:
+        raise KeyError(f"No part of {conn} found in SQL_STRINGS['read_parameters']")
+    conn = request.getfixturevalue(conn)
+    iris_frame = read_sql_query(query, conn, params=("Iris-setosa", 5.1))
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table(conn, request):
+    # GH 51015 if conn = sqlite_iris_str
+    conn = request.getfixturevalue(conn)
+    iris_frame = read_sql_table("iris", conn)
+    check_iris_frame(iris_frame)
+    iris_frame = pd.read_sql("iris", conn)
+    check_iris_frame(iris_frame)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+def test_read_iris_table_chunksize(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame = concat(read_sql_table("iris", conn, chunksize=7))
+    check_iris_frame(iris_frame)
+    iris_frame = concat(pd.read_sql("iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
 
 
@@ -560,7 +678,7 @@ def test_to_sql_callable(conn, test_frame1, request):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
-    with pandasSQL_builder(conn) as pandasSQL:
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=sample)
         assert pandasSQL.has_table("test_frame")
     assert check == [1]
@@ -613,7 +731,8 @@ def test_read_procedure(conn, request):
             with engine_conn.begin():
                 engine_conn.execute(proc)
     else:
-        conn.execute(proc)
+        with conn.begin():
+            conn.execute(proc)
 
     res1 = sql.read_sql_query("CALL get_testdb();", conn)
     tm.assert_frame_equal(df, res1)
@@ -695,6 +814,8 @@ class MixInBase:
             pass
         else:
             with conn:
+                for view in self._get_all_views(conn):
+                    self.drop_view(view, conn)
                 for tbl in self._get_all_tables(conn):
                     self.drop_table(tbl, conn)
 
@@ -711,6 +832,14 @@ class SQLiteMixIn(MixInBase):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         return [table[0] for table in c.fetchall()]
 
+    def drop_view(self, view_name, conn):
+        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.commit()
+
+    def _get_all_views(self, conn):
+        c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
+        return [view[0] for view in c.fetchall()]
+
 
 class SQLAlchemyMixIn(MixInBase):
     @classmethod
@@ -721,6 +850,8 @@ class SQLAlchemyMixIn(MixInBase):
         return self.engine.connect()
 
     def drop_table(self, table_name, conn):
+        if conn.in_transaction():
+            conn.get_transaction().rollback()
         with conn.begin():
             sql.SQLDatabase(conn).drop_table(table_name)
 
@@ -728,6 +859,20 @@ class SQLAlchemyMixIn(MixInBase):
         from sqlalchemy import inspect
 
         return inspect(conn).get_table_names()
+
+    def drop_view(self, view_name, conn):
+        quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
+            view_name
+        )
+        if conn.in_transaction():
+            conn.get_transaction().rollback()
+        with conn.begin():
+            conn.exec_driver_sql(f"DROP VIEW IF EXISTS {quoted_view}")
+
+    def _get_all_views(self, conn):
+        from sqlalchemy import inspect
+
+        return inspect(conn).get_view_names()
 
 
 class PandasSQLTest:
@@ -755,7 +900,7 @@ class PandasSQLTest:
 
     def _read_sql_iris_parameter(self):
         query = SQL_STRINGS["read_parameters"][self.flavor]
-        params = ["Iris-setosa", 5.1]
+        params = ("Iris-setosa", 5.1)
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
@@ -884,8 +1029,6 @@ class _TestSQLApi(PandasSQLTest):
     @pytest.fixture(autouse=True)
     def setup_method(self, iris_path, types_data):
         self.conn = self.connect()
-        if not isinstance(self.conn, sqlite3.Connection):
-            self.conn.begin()
         self.load_iris_data(iris_path)
         self.load_types_data(types_data)
         self.load_test_data_and_sql()
@@ -1381,7 +1524,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
                     with conn.begin():
                         conn.execute(query)
             else:
-                self.conn.execute(query)
+                with self.conn.begin():
+                    self.conn.execute(query)
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("other_table", self.conn)
@@ -1631,7 +1775,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_method(self, iris_path, types_data):
         try:
             self.conn = self.engine.connect()
-            self.conn.begin()
             self.pandasSQL = sql.SQLDatabase(self.conn)
         except sqlalchemy.exc.OperationalError:
             pytest.skip(f"Can't connect to {self.flavor} server")
@@ -1662,8 +1805,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-        pandasSQL = sql.SQLDatabase(temp_conn)
-        assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
+        with sql.SQLDatabase(temp_conn, need_transaction=True) as pandasSQL:
+            assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
         insp = inspect(temp_conn)
         assert insp.has_table("temp_frame")
@@ -1682,6 +1825,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert insp.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
+        try:
+            insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
+        except AttributeError:
+            pass
         assert not insp.has_table("temp_frame")
 
     def test_roundtrip(self, test_frame1):
@@ -2031,7 +2178,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_save_index(self):
         self._to_sql_save_index()
 
-    @pytest.mark.xfail(reason="Nested transactions rollbacks don't work with Pandas")
     def test_transactions(self):
         self._transaction_test()
 
@@ -2053,7 +2199,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 with conn.begin():
                     conn.execute(create_sql)
         else:
-            self.conn.execute(create_sql)
+            with self.conn.begin():
+                self.conn.execute(create_sql)
         returned_df = sql.read_sql_table(tbl, self.conn)
         tm.assert_frame_equal(returned_df, blank_test_df, check_index_type=False)
         self.drop_table(tbl, self.conn)
@@ -2293,61 +2440,71 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_nullable_dtypes(self, string_storage, func, option):
+    def test_read_sql_nullable_dtypes(
+        self, string_storage, func, option, dtype_backend
+    ):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            if option:
-                with pd.option_context("mode.nullable_dtypes", True):
-                    result = getattr(pd, func)(f"Select * from {table}", self.conn)
-            else:
-                result = getattr(pd, func)(
-                    f"Select * from {table}", self.conn, use_nullable_dtypes=True
-                )
-        expected = self.nullable_expected(string_storage)
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = getattr(pd, func)(f"Select * from {table}", self.conn)
+                else:
+                    result = getattr(pd, func)(
+                        f"Select * from {table}", self.conn, use_nullable_dtypes=True
+                    )
+        expected = self.nullable_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            iterator = getattr(pd, func)(
-                f"Select * from {table}",
-                self.conn,
-                use_nullable_dtypes=True,
-                chunksize=3,
-            )
-            expected = self.nullable_expected(string_storage)
-            for result in iterator:
-                tm.assert_frame_equal(result, expected)
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                iterator = getattr(pd, func)(
+                    f"Select * from {table}",
+                    self.conn,
+                    use_nullable_dtypes=True,
+                    chunksize=3,
+                )
+                expected = self.nullable_expected(string_storage, dtype_backend)
+                for result in iterator:
+                    tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(self, string_storage, func, option):
+    def test_read_sql_nullable_dtypes_table(
+        self, string_storage, func, option, dtype_backend
+    ):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            if option:
-                with pd.option_context("mode.nullable_dtypes", True):
-                    result = getattr(pd, func)(table, self.conn)
-            else:
-                result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
-        expected = self.nullable_expected(string_storage)
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = getattr(pd, func)(table, self.conn)
+                else:
+                    result = getattr(pd, func)(
+                        table, self.conn, use_nullable_dtypes=True
+                    )
+        expected = self.nullable_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            iterator = getattr(pd, func)(
-                table,
-                self.conn,
-                use_nullable_dtypes=True,
-                chunksize=3,
-            )
-            expected = self.nullable_expected(string_storage)
-            for result in iterator:
-                tm.assert_frame_equal(result, expected)
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                iterator = getattr(pd, func)(
+                    table,
+                    self.conn,
+                    use_nullable_dtypes=True,
+                    chunksize=3,
+                )
+                expected = self.nullable_expected(string_storage, dtype_backend)
+                for result in iterator:
+                    tm.assert_frame_equal(result, expected)
 
     def nullable_data(self) -> DataFrame:
         return DataFrame(
@@ -2363,7 +2520,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             }
         )
 
-    def nullable_expected(self, storage) -> DataFrame:
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
 
         string_array: StringArray | ArrowStringArray
         string_array_na: StringArray | ArrowStringArray
@@ -2376,7 +2533,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
 
-        return DataFrame(
+        df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
@@ -2388,6 +2545,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 "h": string_array_na,
             }
         )
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+
+            from pandas.arrays import ArrowExtensionArray
+
+            df = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                    for col in df.columns
+                }
+            )
+        return df
 
     def test_chunksize_empty_dtypes(self):
         # GH#50245
@@ -2497,7 +2666,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
             id = Column(Integer, primary_key=True)
             string_column = Column(String(50))
 
-        BaseModel.metadata.create_all(self.conn)
+        with self.conn.begin():
+            BaseModel.metadata.create_all(self.conn)
         Session = sessionmaker(bind=self.conn)
         with Session() as session:
             df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
@@ -2511,8 +2681,14 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         assert list(df.columns) == ["id", "string_column"]
 
-    def nullable_expected(self, storage) -> DataFrame:
-        return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().nullable_expected(storage, dtype_backend)
+        if dtype_backend == "pandas":
+            df = df.astype({"e": "Int64", "f": "Int64"})
+        else:
+            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
+
+        return df
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
     def test_read_sql_nullable_dtypes_table(self, string_storage, func):
@@ -2546,8 +2722,14 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
     def test_default_type_conversion(self):
         pass
 
-    def nullable_expected(self, storage) -> DataFrame:
-        return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
+    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().nullable_expected(storage, dtype_backend)
+        if dtype_backend == "pandas":
+            df = df.astype({"e": "Int64", "f": "Int64"})
+        else:
+            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
+
+        return df
 
 
 @pytest.mark.db
@@ -2579,8 +2761,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
 
         # create a schema
-        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.execute("CREATE SCHEMA other;")
+        with self.conn.begin():
+            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe to different schema's
         assert df.to_sql("test_schema_public", self.conn, index=False) == 2
@@ -2612,8 +2795,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         # different if_exists options
 
         # create a schema
-        self.conn.execute("DROP SCHEMA IF EXISTS other CASCADE;")
-        self.conn.execute("CREATE SCHEMA other;")
+        with self.conn.begin():
+            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe with different if_exists options
         assert (

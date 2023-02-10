@@ -167,6 +167,7 @@ class TestCatAccessor:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            ("as_unit", ("s"), {}),
         ]
         if idx.dtype == "M8[ns]":
             # exclude dt64tz since that is already localized and would raise

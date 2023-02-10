@@ -688,7 +688,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> codes
-    array([0, 0, 1, 2, 0]...)
+    array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -697,7 +697,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> codes
-    array([1, 1, 0, 2, 1]...)
+    array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -707,7 +707,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> codes
-    array([ 0, -1,  1,  2,  0]...)
+    array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -718,7 +718,7 @@ def factorize(
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     ['a', 'c']
     Categories (3, object): ['a', 'b', 'c']
@@ -732,7 +732,7 @@ def factorize(
     >>> cat = pd.Series(['a', 'a', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
 
@@ -847,7 +847,8 @@ def value_counts(
         Series,
     )
 
-    name = getattr(values, "name", None)
+    index_name = getattr(values, "name", None)
+    name = "proportion" if normalize else "count"
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
@@ -860,6 +861,7 @@ def value_counts(
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
+        result.name = name
         result = result[result.index.notna()]
         result.index = result.index.astype("interval")
         result = result.sort_index()
@@ -878,14 +880,18 @@ def value_counts(
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
+            result.index.name = index_name
             counts = result._values
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
             levels = list(range(values.nlevels))
-            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
-            # TODO: allow index names to remain (see discussion in GH49497)
-            result.index.names = [None] * values.nlevels
+            result = (
+                Series(index=values, name=name)
+                .groupby(level=levels, dropna=dropna)
+                .size()
+            )
+            result.index.names = values.names
             counts = result._values
 
         else:
@@ -899,6 +905,7 @@ def value_counts(
             idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
+            idx.name = index_name
 
             result = Series(counts, index=idx, name=name)
 
@@ -1197,8 +1204,10 @@ class SelectN:
         nsmallest/nlargest methods
         """
         return (
-            is_numeric_dtype(dtype) and not is_complex_dtype(dtype)
-        ) or needs_i8_conversion(dtype)
+            not is_complex_dtype(dtype)
+            if is_numeric_dtype(dtype)
+            else needs_i8_conversion(dtype)
+        )
 
 
 class SelectNSeries(SelectN):
@@ -1304,8 +1313,7 @@ class SelectNFrame(SelectN):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
-
-        from pandas.core.api import NumericIndex
+        from pandas.core.api import Index
 
         n = self.n
         frame = self.obj
@@ -1333,7 +1341,7 @@ class SelectNFrame(SelectN):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer = NumericIndex([], dtype=np.int64)
+        indexer = Index([], dtype=np.int64)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].
