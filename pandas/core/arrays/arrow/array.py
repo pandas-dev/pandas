@@ -8,6 +8,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -872,7 +873,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         ):
             result = np.array(list(self), dtype=dtype)
         else:
-            result = np.asarray(self._data, dtype=dtype)
+            with warnings.catch_warnings():
+                # int dtype with NA raises Warning
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                result = np.asarray(self._data, dtype=dtype)
             if copy or self._hasna:
                 result = result.copy()
         if self._hasna:
