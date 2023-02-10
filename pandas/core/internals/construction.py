@@ -10,12 +10,9 @@ from typing import (
     Hashable,
     Sequence,
 )
-import weakref
 
 import numpy as np
 from numpy import ma
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -119,7 +116,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays, parents = _homogenize(arrays, index, dtype)
+        arrays, refs = _homogenize(arrays, index, dtype)
         # _homogenize ensures
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
@@ -131,7 +128,7 @@ def arrays_to_mgr(
         index = ensure_index(index)
         arrays = [extract_array(x, extract_numpy=True) for x in arrays]
         # with _from_arrays, the passed arrays should never be Series objects
-        parents = None
+        refs = [None] * len(arrays)
 
         for arr in arrays:
             if (
@@ -153,10 +150,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays,
-            axes,
-            consolidate=consolidate,
-            parents=parents,
+            arrays, axes, consolidate=consolidate, refs=refs
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])
@@ -557,37 +551,25 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
 
 def _homogenize(
     data, index: Index, dtype: DtypeObj | None
-) -> tuple[list[ArrayLike], list[Any] | None]:
+) -> tuple[list[ArrayLike], list[Any]]:
     oindex = None
     homogenized = []
     # if the original array-like in `data` is a Series, keep track of this Series
-    parents: list[Any] = []
+    refs: list[Any] = []
 
     for val in data:
         if isinstance(val, ABCSeries):
-            hval = val
-            is_copy = False
+            orig = val
             if dtype is not None:
-                hval = hval.astype(dtype, copy=False)
-                if using_copy_on_write() and hval.values is val.values:
-                    # TODO(CoW) remove when astype() has implemented CoW
-                    refs = [weakref.ref(val._mgr._block)]  # type: ignore[union-attr]
-                    hval._mgr.refs = refs  # type: ignore[union-attr]
-                    hval._mgr.parent = val._mgr  # type: ignore[union-attr]
-                if using_copy_on_write():
-                    if hval._mgr.refs is None:  # type: ignore[union-attr]
-                        is_copy = True
-            if hval.index is not index:
+                val = val.astype(dtype, copy=False)
+            if val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
-                hval = hval.reindex(index, copy=False)
-                if using_copy_on_write():
-                    if hval._mgr.refs is None:  # type: ignore[union-attr]
-                        is_copy = True
-            if hval is val:
-                hval = val.copy(deep=False)
-            homogenized.append(hval._values)
-            parents.append(hval if not is_copy else None)
+                val = val.reindex(index, copy=False)
+            if val is orig:
+                val = val.copy(deep=False)
+            refs.append(val._mgr._block.refs)
+            val = val._values
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
@@ -605,10 +587,10 @@ def _homogenize(
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
-            homogenized.append(val)
-            parents.append(None)
+            refs.append(None)
+        homogenized.append(val)
 
-    return homogenized, None if com.all_none(*parents) else parents
+    return homogenized, refs
 
 
 def _extract_index(data) -> Index:

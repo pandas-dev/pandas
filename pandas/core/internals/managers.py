@@ -2076,7 +2076,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool = True,
-    parents: list | None = None,
+    refs: list = None,
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2090,31 +2090,8 @@ def create_block_manager_from_column_arrays(
     #  verify_integrity=False below.
 
     try:
-        blocks = _form_blocks(arrays, consolidate)
-        refs = None
-        parent = None
-        if parents is not None and using_copy_on_write():
-            # elements in `parents` are Series objects *if* the original input
-            # for the column was a Series, or otherwise None
-            # -> in case of a Series, keep track of its refs if it has those
-            # (this Series is already a view on the original one, so we can
-            # directly use its ref instead of creating a new ref to this Series)
-            refs = []
-            parent = []
-            for ser in parents:
-                if (
-                    ser is not None
-                    and ser._mgr.refs is not None
-                    and (ref := ser._mgr.refs[0]) is not None
-                ):
-                    refs.append(ref)
-                    parent.append(ser)
-                else:
-                    refs.append(None)
-
-        mgr = BlockManager(
-            blocks, axes, refs=refs, parent=parent, verify_integrity=False
-        )
+        blocks = _form_blocks(arrays, consolidate, refs)
+        mgr = BlockManager(blocks, axes, verify_integrity=False)
     except ValueError as e:
         raise_construction_error(len(arrays), arrays[0].shape, axes, e)
     if consolidate:
@@ -2167,12 +2144,16 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
     return sep, isinstance(dtype, np.dtype), dtype
 
 
-def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
+def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = list(enumerate(arrays))
 
     if not consolidate:
-        nbs = _tuples_to_blocks_no_consolidate(tuples)
+        nbs = _tuples_to_blocks_no_consolidate(tuples, refs)
         return nbs
+
+    # when consolidating, we can ignore refs (either stacking always copies,
+    # or the EA is already copied in the calling dict_to_mgr)
+    # TODO(CoW) check if this is also valid for rec_array_to_mgr
 
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
@@ -2211,11 +2192,13 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
     return nbs
 
 
-def _tuples_to_blocks_no_consolidate(tuples) -> list[Block]:
+def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
     # tuples produced within _form_blocks are of the form (placement, array)
     return [
-        new_block_2d(ensure_block_shape(x[1], ndim=2), placement=BlockPlacement(x[0]))
-        for x in tuples
+        new_block_2d(
+            ensure_block_shape(arr, ndim=2), placement=BlockPlacement(i), refs=ref
+        )
+        for ((i, arr), ref) in zip(tuples, refs)
     ]
 
 
