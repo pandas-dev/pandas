@@ -883,3 +883,39 @@ def test_dataframe_add_column_from_series():
     df.loc[2, "new"] = 100
     expected_s = Series([0, 11, 12])
     tm.assert_series_equal(s, expected_s)
+
+
+@pytest.mark.parametrize("val", [100, "a"])
+@pytest.mark.parametrize(
+    "indexer_func, indexer",
+    [
+        (tm.loc, (0, "a")),
+        (tm.iloc, (0, 0)),
+        (tm.loc, ([0], "a")),
+        (tm.iloc, ([0], 0)),
+        (tm.loc, (slice(None), "a")),
+        (tm.iloc, (slice(None), 0)),
+    ],
+)
+def test_set_value_copy_only_necessary_column(
+    using_copy_on_write, indexer_func, indexer, val
+):
+    # When setting inplace, only copy column that is modified instead of the whole
+    # block (by splitting the block)
+    # TODO multi-block only for now
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    view = df[:]
+
+    indexer_func(df)[indexer] = val
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "c"), get_array(view, "c"))
+        if val == "a":
+            assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        else:
+            assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
