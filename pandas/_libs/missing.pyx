@@ -1,14 +1,13 @@
-from cpython.datetime cimport (
-    date,
-    time,
-    timedelta,
-)
-
 from decimal import Decimal
 import numbers
 from sys import maxsize
 
 cimport cython
+from cpython.datetime cimport (
+    date,
+    time,
+    timedelta,
+)
 from cython cimport Py_ssize_t
 
 import numpy as np
