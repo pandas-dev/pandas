@@ -240,7 +240,9 @@ def _convert_listlike(
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+        if not hasattr(arg, "__array__"):
+            arg = list(arg)
+        arg = np.array(arg, dtype=object)
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
