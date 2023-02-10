@@ -589,15 +589,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.fromtimestamp \
         pandas.api.types.infer_dtype \
         pandas.api.types.is_datetime64_any_dtype \
-        pandas.api.types.is_datetime64_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
         pandas.api.types.is_float_dtype \
         pandas.api.types.is_int64_dtype \
         pandas.api.types.is_integer_dtype \
         pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_numeric_dtype \
-        pandas.api.types.is_object_dtype \
         pandas.api.types.is_period_dtype \
         pandas.api.types.is_signed_integer_dtype \
         pandas.api.types.is_sparse \
