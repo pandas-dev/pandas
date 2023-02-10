@@ -356,8 +356,9 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    df = DataFrame(np.random.randn(1000))
-    df.values[::2] = np.nan
+    arr = np.random.randn(1000)
+    arr[::2] = np.nan
+    df = DataFrame(arr)
 
     labels = np.random.randint(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
