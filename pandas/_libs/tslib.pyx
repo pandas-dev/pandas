@@ -229,7 +229,7 @@ def format_array_from_datetime(
                     "shortyear": y % 100,
                     "month": dts.month,
                     "day": dts.day,
-                    "hour": dts.hour,
+                    "hour": h,
                     "hour12": 12 if h in (0, 12) else (h % 12),
                     "ampm": loc_s.pm if (h // 12) else loc_s.am,
                     "min": dts.min,
