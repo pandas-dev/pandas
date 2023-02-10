@@ -1336,7 +1336,7 @@ def test_isetitem_series(using_copy_on_write, dtype):
     df.isetitem(1, ser)  # This is inplace
 
     ser.loc[0] = 0
-    expected = df = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
     tm.assert_frame_equal(df, expected)
 
 
