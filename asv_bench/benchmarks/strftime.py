@@ -50,13 +50,56 @@ class DatetimeStrftime:
     def time_frame_datetime_formatting_iso8601_map(self, obs, tz_aware):
         self.data["dt"].map(lambda timestamp: timestamp.isoformat())
 
-    def time_frame_datetime_formatting_iso8601_strftime(self, obs, tz_aware):
+    def time_frame_datetime_formatting_iso8601_strftime_Z(self, obs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%SZ")
+
+    def time_frame_datetime_formatting_iso8601_strftime_offset(self, obs, tz_aware):
+        """Not optimized yet as %z is not supported by `convert_strftime_format`"""
+        self.data["dt"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%S%z")
 
     # def time_frame_datetime_formatting_iso8601_isoformat(self, obs, tz_aware):
     #     TODO this PR is probably a good opportunity to add this too, or maybe
     #      another PR
     #     self.data["dt"].dt.isoformat()
+
+
+class PeriodStrftime:
+    timeout = 1500
+    params = ([1000, 10000], ["D", "H"])
+    param_names = ["obs", "fq"]
+
+    def setup(self, obs, fq):
+        self.data = pd.DataFrame(
+            {
+                "p": pd.period_range(start="2000-01-01", periods=obs, freq=fq),
+                "r": [np.random.uniform()] * obs,
+            }
+        )
+
+    def time_frame_period_to_str(self, obs, fq):
+        self.data["p"].astype(str)
+
+    def time_frame_period_formatting_default_date_only(self, obs, fq):
+        self.data["p"].dt.strftime(date_format="%Y-%m-%d")
+
+    def time_frame_period_formatting_default(self, obs, fq):
+        self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
+
+    def time_frame_period_formatting_default_with_float(self, obs, fq):
+        self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
+
+    def time_frame_period_formatting_custom(self, obs, fq):
+        self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
+
+    # def time_frame_period_formatting_iso8601_map(self, obs, fq):
+    #     self.data["p"].map(lambda p: p.isoformat())
+
+    def time_frame_period_formatting_iso8601_strftime_Z(self, obs, fq):
+        self.data["p"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%SZ")
+
+    def time_frame_period_formatting_iso8601_strftime_offset(self, obs, fq):
+        """Not optimized yet as %z is not supported by `convert_strftime_format`"""
+        self.data["p"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%S%z")
 
 
 class BusinessHourStrftime:
