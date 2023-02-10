@@ -123,7 +123,7 @@ def test_interpolate_object_convert_no_op(using_copy_on_write):
     arr_a = get_array(df, "a")
     df.interpolate(method="pad", inplace=True)
 
-    # No CoW makes a copy, it should not!
+    # Now CoW makes a copy, it should not!
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
         assert np.shares_memory(arr_a, get_array(df, "a"))
