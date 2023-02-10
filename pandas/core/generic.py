@@ -6673,7 +6673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # https://github.com/python/mypy/issues/8354
                 return cast(NDFrameT, result)
             else:
-                return self.copy()
+                return self.copy(deep=None)
 
     # ----------------------------------------------------------------------
     # Filling NA's
