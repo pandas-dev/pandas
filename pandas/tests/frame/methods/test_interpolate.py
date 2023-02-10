@@ -52,7 +52,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self):
+    def test_interp_basic(self, using_copy_on_write):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -75,8 +75,12 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        assert not np.shares_memory(cvalues, result["C"]._values)
-        assert not np.shares_memory(dvalues, result["D"]._values)
+        if using_copy_on_write:
+            assert np.shares_memory(cvalues, result["C"]._values)
+            assert np.shares_memory(dvalues, result["D"]._values)
+        else:
+            assert not np.shares_memory(cvalues, result["C"]._values)
+            assert not np.shares_memory(dvalues, result["D"]._values)
 
         res = df.interpolate(inplace=True)
         assert res is None
@@ -91,14 +95,6 @@ class TestDataFrameInterpolate:
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
-        expected = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0],
-                "B": [1.0, 4.0, 9.0, 9.0],
                 "C": [1, 2, 3, 5],
                 "D": list("abcd"),
             }
@@ -327,20 +323,24 @@ class TestDataFrameInterpolate:
             df.interpolate()
 
     def test_interp_inplace(self, using_copy_on_write):
-        # TODO(CoW) inplace keyword (it is still mutating the parent)
-        if using_copy_on_write:
-            pytest.skip("CoW: inplace keyword not yet handled")
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
+        expected_cow = df.copy()
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
-        tm.assert_frame_equal(result, expected.astype("int64"))
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
         # GH 10395
