@@ -956,6 +956,8 @@ class Block(PandasObject):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -994,10 +996,8 @@ class Block(PandasObject):
 
             if using_cow and self.refs.has_reference():
                 values = values.copy()
-                self = type(self)(
-                    values.T if values.ndim == 2 else values,
-                    self._mgr_locs,
-                    ndim=self.ndim,
+                self = self.make_block_same_class(
+                    values.T if values.ndim == 2 else values
                 )
 
             values[indexer] = casted
@@ -1041,7 +1041,7 @@ class Block(PandasObject):
             if using_cow and self.refs.has_reference():
                 # Do this here to avoid copying twice
                 values = values.copy()
-                self = type(self)(values, self._mgr_locs, ndim=self.ndim)
+                self = self.make_block_same_class(values)
 
             putmask_without_repeat(values.T, mask, casted)
             if using_cow:
@@ -1467,7 +1467,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
-    def setitem(self, indexer, value):
+    def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -1480,6 +1480,8 @@ class EABackedBlock(Block):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -1610,9 +1612,7 @@ class EABackedBlock(Block):
 
         if using_cow and self.refs.has_reference():
             values = values.copy()
-            self = type(self)(
-                values.T if values.ndim == 2 else values, self._mgr_locs, ndim=self.ndim
-            )
+            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
 
         try:
             # Caller is responsible for ensuring matching lengths
