@@ -38,7 +38,9 @@ jobs:
                 export IS_PUSH="true"
             elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
                 export IS_SCHEDULE_DISPATCH="true"
-            # Look for the build label
+            # Look for the build label/[wheel build] in commit
+            elif (git log --format=oneline -n 1 $CIRCLE_SHA1) | grep -q '[wheel build]'; ; then
+                : # Do nothing
             elif ! (curl https://api.github.com/repos/pandas-dev/pandas/issues/$CIRCLE_PR_NUMBER | jq '.labels' | grep -q 'Build'); then
                 circleci-agent step halt
             fi
