@@ -783,6 +783,11 @@ Other API changes
   or :attr:`~DataFrame.iloc` (thus, ``df.loc[:, :]`` or ``df.iloc[:, :]``) now returns a
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
+- The :class:`Series` and :class:`DataFrame` constructors will now return a shallow copy
+  (i.e. share data, but not attributes) when passed a Series and DataFrame,
+  respectively, and with the default of ``copy=False`` (and if no other keyword triggers
+  a copy). Previously, the new Series or DataFrame would share the index attribute (e.g.
+  ``df.index = ...`` would also update the index of the parent or child) (:issue:`49523`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
 - :class:`DataFrame` objects read from a :class:`HDFStore` file without an index now have a :class:`RangeIndex` instead of an ``int64`` index (:issue:`51076`)
 - Instantiating an :class:`Index` with an numeric numpy dtype with data containing :class:`NA` and/or :class:`NaT` now raises a ``ValueError``. Previously a ``TypeError`` was raised (:issue:`51050`)
