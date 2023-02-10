@@ -862,7 +862,7 @@ class TestAlignment:
     ):
         if (
             engine == "numexpr"
-            and parser == "pandas"
+            and parser in ("pandas", "python")
             and index_name == "index"
             and r_idx_type == "i"
             and c_idx_type == "s"
