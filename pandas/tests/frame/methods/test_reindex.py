@@ -134,6 +134,21 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
+    def test_reindex_copies_ea(self):
+        # https://github.com/pandas-dev/pandas/pull/51197
+        # also ensure to honor copy keyword for ExtensionDtypes
+        N = 10
+        df = DataFrame(np.random.randn(N * 10, N), dtype="Float64")
+        cols = np.arange(N)
+        np.random.shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        assert not np.shares_memory(result[0].array._data, df[0].array._data)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
