@@ -2260,10 +2260,7 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize(
         "dtype",
-        tm.ALL_INT_NUMPY_DTYPES
-        + tm.ALL_INT_EA_DTYPES
-        + tm.FLOAT_NUMPY_DTYPES
-        + tm.COMPLEX_DTYPES
+        tm.ALL_NUMERIC_DTYPES
         + tm.DATETIME64_DTYPES
         + tm.TIMEDELTA64_DTYPES
         + tm.BOOL_DTYPES,

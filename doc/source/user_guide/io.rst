@@ -2069,6 +2069,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
+* ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
+  The ``"pyarrow"`` is only available when ``lines=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -2249,6 +2251,16 @@ For line-delimited json files, pandas can also return an iterator which reads in
       reader
       for chunk in reader:
           print(chunk)
+
+Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
+
+.. ipython:: python
+
+   from io import BytesIO
+   df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
+   df
+
+.. versionadded:: 2.0.0
 
 .. _io.table_schema:
 
@@ -5868,7 +5880,7 @@ If you have an SQLAlchemy description of your database you can express where con
        sa.Column("Col_3", sa.Boolean),
    )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
+   pd.read_sql(sa.select(data_table).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5876,7 +5888,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
 
     import datetime as dt
 
-    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam("date"))
+    expr = sa.select(data_table).where(data_table.c.Date > sa.bindparam("date"))
     pd.read_sql(expr, engine, params={"date": dt.datetime(2010, 10, 18)})
 
 

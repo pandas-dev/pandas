@@ -517,14 +517,16 @@ cdef class DatetimeEngine(Int64Engine):
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
         if scalar is NaT:
-            return NaT.value
+            return NaT._value
         elif isinstance(scalar, _Timestamp):
             if scalar._creso == self._creso:
-                return scalar.value
+                return scalar._value
             else:
                 # Note: caller is responsible for catching potential ValueError
                 #  from _as_creso
-                return (<_Timestamp>scalar)._as_creso(self._creso, round_ok=False).value
+                return (
+                    (<_Timestamp>scalar)._as_creso(self._creso, round_ok=False)._value
+                )
         raise TypeError(scalar)
 
     def __contains__(self, val: object) -> bool:
@@ -585,14 +587,16 @@ cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
-            return NaT.value
+            return NaT._value
         elif isinstance(scalar, _Timedelta):
             if scalar._creso == self._creso:
-                return scalar.value
+                return scalar._value
             else:
                 # Note: caller is responsible for catching potential ValueError
                 #  from _as_creso
-                return (<_Timedelta>scalar)._as_creso(self._creso, round_ok=False).value
+                return (
+                    (<_Timedelta>scalar)._as_creso(self._creso, round_ok=False)._value
+                )
         raise TypeError(scalar)
 
 
@@ -600,7 +604,7 @@ cdef class PeriodEngine(Int64Engine):
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
-            return scalar.value
+            return scalar._value
         if is_period_object(scalar):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal

@@ -27,21 +27,20 @@ if TYPE_CHECKING:
 
 @doc(storage_options=_shared_docs["storage_options"])
 class ODFReader(BaseExcelReader):
-    """
-    Read tables out of OpenDocument formatted files.
-
-    Parameters
-    ----------
-    filepath_or_buffer : str, path to be parsed or
-        an open readable stream.
-    {storage_options}
-    """
-
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ) -> None:
+        """
+        Read tables out of OpenDocument formatted files.
+
+        Parameters
+        ----------
+        filepath_or_buffer : str, path to be parsed or
+            an open readable stream.
+        {storage_options}
+        """
         import_optional_dependency("odf")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 

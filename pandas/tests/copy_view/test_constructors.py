@@ -12,13 +12,14 @@ from pandas.tests.copy_view.util import get_array
 # Copy/view behaviour for Series / DataFrame constructors
 
 
-def test_series_from_series(using_copy_on_write):
+@pytest.mark.parametrize("dtype", [None, "int64"])
+def test_series_from_series(dtype, using_copy_on_write):
     # Case: constructing a Series from another Series object follows CoW rules:
     # a new object is returned and thus mutations are not propagated
     ser = Series([1, 2, 3], name="name")
 
     # default is copy=False -> new Series is a shallow copy / view of original
-    result = Series(ser)
+    result = Series(ser, dtype=dtype)
 
     # the shallow copy still shares memory
     assert np.shares_memory(ser.values, result.values)
@@ -40,7 +41,7 @@ def test_series_from_series(using_copy_on_write):
         assert np.shares_memory(ser.values, result.values)
 
     # the same when modifying the parent
-    result = Series(ser)
+    result = Series(ser, dtype=dtype)
 
     if using_copy_on_write:
         # mutating original doesn't mutate new series
