@@ -4217,6 +4217,9 @@ class Index(IndexOpsMixin, PandasObject):
                     )
                 elif self._is_multi:
                     raise ValueError("cannot handle a non-unique multi-index!")
+                elif not self.is_unique:
+                    # GH#42568
+                    raise ValueError("cannot reindex on an axis with duplicate labels")
                 else:
                     if method is not None or limit is not None:
                         raise ValueError(
@@ -4224,10 +4227,6 @@ class Index(IndexOpsMixin, PandasObject):
                             "with a method or limit"
                         )
                     indexer, _ = self.get_indexer_non_unique(target)
-
-                if not self.is_unique:
-                    # GH#42568
-                    raise ValueError("cannot reindex on an axis with duplicate labels")
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
