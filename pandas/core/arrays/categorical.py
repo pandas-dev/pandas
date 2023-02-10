@@ -88,7 +88,6 @@ from pandas.core.accessor import (
 from pandas.core.algorithms import (
     factorize,
     take_nd,
-    unique1d,
 )
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
@@ -2096,8 +2095,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        unique_codes = unique1d(self.codes)
-        return self._from_backing_data(unique_codes)
+        return super().unique()
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes

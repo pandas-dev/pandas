@@ -89,7 +89,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
-    nanops,
     sample,
 )
 from pandas.core._numba import executor
@@ -1342,10 +1341,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, f"nan{func}"):
-                # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, f"nan{func}")
-
             else:
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
@@ -1417,6 +1412,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             is_transform,
         )
 
+    # TODO: I (jbrockmendel) think this should be equivalent to doing grouped_reduce
+    #  on _agg_py_fallback, but trying that here fails a bunch of tests 2023-02-07.
     @final
     def _python_agg_general(self, func, *args, **kwargs):
         func = com.is_builtin_func(func)
@@ -2902,10 +2899,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     out[i, :] = algorithms.take_nd(value_element, indexer)
                 return out
 
-        obj = self._obj_with_exclusions
-        if self.axis == 1:
-            obj = obj.T
-        mgr = obj._mgr
+        mgr = self._get_data_to_aggregate()
         res_mgr = mgr.apply(blk_func)
 
         new_obj = self._wrap_agged_manager(res_mgr)
