@@ -243,6 +243,10 @@ Copy-on-Write improvements
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
 
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
+  of Series objects and specifying ``copy=False``, will now use a lazy copy
+  of those Series objects for the columns of the DataFrame (:issue:`50777`)
+
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
   will now always raise an exception when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
@@ -779,6 +783,11 @@ Other API changes
   or :attr:`~DataFrame.iloc` (thus, ``df.loc[:, :]`` or ``df.iloc[:, :]``) now returns a
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
+- The :class:`Series` and :class:`DataFrame` constructors will now return a shallow copy
+  (i.e. share data, but not attributes) when passed a Series and DataFrame,
+  respectively, and with the default of ``copy=False`` (and if no other keyword triggers
+  a copy). Previously, the new Series or DataFrame would share the index attribute (e.g.
+  ``df.index = ...`` would also update the index of the parent or child) (:issue:`49523`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
 - :class:`DataFrame` objects read from a :class:`HDFStore` file without an index now have a :class:`RangeIndex` instead of an ``int64`` index (:issue:`51076`)
 - Instantiating an :class:`Index` with an numeric numpy dtype with data containing :class:`NA` and/or :class:`NaT` now raises a ``ValueError``. Previously a ``TypeError`` was raised (:issue:`51050`)
@@ -786,7 +795,9 @@ Other API changes
 - The levels of the index of the :class:`Series` returned from ``Series.sparse.from_coo`` now always have dtype ``int32``. Previously they had dtype ``int64`` (:issue:`50926`)
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 - The methods :meth:`Series.round`, :meth:`DataFrame.__invert__`, :meth:`Series.__invert__`, :meth:`DataFrame.swapaxes`, :meth:`DataFrame.first`, :meth:`DataFrame.last`, :meth:`Series.first`, :meth:`Series.last` and :meth:`DataFrame.align` will now always return new objects (:issue:`51032`)
+- :class:`DataFrameGroupBy` aggregations (e.g. "sum") with object-dtype columns no longer infer non-object dtypes for their results, explicitly call ``result.infer_objects(copy=False)`` on the result to obtain the old behavior (:issue:`51205`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.deprecations:
