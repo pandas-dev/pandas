@@ -997,6 +997,12 @@ class TestNonNano:
         assert result == expected
         assert result._creso == expected._creso
 
+    def test_out_of_ns_bounds(self):
+        # https://github.com/pandas-dev/pandas/issues/51060
+        result = Timestamp(-52700112000, unit="s")
+        assert result == Timestamp("0300-01-01")
+        assert result.to_numpy() == np.datetime64("0300-01-01T00:00:00", "s")
+
 
 def test_timestamp_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
