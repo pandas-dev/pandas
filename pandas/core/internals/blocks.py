@@ -1612,7 +1612,9 @@ class EABackedBlock(Block):
 
         if using_cow and self.refs.has_reference():
             values = values.copy()
-            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
+            self = self.make_block_same_class(  # type: ignore[assignment]
+                values.T if values.ndim == 2 else values
+            )
 
         try:
             # Caller is responsible for ensuring matching lengths
