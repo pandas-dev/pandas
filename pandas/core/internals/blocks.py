@@ -437,15 +437,13 @@ class Block(PandasObject):
             # split and convert the blocks
 
             return extend_blocks(
-                [blk.convert(copy=not using_cow, using_cow=using_cow) for blk in blocks]
+                [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
             )
 
         if downcast is None:
             return blocks
 
-        return extend_blocks(
-            [b._downcast_2d(downcast, using_cow=using_cow) for b in blocks]
-        )
+        return extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
 
     @final
     @maybe_split
