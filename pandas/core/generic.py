@@ -3233,13 +3233,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             columns. By default, 'l' will be used for all columns except
             columns of numbers, which default to 'r'.
         longtable : bool, optional
-            By default, the value will be read from the pandas config
-            module. Use a longtable environment instead of tabular. Requires
+            Use a longtable environment instead of tabular. Requires
             adding a \usepackage{{longtable}} to your LaTeX preamble.
+            By default, the value will be read from the pandas config
+            module, and set to `True` if the option ``styler.latex.environment`` is
+            `"longtable"`.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
         escape : bool, optional
             By default, the value will be read from the pandas config
-            module. When set to False prevents from escaping latex special
+            module and set to `True` if the option ``styler.format.escape`` is
+            `"latex"`. When set to False prevents from escaping latex special
             characters in column names.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to `False`.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3247,16 +3257,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Character recognized as decimal separator, e.g. ',' in Europe.
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
-        multicolumn_format : str, default 'l'
+            The default will be read from the config module, and is set
+            as the option ``styler.sparse.columns``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
+        multicolumn_format : str, default 'r'
             The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
-        multirow : bool, default False
+            The default will be read from the config module, and is set as the option
+            ``styler.latex.multicol_align``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to "r".
+        multirow : bool, default True
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
-            from the pandas config module.
+            from the pandas config module, and is set as the option
+            ``styler.sparse.index``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to `True`.
         caption : str or tuple, optional
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
@@ -3324,15 +3348,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = config.get_option("display.latex.longtable")
+            longtable = config.get_option("styler.latex.environment") == "longtable"
         if escape is None:
-            escape = config.get_option("display.latex.escape")
+            escape = config.get_option("styler.format.escape") == "latex"
         if multicolumn is None:
-            multicolumn = config.get_option("display.latex.multicolumn")
+            multicolumn = config.get_option("styler.sparse.columns")
         if multicolumn_format is None:
-            multicolumn_format = config.get_option("display.latex.multicolumn_format")
+            multicolumn_format = config.get_option("styler.latex.multicol_align")
         if multirow is None:
-            multirow = config.get_option("display.latex.multirow")
+            multirow = config.get_option("styler.sparse.index")
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")
@@ -3418,7 +3442,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "label": label,
             "position": position,
             "column_format": column_format,
-            "clines": "skip-last;data" if multirow else None,
+            "clines": "skip-last;data"
+            if (multirow and isinstance(self.index, MultiIndex))
+            else None,
             "bold_rows": bold_rows,
         }
 
@@ -6647,7 +6673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # https://github.com/python/mypy/issues/8354
                 return cast(NDFrameT, result)
             else:
-                return self.copy()
+                return self.copy(deep=None)
 
     # ----------------------------------------------------------------------
     # Filling NA's

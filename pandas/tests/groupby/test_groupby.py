@@ -465,8 +465,6 @@ def test_multi_func(df):
     col2 = df["B"]
 
     grouped = df.groupby([col1.get, col2.get])
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     agged = grouped.mean(numeric_only=True)
     expected = df.groupby(["A", "B"]).mean()
 
@@ -665,17 +663,11 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["C", "D"]].agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected2 = grouped.mean(numeric_only=True)
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -793,11 +785,7 @@ def test_groupby_as_index_cython(df):
 
     # single-key
     grouped = data.groupby("A", as_index=False)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     result = grouped.mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        data.groupby(["A"]).mean()
     expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
     expected.index = RangeIndex(len(expected))
@@ -960,11 +948,7 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["v1", "v2"]].agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
@@ -1148,8 +1132,6 @@ def test_groupby_with_hier_columns():
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(level=0).mean()
     result = df.groupby(level=0).mean(numeric_only=True)
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
@@ -1183,11 +1165,7 @@ def test_groupby_wrong_multi_labels():
 
 
 def test_groupby_series_with_name(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"]).mean()
     result = df.groupby(df["A"]).mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"], as_index=False).mean()
     result2 = df.groupby(df["A"], as_index=False).mean(numeric_only=True)
     assert result.index.name == "A"
     assert "A" in result2
@@ -1337,11 +1315,7 @@ def test_groupby_unit64_float_conversion():
 
 
 def test_groupby_list_infer_array_like(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(list(df["A"])).mean()
     result = df.groupby(list(df["A"])).mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"]).mean()
     expected = df.groupby(df["A"]).mean(numeric_only=True)
     tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -1455,8 +1429,6 @@ def test_groupby_2d_malformed():
     d["zeros"] = [0, 0]
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
-    with pytest.raises(TypeError, match="Could not convert"):
-        d.groupby(["group"]).mean()
     tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
@@ -2408,7 +2380,9 @@ def test_groupby_duplicate_columns():
     ).astype(object)
     df.columns = ["A", "B", "B"]
     result = df.groupby([0, 0, 0, 0]).min()
-    expected = DataFrame([["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"])
+    expected = DataFrame(
+        [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
 

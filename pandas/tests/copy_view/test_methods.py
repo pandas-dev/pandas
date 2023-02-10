@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyWarning
+
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -66,11 +69,11 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
         lambda df, copy: df.rename_axis(index="test", copy=copy),
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
-        # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
+        lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
         lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
-        # lambda df, copy: df.infer_objects(copy=copy)
+        lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
         lambda df, copy: df.to_period(freq="D", copy=copy),
         lambda df, copy: df.tz_localize("US/Central", copy=copy),
@@ -84,11 +87,11 @@ def test_copy_shallow(using_copy_on_write):
         "set_axis",
         "rename_axis0",
         "rename_axis1",
-        # "astype",  # CoW not yet implemented
+        "astype",
         # "swaplevel",  # only series
         "swapaxes",
         "truncate",
-        # "infer_objects",  # CoW not yet implemented
+        "infer_objects",
         "to_timestamp",
         "to_period",
         "tz_localize",
@@ -1308,3 +1311,90 @@ def test_isetitem(using_copy_on_write):
         assert np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
     else:
         assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+
+
+@pytest.mark.parametrize("key", ["a", ["a"]])
+def test_get(using_copy_on_write, key):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+
+    result = df.get(key)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+        result.iloc[0] = 0
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        # for non-CoW it depends on whether we got a Series or DataFrame if it
+        # is a view or copy or triggers a warning or not
+        warn = SettingWithCopyWarning if isinstance(key, list) else None
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(warn):
+                result.iloc[0] = 0
+
+        if isinstance(key, list):
+            tm.assert_frame_equal(df, df_orig)
+        else:
+            assert df.iloc[0, 0] == 0
+
+
+@pytest.mark.parametrize("axis, key", [(0, 0), (1, "a")])
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
+    single_block = (dtype == "int64") and not using_array_manager
+    is_view = single_block or (using_array_manager and axis == 1)
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+
+    result = df.xs(key, axis=axis)
+
+    if axis == 1 or single_block:
+        assert np.shares_memory(get_array(df, "a"), get_array(result))
+    elif using_copy_on_write:
+        assert result._mgr._has_no_reference(0)
+
+    if using_copy_on_write or is_view:
+        result.iloc[0] = 0
+    else:
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
+                result.iloc[0] = 0
+
+    if using_copy_on_write or (not single_block and axis == 0):
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.iloc[0, 0] == 0
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("key, level", [("l1", 0), (2, 1)])
+def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axis):
+    arr = np.arange(18).reshape(6, 3)
+    index = MultiIndex.from_product([["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"])
+    df = DataFrame(arr, index=index, columns=list("abc"))
+    if axis == 1:
+        df = df.transpose().copy()
+    df_orig = df.copy()
+
+    result = df.xs(key, level=level, axis=axis)
+
+    if level == 0:
+        assert np.shares_memory(
+            get_array(df, df.columns[0]), get_array(result, result.columns[0])
+        )
+
+    warn = (
+        SettingWithCopyWarning
+        if not using_copy_on_write and not using_array_manager
+        else None
+    )
+    with pd.option_context("chained_assignment", "warn"):
+        with tm.assert_produces_warning(warn):
+            result.iloc[0, 0] = 0
+
+    tm.assert_frame_equal(df, df_orig)
