@@ -66,11 +66,11 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
         lambda df, copy: df.rename_axis(index="test", copy=copy),
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
-        # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
+        lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
         lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
-        # lambda df, copy: df.infer_objects(copy=copy)
+        lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
         lambda df, copy: df.to_period(freq="D", copy=copy),
         lambda df, copy: df.tz_localize("US/Central", copy=copy),
@@ -84,11 +84,11 @@ def test_copy_shallow(using_copy_on_write):
         "set_axis",
         "rename_axis0",
         "rename_axis1",
-        # "astype",  # CoW not yet implemented
+        "astype",
         # "swaplevel",  # only series
         "swapaxes",
         "truncate",
-        # "infer_objects",  # CoW not yet implemented
+        "infer_objects",
         "to_timestamp",
         "to_period",
         "tz_localize",
