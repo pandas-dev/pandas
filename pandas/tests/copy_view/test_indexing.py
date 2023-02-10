@@ -887,23 +887,27 @@ def test_dataframe_add_column_from_series():
 
 @pytest.mark.parametrize("val", [100, "a"])
 @pytest.mark.parametrize(
-    "method",
+    "indexer_func, indexer",
     [
-        lambda df: df.loc[0, "a"],
-        lambda df: df.iloc[0, 0],
-        lambda df: df.loc[[0], "a"],
-        lambda df: df.iloc[[0], 0],
-        lambda df: df.loc[:, "a"],
-        lambda df: df.iloc[:, 0],
+        (tm.loc, (0, "a")),
+        (tm.iloc, (0, 0)),
+        (tm.loc, ([0], "a")),
+        (tm.iloc, ([0], 0)),
+        (tm.loc, (slice(None), "a")),
+        (tm.iloc, (slice(None), 0)),
     ],
 )
-def test_set_value_loc_copy_only_necessary_column(using_copy_on_write, method, val):
-    # Only copy column that is modified, multi-block only for now
+def test_set_value_copy_only_necessary_column(
+    using_copy_on_write, indexer_func, indexer, val
+):
+    # When setting inplace, only copy column that is modified instead of the whole
+    # block (by splitting the block)
+    # TODO multi-block only for now
     df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 1.5})
     df_orig = df.copy()
     view = df[:]
 
-    df.loc[0, "a"] = val
+    indexer_func(df)[indexer] = val
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))

@@ -13,6 +13,7 @@ import pytest
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -486,6 +487,7 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
+        pd.options.mode.copy_on_write = True
 
         # GH 6766
         # iloc with a mask aligning from another iloc
