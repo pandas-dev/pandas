@@ -1014,6 +1014,7 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
+        using_cow: bool, default False
 
         Returns
         -------
@@ -1227,11 +1228,7 @@ class Block(PandasObject):
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            if using_cow and self.refs.has_reference():
-                # TODO(CoW): If using_cow is implemented for putmask we can defer
-                # the copy
-                self = self.copy()
-            nbs = self.putmask(mask.T, value)
+            nbs = self.putmask(mask.T, value, using_cow=using_cow)
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
