@@ -15,7 +15,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
-    Timestamp,
     internals as libinternals,
     lib,
     writers,
@@ -63,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
     PeriodDtype,
@@ -2180,9 +2180,8 @@ def get_block_type(dtype: DtypeObj):
     -------
     cls : class, subclass of Block
     """
-    # We use vtype and kind checks because they are much more performant
+    # We use kind checks because it is much more performant
     #  than is_foo_dtype
-    vtype = dtype.type
     kind = dtype.kind
 
     cls: type[Block]
@@ -2190,7 +2189,7 @@ def get_block_type(dtype: DtypeObj):
     if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif vtype is Timestamp:
+    elif isinstance(dtype, DatetimeTZDtype):
         cls = DatetimeTZBlock
     elif isinstance(dtype, PeriodDtype):
         cls = NDArrayBackedExtensionBlock
