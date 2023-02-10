@@ -44,7 +44,7 @@ class TestSeriesMissingData:
         td1 = td.copy()
         td1[0] = np.nan
         assert isna(td1[0])
-        assert td1[0].value == iNaT
+        assert td1[0]._value == iNaT
         td1[0] = td[0]
         assert not isna(td1[0])
 
@@ -58,7 +58,7 @@ class TestSeriesMissingData:
 
         td1[2] = NaT
         assert isna(td1[2])
-        assert td1[2].value == iNaT
+        assert td1[2]._value == iNaT
         td1[2] = td[2]
         assert not isna(td1[2])
 
