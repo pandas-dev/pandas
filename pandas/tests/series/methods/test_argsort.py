@@ -65,3 +65,10 @@ class TestSeriesArgsort:
     def test_argsort_preserve_name(self, datetime_series):
         result = datetime_series.argsort()
         assert result.name == datetime_series.name
+
+    @pytest.mark.parametrize("func", ["idxmin", "idxmax"])
+    def test_idxmin_idxmax_all_na(self, any_numeric_ea_and_arrow_dtype, func):
+        # GH#51276
+        ser = Series([None, None], dtype=any_numeric_ea_and_arrow_dtype)
+        result = getattr(ser, func)()
+        assert result is np.nan

@@ -1256,6 +1256,7 @@ Missing
 - Bug in :meth:`DataFrame.update` with ``overwrite=False`` raising ``TypeError`` when ``self`` has column with ``NaT`` values and column not present in ``other`` (:issue:`16713`)
 - Bug in :meth:`Series.replace` raising ``RecursionError`` when replacing value in object-dtype :class:`Series` containing ``NA`` (:issue:`47480`)
 - Bug in :meth:`Series.replace` raising ``RecursionError`` when replacing value in numeric :class:`Series` with ``NA`` (:issue:`50758`)
+- Bug in :meth:`Series.idxmin` and :meth:`Series.idxmax` raising ``ValueError`` for all ``NA`` with extension array dtype (:issue:`51276`)
 
 MultiIndex
 ^^^^^^^^^^
