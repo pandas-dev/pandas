@@ -2710,7 +2710,10 @@ class MultiIndex(Index):
                     # non-comparable level, e.g. test_groupby_example
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
-                    loc -= 1
+                    # error: Incompatible types in assignment (expression has type
+                    # "Union[int, Any]", variable has type "Union[ndarray[Any,
+                    # dtype[signedinteger[Any]]], signedinteger[Any]]")
+                    loc -= 1  # type: ignore[assignment]
                 return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
