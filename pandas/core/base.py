@@ -315,9 +315,6 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([1, 2, 3])
         >>> s.shape
         (3,)
-
-        >>> pd.Series([1, 2, 3]).shape
-        (3,)
         """
         return self._values.shape
 
