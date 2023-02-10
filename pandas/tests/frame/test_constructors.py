@@ -2098,6 +2098,17 @@ class TestDataFrameConstructors:
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
 
+    def test_constructor_frame_shallow_copy(self, float_frame):
+        # constructing a DataFrame from DataFrame with copy=False should still
+        # give a "shallow" copy (share data, not attributes)
+        # https://github.com/pandas-dev/pandas/issues/49523
+        orig = float_frame.copy()
+        cop = DataFrame(float_frame)
+        assert cop._mgr is not float_frame._mgr
+        # Overwriting index of copy doesn't change original
+        cop.index = np.arange(len(cop))
+        tm.assert_frame_equal(float_frame, orig)
+
     def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
         if not using_array_manager:
             df = DataFrame(float_frame.values)
