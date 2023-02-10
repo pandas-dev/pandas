@@ -237,3 +237,6 @@ def test_merge_on_index(using_copy_on_write):
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
     tm.assert_frame_equal(df1, df1_orig)
     tm.assert_frame_equal(df2, df2_orig)
+
+
+# TODO(CoW) add merge tests where one of left/right isn't copied

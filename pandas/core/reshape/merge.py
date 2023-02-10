@@ -793,7 +793,7 @@ class _MergeOperation:
         result = concat([left, right], axis=1, copy=copy)
         return result
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -1800,7 +1800,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
