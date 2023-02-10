@@ -2114,7 +2114,7 @@ class TestToDatetimeDataFrame:
 
         msg = (
             r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d", at position 1.'
+            r'match format "%Y%m%d", at position 1\.'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)

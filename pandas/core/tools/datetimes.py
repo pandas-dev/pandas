@@ -442,10 +442,10 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
 
-    if format is None and format != "mixed":
+    if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    # `format` could not be inferred, or user asked for mixed-format parsing.
+    # `format` could be inferred, or user didn't ask for mixed-format parsing.
     if format is not None and format != "mixed":
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
