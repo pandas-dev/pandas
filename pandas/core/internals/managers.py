@@ -2072,7 +2072,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool = True,
-    refs: list = None,
+    refs: list | None = None,
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
