@@ -2210,7 +2210,9 @@ def get_block_type(dtype: DtypeObj):
     return cls
 
 
-def new_block_2d(values: ArrayLike, placement: BlockPlacement):
+def new_block_2d(
+    values: ArrayLike, placement: BlockPlacement, refs: BlockValuesRefs | None = None
+):
     # new_block specialized to case with
     #  ndim=2
     #  isinstance(placement, BlockPlacement)
@@ -2218,7 +2220,7 @@ def new_block_2d(values: ArrayLike, placement: BlockPlacement):
     klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
-    return klass(values, ndim=2, placement=placement)
+    return klass(values, ndim=2, placement=placement, refs=refs)
 
 
 def new_block(
