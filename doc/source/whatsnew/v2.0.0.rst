@@ -223,9 +223,12 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
-  - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
+  - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
+  - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
+  - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
   - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :meth:`DataFrame.astype` / :meth:`Series.astype`
+  - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
   - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
@@ -247,6 +250,9 @@ Copy-on-Write improvements
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
   can never update the original Series or DataFrame. Therefore, an informative
   error is raised to the user instead of silently doing nothing (:issue:`49467`)
+
+- :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
+  when ``inplace=True``.
 
 Copy-on-Write can be enabled through one of
 
@@ -299,6 +305,7 @@ Other enhancements
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
 - Added :meth:`Series.dt.unit` and :meth:`Series.dt.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`51223`)
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
+- Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
 -
 
@@ -630,7 +637,9 @@ The arguments signature is similar, albeit ``col_space`` has been removed since
 it is ignored by LaTeX engines. This render engine also requires ``jinja2`` as a
 dependency which needs to be installed, since rendering is based upon jinja2 templates.
 
-The pandas options below are no longer used and will be removed in future releases.
+The pandas latex options below are no longer used and have been removed. The generic
+max rows and columns arguments remain but for this functionality should be replaced
+by the Styler equivalents.
 The alternative options giving similar functionality are indicated below:
 
 - ``display.latex.escape``: replaced with ``styler.format.escape``,
@@ -643,6 +652,13 @@ The alternative options giving similar functionality are indicated below:
 - ``display.max_rows`` and ``display.max_columns``: replace with
   ``styler.render.max_rows``, ``styler.render.max_columns`` and
   ``styler.render.max_elements``.
+
+Note that due to this change some defaults have also changed:
+
+- ``multirow`` now defaults to *True*.
+- ``multirow_align`` defaults to *"r"* instead of *"l"*.
+- ``multicol_align`` defaults to *"r"* instead of *"l"*.
+- ``escape`` now defaults to *False*.
 
 Note that the behaviour of ``_repr_latex_`` is also changed. Previously
 setting ``display.latex.repr`` would generate LaTeX only when using nbconvert for a
