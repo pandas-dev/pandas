@@ -2930,6 +2930,7 @@ class MultiIndex(Index):
         loc, mi = self._get_loc_level(key, level=level)
         if not drop_level:
             if lib.is_integer(loc):
+                loc = int(loc)
                 mi = self[loc : loc + 1]
             else:
                 mi = self[loc]

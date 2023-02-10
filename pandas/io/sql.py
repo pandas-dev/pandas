@@ -1023,6 +1023,7 @@ class SQLTable(PandasObject):
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
                 if is_integer(num_inserted):
+                    num_inserted = int(num_inserted)
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:

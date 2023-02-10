@@ -4089,6 +4089,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             loc, new_index = index._get_loc_level(key, level=0)
             if not drop_level:
                 if lib.is_integer(loc):
+                    loc = int(loc)
                     new_index = index[loc : loc + 1]
                 else:
                     new_index = index[loc]

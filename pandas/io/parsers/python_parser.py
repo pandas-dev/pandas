@@ -1348,4 +1348,4 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    return skipfooter
+    return int(skipfooter)

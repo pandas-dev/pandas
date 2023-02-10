@@ -70,7 +70,11 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool | np.bool_ = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -116,7 +120,7 @@ def _get_distinct_objs(objs: list[Index]) -> list[Index]:
 def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
-    sort: bool = False,
+    sort: bool | np.bool_ = False,
     copy: bool = False,
 ) -> Index:
     """

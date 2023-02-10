@@ -301,7 +301,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
             # but ufunc may pass integer to _add_delta
-            return other
+            return int(other)
 
         # raise when input doesn't have freq
         raise raise_on_incompatible(self, None)
