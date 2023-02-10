@@ -1246,7 +1246,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._known_consolidated = False
 
     def _iset_split_block(
-        self, blkno_l: int, blk_locs: np.ndarray, value: ArrayLike | None = None
+        self,
+        blkno_l: int,
+        blk_locs: np.ndarray | list[int],
+        value: ArrayLike | None = None,
     ) -> None:
         """Removes columns from a block by splitting the block.
 
@@ -1267,12 +1270,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
-            # Argument 1 to "BlockPlacement" has incompatible type "BlockPlacement";
-            # expected "Union[int, slice, ndarray[Any, Any]]"
-            first_nb = new_block_2d(
-                value,
-                BlockPlacement(blk.mgr_locs[blk_locs]),  # type: ignore[arg-type]
-            )
+            locs = blk.mgr_locs.as_array[blk_locs]
+            first_nb = new_block_2d(value, BlockPlacement(locs))
         else:
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
@@ -1282,6 +1281,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
         )
         self.blocks = blocks_tup
+
+        if not nbs_tup and value is not None:
+            # No need to update anything if split did not happen
+            return
 
         self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
@@ -1326,11 +1329,18 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         if using_copy_on_write() and not self._has_no_reference(loc):
-            # otherwise perform Copy-on-Write and clear the reference
             blkno = self.blknos[loc]
-            blocks = list(self.blocks)
-            blocks[blkno] = blocks[blkno].copy()
-            self.blocks = tuple(blocks)
+            # Split blocks to only copy the column we want to modify
+            blk_loc = self.blklocs[loc]
+            # Copy our values
+            values = self.blocks[blkno].values
+            if values.ndim == 1:
+                values = values.copy()
+            else:
+                # Use [blk_loc] as indexer to keep ndim=2, this already results in a
+                # copy
+                values = values[[blk_loc]]
+            self._iset_split_block(blkno, [blk_loc], values)
 
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again
