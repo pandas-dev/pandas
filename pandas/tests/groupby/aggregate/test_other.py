@@ -517,6 +517,7 @@ def test_sum_uint64_overflow():
     expected = DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
         index=index,
+        dtype=object,
     )
 
     expected.index.name = 0
