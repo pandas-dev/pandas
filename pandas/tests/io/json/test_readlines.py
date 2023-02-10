@@ -27,14 +27,29 @@ def test_read_jsonl():
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_datetime():
+def test_read_jsonl_engine_pyarrow(datapath, engine):
+    result = read_json(
+        datapath("io", "json", "data", "line_delimited.json"),
+        lines=True,
+        engine=engine,
+    )
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_datetime(request, engine):
     # GH33787
+    if engine == "pyarrow":
+        # GH 48893
+        reason = "Pyarrow only supports a file path as an input and line delimited json"
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     df = DataFrame(
         [([1, 2], ["2020-03-05", "2020-04-08T09:58:49+00:00"], "hector")],
         columns=["accounts", "date", "name"],
     )
     json_line = df.to_json(lines=True, orient="records")
-    result = read_json(json_line)
+    result = read_json(json_line, engine=engine)
     expected = DataFrame(
         [[1, "2020-03-05", "hector"], [2, "2020-04-08T09:58:49+00:00", "hector"]],
         columns=["accounts", "date", "name"],
@@ -90,55 +105,95 @@ def test_to_jsonl_count_new_lines():
 
 
 @pytest.mark.parametrize("chunksize", [1, 1.0])
-def test_readjson_chunks(lines_json_df, chunksize):
+def test_readjson_chunks(request, lines_json_df, chunksize, engine):
     # Basic test that read_json(chunks=True) gives the same result as
     # read_json(chunks=False)
     # GH17048: memory usage when lines=True
 
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     unchunked = read_json(StringIO(lines_json_df), lines=True)
-    with read_json(StringIO(lines_json_df), lines=True, chunksize=chunksize) as reader:
+    with read_json(
+        StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
+    ) as reader:
         chunked = pd.concat(reader)
 
     tm.assert_frame_equal(chunked, unchunked)
 
 
-def test_readjson_chunksize_requires_lines(lines_json_df):
+def test_readjson_chunksize_requires_lines(lines_json_df, engine):
     msg = "chunksize can only be passed if lines=True"
     with pytest.raises(ValueError, match=msg):
-        with read_json(StringIO(lines_json_df), lines=False, chunksize=2) as _:
+        with read_json(
+            StringIO(lines_json_df), lines=False, chunksize=2, engine=engine
+        ) as _:
             pass
 
 
-def test_readjson_chunks_series():
+def test_readjson_chunks_series(request, engine):
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason))
+
     # Test reading line-format JSON to Series with chunksize param
     s = pd.Series({"A": 1, "B": 2})
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    unchunked = read_json(strio, lines=True, typ="Series")
+    unchunked = read_json(strio, lines=True, typ="Series", engine=engine)
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    with read_json(strio, lines=True, typ="Series", chunksize=1) as reader:
+    with read_json(
+        strio, lines=True, typ="Series", chunksize=1, engine=engine
+    ) as reader:
         chunked = pd.concat(reader)
 
     tm.assert_series_equal(chunked, unchunked)
 
 
-def test_readjson_each_chunk(lines_json_df):
+def test_readjson_each_chunk(request, lines_json_df, engine):
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     # Other tests check that the final result of read_json(chunksize=True)
     # is correct. This checks the intermediate chunks.
-    with read_json(StringIO(lines_json_df), lines=True, chunksize=2) as reader:
+    with read_json(
+        StringIO(lines_json_df), lines=True, chunksize=2, engine=engine
+    ) as reader:
         chunks = list(reader)
     assert chunks[0].shape == (2, 2)
     assert chunks[1].shape == (1, 2)
 
 
-def test_readjson_chunks_from_file():
+def test_readjson_chunks_from_file(request, engine):
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     with tm.ensure_clean("test.json") as path:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         df.to_json(path, lines=True, orient="records")
-        with read_json(path, lines=True, chunksize=1) as reader:
+        with read_json(path, lines=True, chunksize=1, engine=engine) as reader:
             chunked = pd.concat(reader)
-        unchunked = read_json(path, lines=True)
+        unchunked = read_json(path, lines=True, engine=engine)
         tm.assert_frame_equal(unchunked, chunked)
 
 
@@ -171,11 +226,13 @@ def test_readjson_chunks_closes(chunksize):
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
-def test_readjson_invalid_chunksize(lines_json_df, chunksize):
+def test_readjson_invalid_chunksize(lines_json_df, chunksize, engine):
     msg = r"'chunksize' must be an integer >=1"
 
     with pytest.raises(ValueError, match=msg):
-        with read_json(StringIO(lines_json_df), lines=True, chunksize=chunksize) as _:
+        with read_json(
+            StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
+        ) as _:
             pass
 
 
@@ -205,19 +262,27 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     tm.assert_frame_equal(orig, test, obj=f"chunksize: {chunksize}")
 
 
-def test_readjson_unicode(monkeypatch):
+def test_readjson_unicode(request, monkeypatch, engine):
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     with tm.ensure_clean("test.json") as path:
         monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale: "cp949")
         with open(path, "w", encoding="utf-8") as f:
             f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 
-        result = read_json(path)
+        result = read_json(path, engine=engine)
         expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
         tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("nrows", [1, 2])
-def test_readjson_nrows(nrows):
+def test_readjson_nrows(nrows, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows param
     jsonl = """{"a": 1, "b": 2}
@@ -230,20 +295,30 @@ def test_readjson_nrows(nrows):
 
 
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
-def test_readjson_nrows_chunks(nrows, chunksize):
+def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows and chunksize param
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
-    with read_json(jsonl, lines=True, nrows=nrows, chunksize=chunksize) as reader:
+    with read_json(
+        jsonl, lines=True, nrows=nrows, chunksize=chunksize, engine=engine
+    ) as reader:
         chunked = pd.concat(reader)
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
 
 
-def test_readjson_nrows_requires_lines():
+def test_readjson_nrows_requires_lines(engine):
     # GH 33916
     # Test ValuError raised if nrows is set without setting lines in read_json
     jsonl = """{"a": 1, "b": 2}
@@ -252,12 +327,20 @@ def test_readjson_nrows_requires_lines():
         {"a": 7, "b": 8}"""
     msg = "nrows can only be passed if lines=True"
     with pytest.raises(ValueError, match=msg):
-        read_json(jsonl, lines=False, nrows=2)
+        read_json(jsonl, lines=False, nrows=2, engine=engine)
 
 
-def test_readjson_lines_chunks_fileurl(datapath):
+def test_readjson_lines_chunks_fileurl(request, datapath, engine):
     # GH 27135
     # Test reading line-format JSON from file url
+    if engine == "pyarrow":
+        # GH 48893
+        reason = (
+            "Pyarrow only supports a file path as an input and line delimited json"
+            "and doesn't support chunksize parameter."
+        )
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     df_list_expected = [
         DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
         DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
@@ -265,7 +348,7 @@ def test_readjson_lines_chunks_fileurl(datapath):
     ]
     os_path = datapath("io", "json", "data", "line_delimited.json")
     file_url = Path(os_path).as_uri()
-    with read_json(file_url, lines=True, chunksize=1) as url_reader:
+    with read_json(file_url, lines=True, chunksize=1, engine=engine) as url_reader:
         for index, chuck in enumerate(url_reader):
             tm.assert_frame_equal(chuck, df_list_expected[index])
 
