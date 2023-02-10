@@ -145,6 +145,7 @@ from pandas.core.array_algos.putmask import (
     validate_putmask,
 )
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
     ExtensionArray,
@@ -221,6 +222,19 @@ _masked_engines = {
     "Int16": libindex.MaskedInt16Engine,
     "Int8": libindex.MaskedInt8Engine,
     "boolean": libindex.MaskedBoolEngine,
+    "double[pyarrow]": libindex.MaskedFloat64Engine,
+    "float64[pyarrow]": libindex.MaskedFloat64Engine,
+    "float32[pyarrow]": libindex.MaskedFloat32Engine,
+    "float[pyarrow]": libindex.MaskedFloat32Engine,
+    "uint64[pyarrow]": libindex.MaskedUInt64Engine,
+    "uint32[pyarrow]": libindex.MaskedUInt32Engine,
+    "uint16[pyarrow]": libindex.MaskedUInt16Engine,
+    "uint8[pyarrow]": libindex.MaskedUInt8Engine,
+    "int64[pyarrow]": libindex.MaskedInt64Engine,
+    "int32[pyarrow]": libindex.MaskedInt32Engine,
+    "int16[pyarrow]": libindex.MaskedInt16Engine,
+    "int8[pyarrow]": libindex.MaskedInt8Engine,
+    "bool[pyarrow]": libindex.MaskedBoolEngine,
 }
 
 
@@ -799,7 +813,7 @@ class Index(IndexOpsMixin, PandasObject):
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
 
-            if isinstance(target_values, BaseMaskedArray):
+            if isinstance(target_values, (BaseMaskedArray, ArrowExtensionArray)):
                 return _masked_engines[target_values.dtype.name](target_values)
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
@@ -4926,6 +4940,10 @@ class Index(IndexOpsMixin, PandasObject):
             type(self) is Index
             and isinstance(self._values, ExtensionArray)
             and not isinstance(self._values, BaseMaskedArray)
+            and not (
+                isinstance(self._values, ArrowExtensionArray)
+                and is_numeric_dtype(self.dtype)
+            )
         ):
             # TODO(ExtensionIndex): remove special-case, just use self._values
             return self._values.astype(object)
