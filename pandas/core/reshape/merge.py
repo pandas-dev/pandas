@@ -744,7 +744,7 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool,
+        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
