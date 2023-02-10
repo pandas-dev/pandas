@@ -18,8 +18,68 @@ jobs:
           PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
           LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD
           ci/run_tests.sh
+  build-aarch64:
+    parameters:
+      cibw-build:
+        type: string
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
+    environment:
+      TAG = << pipeline.git.tag >>
+      TRIGGER_SOURCE = << pipeline.trigger_source >>
+    steps:
+      - checkout
+      - run:
+          name: Check if build is necessary
+          command: |
+            # Check if tag is defined or TRIGGER_SOURCE is scheduled
+            if [[ -n ${TAG} ]]; then
+                export IS_PUSH="true"
+            elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
+                export IS_SCHEDULE_DISPATCH="true"
+            # Look for the build label/[wheel build] in commit
+            elif (git log --format=oneline -n 1 $CIRCLE_SHA1) | grep -q '[wheel build]'; then
+                : # Do nothing
+            elif ! (curl https://api.github.com/repos/pandas-dev/pandas/issues/$CIRCLE_PR_NUMBER | jq '.labels' | grep -q 'Build'); then
+                circleci-agent step halt
+            fi
+      - run:
+          name: Build aarch64 wheels
+          command: |
+            pip3 install cibuildwheel==2.9.0
+            cibuildwheel --output-dir wheelhouse
+          environment:
+            CIBW_BUILD: << parameters.cibw-build >>
+      - run:
+          name: Upload wheels
+          command: |
+            if [[ -n ${TAG} ]]; then
+                export IS_PUSH="true"
+            fi
+            if [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
+                export IS_SCHEDULE_DISPATCH="true"
+            fi
+            source ci/upload_wheels.sh
+            set_upload_vars
+            upload_wheels
+      - store_artifacts:
+          path: wheelhouse/
 
 workflows:
   test:
+    # Don't run trigger this one when scheduled pipeline runs
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - test-arm
+  build-wheels:
+    jobs:
+      - build-aarch64:
+          filters:
+            tags:
+              only: /^v.*/
+          matrix:
+            parameters:
+              cibw-build: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
