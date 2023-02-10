@@ -1041,8 +1041,7 @@ cdef class _Timestamp(ABCTimestamp):
                 year2000 = self.replace(year=2000)
                 stamp += year2000.strftime("%z")
 
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
+            zone = get_timezone(self.tzinfo)
             try:
                 stamp += zone.strftime(" %%Z")
             except AttributeError:
