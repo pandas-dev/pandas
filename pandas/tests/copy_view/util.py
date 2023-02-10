@@ -10,7 +10,7 @@ def get_array(obj, col=None):
     which triggers tracking references / CoW (and we might be testing that
     this is done by some other operation).
     """
-    if isinstance(obj, Series) and (obj is None or obj.name == col):
+    if isinstance(obj, Series) and (col is None or obj.name == col):
         return obj._values
     assert col is not None
     icol = obj.columns.get_loc(col)
