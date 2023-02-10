@@ -124,12 +124,12 @@ def arrays_to_mgr(
         #  - all(type(x) is not PandasArray for x in arrays)
 
     else:
-        # Reached via DataFrame._from_arrays; we do minimal validation here
         index = ensure_index(index)
         arrays = [extract_array(x, extract_numpy=True) for x in arrays]
         # with _from_arrays, the passed arrays should never be Series objects
         refs = [None] * len(arrays)
 
+        # Reached via DataFrame._from_arrays; we do minimal validation here
         for arr in arrays:
             if (
                 not isinstance(arr, (np.ndarray, ExtensionArray))
@@ -554,7 +554,7 @@ def _homogenize(
 ) -> tuple[list[ArrayLike], list[Any]]:
     oindex = None
     homogenized = []
-    # if the original array-like in `data` is a Series, keep track of this Series
+    # if the original array-like in `data` is a Series, keep track of this Series' refs
     refs: list[Any] = []
 
     for val in data:
@@ -588,6 +588,7 @@ def _homogenize(
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
             refs.append(None)
+
         homogenized.append(val)
 
     return homogenized, refs
