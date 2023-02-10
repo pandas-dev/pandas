@@ -24,10 +24,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -401,13 +398,13 @@ use_nullable_dtypes : bool = False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
-    The nullable dtype implementation can be configured by calling
-    ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-    numpy-backed nullable dtypes or
-    ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-    pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-    This is only implemented for the ``pyarrow`` or ``python``
-    engines.
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
     .. versionadded:: 2.0
 
@@ -564,15 +561,6 @@ def _read(
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
-    elif (
-        kwds.get("use_nullable_dtypes", False)
-        and get_option("mode.dtype_backend") == "pyarrow"
-        and kwds.get("engine") == "c"
-    ):
-        raise NotImplementedError(
-            f"use_nullable_dtypes=True and engine={kwds['engine']} with "
-            "mode.dtype_backend set to 'pyarrow' is not implemented."
-        )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
 
@@ -1282,6 +1270,16 @@ def read_fwf(
         Whether or not to use nullable dtypes as default when reading data. If
         set to True, nullable dtypes are used for all dtypes that have a nullable
         implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+            This is only implemented for the ``pyarrow`` or ``python``
+            engines.
 
         .. versionadded:: 2.0
 

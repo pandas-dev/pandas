@@ -428,10 +428,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     "for this dtype."
                 )
             # don't pass copy to astype -> always need a copy since we are mutating
-            data = self._data.astype(dtype)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                data = self._data.astype(dtype)
             data[self._mask] = na_value
         else:
-            data = self._data.astype(dtype, copy=copy)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                data = self._data.astype(dtype, copy=copy)
         return data
 
     @doc(ExtensionArray.tolist)
@@ -464,7 +468,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             # TODO deal with NaNs for FloatingArray case
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                # TODO: Is rounding what we want long term?
+                data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
@@ -996,7 +1003,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         if dropna:
-            res = Series(value_counts, index=keys)
+            res = Series(value_counts, index=keys, name="count")
             res.index = res.index.astype(self.dtype)
             res = res.astype("Int64")
             return res
@@ -1012,7 +1019,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(counts), dtype="bool")
         counts_array = IntegerArray(counts, mask)
 
-        return Series(counts_array, index=index)
+        return Series(counts_array, index=index, name="count")
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:

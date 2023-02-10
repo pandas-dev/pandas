@@ -13,6 +13,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
@@ -27,7 +28,7 @@ def test_value_counts(index_or_series_obj):
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
-    expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
+    expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -35,6 +36,10 @@ def test_value_counts(index_or_series_obj):
         with pytest.raises(NotImplementedError, match="float16 indexes are not "):
             expected.index.astype(obj.dtype)
         return
+    if isinstance(expected.index, MultiIndex):
+        expected.index.names = obj.names
+    else:
+        expected.index.name = obj.name
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype
@@ -65,7 +70,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         pytest.skip("type doesn't allow for NA operations")
     elif len(obj) < 1:
         pytest.skip("Test doesn't make sense on empty data")
-    elif isinstance(orig, pd.MultiIndex):
+    elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj._values
@@ -78,7 +83,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
-    expected = Series(dict(counter.most_common()), dtype=np.int64)
+    expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -86,6 +91,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         with pytest.raises(NotImplementedError, match="float16 indexes are not "):
             expected.index.astype(obj.dtype)
         return
+    expected.index.name = obj.name
 
     result = obj.value_counts()
     if obj.duplicated().any():
@@ -130,7 +136,7 @@ def test_value_counts_inferred(index_or_series):
     klass = index_or_series
     s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
     s = klass(s_values)
-    expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"])
+    expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"], name="count")
     tm.assert_series_equal(s.value_counts(), expected)
 
     if isinstance(s, Index):
@@ -144,17 +150,19 @@ def test_value_counts_inferred(index_or_series):
     # don't sort, have to sort after the fact as not sorting is
     # platform-dep
     hist = s.value_counts(sort=False).sort_values()
-    expected = Series([3, 1, 4, 2], index=list("acbd")).sort_values()
+    expected = Series([3, 1, 4, 2], index=list("acbd"), name="count").sort_values()
     tm.assert_series_equal(hist, expected)
 
     # sort ascending
     hist = s.value_counts(ascending=True)
-    expected = Series([1, 2, 3, 4], index=list("cdab"))
+    expected = Series([1, 2, 3, 4], index=list("cdab"), name="count")
     tm.assert_series_equal(hist, expected)
 
     # relative histogram.
     hist = s.value_counts(normalize=True)
-    expected = Series([0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"])
+    expected = Series(
+        [0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"], name="proportion"
+    )
     tm.assert_series_equal(hist, expected)
 
 
@@ -170,10 +178,10 @@ def test_value_counts_bins(index_or_series):
 
     s1 = Series([1, 1, 2, 3])
     res1 = s1.value_counts(bins=1)
-    exp1 = Series({Interval(0.997, 3.0): 4})
+    exp1 = Series({Interval(0.997, 3.0): 4}, name="count")
     tm.assert_series_equal(res1, exp1)
     res1n = s1.value_counts(bins=1, normalize=True)
-    exp1n = Series({Interval(0.997, 3.0): 1.0})
+    exp1n = Series({Interval(0.997, 3.0): 1.0}, name="proportion")
     tm.assert_series_equal(res1n, exp1n)
 
     if isinstance(s1, Index):
@@ -187,22 +195,24 @@ def test_value_counts_bins(index_or_series):
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
     tm.assert_series_equal(res4, exp4)
 
     res4n = s1.value_counts(bins=4, normalize=True)
-    exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]))
+    exp4n = Series(
+        [0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]), name="proportion"
+    )
     tm.assert_series_equal(res4n, exp4n)
 
     # handle NA's properly
     s_values = ["a", "b", "b", "b", np.nan, np.nan, "d", "d", "a", "a", "b"]
     s = klass(s_values)
-    expected = Series([4, 3, 2], index=["b", "a", "d"])
+    expected = Series([4, 3, 2], index=["b", "a", "d"], name="count")
     tm.assert_series_equal(s.value_counts(), expected)
 
     if isinstance(s, Index):
@@ -214,7 +224,7 @@ def test_value_counts_bins(index_or_series):
     assert s.nunique() == 3
 
     s = klass({}) if klass is dict else klass({}, dtype=object)
-    expected = Series([], dtype=np.int64)
+    expected = Series([], dtype=np.int64, name="count")
     tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
     # returned dtype differs depending on original
     if isinstance(s, Index):
@@ -252,7 +262,7 @@ def test_value_counts_datetime64(index_or_series):
     idx = pd.to_datetime(
         ["2010-01-01 00:00:00", "2008-09-09 00:00:00", "2009-01-01 00:00:00"]
     )
-    expected_s = Series([3, 2, 1], index=idx)
+    expected_s = Series([3, 2, 1], index=idx, name="count")
     tm.assert_series_equal(s.value_counts(), expected_s)
 
     expected = pd.array(
@@ -277,7 +287,9 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
-    expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
+    expected_s = pd.concat(
+        [Series([4], index=DatetimeIndex([pd.NaT]), name="count"), expected_s]
+    )
     tm.assert_series_equal(result, expected_s)
 
     assert s.dtype == "datetime64[ns]"
@@ -300,7 +312,7 @@ def test_value_counts_datetime64(index_or_series):
     td = klass(td, name="dt")
 
     result = td.value_counts()
-    expected_s = Series([6], index=[Timedelta("1day")], name="dt")
+    expected_s = Series([6], index=Index([Timedelta("1day")], name="dt"), name="count")
     tm.assert_series_equal(result, expected_s)
 
     expected = TimedeltaIndex(["1 days"], name="dt")
@@ -323,7 +335,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
     obj = klass(values)
     res = obj.value_counts(dropna=dropna)
     if dropna is True:
-        expected = Series([1], index=Index([True], dtype=obj.dtype))
+        expected = Series([1], index=Index([True], dtype=obj.dtype), name="count")
     else:
-        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
+        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan], name="count")
     tm.assert_series_equal(res, expected)

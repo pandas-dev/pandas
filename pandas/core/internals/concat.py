@@ -7,7 +7,6 @@ from typing import (
     Sequence,
     cast,
 )
-import weakref
 
 import numpy as np
 
@@ -62,10 +61,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
 )
-from pandas.core.internals.managers import (
-    BlockManager,
-    using_copy_on_write,
-)
+from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -271,8 +267,6 @@ def _concat_managers_axis0(
 
     offset = 0
     blocks = []
-    refs: list[weakref.ref | None] = []
-    parents: list = []
     for i, mgr in enumerate(mgrs):
         # If we already reindexed, then we definitely don't need another copy
         made_copy = had_reindexers[i]
@@ -289,17 +283,9 @@ def _concat_managers_axis0(
             nb._mgr_locs = nb._mgr_locs.add(offset)
             blocks.append(nb)
 
-        if not made_copy and not copy and using_copy_on_write():
-            refs.extend([weakref.ref(blk) for blk in mgr.blocks])
-            parents.append(mgr)
-        elif using_copy_on_write():
-            refs.extend([None] * len(mgr.blocks))
-
         offset += len(mgr.items)
 
-    result_parents = parents if parents else None
-    result_ref = refs if refs else None
-    result = BlockManager(tuple(blocks), axes, parent=result_parents, refs=result_ref)
+    result = BlockManager(tuple(blocks), axes)
     return result
 
 
@@ -524,7 +510,7 @@ class JoinUnit:
 
                 if isinstance(empty_dtype, DatetimeTZDtype):
                     # NB: exclude e.g. pyarrow[dt64tz] dtypes
-                    i8values = np.full(self.shape, fill_value.value)
+                    i8values = np.full(self.shape, fill_value._value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_1d_only_ea_dtype(empty_dtype):

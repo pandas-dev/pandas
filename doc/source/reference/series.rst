@@ -326,6 +326,7 @@ Datetime properties
    Series.dt.days_in_month
    Series.dt.tz
    Series.dt.freq
+   Series.dt.unit
 
 Datetime methods
 ^^^^^^^^^^^^^^^^
@@ -346,6 +347,7 @@ Datetime methods
    Series.dt.ceil
    Series.dt.month_name
    Series.dt.day_name
+   Series.dt.as_unit
 
 Period properties
 ^^^^^^^^^^^^^^^^^
@@ -370,6 +372,7 @@ Timedelta properties
    Series.dt.microseconds
    Series.dt.nanoseconds
    Series.dt.components
+   Series.dt.unit
 
 Timedelta methods
 ^^^^^^^^^^^^^^^^^
@@ -380,6 +383,7 @@ Timedelta methods
 
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
+   Series.dt.as_unit
 
 
 .. _api.series.str:
