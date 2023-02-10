@@ -1343,7 +1343,7 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#50261
         df = DataFrame({"a": Series([1, 2], dtype=dtype)})
         ref = {2}  # noqa:F841
-        result = df.query("a in @ref")
+        result = df.query("a in @ref", engine="python")
         expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
         tm.assert_frame_equal(result, expected)
 

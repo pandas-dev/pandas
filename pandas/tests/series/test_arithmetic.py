@@ -350,14 +350,17 @@ class TestSeriesArithmetic:
         result = [1, None, val] + ser
         tm.assert_series_equal(result, expected)
 
-    def test_add_list_to_masked_array_boolean(self):
+    def test_add_list_to_masked_array_boolean(self, request):
         # GH#22962
+        min_elements = request.getfixturevalue("switch_numexpr_min_elements")
         ser = Series([True, None, False], dtype="boolean")
-        result = ser + [True, None, True]
+        with tm.maybe_produces_warning(UserWarning, min_elements == 0):
+            result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        result = [True, None, True] + ser
+        with tm.maybe_produces_warning(UserWarning, min_elements == 0):
+            result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 

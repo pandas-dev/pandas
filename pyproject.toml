@@ -373,6 +373,7 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
+  "error:::pandas",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
