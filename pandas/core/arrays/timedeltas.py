@@ -7,6 +7,7 @@ from typing import (
     Iterator,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -137,13 +138,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     _bool_ops: list[str] = []
     _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
         "floor",
         "ceil",
+        "as_unit",
     ]
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
@@ -151,7 +153,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
         y = x.view("i8")
-        if y == NaT.value:
+        if y == NaT._value:
             return NaT
         return Timedelta._from_value_and_reso(y, reso=self._creso)
 
@@ -298,7 +300,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq, unit=unit)
         else:
-            index = np.linspace(start.value, end.value, periods).astype("i8")
+            index = np.linspace(start._value, end._value, periods).astype("i8")
 
         if not left_closed:
             index = index[1:]
@@ -316,7 +318,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value.value, self.unit)
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit).asm8
 
@@ -917,11 +919,20 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
-        base = data.astype(np.int64)
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            base = data.astype(np.int64)
         frac = data - base
         if p:
             frac = np.round(frac, p)
-        data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
         data[mask] = iNaT
         copy = False
 

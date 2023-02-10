@@ -389,14 +389,9 @@ class BaseBlockManager(DataManager):
         return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self: T, inplace: bool, **kwargs) -> T:
-        if inplace:
-            # TODO(CoW) can be optimized to only copy those blocks that have refs
-            if using_copy_on_write() and any(
-                not self._has_no_reference_block(i) for i in range(len(self.blocks))
-            ):
-                self = self.copy()
-
-        return self.apply("interpolate", inplace=inplace, **kwargs)
+        return self.apply(
+            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+        )
 
     def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         axis = self._normalize_axis(axis)
@@ -421,14 +416,29 @@ class BaseBlockManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
-        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
+    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
 
-    def convert(self: T, copy: bool) -> T:
         return self.apply(
-            "convert",
+            "astype",
+            dtype=dtype,
             copy=copy,
+            errors=errors,
+            using_cow=using_copy_on_write(),
         )
+
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            if using_copy_on_write():
+                copy = False
+            else:
+                copy = True
+
+        return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -458,6 +468,7 @@ class BaseBlockManager(DataManager):
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
+            using_cow=using_copy_on_write(),
         )
         bm._consolidate_inplace()
         return bm
