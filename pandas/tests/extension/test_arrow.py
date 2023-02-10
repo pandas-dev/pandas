@@ -422,7 +422,7 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
                     raises=NotImplementedError,
                 )
             )
-        elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
+        elif all_numeric_accumulations == "cumsum" and pa.types.is_boolean(pa_type):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -897,17 +897,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            # TODO: this fails on the scalar addition constructing 'expected'
-            #  but not in the actual 'combine' call, so may be salvage-able
-            mark = pytest.mark.xfail(
-                raises=TypeError,
-                reason=f"{pa_dtype} cannot be added to {pa_dtype}",
-            )
-            request.node.add_marker(mark)
-            super().test_combine_add(data_repeated)
-
-        elif pa.types.is_temporal(pa_dtype):
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
             # analogous to datetime64, these cannot be added
             orig_data1, orig_data2 = data_repeated(2)
             s1 = pd.Series(orig_data1)
@@ -954,14 +944,24 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         pa_expected = pa.array(expected_data._values)
 
         if pa.types.is_duration(pa_expected.type):
-            # pyarrow sees sequence of datetime/timedelta objects and defaults
-            #  to "us" but the non-pointwise op retains unit
-            unit = original_dtype.pyarrow_dtype.unit
-            if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                # pydatetime/pytimedelta objects have microsecond reso, so we
-                #  take the higher reso of the original and microsecond. Note
-                #  this matches what we would do with DatetimeArray/TimedeltaArray
-                unit = "us"
+            orig_pa_type = original_dtype.pyarrow_dtype
+            if pa.types.is_date(orig_pa_type):
+                if pa.types.is_date64(orig_pa_type):
+                    # TODO: why is this different vs date32?
+                    unit = "ms"
+                else:
+                    unit = "s"
+            else:
+                # pyarrow sees sequence of datetime/timedelta objects and defaults
+                #  to "us" but the non-pointwise op retains unit
+                # timestamp or duration
+                unit = orig_pa_type.unit
+                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
+                    # pydatetime/pytimedelta objects have microsecond reso, so we
+                    #  take the higher reso of the original and microsecond. Note
+                    #  this matches what we would do with DatetimeArray/TimedeltaArray
+                    unit = "us"
+
             pa_expected = pa_expected.cast(f"duration[{unit}]")
         else:
             pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
@@ -1014,7 +1014,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported:
+        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
@@ -1059,6 +1059,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1090,6 +1091,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1142,6 +1144,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
@@ -1327,14 +1330,7 @@ def test_quantile(data, interpolation, quantile, request):
 )
 def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
+    if (
         pa.types.is_boolean(pa_dtype)
         and "multi_mode" in request.node.nodeid
         and pa_version_under9p0

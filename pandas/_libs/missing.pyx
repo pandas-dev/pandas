@@ -1,13 +1,14 @@
-from decimal import Decimal
-import numbers
-from sys import maxsize
-
-cimport cython
 from cpython.datetime cimport (
     date,
     time,
     timedelta,
 )
+
+from decimal import Decimal
+import numbers
+from sys import maxsize
+
+cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -337,6 +338,14 @@ def _create_binary_propagating_op(name, is_divmod=False):
 
         elif is_cmp and isinstance(other, (date, time, timedelta)):
             return NA
+
+        elif isinstance(other, date):
+            if name in ["__sub__", "__rsub__"]:
+                return NA
+
+        elif isinstance(other, timedelta):
+            if name in ["__sub__", "__rsub__", "__add__", "__radd__"]:
+                return NA
 
         return NotImplemented
 

@@ -1319,6 +1319,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             Sorted, if possible.
         """
         pa_type = self._data.type
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            # GH#50982 we can get the behavior that issue expects by passing
+            #  dropna to value_counts. For now we do not pass the keyword in
+            #  order to get the behavior the tests expect.
+            vcs = self.value_counts()
+            res_ser = vcs[vcs == vcs.max()].sort_index()
+            return res_ser.index._values
+
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
             if nbits == 32:
