@@ -366,7 +366,10 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
+    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        if copy is None:
+            copy = True
+
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(self: T, copy: bool | None) -> T:

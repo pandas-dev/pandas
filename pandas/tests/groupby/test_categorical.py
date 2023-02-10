@@ -103,9 +103,6 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    msg = "category type does not support sum operations"
-    with pytest.raises(TypeError, match=msg):
-        gb.sum()
     result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 

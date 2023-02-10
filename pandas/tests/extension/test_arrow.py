@@ -538,13 +538,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
 
-        elif all_numeric_reductions in [
-            "mean",
-            "median",
-            "std",
-            "sem",
-        ] and pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",
