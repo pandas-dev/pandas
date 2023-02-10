@@ -1,7 +1,9 @@
 from datetime import (
+    date,
     timedelta,
     timezone,
 )
+from decimal import Decimal
 import operator
 
 import numpy as np
@@ -222,9 +224,6 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from datetime import date
-        from decimal import Decimal
-
         ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
@@ -288,6 +287,20 @@ class TestSeriesArithmetic:
         assert ser.index is dti
         assert ser_utc.index is dti_utc
 
+    def test_alignment_categorical(self):
+        # GH13365
+        cat = Categorical(["3z53", "3z53", "LoJG", "LoJG", "LoJG", "N503"])
+        ser1 = Series(2, index=cat)
+        ser2 = Series(2, index=cat[:-1])
+        result = ser1 * ser2
+
+        exp_index = ["3z53"] * 4 + ["LoJG"] * 9 + ["N503"]
+        exp_index = pd.CategoricalIndex(exp_index, categories=cat.categories)
+        exp_values = [4.0] * 13 + [np.nan]
+        expected = Series(exp_values, exp_index)
+
+        tm.assert_series_equal(result, expected)
+
     def test_arithmetic_with_duplicate_index(self):
 
         # GH#8363
@@ -324,6 +337,27 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
         result = ser2 / ser1
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
+    def test_add_list_to_masked_array(self, val, dtype):
+        # GH#22962
+        ser = Series([1, None, 3], dtype="Int64")
+        result = ser + [1, None, val]
+        expected = Series([2, None, 3 + val], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = [1, None, val] + ser
+        tm.assert_series_equal(result, expected)
+
+    def test_add_list_to_masked_array_boolean(self):
+        # GH#22962
+        ser = Series([True, None, False], dtype="boolean")
+        result = ser + [True, None, True]
+        expected = Series([True, None, True], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 
@@ -909,4 +943,12 @@ def test_series_varied_multiindex_alignment():
             names=["xy", "num", "ab"],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rmod_consistent_large_series():
+    # GH 29602
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
+
     tm.assert_series_equal(result, expected)

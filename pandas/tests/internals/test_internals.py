@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
@@ -285,7 +286,7 @@ class TestBlock:
     def test_delete(self, fblock):
         newb = fblock.copy()
         locs = newb.mgr_locs
-        nb = newb.delete(0)
+        nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
 
         assert nb is not newb
@@ -299,21 +300,25 @@ class TestBlock:
         newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
+        assert len(nb) == 2
         assert newb.mgr_locs is locs
 
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            nb[1].mgr_locs.as_array, np.array([4], dtype=np.intp)
         )
         assert not (newb.values[1] == 2).all()
-        assert (nb.values[1] == 2).all()
+        assert (nb[1].values[0] == 2).all()
 
         newb = fblock.copy()
-        locs = newb.mgr_locs
         nb = newb.delete(2)
+        assert len(nb) == 1
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
-        assert (nb.values[1] == 1).all()
+        assert (nb[0].values[1] == 1).all()
 
         newb = fblock.copy()
 
@@ -328,14 +333,18 @@ class TestBlock:
         assert isinstance(blk.values, TimedeltaArray)
 
         nb = blk.delete(1)
-        assert isinstance(nb.values, TimedeltaArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, TimedeltaArray)
+        assert isinstance(nb[1].values, TimedeltaArray)
 
         df = DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
         nb = blk.delete([1, 3])
-        assert isinstance(nb.values, DatetimeArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, DatetimeArray)
+        assert isinstance(nb[1].values, DatetimeArray)
 
     def test_split(self):
         # GH#37799
@@ -874,6 +883,30 @@ class TestBlockManager:
         )
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
+
+    def test_iset_split_block(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 0, 0, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 2
+
+    def test_iset_split_block_values(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]), np.array([list(range(10))]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 2, 2, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 3
 
 
 def _as_array(mgr):

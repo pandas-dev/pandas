@@ -2,6 +2,7 @@ from collections import (
     abc,
     deque,
 )
+from datetime import datetime
 from decimal import Decimal
 from typing import Iterator
 from warnings import (
@@ -50,7 +51,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_array_manager):
+    def test_concat_copy(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -81,7 +82,7 @@ class TestConcatenate:
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_array_manager:
+                if using_array_manager or using_copy_on_write:
                     # this is a view on some array in either df or df4
                     assert any(
                         np.shares_memory(arr, other)
@@ -343,11 +344,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
         # 12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
@@ -745,7 +742,7 @@ def test_concat_retain_attrs(data):
 @td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
-def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
+def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)

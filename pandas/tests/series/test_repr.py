@@ -206,19 +206,21 @@ class TestSeriesRepr:
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
+        pytest.importorskip("jinja2")  # uses Styler implementation
         result = r"""\begin{tabular}{ll}
 \toprule
-{} &         0 \\
+ & 0 \\
 \midrule
-0 &  $\alpha$ \\
-1 &         b \\
-2 &         c \\
+0 & $\alpha$ \\
+1 & b \\
+2 & c \\
 \bottomrule
 \end{tabular}
 """
-        with option_context("display.latex.escape", False, "display.latex.repr", True):
+        with option_context(
+            "styler.format.escape", None, "styler.render.repr", "latex"
+        ):
             s = Series([r"$\alpha$", "b", "c"])
             assert result == s._repr_latex_()
 
@@ -239,7 +241,7 @@ class TestSeriesRepr:
         repr(ts)
 
     def test_series_repr_nat(self):
-        series = Series([0, 1000, 2000, pd.NaT.value], dtype="M8[ns]")
+        series = Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")
 
         result = repr(series)
         expected = (
@@ -322,7 +324,7 @@ Categories (3, int64): [1, 2, 3]"""
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10)))
-        exp = """0    0
+        exp = f"""0    0
 1    1
 2    2
 3    3
@@ -333,7 +335,7 @@ Categories (3, int64): [1, 2, 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
         assert repr(s) == exp
 
@@ -348,7 +350,7 @@ Categories (3, int64): [1 < 2 < 3]"""
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10), ordered=True))
-        exp = """0    0
+        exp = f"""0    0
 1    1
 2    2
 3    3
@@ -359,7 +361,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 
         assert repr(s) == exp
 

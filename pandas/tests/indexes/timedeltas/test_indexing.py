@@ -144,7 +144,7 @@ class TestWhere:
         i2 = Index([NaT, NaT] + tail)
         mask = notna(i2)
 
-        expected = Index([NaT.value, NaT.value] + tail, dtype=object, name="idx")
+        expected = Index([NaT._value, NaT._value] + tail, dtype=object, name="idx")
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)

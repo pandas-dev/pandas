@@ -218,13 +218,13 @@ class BinOp(ops.BinOp):
             v = Timestamp(v).as_unit("ns")
             if v.tz is not None:
                 v = v.tz_convert("UTC")
-            return TermValue(v, v.value, kind)
+            return TermValue(v, v._value, kind)
         elif kind in ("timedelta64", "timedelta"):
             if isinstance(v, str):
                 v = Timedelta(v)
             else:
                 v = Timedelta(v, unit="s")
-            v = v.as_unit("ns").value
+            v = v.as_unit("ns")._value
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
@@ -242,7 +242,7 @@ class BinOp(ops.BinOp):
             return TermValue(v, v, kind)
         elif kind == "bool":
             if isinstance(v, str):
-                v = not v.strip().lower() in [
+                v = v.strip().lower() not in [
                     "false",
                     "f",
                     "no",

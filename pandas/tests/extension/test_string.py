@@ -18,10 +18,7 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under6p0,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -160,11 +157,7 @@ class TestIndex(base.BaseIndexTests):
 
 class TestMissing(base.BaseMissingTests):
     def test_dropna_array(self, data_missing):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under6p0 and data_missing.dtype.storage == "pyarrow",
-        ):
-            result = data_missing.dropna()
+        result = data_missing.dropna()
         expected = data_missing[[1]]
         self.assert_extension_array_equal(result, expected)
 
@@ -220,13 +213,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
-        if pa_version_under6p0 and data_missing_for_sorting.dtype.storage == "pyarrow":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
     @pytest.mark.parametrize(
@@ -245,17 +231,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
-        if (
-            pa_version_under6p0
-            and data_missing_for_sorting.dtype.storage == "pyarrow"
-            and skipna
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
@@ -420,3 +395,20 @@ class Test2DCompat(base.Dim2CompatTests):
                 reason="2D support not implemented for ArrowStringArray"
             )
             request.node.add_marker(mark)
+
+
+def test_searchsorted_with_na_raises(data_for_sorting, as_series):
+    # GH50447
+    b, c, a = data_for_sorting
+    arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
+    arr[-1] = pd.NA
+
+    if as_series:
+        arr = pd.Series(arr)
+
+    msg = (
+        "searchsorted requires array to be sorted, "
+        "which is impossible with NAs present."
+    )
+    with pytest.raises(ValueError, match=msg):
+        arr.searchsorted(b)

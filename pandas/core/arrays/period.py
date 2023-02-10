@@ -331,7 +331,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> np.int64:
         if value is NaT:
             # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value.value)  # type: ignore[union-attr]
+            return np.int64(value._value)  # type: ignore[union-attr]
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -353,8 +353,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Read-only property cannot override read-write property
-    @property  # type: ignore[misc]
+    # error: Cannot override writeable attribute with read-only property
+    @property  # type: ignore[override]
     def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.

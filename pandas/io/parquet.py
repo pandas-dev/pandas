@@ -9,6 +9,9 @@ from typing import (
 )
 from warnings import catch_warnings
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -225,24 +228,13 @@ class PyArrowImpl(BaseImpl):
         dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            import pandas as pd
 
             if dtype_backend == "pandas":
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                    self.api.float32(): pd.Float32Dtype(),
-                    self.api.float64(): pd.Float64Dtype(),
-                }
+                from pandas.io._util import _arrow_dtype_mapping
+
+                mapping = _arrow_dtype_mapping()
                 to_pandas_kwargs["types_mapper"] = mapping.get
+
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
@@ -296,9 +288,6 @@ class FastParquetImpl(BaseImpl):
         **kwargs,
     ) -> None:
         self.validate_dataframe(df)
-        # thriftpy/protocol/compact.py:339:
-        # DeprecationWarning: tostring() is deprecated.
-        # Use tobytes() instead.
 
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
@@ -467,7 +456,7 @@ def read_parquet(
     engine: str = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -508,13 +497,15 @@ def read_parquet(
 
         .. versionadded:: 1.2.0
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
 
-        .. versionadded:: 2.0.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+            .. versionadded:: 2.0.0
 
     **kwargs
         Any additional kwargs are passed to the engine.
@@ -524,6 +515,12 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     return impl.read(
         path,

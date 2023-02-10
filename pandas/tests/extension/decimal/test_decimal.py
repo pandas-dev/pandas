@@ -445,7 +445,8 @@ def test_groupby_agg_ea_method(monkeypatch):
     result = df.groupby("id")["decimals"].agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
     s = pd.Series(DecimalArray(data))
-    result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
+    grouper = np.array([0, 0, 0, 1, 1], dtype=np.int64)
+    result = s.groupby(grouper).agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
 
 
@@ -482,3 +483,14 @@ def test_to_numpy_keyword():
 
     result = pd.Series(a).to_numpy(decimals=2)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_array_copy_on_write(using_copy_on_write):
+    df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
+    df2 = df.astype(DecimalDtype())
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        expected = pd.DataFrame(
+            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
+        )
+        tm.assert_equal(df2.values, expected.values)

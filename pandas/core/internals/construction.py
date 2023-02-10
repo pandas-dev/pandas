@@ -116,7 +116,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays = _homogenize(arrays, index, dtype)
+        arrays, refs = _homogenize(arrays, index, dtype)
         # _homogenize ensures
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
@@ -126,8 +126,10 @@ def arrays_to_mgr(
     else:
         index = ensure_index(index)
         arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        # with _from_arrays, the passed arrays should never be Series objects
+        refs = [None] * len(arrays)
 
-        # Reached via DataFrame._from_arrays; we do validation here
+        # Reached via DataFrame._from_arrays; we do minimal validation here
         for arr in arrays:
             if (
                 not isinstance(arr, (np.ndarray, ExtensionArray))
@@ -148,7 +150,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays, axes, consolidate=consolidate
+            arrays, axes, consolidate=consolidate, refs=refs
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])
@@ -547,9 +549,13 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
+def _homogenize(
+    data, index: Index, dtype: DtypeObj | None
+) -> tuple[list[ArrayLike], list[Any]]:
     oindex = None
     homogenized = []
+    # if the original array-like in `data` is a Series, keep track of this Series' refs
+    refs: list[Any] = []
 
     for val in data:
         if isinstance(val, ABCSeries):
@@ -559,7 +565,10 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-
+            if isinstance(val._mgr, SingleBlockManager):
+                refs.append(val._mgr._block.refs)
+            else:
+                refs.append(None)
             val = val._values
         else:
             if isinstance(val, dict):
@@ -578,10 +587,11 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
+            refs.append(None)
 
         homogenized.append(val)
 
-    return homogenized
+    return homogenized, refs
 
 
 def _extract_index(data) -> Index:
@@ -764,13 +774,13 @@ def to_arrays(
         # see test_from_records_with_index_data, test_from_records_bad_index_column
         if columns is not None:
             arrays = [
-                data._ixs(i, axis=1).values
+                data._ixs(i, axis=1)._values
                 for i, col in enumerate(data.columns)
                 if col in columns
             ]
         else:
             columns = data.columns
-            arrays = [data._ixs(i, axis=1).values for i in range(len(columns))]
+            arrays = [data._ixs(i, axis=1)._values for i in range(len(columns))]
 
         return arrays, columns
 

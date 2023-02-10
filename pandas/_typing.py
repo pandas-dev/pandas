@@ -44,6 +44,10 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
+    from pandas.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -88,6 +92,7 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # scalars
 
@@ -318,6 +323,9 @@ WindowingRankType = Literal["average", "min", "max"]
 
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_json engines
+JSONEngine = Literal["ujson", "pyarrow"]
 
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]

@@ -183,7 +183,7 @@ def apply_wraps(func):
                     res = result.tz_localize(None)
                 else:
                     res = result
-                value = res.as_unit("ns").value
+                value = res.as_unit("ns")._value
                 result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
@@ -366,6 +366,21 @@ class ApplyTypeError(TypeError):
 cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
+
+    normalize : bool
+        Whether the frequency can align with midnight.
+
+    Examples
+    --------
+    >>> pd.offsets.Hour(5).n
+    5
+    >>> pd.offsets.Hour(5).normalize
+    False
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -374,7 +389,6 @@ cdef class BaseOffset:
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
     _adjust_dst = True
-    _deprecations = frozenset(["isAnchored", "onOffset"])
 
     # cdef readonly:
     #    int64_t n
@@ -384,23 +398,7 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        """
-        Number of multiples of the frequency.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).n
-        5
-        """
         self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour(5).normalize
-        False
-        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
@@ -1584,25 +1582,7 @@ cdef class BusinessDay(BusinessMixin):
 
             # avoid slowness below by operating on weeks first
             weeks = n // 5
-            if n <= 0 and wday > 4:
-                # roll forward
-                n += 1
-
-            n -= 5 * weeks
-
-            # n is always >= 0 at this point
-            if n == 0 and wday > 4:
-                # roll back
-                days = 4 - wday
-            elif wday > 4:
-                # roll forward
-                days = (7 - wday) + (n - 1)
-            elif wday + n <= 4:
-                # shift by n days without leaving the current week
-                days = n
-            else:
-                # shift by n days plus 2 to get past the weekend
-                days = n + 2
+            days = self._adjust_ndays(wday, weeks)
 
             result = other + timedelta(days=7 * weeks + days)
             if self.offset:
@@ -1619,11 +1599,90 @@ cdef class BusinessDay(BusinessMixin):
                 "Only know how to combine business day with datetime or timedelta."
             )
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    cdef ndarray _shift_bdays(
+        self,
+        ndarray i8other,
+        NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
+    ):
+        """
+        Implementation of BusinessDay.apply_offset.
+
+        Parameters
+        ----------
+        i8other : const int64_t[:]
+        reso : NPY_DATETIMEUNIT, default NPY_FR_ns
+
+        Returns
+        -------
+        ndarray[int64_t]
+        """
+        cdef:
+            int periods = self.n
+            Py_ssize_t i, n = i8other.size
+            ndarray result = cnp.PyArray_EMPTY(
+                i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+            )
+            int64_t val, res_val
+            int wday, days
+            npy_datetimestruct dts
+            int64_t DAY_PERIODS = periods_per_day(reso)
+            cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
+
+        for i in range(n):
+            # Analogous to: val = i8other[i]
+            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            if val == NPY_NAT:
+                res_val = NPY_NAT
+            else:
+                # The rest of this is effectively a copy of BusinessDay.apply
+                weeks = periods // 5
+                pandas_datetime_to_datetimestruct(val, reso, &dts)
+                wday = dayofweek(dts.year, dts.month, dts.day)
+
+                days = self._adjust_ndays(wday, weeks)
+                res_val = val + (7 * weeks + days) * DAY_PERIODS
+
+            # Analogous to: out[i] = res_val
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+
+        return result
+
+    cdef int _adjust_ndays(self, int wday, int weeks):
+        cdef:
+            int n = self.n
+            int days
+
+        if n <= 0 and wday > 4:
+            # roll forward
+            n += 1
+
+        n -= 5 * weeks
+
+        # n is always >= 0 at this point
+        if n == 0 and wday > 4:
+            # roll back
+            days = 4 - wday
+        elif wday > 4:
+            # roll forward
+            days = (7 - wday) + (n - 1)
+        elif wday + n <= 4:
+            # shift by n days without leaving the current week
+            days = n
+        else:
+            # shift by n days plus 2 to get past the weekend
+            days = n + 2
+        return days
+
     @apply_array_wraps
     def _apply_array(self, dtarr):
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
-        res = _shift_bdays(i8other, self.n, reso=reso)
+        res = self._shift_bdays(i8other, reso=reso)
         if self.offset:
             res = res.view(dtarr.dtype) + Timedelta(self.offset)
             res = res.view("i8")
@@ -1848,15 +1907,20 @@ cdef class BusinessHour(BusinessMixin):
         earliest_start = self.start[0]
         latest_start = self.start[-1]
 
+        if self.n == 0:
+            is_same_sign = sign > 0
+        else:
+            is_same_sign = self.n * sign >= 0
+
         if not self.next_bday.is_on_offset(other):
             # today is not business day
             other = other + sign * self.next_bday
-            if self.n * sign >= 0:
+            if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
                 hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0:
+            if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
                     other = other + sign * self.next_bday
@@ -2779,13 +2843,33 @@ cdef class Week(SingleConstructorOffset):
     Parameters
     ----------
     weekday : int or None, default None
-        Always generate specific day of week. 0 for Monday.
+        Always generate specific day of week.
+        0 for Monday and 6 for Sunday.
+
+    See Also
+    --------
+    pd.tseries.offsets.WeekOfMonth :
+     Describes monthly dates like, the Tuesday of the
+     2nd week of each month.
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.Week()
-    Timestamp('2022-01-08 00:00:00')
+
+    >>> date_object = pd.Timestamp("2023-01-13")
+    >>> date_object
+    Timestamp('2023-01-13 00:00:00')
+
+    >>> date_plus_one_week = date_object + pd.tseries.offsets.Week(n=1)
+    >>> date_plus_one_week
+    Timestamp('2023-01-20 00:00:00')
+
+    >>> date_next_monday = date_object + pd.tseries.offsets.Week(weekday=0)
+    >>> date_next_monday
+    Timestamp('2023-01-16 00:00:00')
+
+    >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
+    >>> date_next_sunday
+    Timestamp('2023-01-15 00:00:00')
     """
 
     _inc = timedelta(weeks=1)
@@ -3446,7 +3530,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         else:
             tdelta = Timedelta(0)
 
-        # Note: we always have tdelta.value >= 0
+        # Note: we always have tdelta._value>= 0
         return start, num_qtrs, tdelta
 
     @apply_wraps
@@ -3458,7 +3542,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         prev_year_end, num_qtrs, tdelta = self._rollback_to_year(other)
         res = prev_year_end
         n += num_qtrs
-        if self.n <= 0 and tdelta.value > 0:
+        if self.n <= 0 and tdelta._value > 0:
             n += 1
 
         # Possible speedup by handling years first.
@@ -4303,80 +4387,6 @@ def shift_months(
                 cnp.PyArray_MultiIter_NEXT(mi)
 
     return out
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef ndarray _shift_bdays(
-    ndarray i8other,
-    int periods,
-    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
-):
-    """
-    Implementation of BusinessDay.apply_offset.
-
-    Parameters
-    ----------
-    i8other : const int64_t[:]
-    periods : int
-    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
-
-    Returns
-    -------
-    ndarray[int64_t]
-    """
-    cdef:
-        Py_ssize_t i, n = i8other.size
-        ndarray result = cnp.PyArray_EMPTY(
-            i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
-        )
-        int64_t val, res_val
-        int wday, nadj, days
-        npy_datetimestruct dts
-        int64_t DAY_PERIODS = periods_per_day(reso)
-        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
-
-    for i in range(n):
-        # Analogous to: val = i8other[i]
-        val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
-
-        if val == NPY_NAT:
-            res_val = NPY_NAT
-        else:
-            # The rest of this is effectively a copy of BusinessDay.apply
-            nadj = periods
-            weeks = nadj // 5
-            pandas_datetime_to_datetimestruct(val, reso, &dts)
-            wday = dayofweek(dts.year, dts.month, dts.day)
-
-            if nadj <= 0 and wday > 4:
-                # roll forward
-                nadj += 1
-
-            nadj -= 5 * weeks
-
-            # nadj is always >= 0 at this point
-            if nadj == 0 and wday > 4:
-                # roll back
-                days = 4 - wday
-            elif wday > 4:
-                # roll forward
-                days = (7 - wday) + (nadj - 1)
-            elif wday + nadj <= 4:
-                # shift by n days without leaving the current week
-                days = nadj
-            else:
-                # shift by nadj days plus 2 to get past the weekend
-                days = nadj + 2
-
-            res_val = val + (7 * weeks + days) * DAY_PERIODS
-
-        # Analogous to: out[i] = res_val
-        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
-
-        cnp.PyArray_MultiIter_NEXT(mi)
-
-    return result
 
 
 def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:

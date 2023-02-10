@@ -17,6 +17,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._typing import (
     Axis,
     AxisInt,
@@ -155,7 +157,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort: bool = False,
-    copy: bool = True,
+    copy: bool | None = None,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -363,6 +365,12 @@ def concat(
     0   1   2
     1   3   4
     """
+    if copy is None:
+        if using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
     op = _Concatenator(
         objs,
         axis=axis,
@@ -534,7 +542,7 @@ class _Concatenator:
                         name = 0
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor({name: obj})
+                    obj = sample._constructor({name: obj}, copy=False)
 
                 self.objs.append(obj)
 
@@ -611,7 +619,7 @@ class _Concatenator:
             new_data = concatenate_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
-            if not self.copy:
+            if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
             cons = sample._constructor

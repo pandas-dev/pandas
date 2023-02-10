@@ -85,8 +85,7 @@ class TestDataFrameSetItem:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df["newcol"] = ser
+            df["newcol"] = ser
 
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
@@ -1246,12 +1245,15 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        for label in df.columns:
-            df[label][label] = 1
-
         if not using_copy_on_write:
+            for label in df.columns:
+                df[label][label] = 1
+
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
+            with tm.raises_chained_assignment_error():
+                for label in df.columns:
+                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)

@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
@@ -65,17 +66,13 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import (
-    algorithms,
-    nanops,
-)
+from pandas.core import algorithms
 from pandas.core.apply import (
     GroupByApply,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
@@ -86,21 +83,19 @@ from pandas.core.groupby.groupby import (
     _apply_docs,
     _transform_template,
 )
-from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
     default_index,
 )
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from pandas import Categorical
     from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -141,44 +136,22 @@ class NamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
-def generate_property(name: str, klass: type[DataFrame | Series]):
-    """
-    Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
-
-    Parameters
-    ----------
-    name : str
-    klass : {DataFrame, Series}
-
-    Returns
-    -------
-    property
-    """
-
-    def prop(self):
-        return self._make_wrapper(name)
-
-    parent_method = getattr(klass, name)
-    prop.__doc__ = parent_method.__doc__ or ""
-    prop.__name__ = name
-    return property(prop)
-
-
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        if mgr.ndim == 1:
-            mgr = cast(SingleManager, mgr)
-            single = mgr
-        else:
-            mgr = cast(Manager2D, mgr)
-            single = mgr.iget(0)
-        ser = self.obj._constructor(single, name=self.obj.name)
-        # NB: caller is responsible for setting ser.index
-        return ser
+        return self.obj._constructor(mgr, name=self.obj.name)
 
-    def _get_data_to_aggregate(self) -> SingleManager:
+    def _get_data_to_aggregate(
+        self, *, numeric_only: bool = False, name: str | None = None
+    ) -> SingleManager:
         ser = self._selected_obj
         single = ser._mgr
+        if numeric_only and not is_numeric_dtype(ser.dtype):
+            # GH#41291 match Series behavior
+            kwd_name = "numeric_only"
+            raise TypeError(
+                f"Cannot use {kwd_name}=True with "
+                f"{type(self).__name__}.{name} and non-numeric dtypes."
+            )
         return single
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -246,13 +219,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with self._group_selection_context():
-                data = self._selected_obj
-            result = self._aggregate_with_numba(
-                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
+            return self._aggregate_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self.grouper.result_index
-            return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
         columns = None
@@ -272,6 +241,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 # columns is not narrowed by mypy from relabeling flag
                 assert columns is not None  # for mypy
                 ret.columns = columns
+            if not self.as_index:
+                ret = self._insert_inaxis_grouper(ret)
+                ret.index = default_index(len(ret))
             return ret
 
         else:
@@ -290,24 +262,22 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._aggregate_named(func, *args, **kwargs)
 
                 # result is a dict whose keys are the elements of result_index
-                index = self.grouper.result_index
-                return Series(result, index=index)
+                result = Series(result, index=self.grouper.result_index)
+                result = self._wrap_aggregated_output(result)
+                return result
 
     agg = aggregate
 
     def _aggregate_multiple_funcs(self, arg) -> DataFrame:
         if isinstance(arg, dict):
-
-            # show the deprecation, but only if we
-            # have not shown a higher level one
-            # GH 15931
-            raise SpecificationError("nested renamer is not supported")
-
-        if any(isinstance(x, (tuple, list)) for x in arg):
+            if self.as_index:
+                # GH 15931
+                raise SpecificationError("nested renamer is not supported")
+            else:
+                # GH#50684 - This accidentally worked in 1.x
+                arg = list(arg.items())
+        elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
-
-            # indicated column order
-            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
@@ -317,10 +287,13 @@ class SeriesGroupBy(GroupBy[Series]):
             arg = zip(columns, arg)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
-        for idx, (name, func) in enumerate(arg):
+        with com.temp_setattr(self, "as_index", True):
+            # Combine results using the index, need to adjust index after
+            # if as_index=False (GH#50724)
+            for idx, (name, func) in enumerate(arg):
 
-            key = base.OutputKey(label=name, position=idx)
-            results[key] = self.aggregate(func)
+                key = base.OutputKey(label=name, position=idx)
+                results[key] = self.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
@@ -374,10 +347,16 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         if len(values) == 0:
             # GH #6265
+            if is_transform:
+                # GH#47787 see test_group_on_empty_multiindex
+                res_index = data.index
+            else:
+                res_index = self.grouper.result_index
+
             return self.obj._constructor(
                 [],
                 name=self.obj.name,
-                index=self.grouper.result_index,
+                index=res_index,
                 dtype=data.dtype,
             )
         assert values is not None
@@ -400,12 +379,18 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
+            if not self.as_index and not_indexed_same:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
             return result
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
                 data=values, index=self.grouper.result_index, name=self.obj.name
             )
+            if not self.as_index:
+                result = self._insert_inaxis_grouper(result)
+                result.index = default_index(len(result))
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
@@ -490,6 +475,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 "transform", obj._values, how, axis, **kwargs
             )
         except NotImplementedError as err:
+            # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
@@ -569,7 +555,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # Interpret np.nan as False.
         def true_and_notna(x) -> bool:
             b = wrapper(x)
-            return b and notna(b)
+            return notna(b) and b
 
         try:
             indices = [
@@ -581,7 +567,7 @@ class SeriesGroupBy(GroupBy[Series]):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna: bool = True) -> Series:
+    def nunique(self, dropna: bool = True) -> Series | DataFrame:
         """
         Return number of unique elements in the group.
 
@@ -633,7 +619,12 @@ class SeriesGroupBy(GroupBy[Series]):
                 # GH#21334s
                 res[ids[idx]] = out
 
-        result = self.obj._constructor(res, index=ri, name=self.obj.name)
+        result: Series | DataFrame = self.obj._constructor(
+            res, index=ri, name=self.obj.name
+        )
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
@@ -647,7 +638,15 @@ class SeriesGroupBy(GroupBy[Series]):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ) -> Series:
+    ) -> Series | DataFrame:
+        name = "proportion" if normalize else "count"
+
+        if bins is None:
+            result = self._value_counts(
+                normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+            )
+            result.name = name
+            return result
 
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
@@ -655,7 +654,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        names = self.grouper.names + [self.obj.name]
+        index_names = self.grouper.names + [self.obj.name]
 
         if is_categorical_dtype(val.dtype) or (
             bins is not None and not np.iterable(bins)
@@ -670,7 +669,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 ascending=ascending,
                 bins=bins,
             )
-            ser.index.names = names
+            ser.name = name
+            ser.index.names = index_names
             return ser
 
         # groupby removes null keys from groupings
@@ -683,18 +683,13 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
 
             # lab is a Categorical with categories an IntervalIndex
-            lab = cut(Series(val), bins, include_lowest=True)
-            # error: "ndarray" has no attribute "cat"
-            lev = lab.cat.categories  # type: ignore[attr-defined]
-            # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
-            # argument types "Any", "bool", "Union[Any, float]"
-            lab = lev.take(  # type: ignore[call-overload]
-                # error: "ndarray" has no attribute "cat"
-                lab.cat.codes,  # type: ignore[attr-defined]
+            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_obj = cast("Categorical", cat_ser._values)
+            lev = cat_obj.categories
+            lab = lev.take(
+                cat_obj.codes,
                 allow_fill=True,
-                # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
-                # "_na_value"
-                fill_value=lev._na_value,  # type: ignore[union-attr]
+                fill_value=lev._na_value,
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
@@ -780,11 +775,16 @@ class SeriesGroupBy(GroupBy[Series]):
             codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
             codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
+        mi = MultiIndex(
+            levels=levels, codes=codes, names=index_names, verify_integrity=False
+        )
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi, name=self.obj.name)
+        result = self.obj._constructor(out, index=mi, name=name)
+        if not self.as_index:
+            result = result.reset_index()
+        return result
 
     def fillna(
         self,
@@ -892,17 +892,88 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    @doc(Series.take.__doc__)
     def take(
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
         **kwargs,
     ) -> Series:
+        """
+        Return the elements in the given *positional* indices in each group.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
+
+        If a requested index does not exist for some group, this method will raise.
+        To get similar behavior that ignores indices that don't exist, see
+        :meth:`.SeriesGroupBy.nth`.
+
+        Parameters
+        ----------
+        indices : array-like
+            An array of ints indicating which positions to take in each group.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
+            For `SeriesGroupBy` this parameter is unused and defaults to 0.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        Series
+            A Series containing the elements taken from each group.
+
+        See Also
+        --------
+        Series.take : Take elements from a Series along an axis.
+        Series.loc : Select a subset of a DataFrame by labels.
+        Series.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
+        SeriesGroupBy.nth : Similar to take, won't raise if indices don't exist.
+
+        Examples
+        --------
+        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan),
+        ...                    ('rabbit', 'mammal', 15.0)],
+        ...                   columns=['name', 'class', 'max_speed'],
+        ...                   index=[4, 3, 2, 1, 0])
+        >>> df
+             name   class  max_speed
+        4  falcon    bird      389.0
+        3  parrot    bird       24.0
+        2    lion  mammal       80.5
+        1  monkey  mammal        NaN
+        0  rabbit  mammal       15.0
+        >>> gb = df["name"].groupby([1, 1, 2, 2, 2])
+
+        Take elements at positions 0 and 1 along the axis 0 in each group (default).
+
+        >>> gb.take([0, 1])
+        1  4    falcon
+           3    parrot
+        2  2      lion
+           1    monkey
+        Name: name, dtype: object
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> gb.take([-1, -2])
+        1  3    parrot
+           4    falcon
+        2  0    rabbit
+           1    monkey
+        Name: name, dtype: object
+        """
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
-    @doc(Series.skew.__doc__)
     def skew(
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
@@ -910,6 +981,58 @@ class SeriesGroupBy(GroupBy[Series]):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series:
+        """
+        Return unbiased skew within groups.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis for the function to be applied on.
+            This parameter is only for compatibility with DataFrame and is unused.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.skew : Return unbiased skew over requested axis.
+
+        Examples
+        --------
+        >>> ser = pd.Series([390., 350., 357., np.nan, 22., 20., 30.],
+        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon',
+        ...                        'Parrot', 'Parrot', 'Parrot'],
+        ...                 name="Max Speed")
+        >>> ser
+        Falcon    390.0
+        Falcon    350.0
+        Falcon    357.0
+        Falcon      NaN
+        Parrot     22.0
+        Parrot     20.0
+        Parrot     30.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).skew()
+        Falcon    1.525174
+        Parrot    1.457863
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).skew(skipna=False)
+        Falcon         NaN
+        Parrot    1.457863
+        Name: Max Speed, dtype: float64
+        """
         result = self._op_via_apply(
             "skew",
             axis=axis,
@@ -981,14 +1104,12 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
-        result = self._op_via_apply("is_monotonic_increasing")
-        return result
+        return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
     @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
-        result = self._op_via_apply("is_monotonic_decreasing")
-        return result
+        return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
     def hist(
@@ -1026,8 +1147,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
-        result = self._op_via_apply("dtype")
-        return result
+        return self.apply(lambda ser: ser.dtype)
 
     @doc(Series.unique.__doc__)
     def unique(self) -> Series:
@@ -1134,13 +1254,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with self._group_selection_context():
-                data = self._selected_obj
-            result = self._aggregate_with_numba(
-                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            return self._aggregate_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self.grouper.result_index
-            return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
@@ -1153,7 +1269,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
             result = result.iloc[:, order]
-            result.columns = columns
+            result = cast(DataFrame, result)
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[List[str]]", variable has type
+            # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
+            # Index, Series], Sequence[Any]]")
+            result.columns = columns  # type: ignore[assignment]
 
         if result is None:
 
@@ -1182,25 +1303,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 except ValueError as err:
                     if "No objects to concatenate" not in str(err):
                         raise
+                    # _aggregate_frame can fail with e.g. func=Series.mode,
+                    # where it expects 1D values but would be getting 2D values
+                    # In other tests, using aggregate_frame instead of GroupByApply
+                    #  would give correct values but incorrect dtypes
+                    #  object vs float64 in test_cython_agg_empty_buckets
+                    #  float64 vs int64 in test_category_order_apply
                     result = self._aggregate_frame(func)
 
                 else:
-                    sobj = self._selected_obj
-
-                    if isinstance(sobj, Series):
-                        # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = self._obj_with_exclusions.columns.copy()
-                    else:
-                        # Retain our column names
-                        result.columns._set_names(
-                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
-                        )
-                        # select everything except for the last level, which is the one
-                        # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.droplevel(-1)
+                    # GH#32040, GH#35246
+                    # e.g. test_groupby_as_index_select_column_sum_empty_df
+                    result = cast(DataFrame, result)
+                    result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
         return result
@@ -1229,17 +1347,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
 
         result: dict[Hashable, NDFrame | np.ndarray] = {}
-        if self.axis == 0:
-            # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self.grouper.get_iterator(obj, self.axis):
-                fres = func(data, *args, **kwargs)
-                result[name] = fres
-        else:
-            # we get here in a number of test_multilevel tests
-            for name in self.indices:
-                grp_df = self.get_group(name, obj=obj)
-                fres = func(grp_df, *args, **kwargs)
-                result[name] = fres
+        for name, grp_df in self.grouper.get_iterator(obj, self.axis):
+            fres = func(grp_df, *args, **kwargs)
+            result[name] = fres
 
         result_index = self.grouper.result_index
         other_ax = obj.axes[1 - self.axis]
@@ -1248,22 +1358,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             out = out.T
 
         return out
-
-    def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
-        # only for axis==0
-        # tests that get here with non-unique cols:
-        #  test_resample_with_timedelta_yields_no_empty_groups,
-        #  test_resample_apply_product
-
-        obj = self._obj_with_exclusions
-        result: dict[int, NDFrame] = {}
-
-        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
-            result[i] = sgb.aggregate(func, *args, **kwargs)
-
-        res_df = self.obj._constructor(result)
-        res_df.columns = obj.columns
-        return res_df
 
     def _wrap_applied_output(
         self,
@@ -1274,9 +1368,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ):
 
         if len(values) == 0:
-            result = self.obj._constructor(
-                index=self.grouper.result_index, columns=data.columns
-            )
+            if is_transform:
+                # GH#47787 see test_group_on_empty_multiindex
+                res_index = data.index
+            else:
+                res_index = self.grouper.result_index
+
+            result = self.obj._constructor(index=res_index, columns=data.columns)
             result = result.astype(data.dtypes, copy=False)
             return result
 
@@ -1312,7 +1410,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
                 result = self.obj._constructor(values, columns=[self._selection])
-                self._insert_inaxis_grouper_inplace(result)
+                result = self._insert_inaxis_grouper(result)
                 return result
         else:
             # values are Series
@@ -1369,7 +1467,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
+            result = self._insert_inaxis_grouper(result)
 
         return self._reindex_output(result)
 
@@ -1381,16 +1479,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
-        # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
 
         # With self.axis == 0, we have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
         #  test_transform_numeric_ret
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
-        mgr: Manager2D = self._get_data_to_aggregate()
-        if numeric_only:
-            mgr = mgr.get_numeric_data(copy=False)
+        mgr: Manager2D = self._get_data_to_aggregate(
+            numeric_only=numeric_only, name=how
+        )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
             return self.grouper._cython_operation(
@@ -1403,8 +1500,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr.set_axis(1, mgr.axes[1])
 
         res_df = self.obj._constructor(res_mgr)
-        if self.axis == 1:
-            res_df = res_df.T
+        res_df = self._maybe_transpose_result(res_df)
         return res_df
 
     def _transform_general(self, func, *args, **kwargs):
@@ -1426,9 +1522,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             object.__setattr__(group, "name", name)
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
-            except TypeError:
-                return self._transform_item_by_item(obj, fast_path)
             except ValueError as err:
+                # e.g. test_transform_with_non_scalar_group
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
             if group.size > 0:
@@ -1561,24 +1656,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return path, res
 
-    def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
-        # iterate through columns, see test_transform_exclude_nuisance
-        #  gets here with non-unique columns
-        output = {}
-        inds = []
-        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
-            output[i] = sgb.transform(wrapper)
-            inds.append(i)
-
-        if not output:
-            raise TypeError("Transform function invalid for data types")
-
-        columns = obj.columns.take(inds)
-
-        result = self.obj._constructor(output, index=obj.index)
-        result.columns = columns
-        return result
-
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Filter elements from groups that don't satisfy a criterion.
@@ -1637,7 +1714,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # interpret the result of the filter
             if is_bool(res) or (is_scalar(res) and isna(res)):
-                if res and notna(res):
+                if notna(res) and res:
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -1690,7 +1767,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 sort=self.sort,
                 group_keys=self.group_keys,
                 observed=self.observed,
-                mutated=self.mutated,
                 dropna=self.dropna,
             )
         elif ndim == 1:
@@ -1700,7 +1776,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset,
                 level=self.level,
                 grouper=self.grouper,
+                exclusions=self.exclusions,
                 selection=key,
+                as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
                 observed=self.observed,
@@ -1709,25 +1787,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _get_data_to_aggregate(self) -> Manager2D:
+    def _get_data_to_aggregate(
+        self, *, numeric_only: bool = False, name: str | None = None
+    ) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._mgr
+            mgr = obj.T._mgr
         else:
-            return obj._mgr
+            mgr = obj._mgr
 
-    def _insert_inaxis_grouper_inplace(self, result: DataFrame) -> None:
-        # zip in reverse so we can always insert at loc 0
-        columns = result.columns
-        for name, lev, in_axis in zip(
-            reversed(self.grouper.names),
-            reversed(self.grouper.get_group_levels()),
-            reversed([grp.in_axis for grp in self.grouper.groupings]),
-        ):
-            # GH #28549
-            # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
+        if numeric_only:
+            mgr = mgr.get_numeric_data(copy=False)
+        return mgr
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
@@ -1744,25 +1815,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return result
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
-        if not self.as_index:
-            # GH 41998 - empty mgr always gets index of length 0
-            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
-            index = Index(range(rows))
-            mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
-
-            self._insert_inaxis_grouper_inplace(result)
-            result = result._consolidate()
-        else:
-            index = self.grouper.result_index
-            mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
-
-        if self.axis == 1:
-            result = result.T
-
-        # Note: we really only care about inferring numeric dtypes here
-        return self._reindex_output(result).infer_objects()
+        return self.obj._constructor(mgr)
 
     def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
@@ -1774,7 +1827,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
             )
 
-    def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: DataFrame) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         columns = obj.columns
@@ -1844,34 +1897,89 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             results.index = default_index(len(results))
-            self._insert_inaxis_grouper_inplace(results)
+            results = self._insert_inaxis_grouper(results)
 
         return results
 
-    @doc(
-        _shared_docs["idxmax"],
-        numeric_only_default="False",
-    )
     def idxmax(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
-        axis = DataFrame._get_axis_number(axis)
+        """
+        Return index of first occurrence of maximum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            If axis is not provided, grouper's axis is used.
+
+            .. versionchanged:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of maxima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmax : Return index of the maximum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the maximum value in each column.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emissions             Beef
+        dtype: object
+
+        To return the index for the maximum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emissions
+        Wheat Products     consumption
+        Beef              co2_emissions
+        dtype: object
+        """
+        if axis is None:
+            axis = self.axis
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmax,
-                "argmax",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(
@@ -1879,30 +1987,85 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(
-        _shared_docs["idxmin"],
-        numeric_only_default="False",
-    )
     def idxmin(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = None,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
-        axis = DataFrame._get_axis_number(axis)
+        """
+        Return index of first occurrence of minimum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            If axis is not provided, grouper's axis is used.
+
+            .. versionchanged:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of minima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmin : Return index of the minimum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
+        """
+        if axis is None:
+            axis = self.axis
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmin,
-                "argmin",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(
@@ -1987,7 +2150,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         2
                            US         1
                 medium     FR         1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(ascending=True)
         gender  education  country
@@ -1996,7 +2159,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        US         1
                 medium     FR         1
                 low        FR         2
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(normalize=True)
         gender  education  country
@@ -2005,7 +2168,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         0.50
                            US         0.25
                 medium     FR         0.25
-        dtype: float64
+        Name: proportion, dtype: float64
 
         >>> df.groupby('gender', as_index=False).value_counts()
            gender education country  count
@@ -2023,122 +2186,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US        0.25
         4    male    medium      FR        0.25
         """
-        if self.axis == 1:
-            raise NotImplementedError(
-                "DataFrameGroupBy.value_counts only handles axis=0"
-            )
-
-        with self._group_selection_context():
-            df = self.obj
-
-            in_axis_names = {
-                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
-            }
-            if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
-            else:
-                unique_cols = set(self._selected_obj.columns)
-                if subset is not None:
-                    subsetted = set(subset)
-                    clashing = subsetted & set(in_axis_names)
-                    if clashing:
-                        raise ValueError(
-                            f"Keys {clashing} in subset cannot be in "
-                            "the groupby column keys."
-                        )
-                    doesnt_exist = subsetted - unique_cols
-                    if doesnt_exist:
-                        raise ValueError(
-                            f"Keys {doesnt_exist} in subset do not "
-                            f"exist in the DataFrame."
-                        )
-                else:
-                    subsetted = unique_cols
-
-                keys = [
-                    # Can't use .values because the column label needs to be preserved
-                    self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
-                ]
-
-            groupings = list(self.grouper.groupings)
-            for key in keys:
-                grouper, _, _ = get_grouper(
-                    df,
-                    key=key,
-                    axis=self.axis,
-                    sort=self.sort,
-                    observed=False,
-                    dropna=dropna,
-                )
-                groupings += list(grouper.groupings)
-
-            # Take the size of the overall columns
-            gb = df.groupby(
-                groupings,
-                sort=self.sort,
-                observed=self.observed,
-                dropna=self.dropna,
-            )
-            result_series = cast(Series, gb.size())
-
-            # GH-46357 Include non-observed categories
-            # of non-grouping columns regardless of `observed`
-            if any(
-                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
-                and not grouping._observed
-                for grouping in groupings
-            ):
-                levels_list = [ping.result_index for ping in groupings]
-                multi_index, _ = MultiIndex.from_product(
-                    levels_list, names=[ping.name for ping in groupings]
-                ).sortlevel()
-                result_series = result_series.reindex(multi_index, fill_value=0)
-
-            if normalize:
-                # Normalize the results by dividing by the original group sizes.
-                # We are guaranteed to have the first N levels be the
-                # user-requested grouping.
-                levels = list(
-                    range(len(self.grouper.groupings), result_series.index.nlevels)
-                )
-                indexed_group_size = result_series.groupby(
-                    result_series.index.droplevel(levels),
-                    sort=self.sort,
-                    dropna=self.dropna,
-                ).transform("sum")
-                result_series /= indexed_group_size
-
-                # Handle groups of non-observed categories
-                result_series = result_series.fillna(0.0)
-
-            if sort:
-                # Sort the values and then resort by the main grouping
-                index_level = range(len(self.grouper.groupings))
-                result_series = result_series.sort_values(
-                    ascending=ascending
-                ).sort_index(level=index_level, sort_remaining=False)
-
-            result: Series | DataFrame
-            if self.as_index:
-                result = result_series
-            else:
-                # Convert to frame
-                name = "proportion" if normalize else "count"
-                index = result_series.index
-                columns = com.fill_missing_names(index.names)
-                if name in columns:
-                    raise ValueError(
-                        f"Column label '{name}' is duplicate of result column"
-                    )
-                result_series.name = name
-                result_series.index = index.set_names(range(len(columns)))
-                result_frame = result_series.reset_index()
-                result_frame.columns = columns + [name]
-                result = result_frame
-            return result.__finalize__(self.obj, method="value_counts")
+        return self._value_counts(subset, normalize, sort, ascending, dropna)
 
     def fillna(
         self,
@@ -2271,17 +2319,102 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(DataFrame.take.__doc__)
     def take(
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
         **kwargs,
     ) -> DataFrame:
+        """
+        Return the elements in the given *positional* indices in each group.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
+
+        If a requested index does not exist for some group, this method will raise.
+        To get similar behavior that ignores indices that don't exist, see
+        :meth:`.DataFrameGroupBy.nth`.
+
+        Parameters
+        ----------
+        indices : array-like
+            An array of ints indicating which positions to take.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        DataFrame
+            An DataFrame containing the elements taken from each group.
+
+        See Also
+        --------
+        DataFrame.take : Take elements from a Series along an axis.
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
+
+        Examples
+        --------
+        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan),
+        ...                    ('rabbit', 'mammal', 15.0)],
+        ...                   columns=['name', 'class', 'max_speed'],
+        ...                   index=[4, 3, 2, 1, 0])
+        >>> df
+             name   class  max_speed
+        4  falcon    bird      389.0
+        3  parrot    bird       24.0
+        2    lion  mammal       80.5
+        1  monkey  mammal        NaN
+        0  rabbit  mammal       15.0
+        >>> gb = df.groupby([1, 1, 2, 2, 2])
+
+        Take elements at positions 0 and 1 along the axis 0 (default).
+
+        Note how the indices selected in the result do not correspond to
+        our input indices 0 and 1. That's because we are selecting the 0th
+        and 1st rows, not rows whose indices equal 0 and 1.
+
+        >>> gb.take([0, 1])
+               name   class  max_speed
+        1 4  falcon    bird      389.0
+          3  parrot    bird       24.0
+        2 2    lion  mammal       80.5
+          1  monkey  mammal        NaN
+
+        The order of the specified indices influnces the order in the result.
+        Here, the order is swapped from the previous example.
+
+        >>> gb.take([0, 1])
+               name   class  max_speed
+        1 4  falcon    bird      389.0
+          3  parrot    bird       24.0
+        2 2    lion  mammal       80.5
+          1  monkey  mammal        NaN
+
+        Take elements at indices 1 and 2 along the axis 1 (column selection).
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> gb.take([-1, -2])
+               name   class  max_speed
+        1 3  parrot    bird       24.0
+          4  falcon    bird      389.0
+        2 0  rabbit  mammal       15.0
+          1  monkey  mammal        NaN
+        """
         result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
-    @doc(DataFrame.skew.__doc__)
     def skew(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
@@ -2289,6 +2422,69 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only: bool = False,
         **kwargs,
     ) -> DataFrame:
+        """
+        Return unbiased skew within groups.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis for the function to be applied on.
+
+            Specifying ``axis=None`` will apply the aggregation across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        DataFrame.skew : Return unbiased skew over requested axis.
+
+        Examples
+        --------
+        >>> arrays = [['falcon', 'parrot', 'cockatoo', 'kiwi',
+        ...            'lion', 'monkey', 'rabbit'],
+        ...           ['bird', 'bird', 'bird', 'bird',
+        ...            'mammal', 'mammal', 'mammal']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('name', 'class'))
+        >>> df = pd.DataFrame({'max_speed': [389.0, 24.0, 70.0, np.nan,
+        ...                                  80.5, 21.5, 15.0]},
+        ...                   index=index)
+        >>> df
+                        max_speed
+        name     class
+        falcon   bird        389.0
+        parrot   bird         24.0
+        cockatoo bird         70.0
+        kiwi     bird          NaN
+        lion     mammal       80.5
+        monkey   mammal       21.5
+        rabbit   mammal       15.0
+        >>> gb = df.groupby(["class"])
+        >>> gb.skew()
+                max_speed
+        class
+        bird     1.628296
+        mammal   1.669046
+        >>> gb.skew(skipna=False)
+                max_speed
+        class
+        bird          NaN
+        mammal   1.669046
+        """
         result = self._op_via_apply(
             "skew",
             axis=axis,
@@ -2372,8 +2568,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
-        result = self._op_via_apply("dtypes")
-        return result
+        # error: Incompatible return value type (got "DataFrame", expected "Series")
+        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(

@@ -769,8 +769,7 @@ as the one being grouped. The transform function must:
   the first group chunk using chunk.apply.
 * Not perform in-place operations on the group chunk. Group chunks should
   be treated as immutable, and changes to a group chunk may produce unexpected
-  results. For example, when using ``fillna``, ``inplace`` must be ``False``
-  (``grouped.transform(lambda x: x.fillna(inplace=False))``).
+  results.
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
@@ -1083,6 +1082,7 @@ The dimension of the returned result can also change:
     def f(group):
         return pd.DataFrame({'original': group,
                              'demeaned': group - group.mean()})
+
     grouped.apply(f)
 
 ``apply`` on a Series can operate on a returned value from the applied function,

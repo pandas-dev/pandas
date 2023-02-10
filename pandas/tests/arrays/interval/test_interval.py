@@ -95,6 +95,10 @@ class TestMethods:
         expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
         tm.assert_interval_array_equal(result, expected)
 
+        msg = "can only insert Interval objects and NA into an IntervalArray"
+        with pytest.raises(TypeError, match=msg):
+            a.shift(1, fill_value=pd.NaT)
+
     def test_shift_datetime(self):
         # GH#31502, GH#31504
         a = IntervalArray.from_breaks(date_range("2000", periods=4))
@@ -105,6 +109,10 @@ class TestMethods:
         result = a.shift(-1)
         expected = a.take([1, 2, -1], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+
+        msg = "can only insert Interval objects and NA into an IntervalArray"
+        with pytest.raises(TypeError, match=msg):
+            a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
 
 
 class TestSetitem:
@@ -287,7 +295,7 @@ def test_arrow_array():
     with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
         pa.array(intervals, type="float64")
 
-    with pytest.raises(TypeError, match="different 'subtype'|to convert IntervalArray"):
+    with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
         pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
 
 

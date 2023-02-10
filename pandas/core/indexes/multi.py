@@ -239,6 +239,7 @@ class MultiIndex(Index):
     codes
     nlevels
     levshape
+    dtypes
 
     Methods
     -------
@@ -255,7 +256,12 @@ class MultiIndex(Index):
     swaplevel
     reorder_levels
     remove_unused_levels
+    get_level_values
+    get_indexer
+    get_loc
     get_locs
+    get_loc_level
+    drop
 
     See Also
     --------
@@ -1142,8 +1148,9 @@ class MultiIndex(Index):
         name=None,
     ):
         """
-        Make a copy of this object. Names, dtype, levels and codes can be
-        passed and will be set on new copy.
+        Make a copy of this object.
+
+        Names, dtype, levels and codes can be passed and will be set on new copy.
 
         Parameters
         ----------
@@ -1161,6 +1168,16 @@ class MultiIndex(Index):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b'], ['c']])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
+        >>> mi.copy()
+        MultiIndex([('a', 'b', 'c')],
+                   )
         """
         names = self._validate_names(name=name, names=names, deep=deep)
         keep_id = not deep
@@ -1636,7 +1653,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Float64Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2079,7 +2096,7 @@ class MultiIndex(Index):
 
     def append(self, other):
         """
-        Append a collection of Index options together
+        Append a collection of Index options together.
 
         Parameters
         ----------
@@ -2087,7 +2104,18 @@ class MultiIndex(Index):
 
         Returns
         -------
-        appended : Index
+        Index
+            The combined index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b']])
+        >>> mi
+        MultiIndex([('a', 'b')],
+                   )
+        >>> mi.append(mi)
+        MultiIndex([('a', 'b'), ('a', 'b')],
+                   )
         """
         if not isinstance(other, (list, tuple)):
             other = [other]
@@ -2158,7 +2186,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        dropped : MultiIndex
+        MultiIndex
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
@@ -3379,7 +3407,7 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
-                new_order = np.ones((n,))[indexer]
+                new_order = np.ones((n,), dtype=np.intp)[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
@@ -3391,18 +3419,29 @@ class MultiIndex(Index):
 
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
-        Slice index between two labels / tuples, return new MultiIndex
+        Slice index between two labels / tuples, return new MultiIndex.
 
         Parameters
         ----------
         before : label or tuple, can be partial. Default None
-            None defaults to start
+            None defaults to start.
         after : label or tuple, can be partial. Default None
-            None defaults to end
+            None defaults to end.
 
         Returns
         -------
-        truncated : MultiIndex
+        MultiIndex
+            The truncated MultiIndex.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['x', 'y', 'z']])
+        >>> mi
+        MultiIndex([('a', 'x'), ('b', 'y'), ('c', 'z')],
+                   )
+        >>> mi.truncate(before='a', after='b')
+        MultiIndex([('a', 'x'), ('b', 'y')],
+                   )
         """
         if after and before and after < before:
             raise ValueError("after < before")
@@ -3503,12 +3542,8 @@ class MultiIndex(Index):
 
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-        if (
-            any(-1 in code for code in self.codes)
-            and any(-1 in code for code in other.codes)
-            or other.has_duplicates
-        ):
-            # This is only necessary if both sides have nans or other has dups,
+        if other.has_duplicates:
+            # This is only necessary if other has dupes,
             # otherwise difference is faster
             result = super()._union(other, sort)
 

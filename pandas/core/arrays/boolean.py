@@ -288,8 +288,10 @@ class BooleanArray(BaseMaskedArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
     # Fill values used for any/all
-    _truthy_value = True
-    _falsey_value = False
+    # Incompatible types in assignment (expression has type "bool", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = True  # type: ignore[assignment]
+    _falsey_value = False  # type: ignore[assignment]
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -321,17 +323,17 @@ class BooleanArray(BaseMaskedArray):
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s):
-            if isna(s):
-                return s
-            elif s in true_values_union:
+        def map_string(s) -> bool:
+            if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
-        scalars = [map_string(x) for x in strings]
+        scalars = np.array(strings, dtype=object)
+        mask = isna(scalars)
+        scalars[~mask] = list(map(map_string, scalars[~mask]))
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
