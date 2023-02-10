@@ -365,6 +365,7 @@ class TestTimestampUnaryOps:
     # Timestamp.replace
 
     def test_replace_out_of_pydatetime_bounds(self):
+        # GH#50348
         ts = Timestamp("2016-01-01").as_unit("ns")
 
         msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"

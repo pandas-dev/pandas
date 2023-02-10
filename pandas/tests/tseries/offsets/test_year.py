@@ -10,6 +10,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas import Timestamp
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
@@ -321,8 +323,9 @@ class TestYearEndDiffMonth:
         assert_is_on_offset(offset, dt, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="result year is 1973, unclear why")
 def test_add_out_of_pydatetime_range():
-    # don't raise in Timestamp.replace
+    # GH#50348 don't raise in Timestamp.replace
     ts = Timestamp(np.datetime64("-20000-12-31"))
     off = YearEnd()
 
