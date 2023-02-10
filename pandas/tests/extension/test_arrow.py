@@ -33,6 +33,7 @@ from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 from pandas.errors import PerformanceWarning
 
@@ -288,7 +289,7 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
+        elif pa_version_under11p0 and pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1927,6 +1928,16 @@ def test_str_unsupported_methods(method, args):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match=f"str.{method} not supported."):
         getattr(ser.str, method)(*args)
+
+
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+def test_duration_from_strings_with_nat(unit):
+    # GH51175
+    strings = ["1000", "NaT"]
+    pa_type = pa.duration(unit)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([1000, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_unsupported_dt(data):
