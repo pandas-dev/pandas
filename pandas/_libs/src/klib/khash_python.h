@@ -333,7 +333,7 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
 
 
 // TODO: same thing for timedelta64 objects
-Py_hash_t np_datetime64_object_hash(PyObject* key) {
+Py_hash_t np_datetime64_object_hash(PyDatetimeScalarObject* key) {
     // GH#50690 numpy's hash implementation does not preserve comparabity
     // either across resolutions or with standard library objects.
     // See also Timestamp.__hash__
@@ -395,7 +395,7 @@ khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     }
     else if (PyObject_TypeCheck(key, &PyDatetimeArrType_Type)) {
         // GH#50690
-        hash = np_datetime64_object_hash(key);
+        hash = np_datetime64_object_hash((PyDatetimeScalarObject *)key);
     }
     else {
         hash = PyObject_Hash(key);

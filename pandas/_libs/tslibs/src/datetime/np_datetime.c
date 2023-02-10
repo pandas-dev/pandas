@@ -1116,7 +1116,8 @@ Py_uhash_t tuple_update_uhash(Py_uhash_t acc, Py_uhash_t lane) {
 }
 
 // https://github.com/pandas-dev/pandas/pull/50960
-Py_hash_t hash_datetime_from_struct(npy_datetimestruct* dts) {
+Py_hash_t
+hash_datetime_from_struct(npy_datetimestruct* dts) {
     /*
      * If we cannot cast to datetime, use the datetime struct values directly
      * and mix them similar to a tuple.
