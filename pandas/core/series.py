@@ -3370,8 +3370,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def sort_values(
         self,
         *,
@@ -5131,8 +5130,7 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
@@ -5470,7 +5468,7 @@ Keep all original rows and also all original values
         if infer_objects:
             input_series = input_series.infer_objects()
             if is_object_dtype(input_series):
-                input_series = input_series.copy()
+                input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
             dtype_backend = get_option("mode.dtype_backend")
@@ -5485,7 +5483,7 @@ Keep all original rows and also all original values
             )
             result = input_series.astype(inferred_dtype)
         else:
-            result = input_series.copy()
+            result = input_series.copy(deep=None)
         return result
 
     # error: Cannot determine type of 'isna'

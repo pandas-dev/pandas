@@ -1413,14 +1413,14 @@ def inspect_excel_format(
 
 class ExcelFile:
     """
-    Class for parsing tabular excel sheets into DataFrame objects.
+    Class for parsing tabular Excel sheets into DataFrame objects.
 
     See read_excel for more documentation.
 
     Parameters
     ----------
     path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpyxl workbook.
+        A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -1448,6 +1448,7 @@ class ExcelFile:
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
            .. versionadded:: 1.3.0
+
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
