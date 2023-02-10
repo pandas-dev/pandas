@@ -568,7 +568,10 @@ def _homogenize(
                 val = val.reindex(index, copy=False)
             if val is orig:
                 val = val.copy(deep=False)
-            refs.append(val._mgr._block.refs)
+            if isinstance(val._mgr, BlockManager):
+                refs.append(val._mgr._block.refs)
+            else:
+                refs.append(None)
             val = val._values
         else:
             if isinstance(val, dict):
