@@ -2119,7 +2119,7 @@ class _AsOfMerge(_OrderedMerge):
                     lvs = ensure_wrapped_if_datetimelike(left_values)
                     tolerance = tolerance.as_unit(lvs.unit)
 
-                tolerance = tolerance.value
+                tolerance = tolerance._value
 
             # TODO: require left_values.dtype == right_values.dtype, or at least
             #  comparable for e.g. dt64tz

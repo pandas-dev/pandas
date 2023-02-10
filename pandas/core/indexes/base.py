@@ -2607,13 +2607,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind in "iufc":  # fastpath
-            return {
-                "i": "integer",
-                "u": "integer",
-                "f": "floating",
-                "c": "complex",
-            }[self.dtype.kind]
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
@@ -3872,9 +3865,15 @@ class Index(IndexOpsMixin, PandasObject):
             #  but that doesn't appear to be enforced
             # error: "IndexEngine" has no attribute "get_indexer_with_fill"
             engine = self._engine
-            return engine.get_indexer_with_fill(  # type: ignore[union-attr]
-                target=target._values, values=self._values, method=method, limit=limit
-            )
+            with warnings.catch_warnings():
+                # TODO: We need to fix this. Casting to int64 in cython
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                return engine.get_indexer_with_fill(  # type: ignore[union-attr]
+                    target=target._values,
+                    values=self._values,
+                    method=method,
+                    limit=limit,
+                )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             target_values = target._get_engine_target()

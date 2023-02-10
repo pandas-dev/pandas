@@ -43,8 +43,6 @@ def read_clipboard(
             numpy-backed nullable dtypes or
             ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
             pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-            This is only implemented for the ``python``
-            engine.
 
         .. versionadded:: 2.0
 

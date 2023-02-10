@@ -299,6 +299,9 @@ MultiIndex components
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
    MultiIndex.drop
+   MultiIndex.copy
+   MultiIndex.append
+   MultiIndex.truncate
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
