@@ -734,7 +734,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 Note that this affects :func:`read_csv` as well.
 
 If you still need to parse dates with inconsistent formats, you can use
-``format='mixed`` (preferably alongside ``dayfirst``) ::
+``format='mixed`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      pd.to_datetime(ser, format='mixed', dayfirst=True)

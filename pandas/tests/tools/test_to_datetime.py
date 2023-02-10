@@ -50,10 +50,11 @@ from pandas.util.version import Version
 
 PARSING_ERR_MSG = (
     r"You might want to try:\n"
-    r"    - passing ``format=\'ISO8601\'`` if your strings are all ISO8601 "
+    r"    - passing `format` if your strings have a consistent format;\n"
+    r"    - passing `format=\'ISO8601\'` if your strings are all ISO8601 "
     r"but not necessarily in exactly the same format;\n"
-    r"    - passing ``format=\'mixed\'``, and the format will be inferred "
-    r"for each element individually. You might want to use ``dayfirst`` "
+    r"    - passing `format=\'mixed\'`, and the format will be inferred "
+    r"for each element individually. You might want to use `dayfirst` "
     r"alongside this."
 )
 

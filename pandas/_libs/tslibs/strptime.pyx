@@ -516,11 +516,12 @@ def array_strptime(
         except (ValueError, OutOfBoundsDatetime) as ex:
             ex.args = (
                 f"{str(ex)}, at position {i}. You might want to try:\n"
-                "    - passing ``format='ISO8601'`` if your strings are "
+                "    - passing `format` if your strings have a consistent format;\n"
+                "    - passing `format='ISO8601'` if your strings are "
                 "all ISO8601 but not necessarily in exactly the same format;\n"
-                "    - passing ``format='mixed'``, and the format will be "
+                "    - passing `format='mixed'`, and the format will be "
                 "inferred for each element individually. "
-                "You might want to use ``dayfirst`` alongside this.",
+                "You might want to use `dayfirst` alongside this.",
             )
             if is_coerce:
                 iresult[i] = NPY_NAT

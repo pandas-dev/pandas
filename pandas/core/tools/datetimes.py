@@ -718,9 +718,7 @@ def to_datetime(
         .. warning::
 
             ``dayfirst=True`` is not strict, but will prefer to parse
-            with day first. If a delimited date string cannot be parsed in
-            accordance with the given `dayfirst` option, e.g.
-            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
+            with day first.
 
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or is list-like.
