@@ -292,7 +292,7 @@ NaT   4"""
 \end{tabular}
 """
         with option_context(
-            "display.latex.escape", False, "styler.render.repr", "latex"
+            "styler.format.escape", None, "styler.render.repr", "latex"
         ):
             df = DataFrame([[r"$\alpha$", "b", "c"], [1, 2, 3]])
             result = df._repr_latex_()
