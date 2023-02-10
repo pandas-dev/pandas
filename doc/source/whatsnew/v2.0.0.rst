@@ -225,6 +225,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
   - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :meth:`DataFrame.astype` / :meth:`Series.astype`
+  - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
   - :func:`concat`
 
   These methods return views when Copy-on-Write is enabled, which provides a significant
