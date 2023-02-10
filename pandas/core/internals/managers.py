@@ -362,14 +362,6 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if using_copy_on_write() and any(
-            not self._has_no_reference_block(i) for i in range(len(self.blocks))
-        ):
-            # some reference -> copy full dataframe
-            # TODO(CoW) this could be optimized to only copy the blocks that would
-            # get modified
-            self = self.copy()
-
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -381,6 +373,7 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
+            using_cow=using_copy_on_write(),
         )
 
     def diff(self: T, n: int, axis: AxisInt) -> T:
