@@ -446,10 +446,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
-                if using_copy_on_write():
-                    data = data._mgr.copy(deep=False)
-                else:
-                    data = data._mgr
+                data = data._mgr.copy(deep=False)
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
