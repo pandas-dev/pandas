@@ -71,7 +71,7 @@ Below is a possibly non-exhaustive list of changes:
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
    :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) were previously in of
-   dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
+   dtype ``int64``, while they were ``int32`` for :class:`arrays.DatetimeArray`. They are now
    ``int32`` on ``DatetimeIndex`` also:
 
    .. ipython:: python
@@ -597,7 +597,7 @@ Empty DataFrames/Series will now default to have a ``RangeIndex``
 Before, constructing an empty (where ``data`` is ``None`` or an empty list-like argument) :class:`Series` or :class:`DataFrame` without
 specifying the axes (``index=None``, ``columns=None``) would return the axes as empty :class:`Index` with object dtype.
 
-Now, the axes return an empty :class:`RangeIndex`.
+Now, the axes return an empty :class:`RangeIndex` (:issue:`49572`).
 
 *Previous behavior*:
 
