@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     Any,
     Hashable,
+    overload,
 )
 
 import numpy as np
@@ -11,6 +12,7 @@ from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    T as Ttolist,
     npt,
 )
 from pandas.util._decorators import (
@@ -52,7 +54,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "tolist",
         "codes",
         "categories",
         "ordered",
@@ -327,6 +328,19 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return header + result
 
     # --------------------------------------------------------------------
+
+    # The overloads are done this way due to a mypy issue. See
+    # https://github.com/python/mypy/issues/3737#issuecomment-465355737
+    @overload
+    def tolist(self) -> list[Any]:
+        ...
+
+    @overload
+    def tolist(self, scalar_type: type[Ttolist]) -> list[Ttolist]:
+        ...
+
+    def tolist(self, scalar_type=Any) -> list[Any]:
+        return self._data.tolist()
 
     @property
     def inferred_type(self) -> str:

@@ -95,6 +95,8 @@ class TestConversion:
 
     def test_tolist_matches_list(self, index):
         assert index.tolist() == list(index)
+        if len(index) > 0:
+            assert index.tolist(type(index[0])) == list(index)
 
 
 class TestRoundTrips:

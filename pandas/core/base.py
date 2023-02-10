@@ -28,6 +28,7 @@ from pandas._typing import (
     IndexLabel,
     NDFrameT,
     Shape,
+    T as Ttolist,
     npt,
 )
 from pandas.compat import PYPY
@@ -735,13 +736,34 @@ class IndexOpsMixin(OpsMixin):
                 delegate, skipna=skipna
             )
 
-    def tolist(self):
+    # The overloads are done this way due to a mypy issue. See
+    # https://github.com/python/mypy/issues/3737#issuecomment-465355737
+    @overload
+    def tolist(self) -> list[Any]:
+        ...
+
+    @overload
+    def tolist(self, scalar_type: type[Ttolist]) -> list[Ttolist]:
+        ...
+
+    def tolist(self, scalar_type=Any) -> list[Any]:
         """
         Return a list of the values.
 
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+        or a tuple (for MultiIndex)
+
+        For type checking purposes, the type of the returned elements of the
+        list may be specified.  For example ``index.tolist(str)`` will appear
+        to a type checker as ``list[str]``.  However, the returned type of
+        each element will be the actual type of the elements in the values.
+
+        Parameters
+        ----------
+        scalar_type : type, default Any
+            Returned type of elements in the list.
 
         Returns
         -------
@@ -763,6 +785,7 @@ class IndexOpsMixin(OpsMixin):
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+        or a tuple (for MultiIndex)
 
         Returns
         -------

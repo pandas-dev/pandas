@@ -385,8 +385,9 @@ class RangeIndex(Index):
         return False
 
     # --------------------------------------------------------------------
-
-    def tolist(self) -> list[int]:
+    # error: Signature of "tolist" incompatible with supertype
+    # "IndexOpsMixin"  [override]
+    def tolist(self, scalar_type: type = int) -> list[int]:  # type: ignore[override]
         return list(self._range)
 
     @doc(Index.__iter__)
