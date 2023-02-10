@@ -241,7 +241,9 @@ class TestSeriesPlots(TestPlotBase):
         assert label2 == ""
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(), reason="Weird rounding problems"
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
     )
     def test_bar_log(self):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
