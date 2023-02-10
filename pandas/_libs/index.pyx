@@ -1147,11 +1147,13 @@ cdef class MaskedIndexEngine(IndexEngine):
     def _get_data(self, object values) -> np.ndarray:
         if hasattr(values, "_mask"):
             return values._data
+        # We are an ArrowExtensionArray
         return values.to_numpy(na_value=1, dtype=values.dtype.numpy_dtype)
 
     def _get_mask(self, object values) -> np.ndarray:
         if hasattr(values, "_mask"):
             return values._mask
+        # We are an ArrowExtensionArray
         return values.isna()
 
     def get_indexer(self, object values) -> np.ndarray:
