@@ -1303,6 +1303,7 @@ I/O
 - Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
+- Bug in :func:`read_excel` where passing invalid argument name ``headers`` to :meth:`parse` doesn't raise error (:issue:`50953`)
 
 Period
 ^^^^^^

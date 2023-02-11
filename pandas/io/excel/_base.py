@@ -21,6 +21,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 import zipfile
 
 from pandas._config import (
@@ -47,6 +48,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -1552,12 +1554,20 @@ class ExcelFile:
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
-
+        .. deprecated:: 2.0.0
+          Arguments other than sheet_name by position may not work.
         Returns
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
         """
+        if kwds:
+            warnings.warn(
+                f"{type(self).__name__}.parse is deprecated. "
+                "Arguments other than sheet_name by position may not work.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._reader.parse(
             sheet_name=sheet_name,
             header=header,
