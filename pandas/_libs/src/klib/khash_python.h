@@ -338,8 +338,8 @@ Py_hash_t np_datetime64_object_hash(PyDatetimeScalarObject* key) {
     // either across resolutions or with standard library objects.
     // See also Timestamp.__hash__
 
-    NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)((PyDatetimeScalarObject*)key)->obmeta.base;
-    npy_datetime value = ((PyDatetimeScalarObject*)key)->obval;
+    NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)key->obmeta.base;
+    npy_datetime value = key->obval;
     npy_datetimestruct dts;
 
     if (value == NPY_DATETIME_NAT) {
