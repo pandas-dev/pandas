@@ -1238,6 +1238,8 @@ Interval
 - Bug in :meth:`IntervalIndex.is_overlapping` incorrect output if interval has duplicate left boundaries (:issue:`49581`)
 - Bug in :meth:`Series.infer_objects` failing to infer :class:`IntervalDtype` for an object series of :class:`Interval` objects (:issue:`50090`)
 - Bug in :meth:`Series.shift` with :class:`IntervalDtype` and invalid null ``fill_value`` failing to raise ``TypeError`` (:issue:`51258`)
+- Bug in :class:`IntervalDtype` where it accepted non-64-bit numeric subtypes, even though :class:`arrays.InterArray` only can hold numeric data if it is 64-bit.
+  Supplying non-64-bit numeric subtypes to :class:`IntervalDtype` now raises a ``TypeError`` (:issue:`45412`)
 -
 
 Indexing

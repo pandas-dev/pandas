@@ -8,6 +8,7 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
+    is_64bit_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -16,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_interval_dtype,
+    is_numeric_dtype,
     is_period_dtype,
     is_string_dtype,
 )
@@ -597,6 +599,7 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize(
         "subtype",
         [
+            *[x for x in tm.ALL_REAL_DTYPES if not is_64bit_real_numeric_dtype(x)],
             CategoricalDtype(list("abc"), False),
             CategoricalDtype(list("wxyz"), True),
             object,
@@ -607,11 +610,14 @@ class TestIntervalDtype(Base):
         ],
     )
     def test_construction_not_supported(self, subtype):
-        # GH 19016
-        msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalDtype"
-        )
+        # GH19016, GH45412
+        if is_numeric_dtype(subtype):
+            msg = "numeric subtype must be 64-bit numeric dtype, was"
+        else:
+            msg = (
+                "category, object, and string subtypes are not supported "
+                "for IntervalDtype"
+            )
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 

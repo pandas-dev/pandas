@@ -270,6 +270,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 copy=copy,
                 dtype=dtype,
             )
+            1 / 0
 
         if verify_integrity:
             cls._validate(left, right, dtype=dtype)

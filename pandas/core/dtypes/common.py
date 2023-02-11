@@ -863,6 +863,56 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
+def is_64bit_real_numeric_dtype(arr_or_dtype) -> bool:
+    """
+    Check whether the provided array or dtype is of 64-bit dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : array-like or dtype
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean
+        Whether or not the array or dtype is of 64-bit dtype.
+
+    Examples
+    --------
+    >>> is_64bit_real_numeric_dtype(str)
+    False
+    >>> is_64bit_real_numeric_dtype(np.int32)
+    False
+    >>> is_64bit_real_numeric_dtype(np.int64)
+    True
+    >>> is_64bit_real_numeric_dtype('int8')
+    False
+    >>> is_64bit_real_numeric_dtype('Int8')
+    True
+    >>> is_64bit_real_numeric_dtype(pd.Int64Dtype)
+    True
+    >>> is_64bit_real_numeric_dtype(float)
+    True
+    >>> is_64bit_real_numeric_dtype(np.uint64)  # unsigned
+    True
+    >>> is_64bit_real_numeric_dtype(np.array(['a', 'b']))
+    False
+    >>> is_64bit_real_numeric_dtype(np.array([1, 2], dtype=np.int64))
+    True
+    >>> is_64bit_real_numeric_dtype(pd.Index([1, 2.]))  # float
+    True
+    >>> is_64bit_real_numeric_dtype(np.array([1, 2], dtype=np.uint32))
+    False
+    """
+    return _is_dtype_type(
+        arr_or_dtype, classes(np.int64, np.uint64, np.float64)
+    ) or _is_dtype(
+        arr_or_dtype,
+        lambda typ: isinstance(typ, ExtensionDtype)
+        and typ.type in (np.int64, np.uint64, np.float64),
+    )
+
+
 def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64 dtype.

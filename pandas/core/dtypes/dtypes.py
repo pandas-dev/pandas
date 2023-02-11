@@ -1082,6 +1082,8 @@ class IntervalDtype(PandasExtensionDtype):
 
     def __new__(cls, subtype=None, closed: str_type | None = None):
         from pandas.core.dtypes.common import (
+            is_64bit_real_numeric_dtype,
+            is_any_real_numeric_dtype,
             is_string_dtype,
             pandas_dtype,
         )
@@ -1132,6 +1134,12 @@ class IntervalDtype(PandasExtensionDtype):
                 "for IntervalDtype"
             )
             raise TypeError(msg)
+        elif is_any_real_numeric_dtype(subtype) and not is_64bit_real_numeric_dtype(
+            subtype
+        ):
+            raise TypeError(
+                f"numeric subtype must be 64-bit numeric dtype, was {subtype}"
+            )
 
         key = f"{subtype}{closed}"
         try:
