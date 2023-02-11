@@ -8,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterator,
-    cast,
     final,
 )
 import warnings
@@ -273,20 +272,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
+        self._indexer_deprecated = None
+        self._obj_deprecated = None
         self._gpr_index = None
-        self.obj = None
-        self.indexer = None
         self.binner = None
         self._grouper = None
         self._indexer = None
-
-    @final
-    @property
-    def ax(self) -> Index:
-        index = self._gpr_index
-        if index is None:
-            raise ValueError("_set_grouper must be called before ax is accessed")
-        return index
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -302,9 +293,9 @@ class Grouper:
         -------
         a tuple of grouper, obj (possibly sorted)
         """
-        self._set_grouper(obj)
+        obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
-            cast(NDFrameT, self.obj),
+            obj,
             [self.key],
             axis=self.axis,
             level=self.level,
@@ -320,7 +311,9 @@ class Grouper:
         return grouper, obj
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
+    def _set_grouper(
+        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
+    ):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -330,8 +323,17 @@ class Grouper:
         obj : Series or DataFrame
         sort : bool, default False
             whether the resulting grouper should be sorted
+        gpr_index : Index or None, default None
+
+        Returns
+        -------
+        NDFrame
+        Index
+        np.ndarray[np.intp] | None
         """
         assert obj is not None
+
+        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -339,16 +341,14 @@ class Grouper:
         # Keep self._grouper value before overriding
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
-            self._grouper = self._gpr_index
-            self._indexer = self.indexer
+            self._grouper = gpr_index
+            self._indexer = self._indexer_deprecated
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self._gpr_index, "name", None) == key and isinstance(
-                obj, Series
-            ):
+            if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -384,7 +384,7 @@ class Grouper:
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
-            indexer = self.indexer = ax.array.argsort(
+            indexer = self._indexer_deprecated = ax.array.argsort(
                 kind="mergesort", na_position="first"
             )
             ax = ax.take(indexer)
@@ -392,8 +392,45 @@ class Grouper:
 
         # error: Incompatible types in assignment (expression has type
         # "NDFrameT", variable has type "None")
-        self.obj = obj  # type: ignore[assignment]
+        self._obj_deprecated = obj  # type: ignore[assignment]
         self._gpr_index = ax
+        return obj, ax, indexer
+
+    @final
+    @property
+    def ax(self) -> Index:
+        warnings.warn(
+            f"{type(self).__name__}.ax is deprecated and will be removed in a "
+            "future version. Use Resampler.ax instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        index = self._gpr_index
+        if index is None:
+            raise ValueError("_set_grouper must be called before ax is accessed")
+        return index
+
+    @final
+    @property
+    def indexer(self):
+        warnings.warn(
+            f"{type(self).__name__}.indexer is deprecated and will be removed "
+            "in a future version. Use Resampler.indexer instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._indexer_deprecated
+
+    @final
+    @property
+    def obj(self):
+        warnings.warn(
+            f"{type(self).__name__}.obj is deprecated and will be removed "
+            "in a future version. Use GroupBy.indexer instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._obj_deprecated
 
     @final
     @property

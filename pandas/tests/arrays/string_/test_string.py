@@ -5,7 +5,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -71,6 +70,19 @@ def test_setitem_with_scalar_string(dtype):
     arr[0] = "d"
     expected = pd.array(["d", "c"], dtype=dtype)
     tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_with_array_with_missing(dtype):
+    # ensure that when setting with an array of values, we don't mutate the
+    # array `value` in __setitem__(self, key, value)
+    arr = pd.array(["a", "b", "c"], dtype=dtype)
+    value = np.array(["A", None])
+    value_orig = value.copy()
+    arr[[0, 1]] = value
+
+    expected = pd.array(["A", pd.NA, "c"], dtype=dtype)
+    tm.assert_extension_array_equal(arr, expected)
+    tm.assert_numpy_array_equal(value, value_orig)
 
 
 def test_astype_roundtrip(dtype):
@@ -358,11 +370,6 @@ def test_reduce_missing(skipna, dtype):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
-    if dtype.storage == "pyarrow" and pa_version_under6p0:
-        reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
-
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -375,7 +382,7 @@ def test_min_max(method, skipna, dtype, request):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_min_max_numpy(method, box, dtype, request):
-    if dtype.storage == "pyarrow" and (pa_version_under6p0 or box is pd.array):
+    if dtype.storage == "pyarrow" and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:

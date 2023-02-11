@@ -469,6 +469,8 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_categorical_dtype
+    >>> from pandas import CategoricalDtype
     >>> is_categorical_dtype(object)
     False
     >>> is_categorical_dtype(CategoricalDtype())
@@ -830,6 +832,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_int64_dtype
     >>> is_int64_dtype(str)
     False
     >>> is_int64_dtype(np.int32)
@@ -1161,9 +1164,9 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     )
 
 
-def is_any_numeric_dtype(arr_or_dtype) -> bool:
+def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     """
-    Check whether the provided array or dtype is of a real number dtype
+    Check whether the provided array or dtype is of a real number dtype.
 
     Parameters
     ----------
@@ -1173,19 +1176,22 @@ def is_any_numeric_dtype(arr_or_dtype) -> bool:
     Returns
     -------
     boolean
-        Whether or not the array or dtype is of a real number dtype
+        Whether or not the array or dtype is of a real number dtype.
 
     Examples
-    -------
-    >>> is_any_numeric_dtype(str)
-    False
-    >>> is_any_numeric_dtype(int)
+    --------
+    >>> from pandas.api.types import is_any_real_numeric_dtype
+    >>> is_any_real_numeric_dtype(int)
     True
-    >>> is_any_numeric_dtype(float)
+    >>> is_any_real_numeric_dtype(float)
     True
-    >>> is_any_numeric_dtype(complex(1,2))
+    >>> is_any_real_numeric_dtype(object)
     False
-    >>> is_any_numeric_dtype(bool)
+    >>> is_any_real_numeric_dtype(str)
+    False
+    >>> is_any_real_numeric_dtype(complex(1, 2))
+    False
+    >>> is_any_real_numeric_dtype(bool)
     False
     """
     return (
@@ -1211,6 +1217,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_float_dtype
     >>> is_float_dtype(str)
     False
     >>> is_float_dtype(int)
@@ -1250,6 +1257,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_bool_dtype
     >>> is_bool_dtype(str)
     False
     >>> is_bool_dtype(int)
@@ -1402,6 +1410,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_complex_dtype
     >>> is_complex_dtype(str)
     False
     >>> is_complex_dtype(int)
@@ -1721,6 +1730,7 @@ __all__ = [
     "is_1d_only_ea_obj",
     "is_all_strings",
     "is_any_int_dtype",
+    "is_any_real_numeric_dtype",
     "is_array_like",
     "is_bool",
     "is_bool_dtype",
@@ -1749,7 +1759,6 @@ __all__ = [
     "is_nested_list_like",
     "is_number",
     "is_numeric_dtype",
-    "is_any_numeric_dtype",
     "is_object_dtype",
     "is_period_dtype",
     "is_re",

@@ -207,7 +207,9 @@ class PandasDocstring(Validator):
         )
 
         error_messages = []
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
+
+        file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False)
+        try:
             file.write(content)
             file.flush()
             cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
@@ -217,6 +219,9 @@ class PandasDocstring(Validator):
             messages = stdout.strip("\n")
             if messages:
                 error_messages.append(messages)
+        finally:
+            file.close()
+            os.unlink(file.name)
 
         for error_message in error_messages:
             error_count, error_code, message = error_message.split(maxsplit=2)

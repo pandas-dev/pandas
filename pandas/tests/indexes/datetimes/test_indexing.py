@@ -175,7 +175,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
-        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object)
+        expected = Index([pd.NaT._value, pd.NaT._value] + tail, dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 

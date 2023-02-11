@@ -40,10 +40,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    DataError,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -133,6 +130,7 @@ class Resampler(BaseGroupBy, PandasObject):
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
+    _internal_names_set = set({"obj", "ax", "_indexer"})
 
     # to the groupby descriptor
     _attributes = [
@@ -153,20 +151,21 @@ class Resampler(BaseGroupBy, PandasObject):
         axis: Axis = 0,
         kind=None,
         *,
+        gpr_index: Index,
         group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
     ) -> None:
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
-        # error: Incompatible types in assignment (expression has type "Union
-        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
-        self.axis = axis  # type: ignore[assignment]
+        self.axis = obj._get_axis_number(axis)
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
 
-        self._timegrouper._set_grouper(self._convert_obj(obj), sort=True)
+        self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
+            self._convert_obj(obj), sort=True, gpr_index=gpr_index
+        )
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
         if self._timegrouper.key is not None:
@@ -194,19 +193,6 @@ class Resampler(BaseGroupBy, PandasObject):
             return self[attr]
 
         return object.__getattribute__(self, attr)
-
-    # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
-    @property
-    def obj(self) -> NDFrame:  # type: ignore[override]
-        # error: Incompatible return value type (got "Optional[Any]",
-        # expected "NDFrameT")
-        return self._timegrouper.obj  # type: ignore[return-value]
-
-    @property
-    def ax(self):
-        # we can infer that this is a PeriodIndex/DatetimeIndex/TimedeltaIndex,
-        #  but skipping annotating bc the overrides overwhelming
-        return self._timegrouper.ax
 
     @property
     def _from_selection(self) -> bool:
@@ -244,7 +230,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
-        bin_grouper = BinGrouper(bins, binlabels, indexer=self._timegrouper.indexer)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
     @Substitution(
@@ -434,15 +420,13 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
         try:
-            if isinstance(obj, ABCDataFrame) and callable(how):
-                # Check if the function is reducing or not.
-                # e.g. test_resample_apply_with_additional_args
-                result = grouped._aggregate_item_by_item(how, *args, **kwargs)
+            if callable(how):
+                # TODO: test_resample_apply_with_additional_args fails if we go
+                #  through the non-lambda path, not clear that it should.
+                func = lambda x: how(x, *args, **kwargs)
+                result = grouped.aggregate(func)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except DataError:
-            # got TypeErrors on aggregation
-            result = grouped.apply(how, *args, **kwargs)
         except (AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
             # alternatively we want to evaluate only a column of the input
@@ -1189,6 +1173,9 @@ class _GroupByMixin(PandasObject):
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
 
+        self.ax = parent.ax
+        self.obj = parent.obj
+
     @no_type_check
     def _apply(self, f, *args, **kwargs):
         """
@@ -1197,7 +1184,7 @@ class _GroupByMixin(PandasObject):
         """
 
         def func(x):
-            x = self._resampler_cls(x, timegrouper=self._timegrouper)
+            x = self._resampler_cls(x, timegrouper=self._timegrouper, gpr_index=self.ax)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -1226,8 +1213,7 @@ class _GroupByMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            # error: "GotItemMixin" has no attribute "obj"
-            subset = self.obj  # type: ignore[attr-defined]
+            subset = self.obj
 
         # Try to select from a DataFrame, falling back to a Series
         try:
@@ -1688,9 +1674,8 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        self._set_grouper(obj)
+        _, ax, indexer = self._set_grouper(obj, gpr_index=None)
 
-        ax = self.ax
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -1698,6 +1683,7 @@ class TimeGrouper(Grouper):
                 kind=kind,
                 axis=self.axis,
                 group_keys=self.group_keys,
+                gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
             return PeriodIndexResampler(
@@ -1706,10 +1692,15 @@ class TimeGrouper(Grouper):
                 kind=kind,
                 axis=self.axis,
                 group_keys=self.group_keys,
+                gpr_index=ax,
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
-                obj, timegrouper=self, axis=self.axis, group_keys=self.group_keys
+                obj,
+                timegrouper=self,
+                axis=self.axis,
+                group_keys=self.group_keys,
+                gpr_index=ax,
             )
 
         raise TypeError(
@@ -2137,19 +2128,19 @@ def _adjust_dates_anchored(
 
     origin_nanos = 0  # origin == "epoch"
     if origin == "start_day":
-        origin_nanos = first.normalize().value
+        origin_nanos = first.normalize()._value
     elif origin == "start":
-        origin_nanos = first.value
+        origin_nanos = first._value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.as_unit("ns").value
+        origin_nanos = origin.as_unit("ns")._value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin_last.value - first.value) // freq.nanos
+        sub_freq_times = (origin_last._value - first._value) // freq.nanos
         if closed == "left":
             sub_freq_times += 1
         first = origin_last - sub_freq_times * freq
-        origin_nanos = first.value
-    origin_nanos += offset.value if offset else 0
+        origin_nanos = first._value
+    origin_nanos += offset._value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
     # Perform the calculation in UTC in order to avoid localizing on an
@@ -2161,34 +2152,34 @@ def _adjust_dates_anchored(
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
 
-    foffset = (first.value - origin_nanos) % freq.nanos
-    loffset = (last.value - origin_nanos) % freq.nanos
+    foffset = (first._value - origin_nanos) % freq.nanos
+    loffset = (last._value - origin_nanos) % freq.nanos
 
     if closed == "right":
         if foffset > 0:
             # roll back
-            fresult_int = first.value - foffset
+            fresult_int = first._value - foffset
         else:
-            fresult_int = first.value - freq.nanos
+            fresult_int = first._value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq.nanos - loffset)
         else:
             # already the end of the road
-            lresult_int = last.value
+            lresult_int = last._value
     else:  # closed == 'left'
         if foffset > 0:
-            fresult_int = first.value - foffset
+            fresult_int = first._value - foffset
         else:
             # start of the road
-            fresult_int = first.value
+            fresult_int = first._value
 
         if loffset > 0:
             # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq.nanos - loffset)
         else:
-            lresult_int = last.value + freq.nanos
+            lresult_int = last._value + freq.nanos
     fresult = Timestamp(fresult_int)
     lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:

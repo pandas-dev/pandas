@@ -23,13 +23,15 @@ from pandas._typing import (
     Scalar,
     SortKind,
     TakeIndexer,
+    TimeAmbiguous,
+    TimeNonexistent,
     npt,
 )
 from pandas.compat import (
-    pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -54,7 +56,9 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under6p0:
+from pandas.tseries.frequencies import to_offset
+
+if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -131,6 +135,16 @@ if TYPE_CHECKING:
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
+def get_unit_from_pa_dtype(pa_dtype):
+    # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
+    if pa_version_under11p0:
+        unit = str(pa_dtype).split("[", 1)[-1][:-1]
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError(pa_dtype)
+        return unit
+    return pa_dtype.unit
+
+
 def to_pyarrow_type(
     dtype: ArrowDtype | pa.DataType | Dtype | None,
 ) -> pa.DataType | None:
@@ -199,8 +213,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under6p0:
-            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under7p0:
+            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -261,6 +275,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             from pandas.core.tools.timedeltas import to_timedelta
 
             scalars = to_timedelta(strings, errors="raise")
+            if pa_type.unit != "ns":
+                # GH51175: test_from_sequence_of_strings_pa_array
+                # attempt to parse as int64 reflecting pyarrow's
+                # duration to string casting behavior
+                mask = isna(scalars)
+                if not isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                    strings = pa.array(strings, type=pa.string(), from_pandas=True)
+                strings = pc.if_else(mask, None, strings)
+                try:
+                    scalars = strings.cast(pa.int64())
+                except pa.ArrowInvalid:
+                    pass
         elif pa.types.is_time(pa_type):
             from pandas.core.tools.times import to_time
 
@@ -330,10 +356,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
+        if item is Ellipsis:
             # TODO: should be handled by pyarrow?
             item = slice(None)
 
@@ -529,11 +552,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # let ExtensionArray.arg{max|min} raise
             return getattr(super(), f"arg{method}")(skipna=skipna)
 
-        if pa_version_under6p0:
-            raise NotImplementedError(
-                f"arg{method} only implemented for pyarrow version >= 6.0"
-            )
-
         data = self._data
         if pa.types.is_duration(data.type):
             data = data.cast(pa.int64())
@@ -567,11 +585,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under6p0:
-            fallback_performancewarning(version="6")
-            return super().dropna()
-        else:
-            return type(self)(pc.drop_null(self._data))
+        return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -1052,6 +1066,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         elif name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             data_to_reduce = self._data.cast(pa.int64())
 
+        elif name in ["median", "mean", "std", "sem"] and pa.types.is_temporal(pa_type):
+            nbits = pa_type.bit_width
+            if nbits == 32:
+                data_to_reduce = self._data.cast(pa.int32())
+            else:
+                data_to_reduce = self._data.cast(pa.int64())
+
         if name == "sem":
 
             def pyarrow_meth(data, skip_nulls, **kwargs):
@@ -1089,6 +1110,22 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
+        if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
+            result = result.cast(pa_type)
+        if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
+            result = result.cast(pa.int64())
+            if pa.types.is_duration(pa_type):
+                result = result.cast(pa_type)
+            elif pa.types.is_time(pa_type):
+                unit = get_unit_from_pa_dtype(pa_type)
+                result = result.cast(pa.duration(unit))
+            elif pa.types.is_date(pa_type):
+                # go with closest available unit, i.e. "s"
+                result = result.cast(pa.duration("s"))
+            else:
+                # i.e. timestamp
+                result = result.cast(pa.duration(pa_type.unit))
+
         return result.as_py()
 
     def __setitem__(self, key, value) -> None:
@@ -1293,9 +1330,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
             Sorted, if possible.
         """
-        if pa_version_under6p0:
-            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
-
         pa_type = self._data.type
         if pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
@@ -1429,3 +1463,154 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
+
+    @property
+    def _dt_day(self):
+        return type(self)(pc.day(self._data))
+
+    @property
+    def _dt_day_of_week(self):
+        return type(self)(pc.day_of_week(self._data))
+
+    _dt_dayofweek = _dt_day_of_week
+    _dt_weekday = _dt_day_of_week
+
+    @property
+    def _dt_day_of_year(self):
+        return type(self)(pc.day_of_year(self._data))
+
+    _dt_dayofyear = _dt_day_of_year
+
+    @property
+    def _dt_hour(self):
+        return type(self)(pc.hour(self._data))
+
+    def _dt_isocalendar(self):
+        return type(self)(pc.iso_calendar(self._data))
+
+    @property
+    def _dt_is_leap_year(self):
+        return type(self)(pc.is_leap_year(self._data))
+
+    @property
+    def _dt_microsecond(self):
+        return type(self)(pc.microsecond(self._data))
+
+    @property
+    def _dt_minute(self):
+        return type(self)(pc.minute(self._data))
+
+    @property
+    def _dt_month(self):
+        return type(self)(pc.month(self._data))
+
+    @property
+    def _dt_nanosecond(self):
+        return type(self)(pc.nanosecond(self._data))
+
+    @property
+    def _dt_quarter(self):
+        return type(self)(pc.quarter(self._data))
+
+    @property
+    def _dt_second(self):
+        return type(self)(pc.second(self._data))
+
+    @property
+    def _dt_date(self):
+        return type(self)(self._data.cast(pa.date64()))
+
+    @property
+    def _dt_time(self):
+        unit = (
+            self.dtype.pyarrow_dtype.unit
+            if self.dtype.pyarrow_dtype.unit in {"us", "ns"}
+            else "ns"
+        )
+        return type(self)(self._data.cast(pa.time64(unit)))
+
+    @property
+    def _dt_tz(self):
+        return self.dtype.pyarrow_dtype.tz
+
+    def _dt_strftime(self, format: str):
+        return type(self)(pc.strftime(self._data, format=format))
+
+    def _round_temporally(
+        self,
+        method: Literal["ceil", "floor", "round"],
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        if ambiguous != "raise":
+            raise NotImplementedError("ambiguous is not supported.")
+        if nonexistent != "raise":
+            raise NotImplementedError("nonexistent is not supported.")
+        offset = to_offset(freq)
+        if offset is None:
+            raise ValueError(f"Must specify a valid frequency: {freq}")
+        pa_supported_unit = {
+            "A": "year",
+            "AS": "year",
+            "Q": "quarter",
+            "QS": "quarter",
+            "M": "month",
+            "MS": "month",
+            "W": "week",
+            "D": "day",
+            "H": "hour",
+            "T": "minute",
+            "S": "second",
+            "L": "millisecond",
+            "U": "microsecond",
+            "N": "nanosecond",
+        }
+        unit = pa_supported_unit.get(offset._prefix, None)
+        if unit is None:
+            raise ValueError(f"{freq=} is not supported")
+        multiple = offset.n
+        rounding_method = getattr(pc, f"{method}_temporal")
+        return type(self)(rounding_method(self._data, multiple=multiple, unit=unit))
+
+    def _dt_ceil(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("ceil", freq, ambiguous, nonexistent)
+
+    def _dt_floor(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("floor", freq, ambiguous, nonexistent)
+
+    def _dt_round(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        return self._round_temporally("round", freq, ambiguous, nonexistent)
+
+    def _dt_tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        if ambiguous != "raise":
+            raise NotImplementedError(f"{ambiguous=} is not supported")
+        if nonexistent != "raise":
+            raise NotImplementedError(f"{nonexistent=} is not supported")
+        if tz is None:
+            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
+            return type(self)(self._data.cast(new_type))
+        pa_tz = str(tz)
+        return type(self)(
+            self._data.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
+        )

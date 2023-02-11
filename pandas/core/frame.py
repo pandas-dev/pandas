@@ -652,6 +652,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy:
+                # if not copying data, ensure to still return a shallow copy
+                # to avoid the result sharing the same Manager
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
@@ -2633,13 +2637,15 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriter117 as statawriter,
             )
         else:  # versions 118 and 119
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriterUTF8 as statawriter,
             )
 
@@ -5514,8 +5520,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
