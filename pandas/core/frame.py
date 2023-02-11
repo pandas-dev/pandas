@@ -3867,23 +3867,26 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position 'loc'.
+        Set the given value in the column with position `loc`.
 
-        This is a positional analogue to __setitem__.
+        This is a positional analogue to `__setitem__`.
 
         Parameters
         ----------
         loc : int or sequence of ints
+            Index position for the column.
         value : scalar or arraylike
+            Value(s) for the column.
 
         Notes
         -----
-        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
-        _never_ try to set the values in place, but will always insert a new
-        array.
+        ``frame.isetimtem(loc, value)`` is an in-place method as it will
+        modify the frame in place (not returning a new object) but it will
+        not update the values of the column itself, it will instead insert
+        a new array.
 
-        In cases where `frame.columns` is unique, this is equivalent to
-        `frame[frame.columns[i]] = value`.
+        In cases where ``frame.columns`` is unique, this is equivalent to
+        ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
             if is_scalar(loc):
