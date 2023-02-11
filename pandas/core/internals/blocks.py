@@ -1010,6 +1010,7 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
+        using_cow: bool, default False
 
         Returns
         -------
@@ -1184,7 +1185,12 @@ class Block(PandasObject):
         return [self.make_block(result)]
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1203,20 +1209,22 @@ class Block(PandasObject):
         if noop:
             # we can't process the value, but nothing to do
             if inplace:
+                if using_cow:
+                    return [self.copy(deep=False)]
                 # Arbitrarily imposing the convention that we ignore downcast
                 #  on no-op when inplace=True
                 return [self]
             else:
                 # GH#45423 consistent downcasting on no-ops.
-                nb = self.copy()
-                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                nb = self.copy(deep=not using_cow)
+                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
                 return nbs
 
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            nbs = self.putmask(mask.T, value)
+            nbs = self.putmask(mask.T, value, using_cow=using_cow)
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
@@ -1226,7 +1234,10 @@ class Block(PandasObject):
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
         return extend_blocks(
-            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+            [
+                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                for blk in nbs
+            ]
         )
 
     def interpolate(
@@ -1721,12 +1732,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     values: ExtensionArray
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         if is_interval_dtype(self.dtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
-                value=value, limit=limit, inplace=inplace, downcast=downcast
+                value=value,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
+                using_cow=using_cow,
             )
         new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values)
