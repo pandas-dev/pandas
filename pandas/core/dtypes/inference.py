@@ -6,7 +6,6 @@ from collections import abc
 from numbers import Number
 import re
 from typing import (
-    TYPE_CHECKING,
     Hashable,
     Pattern,
 )
@@ -14,6 +13,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 
@@ -32,11 +32,6 @@ is_interval = lib.is_interval
 is_list_like = lib.is_list_like
 
 is_iterator = lib.is_iterator
-
-
-if TYPE_CHECKING:
-    # TypeGuard only available in py310+
-    from typing_extensions import TypeGuard
 
 
 def is_number(obj) -> TypeGuard[Number | np.number]:

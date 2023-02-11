@@ -74,10 +74,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
                 if np.isnan(val):
                     values[i] = DecimalDtype.na_value
                 else:
-                    # error: Argument 1 has incompatible type "Union[float,
-                    # floating[Any]]"; expected "Union[Decimal, float, str,
-                    # Tuple[int, Sequence[int], int]]"
-                    values[i] = DecimalDtype.type(val)  # type: ignore[arg-type]
+                    values[i] = DecimalDtype.type(val)
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
