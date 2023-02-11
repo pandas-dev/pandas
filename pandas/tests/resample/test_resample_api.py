@@ -405,12 +405,16 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        # In case 2, "date" is an index and a column, so agg still tries to agg
+        # In case 2, "date" is an index and a column, so get included in the agg
         if t == cases[2]:
-            # .var on dt64 column raises
-            msg = "Cannot cast DatetimeArray to dtype float64"
-            with pytest.raises(TypeError, match=msg):
-                t.aggregate([np.mean, np.std])
+            date_mean = t["date"].mean()
+            date_std = t["date"].std()
+            exp = pd.concat([date_mean, date_std, expected], axis=1)
+            exp.columns = pd.MultiIndex.from_product(
+                [["date", "A", "B"], ["mean", "std"]]
+            )
+            result = t.aggregate([np.mean, np.std])
+            tm.assert_frame_equal(result, exp)
         else:
             result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, expected)
