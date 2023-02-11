@@ -228,7 +228,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     Returns
     -------
-    ``pandas.api.typing.ExponentialMovingWindow`` subclass
+    pandas.api.typing.ExponentialMovingWindow
 
     See Also
     --------

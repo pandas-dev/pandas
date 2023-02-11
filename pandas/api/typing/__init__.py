@@ -7,13 +7,19 @@ from pandas.core.groupby import (
     SeriesGroupBy,
 )
 from pandas.core.resample import (
+    DatetimeIndexResamplerGroupby,
+    PeriodIndexResamplerGroupby,
     Resampler,
+    TimedeltaIndexResamplerGroupby,
     TimeGrouper,
 )
 from pandas.core.window import (
     Expanding,
+    ExpandingGroupby,
     ExponentialMovingWindow,
+    ExponentialMovingWindowGroupby,
     Rolling,
+    RollingGroupby,
     Window,
 )
 
@@ -24,15 +30,21 @@ from pandas.io.stata import StataReader
 
 __all__ = [
     "DataFrameGroupBy",
+    "DatetimeIndexResamplerGroupby",
     "Expanding",
+    "ExpandingGroupby",
     "ExponentialMovingWindow",
+    "ExponentialMovingWindowGroupby",
     "JsonReader",
+    "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",
+    "RollingGroupby",
     "SeriesGroupBy",
     "StataReader",
     # See TODO above
     # "Styler",
+    "TimedeltaIndexResamplerGroupby",
     "TimeGrouper",
     "Window",
 ]
