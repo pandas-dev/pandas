@@ -1045,6 +1045,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
+        elif opname in ["__add__", "__radd__"] and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            exc = None
         elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             exc = pa.ArrowNotImplementedError
         else:
@@ -1219,9 +1223,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return
 
         if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_binary(pa_dtype)
-            or pa.types.is_string(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
+            pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(

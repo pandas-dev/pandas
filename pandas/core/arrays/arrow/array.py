@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,6 +13,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.ops import (
+    scalar_binop,
+    vec_binop,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -47,6 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -454,6 +460,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        pa_type = self._data.type
+        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
+            operator.add,
+            roperator.radd,
+        ]:
+            if is_scalar(other):
+                result = scalar_binop(self.to_numpy(), other, op)
+            else:
+                result = vec_binop(self.to_numpy(), np.asarray(other), op)
+            return type(self)._from_sequence(result)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
