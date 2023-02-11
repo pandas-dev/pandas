@@ -19,8 +19,6 @@ from pandas._typing import (
 )
 
 from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_numeric_v_string_like,
     is_re,
     is_re_compilable,
     is_scalar,
@@ -44,7 +42,7 @@ def should_use_regex(regex: bool, to_replace: Any) -> bool:
 
 def compare_or_regex_search(
     a: ArrayLike, b: Scalar | Pattern, regex: bool, mask: npt.NDArray[np.bool_]
-) -> ArrayLike | bool:
+) -> ArrayLike:
     """
     Compare two array-like inputs of the same shape or two scalar values
 
@@ -94,15 +92,6 @@ def compare_or_regex_search(
     # GH#32621 use mask to avoid comparing to NAs
     if isinstance(a, np.ndarray):
         a = a[mask]
-
-    if is_numeric_v_string_like(a, b):
-        # GH#29553 avoid deprecation warnings from numpy
-        return np.zeros(a.shape, dtype=bool)
-
-    elif is_datetimelike_v_numeric(a, b):
-        # GH#29553 avoid deprecation warnings from numpy
-        _check_comparison_types(False, a, b)
-        return False
 
     result = op(a)
 

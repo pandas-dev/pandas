@@ -927,7 +927,7 @@ def test_cummax(dtypes_for_minmax):
 def test_cummax_i8_at_implementation_bound():
     # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
     #  for int64 dtype GH#46382
-    ser = Series([pd.NaT.value + n for n in range(5)])
+    ser = Series([pd.NaT._value + n for n in range(5)])
     df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
     gb = df.groupby("A")
 
@@ -1509,6 +1509,12 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "sum",
         "diff",
         "pct_change",
+        "var",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "prod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -1555,11 +1561,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     elif dtype is object:
         msg = "|".join(
             [
-                "Cannot use numeric_only=True",
-                "called with numeric_only=True and dtype object",
+                "SeriesGroupBy.sem called with numeric_only=True and dtype object",
                 "Series.skew does not allow numeric_only=True with non-numeric",
-                "got an unexpected keyword argument 'numeric_only'",
-                "is not supported for object dtype",
+                "cum(sum|prod|min|max) is not supported for object dtype",
+                r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )
         with pytest.raises(TypeError, match=msg):

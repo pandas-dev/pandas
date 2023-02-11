@@ -800,8 +800,8 @@ inf_vals = [
 
 int_na_vals = [
     # Values that match iNaT, which we treat as null in specific cases
-    np.int64(NaT.value),
-    int(NaT.value),
+    np.int64(NaT._value),
+    int(NaT._value),
 ]
 
 sometimes_na_vals = [Decimal("NaN")]

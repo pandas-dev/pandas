@@ -63,8 +63,8 @@ fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
 gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
-parquet = ['pyarrow>=6.0.0']
-feather = ['pyarrow>=6.0.0']
+parquet = ['pyarrow>=7.0.0']
+feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
         'tables>=3.6.1']
@@ -97,7 +97,7 @@ all = ['beautifulsoup4>=4.9.3',
        'openpyxl>=3.0.7',
        'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
-       'pyarrow>=6.0.0',
+       'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
        'PyQt5>=5.15.1',
        'pyreadstat>=1.1.2',
@@ -143,6 +143,7 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
+environment = { LDFLAGS="-Wl,--strip-debug" }
 test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python {project}/ci/test_wheels.py"
 
@@ -159,6 +160,13 @@ select = "*-win*"
 # the base windows docker image to check if any dlls are
 # missing from the wheel
 test-command = ""
+
+[[tool.cibuildwheel.overrides]]
+# Don't strip wheels on macOS.
+# macOS doesn't support stripping wheels with linker
+# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
+select = "*-macosx*"
+environment = ""
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win32"
