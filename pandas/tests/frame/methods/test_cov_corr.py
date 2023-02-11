@@ -218,9 +218,8 @@ class TestDataFrameCorr:
         _ = df.corr(numeric_only=True)
 
         if using_copy_on_write:
-            # TODO(CoW) we should disallow this, so `df` doesn't get updated
-            ser.values[0] = 99
-            assert df.loc[0, "A"] == 99
+            ser.iloc[0] = 99
+            assert df.loc[0, "A"] == 0
         else:
             # Check that the corr didn't break link between ser and df
             ser.values[0] = 99

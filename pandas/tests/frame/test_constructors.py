@@ -2111,13 +2111,14 @@ class TestDataFrameConstructors:
 
     def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
         if not using_array_manager:
-            df = DataFrame(float_frame.values)
+            arr = float_frame.values.copy()
+            df = DataFrame(arr)
 
-            float_frame.values[5] = 5
+            arr[5] = 5
             assert (df.values[5] == 5).all()
 
-            df = DataFrame(float_frame.values, copy=True)
-            float_frame.values[6] = 6
+            df = DataFrame(arr, copy=True)
+            arr[6] = 6
             assert not (df.values[6] == 6).all()
         else:
             arr = float_frame.values.copy()
