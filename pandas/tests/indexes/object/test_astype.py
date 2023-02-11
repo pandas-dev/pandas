@@ -15,7 +15,7 @@ def test_astype_str_from_bytes():
     #  ensure_string_array which does f"{val}"
     idx = Index(["あ", b"a"], dtype="object")
     result = idx.astype(str)
-    expected = Index(["あ", "b'a'"], dtype="object")
+    expected = Index(["あ", "a"], dtype="object")
     tm.assert_index_equal(result, expected)
 
     # while we're here, check that Series.astype behaves the same
