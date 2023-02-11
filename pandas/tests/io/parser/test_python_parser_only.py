@@ -14,6 +14,7 @@ from io import (
 )
 from typing import Iterator
 
+import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -500,7 +501,7 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only):
 """
 
     result = parser.read_csv(
-        StringIO(data), sep=";", dtype={"a": str, "b": float, "c": int}, thousands=","
+        StringIO(data), sep=";", dtype={"a": str, "b": float, "c": np.int64}, thousands=","
     )
     expected = DataFrame(
         {

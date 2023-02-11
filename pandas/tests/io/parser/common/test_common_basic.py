@@ -143,7 +143,7 @@ def test__search_replace_num_columns(all_parsers):
     )
 
     result = parser.read_csv(
-        StringIO(data), sep=";", dtype={"A": str, "B": int, "C": int}, thousands="."
+        StringIO(data), sep=";", dtype={"A": str, "B": np.int64, "C": np.int64}, thousands="."
     )
     tm.assert_frame_equal(result, expected)
 
