@@ -1001,7 +1001,7 @@ class TestPandasContainer:
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
         expected = DataFrame(
-            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+            {"a": [pd.Timedelta(td).as_unit("ns")._value, ts.as_unit("ns")._value]}
         )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
@@ -1869,11 +1869,11 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize(
         "orient", ["split", "records", "values", "index", "columns"]
     )
-    def test_read_json_nullable(self, string_storage, dtype_backend, orient):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_read_json_nullable(self, string_storage, dtype_backend, orient, option):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
         df = DataFrame(
@@ -1900,7 +1900,11 @@ class TestPandasContainer:
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
             with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_json(out, use_nullable_dtypes=True, orient=orient)
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", option):
+                        result = read_json(out, orient=orient)
+                else:
+                    result = read_json(out, use_nullable_dtypes=True, orient=orient)
 
         expected = DataFrame(
             {
@@ -1931,7 +1935,6 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
         # GH#50750
@@ -1953,3 +1956,19 @@ class TestPandasContainer:
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 
         tm.assert_series_equal(result, expected)
+
+
+def test_invalid_engine():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="The engine type foo"):
+        read_json(out, engine="foo")
+
+
+def test_pyarrow_engine_lines_false():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="currently pyarrow engine only supports"):
+        read_json(out, engine="pyarrow", lines=False)

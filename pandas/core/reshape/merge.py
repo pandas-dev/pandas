@@ -89,7 +89,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible
@@ -131,7 +134,7 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool = True,
+    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -741,7 +744,7 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool,
+        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -790,7 +793,7 @@ class _MergeOperation:
         result = concat([left, right], axis=1, copy=copy)
         return result
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -1322,9 +1325,7 @@ class _MergeOperation:
 
                         mask = ~np.isnan(lk)
                         match = lk == casted
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any], Any]" has no attribute "all"
-                        if not match[mask].all():  # type: ignore[union-attr]
+                        if not match[mask].all():
                             warnings.warn(
                                 "You are merging on int and float "
                                 "columns where the float values "
@@ -1344,9 +1345,7 @@ class _MergeOperation:
 
                         mask = ~np.isnan(rk)
                         match = rk == casted
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any], Any]" has no attribute "all"
-                        if not match[mask].all():  # type: ignore[union-attr]
+                        if not match[mask].all():
                             warnings.warn(
                                 "You are merging on int and float "
                                 "columns where the float values "
@@ -1801,7 +1800,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -2109,11 +2108,23 @@ class _AsOfMerge(_OrderedMerge):
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
-            left_values = left_values.view("i8")
-            right_values = right_values.view("i8")
             if tolerance is not None:
                 tolerance = Timedelta(tolerance)
-                tolerance = tolerance.value
+
+                # TODO: we have no test cases with PeriodDtype here; probably
+                #  need to adjust tolerance for that case.
+                if left_values.dtype.kind in ["m", "M"]:
+                    # Make sure the i8 representation for tolerance
+                    #  matches that for left_values/right_values.
+                    lvs = ensure_wrapped_if_datetimelike(left_values)
+                    tolerance = tolerance.as_unit(lvs.unit)
+
+                tolerance = tolerance._value
+
+            # TODO: require left_values.dtype == right_values.dtype, or at least
+            #  comparable for e.g. dt64tz
+            left_values = left_values.view("i8")
+            right_values = right_values.view("i8")
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
@@ -2138,10 +2149,14 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(lbv.dtype)
             by_type_caster = _type_casters[by_type]
-            # error: Cannot call function of unknown type
-            left_by_values = by_type_caster(lbv)  # type: ignore[operator]
-            # error: Cannot call function of unknown type
-            right_by_values = by_type_caster(rbv)  # type: ignore[operator]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            left_by_values = by_type_caster(lbv)  # type: ignore[assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            right_by_values = by_type_caster(rbv)  # type: ignore[assignment]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)

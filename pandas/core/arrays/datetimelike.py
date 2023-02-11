@@ -176,7 +176,7 @@ def _period_dispatch(meth: F) -> F:
         if result is NaT:
             return NaT
         elif isinstance(result, Timestamp):
-            return self._box_func(result.value)
+            return self._box_func(result._value)
 
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
@@ -1003,7 +1003,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             i8values = other.ordinal
             mask = None
         elif isinstance(other, (Timestamp, Timedelta)):
-            i8values = other.value
+            i8values = other._value
             mask = None
         else:
             # PeriodArray, DatetimeArray, TimedeltaArray
@@ -2034,11 +2034,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # Reductions
 
     def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 discussion of desired behavior long-term
+        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 discussion of desired behavior long-term
+        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
+
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------
