@@ -134,7 +134,7 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool = True,
+    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -744,7 +744,7 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool,
+        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -793,7 +793,7 @@ class _MergeOperation:
         result = concat([left, right], axis=1, copy=copy)
         return result
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -1800,7 +1800,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
