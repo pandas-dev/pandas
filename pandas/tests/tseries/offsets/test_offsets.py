@@ -12,7 +12,6 @@ from typing import (
     List,
     Tuple,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -576,7 +575,22 @@ class TestCommon:
         arr = dti._data._ndarray.astype(f"M8[{unit}]")
         dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
 
-        with warnings.catch_warnings(record=True) as w:
+        performance_warns = isinstance(
+            off,
+            (
+                CustomBusinessDay,
+                BusinessHour,
+                CustomBusinessHour,
+                LastWeekOfMonth,
+                FY5253,
+                FY5253Quarter,
+                WeekOfMonth,
+                Easter,
+                CustomBusinessMonthBegin,
+                CustomBusinessMonthEnd,
+            ),
+        )
+        with tm.maybe_produces_warning(PerformanceWarning, performance_warns) as w:
             expected = dti._data + off
             result = dta + off
 
@@ -586,7 +600,7 @@ class TestCommon:
             exp_unit = Timedelta(off).unit
         expected = expected.as_unit(exp_unit)
 
-        if len(w):
+        if w is not None and len(w):
             # PerformanceWarning was issued bc _apply_array raised, so we
             #  fell back to object dtype, for which the code path does
             #  not yet cast back to the original resolution
