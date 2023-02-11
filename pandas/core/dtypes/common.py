@@ -397,6 +397,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_period_dtype
     >>> is_period_dtype(object)
     False
     >>> is_period_dtype(PeriodDtype(freq="D"))
@@ -433,6 +434,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_interval_dtype
     >>> is_interval_dtype(object)
     False
     >>> is_interval_dtype(IntervalDtype())
@@ -727,6 +729,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_signed_integer_dtype
     >>> is_signed_integer_dtype(str)
     False
     >>> is_signed_integer_dtype(int)
