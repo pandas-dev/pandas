@@ -223,6 +223,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
   - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
   - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
   - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
@@ -1229,6 +1230,7 @@ Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` that would not return ``True`` for :class:`StringDtype` or :class:`ArrowDtype` with ``pyarrow.string()`` (:issue:`15585`)
 - Bug in converting string dtypes to "datetime64[ns]" or "timedelta64[ns]" incorrectly raising ``TypeError`` (:issue:`36153`)
+- Bug in setting values in a string-dtype column with an array, mutating the array as side effect when it contains missing values (:issue:`51299`)
 -
 
 Interval

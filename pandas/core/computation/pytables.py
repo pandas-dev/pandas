@@ -3,10 +3,7 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
 
 import numpy as np
 
@@ -35,9 +32,6 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
-
-if TYPE_CHECKING:
-    from pandas.compat.chainmap import DeepChainMap
 
 
 class PyTablesScope(_scope.Scope):
@@ -567,7 +561,7 @@ class PyTablesExpr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict: DeepChainMap[Any, Any] | None = None
+        local_dict: _scope.DeepChainMap[Any, Any] | None = None
 
         if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope
