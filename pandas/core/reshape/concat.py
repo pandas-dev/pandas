@@ -73,7 +73,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -90,7 +90,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> Series:
     ...
 
@@ -107,7 +107,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -124,7 +124,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -141,7 +141,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
