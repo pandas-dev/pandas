@@ -832,6 +832,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_int64_dtype
     >>> is_int64_dtype(str)
     False
     >>> is_int64_dtype(np.int32)
@@ -1216,6 +1217,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_float_dtype
     >>> is_float_dtype(str)
     False
     >>> is_float_dtype(int)
