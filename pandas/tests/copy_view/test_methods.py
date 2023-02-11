@@ -1331,9 +1331,9 @@ def test_isetitem_series(using_copy_on_write, dtype):
     tm.assert_series_equal(ser, ser_orig)
 
     # mutating series doesn't update dataframe
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
     ser = Series([7, 8, 9])
-    df.isetitem(1, ser)
+    df.isetitem(0, ser)
 
     ser.loc[0] = 0
     expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
