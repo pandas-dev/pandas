@@ -356,8 +356,9 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    df = DataFrame(np.random.randn(1000))
-    df.values[::2] = np.nan
+    arr = np.random.randn(1000)
+    arr[::2] = np.nan
+    df = DataFrame(arr)
 
     labels = np.random.randint(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
@@ -1509,6 +1510,12 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "sum",
         "diff",
         "pct_change",
+        "var",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "prod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
