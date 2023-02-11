@@ -550,8 +550,9 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_columns(self):
-        df = DataFrame(np.random.randn(10, 10))
-        df.values[:, ::2] = np.nan
+        arr = np.random.randn(10, 10)
+        arr[:, ::2] = np.nan
+        df = DataFrame(arr)
 
         result = df.fillna(method="ffill", axis=1)
         expected = df.T.fillna(method="pad").T

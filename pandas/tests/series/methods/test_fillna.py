@@ -32,7 +32,7 @@ class TestSeriesFillNA:
         filled2 = series.fillna(value=series.values[2])
 
         expected = series.copy()
-        expected.values[3] = expected.values[2]
+        expected.iloc[3] = expected.iloc[2]
 
         tm.assert_series_equal(filled, expected)
         tm.assert_series_equal(filled2, expected)

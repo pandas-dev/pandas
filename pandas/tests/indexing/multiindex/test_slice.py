@@ -750,7 +750,7 @@ class TestMultiIndexSlicers:
 
         exp = ymd["A"].copy()
         s[5:] = 0
-        exp.values[5:] = 0
+        exp.iloc[5:] = 0
         tm.assert_numpy_array_equal(s.values, exp.values)
 
         result = ymd[5:]
