@@ -516,7 +516,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
-        return self._data.is_null().to_numpy()
+        # error: Incompatible return value type (got "Union[bool, bool_]",
+        # expected "bool")
+        return self._data.is_null().to_numpy()  # type: ignore[return-value]
 
     def argsort(
         self,
