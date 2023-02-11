@@ -1208,6 +1208,7 @@ Numeric
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
 - Bug in :meth:`DataFrame.query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
+- Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with NA tz-aware data and ``axis=1`` would return incorrect results (:issue:`51242`)
 
 Conversion
 ^^^^^^^^^^
