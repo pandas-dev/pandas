@@ -195,3 +195,42 @@ def test_astype_arrow_timestamp(using_copy_on_write):
         assert np.shares_memory(
             get_array(df, "a").asi8, get_array(result, "a")._pa_array
         )
+
+
+def test_convert_dtypes_infer_objects(using_copy_on_write):
+    ser = Series(["a", "b", "c"])
+    ser_orig = ser.copy()
+    result = ser.convert_dtypes(
+        convert_integer=False,
+        convert_boolean=False,
+        convert_floating=False,
+        convert_string=False,
+    )
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(result))
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+
+    result.iloc[0] = "x"
+    tm.assert_series_equal(ser, ser_orig)
+
+
+def test_convert_dtypes(using_copy_on_write):
+    df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
+    df_orig = df.copy()
+    df2 = df.convert_dtypes()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+        assert not np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
+
+    df2.iloc[0, 0] = "x"
+    tm.assert_frame_equal(df, df_orig)

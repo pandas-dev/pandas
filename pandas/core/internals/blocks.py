@@ -228,7 +228,10 @@ class Block(PandasObject):
 
     @final
     def make_block_same_class(
-        self, values, placement: BlockPlacement | None = None
+        self,
+        values,
+        placement: BlockPlacement | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> Block:
         """Wrap given values in a block of same type as self."""
         # Pre-2.0 we called ensure_wrapped_if_datetimelike because fastparquet
@@ -237,7 +240,7 @@ class Block(PandasObject):
             placement = self._mgr_locs
 
         # We assume maybe_coerce_values has already been called
-        return type(self)(values, placement=placement, ndim=self.ndim)
+        return type(self)(values, placement=placement, ndim=self.ndim, refs=refs)
 
     @final
     def __repr__(self) -> str:
@@ -421,7 +424,9 @@ class Block(PandasObject):
         return self.astype(new_dtype, copy=False)
 
     @final
-    def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
+    def _maybe_downcast(
+        self, blocks: list[Block], downcast=None, using_cow: bool = False
+    ) -> list[Block]:
         if downcast is False:
             return blocks
 
@@ -431,23 +436,26 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks([blk.convert() for blk in blocks])
+            return extend_blocks(
+                [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
+            )
 
         if downcast is None:
             return blocks
 
-        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
+        return extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype) -> list[Block]:
+    def _downcast_2d(self, dtype, using_cow: bool = False) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
         Refactored to allow use of maybe_split.
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
-        return [self.make_block(new_values)]
+        refs = self.refs if using_cow and new_values is self.values else None
+        return [self.make_block(new_values, refs=refs)]
 
     def convert(
         self,
@@ -665,6 +673,7 @@ class Block(PandasObject):
         dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -674,7 +683,11 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self if inplace else self.copy()
+            if using_cow and inplace:
+                # TODO(CoW): Optimize
+                blk = self.copy()
+            else:
+                blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
@@ -703,7 +716,11 @@ class Block(PandasObject):
 
         masks = [extract_bool_array(x) for x in masks]
 
-        rb = [self if inplace else self.copy()]
+        if using_cow and inplace:
+            # TODO(CoW): Optimize
+            rb = [self.copy()]
+        else:
+            rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
@@ -929,7 +946,7 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
-    def setitem(self, indexer, value) -> Block:
+    def setitem(self, indexer, value, using_cow: bool = False) -> Block:
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -939,6 +956,8 @@ class Block(PandasObject):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -974,10 +993,17 @@ class Block(PandasObject):
                     # checking lib.is_scalar here fails on
                     #  test_iloc_setitem_custom_object
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
+
+            if using_cow and self.refs.has_reference():
+                values = values.copy()
+                self = self.make_block_same_class(
+                    values.T if values.ndim == 2 else values
+                )
+
             values[indexer] = casted
         return self
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -988,6 +1014,7 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
+        using_cow: bool, default False
 
         Returns
         -------
@@ -1005,11 +1032,21 @@ class Block(PandasObject):
         new = extract_array(new, extract_numpy=True)
 
         if noop:
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
 
         try:
             casted = np_can_hold_element(values.dtype, new)
+
+            if using_cow and self.refs.has_reference():
+                # Do this here to avoid copying twice
+                values = values.copy()
+                self = self.make_block_same_class(values)
+
             putmask_without_repeat(values.T, mask, casted)
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
 
@@ -1021,7 +1058,7 @@ class Block(PandasObject):
                     return self.coerce_to_target_dtype(new).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
-                    nb = self.setitem(indexer, new[indexer])
+                    nb = self.setitem(indexer, new[indexer], using_cow=using_cow)
                     return [nb]
 
             else:
@@ -1036,7 +1073,7 @@ class Block(PandasObject):
                         n = new[:, i : i + 1]
 
                     submask = orig_mask[:, i : i + 1]
-                    rbs = nb.putmask(submask, n)
+                    rbs = nb.putmask(submask, n, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1152,7 +1189,12 @@ class Block(PandasObject):
         return [self.make_block(result)]
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1171,20 +1213,22 @@ class Block(PandasObject):
         if noop:
             # we can't process the value, but nothing to do
             if inplace:
+                if using_cow:
+                    return [self.copy(deep=False)]
                 # Arbitrarily imposing the convention that we ignore downcast
                 #  on no-op when inplace=True
                 return [self]
             else:
                 # GH#45423 consistent downcasting on no-ops.
-                nb = self.copy()
-                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                nb = self.copy(deep=not using_cow)
+                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
                 return nbs
 
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            nbs = self.putmask(mask.T, value)
+            nbs = self.putmask(mask.T, value, using_cow=using_cow)
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
@@ -1194,7 +1238,10 @@ class Block(PandasObject):
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
         return extend_blocks(
-            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+            [
+                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                for blk in nbs
+            ]
         )
 
     def interpolate(
@@ -1209,6 +1256,7 @@ class Block(PandasObject):
         limit_area: str | None = None,
         fill_value: Any | None = None,
         downcast: str | None = None,
+        using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
 
@@ -1216,6 +1264,8 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
         try:
@@ -1224,8 +1274,10 @@ class Block(PandasObject):
             m = None
         if m is None and self.dtype.kind != "f":
             # only deal with floats
-            # bc we already checked that can_hold_na, we dont have int dtype here
+            # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
         if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
@@ -1244,7 +1296,15 @@ class Block(PandasObject):
                 **kwargs,
             )
 
-        data = self.values if inplace else self.values.copy()
+        refs = None
+        if inplace:
+            if using_cow and self.refs.has_reference():
+                data = self.values.copy()
+            else:
+                data = self.values
+                refs = self.refs
+        else:
+            data = self.values.copy()
         data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
 
         missing.interpolate_array_2d(
@@ -1259,8 +1319,8 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        nb = self.make_block_same_class(data)
-        return nb._maybe_downcast([nb], downcast)
+        nb = self.make_block_same_class(data, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow)
 
     def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
         """return block for the diff of the values"""
@@ -1418,7 +1478,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
-    def setitem(self, indexer, value):
+    def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -1431,6 +1491,8 @@ class EABackedBlock(Block):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -1537,7 +1599,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -1555,7 +1617,15 @@ class EABackedBlock(Block):
         mask = self._maybe_squeeze_arg(mask)
 
         if not mask.any():
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
+
+        if using_cow and self.refs.has_reference():
+            values = values.copy()
+            self = self.make_block_same_class(  # type: ignore[assignment]
+                values.T if values.ndim == 2 else values
+            )
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -1605,6 +1675,9 @@ class EABackedBlock(Block):
             values = self.values.delete(loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+        elif self.values.ndim == 1:
+            # We get here through to_stata
+            return []
         return super().delete(loc)
 
     @cache_readonly
@@ -1632,6 +1705,7 @@ class EABackedBlock(Block):
         inplace: bool = False,
         limit: int | None = None,
         fill_value=None,
+        using_cow: bool = False,
         **kwargs,
     ):
         values = self.values
@@ -1662,12 +1736,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     values: ExtensionArray
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         if is_interval_dtype(self.dtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
-                value=value, limit=limit, inplace=inplace, downcast=downcast
+                value=value,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
+                using_cow=using_cow,
             )
         new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values)
@@ -2011,6 +2094,7 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
         inplace: bool = False,
         limit: int | None = None,
         fill_value=None,
+        using_cow: bool = False,
         **kwargs,
     ):
         values = self.values
@@ -2020,12 +2104,20 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
         # "Literal['linear']")  [comparison-overlap]
         if method == "linear":  # type: ignore[comparison-overlap]
             # TODO: GH#50950 implement for arbitrary EAs
-            data_out = values._ndarray if inplace else values._ndarray.copy()
+            refs = None
+            if using_cow:
+                if inplace and not self.refs.has_reference():
+                    data_out = values._ndarray
+                    refs = self.refs
+                else:
+                    data_out = values._ndarray.copy()
+            else:
+                data_out = values._ndarray if inplace else values._ndarray.copy()
             missing.interpolate_array_2d(
                 data_out, method=method, limit=limit, index=index, axis=axis
             )
             new_values = type(values)._simple_new(data_out, dtype=values.dtype)
-            return self.make_block_same_class(new_values)
+            return self.make_block_same_class(new_values, refs=refs)
 
         elif values.ndim == 2 and axis == 0:
             # NDArrayBackedExtensionArray.fillna assumes axis=1
@@ -2167,7 +2259,9 @@ def get_block_type(dtype: DtypeObj):
     return cls
 
 
-def new_block_2d(values: ArrayLike, placement: BlockPlacement):
+def new_block_2d(
+    values: ArrayLike, placement: BlockPlacement, refs: BlockValuesRefs | None = None
+):
     # new_block specialized to case with
     #  ndim=2
     #  isinstance(placement, BlockPlacement)
@@ -2175,7 +2269,7 @@ def new_block_2d(values: ArrayLike, placement: BlockPlacement):
     klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
-    return klass(values, ndim=2, placement=placement)
+    return klass(values, ndim=2, placement=placement, refs=refs)
 
 
 def new_block(
