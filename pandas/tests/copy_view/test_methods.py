@@ -69,11 +69,11 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
         lambda df, copy: df.rename_axis(index="test", copy=copy),
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
-        # lambda df, copy: df.astype({'b': 'int64'}, copy=copy),
+        lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
         lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
-        # lambda df, copy: df.infer_objects(copy=copy)
+        lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
         lambda df, copy: df.to_period(freq="D", copy=copy),
         lambda df, copy: df.tz_localize("US/Central", copy=copy),
@@ -87,11 +87,11 @@ def test_copy_shallow(using_copy_on_write):
         "set_axis",
         "rename_axis0",
         "rename_axis1",
-        # "astype",  # CoW not yet implemented
+        "astype",
         # "swaplevel",  # only series
         "swapaxes",
         "truncate",
-        # "infer_objects",  # CoW not yet implemented
+        "infer_objects",
         "to_timestamp",
         "to_period",
         "tz_localize",
@@ -1240,8 +1240,9 @@ def test_replace(using_copy_on_write, replace_kwargs):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_putmask(using_copy_on_write):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 2})
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_putmask(using_copy_on_write, dtype):
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
     view = df[:]
     df_orig = df.copy()
     df[df == df] = 5
@@ -1252,6 +1253,51 @@ def test_putmask(using_copy_on_write):
     else:
         # Without CoW the original will be modified
         assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        assert view.iloc[0, 0] == 5
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_putmask_no_reference(using_copy_on_write, dtype):
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
+    arr_a = get_array(df, "a")
+    df[df == df] = 5
+
+    if using_copy_on_write:
+        assert np.shares_memory(arr_a, get_array(df, "a"))
+
+
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
+    df = DataFrame({"a": [1.5, 2], "b": 1.5}, dtype=dtype)
+    arr_a = get_array(df, "a")
+    df[df == df] = DataFrame({"a": [5.5, 5]})
+
+    if using_copy_on_write:
+        assert np.shares_memory(arr_a, get_array(df, "a"))
+
+
+@pytest.mark.parametrize("val, exp", [(5.5, True), (5, False)])
+def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
+    view = df[:]
+    df_orig = df.copy()
+    indexer = DataFrame(
+        [[True, False, False], [True, False, False]], columns=list("abc")
+    )
+    df[indexer] = val
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        # TODO(CoW): Could split blocks to avoid copying the whole block
+        assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
+        assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
+        assert df._mgr._has_no_reference(1) is not exp
+        assert not df._mgr._has_no_reference(2)
+        tm.assert_frame_equal(view, df_orig)
+    elif val == 5:
+        # Without CoW the original will be modified, the other case upcasts, e.g. copy
+        assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
         assert view.iloc[0, 0] == 5
 
 
