@@ -83,7 +83,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Partially validate docstrings (EX01)' ; echo $MSG
+    MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
         pandas.Series.dtype \
@@ -187,7 +187,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.show_versions \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.unit \
         pandas.Timestamp.as_unit \
         pandas.Timestamp.ctime \
         pandas.Timestamp.date \
@@ -205,7 +204,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.utctimetuple \
         pandas.Timestamp.weekday \
         pandas.arrays.DatetimeArray \
-        pandas.Timedelta.components \
         pandas.Timedelta.view \
         pandas.Timedelta.as_unit \
         pandas.Timedelta.ceil \
@@ -268,6 +266,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_integer \
         pandas.api.types.pandas_dtype \
         pandas.read_clipboard \
+        pandas.ExcelFile \
         pandas.ExcelFile.parse \
         pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
@@ -574,7 +573,51 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.sparse.to_coo \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
-        pandas.DataFrame.__dataframe__ \
+        pandas.DataFrame.__dataframe__
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Partially validate docstrings (EX02)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
+        pandas.DataFrame.plot.line \
+        pandas.Period.strftime \
+        pandas.Series.floordiv \
+        pandas.Series.plot.line \
+        pandas.Series.rfloordiv \
+        pandas.Series.sparse.density \
+        pandas.Series.sparse.npoints \
+        pandas.Series.sparse.sp_values \
+        pandas.Timestamp.fromtimestamp \
+        pandas.api.types.infer_dtype \
+        pandas.api.types.is_datetime64_any_dtype \
+        pandas.api.types.is_datetime64_dtype \
+        pandas.api.types.is_datetime64_ns_dtype \
+        pandas.api.types.is_datetime64tz_dtype \
+        pandas.api.types.is_integer_dtype \
+        pandas.api.types.is_interval_dtype \
+        pandas.api.types.is_numeric_dtype \
+        pandas.api.types.is_object_dtype \
+        pandas.api.types.is_period_dtype \
+        pandas.api.types.is_signed_integer_dtype \
+        pandas.api.types.is_sparse \
+        pandas.api.types.is_string_dtype \
+        pandas.api.types.is_timedelta64_dtype \
+        pandas.api.types.is_timedelta64_ns_dtype \
+        pandas.api.types.is_unsigned_integer_dtype \
+        pandas.core.groupby.DataFrameGroupBy.take \
+        pandas.core.groupby.SeriesGroupBy.take \
+        pandas.io.formats.style.Styler.concat \
+        pandas.io.formats.style.Styler.export \
+        pandas.io.formats.style.Styler.set_td_classes \
+        pandas.io.formats.style.Styler.use \
+        pandas.io.json.build_table_schema \
+        pandas.merge_ordered \
+        pandas.option_context \
+        pandas.plotting.andrews_curves \
+        pandas.plotting.autocorrelation_plot \
+        pandas.plotting.lag_plot \
+        pandas.plotting.parallel_coordinates \
+        pandas.plotting.radviz \
+        pandas.tseries.frequencies.to_offset
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

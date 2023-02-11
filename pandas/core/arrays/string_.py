@@ -21,7 +21,7 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -115,9 +115,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under6p0:
+        if storage == "pyarrow" and pa_version_under7p0:
             raise ImportError(
-                "pyarrow>=6.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -414,16 +414,19 @@ class StringArray(BaseStringArray, PandasArray):
             if isna(value):
                 value = libmissing.NA
             elif not isinstance(value, str):
-                raise ValueError(
+                raise TypeError(
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise ValueError("Must provide strings.")
+                raise TypeError("Must provide strings.")
 
-            value[isna(value)] = libmissing.NA
+            mask = isna(value)
+            if mask.any():
+                value = value.copy()
+                value[isna(value)] = libmissing.NA
 
         super().__setitem__(key, value)
 
@@ -454,7 +457,8 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            # Skip the PandasArray.astype method
+            return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()

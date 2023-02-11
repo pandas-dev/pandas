@@ -252,7 +252,8 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int64": 1,
                 "object": 1,
                 "datetime64[ns]": 2,
-            }
+            },
+            name="count",
         )
         result = result.sort_index()
         expected = expected.sort_index()
@@ -371,8 +372,8 @@ def test_frame(compression, setup_path):
     df = tm.makeDataFrame()
 
     # put in some random NAs
-    df.values[0, 0] = np.nan
-    df.values[5, 3] = np.nan
+    df.iloc[0, 0] = np.nan
+    df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
         df, tm.assert_frame_equal, path=setup_path, compression=compression

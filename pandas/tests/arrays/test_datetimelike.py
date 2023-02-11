@@ -339,7 +339,7 @@ class SharedTests:
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
         #  for other tzs
-        i8vals = np.asarray([NaT.value + n for n in range(1, 5)], dtype="i8")
+        i8vals = np.asarray([NaT._value + n for n in range(1, 5)], dtype="i8")
         arr = self.array_cls(i8vals, freq="ns")
         arr[0]  # should not raise OutOfBoundsDatetime
 
@@ -815,7 +815,7 @@ class TestDatetimeArray(SharedTests):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
-        value = NaT.value
+        value = NaT._value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -1038,7 +1038,7 @@ class TestPeriodArray(SharedTests):
     def test_take_fill_valid(self, arr1d):
         arr = arr1d
 
-        value = NaT.value
+        value = NaT._value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -1181,15 +1181,15 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"), NaT.value),
+            (np.datetime64("NaT", "ns"), NaT._value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"), NaT.value),
+            (np.timedelta64("NaT", "ns"), NaT._value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), NaT.value),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), NaT._value),
         ),
     ],
     ids=lambda x: type(x).__name__,

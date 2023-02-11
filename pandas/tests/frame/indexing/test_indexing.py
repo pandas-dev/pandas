@@ -620,7 +620,7 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
                 val = np.random.randn()
-                expected.values[i, j] = val
+                expected.iloc[i, j] = val
 
                 ix[idx, col] = val
                 tm.assert_frame_equal(f, expected)
@@ -737,7 +737,7 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do positional indexing on NumericIndex with "
+            "cannot do positional indexing on Index with "
             r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):

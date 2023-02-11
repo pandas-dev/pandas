@@ -258,6 +258,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -675,6 +676,7 @@ def test_agg_split_object_part_datetime():
             "F": [1],
         },
         index=np.array([0]),
+        dtype=object,
     )
     tm.assert_frame_equal(result, expected)
 

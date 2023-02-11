@@ -1229,7 +1229,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -2174,6 +2176,8 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     2   1.0
     3  1.0k
     4  1.0M
+
+    >>> pd.set_option("display.float_format", None)  # unset option
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 
