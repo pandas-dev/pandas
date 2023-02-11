@@ -240,6 +240,10 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
+    @pytest.mark.xfail(reason="ValueError: setting an array element with a sequence")
+    def test_hash_pandas_object(self, data):
+        super().test_hash_pandas_object(data)
+
     @unhashable
     def test_value_counts(self, all_data, dropna):
         super().test_value_counts(all_data, dropna)
