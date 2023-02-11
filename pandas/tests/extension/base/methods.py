@@ -249,14 +249,17 @@ class BaseMethodsTests(BaseExtensionTests):
 
         assert df.A.values is not result.A.values
 
-    def test_fillna_copy_series(self, data_missing):
+    def test_fillna_copy_series(self, data_missing, no_op_with_cow: bool = False):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        assert ser._values is not result._values
+        if no_op_with_cow:
+            assert ser._values is result._values
+        else:
+            assert ser._values is not result._values
         assert ser._values is arr
 
     def test_fillna_length_mismatch(self, data_missing):
