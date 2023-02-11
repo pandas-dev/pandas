@@ -381,6 +381,8 @@ class TestGetIndexer:
     @pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
     def test_get_indexer_masked_na_boolean(self, dtype):
         # GH#39133
+        if dtype == "bool[pyarrow]":
+            pytest.importorskip("pyarrow")
         idx = Index([True, False, NA], dtype=dtype)
         result = idx.get_loc(False)
         assert result == 1
