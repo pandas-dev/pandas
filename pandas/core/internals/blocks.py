@@ -1077,7 +1077,9 @@ class Block(PandasObject):
                     res_blocks.extend(rbs)
                 return res_blocks
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1108,6 +1110,8 @@ class Block(PandasObject):
         icond, noop = validate_putmask(values, ~cond)
         if noop:
             # GH-39595: Always return a copy; short-circuit up/downcasting
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         if other is lib.no_default:
@@ -1127,8 +1131,10 @@ class Block(PandasObject):
                 # no need to split columns
 
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond)
-                return self._maybe_downcast(blocks, downcast=_downcast)
+                blocks = block.where(orig_other, cond, using_cow=using_cow)
+                return self._maybe_downcast(
+                    blocks, downcast=_downcast, using_cow=using_cow
+                )
 
             else:
                 # since _maybe_downcast would split blocks anyway, we
@@ -1145,7 +1151,9 @@ class Block(PandasObject):
                         oth = other[:, i : i + 1]
 
                     submask = cond[:, i : i + 1]
-                    rbs = nb.where(oth, submask, _downcast=_downcast)
+                    rbs = nb.where(
+                        oth, submask, _downcast=_downcast, using_cow=using_cow
+                    )
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1536,7 +1544,9 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
@@ -1554,6 +1564,8 @@ class EABackedBlock(Block):
         if noop:
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         try:
@@ -1566,15 +1578,19 @@ class EABackedBlock(Block):
                 if is_interval_dtype(self.dtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 else:
                     raise
@@ -1592,7 +1608,7 @@ class EABackedBlock(Block):
                         n = orig_other[:, i : i + 1]
 
                     submask = orig_cond[:, i : i + 1]
-                    rbs = nb.where(n, submask)
+                    rbs = nb.where(n, submask, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
