@@ -249,8 +249,6 @@ def validate_bool_kwarg(
         If the value is not a valid boolean.
     """
     good_value = is_bool(value)
-    if good_value:
-        value = bool(value)
 
     if none_allowed:
         good_value = good_value or value is None
