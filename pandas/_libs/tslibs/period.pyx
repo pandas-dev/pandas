@@ -2474,6 +2474,7 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
 
+        >>> from pandas import Period
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
