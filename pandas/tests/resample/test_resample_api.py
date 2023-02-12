@@ -633,6 +633,31 @@ def test_try_aggregate_non_existing_column():
         df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
 
+def test_agg_list_like_func_with_args():
+    # 50624
+    df = DataFrame(
+        {"x": [1, 2, 3]}, index=date_range("2020-01-01", periods=3, freq="D")
+    )
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        df.resample("D").agg([foo1, foo2], 3, b=3, c=4)
+
+    result = df.resample("D").agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        index=date_range("2020-01-01", periods=3, freq="D"),
+        columns=pd.MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_selection_api_validation():
     # GH 13500
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
