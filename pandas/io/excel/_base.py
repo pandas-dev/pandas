@@ -1554,14 +1554,44 @@ class ExcelFile:
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
+
         .. deprecated:: 2.0.0
-          Arguments other than sheet_name by position may not work.
+            Arguments other than sheet_name by position may not work.
+
         Returns
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
         """
-        if kwds:
+        arguments = list(kwds.keys())
+        allowed_kwargs = [
+            "sheet_name",
+            "header",
+            "names",
+            "index_col",
+            "usecols",
+            "squeeze",
+            "dtype",
+            "engine",
+            "converters",
+            "true_values",
+            "false_values",
+            "skiprows",
+            "nrows",
+            "na_values",
+            "keep_default_na",
+            "na_filter",
+            "verbose",
+            "parse_dates",
+            "date_parser",
+            "thousands",
+            "decimal",
+            "comment",
+            "skipfooter",
+            "convert_float",
+        ]
+        # Check for any invalid  kwargs
+        if [argument for argument in arguments if argument not in allowed_kwargs]:
             warnings.warn(
                 f"{type(self).__name__}.parse is deprecated. "
                 "Arguments other than sheet_name by position may not work.",
