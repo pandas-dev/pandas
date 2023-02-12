@@ -97,8 +97,10 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     FloatingArray,
+    TimedeltaArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -3769,6 +3771,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = post_processing(result, inferences, **pp_kwargs)
 
             if how == "std" and is_datetimelike:
+                values = cast("DatetimeArray | TimedeltaArray", values)
                 unit = values.unit
                 result = result.astype(np.int64, copy=False)
                 result = result.view(f"m8[{unit}]")
