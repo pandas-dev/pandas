@@ -662,9 +662,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
-    def _shallow_copy(
-        self: IntervalArrayT, left, right, verify_integrity: bool = True
-    ) -> IntervalArrayT:
+    def _shallow_copy(self: IntervalArrayT, left, right) -> IntervalArrayT:
         """
         Return a new IntervalArray with the replacement attributes
 
@@ -677,8 +675,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         dtype = IntervalDtype(left.dtype, closed=self.closed)
         left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
-        if verify_integrity:
-            self._validate(left, right, dtype=dtype)
 
         return self._simple_new(left, right, dtype=dtype)
 
