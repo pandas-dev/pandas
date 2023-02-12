@@ -40,7 +40,7 @@ dependencies:
   - openpyxl
   - odfpy
   - psycopg2
-  - pyarrow<11
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables

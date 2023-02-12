@@ -246,10 +246,20 @@ ignore = [
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
+  # Too many arguments to function call
+  "PLR0913",
+  # Too many returns
+  "PLR0911",
+  # Too many branches
+  "PLR0912",
+  # Too many statements
+  "PLR0915",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
+  # Magic number
+  "PLR2004",
 ]
 
 exclude = [
@@ -266,6 +276,7 @@ exclude = [
 max-line-length = 88
 disable = [
  # intentionally turned off
+  "bad-mcs-classmethod-argument",
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
@@ -301,6 +312,7 @@ disable = [
   "unsupported-assignment-operation",
   "unsupported-membership-test",
   "unused-import",
+  "use-dict-literal",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
@@ -311,11 +323,13 @@ disable = [
   "no-value-for-parameter",
   "undefined-variable",
   "unpacking-non-sequence",
+  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "missing-class-docstring",
   "missing-function-docstring",
   "missing-module-docstring",
+  "superfluous-parens",
   "too-many-lines",
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
@@ -335,6 +349,7 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
+  "broad-exception-raised",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
