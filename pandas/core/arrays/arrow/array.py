@@ -510,7 +510,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
             if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
-                return (pc.is_null(self._data, nan_is_null=True) & ~self.isna()).any()
+                res = (pc.is_null(self._data, nan_is_null=True) & ~self.isna()).any()
+                return bool(res)
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
             return False
@@ -528,9 +529,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
-        # error: Incompatible return value type (got "Union[bool, bool_]",
-        # expected "bool")
-        return self._data.is_null().to_numpy()  # type: ignore[return-value]
+        return self._data.is_null().to_numpy()
 
     def argsort(
         self,
