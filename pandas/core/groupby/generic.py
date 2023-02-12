@@ -236,7 +236,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func)
+            ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
             if relabeling:
                 # columns is not narrowed by mypy from relabeling flag
                 assert columns is not None  # for mypy
@@ -268,7 +268,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg) -> DataFrame:
+    def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
             if self.as_index:
                 # GH 15931
@@ -293,7 +293,7 @@ class SeriesGroupBy(GroupBy[Series]):
             for idx, (name, func) in enumerate(arg):
 
                 key = base.OutputKey(label=name, position=idx)
-                results[key] = self.aggregate(func)
+                results[key] = self.aggregate(func, *args, **kwargs)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
@@ -555,7 +555,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # Interpret np.nan as False.
         def true_and_notna(x) -> bool:
             b = wrapper(x)
-            return b and notna(b)
+            return notna(b) and b
 
         try:
             indices = [
@@ -1714,7 +1714,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # interpret the result of the filter
             if is_bool(res) or (is_scalar(res) and isna(res)):
-                if res and notna(res):
+                if notna(res) and res:
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
