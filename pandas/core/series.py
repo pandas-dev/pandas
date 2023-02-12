@@ -268,7 +268,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    name : str, optional
+    name : Hashable, default None
         The name to give to the Series.
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
@@ -446,10 +446,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
-                if using_copy_on_write():
-                    data = data._mgr.copy(deep=False)
-                else:
-                    data = data._mgr
+                data = data._mgr.copy(deep=False)
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
