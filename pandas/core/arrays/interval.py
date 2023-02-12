@@ -662,7 +662,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
-    def _shallow_copy(self: IntervalArrayT, left, right) -> IntervalArrayT:
+    def _shallow_copy(
+        self: IntervalArrayT, left, right, verify_integrity: bool = True
+    ) -> IntervalArrayT:
         """
         Return a new IntervalArray with the replacement attributes
 
@@ -675,7 +677,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         dtype = IntervalDtype(left.dtype, closed=self.closed)
         left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
-        self._validate(left, right, dtype=dtype)
+        if verify_integrity:
+            self._validate(left, right, dtype=dtype)
 
         return self._simple_new(left, right, dtype=dtype)
 
@@ -727,7 +730,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
-        return self._shallow_copy(left, right)
+        return self._shallow_copy(left, right, verify_integrity=False)
 
     def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
