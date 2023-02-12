@@ -647,9 +647,9 @@ def test_agg_list_like_func_with_args():
 
     msg = r"foo1\(\) got an unexpected keyword argument 'b'"
     with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+        df.resample("D").agg([foo1, foo2], 3, b=3, c=4)
 
-    result = df.agg([foo1, foo2], 0, 3, c=4)
+    result = df.resample("D").agg([foo1, foo2], 3, c=4)
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]],
         index=date_range("2020-01-01", periods=3, freq="D"),

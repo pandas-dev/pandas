@@ -1473,7 +1473,7 @@ def test_agg_of_mode_list(test, constant):
 def test__dataframe_groupy_agg_list_like_func_with_args():
     # GH 50624
     df = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
-    df = df.groupby("y")
+    gb = df.groupby("y")
 
     def foo1(x, a=1, c=0):
         return x.sum() + a + c
@@ -1483,9 +1483,9 @@ def test__dataframe_groupy_agg_list_like_func_with_args():
 
     msg = r"foo1\(\) got an unexpected keyword argument 'b'"
     with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 3, b=3, c=4)
+        gb.agg([foo1, foo2], 3, b=3, c=4)
 
-    result = df.agg([foo1, foo2], 3, c=4)
+    result = gb.agg([foo1, foo2], 3, c=4)
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]],
         index=Index(["a", "b", "c"], name="y"),
@@ -1496,8 +1496,8 @@ def test__dataframe_groupy_agg_list_like_func_with_args():
 
 def test__series_groupy_agg_list_like_func_with_args():
     # GH 50624
-    data = Series([1, 2, 3])
-    data = data.groupby(data)
+    s = Series([1, 2, 3])
+    sgb = s.groupby(s)
 
     def foo1(x, a=1, c=0):
         return x.sum() + a + c
@@ -1507,9 +1507,9 @@ def test__series_groupy_agg_list_like_func_with_args():
 
     msg = r"foo1\(\) got an unexpected keyword argument 'b'"
     with pytest.raises(TypeError, match=msg):
-        data.agg([foo1, foo2], 3, b=3, c=4)
+        sgb.agg([foo1, foo2], 3, b=3, c=4)
 
-    result = data.agg([foo1, foo2], 3, c=4)
+    result = sgb.agg([foo1, foo2], 3, c=4)
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
     )
