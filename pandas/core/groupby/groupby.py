@@ -30,6 +30,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -3773,7 +3774,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if how == "std" and is_datetimelike:
                 values = cast("DatetimeArray | TimedeltaArray", values)
                 unit = values.unit
-                result = result.astype(np.int64, copy=False)
+                with warnings.catch_warnings():
+                    # suppress "RuntimeWarning: invalid value encountered in cast"
+                    warnings.filterwarnings("ignore")
+                    result = result.astype(np.int64, copy=False)
                 result = result.view(f"m8[{unit}]")
 
             return result.T
