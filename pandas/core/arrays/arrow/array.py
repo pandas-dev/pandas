@@ -517,7 +517,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return False
             # TODO: maybe complex? object?
 
-        return super().__contains__(key)
+        return bool(super().__contains__(key))
 
     @property
     def _hasna(self) -> bool:
