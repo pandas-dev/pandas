@@ -885,15 +885,17 @@ def is_64bit_real_numeric_dtype(arr_or_dtype) -> bool:
     False
     >>> is_64bit_real_numeric_dtype(np.int64)
     True
+    >>> is_64bit_real_numeric_dtype(pd.Int64Dtype())
+    True
+    >>> is_64bit_real_numeric_dtype("Int64")
+    True
     >>> is_64bit_real_numeric_dtype('int8')
     False
     >>> is_64bit_real_numeric_dtype('Int8')
-    True
-    >>> is_64bit_real_numeric_dtype(pd.Int64Dtype)
-    True
+    False
     >>> is_64bit_real_numeric_dtype(float)
     True
-    >>> is_64bit_real_numeric_dtype(np.uint64)  # unsigned
+    >>> is_64bit_real_numeric_dtype(np.uint64)
     True
     >>> is_64bit_real_numeric_dtype(np.array(['a', 'b']))
     False
