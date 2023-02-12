@@ -1139,7 +1139,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not is_list_like(removals):
             removals = [removals]
 
-        removals = Index(removals).dropna().unique()
+        removals = Index(removals).unique().dropna()
         new_categories = self.dtype.categories.difference(removals)
         not_included = removals.difference(self.dtype.categories)
 
