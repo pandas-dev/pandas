@@ -59,7 +59,7 @@ def test_groupby_std_datetimelike():
     #  same operation on int64 data xref GH#51332
     td1 = Timedelta("2887 days 11:21:02.326710176")
     td4 = Timedelta("2886 days 00:42:34.664668096")
-    exp_ser = Series([td1 * 2, td1, td1, td1, td4])
+    exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=[0, 1, 2, 3])
     expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)
 
