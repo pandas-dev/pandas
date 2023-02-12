@@ -249,6 +249,9 @@ def validate_bool_kwarg(
         If the value is not a valid boolean.
     """
     good_value = is_bool(value)
+    if good_value:
+        value = bool(value)
+
     if none_allowed:
         good_value = good_value or value is None
 
@@ -433,6 +436,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
     """
     if not is_integer(loc):
         raise TypeError(f"loc must be an integer between -{length} and {length}")
+    loc = int(loc)
 
     if loc < 0:
         loc += length
