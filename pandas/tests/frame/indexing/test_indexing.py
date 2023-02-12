@@ -620,7 +620,7 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
                 val = np.random.randn()
-                expected.values[i, j] = val
+                expected.iloc[i, j] = val
 
                 ix[idx, col] = val
                 tm.assert_frame_equal(f, expected)

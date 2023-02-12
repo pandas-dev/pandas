@@ -170,6 +170,7 @@ def is_object_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_object_dtype
     >>> is_object_dtype(object)
     True
     >>> is_object_dtype(int)
@@ -286,6 +287,7 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_dtype
     >>> is_datetime64_dtype(object)
     False
     >>> is_datetime64_dtype(np.datetime64)
@@ -469,6 +471,8 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_categorical_dtype
+    >>> from pandas import CategoricalDtype
     >>> is_categorical_dtype(object)
     False
     >>> is_categorical_dtype(CategoricalDtype())
@@ -830,6 +834,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_int64_dtype
     >>> is_int64_dtype(str)
     False
     >>> is_int64_dtype(np.int32)
@@ -1133,6 +1138,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_numeric_dtype
     >>> is_numeric_dtype(str)
     False
     >>> is_numeric_dtype(int)
@@ -1214,6 +1220,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_float_dtype
     >>> is_float_dtype(str)
     False
     >>> is_float_dtype(int)
@@ -1253,6 +1260,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_bool_dtype
     >>> is_bool_dtype(str)
     False
     >>> is_bool_dtype(int)
@@ -1405,6 +1413,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_complex_dtype
     >>> is_complex_dtype(str)
     False
     >>> is_complex_dtype(int)

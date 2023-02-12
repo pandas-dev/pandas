@@ -1001,7 +1001,7 @@ class TestPandasContainer:
         frame = DataFrame({"a": [td, ts]}, dtype=object)
 
         expected = DataFrame(
-            {"a": [pd.Timedelta(td).as_unit("ns").value, ts.as_unit("ns").value]}
+            {"a": [pd.Timedelta(td).as_unit("ns")._value, ts.as_unit("ns")._value]}
         )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
@@ -1956,3 +1956,19 @@ class TestPandasContainer:
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 
         tm.assert_series_equal(result, expected)
+
+
+def test_invalid_engine():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="The engine type foo"):
+        read_json(out, engine="foo")
+
+
+def test_pyarrow_engine_lines_false():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="currently pyarrow engine only supports"):
+        read_json(out, engine="pyarrow", lines=False)

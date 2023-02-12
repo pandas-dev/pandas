@@ -550,8 +550,9 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_columns(self):
-        df = DataFrame(np.random.randn(10, 10))
-        df.values[:, ::2] = np.nan
+        arr = np.random.randn(10, 10)
+        arr[:, ::2] = np.nan
+        df = DataFrame(arr)
 
         result = df.fillna(method="ffill", axis=1)
         expected = df.T.fillna(method="pad").T
@@ -769,3 +770,11 @@ def test_fillna_nones_inplace():
 
     expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("func", ["pad", "backfill"])
+def test_pad_backfill_deprecated(func):
+    # GH#33396
+    df = DataFrame({"a": [1, 2, 3]})
+    with tm.assert_produces_warning(FutureWarning):
+        getattr(df, func)()

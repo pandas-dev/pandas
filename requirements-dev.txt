@@ -32,7 +32,7 @@ openpyxl
 odfpy
 py
 psycopg2-binary
-pyarrow<11
+pyarrow
 pymysql
 pyreadstat
 tables
@@ -40,7 +40,7 @@ python-snappy
 pyxlsb
 s3fs>=2021.08.0
 scipy
-sqlalchemy<1.4.46
+sqlalchemy
 tabulate
 tzdata>=2022.1
 xarray
