@@ -716,7 +716,7 @@ class TestDataFrameAnalytics:
         if all_reductions in ("any", "all"):
             expected_dtype = "bool"
         elif all_reductions == "count":
-            expected_dtype = "int"
+            expected_dtype = "int64"
         else:
             expected_dtype = "object"
         expected = Series([], index=index, dtype=expected_dtype)
