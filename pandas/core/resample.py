@@ -23,10 +23,8 @@ from pandas._libs.tslibs import (
     Period,
     Timedelta,
     Timestamp,
-    periods_per_second,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._typing import (
     AnyArrayLike,
     Axis,
@@ -2132,9 +2130,7 @@ def _adjust_dates_anchored(
     if offset is not None:
         offset = offset.as_unit(unit)
 
-    freq_value = freq.nanos // (
-        1_000_000_000 // periods_per_second(abbrev_to_npy_unit(unit))
-    )
+    freq_value = Timedelta(freq).as_unit(unit)._value
 
     origin_timestamp = 0  # origin == "epoch"
     if origin == "start_day":
