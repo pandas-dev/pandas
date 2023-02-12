@@ -329,7 +329,6 @@ class Apply(metaclass=abc.ABCMeta):
         with context_manager:
             # degenerate case
             if selected_obj.ndim == 1:
-
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
                     new_res = colg.aggregate(a)
@@ -786,7 +785,6 @@ class FrameApply(NDFrameApply):
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
             if ares == 1:
-
                 # must match return dim
                 if result_compare != len(res):
                     raise ValueError("cannot broadcast result")
@@ -939,7 +937,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for (arr, name) in zip(values, self.index):
+            for arr, name in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -1192,7 +1190,6 @@ def reconstruct_func(
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
-
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(

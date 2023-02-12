@@ -326,7 +326,6 @@ class Resampler(BaseGroupBy, PandasObject):
         axis="",
     )
     def aggregate(self, func=None, *args, **kwargs):
-
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
@@ -1243,7 +1242,6 @@ class DatetimeIndexResampler(Resampler):
         return DatetimeIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-
         # this is how we are actually creating the bins
         if self.kind == "period":
             return self._timegrouper._get_time_period_bins(self.ax)
@@ -1281,7 +1279,6 @@ class DatetimeIndexResampler(Resampler):
             and len(self.grouper.binlabels) > len(ax)
             and how is None
         ):
-
             # let's do an asfreq
             return self.asfreq()
 
@@ -1938,7 +1935,6 @@ class TimeGrouper(Grouper):
 def _take_new_index(
     obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
 ) -> NDFrameT:
-
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
         # error: Incompatible return value type (got "Series", expected "NDFrameT")

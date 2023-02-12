@@ -53,7 +53,6 @@ class TestReorderLevels:
     def test_reorder_levels_swaplevel_equivalence(
         self, multiindex_year_month_day_dataframe_random_data
     ):
-
         ymd = multiindex_year_month_day_dataframe_random_data
 
         result = ymd.reorder_levels(["month", "day", "year"])

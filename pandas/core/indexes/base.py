@@ -454,7 +454,6 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         tupleize_cols: bool = True,
     ) -> Index:
-
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -479,7 +478,6 @@ class Index(IndexOpsMixin, PandasObject):
             pass
 
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
@@ -500,7 +498,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise cls._raise_scalar_data_error(data)
 
         else:
-
             if tupleize_cols:
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -798,7 +795,6 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
-
             if isinstance(target_values, BaseMaskedArray):
                 return _masked_engines[target_values.dtype.name](target_values)
             elif self._engine_type is libindex.ObjectEngine:
@@ -922,7 +918,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self[:]
 
     def view(self, cls=None):
-
         # we need to see if we are subclassing an
         # index type here
         if cls is not None and not hasattr(cls, "_typ"):
@@ -1211,7 +1206,6 @@ class Index(IndexOpsMixin, PandasObject):
         return f"{klass_name}({data}{prepr})"
 
     def _format_space(self) -> str_t:
-
         # using space here controls if the attributes
         # are line separated or not (the default)
 
@@ -3859,7 +3853,6 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_fill_indexer(
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> npt.NDArray[np.intp]:
-
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
@@ -3967,7 +3960,6 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: npt.NDArray[np.intp],
         tolerance,
     ) -> npt.NDArray[np.intp]:
-
         distance = self._difference_compat(target, indexer)
 
         return np.where(distance <= tolerance, indexer, -1)
@@ -4289,12 +4281,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             # GH#38906
             if not len(self):
-
                 new_indexer = np.arange(0, dtype=np.intp)
 
             # a unique indexer
             elif target.is_unique:
-
                 # see GH5553, make sure we use the right indexer
                 new_indexer = np.arange(len(indexer), dtype=np.intp)
                 new_indexer[cur_indexer] = np.arange(len(cur_labels))
@@ -4303,7 +4293,6 @@ class Index(IndexOpsMixin, PandasObject):
             # we have a non_unique selector, need to use the original
             # indexer here
             else:
-
                 # need to retake to have the same size as the indexer
                 indexer[~check] = -1
 
@@ -4405,7 +4394,6 @@ class Index(IndexOpsMixin, PandasObject):
         # try to figure out the join level
         # GH3662
         if level is None and (self._is_multi or other._is_multi):
-
             # have the same levels/names so a simple join
             if self.names == other.names:
                 pass
@@ -4536,7 +4524,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot join with no overlapping index names")
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-
             # Drop the non-matching levels from left and right respectively
             ldrop_names = sorted(self_names - overlap, key=self_names_order)
             rdrop_names = sorted(other_names - overlap, key=other_names_order)
@@ -5853,7 +5840,6 @@ class Index(IndexOpsMixin, PandasObject):
         nmissing = missing_mask.sum()
 
         if nmissing:
-
             # TODO: remove special-case; this is just to keep exception
             #  message tests from raising while debugging
             use_interval_msg = is_interval_dtype(self.dtype) or (

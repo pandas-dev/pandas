@@ -342,7 +342,6 @@ def _add_margins(
 def _compute_grand_margin(
     data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
 ):
-
     if values:
         grand_margin = {}
         for k, v in data[values].items():
@@ -739,7 +738,6 @@ def crosstab(
 def _normalize(
     table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
 ) -> DataFrame:
-
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}
         try:
@@ -748,7 +746,6 @@ def _normalize(
             raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
-
         # Actual Normalizations
         normalizers: dict[bool | str, Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),

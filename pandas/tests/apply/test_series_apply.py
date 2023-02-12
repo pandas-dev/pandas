@@ -238,7 +238,6 @@ def test_transform(string_series):
     # transforming functions
 
     with np.errstate(all="ignore"):
-
         f_sqrt = np.sqrt(string_series)
         f_abs = np.abs(string_series)
 

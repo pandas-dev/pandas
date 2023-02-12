@@ -296,7 +296,6 @@ def test_len_mixed():
     ],
 )
 def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
-
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
     )

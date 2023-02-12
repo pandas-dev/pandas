@@ -179,7 +179,6 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         rby = right.groupby(by, sort=False)
 
     for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
-
         if rby is None:
             rhs = right
         else:
@@ -835,7 +834,6 @@ class _MergeOperation:
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
-
         columns = left.columns.union(right.columns)
 
         for i in ["_left_indicator", "_right_indicator"]:
@@ -861,7 +859,6 @@ class _MergeOperation:
         return left, right
 
     def _indicator_post_merge(self, result: DataFrame) -> DataFrame:
-
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
@@ -914,7 +911,6 @@ class _MergeOperation:
                 and left_key == right_key
                 and name not in result.index.names
             ):
-
                 names_to_restore.append(name)
 
         if names_to_restore:
@@ -926,7 +922,6 @@ class _MergeOperation:
         left_indexer: np.ndarray | None,
         right_indexer: np.ndarray | None,
     ) -> None:
-
         left_has_missing = None
         right_has_missing = None
 
@@ -940,10 +935,8 @@ class _MergeOperation:
             take_left, take_right = None, None
 
             if name in result:
-
                 if left_indexer is not None and right_indexer is not None:
                     if name in self.left:
-
                         if left_has_missing is None:
                             left_has_missing = (left_indexer == -1).any()
 
@@ -956,7 +949,6 @@ class _MergeOperation:
                                 take_left = self.left[name]._values
 
                     elif name in self.right:
-
                         if right_has_missing is None:
                             right_has_missing = (right_indexer == -1).any()
 
@@ -973,7 +965,6 @@ class _MergeOperation:
                 take_right = self.right_join_keys[i]
 
             if take_left is not None or take_right is not None:
-
                 if take_left is None:
                     lvals = result[name]._values
                 else:
@@ -1470,7 +1461,6 @@ class _MergeOperation:
                 )
         # Hm, any way to make this logic less complicated??
         elif self.on is None and left_on is None and right_on is None:
-
             if self.left_index and self.right_index:
                 left_on, right_on = (), ()
             elif self.left_index:
@@ -1544,7 +1534,6 @@ class _MergeOperation:
         return left_on, right_on
 
     def _validate(self, validate: str) -> None:
-
         # Check uniqueness of each
         if self.left_index:
             left_unique = self.orig_left.index.is_unique
@@ -1783,7 +1772,6 @@ class _OrderedMerge(_MergeOperation):
         fill_method: str | None = None,
         how: JoinHow | Literal["asof"] = "outer",
     ) -> None:
-
         self.fill_method = fill_method
         _MergeOperation.__init__(
             self,
@@ -1876,7 +1864,6 @@ class _AsOfMerge(_OrderedMerge):
         allow_exact_matches: bool = True,
         direction: str = "backward",
     ) -> None:
-
         self.by = by
         self.left_by = left_by
         self.right_by = right_by
@@ -1981,7 +1968,6 @@ class _AsOfMerge(_OrderedMerge):
     def _get_merge_keys(
         self,
     ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[Hashable]]:
-
         # note this function has side effects
         (left_join_keys, right_join_keys, join_names) = super()._get_merge_keys()
 
@@ -2010,7 +1996,6 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
-
             if self.left_index:
                 # Actually more specifically an Index
                 lt = cast(AnyArrayLike, self.left.index)
@@ -2185,7 +2170,6 @@ class _AsOfMerge(_OrderedMerge):
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     # left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(index.levels[n], join_keys[n], sort=sort)
@@ -2464,7 +2448,6 @@ def _convert_arrays_and_get_rizer_klass(
 def _sort_labels(
     uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     llength = len(left)
     labels = np.concatenate([left, right])
 
@@ -2480,7 +2463,6 @@ def _get_join_keys(
     shape: Shape,
     sort: bool,
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-
     # how many levels can be done without overflow
     nlev = next(
         lev

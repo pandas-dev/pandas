@@ -1188,7 +1188,6 @@ def test_items(using_copy_on_write):
     # triggered, and we want to make sure it still works then.
     for i in range(2):
         for name, ser in df.items():
-
             assert np.shares_memory(get_array(ser, name), get_array(df, name))
 
             # mutating df triggers a copy-on-write for that column / block

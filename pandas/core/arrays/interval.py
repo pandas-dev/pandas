@@ -235,7 +235,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
@@ -244,7 +243,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
-
             # don't allow scalars
             if is_scalar(data):
                 msg = (
@@ -1181,7 +1179,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             value = self.left._na_value
@@ -1228,7 +1225,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Rendering Methods
 
     def _format_data(self) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         n = len(self)
@@ -1246,7 +1242,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             last = formatter(self[-1])
             summary = f"[{first}, {last}]"
         else:
-
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]

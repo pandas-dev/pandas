@@ -220,7 +220,6 @@ class TestCommon:
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
-
         if normalize and issubclass(offset, Tick):
             # normalize=True disallowed for Tick subclasses GH#21427
             return

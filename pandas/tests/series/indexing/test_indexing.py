@@ -58,7 +58,6 @@ def test_basic_getitem_with_labels(datetime_series):
 
 
 def test_basic_getitem_dt64tz_values():
-
     # GH12089
     # with tz for values
     ser = Series(
