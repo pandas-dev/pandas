@@ -87,7 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
         pandas.Series.dtype \
-        pandas.Series.shape \
         pandas.Series.nbytes \
         pandas.Series.ndim \
         pandas.Series.size \
@@ -579,10 +578,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
         pandas.DataFrame.plot.line \
-        pandas.Period.strftime \
-        pandas.Series.floordiv \
         pandas.Series.plot.line \
-        pandas.Series.rfloordiv \
         pandas.Series.sparse.density \
         pandas.Series.sparse.npoints \
         pandas.Series.sparse.sp_values \
