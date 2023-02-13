@@ -688,7 +688,7 @@ class RangeIndex(Index):
         if not isinstance(other, RangeIndex):
             return super()._difference(other, sort=sort)
 
-        if sort is None and self.step < 0:
+        if sort is not False and self.step < 0:
             return self[::-1]._difference(other)
 
         res_name = ops.get_op_result_name(self, other)

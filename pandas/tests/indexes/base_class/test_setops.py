@@ -16,12 +16,15 @@ class TestIndexSetOps:
     @pytest.mark.parametrize(
         "method", ["union", "intersection", "difference", "symmetric_difference"]
     )
-    def test_setops_disallow_true(self, method):
+    def test_setops_sort_validation(self, method):
         idx1 = Index(["a", "b"])
         idx2 = Index(["b", "c"])
 
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-            getattr(idx1, method)(idx2, sort=True)
+            getattr(idx1, method)(idx2, sort=2)
+
+        # sort=True is supported as of GH#??
+        getattr(idx1, method)(idx2, sort=True)
 
     def test_setops_preserve_object_dtype(self):
         idx = Index([1, 2, 3], dtype=object)
@@ -88,17 +91,12 @@ class TestIndexSetOps:
         result = idx.union(idx[:1], sort=False)
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_union_sort_other_incomparable_true(self):
-        # TODO(GH#25151): decide on True behaviour
-        # sort=True
         idx = Index([1, pd.Timestamp("2000")])
         with pytest.raises(TypeError, match=".*"):
             idx.union(idx[:1], sort=True)
 
-    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_intersection_equal_sort_true(self):
-        # TODO(GH#25151): decide on True behaviour
         idx = Index(["c", "a", "b"])
         sorted_ = Index(["a", "b", "c"])
         tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
