@@ -547,7 +547,7 @@ class TestToDatetime:
     @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
-        # TODO: Timestamp raises VaueError("could not convert string to Timestamp")
+        # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
         #  can we make these more consistent?
         arg = "08335394550"
         msg = 'Parsing "08335394550" to datetime overflows, at position 0'

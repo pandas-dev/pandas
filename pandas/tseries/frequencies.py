@@ -410,12 +410,6 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> str | None:
-        # FIXME: dont leave commented-out
-        #         wdiffs = unique(np.diff(self.index.week))
-        # We also need -47, -49, -48 to catch index spanning year boundary
-        #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
-        #         return None
-
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:
             return None

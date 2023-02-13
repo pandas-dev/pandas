@@ -651,6 +651,7 @@ cdef datetime dateutil_parse(
     try:
         res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
     except InvalidOperation:
+        # GH#51157 dateutil can raise decimal.InvalidOperation
         res = None
 
     if res is None:

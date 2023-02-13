@@ -314,8 +314,6 @@ how to fix this test.
 
     # removed a public method?
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
-    print(names)
-    print(all_categorized)
     if names != all_categorized:
         msg = f"""
 Some methods which are supposed to be on the Grouper class
