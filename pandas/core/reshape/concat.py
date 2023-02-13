@@ -17,10 +17,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 
 from pandas._typing import (
     Axis,
@@ -52,7 +49,6 @@ from pandas.core.indexes.api import (
     get_unanimous_names,
 )
 from pandas.core.internals import concatenate_managers
-from pandas.core.internals.construction import dict_to_mgr
 
 if TYPE_CHECKING:
     from pandas import (
@@ -77,7 +73,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -94,7 +90,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> Series:
     ...
 
@@ -111,7 +107,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -128,7 +124,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -145,7 +141,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -535,26 +531,18 @@ class _Concatenator:
                     )
 
                 else:
-                    original_obj = obj
-                    name = new_name = getattr(obj, "name", None)
+                    name = getattr(obj, "name", None)
                     if ignore_index or name is None:
-                        new_name = current_column
+                        name = current_column
                         current_column += 1
 
                     # doing a row-wise concatenation so need everything
                     # to line up
                     if self._is_frame and axis == 1:
-                        new_name = 0
+                        name = 0
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor(obj, columns=[name], copy=False)
-                    if using_copy_on_write():
-                        # TODO(CoW): Remove when ref tracking in constructors works
-                        for i, block in enumerate(original_obj._mgr.blocks):  # type: ignore[union-attr]  # noqa
-                            obj._mgr.blocks[i].refs = block.refs  # type: ignore[union-attr]  # noqa
-                            obj._mgr.blocks[i].refs.add_reference(obj._mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
-
-                    obj.columns = [new_name]
+                    obj = sample._constructor({name: obj}, copy=False)
 
                 self.objs.append(obj)
 
@@ -604,18 +592,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                mgr = dict_to_mgr(
-                    data,
-                    index,
-                    None,
-                    copy=self.copy,
-                    typ=get_option("mode.data_manager"),
-                )
-                if using_copy_on_write() and not self.copy:
-                    for i, obj in enumerate(self.objs):
-                        mgr.blocks[i].refs = obj._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
-                        mgr.blocks[i].refs.add_reference(mgr.blocks[i])  # type: ignore[arg-type, union-attr]  # noqa
-                df = cons(mgr, copy=False)
+                df = cons(data, index=index, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
