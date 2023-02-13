@@ -3732,10 +3732,11 @@ class Index(IndexOpsMixin, PandasObject):
             # Only call equals if we have same dtype to avoid inference/casting
             return np.arange(len(target), dtype=np.intp)
 
-        if not is_dtype_equal(self.dtype, target.dtype) and not is_interval_dtype(
-            self.dtype
-        ):
-            # IntervalIndex gets special treatment for partial-indexing
+        if not is_dtype_equal(
+            self.dtype, target.dtype
+        ) and not self._should_partial_index(target):
+            # _should_partial_index e.g. IntervalIndex with numeric scalars
+            #  that can be matched to Interval scalars.
             dtype = self._find_common_type_compat(target)
 
             this = self.astype(dtype, copy=False)
@@ -5739,9 +5740,9 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
-        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
-            # IntervalIndex get special treatment bc numeric scalars can be
-            #  matched to Interval scalars
+        if not self._should_compare(target) and not self._should_partial_index(target):
+            # _should_partial_index e.g. IntervalIndex with numeric scalars
+            #  that can be matched to Interval scalars.
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         pself, ptarget = self._maybe_promote(target)
