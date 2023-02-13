@@ -3881,7 +3881,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         ``frame.isetimtem(loc, value)`` is an in-place method as it will
-        modify the frame in place (not returning a new object) but it will
+        modify the DataFrame in place (not returning a new object) but it will
         not update the values of the column itself, it will instead insert
         a new array.
 
