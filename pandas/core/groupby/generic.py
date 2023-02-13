@@ -2017,10 +2017,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmax"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
-        )
-        return result
+        return self._idxmin_idxmax(func)
 
     def idxmin(
         self,
@@ -2103,12 +2100,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
         func.__name__ = "idxmin"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
-        )
-        return result
+        return self._idxmin_idxmax(func)
 
     boxplot = boxplot_frame_groupby
+
+    def _idxmin_idxmax(self, func: Callable) -> DataFrame:
+        result, mutated = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
+
+        if len(result) == 0:
+            return DataFrame(
+                [],
+                columns=self._obj_with_exclusions.columns,
+                index=self.grouper.result_index,
+            ).astype(
+                self.grouper.result_index.dtypes[0]
+                if isinstance(self.grouper.result_index, MultiIndex)
+                else self.grouper.result_index.dtype
+            )
+        else:
+            return self._wrap_applied_output(
+                self._obj_with_exclusions, result, not_indexed_same=True
+            )
 
     def value_counts(
         self,
