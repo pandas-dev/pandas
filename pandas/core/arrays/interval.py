@@ -726,7 +726,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
-        return self._simple_new(left, right, dtype=self.dtype)
+        # Argument 2 to "_simple_new" of "IntervalArray" has incompatible type
+        # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
+        # ndarray[Any, Any]]"
+        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
