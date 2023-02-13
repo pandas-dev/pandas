@@ -3196,6 +3196,16 @@ def julian_dates():
 
 
 class TestOrigin:
+    def test_origin_and_unit(self):
+        # GH#42624
+        ts = to_datetime(1, unit="s", origin=1)
+        expected = Timestamp("1970-01-01 00:00:02")
+        assert ts == expected
+
+        ts = to_datetime(1, unit="s", origin=1_000_000_000)
+        expected = Timestamp("2001-09-09 01:46:41")
+        assert ts == expected
+
     def test_julian(self, julian_dates):
         # gh-11276, gh-11745
         # for origin as julian
