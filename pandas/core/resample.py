@@ -394,15 +394,18 @@ class Resampler(BaseGroupBy, PandasObject):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
+            if key is not None:
+                subset = subset[key]
+            else:
+                # reached via Apply.agg_dict_like with selection=None and ndim=1
+                assert subset.ndim == 1
+        if ndim == 1:
+            assert subset.ndim == 1
+
         grouped = get_groupby(
             subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
-
-        # try the key selection
-        try:
-            return grouped[key]
-        except KeyError:
-            return grouped
+        return grouped
 
     def _groupby_and_aggregate(self, how, *args, **kwargs):
         """
@@ -1214,6 +1217,11 @@ class _GroupByMixin(PandasObject):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
+            if key is not None:
+                subset = subset[key]
+            else:
+                # reached via Apply.agg_dict_like with selection=None, ndim=1
+                assert subset.ndim == 1
 
         # Try to select from a DataFrame, falling back to a Series
         try:
@@ -1227,6 +1235,8 @@ class _GroupByMixin(PandasObject):
         if subset.ndim == 2 and (
             (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
         ):
+            selection = key
+        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
             selection = key
 
         new_rs = type(self)(

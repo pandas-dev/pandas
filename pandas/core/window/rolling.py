@@ -303,6 +303,8 @@ class BaseWindow(SelectionMixin):
             (is_scalar(key) and key in subset) or is_list_like(key)
         ):
             selection = key
+        elif subset.ndim == 1 and is_scalar(key) and key == subset.name:
+            selection = key
 
         new_win = type(self)(subset, selection=selection, **kwargs)
         return new_win
