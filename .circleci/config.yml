@@ -38,7 +38,7 @@ jobs:
                 echo 'export IS_PUSH="true"' >> "$BASH_ENV"
             # TODO: Revert, just testing this
             #elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
-            elif [[ $TRIGGER_SOURCE == "api" ]]; then
+            elif [[ $TRIGGER_SOURCE == "webhook" ]]; then
                 echo "Trigger source works"
                 echo 'export IS_SCHEDULE_DISPATCH="true"' >> "$BASH_ENV"
             # Look for the build label/[wheel build] in commit
