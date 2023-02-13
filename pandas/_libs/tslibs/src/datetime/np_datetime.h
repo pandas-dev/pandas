@@ -23,6 +23,8 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #include <numpy/ndarraytypes.h>
 
+#include "datetime.h"
+
 typedef struct {
         npy_int64 days;
         npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
@@ -50,7 +52,7 @@ extern const npy_datetimestruct _M_MAX_DTS;
 
 PyObject *extract_utc_offset(PyObject *obj);
 
-int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out);
 
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,

@@ -27,6 +27,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/ndarraytypes.h>
 #include "np_datetime.h"
 
+#include "datetime.h"
 
 const npy_datetimestruct _AS_MIN_DTS = {
     1969, 12, 31, 23, 59, 50, 776627, 963145, 224193};
@@ -370,39 +371,31 @@ PyObject *extract_utc_offset(PyObject *obj) {
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out) {
     // Assumes that obj is a valid datetime object
     PyObject *tmp;
-    PyObject *obj = (PyObject*)dtobj;
 
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(npy_datetimestruct));
     out->month = 1;
     out->day = 1;
 
-    out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
-    out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
-    out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
+    PyDateTime_IMPORT;
 
-    // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
-    // PyDateTime_Check here, and less verbose attribute lookups.
+    out->year = PyDateTime_GET_YEAR(dtobj);
+    out->month = PyDateTime_GET_MONTH(dtobj);
+    out->day = PyDateTime_GET_DAY(dtobj);
+    out->hour = PyDateTime_DATE_GET_HOUR(dtobj);
 
-    /* Check for time attributes (if not there, return success as a date) */
-    if (!PyObject_HasAttrString(obj, "hour") ||
-        !PyObject_HasAttrString(obj, "minute") ||
-        !PyObject_HasAttrString(obj, "second") ||
-        !PyObject_HasAttrString(obj, "microsecond")) {
-        return 0;
-    }
+    if (PyDateTime_Check(dtobj)) {
+        PyDateTime_DateTime* obj = (PyDateTime_DateTime*)dtobj;
+        out->min = PyDateTime_DATE_GET_MINUTE(obj);
+        out->sec = PyDateTime_DATE_GET_SECOND(obj);
+        out->us = PyDateTime_DATE_GET_MICROSECOND(obj);
 
-    out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
-    out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
-    out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
-    out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
-
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
-        PyObject *offset = extract_utc_offset(obj);
+        // TODO(py3.10): in py3.10 we can use PyDateTime_DATE_GET_TZINFO
+        PyObject *offset = extract_utc_offset((PyObject*)obj);
         /* Apply the time zone offset if datetime obj is tz-aware */
         if (offset != NULL) {
             if (offset == Py_None) {

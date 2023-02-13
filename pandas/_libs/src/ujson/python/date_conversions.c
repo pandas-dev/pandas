@@ -79,7 +79,9 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     npy_datetimestruct dts;
     int ret;
 
-    ret = convert_pydatetime_to_datetimestruct(obj, &dts);
+    PyDateTime_IMPORT;
+
+    ret = convert_pydatetime_to_datetimestruct((PyDateTime_Date*)obj, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
@@ -121,7 +123,9 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 
-    ret = convert_pydatetime_to_datetimestruct(dt, &dts);
+    PyDateTime_IMPORT;
+
+    ret = convert_pydatetime_to_datetimestruct((PyDateTime_Date*)dt, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
