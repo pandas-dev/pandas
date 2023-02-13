@@ -836,16 +836,14 @@ class TestSetOpsUnsorted:
         result = op(a)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO(GH#25151): decide on True behaviour
-        # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b, sort=True)
 
-        with pytest.raises(TypeError, match="Cannot compare"):
+        msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+        with pytest.raises(TypeError, match=msg):
             op(a)
 
     def test_symmetric_difference_mi(self, sort):

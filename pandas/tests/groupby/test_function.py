@@ -1470,9 +1470,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "pad"):
-        pytest.skip("method is deprecated")
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
