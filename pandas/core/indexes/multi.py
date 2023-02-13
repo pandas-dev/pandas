@@ -2933,8 +2933,8 @@ class MultiIndex(Index):
         loc, mi = self._get_loc_level(key, level=level)
         if not drop_level:
             if lib.is_integer(loc):
-                loc = int(loc)
-                mi = self[loc : loc + 1]
+                # error: Slice index must be an integer or None
+                mi = self[loc : loc + 1]  # type: ignore[misc]
             else:
                 mi = self[loc]
         return loc, mi
