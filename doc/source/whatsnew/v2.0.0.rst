@@ -71,7 +71,7 @@ Below is a possibly non-exhaustive list of changes:
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
    :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) were previously in of
-   dtype ``int64``, while they were ``int32`` for :class:`DatetimeArray`. They are now
+   dtype ``int64``, while they were ``int32`` for :class:`arrays.DatetimeArray`. They are now
    ``int32`` on ``DatetimeIndex`` also:
 
    .. ipython:: python
@@ -223,6 +223,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
+  - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
   - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
   - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
   - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
@@ -283,6 +284,7 @@ Other enhancements
 - Added support for ``dt`` accessor methods when using :class:`ArrowDtype` with a ``pyarrow.timestamp`` type (:issue:`50954`)
 - :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 - :meth:`.DataFrameGroupBy.quantile`, :meth:`.SeriesGroupBy.quantile` and :meth:`.DataFrameGroupBy.std` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
+- :meth:`.DataFrameGroupBy.std`, :meth:`.SeriesGroupBy.std` now support datetime64, timedelta64, and :class:`DatetimeTZDtype` dtypes (:issue:`48481`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`.testing.assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
@@ -311,6 +313,7 @@ Other enhancements
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
+- :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -609,7 +612,7 @@ Empty DataFrames/Series will now default to have a ``RangeIndex``
 Before, constructing an empty (where ``data`` is ``None`` or an empty list-like argument) :class:`Series` or :class:`DataFrame` without
 specifying the axes (``index=None``, ``columns=None``) would return the axes as empty :class:`Index` with object dtype.
 
-Now, the axes return an empty :class:`RangeIndex`.
+Now, the axes return an empty :class:`RangeIndex` (:issue:`49572`).
 
 *Previous behavior*:
 
@@ -1182,6 +1185,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was not returning input with ``errors='ignore'`` when input was out-of-bounds (:issue:`50587`)
 - Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
 - Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
+- Bug in :func:`to_datetime` with both ``unit`` and ``origin`` specified returning incorrect results (:issue:`42624`)
 -
 
 Timedelta
@@ -1251,6 +1255,8 @@ Indexing
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
+- Bug in :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__`, :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__`
+  when indexing on indexes with extension float dtypes (:class:`Float64` & :class:`Float64`) or complex dtypes using integers (:issue:`51053`)
 - Bug in :meth:`DataFrame.loc` modifying object when setting incompatible value with an empty indexer (:issue:`45981`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
@@ -1305,6 +1311,7 @@ I/O
 - Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
+- Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 
 Period
 ^^^^^^
@@ -1313,6 +1320,7 @@ Period
 - Bug in :class:`Period` where passing a string with finer resolution than nanosecond would result in a ``KeyError`` instead of dropping the extra precision (:issue:`50417`)
 - Bug in parsing strings representing Week-periods e.g. "2017-01-23/2017-01-29" as minute-frequency instead of week-frequency (:issue:`50803`)
 - Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.prod`, :meth:`.GroupBy.cumprod` with :class:`PeriodDtype` failing to raise ``TypeError`` (:issue:`51040`)
+- Bug in parsing empty string with :class:`Period` incorrectly raising ``ValueError`` instead of returning ``NaT`` (:issue:`51349`)
 -
 
 Plotting
@@ -1346,6 +1354,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 - Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
 - Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
+- Bug in :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, and :meth:`Resampler.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
 -
 
 Reshaping
@@ -1359,6 +1368,7 @@ Reshaping
 - Clarified error message in :func:`merge` when passing invalid ``validate`` option (:issue:`49417`)
 - Bug in :meth:`DataFrame.explode` raising ``ValueError`` on multiple columns with ``NaN`` values or empty lists (:issue:`46084`)
 - Bug in :meth:`DataFrame.transpose` with ``IntervalDtype`` column with ``timedelta64[ns]`` endpoints (:issue:`44917`)
+- Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
 -
 
 Sparse
