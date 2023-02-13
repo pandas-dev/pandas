@@ -3334,7 +3334,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> print(df.to_latex(index=False,
         ...                   formatters={"name": str.upper},
         ...                   float_format="{:.1f}".format,
-        ... )  # doctest: +SKIP
+        ... ))  # doctest: +SKIP
         \begin{tabular}{lrr}
         \toprule
         name & age & height \\

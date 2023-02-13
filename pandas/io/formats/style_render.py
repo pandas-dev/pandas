@@ -1077,8 +1077,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
