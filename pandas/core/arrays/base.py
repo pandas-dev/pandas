@@ -1695,7 +1695,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # GroupBy Methods
 
-    def groupby_any_all(
+    def _groupby_any_all(
         self,
         *,
         ngroups: int,
@@ -1736,7 +1736,7 @@ class ExtensionArray:
         result = result.astype(bool, copy=False)
         return result.T
 
-    def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
+    def _groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
         cython_dtype = np.dtype(np.float64)
 
         ncols = 1 if self.ndim == 1 else self.shape[0]

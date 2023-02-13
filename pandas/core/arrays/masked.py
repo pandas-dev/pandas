@@ -1395,7 +1395,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------------
     # GroupBy Methods
 
-    def groupby_any_all(
+    def _groupby_any_all(
         self,
         *,
         ngroups: int,
@@ -1425,7 +1425,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return BooleanArray(result.astype(bool, copy=False), result == -1)
 
-    def groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
+    def _groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
         from pandas.core.arrays import FloatingArray
 
         result = np.zeros(ngroups, dtype=np.float64).reshape(-1, 1)

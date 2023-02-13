@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._libs import (
     algos,
+    groupby as libgroupby,
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
@@ -2094,6 +2095,39 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(use_na_sentinel=use_na_sentinel)
+
+    def _groupby_std(self, *, ngroups: int, ids: npt.NDArray[np.intp], ddof: int):
+        cython_dtype = np.dtype(np.float64)
+
+        ncols = 1 if self.ndim == 1 else self.shape[0]
+
+        result = np.zeros((ngroups, ncols), dtype=cython_dtype)
+        counts = np.zeros(ngroups, dtype=np.int64)
+
+        vals = self.view("i8").astype(cython_dtype, copy=False)
+
+        # Call func to modify result in place
+        libgroupby.group_var(
+            out=result,
+            labels=ids,
+            values=np.atleast_2d(vals).T,
+            counts=counts,
+            ddof=ddof,
+            is_datetimelike=True,
+        )
+
+        if self.ndim == 1:
+            assert result.shape[1] == 1, result.shape
+            result = result[:, 0]
+
+        result = np.sqrt(result)
+
+        with warnings.catch_warnings():
+            # suppress "RuntimeWarning: invalid value encountered in cast"
+            warnings.filterwarnings("ignore")
+            result = result.astype(np.int64, copy=False)
+        result = result.view(f"m8[{self.unit}]")
+        return result.T
 
 
 # -------------------------------------------------------------------
