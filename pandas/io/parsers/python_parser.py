@@ -1181,9 +1181,7 @@ class PythonParser(ParserBase):
                 if isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype.get(self.columns[i], None)
                 ):
-                    for key in self.dtype:
-                        if key == self.columns[i]:
-                            no_thousands_columns.add(i)
+                    no_thousands_columns.add(i)
         return no_thousands_columns
 
 

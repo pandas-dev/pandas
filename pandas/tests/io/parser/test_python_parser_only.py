@@ -549,7 +549,7 @@ def test_no_thousand_with_dot_convert_for_non_numeric_cols(python_parser_only):
     result = parser.read_csv(
         StringIO(data),
         sep=";",
-        dtype={"a": str},
+        dtype={"a": str, "b": np.int64, "c": np.int64},
         thousands=".",
     )
     expected = DataFrame(
