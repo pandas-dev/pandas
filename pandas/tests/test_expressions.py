@@ -199,6 +199,9 @@ class TestExpressions:
         result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in true_divide:RuntimeWarning"
+    )
     @pytest.mark.parametrize(
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
