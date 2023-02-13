@@ -361,7 +361,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
-    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
     _sparse_index: SparseIndex
     _sparse_values: np.ndarray
     _dtype: SparseDtype
