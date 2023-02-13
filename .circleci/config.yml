@@ -40,6 +40,7 @@ jobs:
             # TODO: Revert, just testing this
             #elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
             elif [[ $TRIGGER_SOURCE == "api" ]]; then
+                echo "Trigger source works"
                 echo 'export IS_SCHEDULE_DISPATCH="true" >> "$BASH_ENV"'
             # Look for the build label/[wheel build] in commit
             # grep takes a regex, so need to escape brackets
