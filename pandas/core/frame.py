@@ -3869,7 +3869,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Set the given value in the column with position `loc`.
 
-        This is a positional analogue to `__setitem__`.
+        This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
