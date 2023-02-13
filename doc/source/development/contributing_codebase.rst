@@ -276,11 +276,11 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
     # the following might fail if the installed pandas version does not correspond to your local git version
     pre-commit run --hook-stage manual --all-files stubtest
 
-in your activated python environment.
+in your active python environment.
 
 .. warning::
 
-    * It is essential that the version of ``mypy`` and ``numpy`` in the active environment is the same as specified in ``requirements-dev.txt``.
+    * It is essential that the versions of ``mypy`` and ``numpy`` in the active environment are the same as in ``requirements-dev.txt``.
 
 .. _contributing.ci:
 
