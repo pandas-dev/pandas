@@ -352,10 +352,7 @@ Py_hash_t np_datetime64_object_hash(PyDatetimeScalarObject* key) {
     if ((dts.year > 0) && (dts.year <= 9999) && (dts.ps == 0) && (dts.as == 0)) {
         // we CAN cast to pydatetime, so use that hash to ensure we compare
         // as matching standard library datetimes (and pd.Timestamps)
-        if (PyDatetimeAPI == NULL) {
-            /* delayed import, may be nice to move to import time */
-            PyDateTime_IMPORT;
-        }
+        PyDateTime_IMPORT;
 
         PyObject* dt;
         Py_hash_t hash;
