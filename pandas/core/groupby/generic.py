@@ -936,7 +936,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
@@ -2366,7 +2366,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
