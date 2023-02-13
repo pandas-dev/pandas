@@ -8250,18 +8250,18 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
+        columns : str or object or a list of str
+            Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
 
             .. versionchanged:: 1.1.0
                Also accept list of index names.
-
-        columns : str or object or a list of str
-            Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
 
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
@@ -8385,9 +8385,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(
-        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
-    ) -> DataFrame:
+    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
