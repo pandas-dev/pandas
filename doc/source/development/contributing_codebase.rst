@@ -280,7 +280,7 @@ in your active python environment.
 
 .. warning::
 
-    * It is essential that the versions of ``mypy`` and ``numpy`` in the active environment are the same as in ``requirements-dev.txt``.
+    * It is essential that the versions of ``mypy`` and ``numpy`` are the same as used on main. Please see :ref:`how to setup the python environment <contributing.mamba>`.
 
 .. _contributing.ci:
 
