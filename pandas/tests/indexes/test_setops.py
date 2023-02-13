@@ -888,7 +888,7 @@ class TestSetOpsUnsorted:
         assert result.name == "new_name"
 
     def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
-        # GH#
+        # GH#51365
         idx = Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
         idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
