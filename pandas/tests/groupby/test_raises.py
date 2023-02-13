@@ -224,11 +224,11 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
         "prod": (TypeError, "datetime64 type does not support prod"),
         "quantile": (None, ""),
         "rank": (None, ""),
-        "sem": (TypeError, "Cannot cast DatetimeArray to dtype float64"),
+        "sem": (None, ""),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (TypeError, r"dtype datetime64\[ns\] does not support reduction"),
-        "std": (TypeError, "Cannot cast DatetimeArray to dtype float64"),
+        "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support sum operations"),
         "var": (None, ""),
     }[groupby_func]

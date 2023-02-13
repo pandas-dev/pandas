@@ -30,6 +30,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -97,8 +98,10 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     FloatingArray,
+    TimedeltaArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -3724,7 +3727,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 counts = np.zeros(ngroups, dtype=np.int64)
                 func = partial(func, counts=counts)
 
+            is_datetimelike = values.dtype.kind in ["m", "M"]
             vals = values
+            if is_datetimelike and how == "std":
+                vals = vals.view("i8")
             if pre_processing:
                 vals, inferences = pre_processing(vals)
 
@@ -3747,7 +3753,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
                 func = partial(func, result_mask=result_mask)
 
-            func(**kwargs)  # Call func to modify result in place
+            # Call func to modify result in place
+            if how == "std":
+                func(**kwargs, is_datetimelike=is_datetimelike)
+            else:
+                func(**kwargs)
 
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
@@ -3760,6 +3770,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     pp_kwargs["result_mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
+
+            if how == "std" and is_datetimelike:
+                values = cast("DatetimeArray | TimedeltaArray", values)
+                unit = values.unit
+                with warnings.catch_warnings():
+                    # suppress "RuntimeWarning: invalid value encountered in cast"
+                    warnings.filterwarnings("ignore")
+                    result = result.astype(np.int64, copy=False)
+                result = result.view(f"m8[{unit}]")
 
             return result.T
 
