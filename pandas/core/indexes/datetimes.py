@@ -132,6 +132,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     Represented internally as int64, and which can be boxed to Timestamp objects
     that are subclasses of datetime and carry metadata.
 
+    .. versionchanged:: 2.0.0
+        The various numeric date/time attributes (:attr:`~DatetimeIndex.day`,
+        :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) now have dtype
+        ``int32``. Previously they had dtype ``int64``.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
