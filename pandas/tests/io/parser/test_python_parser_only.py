@@ -499,7 +499,6 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only):
 3,03,001,00514;0;4,001
 4923,600,041;23,000;131
 """
-
     result = parser.read_csv(
         StringIO(data),
         sep=";",
@@ -537,3 +536,27 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only):
         dtype=float,
     )
     tm.assert_frame_equal(result3, expected3)
+
+
+def test_no_thousand_with_dot_convert_for_non_numeric_cols(python_parser_only):
+    # GH#50270
+    parser = python_parser_only
+    data = """a;b;c
+0000.7995;16.000;0
+3.03.001.00514;0;4.000
+4923.600.041;23.000;131
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype={"a": str},
+        thousands=".",
+    )
+    expected = DataFrame(
+        {
+            "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
+            "b": [16000, 0, 23000],
+            "c": [0, 4000, 131],
+        }
+    )
+    tm.assert_frame_equal(result, expected)

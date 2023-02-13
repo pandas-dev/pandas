@@ -889,7 +889,7 @@ class PythonParser(ParserBase):
                 if (
                     not isinstance(x, str)
                     or search not in x
-                    or (self._no_thousands_columns and i in self._no_thousands_columns)
+                    or i in self._no_thousands_columns
                     or not self.num.search(x.strip())
                 ):
                     rl.append(x)
