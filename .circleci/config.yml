@@ -27,7 +27,6 @@ jobs:
     resource_class: arm.large
     environment:
       ENV_FILE: ci/deps/circle-38-arm64.yaml
-      TAG: << pipeline.git.tag >>
       TRIGGER_SOURCE: << pipeline.trigger_source >>
     steps:
       - checkout
@@ -35,13 +34,13 @@ jobs:
           name: Check if build is necessary
           command: |
             # Check if tag is defined or TRIGGER_SOURCE is scheduled
-            if [[ -n ${TAG} ]]; then
-                echo 'export IS_PUSH="true" >> "$BASH_ENV"'
+            if [[ -n "$CIRCLE_TAG" ]]; then
+                echo 'export IS_PUSH="true"' >> "$BASH_ENV"
             # TODO: Revert, just testing this
             #elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
             elif [[ $TRIGGER_SOURCE == "api" ]]; then
                 echo "Trigger source works"
-                echo 'export IS_SCHEDULE_DISPATCH="true" >> "$BASH_ENV"'
+                echo 'export IS_SCHEDULE_DISPATCH="true"' >> "$BASH_ENV"
             # Look for the build label/[wheel build] in commit
             # grep takes a regex, so need to escape brackets
             elif (git log --format=oneline -n 1 $CIRCLE_SHA1) | grep -q '\[wheel build\]'; then
