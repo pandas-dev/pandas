@@ -4017,10 +4017,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get values at several indexes
 
-        >>> df.xs(('mammal', 'dog'))
-                    num_legs  num_wings
-        locomotion
-        walks              4          0
+        >>> df.xs(('mammal', 'dog', 'walks'))
+        num_legs     4
+        num_wings    0
+        Name: (mammal, dog, walks), dtype: int64
 
         Get values at specified index and level
 

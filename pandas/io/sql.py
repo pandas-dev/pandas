@@ -632,14 +632,6 @@ def read_sql(
     >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
 
     Apply date parsing to columns through the ``parse_dates`` argument
-
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates=["date_column"])
-       int_column date_column
-    0           0  2012-10-11
-    1           1  2010-12-11
-
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
     Custom argument values for applying ``pd.to_datetime`` on a column are specified
     via a dictionary format:
