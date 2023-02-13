@@ -4,6 +4,7 @@ from datetime import datetime
 import functools
 from itertools import zip_longest
 import operator
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -88,6 +89,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
+    ensure_str,
     is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
@@ -155,6 +157,7 @@ from pandas.core.base import (
     PandasObject,
 )
 import pandas.core.common as com
+from pandas.core.common import count_not_none
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -6149,6 +6152,76 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+
+    def filter(
+        self: _IndexT,
+        items: Axes | None = None,
+        like: str_t | None = None,
+        regex: str_t | None = None,
+    ) -> _IndexT:
+        """
+        Create a subset of the index according to the specified index labels.
+
+        Parameters
+        ----------
+        items : list-like
+            Keep labels from index which are in items.
+        like : str
+            Keep labels from index for which "like in label == True".
+        regex : str (regular expression)
+            Keep labels from index for which re.search(regex, label) == True.
+
+        Returns
+        -------
+        same type as input object
+
+        See Also
+        --------
+        DataFrame.filter : Subset the dataframe rows or columns according to the
+            specified index labels.
+
+        Notes
+        -----
+        The ``items``, ``like``, and ``regex`` parameters are
+        enforced to be mutually exclusive.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["cat", "dog", "bat", "bird"])
+        >>> idx
+        Index(['cat', 'dog', 'bat', 'bird'], dtype='object')
+
+        >>> # select index values by name
+        >>> idx.filter(items=['cat', 'dog'])
+        Index(['cat', 'dog'], dtype='object')
+
+        >>> # select index values by regular expression
+        >>> idx.filter(regex=r'b.*')
+        Index(['bat', 'bird'], dtype='object')
+
+        >>> # select index values containing 'at'
+        >>> idx.filter(like='at')
+        Index(['cat', 'bat'], dtype='object')
+        """
+        nkw = count_not_none(items, like, regex)
+        if nkw > 1:
+            raise TypeError(
+                "Keyword arguments `items`, `like`, or `regex` "
+                "are mutually exclusive"
+            )
+
+        if items is not None:
+            mask = [r in items for r in self]
+        elif like:
+            mask = [like in ensure_str(r) for r in self]
+        elif regex:
+            matcher = re.compile(regex)
+            mask = [matcher.search(ensure_str(r)) is not None for r in self]
+        else:
+            raise TypeError("Must pass either `items`, `like`, or `regex`")
+        boolmask = np.array(mask, dtype=np.bool_)
+        res_values = self._data[boolmask]
+        return type(self)._simple_new(res_values, name=self._name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final

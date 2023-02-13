@@ -1285,6 +1285,34 @@ class TestIndex(Base):
         result = index.sortlevel(ascending=False)
         tm.assert_index_equal(result[0], expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        ["object", pd.StringDtype()],
+    )
+    def test_filter_string(self, dtype):
+        idx = Index(["cat", "dog", "bat", "bird"], dtype=dtype)
+        result = idx.filter(["cat", "dog"])
+        expected = Index(["cat", "dog"], dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.filter(like="at")
+        expected = Index(["cat", "bat"], dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.filter(regex=r"b.*")
+        expected = Index(["bat", "bird"], dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int", pd.Int64Dtype()],
+    )
+    def test_filter_int(self, dtype):
+        idx = Index([1, 2, 3, 4, 5], dtype=dtype)
+        result = idx.filter(range(2, 4))
+        expected = Index([2, 3], dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ

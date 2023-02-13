@@ -5473,6 +5473,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         DataFrame.loc : Access a group of rows and columns
             by label(s) or a boolean array.
+        Index.filter : Create a subset of the index according to the specified index
+            labels.
 
         Notes
         -----
