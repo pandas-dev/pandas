@@ -886,3 +886,11 @@ class TestSetOpsUnsorted:
         result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
         assert tm.equalContents(result, expected)
         assert result.name == "new_name"
+
+    def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
+        # GH#
+        idx = Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
+        idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        result = idx.union(idx2)
+        expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)
