@@ -118,6 +118,7 @@ consider the following ``DataFrame``:
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
+This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance.
 We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
@@ -1317,8 +1318,9 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
    df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-You have an ambiguous specification in that you have a named index and a column
-that could be potential groupers.
+When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
+instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
+in that you have a named index and a column that could be potential groupers.
 
 .. ipython:: python
 
