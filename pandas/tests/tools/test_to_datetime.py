@@ -1383,7 +1383,7 @@ class TestToDatetime:
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
-            msg = "^Out of bounds .*, at position 0"
+            msg = f"^Out of bounds .*, at position 0. {PARSING_ERR_MSG}"
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(value, errors="raise", format=format)
 
