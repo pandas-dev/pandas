@@ -97,20 +97,11 @@ def test_nat_vector_field_access():
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
+@pytest.mark.parametrize(
+    "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
+)
 def test_identity(klass, value):
     assert klass(value) is NaT
-
-
-@pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value, request):
-    if klass is Period and value == "":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Period cannot parse empty string")
-        )
-
-    assert klass(value)._value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])

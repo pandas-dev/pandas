@@ -25,6 +25,7 @@ from pandas._libs import (
     join as libjoin,
     lib,
 )
+from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -757,7 +758,7 @@ class _MergeOperation:
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
-        if left_indexer is not None:
+        if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
             # Pinning the index here (and in the right code just below) is not
             #  necessary, but makes the `.take` more performant if we have e.g.
             #  a MultiIndex for left.index.
@@ -773,7 +774,9 @@ class _MergeOperation:
             left = left._constructor(lmgr)
         left.index = join_index
 
-        if right_indexer is not None:
+        if right_indexer is not None and not is_range_indexer(
+            right_indexer, len(right)
+        ):
             rmgr = right._mgr.reindex_indexer(
                 join_index,
                 right_indexer,
