@@ -41,7 +41,6 @@ class TestDropna:
             Series([1, 2, 3], name="x"),
             Series([False, True, False], name="x"),
         ]:
-
             result = ser.dropna()
             tm.assert_series_equal(result, ser)
             assert result is not ser

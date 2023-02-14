@@ -145,7 +145,6 @@ def to_json(
     storage_options: StorageOptions = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
-
     if not index and orient not in ["split", "table"]:
         raise ValueError(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
@@ -827,7 +826,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         use_nullable_dtypes: bool = False,
         engine: JSONEngine = "ujson",
     ) -> None:
-
         self.orient = orient
         self.typ = typ
         self.dtype = dtype
@@ -1217,7 +1215,6 @@ class Parser:
             # Fall through for conversion later on
             return data, True
         elif data.dtype == "object":
-
             # try float
             try:
                 data = data.astype("float64")
@@ -1225,9 +1222,7 @@ class Parser:
                 pass
 
         if data.dtype.kind == "f":
-
             if data.dtype != "float64":
-
                 # coerce floats to 64
                 try:
                     data = data.astype("float64")
@@ -1236,7 +1231,6 @@ class Parser:
 
         # don't coerce 0-len data
         if len(data) and data.dtype in ("float", "object"):
-
             # coerce ints if we can
             try:
                 new_data = data.astype("int64")
@@ -1247,7 +1241,6 @@ class Parser:
 
         # coerce ints to 64
         if data.dtype == "int":
-
             # coerce floats to 64
             try:
                 data = data.astype("int64")
@@ -1333,7 +1326,6 @@ class FrameParser(Parser):
     _split_keys = ("columns", "index", "data")
 
     def _parse(self) -> None:
-
         json = self.json
         orient = self.orient
 
@@ -1390,7 +1382,6 @@ class FrameParser(Parser):
             new_obj[i] = c
 
         if needs_new_obj:
-
             # possibly handle dup columns
             new_frame = DataFrame(new_obj, index=obj.index)
             new_frame.columns = obj.columns

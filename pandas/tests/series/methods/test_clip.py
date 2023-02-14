@@ -26,7 +26,6 @@ class TestSeriesClip:
         assert isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
-
         sers = [
             Series([np.nan, 1.0, 2.0, 3.0]),
             Series([None, "a", "b", "c"]),

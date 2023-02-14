@@ -311,7 +311,6 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
-
         if values.ndim in {1, 2}:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
         else:

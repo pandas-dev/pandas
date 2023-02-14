@@ -48,7 +48,6 @@ class TestFloatIndexers:
         ],
     )
     def test_scalar_non_numeric(self, index_func, frame_or_series, indexer_sl):
-
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
@@ -93,7 +92,6 @@ class TestFloatIndexers:
             s[3.0]
 
     def test_scalar_with_mixed(self, indexer_sl):
-
         s2 = Series([1, 2, 3], index=["a", "b", "c"])
         s3 = Series([1, 2, 3], index=["a", "b", 1.5])
 
@@ -175,7 +173,6 @@ class TestFloatIndexers:
         assert 3.0 in obj
 
     def test_scalar_float(self, frame_or_series):
-
         # scalar float indexers work on a float index
         index = Index(np.arange(5.0))
         s = gen_obj(frame_or_series, index)
@@ -221,7 +218,6 @@ class TestFloatIndexers:
     )
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     def test_slice_non_numeric(self, index_func, idx, frame_or_series, indexer_sli):
-
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
@@ -254,7 +250,6 @@ class TestFloatIndexers:
             indexer_sli(s)[idx] = 0
 
     def test_slice_integer(self):
-
         # same as above, but for Integer based indexes
         # these coerce to a like integer
         # oob indicates if we are out of bounds
@@ -264,13 +259,11 @@ class TestFloatIndexers:
             (RangeIndex(5), False),
             (Index(np.arange(5, dtype=np.int64) + 10), True),
         ]:
-
             # s is an in-range index
             s = Series(range(5), index=index)
 
             # getitem
             for idx in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
-
                 result = s.loc[idx]
 
                 # these are all label indexing
@@ -284,7 +277,6 @@ class TestFloatIndexers:
 
             # getitem out-of-bounds
             for idx in [slice(-6, 6), slice(-6.0, 6.0)]:
-
                 result = s.loc[idx]
 
                 # these are all label indexing
@@ -311,7 +303,6 @@ class TestFloatIndexers:
                 (slice(2, 3.5), slice(2, 4)),
                 (slice(2.5, 3.5), slice(3, 4)),
             ]:
-
                 result = s.loc[idx]
                 if oob:
                     res = slice(0, 0)
@@ -353,7 +344,6 @@ class TestFloatIndexers:
 
     @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_slice_integer_frame_getitem(self, index_func):
-
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
@@ -361,7 +351,6 @@ class TestFloatIndexers:
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
-
             result = s.loc[idx]
             indexer = slice(0, 2)
             self.check(result, s, indexer, False)
@@ -377,7 +366,6 @@ class TestFloatIndexers:
 
         # getitem out-of-bounds
         for idx in [slice(-10, 10), slice(-10.0, 10.0)]:
-
             result = s.loc[idx]
             self.check(result, s, slice(-10, 10), True)
 
@@ -396,7 +384,6 @@ class TestFloatIndexers:
             (slice(0, 0.5), slice(0, 1)),
             (slice(0.5, 1.5), slice(1, 2)),
         ]:
-
             result = s.loc[idx]
             self.check(result, s, res, False)
 
@@ -412,7 +399,6 @@ class TestFloatIndexers:
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_float_slice_getitem_with_integer_index_raises(self, idx, index_func):
-
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
@@ -438,7 +424,6 @@ class TestFloatIndexers:
 
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     def test_slice_float(self, idx, frame_or_series, indexer_sl):
-
         # same as above, but for floats
         index = Index(np.arange(5.0)) + 0.1
         s = gen_obj(frame_or_series, index)
@@ -457,7 +442,6 @@ class TestFloatIndexers:
         assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
-
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
         assert s[3] == 2
@@ -465,7 +449,6 @@ class TestFloatIndexers:
         assert s.iloc[3] == 3
 
     def test_floating_misc(self, indexer_sl):
-
         # related 236
         # scalar/slicing of a float index
         s = Series(np.arange(5), index=np.arange(5) * 2.5, dtype=np.int64)

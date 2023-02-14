@@ -311,6 +311,8 @@ Other enhancements
 - Added :meth:`DatetimeIndex.as_unit` and :meth:`TimedeltaIndex.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`50616`)
 - Added :meth:`Series.dt.unit` and :meth:`Series.dt.as_unit` to convert to different resolutions; supported resolutions are "s", "ms", "us", and "ns" (:issue:`51223`)
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
+- :func:`to_datetime` now accepts ``"ISO8601"`` as an argument to ``format``, which will match any ISO8601 string (but possibly not identically-formatted) (:issue:`50411`)
+- :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
@@ -738,11 +740,16 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 
 Note that this affects :func:`read_csv` as well.
 
-If you still need to parse dates with inconsistent formats, you'll need to apply :func:`to_datetime`
-to each element individually, e.g. ::
+If you still need to parse dates with inconsistent formats, you can use
+``format='mixed`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
-     ser.apply(pd.to_datetime)
+     pd.to_datetime(ser, format='mixed', dayfirst=True)
+
+or, if your formats are all ISO8601 (but possibly not identically-formatted) ::
+
+     ser = pd.Series(['2020-01-01', '2020-01-01 03:00'])
+     pd.to_datetime(ser, format='ISO8601')
 
 .. _whatsnew_200.api_breaking.other:
 
@@ -1187,6 +1194,8 @@ Datetimelike
 - Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
 - Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
 - Bug in :func:`to_datetime` with both ``unit`` and ``origin`` specified returning incorrect results (:issue:`42624`)
+- Bug in :meth:`GroupBy.quantile` with datetime or timedelta dtypes giving incorrect results for groups containing ``NaT`` (:issue:`51373`)
+- Bug in :meth:`Groupby.quantile` incorrectly raising with :class:`PeriodDtype` or :class:`DatetimeTZDtype` (:issue:`51373`)
 -
 
 Timedelta

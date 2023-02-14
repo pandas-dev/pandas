@@ -81,7 +81,6 @@ class TestFillNA:
             datetime_frame.fillna(5, method="ffill")
 
     def test_fillna_mixed_type(self, float_string_frame):
-
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
         mf.loc[mf.index[-10:], "A"] = np.nan
@@ -90,7 +89,6 @@ class TestFillNA:
         mf.fillna(method="pad")
 
     def test_fillna_mixed_float(self, mixed_float_frame):
-
         # mixed numeric (but no float16)
         mf = mixed_float_frame.reindex(columns=["A", "B", "D"])
         mf.loc[mf.index[-10:], "A"] = np.nan
@@ -194,7 +192,6 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
     def test_na_actions_categorical(self):
-
         cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
         vals = ["a", "b", np.nan, "d"]
         df = DataFrame({"cats": cat, "vals": vals})
