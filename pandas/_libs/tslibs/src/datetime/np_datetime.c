@@ -371,7 +371,7 @@ PyObject *extract_utc_offset(PyObject *obj) {
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
+int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out) {
     // Assumes that obj is a valid datetime object
     PyObject *tmp;
@@ -383,13 +383,19 @@ int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
 
     PyDateTime_IMPORT;
 
-    out->year = PyDateTime_GET_YEAR(dtobj);
-    out->month = PyDateTime_GET_MONTH(dtobj);
-    out->day = PyDateTime_GET_DAY(dtobj);
-    out->hour = PyDateTime_DATE_GET_HOUR(dtobj);
+    if (!PyDate_Check(dtobj)) {
+        PyErr_SetString(PyExc_TypeError, "Expected date object");
+        return NULL;
+    }
+    PyDateTime_Date *dateobj = (PyDateTime_Date*)dtobj;
 
-    if (PyDateTime_Check(dtobj)) {
-        PyDateTime_DateTime* obj = (PyDateTime_DateTime*)dtobj;
+    out->year = PyDateTime_GET_YEAR(dateobj);
+    out->month = PyDateTime_GET_MONTH(dateobj);
+    out->day = PyDateTime_GET_DAY(dateobj);
+    out->hour = PyDateTime_DATE_GET_HOUR(dateobj);
+
+    if (PyDateTime_Check(dateobj)) {
+        PyDateTime_DateTime* obj = (PyDateTime_DateTime*)dateobj;
         out->min = PyDateTime_DATE_GET_MINUTE(obj);
         out->sec = PyDateTime_DATE_GET_SECOND(obj);
         out->us = PyDateTime_DATE_GET_MICROSECOND(obj);

@@ -79,14 +79,7 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     npy_datetimestruct dts;
     int ret;
 
-    PyDateTime_IMPORT;
-    if (!PyDate_Check(obj)) {
-        PyErr_SetString(PyExc_TypeError, "Expected date object");
-        return NULL;
-    }
-    PyDateTime_Date *dtobj = (PyDateTime_Date*)obj;
-
-    ret = convert_pydatetime_to_datetimestruct(dtobj, &dts);
+    ret = convert_pydatetime_to_datetimestruct(obj, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
@@ -128,15 +121,7 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 
-    PyDateTime_IMPORT;
-
-    if (!PyDate_Check(dt)) {
-        PyErr_SetString(PyExc_TypeError, "Expected date object");
-        // return NULL;
-    }
-    PyDateTime_Date *dtobj = (PyDateTime_Date*)dt;
-
-    ret = convert_pydatetime_to_datetimestruct(dtobj, &dts);
+    ret = convert_pydatetime_to_datetimestruct(dt, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
