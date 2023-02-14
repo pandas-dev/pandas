@@ -73,7 +73,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 
-from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.strptime import TimeRE
 
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
@@ -992,9 +992,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     guessed_format = "".join(output_format)
 
-    try:
-        array_strptime(np.asarray([dt_str], dtype=object), guessed_format)
-    except ValueError:
+    if TimeRE().compile(guessed_format).match(dt_str) is None:
         # Doesn't parse, so this can't be the correct format.
         return None
     # rebuild string, capturing any inferred padding

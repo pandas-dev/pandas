@@ -1372,12 +1372,10 @@ class TestToDatetime:
     )
     def test_datetime_outofbounds_scalar(self, value, format, warning):
         # GH24763
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="ignore", format=format)
+        res = to_datetime(value, errors="ignore", format=format)
         assert res == value
 
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="coerce", format=format)
+        res = to_datetime(value, errors="coerce", format=format)
         assert res is NaT
 
         if format is not None:
@@ -1385,10 +1383,8 @@ class TestToDatetime:
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
-            msg = "^Out of bounds .*, at position 0$"
-            with pytest.raises(
-                OutOfBoundsDatetime, match=msg
-            ), tm.assert_produces_warning(warning, match="Could not infer format"):
+            msg = "^Out of bounds .*, at position 0"
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(value, errors="raise", format=format)
 
     @pytest.mark.parametrize("values", [["a"], ["00:01:99"], ["a", "b", "99:00:00"]])
@@ -2217,10 +2213,7 @@ class TestToDatetimeMisc:
 
         msg = "^Out of bounds nanosecond timestamp: .*, at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(arr)
+            to_datetime(arr)
 
     @pytest.mark.parametrize(
         "arg, exp_str",
@@ -3335,8 +3328,7 @@ class TestOrigin:
         # see gh-23830
         msg = r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00, at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(warning, match="Could not infer format"):
-                to_datetime("2417-10-10 00:00:00", format=format)
+            to_datetime("2417-10-10 00:00:00", format=format)
 
     @pytest.mark.parametrize(
         "arg, origin, expected_str",
