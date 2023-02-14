@@ -350,17 +350,15 @@ class TestSeriesArithmetic:
         result = [1, None, val] + ser
         tm.assert_series_equal(result, expected)
 
-    def test_add_list_to_masked_array_boolean(self, request):
+    @pytest.mark.filterwarnings("ignore:evaluating in Python space:UserWarning")
+    def test_add_list_to_masked_array_boolean(self):
         # GH#22962
-        min_elements = request.getfixturevalue("switch_numexpr_min_elements")
         ser = Series([True, None, False], dtype="boolean")
-        with tm.maybe_produces_warning(UserWarning, min_elements == 0):
-            result = ser + [True, None, True]
+        result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.maybe_produces_warning(UserWarning, min_elements == 0):
-            result = [True, None, True] + ser
+        result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 
