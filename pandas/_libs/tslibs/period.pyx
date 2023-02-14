@@ -2580,7 +2580,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
-                                           value in nat_strings):
+                                           (value in nat_strings or len(value) == 0)):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
