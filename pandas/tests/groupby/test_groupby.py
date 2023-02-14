@@ -66,7 +66,6 @@ def test_groupby_std_datetimelike():
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
 def test_basic(dtype):
-
     data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
     index = np.arange(9)
@@ -322,7 +321,6 @@ def test_with_na_groups(dtype):
 
 
 def test_indices_concatenation_order():
-
     # GH 2808
 
     def f1(x):
@@ -1013,7 +1011,6 @@ def test_wrap_aggregated_output_multindex(mframe):
 
 
 def test_groupby_level_apply(mframe):
-
     result = mframe.groupby(level=0).count()
     assert result.index.name == "first"
     result = mframe.groupby(level=1).count()
@@ -1171,7 +1168,6 @@ def test_grouping_ndarray(df):
 
 
 def test_groupby_wrong_multi_labels():
-
     index = Index([0, 1, 2, 3, 4], name="index")
     data = DataFrame(
         {
@@ -1295,7 +1291,6 @@ def test_series_grouper_noncontig_index():
 
 
 def test_convert_objects_leave_decimal_alone():
-
     s = Series(range(5))
     labels = np.array(["a", "b", "c", "d", "e"], dtype="O")
 
@@ -1523,7 +1518,6 @@ def test_dont_clobber_name_column():
 
 
 def test_skip_group_keys():
-
     tsf = tm.makeTimeDataFrame()
 
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
@@ -1651,7 +1645,6 @@ def test_groupby_sort_multiindex_series():
 
 
 def test_groupby_reindex_inside_function():
-
     periods = 1000
     ind = date_range(start="2012/1/1", freq="5min", periods=periods)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)

@@ -660,7 +660,6 @@ def read_sql(
     )
 
     with pandasSQL_builder(con) as pandas_sql:
-
         if isinstance(pandas_sql, SQLiteDatabase):
             return pandas_sql.read_query(
                 sql,
@@ -1016,7 +1015,6 @@ class SQLTable(PandasObject):
     def insert(
         self, chunksize: int | None = None, method: str | None = None
     ) -> int | None:
-
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -1271,7 +1269,6 @@ class SQLTable(PandasObject):
                 pass  # this column not in results
 
     def _sqlalchemy_type(self, col):
-
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -2412,7 +2409,6 @@ class SQLiteDatabase(PandasSQL):
         return table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
-
         wld = "?"
         query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
 

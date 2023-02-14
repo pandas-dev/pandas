@@ -121,7 +121,6 @@ def test_first_last_with_None_expanded(method, df, expected):
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):
-
     df = df_mixed_floats.copy()
     df["E"] = True
     df["F"] = 1

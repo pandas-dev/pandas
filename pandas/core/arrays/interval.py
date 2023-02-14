@@ -235,7 +235,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
@@ -244,7 +243,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
-
             # don't allow scalars
             if is_scalar(data):
                 msg = (
@@ -675,7 +673,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         dtype = IntervalDtype(left.dtype, closed=self.closed)
         left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
-        self._validate(left, right, dtype=dtype)
 
         return self._simple_new(left, right, dtype=dtype)
 
@@ -727,7 +724,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
-        return self._shallow_copy(left, right)
+        # Argument 2 to "_simple_new" of "IntervalArray" has incompatible type
+        # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
+        # ndarray[Any, Any]]"
+        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
@@ -1181,7 +1182,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             value = self.left._na_value
@@ -1228,7 +1228,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Rendering Methods
 
     def _format_data(self) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         n = len(self)
@@ -1246,7 +1245,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             last = formatter(self[-1])
             summary = f"[{first}, {last}]"
         else:
-
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]

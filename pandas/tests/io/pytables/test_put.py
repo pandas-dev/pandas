@@ -49,7 +49,6 @@ def test_format_kwarg_in_constructor(tmp_path, setup_path):
 
 
 def test_api_default_format(tmp_path, setup_path):
-
     # default_format option
     with ensure_clean_store(setup_path) as store:
         df = tm.makeDataFrame()
@@ -92,9 +91,7 @@ def test_api_default_format(tmp_path, setup_path):
 
 
 def test_put(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         ts = tm.makeTimeSeries()
         df = tm.makeTimeDataFrame()
         store["a"] = ts
@@ -125,9 +122,7 @@ def test_put(setup_path):
 
 
 def test_put_string_index(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         index = Index([f"I am a very long string index: {i}" for i in range(20)])
         s = Series(np.arange(20), index=index)
         df = DataFrame({"A": s, "B": s})
@@ -153,7 +148,6 @@ def test_put_string_index(setup_path):
 
 
 def test_put_compression(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeTimeDataFrame()
 
@@ -171,7 +165,6 @@ def test_put_compression_blosc(setup_path):
     df = tm.makeTimeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
-
         # can't compress if format='fixed'
         msg = "Compression not supported on Fixed format stores"
         with pytest.raises(ValueError, match=msg):
@@ -229,7 +222,6 @@ def test_store_index_types(setup_path, format, index):
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
         df.index = index(len(df))
 
@@ -249,7 +241,6 @@ def test_column_multiindex(setup_path):
     expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
-
         store.put("df", df)
         tm.assert_frame_equal(
             store["df"], expected, check_index_type=True, check_column_type=True
@@ -279,7 +270,6 @@ def test_column_multiindex(setup_path):
     expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
-
         store.put("df1", df, format="table")
         tm.assert_frame_equal(
             store["df1"], expected, check_index_type=True, check_column_type=True
@@ -287,7 +277,6 @@ def test_column_multiindex(setup_path):
 
 
 def test_store_multiindex(setup_path):
-
     # validate multi-index names
     # GH 5527
     with ensure_clean_store(setup_path) as store:

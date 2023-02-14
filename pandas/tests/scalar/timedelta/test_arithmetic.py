@@ -459,7 +459,6 @@ class TestTimedeltaMultiplicationDivision:
         assert np.isnan(td / NaT)
 
     def test_td_div_td64_non_nano(self):
-
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
@@ -1100,7 +1099,6 @@ def test_ops_error_str():
     td = Timedelta("1 day")
 
     for left, right in [(td, "a"), ("a", td)]:
-
         msg = "|".join(
             [
                 "unsupported operand type",

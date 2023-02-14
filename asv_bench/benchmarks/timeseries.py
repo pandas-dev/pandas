@@ -20,7 +20,6 @@ except ImportError:
 
 
 class DatetimeIndex:
-
     params = ["dst", "repeated", "tz_aware", "tz_local", "tz_naive"]
     param_names = ["index_type"]
 
@@ -68,7 +67,6 @@ class DatetimeIndex:
 
 
 class TzLocalize:
-
     params = [None, "US/Eastern", "UTC", dateutil.tz.tzutc()]
     param_names = "tz"
 
@@ -88,7 +86,6 @@ class TzLocalize:
 
 
 class ResetIndex:
-
     params = [None, "US/Eastern"]
     param_names = "tz"
 
@@ -126,7 +123,6 @@ class TimeDatetimeConverter:
 
 
 class Iteration:
-
     params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
@@ -149,7 +145,6 @@ class Iteration:
 
 
 class ResampleDataFrame:
-
     params = ["max", "mean", "min"]
     param_names = ["method"]
 
@@ -163,7 +158,6 @@ class ResampleDataFrame:
 
 
 class ResampleSeries:
-
     params = (["period", "datetime"], ["5min", "1D"], ["mean", "ohlc"])
     param_names = ["index", "freq", "method"]
 
@@ -193,7 +187,6 @@ class ResampleDatetetime64:
 
 
 class AsOf:
-
     params = ["DataFrame", "Series"]
     param_names = ["constructor"]
 
@@ -242,7 +235,6 @@ class AsOf:
 
 
 class SortIndex:
-
     params = [True, False]
     param_names = ["monotonic"]
 
@@ -273,7 +265,6 @@ class Lookup:
 
 
 class DatetimeAccessor:
-
     params = [None, "US/Eastern", "UTC", dateutil.tz.tzutc()]
     param_names = "tz"
 

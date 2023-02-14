@@ -371,7 +371,6 @@ class Isnull:
 
 
 class Fillna:
-
     params = (
         [True, False],
         ["pad", "bfill"],
@@ -412,7 +411,6 @@ class Fillna:
 
 
 class Dropna:
-
     params = (["all", "any"], [0, 1])
     param_names = ["how", "axis"]
 
@@ -432,7 +430,6 @@ class Dropna:
 
 
 class Count:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -531,7 +528,6 @@ class Equals:
 
 
 class Interpolate:
-
     params = [None, "infer"]
     param_names = ["downcast"]
 
@@ -616,7 +612,6 @@ class Duplicated:
 
 
 class XS:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -629,7 +624,6 @@ class XS:
 
 
 class SortValues:
-
     params = [True, False]
     param_names = ["ascending"]
 
@@ -657,7 +651,6 @@ class SortIndexByColumns:
 
 
 class Quantile:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -697,7 +690,6 @@ class GetDtypeCounts:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 

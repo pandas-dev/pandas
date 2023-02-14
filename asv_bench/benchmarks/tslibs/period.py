@@ -25,7 +25,6 @@ except ImportError:
 
 
 class PeriodProperties:
-
     params = (
         ["M", "min"],
         [
@@ -56,7 +55,6 @@ class PeriodProperties:
 
 
 class PeriodUnaryMethods:
-
     params = ["M", "min"]
     param_names = ["freq"]
 
