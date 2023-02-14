@@ -448,6 +448,7 @@ def test_timestamp_groupby_quantile():
 
 
 def test_groupby_quantile_dt64tz_period():
+    # GH#51373
     dti = pd.date_range("2016-01-01", periods=1000)
     ser = pd.Series(dti)
     df = ser.to_frame()
