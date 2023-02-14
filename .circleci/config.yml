@@ -70,8 +70,6 @@ jobs:
 
             mamba install -y -c conda-forge anaconda-client
             
-            anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./wheelhouse/*.whl
-            
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels
