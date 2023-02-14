@@ -85,7 +85,7 @@ def test_series(last_val):
         [True, False, True, True],
         [1 + 2j, 2 + 3j, 3 + 4j, 4 + 5j],
         [1 + 2j, 2 + 3j, None, 4 + 5j],
-        [1 + 2j, 2, None, 3.14],
+        [1 + 2j, 2, 3.14, np.complex128(np.nan)],
     ],
 )
 def test_series_numeric(data):

@@ -1385,6 +1385,9 @@ cdef class Seen:
         Gets the current seen val and casts it to ret_val's type.
         Caller is responsible for making sure that the cast is safe
         """
+        if self.curr_seen is CurrSeen.null_t:
+            if curr_seen_t is float64_t or curr_seen_t is complex128_t:
+                ret_val[0] = <curr_seen_t>NaN
         if self.curr_seen is CurrSeen.bool_t:
             ret_val[0] = <curr_seen_t>self.curr_seen_val.bool_t
         elif self.curr_seen is CurrSeen.uint_t:
@@ -1396,13 +1399,32 @@ cdef class Seen:
         # Handle complex128_t separately cause we'd get a compile error
         # since it can't safely cast to some of the specializations
         if curr_seen_t is complex128_t:
-            if self.curr_seen is CurrSeen.null_t:
-                ret_val[0] = NaN
-            else:
-                ret_val[0] = <curr_seen_t>self.curr_seen_val.complex_t
-        if curr_seen_t is float64_t:
-            if self.curr_seen is CurrSeen.null_t:
-                ret_val[0] = NaN
+            ret_val[0] = <curr_seen_t>self.curr_seen_val.complex_t
+
+    cdef void set_curr_val(self, curr_seen_t val):
+        """
+        Sets the current seen val to val.
+        You should set Seen.curr_seen manually if it is a NaN,
+        and also call seen.saw_int(val) for ints
+        """
+        if curr_seen_t is uint8_t:
+            self.curr_seen_val = CurrSeenVal(bool_t = val)
+            self.curr_seen = CurrSeen.bool_t
+            self.bool_ = True
+        elif curr_seen_t is uint64_t:
+            self.curr_seen_val = CurrSeenVal(uint_t=val)
+            self.curr_seen = CurrSeen.uint_t
+        elif curr_seen_t is int64_t:
+            self.curr_seen_val = CurrSeenVal(int_t=val)
+            self.curr_seen = CurrSeen.int_t
+        elif curr_seen_t is float64_t:
+            self.curr_seen_val = CurrSeenVal(float_t=val)
+            self.curr_seen = CurrSeen.float_t
+            self.float_ = True
+        elif curr_seen_t is complex128_t:
+            self.curr_seen_val = CurrSeenVal(complex_t=val)
+            self.curr_seen = CurrSeen.complex_t
+            self.complex_ = True
 
 
 cdef object _try_infer_map(object dtype):
@@ -2307,10 +2329,8 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            seen.curr_seen_val = CurrSeenVal(float_t=NaN)
             seen.curr_seen = CurrSeen.null_t
         elif util.is_float_object(val):
-            seen.curr_seen_val = CurrSeenVal(float_t=val)
             fval = val
             if fval != fval:
                 seen.null_ = True
@@ -2321,36 +2341,26 @@ def maybe_convert_numeric(
                     if convert_to_masked_nullable:
                         mask[i] = 1
                         seen.curr_seen = CurrSeen.null_t
-                    seen.curr_seen = CurrSeen.float_t
-                    seen.float_ = True
+                    seen.set_curr_val(fval)
             else:
-                seen.curr_seen = CurrSeen.float_t
-                seen.float_ = True
+                seen.set_curr_val(fval)
         elif util.is_integer_object(val):
             val = int(val)
             seen.saw_int(val)
 
             if val >= 0:
                 if val <= oUINT64_MAX:
-                    seen.curr_seen_val = CurrSeenVal(uint_t = val)
-                    seen.curr_seen = CurrSeen.uint_t
+                    seen.set_curr_val(<uint64_t>val)
                 else:
-                    seen.curr_seen_val = CurrSeenVal(float_t=val)
-                    seen.curr_seen = CurrSeen.float_t
-                    seen.float_ = True
+                    seen.set_curr_val(<float64_t>val)
 
             if oINT64_MIN <= val <= oINT64_MAX:
-                seen.curr_seen_val = CurrSeenVal(int_t=val)
-                seen.curr_seen = CurrSeen.int_t
+                seen.set_curr_val(<int64_t>val)
 
             if val < oINT64_MIN or (seen.sint_ and seen.uint_):
-                seen.curr_seen = CurrSeen.float_t
-                seen.curr_seen_val = CurrSeenVal(float_t=val)
-                seen.float_ = True
+                seen.set_curr_val(<float64_t>val)
         elif util.is_bool_object(val):
-            seen.curr_seen_val = CurrSeenVal(bool_t=val)
-            seen.curr_seen = CurrSeen.bool_t
-            seen.bool_ = True
+            seen.set_curr_val(<uint8_t>val)
         elif val is None or val is C_NA:
             if allow_null_in_int:
                 seen.null_ = True
@@ -2359,48 +2369,26 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            seen.curr_seen_val = CurrSeenVal(float_t=NaN)
             seen.curr_seen = CurrSeen.null_t
         elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                seen.curr_seen_val = CurrSeenVal(float_t=NaN)
                 seen.curr_seen = CurrSeen.null_t
                 mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
-            seen.curr_seen = CurrSeen.complex_t
-            seen.curr_seen_val = CurrSeenVal(complex_t=val)
-            seen.complex_ = True
+            seen.set_curr_val(<complex128_t>val)
         elif is_decimal(val):
-            seen.curr_seen_val = CurrSeenVal(float_t=val)
-            seen.curr_seen = CurrSeen.float_t
-            seen.float_ = True
+            seen.set_curr_val(<float64_t>val)
         else:
             try:
                 floatify(val, &fval, &maybe_int)
-
-                if fval in na_values:
-                    seen.saw_null()
-                    seen.curr_seen_val = CurrSeenVal(float_t=NaN)
-                    seen.curr_seen = CurrSeen.float_t
-                    mask[i] = 1
-                else:
-                    if fval != fval:
-                        seen.null_ = True
-                        seen.curr_seen = CurrSeen.null_t
-                        mask[i] = 1
-                    else:
-                        seen.curr_seen = CurrSeen.float_t
-
-                    seen.curr_seen_val = CurrSeenVal(float_t=fval)
 
                 if maybe_int:
                     as_int = int(val)
 
                     if as_int in na_values:
-                        seen.curr_seen_val = CurrSeenVal(float_t=NaN)
                         seen.curr_seen = CurrSeen.null_t
                         seen.null_ = True
                         mask[i] = 1
@@ -2412,29 +2400,33 @@ def maybe_convert_numeric(
                     if as_int not in na_values:
                         if as_int < oINT64_MIN or as_int > oUINT64_MAX:
                             if seen.coerce_numeric:
-                                seen.curr_seen_val = CurrSeenVal(float_t=fval)
-                                seen.curr_seen = CurrSeen.float_t
-                                seen.float_ = True
+                                seen.set_curr_val(fval)
                             else:
                                 raise ValueError("Integer out of range.")
                         else:
                             if as_int <= oINT64_MAX:
-                                seen.curr_seen_val = CurrSeenVal(int_t=as_int)
-                                seen.curr_seen = CurrSeen.int_t
+                                seen.set_curr_val(<int64_t>as_int)
                             else:
-                                seen.curr_seen_val = CurrSeenVal(uint_t=as_int)
-                                seen.curr_seen = CurrSeen.uint_t
+                                seen.set_curr_val(<uint64_t>as_int)
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
-                    seen.float_ = True
-                    seen.curr_seen = CurrSeen.float_t
+                    if fval in na_values:
+                        seen.saw_null()
+                        seen.set_curr_val(NaN)
+                        mask[i] = 1
+                    else:
+                        if fval != fval:
+                            seen.null_ = True
+                            seen.curr_seen = CurrSeen.null_t
+                            mask[i] = 1
+                        else:
+                            seen.set_curr_val(fval)
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
                 seen.saw_null()
-                seen.curr_seen_val = CurrSeenVal(float_t=NaN)
                 seen.curr_seen = CurrSeen.null_t
                 mask[i] = 1
 
