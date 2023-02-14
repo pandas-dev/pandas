@@ -12,7 +12,6 @@ from pandas.core.strings.accessor import StringMethods
 
 
 def test_api(any_string_dtype):
-
     # GH 6106, GH 9322
     assert Series.str is StringMethods
     assert isinstance(Series([""], dtype=any_string_dtype).str, StringMethods)

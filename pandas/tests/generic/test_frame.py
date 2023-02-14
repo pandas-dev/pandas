@@ -46,7 +46,6 @@ class TestDataFrame:
         assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
-
         # allow single item via bool method
         df = DataFrame([[True]])
         assert df.bool()
@@ -88,7 +87,6 @@ class TestDataFrame:
         # GH 6923
 
         def finalize(self, other, method=None, **kwargs):
-
             for name in self._metadata:
                 if method == "merge":
                     left, right = other.left, other.right

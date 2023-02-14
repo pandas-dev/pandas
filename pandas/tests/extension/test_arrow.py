@@ -988,7 +988,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
-
     divmod_exc = NotImplementedError
 
     def _patch_combine(self, obj, other, op):

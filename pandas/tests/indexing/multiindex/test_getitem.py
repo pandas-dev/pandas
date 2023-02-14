@@ -24,7 +24,6 @@ from pandas.core.indexing import IndexingError
     [(0, Series([1], index=[0])), (1, Series([2, 3], index=[1, 2]))],
 )
 def test_series_getitem_multiindex(access_method, level1_value, expected):
-
     # GH 6018
     # series regression getitem with a multi-index
 
