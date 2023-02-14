@@ -1,4 +1,5 @@
 from pandas._libs import (
+    convert_strftime_format,
     NaT,
     Period,
     Timedelta,
@@ -116,6 +117,7 @@ __all__ = [
     "NaT",
     "notna",
     "notnull",
+    "convert_strftime_format",
     "Period",
     "PeriodDtype",
     "PeriodIndex",

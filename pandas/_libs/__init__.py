@@ -5,6 +5,7 @@ __all__ = [
     "Period",
     "Timedelta",
     "Timestamp",
+    "convert_strftime_format",
     "iNaT",
     "Interval",
 ]
@@ -18,5 +19,6 @@ from pandas._libs.tslibs import (
     Period,
     Timedelta,
     Timestamp,
+    convert_strftime_format,
     iNaT,
 )
