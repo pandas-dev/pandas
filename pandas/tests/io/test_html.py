@@ -344,7 +344,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)

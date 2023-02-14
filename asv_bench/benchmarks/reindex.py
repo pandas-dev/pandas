@@ -54,7 +54,6 @@ class Reindex:
 
 
 class ReindexMethod:
-
     params = [["pad", "backfill"], [date_range, period_range]]
     param_names = ["method", "constructor"]
 
@@ -68,7 +67,6 @@ class ReindexMethod:
 
 
 class Fillna:
-
     params = ["pad", "backfill"]
     param_names = ["method"]
 
@@ -107,7 +105,6 @@ class LevelAlign:
 
 
 class DropDuplicates:
-
     params = [True, False]
     param_names = ["inplace"]
 

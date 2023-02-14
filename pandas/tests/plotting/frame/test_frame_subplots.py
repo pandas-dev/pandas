@@ -227,7 +227,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
     def test_subplots_layout_single_column(
         self, kwargs, expected_axes_num, expected_layout, expected_shape
     ):
-
         # GH 6667
         df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
         axes = df.plot(subplots=True, **kwargs)
@@ -623,7 +622,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         width=0.5,
         position=0.5,
     ):
-
         axes = df.plot(
             kind=kind,
             stacked=stacked,

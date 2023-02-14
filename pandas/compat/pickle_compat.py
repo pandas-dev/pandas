@@ -32,7 +32,6 @@ def load_reduce(self):
         stack[-1] = func(*args)
         return
     except TypeError as err:
-
         # If we have a deprecated function,
         # try to replace and try again.
 

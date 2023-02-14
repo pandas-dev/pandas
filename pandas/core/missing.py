@@ -994,14 +994,12 @@ def _interp_limit(invalid: npt.NDArray[np.bool_], fw_limit, bw_limit):
         return idx
 
     if fw_limit is not None:
-
         if fw_limit == 0:
             f_idx = set(np.where(invalid)[0])
         else:
             f_idx = inner(invalid, fw_limit)
 
     if bw_limit is not None:
-
         if bw_limit == 0:
             # then we don't even need to care about backwards
             # just use forwards
