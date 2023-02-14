@@ -3195,7 +3195,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the
                 #  np.lexsort below.
-                return vals, inference
+                # error: Incompatible return value type (got
+                # "Tuple[Union[ExtensionArray, ndarray[Any, Any]], Union[Any,
+                # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
+                # Optional[Union[dtype[Any], ExtensionDtype]]]")
+                return vals, inference  # type: ignore[return-value]
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
@@ -3235,8 +3239,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     and interpolation in {"linear", "midpoint"}
                 ):
                     if needs_i8_conversion(inference):
-                        vals = vals.astype("i8").view(orig_vals._ndarray.dtype)
-                        return orig_vals._from_backing_data(vals)
+                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+                        # ndarray[Any, Any]]" has no attribute "_ndarray"
+                        vals = vals.astype("i8").view(
+                            orig_vals._ndarray.dtype  # type: ignore[union-attr]
+                        )
+                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+                        # ndarray[Any, Any]]" has no attribute "_from_backing_data"
+                        return orig_vals._from_backing_data(  # type: ignore[union-attr]
+                            vals
+                        )
 
                     assert isinstance(inference, np.dtype)  # for mypy
                     return vals.astype(inference)
