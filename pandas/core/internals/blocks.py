@@ -632,7 +632,6 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        convert: bool = True,
         mask=None,
     ) -> list[Block]:
         """
@@ -646,8 +645,6 @@ class Block(PandasObject):
             Replacement object.
         inplace : bool, default False
             Perform inplace modification.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -790,7 +787,6 @@ class Block(PandasObject):
                 to_replace,
                 value,
                 inplace=inplace,
-                convert=False,
                 mask=mask,
             )
         else:
@@ -948,7 +944,7 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
-    def setitem(self, indexer, value) -> Block:
+    def setitem(self, indexer, value, using_cow: bool = False) -> Block:
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -958,6 +954,8 @@ class Block(PandasObject):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -993,10 +991,17 @@ class Block(PandasObject):
                     # checking lib.is_scalar here fails on
                     #  test_iloc_setitem_custom_object
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
+
+            if using_cow and self.refs.has_reference():
+                values = values.copy()
+                self = self.make_block_same_class(
+                    values.T if values.ndim == 2 else values
+                )
+
             values[indexer] = casted
         return self
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1007,6 +1012,7 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
+        using_cow: bool, default False
 
         Returns
         -------
@@ -1024,11 +1030,21 @@ class Block(PandasObject):
         new = extract_array(new, extract_numpy=True)
 
         if noop:
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
 
         try:
             casted = np_can_hold_element(values.dtype, new)
+
+            if using_cow and self.refs.has_reference():
+                # Do this here to avoid copying twice
+                values = values.copy()
+                self = self.make_block_same_class(values)
+
             putmask_without_repeat(values.T, mask, casted)
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
 
@@ -1040,7 +1056,7 @@ class Block(PandasObject):
                     return self.coerce_to_target_dtype(new).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
-                    nb = self.setitem(indexer, new[indexer])
+                    nb = self.setitem(indexer, new[indexer], using_cow=using_cow)
                     return [nb]
 
             else:
@@ -1055,7 +1071,7 @@ class Block(PandasObject):
                         n = new[:, i : i + 1]
 
                     submask = orig_mask[:, i : i + 1]
-                    rbs = nb.putmask(submask, n)
+                    rbs = nb.putmask(submask, n, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1171,7 +1187,12 @@ class Block(PandasObject):
         return [self.make_block(result)]
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1190,20 +1211,22 @@ class Block(PandasObject):
         if noop:
             # we can't process the value, but nothing to do
             if inplace:
+                if using_cow:
+                    return [self.copy(deep=False)]
                 # Arbitrarily imposing the convention that we ignore downcast
                 #  on no-op when inplace=True
                 return [self]
             else:
                 # GH#45423 consistent downcasting on no-ops.
-                nb = self.copy()
-                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                nb = self.copy(deep=not using_cow)
+                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
                 return nbs
 
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            nbs = self.putmask(mask.T, value)
+            nbs = self.putmask(mask.T, value, using_cow=using_cow)
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
@@ -1213,7 +1236,10 @@ class Block(PandasObject):
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
         return extend_blocks(
-            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+            [
+                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                for blk in nbs
+            ]
         )
 
     def interpolate(
@@ -1450,7 +1476,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
-    def setitem(self, indexer, value):
+    def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -1463,6 +1489,8 @@ class EABackedBlock(Block):
             The subset of self.values to set
         value : object
             The value being set
+        using_cow: bool, default False
+            Signaling if CoW is used.
 
         Returns
         -------
@@ -1569,7 +1597,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -1587,7 +1615,15 @@ class EABackedBlock(Block):
         mask = self._maybe_squeeze_arg(mask)
 
         if not mask.any():
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self]
+
+        if using_cow and self.refs.has_reference():
+            values = values.copy()
+            self = self.make_block_same_class(  # type: ignore[assignment]
+                values.T if values.ndim == 2 else values
+            )
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -1637,6 +1673,9 @@ class EABackedBlock(Block):
             values = self.values.delete(loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
+        elif self.values.ndim == 1:
+            # We get here through to_stata
+            return []
         return super().delete(loc)
 
     @cache_readonly
@@ -1695,12 +1734,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     values: ExtensionArray
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         if is_interval_dtype(self.dtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
-                value=value, limit=limit, inplace=inplace, downcast=downcast
+                value=value,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
+                using_cow=using_cow,
             )
         new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values)
@@ -2209,7 +2257,9 @@ def get_block_type(dtype: DtypeObj):
     return cls
 
 
-def new_block_2d(values: ArrayLike, placement: BlockPlacement):
+def new_block_2d(
+    values: ArrayLike, placement: BlockPlacement, refs: BlockValuesRefs | None = None
+):
     # new_block specialized to case with
     #  ndim=2
     #  isinstance(placement, BlockPlacement)
@@ -2217,7 +2267,7 @@ def new_block_2d(values: ArrayLike, placement: BlockPlacement):
     klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
-    return klass(values, ndim=2, placement=placement)
+    return klass(values, ndim=2, placement=placement, refs=refs)
 
 
 def new_block(

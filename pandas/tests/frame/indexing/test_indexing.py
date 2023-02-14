@@ -57,6 +57,15 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match="random"):
             float_frame["random"]
 
+    def test_getitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        result = df[1]
+        expected = DataFrame([[1, 3], [4, 6]], columns=Index([1, 1], dtype=dtype))
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
     def test_getitem2(self, float_frame):
 
         df = float_frame.copy()
@@ -70,6 +79,15 @@ class TestDataFrameIndexing:
 
         res = df["@awesome_domain"]
         tm.assert_numpy_array_equal(ad, res.values)
+
+    def test_setitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        df[1] = 10
+        expected = DataFrame([[10, 2, 10], [10, 5, 10]], columns=idx)
+        tm.assert_frame_equal(df, expected, check_exact=True)
 
     def test_setitem_list(self, float_frame):
 

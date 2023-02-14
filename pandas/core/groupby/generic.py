@@ -236,7 +236,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func)
+            ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
             if relabeling:
                 # columns is not narrowed by mypy from relabeling flag
                 assert columns is not None  # for mypy
@@ -268,7 +268,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg) -> DataFrame:
+    def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
             if self.as_index:
                 # GH 15931
@@ -293,7 +293,7 @@ class SeriesGroupBy(GroupBy[Series]):
             for idx, (name, func) in enumerate(arg):
 
                 key = base.OutputKey(label=name, position=idx)
-                results[key] = self.aggregate(func)
+                results[key] = self.aggregate(func, *args, **kwargs)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
@@ -555,7 +555,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # Interpret np.nan as False.
         def true_and_notna(x) -> bool:
             b = wrapper(x)
-            return b and notna(b)
+            return notna(b) and b
 
         try:
             indices = [
@@ -1265,9 +1265,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result
-        elif relabeling and result is not None:
+        elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
+            result = cast(DataFrame, result)
             result = result.iloc[:, order]
             result = cast(DataFrame, result)
             # error: Incompatible types in assignment (expression has type
@@ -1336,6 +1337,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             for label, values in obj.items():
                 if label in self.exclusions:
+                    # Note: if we tried to just iterate over _obj_with_exclusions,
+                    #  we would break test_wrap_agg_out by yielding a column
+                    #  that is skipped here but not dropped from obj_with_exclusions
                     continue
 
                 yield values
@@ -1379,6 +1383,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return result
 
         # GH12824
+        # using values[0] here breaks test_groupby_apply_none_first
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
@@ -1714,7 +1719,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # interpret the result of the filter
             if is_bool(res) or (is_scalar(res) and isna(res)):
-                if res and notna(res):
+                if notna(res) and res:
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -1817,7 +1822,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         return self.obj._constructor(mgr)
 
-    def _iterate_column_groupbys(self, obj: DataFrame | Series):
+    def _iterate_column_groupbys(self, obj: DataFrame):
         for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
                 obj.iloc[:, i],

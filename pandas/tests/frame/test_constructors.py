@@ -285,10 +285,8 @@ class TestDataFrameConstructors:
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
-            # TODO(CoW) doesn't mutate original
             should_be_view.iloc[0, 0] = 99
-            # assert df.values[0, 0] == 1
-            assert df.values[0, 0] == 99
+            assert df.values[0, 0] == 1
         else:
             should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
@@ -2099,6 +2097,17 @@ class TestDataFrameConstructors:
         cop["A"] = 5
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
+
+    def test_constructor_frame_shallow_copy(self, float_frame):
+        # constructing a DataFrame from DataFrame with copy=False should still
+        # give a "shallow" copy (share data, not attributes)
+        # https://github.com/pandas-dev/pandas/issues/49523
+        orig = float_frame.copy()
+        cop = DataFrame(float_frame)
+        assert cop._mgr is not float_frame._mgr
+        # Overwriting index of copy doesn't change original
+        cop.index = np.arange(len(cop))
+        tm.assert_frame_equal(float_frame, orig)
 
     def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
         if not using_array_manager:

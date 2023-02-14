@@ -799,9 +799,9 @@ class TestPivotTable:
     def test_pivot_columns_none_raise_error(self):
         # GH 30924
         df = DataFrame({"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]})
-        msg = r"pivot\(\) missing 1 required argument: 'columns'"
+        msg = r"pivot\(\) missing 1 required keyword-only argument: 'columns'"
         with pytest.raises(TypeError, match=msg):
-            df.pivot(index="col1", values="col3")
+            df.pivot(index="col1", values="col3")  # pylint: disable=missing-kwoa
 
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
@@ -2513,8 +2513,8 @@ class TestPivot:
     def test_pivot_columns_not_given(self):
         # GH#48293
         df = DataFrame({"a": [1], "b": 1})
-        with pytest.raises(TypeError, match="missing 1 required argument"):
-            df.pivot()
+        with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
+            df.pivot()  # pylint: disable=missing-kwoa
 
     def test_pivot_columns_is_none(self):
         # GH#48293
