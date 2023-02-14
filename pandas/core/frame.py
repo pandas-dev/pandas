@@ -652,6 +652,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy:
+                # if not copying data, ensure to still return a shallow copy
+                # to avoid the result sharing the same Manager
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
@@ -2633,13 +2637,15 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriter117 as statawriter,
             )
         else:  # versions 118 and 119
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriterUTF8 as statawriter,
             )
 
@@ -3805,6 +3811,8 @@ class DataFrame(NDFrame, OpsMixin):
             # string in the key. If the result is a Series, exclude the
             # implied empty string from its name.
             if len(result.columns) == 1:
+                # e.g. test_frame_getitem_multicolumn_empty_level,
+                #  test_frame_mixed_depth_get, test_loc_setitem_single_column_slice
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
@@ -5514,8 +5522,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
@@ -7817,13 +7824,13 @@ Keep all original rows and columns and also all original values
         result = {}
         for col in new_columns:
             series = this[col]
-            otherSeries = other[col]
+            other_series = other[col]
 
             this_dtype = series.dtype
-            other_dtype = otherSeries.dtype
+            other_dtype = other_series.dtype
 
             this_mask = isna(series)
-            other_mask = isna(otherSeries)
+            other_mask = isna(other_series)
 
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
@@ -7833,9 +7840,9 @@ Keep all original rows and columns and also all original values
 
             if do_fill:
                 series = series.copy()
-                otherSeries = otherSeries.copy()
+                other_series = other_series.copy()
                 series[this_mask] = fill_value
-                otherSeries[other_mask] = fill_value
+                other_series[other_mask] = fill_value
 
             if col not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
@@ -7850,9 +7857,9 @@ Keep all original rows and columns and also all original values
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 series = series.astype(new_dtype, copy=False)
-                otherSeries = otherSeries.astype(new_dtype, copy=False)
+                other_series = other_series.astype(new_dtype, copy=False)
 
-            arr = func(series, otherSeries)
+            arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
                 # if new_dtype is an EA Dtype, then `func` is expected to return
                 # the correct dtype without any additional casting
@@ -9914,7 +9921,7 @@ Parrot 2  Parrot       24.0
                 except KeyError:
                     yield vals
 
-        def _series_round(ser: Series, decimals: int):
+        def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
             return ser

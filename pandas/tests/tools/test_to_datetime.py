@@ -547,7 +547,7 @@ class TestToDatetime:
     @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
-        # TODO: Timestamp raises VaueError("could not convert string to Timestamp")
+        # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
         #  can we make these more consistent?
         arg = "08335394550"
         msg = 'Parsing "08335394550" to datetime overflows, at position 0'
@@ -945,8 +945,8 @@ class TestToDatetime:
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdnow.value - now.value) < 1e10
-            assert abs(pdnow2.value - now.value) < 1e10
+            assert abs(pdnow._value - now._value) < 1e10
+            assert abs(pdnow2._value - now._value) < 1e10
 
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
@@ -970,10 +970,10 @@ class TestToDatetime:
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.normalize().value - nptoday) < 1e10
-            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
-            assert abs(pdtoday.value - tstoday.value) < 1e10
-            assert abs(pdtoday.value - tstoday2.value) < 1e10
+            assert abs(pdtoday.normalize()._value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize()._value - nptoday) < 1e10
+            assert abs(pdtoday._value - tstoday._value) < 1e10
+            assert abs(pdtoday._value - tstoday2._value) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
@@ -1767,11 +1767,11 @@ class TestToDatetimeUnit:
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
 
     def test_unit_array_mixed_nans(self, cache):
-        values = [11111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
+        values = [11111111111111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
         result = to_datetime(values, unit="D", errors="ignore", cache=cache)
         expected = Index(
             [
-                11111111,
+                11111111111111111,
                 Timestamp("1970-01-02"),
                 Timestamp("1970-01-02"),
                 NaT,
@@ -1790,22 +1790,22 @@ class TestToDatetimeUnit:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot convert input 11111111 with the unit 'D'"
+        msg = "cannot convert input 11111111111111111 with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
     def test_unit_array_mixed_nans_large_int(self, cache):
-        values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
+        values = [1420043460000000000000000, iNaT, NaT, np.nan, "NaT"]
 
         result = to_datetime(values, errors="ignore", unit="s", cache=cache)
-        expected = Index([1420043460000, NaT, NaT, NaT, NaT], dtype=object)
+        expected = Index([1420043460000000000000000, NaT, NaT, NaT, NaT], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = to_datetime(values, errors="coerce", unit="s", cache=cache)
         expected = DatetimeIndex(["NaT", "NaT", "NaT", "NaT", "NaT"])
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot convert input 1420043460000 with the unit 's'"
+        msg = "cannot convert input 1420043460000000000000000 with the unit 's'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, errors="raise", unit="s", cache=cache)
 
@@ -2501,6 +2501,16 @@ class TestToDatetimeMisc:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
+    def test_string_invalid_operation(self, cache):
+        invalid = np.array(["87156549591102612381000001219H5"], dtype=object)
+        # GH #51084
+
+        with pytest.raises(ValueError, match="Unknown datetime string format"):
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                to_datetime(invalid, errors="raise", cache=cache)
+
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 
@@ -3186,6 +3196,16 @@ def julian_dates():
 
 
 class TestOrigin:
+    def test_origin_and_unit(self):
+        # GH#42624
+        ts = to_datetime(1, unit="s", origin=1)
+        expected = Timestamp("1970-01-01 00:00:02")
+        assert ts == expected
+
+        ts = to_datetime(1, unit="s", origin=1_000_000_000)
+        expected = Timestamp("2001-09-09 01:46:41")
+        assert ts == expected
+
     def test_julian(self, julian_dates):
         # gh-11276, gh-11745
         # for origin as julian

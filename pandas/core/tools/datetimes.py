@@ -518,8 +518,8 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             fvalues = (arg * mult).astype("f8", copy=False)
             fvalues[mask] = 0
 
-            if (fvalues < Timestamp.min.value).any() or (
-                fvalues > Timestamp.max.value
+            if (fvalues < Timestamp.min._value).any() or (
+                fvalues > Timestamp.max._value
             ).any():
                 if errors != "raise":
                     arg = arg.astype(object)
@@ -606,7 +606,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = Timestamp(origin)
+            offset = Timestamp(origin, unit=unit)
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:

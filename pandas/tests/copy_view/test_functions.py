@@ -1,9 +1,12 @@
 import numpy as np
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Series,
     concat,
+    merge,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -177,3 +180,63 @@ def test_concat_mixed_series_frame(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_copy_on_write_not_yet_implemented  # TODO(CoW)
+def test_merge_on_key(using_copy_on_write):
+    df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]})
+    df2 = DataFrame({"key": ["a", "b", "c"], "b": [4, 5, 6]})
+    df1_orig = df1.copy()
+    df2_orig = df2.copy()
+
+    result = merge(df1, df2, on="key")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(result, "key"), get_array(df1, "key"))
+        assert not np.shares_memory(get_array(result, "key"), get_array(df2, "key"))
+    else:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+
+    result.iloc[0, 1] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+
+    result.iloc[0, 2] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+    tm.assert_frame_equal(df1, df1_orig)
+    tm.assert_frame_equal(df2, df2_orig)
+
+
+def test_merge_on_index(using_copy_on_write):
+    df1 = DataFrame({"a": [1, 2, 3]})
+    df2 = DataFrame({"b": [4, 5, 6]})
+    df1_orig = df1.copy()
+    df2_orig = df2.copy()
+
+    result = merge(df1, df2, left_index=True, right_index=True)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+    else:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+
+    result.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
+        assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+
+    result.iloc[0, 1] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+    tm.assert_frame_equal(df1, df1_orig)
+    tm.assert_frame_equal(df2, df2_orig)
+
+
+# TODO(CoW) add merge tests where one of left/right isn't copied

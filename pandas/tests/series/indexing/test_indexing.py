@@ -45,6 +45,26 @@ def test_basic_indexing():
         s[5] = 0
 
 
+def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
+    # GH51053
+    dtype = any_numeric_dtype
+    idx = Index([1, 0, 1], dtype=dtype)
+    ser = Series(range(3), index=idx)
+    result = ser[1]
+    expected = Series([0, 2], index=Index([1, 1], dtype=dtype))
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+def test_setitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
+    # GH51053
+    dtype = any_numeric_dtype
+    idx = Index([1, 0, 1], dtype=dtype)
+    ser = Series(range(3), index=idx)
+    ser[1] = 10
+    expected = Series([10, 1, 10], index=idx)
+    tm.assert_series_equal(ser, expected, check_exact=True)
+
+
 def test_basic_getitem_with_labels(datetime_series):
     indices = datetime_series.index[[5, 10, 15]]
 
@@ -380,6 +400,16 @@ def test_getitem_bool_int_key():
     ser = Series({True: 1, False: 0})
     with pytest.raises(KeyError, match="0"):
         ser.loc[0]
+
+
+@pytest.mark.parametrize("val", [{}, {"b": "x"}])
+@pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
+def test_setitem_empty_indexer(indexer, val):
+    # GH#45981
+    df = DataFrame({"a": [1, 2], **val})
+    expected = df.copy()
+    df.loc[indexer] = 1.5
+    tm.assert_frame_equal(df, expected)
 
 
 class TestDeprecatedIndexers:

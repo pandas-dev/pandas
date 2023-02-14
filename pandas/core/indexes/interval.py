@@ -546,7 +546,7 @@ class IntervalIndex(ExtensionIndex):
             if lib.is_period(key):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
-                key_i8 = key_i8.value
+                key_i8 = key_i8._value
             elif isinstance(key_i8, (np.datetime64, np.timedelta64)):
                 key_i8 = key_i8.view("i8")
         else:

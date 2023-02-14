@@ -172,6 +172,20 @@ def test_filter_nan_is_false():
     tm.assert_series_equal(g_s.filter(f), s[[]])
 
 
+def test_filter_pdna_is_false():
+    # in particular, dont raise in filter trying to call bool(pd.NA)
+    df = DataFrame({"A": np.arange(8), "B": list("aabbbbcc"), "C": np.arange(8)})
+    ser = df["B"]
+    g_df = df.groupby(df["B"])
+    g_s = ser.groupby(ser)
+
+    func = lambda x: pd.NA
+    res = g_df.filter(func)
+    tm.assert_frame_equal(res, df.loc[[]])
+    res = g_s.filter(func)
+    tm.assert_series_equal(res, ser[[]])
+
+
 def test_filter_against_workaround():
     np.random.seed(0)
     # Series of ints
@@ -355,8 +369,7 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -398,8 +411,7 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -441,8 +453,7 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -487,8 +498,7 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -530,8 +540,7 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 

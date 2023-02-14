@@ -219,7 +219,7 @@ class TestSeriesRepr:
 \end{tabular}
 """
         with option_context(
-            "display.latex.escape", False, "styler.render.repr", "latex"
+            "styler.format.escape", None, "styler.render.repr", "latex"
         ):
             s = Series([r"$\alpha$", "b", "c"])
             assert result == s._repr_latex_()
@@ -241,7 +241,7 @@ class TestSeriesRepr:
         repr(ts)
 
     def test_series_repr_nat(self):
-        series = Series([0, 1000, 2000, pd.NaT.value], dtype="M8[ns]")
+        series = Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")
 
         result = repr(series)
         expected = (
