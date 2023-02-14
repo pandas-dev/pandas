@@ -1572,7 +1572,7 @@ class TestPeriodIndexSeriesMethods:
         assert result.freq == exp.freq
 
     def test_pi_sub_pdnat(self):
-        # GH#13071
+        # GH#13071, GH#19389
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )

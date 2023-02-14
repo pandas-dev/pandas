@@ -331,19 +331,28 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    new_res = colg.aggregate(a)
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            a, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
                     name = com.get_callable_name(a) or a
                     keys.append(name)
 
-            # multiples
             else:
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(arg)
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            arg, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -587,13 +596,11 @@ class NDFrameApply(Apply):
     not GroupByApply or ResamplerWindowApply
     """
 
+    obj: DataFrame | Series
+
     @property
     def index(self) -> Index:
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
-        return self.obj.index  # type:ignore[arg-type]
+        return self.obj.index
 
     @property
     def agg_axis(self) -> Index:

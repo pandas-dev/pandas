@@ -3546,10 +3546,12 @@ class MultiIndex(Index):
             else:
                 result = self._get_reconciled_name_object(other)
 
-            if sort is None:
+            if sort is not False:
                 try:
                     result = result.sort_values()
                 except TypeError:
+                    if sort is True:
+                        raise
                     warnings.warn(
                         "The values in the array are unorderable. "
                         "Pass `sort=False` to suppress this warning.",

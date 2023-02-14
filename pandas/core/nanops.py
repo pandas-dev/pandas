@@ -1510,6 +1510,10 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
+    if mask is None and min_count == 0:
+        # nothing to check; short-circuit
+        return result
+
     if axis is not None and isinstance(result, np.ndarray):
         if mask is not None:
             null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0

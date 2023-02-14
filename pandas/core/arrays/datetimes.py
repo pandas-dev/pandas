@@ -769,7 +769,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
-            result = type(self)._from_sequence(result)
+            result = type(self)._from_sequence(result).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return result.tz_localize(self.tz)

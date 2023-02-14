@@ -499,13 +499,10 @@ def _convert_by(by):
 def pivot(
     data: DataFrame,
     *,
+    columns: IndexLabel,
     index: IndexLabel | lib.NoDefault = lib.NoDefault,
-    columns: IndexLabel | lib.NoDefault = lib.NoDefault,
     values: IndexLabel | lib.NoDefault = lib.NoDefault,
 ) -> DataFrame:
-    if columns is lib.NoDefault:
-        raise TypeError("pivot() missing 1 required argument: 'columns'")
-
     columns_listlike = com.convert_to_list_like(columns)
 
     # If columns is None we will create a MultiIndex level with None as name

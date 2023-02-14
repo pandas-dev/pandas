@@ -1618,3 +1618,25 @@ def test_any_apply_keyword_non_zero_axis_regression():
 
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_func_with_args():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3]})
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = df.agg([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
