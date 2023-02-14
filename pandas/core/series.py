@@ -581,6 +581,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.dtype
+        dtype('int64')
         """
         return self._mgr.dtype
 
@@ -588,6 +594,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.dtypes
+        dtype('int64')
         """
         # DataFrame compatibility
         return self.dtype
@@ -5723,6 +5735,17 @@ Keep all original rows and also all original values
         -------
         Series
             Series with index converted to PeriodIndex.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2015-01-01', '2015-01-02', '2015-01-03'])
+        >>> idx = idx.to_period()
+        >>> s = pd.Series([1, 2, 3], index=idx)
+        >>> s
+        2015-01-01    1
+        2015-01-02    2
+        2015-01-03    3
+        Freq: D, dtype: int64
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
