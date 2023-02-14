@@ -331,29 +331,6 @@ To automatically fix formatting errors on each commit you make, you can
 set up pre-commit yourself. First, create a Python :ref:`environment
 <contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
 
-Delete your merged branch (optional)
-------------------------------------
-
-Once your feature branch is accepted into upstream, you'll probably want to get rid of
-the branch. First, merge upstream main into your branch so git knows it is safe to
-delete your branch::
-
-    git fetch upstream
-    git checkout main
-    git merge upstream/main
-
-Then you can do::
-
-    git branch -d shiny-new-feature
-
-Make sure you use a lower-case ``-d``, or else git won't warn you if your feature
-branch has not actually been merged.
-
-The branch will still exist on GitHub, so to delete it there do::
-
-    git push origin --delete shiny-new-feature
-
-
 Tips for a successful pull request
 ==================================
 
