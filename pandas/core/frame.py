@@ -3811,6 +3811,8 @@ class DataFrame(NDFrame, OpsMixin):
             # string in the key. If the result is a Series, exclude the
             # implied empty string from its name.
             if len(result.columns) == 1:
+                # e.g. test_frame_getitem_multicolumn_empty_level,
+                #  test_frame_mixed_depth_get, test_loc_setitem_single_column_slice
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
@@ -7822,13 +7824,13 @@ Keep all original rows and columns and also all original values
         result = {}
         for col in new_columns:
             series = this[col]
-            otherSeries = other[col]
+            other_series = other[col]
 
             this_dtype = series.dtype
-            other_dtype = otherSeries.dtype
+            other_dtype = other_series.dtype
 
             this_mask = isna(series)
-            other_mask = isna(otherSeries)
+            other_mask = isna(other_series)
 
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
@@ -7838,9 +7840,9 @@ Keep all original rows and columns and also all original values
 
             if do_fill:
                 series = series.copy()
-                otherSeries = otherSeries.copy()
+                other_series = other_series.copy()
                 series[this_mask] = fill_value
-                otherSeries[other_mask] = fill_value
+                other_series[other_mask] = fill_value
 
             if col not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
@@ -7855,9 +7857,9 @@ Keep all original rows and columns and also all original values
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 series = series.astype(new_dtype, copy=False)
-                otherSeries = otherSeries.astype(new_dtype, copy=False)
+                other_series = other_series.astype(new_dtype, copy=False)
 
-            arr = func(series, otherSeries)
+            arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
                 # if new_dtype is an EA Dtype, then `func` is expected to return
                 # the correct dtype without any additional casting
@@ -8250,18 +8252,18 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
+        columns : str or object or a list of str
+            Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
 
             .. versionchanged:: 1.1.0
                Also accept list of index names.
-
-        columns : str or object or a list of str
-            Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
 
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
@@ -8385,9 +8387,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(
-        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
-    ) -> DataFrame:
+    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -9809,7 +9809,7 @@ Parrot 2  Parrot       24.0
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
+        copy: bool | None = None,
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
@@ -9919,7 +9919,7 @@ Parrot 2  Parrot       24.0
                 except KeyError:
                     yield vals
 
-        def _series_round(ser: Series, decimals: int):
+        def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
             return ser

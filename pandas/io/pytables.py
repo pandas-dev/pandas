@@ -4045,6 +4045,9 @@ class Table(Fixed):
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
             for c in data_columns:
+                # This reindex would raise ValueError if we had a duplicate
+                #  index, so we can infer that (as long as axis==1) we
+                #  get a single column back, so a single block.
                 mgr = frame.reindex([c], axis=axis)._mgr
                 mgr = cast(BlockManager, mgr)
                 blocks.extend(mgr.blocks)

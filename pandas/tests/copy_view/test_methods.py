@@ -648,6 +648,15 @@ def test_set_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_set_index_mutating_parent_does_not_mutate_index():
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    result = df.set_index("a")
+    expected = result.copy()
+
+    df.iloc[0, 0] = 100
+    tm.assert_frame_equal(result, expected)
+
+
 def test_add_prefix(using_copy_on_write):
     # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -1319,6 +1328,33 @@ def test_isetitem(using_copy_on_write):
         assert np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
     else:
         assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_isetitem_series(using_copy_on_write, dtype):
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = Series([7, 8, 9])
+    ser_orig = ser.copy()
+    df.isetitem(0, ser)
+
+    if using_copy_on_write:
+        # TODO(CoW) this can share memory
+        assert not np.shares_memory(get_array(df, "a"), get_array(ser))
+
+    # mutating dataframe doesn't update series
+    df.loc[0, "a"] = 0
+    tm.assert_series_equal(ser, ser_orig)
+
+    # mutating series doesn't update dataframe
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = Series([7, 8, 9])
+    df.isetitem(0, ser)
+
+    ser.loc[0] = 0
+    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize("key", ["a", ["a"]])
