@@ -2797,14 +2797,16 @@ class Styler(StylerRenderer):
         Compress the color map from the both ``low`` and ``high`` ends
 
         >>> df.style.background_gradient(axis=None,
-        ...                             low=0.75, high=1.0)  # doctest: +SKIP
+        ...                              low=0.75,
+        ...                              high=1.0)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
         >>> df.style.background_gradient(axis=None,
-        ...                             vmin=6.7, vmax=21.6)  # doctest: +SKIP
+        ...                              vmin=6.7,
+        ...                              vmax=21.6)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
