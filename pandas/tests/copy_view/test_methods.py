@@ -648,6 +648,15 @@ def test_set_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_set_index_mutating_parent_does_not_mutate_index():
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    result = df.set_index("a")
+    expected = result.copy()
+
+    df.iloc[0, 0] = 100
+    tm.assert_frame_equal(result, expected)
+
+
 def test_add_prefix(using_copy_on_write):
     # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
