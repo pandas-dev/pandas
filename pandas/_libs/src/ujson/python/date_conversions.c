@@ -132,7 +132,7 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
 
     if (!PyDate_Check(dt)) {
         PyErr_SetString(PyExc_TypeError, "Expected date object");
-        return NULL;
+        // return NULL;
     }
     PyDateTime_Date *dtobj = (PyDateTime_Date*)dt;
 
