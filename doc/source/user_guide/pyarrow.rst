@@ -12,6 +12,7 @@ of various APIs. This includes:
 * More extensive `data types <https://arrow.apache.org/docs/python/api/datatypes.html>`__ compared to NumPy
 * Missing data support (NA) for all data types
 * Performant IO reader integration
+* Facilitate interoperability with other dataframe libraries based on the Apache Arrow specification (e.g. polars, cuDF)
 
 To use this functionality, please ensure you have :ref:`installed the minimum supported PyArrow version. <install.optional_dependencies>`
 
@@ -55,7 +56,7 @@ into :class:`ArrowDtype` to use in the ``dtype`` parameter.
    df
 
 If you already have an :external+pyarrow:py:class:`pyarrow.Array` or :external+pyarrow:py:class:`pyarrow.ChunkedArray`,
-you can pass it into :class:`.arrays.ArrowExtensionArray` to construct the associated :class:`Series`, :class:`Index:`
+you can pass it into :class:`.arrays.ArrowExtensionArray` to construct the associated :class:`Series`, :class:`Index`
 or :class:`DataFrame` object.
 
 .. ipython:: python
@@ -64,6 +65,16 @@ or :class:`DataFrame` object.
    ser = pd.Series(pd.arrays.ArrowExtensionArray(pa_array))
    ser
 
+To retrieve a pyarrow :external+pyarrow:py:class:`pyarrow.ChunkedArray` from a :class:`Series` or :class:`Index`, you can call
+the pyarrow array constructor on the :class:`Series` or :class:`Index`.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, None], dtype="uint8[pyarrow]")
+   pa.array(ser)
+
+   idx = pd.Index(ser)
+   pa.array(idx)
 
 Operations
 ----------
@@ -78,6 +89,8 @@ is accelerated with PyArrow `compute functions <https://arrow.apache.org/docs/py
 * Logical and comparison functions
 * String functionality
 * Datetime functionality
+
+The following are just some examples of operations that are accelerated by native PyArrow compute functions.
 
 .. ipython:: python
 
@@ -119,8 +132,8 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
    df = pd.read_csv(data, engine="pyarrow")
    df
 
-By default, these functions, and all other IO reader functions, return NumPy-backed data. These readers can return
-PyArrow-backed data by specifying ``use_nullable_dtypes`` with the global configuration option ``"mode.dtype_backend"``
+By default, these functions and all other IO reader functions return NumPy-backed data. These readers can return
+PyArrow-backed data by specifying the parameter ``use_nullable_dtypes=True`` **and** the global configuration option ``"mode.dtype_backend"``
 set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to necessarily return PyArrow-backed data.
 
 .. ipython:: python
@@ -133,6 +146,14 @@ set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to nece
     with pd.option_context("mode.dtype_backend", "pyarrow"):
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True)
     df_pyarrow.dtypes
+
+To simplify specifying ``use_nullable_dtypes=True`` in several functions, you can set a global option ``nullable_dtypes``
+to ``True``. You will still need to set the global configuration option ``"mode.dtype_backend"`` to ``pyarrow``.
+
+.. ipython:: python
+
+    pd.set_option("mode.dtype_backend", "pyarrow")
+    pd.options.mode.nullable_dtypes = True
 
 Several non-IO reader functions can also use the ``"mode.dtype_backend"`` option to return PyArrow-backed data including:
 
