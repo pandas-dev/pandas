@@ -43,7 +43,6 @@ def check_comprehensiveness(request):
         yield
 
     else:
-
         for combo in combos:
             if not has_test(combo):
                 raise AssertionError(
@@ -54,7 +53,6 @@ def check_comprehensiveness(request):
 
 
 class CoercionBase:
-
     klasses = ["index", "series"]
     dtypes = [
         "object",
@@ -74,7 +72,6 @@ class CoercionBase:
 
 
 class TestSetitemCoercion(CoercionBase):
-
     method = "setitem"
 
     # disable comprehensiveness tests, as most of these have been moved to
@@ -176,7 +173,6 @@ class TestSetitemCoercion(CoercionBase):
 
 
 class TestInsertIndexCoercion(CoercionBase):
-
     klasses = ["index"]
     method = "insert"
 
@@ -254,7 +250,6 @@ class TestInsertIndexCoercion(CoercionBase):
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
     def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
-
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
         )
@@ -267,7 +262,6 @@ class TestInsertIndexCoercion(CoercionBase):
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
         if fill_val.tz:
-
             # mismatched tzawareness
             ts = pd.Timestamp("2012-01-01")
             result = obj.insert(1, ts)
@@ -363,7 +357,6 @@ class TestInsertIndexCoercion(CoercionBase):
 
 
 class TestWhereCoercion(CoercionBase):
-
     method = "where"
     _cond = np.array([True, False, True, False])
 
@@ -543,7 +536,6 @@ class TestWhereCoercion(CoercionBase):
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
-
     # not indexing, but place here for consistency
 
     method = "fillna"
@@ -730,7 +722,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         ],
     )
     def test_fillna_series_period(self, index_or_series, fill_val):
-
         pi = pd.period_range("2016-01-01", periods=4, freq="D").insert(1, pd.NaT)
         assert isinstance(pi.dtype, pd.PeriodDtype)
         obj = index_or_series(pi)
@@ -750,7 +741,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
-
     klasses = ["series"]
     method = "replace"
 
@@ -849,7 +839,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         if (from_key == "float64" and to_key in ("int64")) or (
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
-
             if not IS64 or is_platform_windows():
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 

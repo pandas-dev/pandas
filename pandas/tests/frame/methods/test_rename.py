@@ -96,7 +96,6 @@ class TestRename:
         tm.assert_frame_equal(result, expected)
 
     def test_rename_multiindex(self):
-
         tuples_index = [("foo1", "bar1"), ("foo2", "bar2")]
         tuples_columns = [("fizz1", "buzz1"), ("fizz2", "buzz2")]
         index = MultiIndex.from_tuples(tuples_index, names=["foo", "bar"])

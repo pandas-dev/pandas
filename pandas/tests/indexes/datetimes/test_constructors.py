@@ -151,7 +151,6 @@ class TestDatetimeIndex:
         assert result.dtype == arr.dtype
 
     def test_construction_caching(self):
-
         df = pd.DataFrame(
             {
                 "dt": date_range("20130101", periods=3),
@@ -692,7 +691,6 @@ class TestDatetimeIndex:
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
     def test_constructor_dtype(self):
-
         # passing a dtype with a tz should localize
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
