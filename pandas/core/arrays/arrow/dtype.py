@@ -4,6 +4,7 @@ import re
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._typing import (
     TYPE_CHECKING,
     DtypeObj,
@@ -208,6 +209,9 @@ class ArrowDtype(StorageExtensionDtype):
             return type(self)(pa_dtype)
         except NotImplementedError:
             return None
+
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        return value is None or value is libmissing.NA
 
     def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
         """

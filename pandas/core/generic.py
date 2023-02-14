@@ -35,7 +35,10 @@ from pandas._config import (
     using_copy_on_write,
 )
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -8012,7 +8015,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result = result.where(subset, lower, axis=None, inplace=False)
 
         if np.any(mask):
-            result[mask] = np.nan
+            result[mask] = libmissing.NA
 
         if inplace:
             return self._update_inplace(result)

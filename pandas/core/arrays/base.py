@@ -425,7 +425,7 @@ class ExtensionArray:
         if is_scalar(item) and isna(item):
             if not self._can_hold_na:
                 return False
-            elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
+            elif self.dtype._is_valid_na_for_dtype(item):
                 return self._hasna
             else:
                 return False

@@ -135,7 +135,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = self._combine(s, other, op)
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                expected = expected.fillna(np.nan).astype("Float64")
+                expected = expected.fillna(pd.NA).astype("Float64")
             else:
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(sdtype)

@@ -38,10 +38,8 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    IntervalDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -692,40 +690,33 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):
         return False
-    elif dtype.kind == "M":
-        if isinstance(dtype, np.dtype):
+
+    elif isinstance(dtype, np.dtype):
+        if dtype.kind == "M":
             # i.e. not tzaware
             return not isinstance(obj, (np.timedelta64, Decimal))
-        # we have to rule out tznaive dt64("NaT")
-        return not isinstance(obj, (np.timedelta64, np.datetime64, Decimal))
-    elif dtype.kind == "m":
-        return not isinstance(obj, (np.datetime64, Decimal))
-    elif dtype.kind in ["i", "u", "f", "c"]:
-        # Numeric
-        return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
-    elif dtype.kind == "b":
-        # We allow pd.NA, None, np.nan in BooleanArray (same as IntervalDtype)
-        return lib.is_float(obj) or obj is None or obj is libmissing.NA
+        elif dtype.kind == "m":
+            return not isinstance(obj, (np.datetime64, Decimal))
+        elif dtype.kind in ["i", "u", "f", "c"]:
+            # Numeric
+            return obj is not NaT and not isinstance(
+                obj, (np.datetime64, np.timedelta64)
+            )
+        elif dtype == _dtype_str:
+            # numpy string dtypes to avoid float np.nan
+            return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
+        elif dtype == _dtype_object:
+            # This is needed for Categorical, but is kind of weird
+            return True
+        elif dtype.kind == "b":
+            # We allow pd.NA, None, np.nan in BooleanArray (same as IntervalDtype)
+            return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
-    elif dtype == _dtype_str:
-        # numpy string dtypes to avoid float np.nan
-        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
-
-    elif dtype == _dtype_object:
-        # This is needed for Categorical, but is kind of weird
-        return True
-
-    elif isinstance(dtype, PeriodDtype):
+        # fallback, default to allowing NaN, None, NA, NaT
         return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
 
-    elif isinstance(dtype, IntervalDtype):
-        return lib.is_float(obj) or obj is None or obj is libmissing.NA
-
-    elif isinstance(dtype, CategoricalDtype):
-        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
-
-    # fallback, default to allowing NaN, None, NA, NaT
-    return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
+    else:
+        return dtype._is_valid_na_for_dtype(obj)
 
 
 def isna_all(arr: ArrayLike) -> bool:

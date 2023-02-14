@@ -193,7 +193,7 @@ class TestSeriesConvertDtypes:
         # Test that it is a copy
         copy = series.copy(deep=True)
 
-        result[result.notna()] = np.nan
+        result[result.notna()] = None
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)

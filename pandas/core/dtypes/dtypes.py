@@ -3,6 +3,7 @@ Define extension dtypes.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 import re
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +15,10 @@ from typing import (
 import numpy as np
 import pytz
 
-from pandas._libs import missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
@@ -629,6 +633,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        from pandas.core.dtypes.missing import is_valid_na_for_dtype
+
+        return is_valid_na_for_dtype(value, self.categories.dtype)
+
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -818,6 +827,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._tz = state["tz"]
         self._unit = state["unit"]
+
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        # we have to rule out tznaive dt64("NaT")
+        return not isinstance(value, (np.timedelta64, np.datetime64, Decimal))
 
 
 @register_extension_dtype
@@ -1035,6 +1048,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if not results:
             return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
         return PeriodArray._concat_same_type(results)
+
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        return not isinstance(value, (np.datetime64, np.timedelta64, Decimal))
 
 
 @register_extension_dtype
@@ -1304,6 +1320,9 @@ class IntervalDtype(PandasExtensionDtype):
             return np.dtype(object)
         return IntervalDtype(common, closed=closed)
 
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        return lib.is_float(value) or value is None or value is libmissing.NA
+
 
 class PandasDtype(ExtensionDtype):
     """
@@ -1479,3 +1498,6 @@ class BaseMaskedDtype(ExtensionDtype):
             return type(self).from_numpy_dtype(new_dtype)
         except (KeyError, NotImplementedError):
             return None
+
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        return value is None or value is libmissing.NA

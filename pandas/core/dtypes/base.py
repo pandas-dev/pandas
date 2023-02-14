@@ -61,9 +61,11 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
+    * _is_valid_na_for_dtype
 
     The `na_value` class attribute can be used to set the default NA value
-    for this type. :attr:`numpy.nan` is used by default.
+    for this type. :attr:`numpy.nan` is used by default. What other NA values
+    are accepted can be fine-tuned by overriding ``_is_valid_na_for_dtype``.
 
     ExtensionDtypes are required to be hashable. The base class provides
     a default implementation, which relies on the ``_metadata`` class
@@ -389,6 +391,26 @@ class ExtensionDtype:
         Can arrays of this dtype hold NA values?
         """
         return True
+
+    def _is_valid_na_for_dtype(self, value) -> bool:
+        """
+        Should we treat this value as interchangeable with self.na_value?
+
+        Use cases include:
+
+        - series[key] = value
+        - series.replace(other, value)
+        - value in index
+
+        If ``value`` is a valid na for this dtype, ``self.na_value`` will be used
+        in its place for the purpose of this operations.
+
+        Notes
+        -----
+        The base class implementation considers any scalar recognized by pd.isna
+        to be equivalent.
+        """
+        return libmissing.checknull(value)
 
 
 class StorageExtensionDtype(ExtensionDtype):
