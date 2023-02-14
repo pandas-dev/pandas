@@ -362,14 +362,6 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if using_copy_on_write() and any(
-            not self._has_no_reference_block(i) for i in range(len(self.blocks))
-        ):
-            # some reference -> copy full dataframe
-            # TODO(CoW) this could be optimized to only copy the blocks that would
-            # get modified
-            self = self.copy()
-
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -381,6 +373,7 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
+            using_cow=using_copy_on_write(),
         )
 
     def diff(self: T, n: int, axis: AxisInt) -> T:
@@ -405,15 +398,14 @@ class BaseBlockManager(DataManager):
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
-        if inplace:
-            # TODO(CoW) can be optimized to only copy those blocks that have refs
-            if using_copy_on_write() and any(
-                not self._has_no_reference_block(i) for i in range(len(self.blocks))
-            ):
-                self = self.copy()
 
         return self.apply(
-            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+            "fillna",
+            value=value,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+            using_cow=using_copy_on_write(),
         )
 
     def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:

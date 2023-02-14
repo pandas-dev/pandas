@@ -250,9 +250,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ]
     _internal_names_set: set[str] = set(_internal_names)
     _accessors: set[str] = set()
-    _hidden_attrs: frozenset[str] = frozenset(
-        ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values"]
-    )
+    _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
     _is_copy: weakref.ReferenceType[NDFrame] | None = None
     _mgr: Manager
@@ -9612,7 +9610,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
+            # CoW: Make sure reference is not kept alive
+            cond = cond.align(self, join="right", broadcast_axis=1, copy=False)[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -9648,14 +9647,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # align with me
             if other.ndim <= self.ndim:
 
-                _, other = self.align(
+                # CoW: Make sure reference is not kept alive
+                other = self.align(
                     other,
                     join="left",
                     axis=axis,
                     level=level,
                     fill_value=None,
                     copy=False,
-                )
+                )[1]
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
@@ -10812,7 +10812,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def pct_change(
         self: NDFrameT,
         periods: int = 1,
-        fill_method: Literal["backfill", "bfill", "pad", "ffill"] = "pad",
+        fill_method: Literal["backfill", "bfill", "pad", "ffill"] | None = "pad",
         limit=None,
         freq=None,
         **kwargs,
