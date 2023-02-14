@@ -4,7 +4,7 @@
 - Status: Accepted
 - Discussion: [#48621](https://github.com/pandas-dev/pandas/pull/48621)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
-- Revision: 1
+- Revision: 2
 
 ## Abstract
 
@@ -58,11 +58,13 @@ Concretely, the suggestion is:
 If a user has dates in a mixed format, they can still use flexible parsing and accept
 the risks that poses, e.g.:
 ```ipython
-In [3]: pd.Series(['12-01-2000 00:00:00', '13-01-2000 00:00:00']).apply(pd.to_datetime)
-Out[3]:
-0   2000-12-01
-1   2000-01-13
-dtype: datetime64[ns]
+In [3]: pd.to_datetime(['12-01-2000 00:00:00', '13-01-2000 00:00:00'], format='mixed')
+Out[3]: DatetimeIndex(['2000-12-01', '2000-01-13'], dtype='datetime64[ns]', freq=None)
+```
+or, if their dates are all ISO8601,
+```ipython
+In [4]: pd.to_datetime(['2020-01-01', '2020-01-01 03:00'], format='ISO8601')
+Out[4]: DatetimeIndex(['2020-01-01 00:00:00', '2020-01-01 03:00:00'], dtype='datetime64[ns]', freq=None)
 ```
 
 ## Usage and Impact
@@ -99,3 +101,4 @@ We could make ``guess_datetime_format`` smarter by using a random sample of elem
 ### PDEP History
 
 - 18 September 2022: Initial draft
+- 25 January 2023: Amended to mention ``format='ISO8601'`` and ``format='mixed'`` options
