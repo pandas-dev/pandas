@@ -966,7 +966,7 @@ class Window(BaseWindow):
     -------
     pandas.api.typing.Window or pandas.api.typing.Rolling
         An instance of Window is returned if ``win_type`` is passed. Otherwise,
-        and instance of Rolling is returned.
+        an instance of Rolling is returned.
 
     See Also
     --------

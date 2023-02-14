@@ -1545,7 +1545,7 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
+    return resampler._get_resampbler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):
