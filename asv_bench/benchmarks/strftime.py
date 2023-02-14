@@ -29,8 +29,14 @@ class DatetimeStrftime:
     def time_frame_date_formatting_default(self, obs, tz_aware):
         self.data["d"].dt.strftime(date_format="%Y-%m-%d")
 
+    def time_frame_date_formatting_index_default(self, obs, tz_aware):
+        self.data.set_index("d").index.format()
+
     def time_frame_date_formatting_custom(self, obs, tz_aware):
         self.data["d"].dt.strftime(date_format="%Y---%m---%d")
+
+    def time_frame_date_formatting_index_custom(self, obs, tz_aware):
+        self.data.set_index("d").index.format(date_format="%Y---%m---%d")
 
     def time_frame_datetime_to_str(self, obs, tz_aware):
         self.data["dt"].astype(str)
@@ -44,8 +50,14 @@ class DatetimeStrftime:
     def time_frame_datetime_formatting_default_with_float(self, obs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
 
+    def time_frame_datetime_formatting_index_default(self, obs, tz_aware):
+        self.data.set_index("dt").index.format()
+
     def time_frame_datetime_formatting_custom(self, obs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
+
+    def time_frame_datetime_formatting_index_custom(self, obs, tz_aware):
+        self.data.set_index("dt").index.format(date_format="%Y-%m-%d --- %H:%M:%S")
 
     def time_frame_datetime_formatting_iso8601_map(self, obs, tz_aware):
         self.data["dt"].map(lambda timestamp: timestamp.isoformat())
@@ -84,6 +96,9 @@ class PeriodStrftime:
 
     def time_frame_period_formatting_default(self, obs, fq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
+
+    def time_frame_period_formatting_index_default(self, obs, fq):
+        self.data.set_index("p").index.format()
 
     def time_frame_period_formatting_default_with_float(self, obs, fq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
