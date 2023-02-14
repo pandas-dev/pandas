@@ -874,7 +874,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self._values, dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     # ----------------------------------------------------------------------
     # Unary Methods

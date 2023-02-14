@@ -1989,7 +1989,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     __array_priority__: int = 1000
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
-        return np.asarray(self._values, dtype=dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     @final
     def __array_ufunc__(

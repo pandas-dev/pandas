@@ -12,11 +12,16 @@ from pandas.tests.copy_view.util import get_array
 # Copy/view behaviour for accessing underlying array of Series/DataFrame
 
 
-def test_series_values(using_copy_on_write):
+@pytest.mark.parametrize(
+    "method",
+    [lambda ser: ser.values, lambda ser: np.asarray(ser)],
+    ids=["values", "asarray"],
+)
+def test_series_values(using_copy_on_write, method):
     ser = Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
-    arr = ser.values
+    arr = method(ser)
 
     if using_copy_on_write:
         # .values still gives a view but is read-only
@@ -37,11 +42,16 @@ def test_series_values(using_copy_on_write):
         assert ser.iloc[0] == 0
 
 
-def test_dataframe_values(using_copy_on_write, using_array_manager):
+@pytest.mark.parametrize(
+    "method",
+    [lambda df: df.values, lambda df: np.asarray(df)],
+    ids=["values", "asarray"],
+)
+def test_dataframe_values(using_copy_on_write, using_array_manager, method):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
-    arr = df.values
+    arr = method(df)
 
     if using_copy_on_write:
         # .values still gives a view but is read-only
