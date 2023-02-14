@@ -268,9 +268,14 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     args = [0.0] if op == "fillna" else []
     if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
     else:
         ones = np.ones(float_frame.shape[1])
-    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = float_frame.groupby(ones, axis=axis)
+    expected = gb.transform(op, *args)
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
 
@@ -283,7 +288,9 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
-    expected2 = float_frame.groupby(ones, axis=axis).transform(op, *args)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = float_frame.groupby(ones, axis=axis)
+    expected2 = gb2.transform(op, *args)
     result2 = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result2, expected2)
 

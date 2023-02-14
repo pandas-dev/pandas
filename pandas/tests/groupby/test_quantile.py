@@ -396,7 +396,10 @@ def test_columns_groupby_quantile():
         index=list("XYZ"),
         columns=pd.Series(list("ABAB"), name="col"),
     )
-    result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("col", axis=1)
+    result = gb.quantile(q=[0.8, 0.2])
     expected = DataFrame(
         [
             [1.6, 0.4, 2.6, 1.4],

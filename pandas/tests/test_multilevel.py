@@ -27,7 +27,11 @@ class TestMultiLevel:
         tm.assert_series_equal(result, expected, check_names=False)
 
         # axis=1
-        month_sums = ymd.T.groupby("month", axis=1).sum()
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gb = ymd.T.groupby("month", axis=1)
+
+        month_sums = gb.sum()
         result = month_sums.reindex(columns=ymd.index, level=1)
         expected = ymd.groupby(level="month").transform(np.sum).T
         tm.assert_frame_equal(result, expected)
@@ -96,7 +100,9 @@ class TestMultiLevel:
         df = DataFrame([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], columns=midx)
         df1 = df.loc(axis=1)[df.columns.map(lambda u: u[0] in ["f2", "f3"])]
 
-        grouped = df1.groupby(axis=1, level=0)
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            grouped = df1.groupby(axis=1, level=0)
         result = grouped.sum()
         assert (result.columns == ["f2", "f3"]).all()
 

@@ -39,7 +39,9 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     if tm.is_integer_dtype(expected.index) and not any(x is None for x in by):
         expected.index = expected.index.astype(np.int_)
 
-    grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()
     tm.assert_series_equal(result, expected)
 

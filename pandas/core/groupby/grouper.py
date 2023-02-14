@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Axis,
@@ -258,10 +259,23 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
+        if type(self) is Grouper:
+            # i.e. not TimeGrouper
+            if axis is not lib.no_default:
+                warnings.warn(
+                    "Grouper axis keyword is deprecated and will be removed in a "
+                    "future version. To group on axis=1, use obj.T.groupby(...) "
+                    "instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                axis = 0
+
         self.key = key
         self.level = level
         self.freq = freq

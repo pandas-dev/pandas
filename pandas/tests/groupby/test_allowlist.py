@@ -76,11 +76,15 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # explicitly test the allowlist methods
     if axis == 0:
         frame = raw_frame
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
     else:
         frame = raw_frame.T
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
         expected = frame.groupby(level=0).apply(
             lambda h: getattr(h, op)(axis=axis, skipna=skipna)
@@ -89,7 +93,6 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
             expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)()
         expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
         if sort:

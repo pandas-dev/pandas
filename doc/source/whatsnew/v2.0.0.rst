@@ -838,6 +838,7 @@ Deprecations
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
+- Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 -
 
 .. ---------------------------------------------------------------------------

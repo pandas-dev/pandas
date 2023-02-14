@@ -149,7 +149,9 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res[col], agged[col])
 
     # group columns
-    grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
@@ -165,7 +167,10 @@ def test_transform_axis_1(request, transformation_func):
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+    result = gb.transform(transformation_func, *args)
     expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
@@ -187,7 +192,11 @@ def test_transform_axis_1_reducer(request, reduction_func):
         request.node.add_marker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+
+    result = gb.transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
@@ -212,7 +221,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -225,7 +236,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -770,9 +783,12 @@ def test_transform_with_non_scalar_group():
         np.random.randint(1, 10, (4, 12)), columns=cols, index=["A", "C", "G", "T"]
     )
 
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(axis=1, level=1)
     msg = "transform must return a scalar value for each group.*"
     with pytest.raises(ValueError, match=msg):
-        df.groupby(axis=1, level=1).transform(lambda z: z.div(z.sum(axis=1), axis=0))
+        gb.transform(lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize(

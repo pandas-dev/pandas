@@ -1301,8 +1301,14 @@ def test_groupby_categorical_axis_1(code):
     # GH 13420
     df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
     cat = Categorical.from_codes(code, categories=list("abc"))
-    result = df.groupby(cat, axis=1).mean()
-    expected = df.T.groupby(cat, axis=0).mean().T
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(cat, axis=1)
+    result = gb.mean()
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = df.T.groupby(cat, axis=0)
+    expected = gb2.mean().T
     tm.assert_frame_equal(result, expected)
 
 

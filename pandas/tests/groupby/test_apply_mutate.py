@@ -112,7 +112,10 @@ def test_apply_mutate_columns_multiindex():
         grouped["sum", name] = grouped.sum(axis=1)
         return grouped
 
-    result = df.groupby(level=1, axis=1).apply(add_column)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
+    result = gb.apply(add_column)
     expected = pd.DataFrame(
         [
             [1, 1, 1, 3, 1, 1, 1, 3],
