@@ -73,7 +73,6 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
     is_float_dtype,
     is_hashable,
     is_integer,
@@ -81,7 +80,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -3192,12 +3191,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
-            elif is_datetime64_dtype(vals.dtype):
+            elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
-                out = np.asarray(vals).astype(float)
-            elif is_timedelta64_dtype(vals.dtype):
-                inference = vals.dtype
-                out = np.asarray(vals).astype(float)
+                # In this case we need to delay the casting until after the
+                #  np.lexsort below.
+                return vals, inference
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
@@ -3236,6 +3234,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
+                    if needs_i8_conversion(inference):
+                        vals = vals.astype("i8").view(orig_vals._ndarray.dtype)
+                        return orig_vals._from_backing_data(vals)
+
                     assert isinstance(inference, np.dtype)  # for mypy
                     return vals.astype(inference)
 
@@ -3272,6 +3274,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = isna(values)
                 result_mask = None
 
+            is_datetimelike = needs_i8_conversion(values.dtype)
+
             vals, inference = pre_processor(values)
 
             ncols = 1
@@ -3288,6 +3292,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Get an index of values sorted by values and then labels
             order = (vals, shaped_labels)
             sort_arr = np.lexsort(order).astype(np.intp, copy=False)
+
+            if is_datetimelike:
+                # This casting needs to happen after the lexsort in order
+                #  to ensure that NaTs are placed at the end and not the front
+                vals = vals.view("i8").astype(np.float64)
 
             if vals.ndim == 1:
                 # Ea is always 1d
