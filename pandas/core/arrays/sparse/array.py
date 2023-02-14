@@ -611,6 +611,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
         >>> s.sp_values
         array([1, 2])
@@ -674,6 +675,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.density
         0.6
@@ -687,6 +689,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.npoints
         3
