@@ -46,6 +46,7 @@ except ImportError:
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
+
 # setup engines & skips
 @pytest.fixture(
     params=[
@@ -424,7 +425,6 @@ class TestBasic(Base):
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
-
         if compression == "snappy":
             pytest.importorskip("snappy")
 
@@ -700,7 +700,6 @@ class TestBasic(Base):
 
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
-
         df = df_full
 
         # additional supported types for pyarrow
@@ -784,7 +783,6 @@ class TestParquetPyArrow(Base):
             assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
-
         # supported in >= 0.7.0
         df = pd.DataFrame()
         df["a"] = pd.Categorical(list("abcdef"))
@@ -1073,7 +1071,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_duplicate_columns(self, fp):
-
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         msg = "Cannot create parquet dataset with duplicate column names"
@@ -1087,7 +1084,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp, expected=expected, check_dtype=False)
 
     def test_unsupported(self, fp):
-
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # error from fastparquet -> don't check exact error message

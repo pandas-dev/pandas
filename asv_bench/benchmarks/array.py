@@ -72,7 +72,6 @@ class StringArray:
 
 
 class ArrowStringArray:
-
     params = [False, True]
     param_names = ["multiple_chunks"]
 
@@ -107,7 +106,6 @@ class ArrowStringArray:
 
 
 class ArrowExtensionArray:
-
     params = [
         [
             "boolean[pyarrow]",

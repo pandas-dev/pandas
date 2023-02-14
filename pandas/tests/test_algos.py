@@ -106,7 +106,6 @@ class TestFactorize:
         tm.assert_index_equal(uniques, expected_uniques)
 
     def test_basic(self):
-
         codes, uniques = algos.factorize(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_numpy_array_equal(uniques, np.array(["a", "b", "c"], dtype=object))
 
@@ -147,7 +146,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, exp)
 
     def test_mixed(self):
-
         # doc example reshaping.rst
         x = Series(["A", "A", np.nan, "B", 3.14, np.inf])
         codes, uniques = algos.factorize(x)
@@ -164,7 +162,6 @@ class TestFactorize:
         tm.assert_index_equal(uniques, exp)
 
     def test_datelike(self):
-
         # M8
         v1 = Timestamp("20130101 09:00:00.00004")
         v2 = Timestamp("20130101")
@@ -551,7 +548,6 @@ class TestUnique:
             len(algos.unique(lst))
 
     def test_on_index_object(self):
-
         mindex = MultiIndex.from_arrays(
             [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
         )
@@ -676,7 +672,6 @@ class TestUnique:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_categorical(self):
-
         # we are expecting to return in the order
         # of appearance
         expected = Categorical(list("bac"))
@@ -891,7 +886,6 @@ def test_nunique_ints(index_or_series_or_array):
 
 class TestIsin:
     def test_invalid(self):
-
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
             r"you passed a \[int\]"
@@ -904,7 +898,6 @@ class TestIsin:
             algos.isin([1], 1)
 
     def test_basic(self):
-
         result = algos.isin([1, 2], [1])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -942,7 +935,6 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_i8(self):
-
         arr = date_range("20130101", periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
@@ -1504,7 +1496,6 @@ class TestDuplicated:
             tm.assert_series_equal(res_false, Series(exp_false))
 
     def test_datetime_likes(self):
-
         dt = [
             "2011-01-01",
             "2011-01-02",
@@ -1770,7 +1761,6 @@ class TestRank:
 
 
 def test_pad_backfill_object_segfault():
-
     old = np.array([], dtype="O")
     new = np.array([datetime(2010, 12, 31)], dtype="O")
 

@@ -20,7 +20,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_retain_index_attributes(setup_path):
-
     # GH 3499, losing frequency info on index recreation
     df = DataFrame(
         {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="H"))}
@@ -77,7 +76,6 @@ def test_retain_index_attributes2(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     with catch_warnings(record=True):
-
         df = DataFrame(
             {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="H"))}
         )
@@ -96,7 +94,6 @@ def test_retain_index_attributes2(tmp_path, setup_path):
     assert read_hdf(path, "data").index.name == "foo"
 
     with catch_warnings(record=True):
-
         idx2 = date_range("2001-1-1", periods=3, freq="H")
         idx2.name = "bar"
         df2 = DataFrame({"A": Series(range(3), index=idx2)})

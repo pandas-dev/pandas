@@ -317,7 +317,6 @@ def ndarray_to_mgr(
     _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
-
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
@@ -952,7 +951,6 @@ def _validate_or_indexify_columns(
     if columns is None:
         columns = default_index(len(content))
     else:
-
         # Add mask for data which is composed of list of lists
         is_mi_list = isinstance(columns, list) and all(
             isinstance(col, list) for col in columns
@@ -965,7 +963,6 @@ def _validate_or_indexify_columns(
                 f"{len(content)} columns"
             )
         if is_mi_list:
-
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
                 raise ValueError(

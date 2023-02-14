@@ -197,7 +197,6 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
-
             import pyarrow
 
             if isinstance(array, pyarrow.Array):

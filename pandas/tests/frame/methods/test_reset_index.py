@@ -46,7 +46,6 @@ class TestResetIndex:
         tm.assert_frame_equal(result, df[[]], check_index_type=True)
 
     def test_set_reset(self):
-
         idx = Index([2**63, 2**63 + 5, 2**63 + 10], name="foo")
 
         # set/reset
@@ -58,7 +57,6 @@ class TestResetIndex:
         tm.assert_index_equal(df.index, idx)
 
     def test_set_index_reset_index_dt64tz(self):
-
         idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
 
         # set/reset

@@ -401,7 +401,6 @@ class TestMerge:
             merge(df1, df2)
 
     def test_merge_non_unique_indexes(self):
-
         dt = datetime(2012, 5, 1)
         dt2 = datetime(2012, 5, 2)
         dt3 = datetime(2012, 5, 3)
@@ -793,7 +792,6 @@ class TestMerge:
             merge(df, df2)
 
     def test_merge_on_datetime64tz(self):
-
         # GH11405
         left = DataFrame(
             {
@@ -1447,7 +1445,6 @@ class TestMergeDtypes:
         "right_vals", [["foo", "bar"], Series(["foo", "bar"]).astype("category")]
     )
     def test_different(self, right_vals):
-
         left = DataFrame(
             {
                 "A": ["foo", "bar"],
@@ -1469,7 +1466,6 @@ class TestMergeDtypes:
     @pytest.mark.parametrize("d1", [np.int64, np.int32, np.int16, np.int8, np.uint8])
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, d1, d2):
-
         dtype1 = np.dtype(d1)
         dtype2 = np.dtype(d2)
 
@@ -1758,7 +1754,6 @@ class TestMergeDtypes:
         ],
     )
     def test_merge_empty(self, left_empty, how, exp):
-
         left = DataFrame({"A": [2, 1], "B": [3, 4]})
         right = DataFrame({"A": [1], "C": [5]}, dtype="int64")
 

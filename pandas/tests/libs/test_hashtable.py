@@ -660,7 +660,6 @@ def test_unique_label_indices_intp(writable):
 
 
 def test_unique_label_indices():
-
     a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)

@@ -72,7 +72,6 @@ def test_grouper_index_level_as_string(frame, key_strs, groupers):
     ],
 )
 def test_grouper_index_level_as_string_series(series, levels):
-
     # Compute expected result
     if isinstance(levels, list):
         groupers = [pd.Grouper(level=lv) for lv in levels]

@@ -111,7 +111,6 @@ class TestMissing(base.BaseMissingTests):
 
 class Reduce:
     def check_reduce(self, s, op_name, skipna):
-
         if op_name in ["median", "skew", "kurt", "sem"]:
             msg = r"decimal does not support the .* operation"
             with pytest.raises(NotImplementedError, match=msg):

@@ -182,7 +182,6 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
     def test_quantile_axis_mixed(self, interp_method, request, using_array_manager):
-
         # mixed on axis=1
         interpolation, method = interp_method
         df = DataFrame(
@@ -833,7 +832,6 @@ class TestQuantileExtensionDtype:
         return result
 
     def test_quantile_ea(self, request, obj, index):
-
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
         np.random.shuffle(indexer)
@@ -861,7 +859,6 @@ class TestQuantileExtensionDtype:
         tm.assert_equal(result, expected)
 
     def test_quantile_ea_with_na(self, obj, index):
-
         obj.iloc[0] = index._na_value
         obj.iloc[-1] = index._na_value
 

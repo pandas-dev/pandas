@@ -22,7 +22,6 @@ class TestTimedeltas:
         tm.assert_numpy_array_equal(tdi.to_numpy(), exp_arr)
 
     def test_timedelta_range(self):
-
         expected = to_timedelta(np.arange(5), unit="D")
         result = timedelta_range("0 days", periods=5, freq="D")
         tm.assert_index_equal(result, expected)

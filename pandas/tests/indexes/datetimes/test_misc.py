@@ -38,7 +38,6 @@ class TestDatetime64:
             freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
         )
         for dti in [dti_naive, dti_tz]:
-
             assert dti.year[0] == 1998
             assert dti.month[0] == 1
             assert dti.day[0] == 1

@@ -15,7 +15,6 @@ for imp in ["pandas.util", "pandas.tools.hashing"]:
 
 
 class Factorize:
-
     params = [
         [True, False],
         [True, False],
@@ -65,7 +64,6 @@ class Factorize:
 
 
 class Duplicated:
-
     params = [
         [True, False],
         ["first", "last", False],
@@ -96,7 +94,6 @@ class Duplicated:
 
 
 class DuplicatedMaskedArray:
-
     params = [
         [True, False],
         ["first", "last", False],

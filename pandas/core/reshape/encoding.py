@@ -159,7 +159,6 @@ def get_dummies(
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
-
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (
@@ -199,7 +198,7 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(data_to_encode.items(), prefix, prefix_sep):
+        for col, pre, sep in zip(data_to_encode.items(), prefix, prefix_sep):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],
@@ -281,7 +280,6 @@ def _get_dummies_1d(
         index = None
 
     if sparse:
-
         fill_value: bool | float
         if is_integer_dtype(dtype):
             fill_value = 0

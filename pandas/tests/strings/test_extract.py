@@ -320,7 +320,6 @@ def test_extract_series(name, any_string_dtype):
 
 
 def test_extract_optional_groups(any_string_dtype):
-
     # two normal groups, one non-capturing group
     s = Series(["A11", "B22", "C33"], dtype=any_string_dtype)
     result = s.str.extract("([AB])([123])(?:[123])", expand=True)
@@ -603,7 +602,6 @@ def test_extractall_stringindex(any_string_dtype):
             Index(["a1a2", "b1", "c1"]),
             Index(["a1a2", "b1", "c1"], name="xxx"),
         ]:
-
             result = idx.str.extractall(r"[ab](?P<digit>\d)")
             tm.assert_frame_equal(result, expected)
 

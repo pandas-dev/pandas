@@ -187,7 +187,6 @@ def read_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
         # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError

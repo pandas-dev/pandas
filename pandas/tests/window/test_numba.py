@@ -103,7 +103,6 @@ class TestEngine:
         arithmetic_numba_supported_operators,
         step,
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -121,7 +120,6 @@ class TestEngine:
     def test_numba_vs_cython_expanding_methods(
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}

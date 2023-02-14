@@ -22,7 +22,6 @@ class DataFrameAttributes:
 
 
 class SeriesArrayAttribute:
-
     params = [["numeric", "object", "category", "datetime64", "datetime64tz"]]
     param_names = ["dtype"]
 

@@ -119,7 +119,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_cubicspline(self):
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series(
@@ -135,7 +134,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-
         ser = Series(np.sort(np.random.uniform(size=100)))
 
         # interpolate at new_index
@@ -148,7 +146,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-
         ser = Series([10, 11, 12, 13])
 
         # interpolate at new_index where `der` is zero

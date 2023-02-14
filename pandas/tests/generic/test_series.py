@@ -40,7 +40,6 @@ class TestSeries:
         tm.assert_series_equal(result, ser)
 
     def test_nonzero_single_element(self):
-
         # allow single item via bool method
         ser = Series([True])
         assert ser.bool()

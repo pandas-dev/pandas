@@ -166,7 +166,6 @@ class TestCategoricalDtype(Base):
         assert not CategoricalDtype.is_dtype(np.float64)
 
     def test_basic(self, dtype):
-
         assert is_categorical_dtype(dtype)
 
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -336,7 +335,6 @@ class TestDatetimeTZDtype(Base):
         assert dtype == "M8[ns, US/Eastern]"
 
     def test_basic(self, dtype):
-
         assert is_datetime64tz_dtype(dtype)
 
         dr = date_range("20130101", periods=3, tz="US/Eastern")
@@ -349,7 +347,6 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(1.0)
 
     def test_dst(self):
-
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
         assert is_datetime64tz_dtype(s1)

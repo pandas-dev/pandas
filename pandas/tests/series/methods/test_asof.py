@@ -34,7 +34,6 @@ class TestSeriesAsof:
         assert first_value == ser[Timestamp(expected_ts)]
 
     def test_basic(self):
-
         # array or list or dates
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
@@ -60,7 +59,6 @@ class TestSeriesAsof:
         assert ts[ub] == val
 
     def test_scalar(self):
-
         N = 30
         rng = date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
@@ -169,7 +167,6 @@ class TestSeriesAsof:
             ts.asof(rng.asfreq("D"))
 
     def test_errors(self):
-
         s = Series(
             [1, 2, 3],
             index=[Timestamp("20130101"), Timestamp("20130103"), Timestamp("20130102")],

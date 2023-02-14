@@ -86,7 +86,6 @@ class TestTranspose:
         assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()
 
     def test_transpose_uint64(self, uint64_frame):
-
         result = uint64_frame.T
         expected = DataFrame(uint64_frame.values.T)
         expected.index = ["A", "B"]

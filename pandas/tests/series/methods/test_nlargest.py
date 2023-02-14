@@ -125,7 +125,6 @@ class TestSeriesNLargestNSmallest:
         tm.assert_series_equal(ser.nlargest(len(ser) + 1), ser.iloc[[4, 0, 1, 3, 2]])
 
     def test_nlargest_misc(self):
-
         ser = Series([3.0, np.nan, 1, 2, 5])
         result = ser.nlargest()
         expected = ser.iloc[[4, 0, 3, 2, 1]]
@@ -159,7 +158,6 @@ class TestSeriesNLargestNSmallest:
 
     @pytest.mark.parametrize("n", range(1, 5))
     def test_nlargest_n(self, n):
-
         # GH 13412
         ser = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
         result = ser.nlargest(n)

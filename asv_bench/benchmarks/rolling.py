@@ -6,7 +6,6 @@ import pandas as pd
 
 
 class Methods:
-
     params = (
         ["DataFrame", "Series"],
         [("rolling", {"window": 10}), ("rolling", {"window": 1000}), ("expanding", {})],
@@ -129,7 +128,6 @@ class NumbaEngineApply:
 
 
 class EWMMethods:
-
     params = (
         ["DataFrame", "Series"],
         [
@@ -177,7 +175,6 @@ class VariableWindowMethods(Methods):
 
 
 class Pairwise:
-
     params = (
         [({"window": 10}, "rolling"), ({"window": 1000}, "rolling"), ({}, "expanding")],
         ["corr", "cov"],
@@ -251,7 +248,6 @@ class Rank:
 
 
 class PeakMemFixedWindowMinMax:
-
     params = ["min", "max"]
 
     def setup(self, operation):
@@ -287,7 +283,6 @@ class ForwardWindowMethods:
 
 
 class Groupby:
-
     params = (
         ["sum", "median", "mean", "max", "min", "kurt", "sum"],
         [
@@ -329,7 +324,6 @@ class GroupbyLargeGroups:
 
 
 class GroupbyEWM:
-
     params = ["var", "std", "cov", "corr"]
     param_names = ["method"]
 
@@ -342,7 +336,6 @@ class GroupbyEWM:
 
 
 class GroupbyEWMEngine:
-
     params = ["cython", "numba"]
     param_names = ["engine"]
 
@@ -359,7 +352,6 @@ def table_method_func(x):
 
 
 class TableMethod:
-
     params = ["single", "table"]
     param_names = ["method"]
 

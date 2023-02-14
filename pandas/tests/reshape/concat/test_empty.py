@@ -131,7 +131,6 @@ class TestEmptyConcat:
         ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"],
     )
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
-
         # round-tripping with self & like self
         if dtype == dtype2:
             return
@@ -172,7 +171,6 @@ class TestEmptyConcat:
         assert result.kind == expected
 
     def test_concat_empty_series_dtypes_triple(self):
-
         assert (
             concat(
                 [Series(dtype="M8[ns]"), Series(dtype=np.bool_), Series(dtype=np.int64)]
@@ -245,7 +243,6 @@ class TestEmptyConcat:
             tm.assert_frame_equal(result, expected)
 
     def test_empty_dtype_coerce(self):
-
         # xref to #12411
         # xref to #12045
         # xref to #11594

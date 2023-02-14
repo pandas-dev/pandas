@@ -11,7 +11,6 @@ from pandas.tests.extension.base import BaseOpsUtil
 
 class ComparisonOps(BaseOpsUtil):
     def _compare_other(self, data, op, other):
-
         # array
         result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other), dtype="boolean")

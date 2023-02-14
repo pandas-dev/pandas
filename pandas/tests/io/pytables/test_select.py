@@ -30,7 +30,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_select_columns_in_where(setup_path):
-
     # GH 6169
     # recreate multi-indexes when columns is passed
     # in the `where` argument
@@ -59,7 +58,6 @@ def test_select_columns_in_where(setup_path):
 
 
 def test_select_with_dups(setup_path):
-
     # single dtypes
     df = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
     df.index = date_range("20130101 9:30", periods=10, freq="T")
@@ -122,11 +120,8 @@ def test_select_with_dups(setup_path):
 
 
 def test_select(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         with catch_warnings(record=True):
-
             # select with columns=
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, "df")
@@ -163,7 +158,6 @@ def test_select(setup_path):
 
 
 def test_select_dtypes(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
@@ -220,7 +214,6 @@ def test_select_dtypes(setup_path):
         tm.assert_frame_equal(expected, result)
 
     with ensure_clean_store(setup_path) as store:
-
         # floats w/o NaN
         df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
@@ -270,9 +263,7 @@ def test_select_dtypes(setup_path):
 
 
 def test_select_with_many_inputs(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
@@ -320,10 +311,8 @@ def test_select_with_many_inputs(setup_path):
 
 
 def test_select_iterator(tmp_path, setup_path):
-
     # single table
     with ensure_clean_store(setup_path) as store:
-
         df = tm.makeTimeDataFrame(500)
         _maybe_remove(store, "df")
         store.append("df", df)
@@ -370,7 +359,6 @@ def test_select_iterator(tmp_path, setup_path):
     # multiple
 
     with ensure_clean_store(setup_path) as store:
-
         df1 = tm.makeTimeDataFrame(500)
         store.append("df1", df1, data_columns=True)
         df2 = tm.makeTimeDataFrame(500).rename(columns="{}_2".format)
@@ -389,14 +377,12 @@ def test_select_iterator(tmp_path, setup_path):
 
 
 def test_select_iterator_complete_8014(setup_path):
-
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # no iterator
     with ensure_clean_store(setup_path) as store:
-
         expected = tm.makeTimeDataFrame(100064, "S")
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -428,7 +414,6 @@ def test_select_iterator_complete_8014(setup_path):
 
     # with iterator, full range
     with ensure_clean_store(setup_path) as store:
-
         expected = tm.makeTimeDataFrame(100064, "S")
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -461,14 +446,12 @@ def test_select_iterator_complete_8014(setup_path):
 
 
 def test_select_iterator_non_complete_8014(setup_path):
-
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # with iterator, non complete range
     with ensure_clean_store(setup_path) as store:
-
         expected = tm.makeTimeDataFrame(100064, "S")
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -499,7 +482,6 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, empty where
     with ensure_clean_store(setup_path) as store:
-
         expected = tm.makeTimeDataFrame(100064, "S")
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -513,7 +495,6 @@ def test_select_iterator_non_complete_8014(setup_path):
 
 
 def test_select_iterator_many_empty_frames(setup_path):
-
     # GH 8014
     # using iterator and where clause can return many empty
     # frames.
@@ -521,7 +502,6 @@ def test_select_iterator_many_empty_frames(setup_path):
 
     # with iterator, range limited to the first chunk
     with ensure_clean_store(setup_path) as store:
-
         expected = tm.makeTimeDataFrame(100000, "S")
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -570,7 +550,6 @@ def test_select_iterator_many_empty_frames(setup_path):
 
 
 def test_frame_select(setup_path):
-
     df = tm.makeTimeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
@@ -659,7 +638,6 @@ def test_frame_select_complex(setup_path):
 
 
 def test_frame_select_complex2(tmp_path):
-
     pp = tmp_path / "params.hdf"
     hh = tmp_path / "hist.hdf"
 
@@ -719,7 +697,6 @@ def test_frame_select_complex2(tmp_path):
 
 
 def test_invalid_filtering(setup_path):
-
     # can't use more than one filter (atm)
 
     df = tm.makeTimeDataFrame()
@@ -740,7 +717,6 @@ def test_invalid_filtering(setup_path):
 def test_string_select(setup_path):
     # GH 2973
     with ensure_clean_store(setup_path) as store:
-
         df = tm.makeTimeDataFrame()
 
         # test string ==/!=
@@ -781,13 +757,11 @@ def test_string_select(setup_path):
 
 
 def test_select_as_multiple(setup_path):
-
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
     df2["foo"] = "bar"
 
     with ensure_clean_store(setup_path) as store:
-
         msg = "keys must be a list/tuple"
         # no tables stored
         with pytest.raises(TypeError, match=msg):
@@ -853,9 +827,7 @@ def test_select_as_multiple(setup_path):
 
 
 def test_nan_selection_bug_4858(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
         df.iloc[0] = np.nan

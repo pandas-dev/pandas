@@ -709,7 +709,6 @@ def test_time_field_bug():
 
 
 def test_gb_apply_list_of_unequal_len_arrays():
-
     # GH1738
     df = DataFrame(
         {

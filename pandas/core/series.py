@@ -235,6 +235,7 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
+
 # error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
 # definition in base class "NDFrame"
 # error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
@@ -372,7 +373,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
-
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
@@ -424,7 +424,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
         if isinstance(data, Index):
-
             if dtype is not None:
                 # astype copies
                 data = data.astype(dtype)

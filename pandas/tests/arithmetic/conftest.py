@@ -20,6 +20,7 @@ def switch_numexpr_min_elements(request):
 
 # ------------------------------------------------------------------
 
+
 # doctest with +SKIP for one fixture fails during setup with
 # 'DoctestItem' object has no attribute 'callspec'
 # due to switch_numexpr_min_elements fixture

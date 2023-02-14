@@ -432,7 +432,6 @@ class TestBlockIndex:
 
 class TestIntIndex:
     def test_check_integrity(self):
-
         # Too many indices than specified in self.length
         msg = "Too many indices"
 

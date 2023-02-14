@@ -90,7 +90,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -295,7 +294,6 @@ def _check_object_for_strings(values: np.ndarray) -> str:
     """
     ndtype = values.dtype.name
     if ndtype == "object":
-
         # it's cheaper to use a String Hash Table than Object; we infer
         # including nulls because that is the only difference between
         # StringHashTable and ObjectHashtable
@@ -874,9 +872,7 @@ def value_counts(
         counts = np.array([len(ii)])
 
     else:
-
         if is_extension_array_dtype(values):
-
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
@@ -1226,7 +1222,6 @@ class SelectNSeries(SelectN):
     """
 
     def compute(self, method: str) -> Series:
-
         from pandas.core.reshape.concat import concat
 
         n = self.n
@@ -1699,6 +1694,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
 
 # --------------------------------------------------------------------
 # Helper functions
+
 
 # Note: safe_sort is in algorithms.py instead of sorting.py because it is
 #  low-dependency, is used in this module, and used private methods from

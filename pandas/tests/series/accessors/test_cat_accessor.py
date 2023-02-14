@@ -72,7 +72,6 @@ class TestCatAccessor:
             cat.cat.xlabel = "a"
 
     def test_categorical_delegations(self):
-
         # invalid accessor
         msg = r"Can only use \.cat accessor with a 'category' dtype"
         with pytest.raises(AttributeError, match=msg):

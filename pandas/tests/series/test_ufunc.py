@@ -290,7 +290,6 @@ class TestNumpyReductions:
                 expected = obj._values.prod()
                 assert result == expected
             else:
-
                 expected = obj.prod()
                 assert result == expected
         else:

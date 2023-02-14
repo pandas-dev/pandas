@@ -306,7 +306,6 @@ def format_dateaxis(subplot, freq, index) -> None:
     # Note: DatetimeIndex does not use this
     # interface. DatetimeIndex uses matplotlib.date directly
     if isinstance(index, ABCPeriodIndex):
-
         majlocator = TimeSeries_DateLocator(
             freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
         )

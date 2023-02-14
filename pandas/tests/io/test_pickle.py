@@ -203,7 +203,6 @@ def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
-
             with tm.ensure_clean() as path:
                 # test writing with each pickler
                 pickle_writer(expected, path)
@@ -248,7 +247,6 @@ def get_random_path():
 
 
 class TestCompression:
-
     _extension_to_compression = icom.extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
@@ -544,7 +542,6 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-
     unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
     assert unpickled.name == name
 

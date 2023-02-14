@@ -94,7 +94,6 @@ class TestSeriesStatReductions:
     def _check_stat_op(
         self, name, alternate, string_series_, check_objects=False, check_allna=False
     ):
-
         with pd.option_context("use_bottleneck", False):
             f = getattr(Series, name)
 

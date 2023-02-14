@@ -227,7 +227,6 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLik
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
-
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):

@@ -203,7 +203,6 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
 
 
 def raises_chained_assignment_error():
-
     if PYPY:
         from contextlib import nullcontext
 

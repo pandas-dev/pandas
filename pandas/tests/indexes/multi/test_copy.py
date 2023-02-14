@@ -45,7 +45,6 @@ def test_view(idx):
 
 @pytest.mark.parametrize("func", [copy, deepcopy])
 def test_copy_and_deepcopy(func):
-
     idx = MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],

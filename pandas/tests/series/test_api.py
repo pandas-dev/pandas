@@ -118,7 +118,6 @@ class TestSeriesMisc:
         assert pydoc.getdoc(Series.index)
 
     def test_ndarray_compat(self):
-
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
             np.random.randn(1000, 3),

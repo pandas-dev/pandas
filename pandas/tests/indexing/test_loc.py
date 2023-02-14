@@ -64,14 +64,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 class TestLoc:
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
-
         # int label
         obj = request.getfixturevalue(f"{kind}_labels")
         check_indexing_smoketest_or_raises(obj, "loc", 2, fails=KeyError)
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label(self, kind, request):
-
         # label
         obj = request.getfixturevalue(f"{kind}_empty")
         check_indexing_smoketest_or_raises(obj, "loc", "c", fails=KeyError)
@@ -167,7 +165,6 @@ class TestLoc:
     )
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label_slice(self, slc, typs, axes, fails, kind, request):
-
         # label slices (with ints)
 
         # real label slices
@@ -312,7 +309,6 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_dups2(self):
-
         # GH4726
         # dup indexing with iloc/loc
         df = DataFrame(
@@ -333,7 +329,6 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_dups(self):
-
         # GH 6541
         df_orig = DataFrame(
             {
@@ -432,7 +427,6 @@ class TestLocBaseIndependent:
         pass
 
     def test_loc_to_fail(self):
-
         # GH3449
         df = DataFrame(
             np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
@@ -537,7 +531,6 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_general(self):
-
         df = DataFrame(
             np.random.rand(4, 4),
             columns=["A", "B", "C", "D"],
@@ -932,7 +925,6 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
-
         # GH#12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
         expected = df.dtypes
@@ -1016,7 +1008,6 @@ class TestLocBaseIndependent:
     @pytest.mark.arm_slow
     @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
     def test_loc_non_unique_memory_error(self, length, l2):
-
         # GH 4280
         # non_unique index with a large selection triggers a memory error
 
@@ -1061,7 +1052,6 @@ class TestLocBaseIndependent:
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-
         df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
@@ -2925,7 +2915,6 @@ def test_loc_setitem_uint8_upcast(value):
     ],
 )
 def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
-
     data = ["2022-01-02", "2022-01-03", "2022-01-04", fill_val.date()]
     index = DatetimeIndex(data, tz=fill_val.tz, dtype=exp_dtype)
     df = DataFrame([10, 11, 12, 14], columns=["a"], index=index)
@@ -3063,7 +3052,6 @@ class TestLocSeries:
         tm.assert_series_equal(cp, exp)
 
     def test_loc_setitem_listlike_of_ints(self):
-
         # integer indexes, be careful
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
         inds = [0, 4, 6]

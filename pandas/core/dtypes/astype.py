@@ -105,7 +105,6 @@ def _astype_nansafe(
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr.dtype):
-
         # if we have a datetime/timedelta array of objects
         # then coerce to datetime64[ns] and use DatetimeArray.astype
 

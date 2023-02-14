@@ -12,7 +12,6 @@ pytestmark = td.skip_array_manager_invalid_test
 
 
 class CustomBlock(ExtensionBlock):
-
     _holder = np.ndarray
 
     # Cannot override final attribute "_can_hold_na"

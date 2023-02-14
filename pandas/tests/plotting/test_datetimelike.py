@@ -128,7 +128,6 @@ class TestTSPlot(TestPlotBase):
         assert color == ax.get_lines()[0].get_color()
 
     def test_both_style_and_color(self):
-
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
@@ -648,7 +647,6 @@ class TestTSPlot(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_secondary_kde(self):
-
         ser = Series(np.random.randn(10))
         fig, ax = self.plt.subplots()
         ax = ser.plot(secondary_y=True, kind="density", ax=ax)
@@ -769,7 +767,6 @@ class TestTSPlot(TestPlotBase):
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
     def test_mixed_freq_lf_first(self):
-
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="M")
         high = Series(np.random.randn(len(idxh)), idxh)
@@ -803,7 +800,6 @@ class TestTSPlot(TestPlotBase):
         ps.plot(ax=ax)
 
     def test_mixed_freq_shared_ax(self):
-
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="M")
         idx2 = idx1[:1].union(idx1[2:])
@@ -836,7 +832,6 @@ class TestTSPlot(TestPlotBase):
         #         ax2.lines[0].get_xydata()[0, 0])
 
     def test_nat_handling(self):
-
         _, ax = self.plt.subplots()
 
         dti = DatetimeIndex(["2015-01-01", NaT, "2015-01-03"])
@@ -1338,7 +1333,6 @@ class TestTSPlot(TestPlotBase):
         ax.plot(values)
 
     def test_format_timedelta_ticks_narrow(self):
-
         expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")

@@ -510,7 +510,6 @@ class TestIntervalIndex:
             i.contains(Interval(0, 1))
 
     def test_dropna(self, closed):
-
         expected = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], closed=closed)
 
         ii = IntervalIndex.from_tuples([(0, 1), (1, 2), np.nan], closed=closed)
@@ -702,7 +701,6 @@ class TestIntervalIndex:
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self, closed):
-
         index1 = IntervalIndex.from_arrays([0, 1], [1, 2], closed=closed)
         index2 = IntervalIndex.from_arrays([1, 2], [2, 3], closed=closed)
 

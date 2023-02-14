@@ -352,7 +352,6 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         ms = dates
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
-
         warnings.warn(
             "Encountered %tC format. Leaving in Stata Internal Format.",
             stacklevel=find_stack_level(),
@@ -679,7 +678,6 @@ class StataValueLabel:
     def __init__(
         self, catarray: Series, encoding: Literal["latin-1", "utf-8"] = "latin-1"
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
         self.labname = catarray.name
@@ -809,7 +807,6 @@ class StataNonCatValueLabel(StataValueLabel):
         value_labels: dict[float, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
 
@@ -957,7 +954,6 @@ class StataMissingValue:
 
 class StataParser:
     def __init__(self) -> None:
-
         # type          code.
         # --------------------
         # str1        1 = 0x01
@@ -1294,7 +1290,6 @@ class StataReader(StataParser, abc.Iterator):
     def _get_dtypes(
         self, seek_vartypes: int
     ) -> tuple[list[int | str], list[str | np.dtype]]:
-
         self.path_or_buf.seek(seek_vartypes)
         raw_typlist = [
             struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
@@ -1868,7 +1863,6 @@ the string values returned are correct."""
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
-
         if not self._column_selector_set:
             column_set = set(columns)
             if len(column_set) != len(columns):
@@ -2024,7 +2018,6 @@ def read_stata(
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame | StataReader:
-
     reader = StataReader(
         filepath_or_buffer,
         convert_dates=convert_dates,
@@ -2643,7 +2636,6 @@ supported types."""
             is_text=False,
             storage_options=self.storage_options,
         ) as self.handles:
-
             if self.handles.compression["method"] is not None:
                 # ZipFile creates a file (with the same name) for each write call.
                 # Write it first into a buffer and then write the buffer to the ZipFile.

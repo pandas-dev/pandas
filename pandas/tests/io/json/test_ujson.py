@@ -809,7 +809,6 @@ class TestNumpyJSONTests:
 
 class TestPandasJSONTests:
     def test_dataframe(self, orient):
-
         dtype = np.int64
 
         df = DataFrame(

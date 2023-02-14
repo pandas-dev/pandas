@@ -13,7 +13,6 @@ import pandas._testing as tm
 
 class TestMisc:
     def test_max_len_string_array(self):
-
         arr = a = np.array(["foo", "b", np.nan], dtype="object")
         assert libwriters.max_len_string_array(arr) == 3
 

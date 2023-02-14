@@ -21,7 +21,6 @@ import pandas._testing as tm
 
 class TestDataFrameToDict:
     def test_to_dict_timestamp(self):
-
         # GH#11247
         # split/records producing np.datetime64 rather than Timestamps
         # on datetime64[ns] dtypes only

@@ -50,7 +50,6 @@ class TestDatetimeIndex:
             arr.astype("uint32")
 
     def test_astype_with_tz(self):
-
         # with tz
         rng = date_range("1/1/2000", periods=10, tz="US/Eastern")
         msg = "Cannot use .astype to convert from timezone-aware"

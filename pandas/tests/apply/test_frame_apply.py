@@ -379,7 +379,6 @@ def test_apply_differently_indexed():
 
 
 def test_apply_bug():
-
     # GH 6125
     positions = DataFrame(
         [
@@ -753,7 +752,6 @@ def test_apply_raw_function_runs_once():
 
 
 def test_applymap_function_runs_once():
-
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save values function is applied to
 
@@ -1069,7 +1067,6 @@ def test_agg_transform(axis, float_frame):
     other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
-
         f_abs = np.abs(float_frame)
         f_sqrt = np.sqrt(float_frame)
 
@@ -1260,7 +1257,6 @@ def test_agg_reduce(axis, float_frame):
 
 
 def test_nuiscance_columns():
-
     # GH 15015
     df = DataFrame(
         {
@@ -1298,7 +1294,6 @@ def test_nuiscance_columns():
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_non_callable_aggregates(how):
-
     # GH 16405
     # 'size' is a property of frame/series
     # validate that this is working

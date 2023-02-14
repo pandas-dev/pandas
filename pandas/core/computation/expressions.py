@@ -73,7 +73,6 @@ def _evaluate_standard(op, op_str, a, b):
 def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
     """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
-
         # required min elements (otherwise we are adding overhead)
         if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
@@ -177,7 +176,6 @@ def _where_numexpr(cond, a, b):
     result = None
 
     if _can_use_numexpr(None, "where", a, b, "where"):
-
         result = ne.evaluate(
             "where(cond_value, a_value, b_value)",
             local_dict={"cond_value": cond, "a_value": a, "b_value": b},

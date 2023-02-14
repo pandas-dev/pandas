@@ -337,7 +337,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return cls(ordered=None)
 
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
-
         if ordered is not None:
             self.validate_ordered(ordered)
 
@@ -534,7 +533,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
-
             if categories.hasnans:
                 raise ValueError("Categorical categories cannot be null")
 
@@ -953,7 +951,6 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return other in [self.name, self.name.title()]
 
         elif isinstance(other, PeriodDtype):
-
             # For freqs that can be held by a PeriodDtype, this check is
             # equivalent to (and much faster than) self.freq == other.freq
             sfreq = self.freq

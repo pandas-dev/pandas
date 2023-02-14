@@ -42,7 +42,6 @@ class TestDataFrameInsert:
         assert df.columns.name == "some_name"
 
     def test_insert_column_bug_4032(self):
-
         # GH#4032, inserting a column and renaming causing errors
         df = DataFrame({"b": [1.1, 2.2]})
 

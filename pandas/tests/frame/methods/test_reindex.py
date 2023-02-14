@@ -54,7 +54,6 @@ class TestReindexSetIndex:
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):
-
         df = DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
@@ -674,7 +673,6 @@ class TestDataFrameSelectReindex:
         assert new_frame.empty
 
     def test_reindex_columns_method(self):
-
         # GH 14992, reindexing over columns ignored method
         df = DataFrame(
             data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
@@ -794,7 +792,6 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
-
         # GH4746, reindex on duplicate index error messages
         arr = np.random.randn(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
@@ -811,7 +808,6 @@ class TestDataFrameSelectReindex:
             df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
-
         # reindex is invalid!
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]

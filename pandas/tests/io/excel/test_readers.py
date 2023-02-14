@@ -357,7 +357,6 @@ class TestReaders:
             pd.read_excel("test1" + read_ext, usecols=["E1", 0])
 
     def test_excel_stop_iterator(self, read_ext):
-
         parsed = pd.read_excel("test2" + read_ext, sheet_name="Sheet1")
         expected = DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
         tm.assert_frame_equal(parsed, expected)
@@ -447,7 +446,6 @@ class TestReaders:
 
     # GH8212 - support for converters and missing values
     def test_reader_converters(self, read_ext):
-
         basename = "test_converters"
 
         expected = DataFrame.from_dict(
@@ -609,7 +607,6 @@ class TestReaders:
         import pyarrow as pa
 
         with pd.option_context("mode.string_storage", string_storage):
-
             df = DataFrame(
                 {
                     "a": np.array(["a", "b"], dtype=np.object_),
@@ -789,7 +786,6 @@ class TestReaders:
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
     def test_excel_read_buffer(self, read_ext):
-
         pth = "test1" + read_ext
         expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0)
         with open(pth, "rb") as f:
@@ -889,7 +885,6 @@ class TestReaders:
 
     @pytest.mark.slow
     def test_read_from_file_url(self, read_ext, datapath):
-
         # FILE
         localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
@@ -916,7 +911,6 @@ class TestReaders:
     @td.skip_if_no("py.path")
     @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
-
         # GH12655
         from py.path import local as LocalPath
 
@@ -930,7 +924,6 @@ class TestReaders:
 
     @td.check_file_leaks
     def test_close_from_py_localpath(self, read_ext):
-
         # GH31467
         str_path = os.path.join("test1" + read_ext)
         with open(str_path, "rb") as f:

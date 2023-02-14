@@ -384,7 +384,6 @@ def test_rolling_max_gh6297(step):
 
 
 def test_rolling_max_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -422,7 +421,6 @@ def test_rolling_max_resample(step):
 
 
 def test_rolling_min_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -443,7 +441,6 @@ def test_rolling_min_resample(step):
 
 
 def test_rolling_median_resample():
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))

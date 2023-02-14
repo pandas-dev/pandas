@@ -56,7 +56,6 @@ def unit(request):
 
 
 def test_custom_grouper(index, unit):
-
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
 
@@ -394,7 +393,6 @@ def test_resample_basic_from_daily(unit):
 
 
 def test_resample_upsampling_picked_but_not_correct(unit):
-
     # Test for issue #3020
     dates = date_range("01-Jan-2014", "05-Jan-2014", freq="D").as_unit(unit)
     series = Series(1, index=dates)
@@ -556,7 +554,6 @@ def test_resample_ohlc(series, unit):
 
 
 def test_resample_ohlc_result(unit):
-
     # GH 12332
     index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
     index = index.union(date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit))
@@ -636,7 +633,6 @@ def test_resample_ohlc_dataframe(unit):
 
 
 def test_resample_dup_index():
-
     # GH 4812
     # dup columns with resample raising
     df = DataFrame(
@@ -1010,7 +1006,6 @@ def test_resample_to_period_monthly_buglet(unit):
 
 
 def test_period_with_agg():
-
     # aggregate a period resampler with a lambda
     s2 = Series(
         np.random.randint(0, 5, 50),
@@ -1043,7 +1038,6 @@ def test_resample_segfault(unit):
 
 
 def test_resample_dtype_preservation(unit):
-
     # GH 12202
     # validation tests for dtype preservation
 
@@ -1063,7 +1057,6 @@ def test_resample_dtype_preservation(unit):
 
 
 def test_resample_dtype_coercion(unit):
-
     pytest.importorskip("scipy.interpolate")
 
     # GH 16361
@@ -1274,7 +1267,6 @@ def test_resample_median_bug_1688(dtype):
 
 
 def test_how_lambda_functions(simple_date_range_series, unit):
-
     ts = simple_date_range_series("1/1/2000", "4/1/2000")
     ts.index = ts.index.as_unit(unit)
 
@@ -1314,7 +1306,6 @@ def test_resample_unequal_times(unit):
 
 
 def test_resample_consistency(unit):
-
     # GH 6418
     # resample with bfill / limit / reindex consistency
 
@@ -1386,7 +1377,6 @@ def test_resample_timegrouper(dates):
 
 
 def test_resample_nunique(unit):
-
     # GH 12352
     df = DataFrame(
         {

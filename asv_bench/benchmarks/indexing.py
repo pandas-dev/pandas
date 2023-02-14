@@ -25,7 +25,6 @@ from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -97,7 +96,6 @@ class NumericMaskedIndexing:
     param_names = ["dtype", "monotonic"]
 
     def setup(self, dtype, monotonic):
-
         indices = {
             True: Index(self.monotonic_list, dtype=dtype),
             False: Index(self.non_monotonic_list, dtype=dtype).append(
@@ -116,7 +114,6 @@ class NumericMaskedIndexing:
 
 
 class NonNumericSeriesIndexing:
-
     params = [
         ("string", "datetime", "period"),
         ("unique_monotonic_inc", "nonunique_monotonic_inc", "non_monotonic"),
@@ -191,7 +188,6 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -228,7 +224,6 @@ class DataFrameNumericIndexing:
 
 
 class Take:
-
     params = ["int", "datetime"]
     param_names = ["index"]
 
@@ -247,7 +242,6 @@ class Take:
 
 
 class MultiIndexing:
-
     params = [True, False]
     param_names = ["unique_levels"]
 
@@ -376,7 +370,6 @@ class SortedAndUnsortedDatetimeIndexLoc:
 
 
 class CategoricalIndexIndexing:
-
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
     param_names = ["index"]
 
@@ -522,7 +515,6 @@ class Setitem:
 
 
 class ChainIndexing:
-
     params = [None, "warn"]
     param_names = ["mode"]
 

@@ -219,7 +219,6 @@ class TestGetItem:
             "2013/02/01 09:00",
         ]
         for val in values:
-
             # GH7116
             # these show deprecations as we are trying
             # to slice with non-integer indexers

@@ -12,7 +12,6 @@ import pandas._testing as tm
 
 
 def test_unique(tz_naive_fixture):
-
     idx = DatetimeIndex(["2017"] * 2, tz=tz_naive_fixture)
     expected = idx[:1]
 

@@ -170,7 +170,6 @@ def _check_isinstance(left, right, cls):
 
 
 def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
-
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -315,7 +314,6 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
-
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(

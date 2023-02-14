@@ -60,7 +60,6 @@ class TestGeneric:
         ],
     )
     def test_rename(self, frame_or_series, func):
-
         # single axis
         idx = list("ABCD")
 
@@ -75,7 +74,6 @@ class TestGeneric:
             tm.assert_equal(result, expected)
 
     def test_get_numeric_data(self, frame_or_series):
-
         n = 4
         kwargs = {
             frame_or_series._get_axis_name(i): list(range(n))
@@ -103,7 +101,6 @@ class TestGeneric:
         tm.assert_equal(result, o)
 
     def test_nonzero(self, frame_or_series):
-
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = construct(frame_or_series, shape=4)
@@ -215,7 +212,6 @@ class TestGeneric:
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
-
             # this is a name matching op
             v1 = getattr(o, op)(o)
             v2 = getattr(o, op)(o2)
@@ -254,7 +250,6 @@ class TestGeneric:
 
     @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
     def test_api_compat(self, func, frame_or_series):
-
         # GH 12021
         # compat for __name__, __qualname__
 
@@ -373,7 +368,6 @@ class TestNDFrame:
         tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
-
         obj = tm.makeTimeDataFrame()
         obj = tm.get_obj(obj, frame_or_series)
 

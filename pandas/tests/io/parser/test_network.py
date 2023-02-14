@@ -89,7 +89,6 @@ def tips_df(datapath):
 class TestS3:
     @td.skip_if_no("s3fs")
     def test_parse_public_s3_bucket(self, tips_df, s3so):
-
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
@@ -109,7 +108,6 @@ class TestS3:
         tm.assert_frame_equal(df, tips_df)
 
     def test_parse_public_s3n_bucket(self, tips_df, s3so):
-
         # Read from AWS s3 as "s3n" URL
         df = read_csv("s3n://pandas-test/tips.csv", nrows=10, storage_options=s3so)
         assert isinstance(df, DataFrame)

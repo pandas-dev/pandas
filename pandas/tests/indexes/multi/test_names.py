@@ -84,7 +84,6 @@ def test_copy_names():
 
 
 def test_names(idx, index_names):
-
     # names are assigned in setup
     assert index_names == ["first", "second"]
     level_names = [level.name for level in idx.levels]

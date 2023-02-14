@@ -306,7 +306,6 @@ class TestSampleDataFrame:
         )
 
     def test_sample_aligns_weights_with_frame(self):
-
         # Test that function aligns weights with frame
         df = DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
         ser = Series([1, 0, 0], index=[3, 5, 9])

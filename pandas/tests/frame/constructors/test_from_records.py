@@ -29,7 +29,6 @@ class TestFromRecords:
         tm.assert_frame_equal(res, df)
 
     def test_from_records_with_datetimes(self):
-
         # this may fail on certain platforms because of a numpy issue
         # related GH#6140
         if not is_platform_little_endian():
@@ -137,7 +136,6 @@ class TestFromRecords:
         assert len(result.columns) == 0
 
     def test_from_records_dictlike(self):
-
         # test the dict methods
         df = DataFrame(
             {
@@ -367,7 +365,6 @@ class TestFromRecords:
         assert columns == original_columns
 
     def test_from_records_decimal(self):
-
         tuples = [(Decimal("1.5"),), (Decimal("2.5"),), (None,)]
 
         df = DataFrame.from_records(tuples, columns=["a"])

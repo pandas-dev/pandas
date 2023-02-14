@@ -352,7 +352,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
-
         assert placements.is_slice_like
         assert blkno != -1
 

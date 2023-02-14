@@ -6,7 +6,6 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
-
     params = [ops, ["float", "int", "Int64"], [0, 1]]
     param_names = ["op", "dtype", "axis"]
 
@@ -22,7 +21,6 @@ class FrameOps:
 
 
 class FrameMultiIndexOps:
-
     params = [ops]
     param_names = ["op"]
 
@@ -42,7 +40,6 @@ class FrameMultiIndexOps:
 
 
 class SeriesOps:
-
     params = [ops, ["float", "int"]]
     param_names = ["op", "dtype"]
 
@@ -55,7 +52,6 @@ class SeriesOps:
 
 
 class SeriesMultiIndexOps:
-
     params = [ops]
     param_names = ["op"]
 
@@ -75,7 +71,6 @@ class SeriesMultiIndexOps:
 
 
 class Rank:
-
     params = [["DataFrame", "Series"], [True, False]]
     param_names = ["constructor", "pct"]
 
@@ -91,7 +86,6 @@ class Rank:
 
 
 class Correlation:
-
     params = [["spearman", "kendall", "pearson"]]
     param_names = ["method"]
 
@@ -126,7 +120,6 @@ class Correlation:
 
 
 class Covariance:
-
     params = []
     param_names = []
 

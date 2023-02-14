@@ -217,7 +217,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -291,7 +290,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # Combine results using the index, need to adjust index after
             # if as_index=False (GH#50724)
             for idx, (name, func) in enumerate(arg):
-
                 key = base.OutputKey(label=name, position=idx)
                 results[key] = self.aggregate(func, *args, **kwargs)
 
@@ -681,7 +679,6 @@ class SeriesGroupBy(GroupBy[Series]):
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
         else:
-
             # lab is a Categorical with categories an IntervalIndex
             cat_ser = cut(Series(val), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
@@ -1156,7 +1153,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
 
 class DataFrameGroupBy(GroupBy[DataFrame]):
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -1252,7 +1248,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -1278,7 +1273,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns  # type: ignore[assignment]
 
         if result is None:
-
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
@@ -1295,7 +1289,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
 
             else:
-
                 # try to treat as if we are passing a list
                 gba = GroupByApply(self, [func], args=(), kwargs={})
                 try:
@@ -1370,7 +1363,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
-
         if len(values) == 0:
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex

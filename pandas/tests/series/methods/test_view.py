@@ -45,7 +45,6 @@ class TestView:
     )
     @pytest.mark.parametrize("box", [Series, Index, array])
     def test_view_between_datetimelike(self, first, second, box):
-
         dti = date_range("2016-01-01", periods=3)
 
         orig = box(dti)

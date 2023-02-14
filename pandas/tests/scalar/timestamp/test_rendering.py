@@ -7,7 +7,6 @@ from pandas import Timestamp
 
 
 class TestTimestampRendering:
-
     timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
 
     @pytest.mark.parametrize("tz", timezones)

@@ -495,7 +495,6 @@ class OpenpyxlWriter(ExcelWriter):
                     setattr(xcell, k, v)
 
             if cell.mergestart is not None and cell.mergeend is not None:
-
                 wks.merge_cells(
                     start_row=startrow + cell.row + 1,
                     start_column=startcol + cell.col + 1,
@@ -567,7 +566,6 @@ class OpenpyxlReader(BaseExcelReader):
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell) -> Scalar:
-
         from openpyxl.cell.cell import (
             TYPE_ERROR,
             TYPE_NUMERIC,
@@ -588,7 +586,6 @@ class OpenpyxlReader(BaseExcelReader):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-
         if self.book.read_only:
             sheet.reset_dimensions()
 

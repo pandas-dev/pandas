@@ -70,7 +70,6 @@ class ApplyDictReturn:
 
 
 class Apply:
-
     param_names = ["factor"]
     params = [4, 5]
 
@@ -125,7 +124,6 @@ class ApplyNonUniqueUnsortedIndex:
 
 
 class Groups:
-
     param_names = ["key"]
     params = ["int64_small", "int64_large", "object_small", "object_large"]
 
@@ -154,7 +152,6 @@ class Groups:
 
 
 class GroupManyLabels:
-
     params = [1, 1000]
     param_names = ["ncols"]
 
@@ -169,7 +166,6 @@ class GroupManyLabels:
 
 
 class Nth:
-
     param_names = ["dtype"]
     params = ["float32", "float64", "datetime", "object"]
 
@@ -416,7 +412,6 @@ class FillNA:
 
 
 class GroupByMethods:
-
     param_names = ["dtype", "method", "application", "ncols"]
     params = [
         ["int", "int16", "float", "object", "datetime", "uint"],
@@ -865,7 +860,6 @@ class TransformNaN:
 
 
 class TransformEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 
@@ -908,7 +902,6 @@ class TransformEngine:
 
 
 class AggEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 

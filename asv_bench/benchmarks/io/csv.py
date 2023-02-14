@@ -23,7 +23,6 @@ from ..pandas_vb_common import (
 
 
 class ToCSV(BaseIO):
-
     fname = "__test__.csv"
     params = ["wide", "long", "mixed"]
     param_names = ["kind"]
@@ -56,7 +55,6 @@ class ToCSV(BaseIO):
 
 
 class ToCSVMultiIndexUnusedLevels(BaseIO):
-
     fname = "__test__.csv"
 
     def setup(self):
@@ -76,7 +74,6 @@ class ToCSVMultiIndexUnusedLevels(BaseIO):
 
 
 class ToCSVDatetime(BaseIO):
-
     fname = "__test__.csv"
 
     def setup(self):
@@ -88,7 +85,6 @@ class ToCSVDatetime(BaseIO):
 
 
 class ToCSVDatetimeIndex(BaseIO):
-
     fname = "__test__.csv"
 
     def setup(self):
@@ -103,7 +99,6 @@ class ToCSVDatetimeIndex(BaseIO):
 
 
 class ToCSVDatetimeBig(BaseIO):
-
     fname = "__test__.csv"
     timeout = 1500
     params = [1000, 10000, 100000]
@@ -125,7 +120,6 @@ class ToCSVDatetimeBig(BaseIO):
 
 
 class ToCSVIndexes(BaseIO):
-
     fname = "__test__.csv"
 
     @staticmethod
@@ -179,7 +173,6 @@ class StringIORewind:
 
 
 class ReadCSVDInferDatetimeFormat(StringIORewind):
-
     params = ([True, False], ["custom", "iso8601", "ymd"])
     param_names = ["infer_datetime_format", "format"]
 
@@ -204,7 +197,6 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
 
 
 class ReadCSVConcatDatetime(StringIORewind):
-
     iso8601 = "%Y-%m-%d %H:%M:%S"
 
     def setup(self):
@@ -222,7 +214,6 @@ class ReadCSVConcatDatetime(StringIORewind):
 
 
 class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
-
     params = (["nan", "0", ""],)
     param_names = ["bad_date_value"]
 
@@ -240,7 +231,6 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 
 
 class ReadCSVSkipRows(BaseIO):
-
     fname = "__test__.csv"
     params = ([None, 10000], ["c", "python", "pyarrow"])
     param_names = ["skiprows", "engine"]
@@ -286,7 +276,6 @@ class ReadUint64Integers(StringIORewind):
 
 
 class ReadCSVThousands(BaseIO):
-
     fname = "__test__.csv"
     params = ([",", "|"], [None, ","], ["c", "python"])
     param_names = ["sep", "thousands", "engine"]
@@ -321,7 +310,6 @@ class ReadCSVComment(StringIORewind):
 
 
 class ReadCSVFloatPrecision(StringIORewind):
-
     params = ([",", ";"], [".", "_"], [None, "high", "round_trip"])
     param_names = ["sep", "decimal", "float_precision"]
 
@@ -373,7 +361,6 @@ class ReadCSVEngine(StringIORewind):
 
 
 class ReadCSVCategorical(BaseIO):
-
     fname = "__test__.csv"
     params = ["c", "python"]
     param_names = ["engine"]
@@ -450,7 +437,6 @@ class ReadCSVCachedParseDates(StringIORewind):
 
 
 class ReadCSVMemoryGrowth(BaseIO):
-
     chunksize = 20
     num_rows = 1000
     fname = "__test__.csv"
@@ -496,7 +482,6 @@ class ReadCSVParseSpecialDate(StringIORewind):
 
 
 class ReadCSVMemMapUTF8:
-
     fname = "__test__.csv"
     number = 5
 

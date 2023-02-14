@@ -207,7 +207,6 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_conversions(self):
-
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
@@ -330,7 +329,6 @@ class TestDataFrameBlockInternals:
         assert float_string_frame._is_mixed_type
 
     def test_stale_cached_series_bug_473(self, using_copy_on_write):
-
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(

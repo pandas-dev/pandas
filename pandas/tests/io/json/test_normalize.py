@@ -250,7 +250,6 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
-
         result = json_normalize(
             deep_nested, ["states", "cities"], meta=["country", ["states", "name"]]
         )

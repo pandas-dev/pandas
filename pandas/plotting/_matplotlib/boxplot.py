@@ -314,7 +314,6 @@ def boxplot(
     return_type=None,
     **kwds,
 ):
-
     import matplotlib.pyplot as plt
 
     # validate return_type:

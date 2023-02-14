@@ -177,7 +177,11 @@ class TestPreserves:
                     pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
                         allows_duplicate_labels=False
                     ),
-                    pd.Series([1, 2], index=["a", "b"], name="B",).set_flags(
+                    pd.Series(
+                        [1, 2],
+                        index=["a", "b"],
+                        name="B",
+                    ).set_flags(
                         allows_duplicate_labels=False,
                     ),
                 ],

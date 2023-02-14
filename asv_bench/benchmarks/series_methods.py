@@ -46,7 +46,6 @@ class ToFrame:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
@@ -61,7 +60,6 @@ class NSort:
 
 
 class Dropna:
-
     params = ["int", "datetime"]
     param_names = ["dtype"]
 
@@ -80,7 +78,6 @@ class Dropna:
 
 
 class Fillna:
-
     params = [
         [
             "datetime64[ns]",
@@ -123,7 +120,6 @@ class Fillna:
 
 
 class SearchSorted:
-
     goal_time = 0.2
     params = [
         "int8",
@@ -152,7 +148,6 @@ class SearchSorted:
 
 
 class Map:
-
     params = (["dict", "Series", "lambda"], ["object", "category", "int"])
     param_names = "mapper"
 
@@ -199,7 +194,6 @@ class ClipDt:
 
 
 class ValueCounts:
-
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
@@ -211,7 +205,6 @@ class ValueCounts:
 
 
 class ValueCountsEA:
-
     params = [[10**3, 10**4, 10**5], [True, False]]
     param_names = ["N", "dropna"]
 
@@ -224,7 +217,6 @@ class ValueCountsEA:
 
 
 class ValueCountsObjectDropNAFalse:
-
     params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
@@ -236,7 +228,6 @@ class ValueCountsObjectDropNAFalse:
 
 
 class Mode:
-
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
@@ -248,7 +239,6 @@ class Mode:
 
 
 class ModeObjectDropNAFalse:
-
     params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
@@ -277,7 +267,6 @@ class SeriesGetattr:
 
 
 class All:
-
     params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
@@ -290,7 +279,6 @@ class All:
 
 
 class Any:
-
     params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
@@ -303,7 +291,6 @@ class Any:
 
 
 class NanOps:
-
     params = [
         [
             "var",
@@ -336,7 +323,6 @@ class NanOps:
 
 
 class Rank:
-
     param_names = ["dtype"]
     params = [
         ["int", "uint", "float", "object"],
@@ -350,7 +336,6 @@ class Rank:
 
 
 class Iter:
-
     param_names = ["dtype"]
     params = [
         "bool",

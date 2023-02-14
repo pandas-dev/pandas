@@ -49,7 +49,6 @@ class DtypesInvalid:
 
 
 class SelectDtypes:
-
     try:
         params = [
             tm.ALL_INT_NUMPY_DTYPES

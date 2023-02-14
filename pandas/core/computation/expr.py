@@ -430,7 +430,6 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         # must be two terms and the comparison operator must be ==/!=/in/not in
         if is_term(left) and is_term(right) and op_type in self.rewrite_map:
-
             left_list, right_list = map(_is_list, (left, right))
             left_str, right_str = map(_is_str, (left, right))
 
@@ -656,7 +655,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
-
         if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
@@ -681,7 +679,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             res = res.value
 
         if isinstance(res, FuncNode):
-
             new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
@@ -692,7 +689,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             return res(*new_args)
 
         else:
-
             new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:

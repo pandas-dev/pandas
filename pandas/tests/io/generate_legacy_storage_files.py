@@ -300,7 +300,6 @@ def platform_name():
 
 
 def write_legacy_pickles(output_dir):
-
     version = pandas.__version__
 
     print(

@@ -795,7 +795,6 @@ class TestMultiplicationDivision:
     #  de-duplication with test_modulo above
     def test_modulo2(self):
         with np.errstate(all="ignore"):
-
             # GH#3590, modulo as ints
             p = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
             result = p["first"] % p["second"]

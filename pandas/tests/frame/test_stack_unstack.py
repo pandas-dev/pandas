@@ -76,7 +76,6 @@ class TestDataFrameReshape:
         tm.assert_series_equal(res, expected)
 
     def test_unstack_fill(self):
-
         # GH #9746: fill_value keyword argument for Series
         # and DataFrame unstack
 
@@ -123,7 +122,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame(self):
-
         # From a dataframe
         rows = [[1, 2], [3, 4], [5, 6], [7, 8]]
         df = DataFrame(rows, columns=list("AB"), dtype=np.int32)
@@ -160,7 +158,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_datetime(self):
-
         # Test unstacking with date times
         dv = date_range("2012-01-01", periods=4).values
         data = Series(dv)
@@ -183,7 +180,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_timedelta(self):
-
         # Test unstacking with time deltas
         td = [Timedelta(days=i) for i in range(4)]
         data = Series(td)
@@ -206,7 +202,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_period(self):
-
         # Test unstacking with period
         periods = [
             Period("2012-01"),
@@ -237,7 +232,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_categorical(self):
-
         # Test unstacking with categorical
         data = Series(["a", "b", "c", "a"], dtype="category")
         data.index = MultiIndex.from_tuples(
@@ -557,7 +551,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(old_data, data)
 
     def test_unstack_dtypes(self):
-
         # GH 2929
         rows = [[1, 1, 3, 4], [1, 2, 3, 4], [2, 1, 3, 4], [2, 2, 3, 4]]
 

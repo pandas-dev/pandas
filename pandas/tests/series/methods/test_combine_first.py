@@ -68,7 +68,6 @@ class TestCombineFirst:
         tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self):
-
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)

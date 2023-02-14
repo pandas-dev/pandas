@@ -33,10 +33,8 @@ def random_text(nobs=100):
 
 class TestCaching:
     def test_slice_consolidate_invalidate_item_cache(self, using_copy_on_write):
-
         # this is chained assignment, but will 'work'
         with option_context("chained_assignment", None):
-
             # #3970
             df = DataFrame({"aa": np.arange(5), "bb": [2.2] * 5})
 
@@ -144,7 +142,6 @@ class TestCaching:
 
 class TestChaining:
     def test_setitem_chained_setfault(self, using_copy_on_write):
-
         # GH6026
         data = ["right", "left", "left", "left", "right", "left", "timeout"]
         mdata = ["right", "left", "left", "left", "right", "left", "none"]
@@ -205,7 +202,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment(self, using_copy_on_write):
-
         with option_context("chained_assignment", "raise"):
             # work with the chain
             expected = DataFrame([[-5, 1], [-6, 3]], columns=list("AB"))
@@ -230,7 +226,6 @@ class TestChaining:
     def test_detect_chained_assignment_raises(
         self, using_array_manager, using_copy_on_write
     ):
-
         # test with the chaining
         df = DataFrame(
             {
@@ -266,7 +261,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_fails(self, using_copy_on_write):
-
         # Using a copy (the chain), fails
         df = DataFrame(
             {
@@ -284,7 +278,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_doc_example(self, using_copy_on_write):
-
         # Doc example
         df = DataFrame(
             {
@@ -307,7 +300,6 @@ class TestChaining:
     def test_detect_chained_assignment_object_dtype(
         self, using_array_manager, using_copy_on_write
     ):
-
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         df_original = df.copy()
@@ -334,7 +326,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_is_copy_pickle(self):
-
         # gh-5475: Make sure that is_copy is picked up reconstruction
         df = DataFrame({"A": [1, 2]})
         assert df._is_copy is None
@@ -347,7 +338,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_setting_entire_column(self):
-
         # gh-5597: a spurious raise as we are setting the entire column here
 
         df = random_text(100000)
@@ -368,7 +358,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_implicit_take(self):
-
         # Implicitly take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
@@ -398,14 +387,12 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):
-
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df.loc[indexer, "letters"] = df.loc[indexer, "letters"].apply(str.lower)
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_is_copy(self):
-
         # an identical take, so no copy
         df = DataFrame({"a": [1]}).dropna()
         assert df._is_copy is None
@@ -413,7 +400,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_sorting(self):
-
         df = DataFrame(np.random.randn(10, 4))
         ser = df.iloc[:, 0].sort_values()
 
@@ -422,7 +408,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_false_positives(self):
-
         # see gh-6025: false positives
         df = DataFrame({"column1": ["a", "a", "a"], "column2": [4, 8, 9]})
         str(df)
@@ -438,7 +423,6 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_undefined_column(self, using_copy_on_write):
-
         # from SO:
         # https://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0, 9), columns=["count"])
@@ -457,7 +441,6 @@ class TestChaining:
     def test_detect_chained_assignment_changing_dtype(
         self, using_array_manager, using_copy_on_write
     ):
-
         # Mixed type setting but same dtype & changing dtype
         df = DataFrame(
             {
@@ -495,7 +478,6 @@ class TestChaining:
                 assert df.loc[2, "C"] == "foo"
 
     def test_setting_with_copy_bug(self, using_copy_on_write):
-
         # operating on a copy
         df = DataFrame(
             {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
@@ -557,7 +539,6 @@ class TestChaining:
     # TODO(ArrayManager) fast_xs with array-like scalars is not yet working
     @td.skip_array_manager_not_yet_implemented
     def test_chained_getitem_with_lists(self):
-
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from
         # 0.12

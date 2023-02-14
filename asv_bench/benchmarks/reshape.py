@@ -59,7 +59,6 @@ class SimpleReshape:
 
 
 class ReshapeExtensionDtype:
-
     params = ["datetime64[ns, US/Pacific]", "Period[s]"]
     param_names = ["dtype"]
 
@@ -95,7 +94,6 @@ class ReshapeExtensionDtype:
 
 
 class Unstack:
-
     params = ["int", "category"]
 
     def setup(self, dtype):
@@ -311,7 +309,6 @@ class Explode:
     params = [[100, 1000, 10000], [3, 5, 10]]
 
     def setup(self, n_rows, max_list_length):
-
         data = [np.arange(np.random.randint(max_list_length)) for _ in range(n_rows)]
         self.series = pd.Series(data)
 

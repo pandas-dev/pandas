@@ -14,7 +14,6 @@ import pandas._testing as tm
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.expanding(2).sum()
@@ -186,7 +185,7 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, df.expanding(min_periods)):
+    for expected, actual in zip(expected, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -205,7 +204,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, ser.expanding(min_periods)):
+    for expected, actual in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -428,7 +427,6 @@ def test_expanding_min_periods_apply(engine_and_raw):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-
     df1 = DataFrame()
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")

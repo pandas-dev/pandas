@@ -73,7 +73,6 @@ binned = []
 ids = []
 for seed_nans in [True, False]:
     for n, m in product((100, 1000), (5, 20)):
-
         df = seed_df(seed_nans, n, m)
         bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
         keys = "1st", "2nd", ["1st", "2nd"]
@@ -549,7 +548,6 @@ def test_data_frame_value_counts_dropna(
 def test_categorical_single_grouper_with_only_observed_categories(
     education_df, as_index, observed, normalize, name, expected_data
 ):
-
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
 

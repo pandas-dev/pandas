@@ -228,7 +228,6 @@ class TestMelt:
         tm.assert_frame_equal(result14, expected14)
 
     def test_custom_var_and_value_name(self, df, value_name, var_name):
-
         result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
 

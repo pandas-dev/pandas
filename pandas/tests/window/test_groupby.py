@@ -47,7 +47,6 @@ def roll_frame():
 
 class TestRolling:
     def test_groupby_unsupported_argument(self, roll_frame):
-
         msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             roll_frame.groupby("A", foo=1)
@@ -71,7 +70,6 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     def test_getitem_multiple(self, roll_frame):
-
         # GH 13174
         g = roll_frame.groupby("A")
         r = g.rolling(2, min_periods=0)
@@ -933,7 +931,6 @@ class TestRolling:
             df.groupby("c").rolling(on="t", window="3s")
 
     def test_groupby_monotonic(self):
-
         # GH 15130
         # we don't need to validate monotonicity when grouping
 

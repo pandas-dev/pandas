@@ -219,9 +219,7 @@ class BaseArrayManager(DataManager):
             f = kwargs.pop("func")
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -263,7 +261,6 @@ class BaseArrayManager(DataManager):
         result_arrays = []
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -357,7 +354,6 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -815,7 +811,6 @@ class ArrayManager(BaseArrayManager):
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
@@ -1020,7 +1015,6 @@ class ArrayManager(BaseArrayManager):
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
-
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [
@@ -1146,7 +1140,6 @@ class ArrayManager(BaseArrayManager):
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
-
     __slots__ = [
         "_axes",  # private attribute, because 'axes' has different order, see below
         "arrays",

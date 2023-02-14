@@ -141,7 +141,6 @@ def generate_numba_ewm_func(
                 is_observation = not np.isnan(cur)
                 nobs += is_observation
                 if not np.isnan(weighted):
-
                     if is_observation or not ignore_na:
                         if normalize:
                             # note that len(deltas) = len(vals) - 1 and deltas[i]

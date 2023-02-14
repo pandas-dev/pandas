@@ -556,7 +556,6 @@ class ExcelFormatter:
             self.style_converter = None
         self.df = df
         if cols is not None:
-
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
@@ -803,7 +802,6 @@ class ExcelFormatter:
 
             # if index labels are not empty go ahead and dump
             if com.any_not_none(*index_labels) and self.header is not False:
-
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
@@ -817,7 +815,6 @@ class ExcelFormatter:
                 for spans, levels, level_codes in zip(
                     level_lengths, self.df.index.levels, self.df.index.codes
                 ):
-
                     values = levels.take(
                         level_codes,
                         allow_fill=levels._can_hold_na,

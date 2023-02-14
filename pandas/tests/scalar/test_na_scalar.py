@@ -161,7 +161,6 @@ def test_unary_ops():
 
 
 def test_logical_and():
-
     assert NA & True is NA
     assert True & NA is NA
     assert NA & False is False
@@ -174,7 +173,6 @@ def test_logical_and():
 
 
 def test_logical_or():
-
     assert NA | True is True
     assert True | NA is True
     assert NA | False is NA
@@ -187,7 +185,6 @@ def test_logical_or():
 
 
 def test_logical_xor():
-
     assert NA ^ True is NA
     assert True ^ NA is NA
     assert NA ^ False is NA

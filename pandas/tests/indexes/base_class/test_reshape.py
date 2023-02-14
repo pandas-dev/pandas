@@ -18,7 +18,6 @@ class TestReshape:
         tm.assert_index_equal(result, expected)
 
     def test_insert(self):
-
         # GH 7256
         # validate neg/pos inserts
         result = Index(["b", "c", "d"])

@@ -125,7 +125,7 @@ repos:
         language: python
         require_serial: true
         types_or: [python, pyi]
-        additional_dependencies: [black==22.10.0]
+        additional_dependencies: [black==23.1.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright
