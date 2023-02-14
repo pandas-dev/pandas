@@ -95,6 +95,8 @@ Option 1: using mamba (recommended)
    mamba env create --file environment.yml
    mamba activate pandas-dev
 
+.. _contributing.pip:
+
 Option 2: using pip
 ~~~~~~~~~~~~~~~~~~~
 

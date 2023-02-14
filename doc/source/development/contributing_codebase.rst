@@ -89,6 +89,12 @@ without needing to have done ``pre-commit install`` beforehand.
     you may run into issues if you're using conda. To solve this, you can downgrade
     ``virtualenv`` to version ``20.0.33``.
 
+.. note::
+
+    If you have recently merged in main from the upstream branch, some of the
+    dependencies used by ``pre-commit`` may have changed.  Make sure to
+    :ref:`update your development environment <contributing.update-dev>`.
+
 Optional dependencies
 ---------------------
 
