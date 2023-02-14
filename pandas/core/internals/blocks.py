@@ -630,7 +630,6 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        convert: bool = True,
         mask=None,
     ) -> list[Block]:
         """
@@ -644,8 +643,6 @@ class Block(PandasObject):
             Replacement object.
         inplace : bool, default False
             Perform inplace modification.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -788,7 +785,6 @@ class Block(PandasObject):
                 to_replace,
                 value,
                 inplace=inplace,
-                convert=False,
                 mask=mask,
             )
         else:
