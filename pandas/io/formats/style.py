@@ -1870,7 +1870,7 @@ class Styler(StylerRenderer):
 
         >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
         >>> def color_b(s):
-        ...     return {ret}
+        ...     return '{ret}'
         >>> df.style.{this}_index(color_b)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead1.png

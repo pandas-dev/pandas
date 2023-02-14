@@ -1336,7 +1336,7 @@ def relabel_result(
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
+    >>> relabel_result(result, funcs, columns, order)  # doctest: +SKIP
     dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
          C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
          B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))

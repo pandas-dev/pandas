@@ -2209,7 +2209,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with pd.ExcelWriter('output.xlsx',
         ...                     mode='a') as writer:  # doctest: +SKIP
-        ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+        ...     df1.to_excel(writer, sheet_name='Sheet_name_3')
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
@@ -5894,6 +5894,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Use ``.pipe`` when chaining together functions that expect
         Series, DataFrames or GroupBy objects. Instead of writing
 
+        >>> df = pd.Dataframe(np.random.rand(2, 2))
+        >>> h = lambda df: [x.lower() for x in df.columns]
+        >>> def g(x, arg1):
+        ...     return x * arg1
+        >>> def func(x, arg2, arg3):
+        ...     return x * arg2 * arg3
+        >>> a = 1
+        >>> b = 2
+        >>> c = 3
         >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
         You can write
