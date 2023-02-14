@@ -1871,7 +1871,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
         >>> def color_b(s):
         ...     return {ret}
-        >>> df.style.apply_index(color_b)  # doctest: +SKIP
+        >>> df.style.{this}_index(color_b)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead1.png
 
@@ -1879,9 +1879,9 @@ class Styler(StylerRenderer):
 
         >>> midx = pd.MultiIndex.from_product([['ix', 'jy'], [0, 1], ['x3', 'z4']])
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
-        >>> def highlight_x(s):
+        >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.apply_index(highlight_x, axis="columns", level=[0, 2])
+        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
         ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
@@ -2784,35 +2784,31 @@ class Styler(StylerRenderer):
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.background_gradient(axis=0)  # doctest: +SKIP
+        >>> df.style.{name}_gradient(axis=0)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.background_gradient(axis=None)  # doctest: +SKIP
+        >>> df.style.{name}_gradient(axis=None)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.background_gradient(axis=None,
-        ...                              low=0.75,
-        ...                              high=1.0)  # doctest: +SKIP
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.background_gradient(axis=None,
-        ...                              vmin=6.7,
-        ...                              vmax=21.6)  # doctest: +SKIP
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
         ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
@@ -2821,7 +2817,7 @@ class Styler(StylerRenderer):
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
         ... )  # doctest: +SKIP
 
