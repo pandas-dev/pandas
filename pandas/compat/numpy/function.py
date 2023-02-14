@@ -226,7 +226,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
         skipna = True
 
     validate_cum_func(args, kwargs, fname=name)
-    return skipna
+    return skipna  # pyright: ignore[reportGeneralTypeIssues]
 
 
 ALLANY_DEFAULTS: dict[str, bool | None] = {}
