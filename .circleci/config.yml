@@ -53,7 +53,6 @@ jobs:
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
-      - run: .circleci/setup_env.sh
       - run:
           name: Install Anaconda Client & Upload Wheels
           command: |
@@ -70,6 +69,9 @@ jobs:
             export PATH=$MAMBA_DIR/bin:$PATH
 
             mamba install -y -c conda-forge anaconda-client
+            
+            anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./wheelhouse/*.whl
+            
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels
