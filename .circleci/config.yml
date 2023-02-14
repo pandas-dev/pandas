@@ -69,7 +69,7 @@ jobs:
             export PATH=$MAMBA_DIR/bin:$PATH
 
             mamba install -y -c conda-forge anaconda-client
-            
+
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels
