@@ -84,7 +84,6 @@ def test_append_with_timezones(setup_path, gettz):
     )
 
     with ensure_clean_store(setup_path) as store:
-
         _maybe_remove(store, "df_tz")
         store.append("df_tz", df_est, data_columns=["A"])
         result = store["df_tz"]
@@ -138,7 +137,6 @@ def test_append_with_timezones_as_index(setup_path, gettz):
     df = DataFrame({"A": Series(range(3), index=dti)})
 
     with ensure_clean_store(setup_path) as store:
-
         _maybe_remove(store, "df")
         store.put("df", df)
         result = store.select("df")
@@ -210,7 +208,6 @@ def test_tseries_select_index_column(setup_path):
 
 def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
-
         # index
         rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
         rng = rng._with_freq(None)  # freq doesn't round-trip
@@ -282,7 +279,6 @@ def test_store_timezone(setup_path):
 
     # original method
     with ensure_clean_store(setup_path) as store:
-
         today = date(2013, 9, 10)
         df = DataFrame([1, 2, 3], index=[today, today, today])
         store["obj1"] = df
@@ -291,7 +287,6 @@ def test_store_timezone(setup_path):
 
     # with tz setting
     with ensure_clean_store(setup_path) as store:
-
         with tm.set_timezone("EST5EDT"):
             today = date(2013, 9, 10)
             df = DataFrame([1, 2, 3], index=[today, today, today])

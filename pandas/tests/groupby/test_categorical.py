@@ -82,7 +82,6 @@ def test_apply_use_categorical_name(df):
 
 
 def test_basic():  # TODO: split this test
-
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -657,7 +656,6 @@ def test_datetime():
 
 
 def test_categorical_index():
-
     s = np.random.RandomState(12345)
     levels = ["foo", "bar", "baz", "qux"]
     codes = s.randint(0, 4, size=20)
@@ -946,7 +944,6 @@ def test_groupby_empty_with_category():
 
 
 def test_sort():
-
     # https://stackoverflow.com/questions/23814368/sorting-pandas-
     #        categorical-labels-after-groupby
     # This should result in a properly sorted Series so that the plot

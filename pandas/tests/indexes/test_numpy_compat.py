@@ -109,7 +109,6 @@ def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
@@ -158,10 +157,6 @@ def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         return
-
-    if repr(index.dtype) == "string[pyarrow]":
-        mark = pytest.mark.xfail(reason="ArrowStringArray has no min/max")
-        request.node.add_marker(mark)
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):
