@@ -6928,8 +6928,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            # "ExtensionArray" has no attribute "min"
-            return self._values.min(skipna=skipna)  # type: ignore[attr-defined]
+            return self._values._reduce(name="min", skipna=skipna)
 
         return super().min(skipna=skipna)
 
@@ -6954,8 +6953,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            # "ExtensionArray" has no attribute "max"
-            return self._values.max(skipna=skipna)  # type: ignore[attr-defined]
+            return self._values._reduce(name="max", skipna=skipna)
 
         return super().max(skipna=skipna)
 
