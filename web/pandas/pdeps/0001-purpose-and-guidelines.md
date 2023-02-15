@@ -12,15 +12,21 @@ A PDEP (pandas enhancement proposal) is a proposal for a **major** change in
 pandas, in a similar way as a Python [PEP](https://peps.python.org/pep-0001/)
 or a NumPy [NEP](https://numpy.org/neps/nep-0000.html).
 
-Bug fixes and conceptually minor changes (e.g. adding a parameter to a function)
-are out of the scope of PDEPs. A PDEP should be used for changes that are not
-immediate and not obvious, and are expected to require a significant amount of
-discussion and require detailed documentation before being implemented.
+Bug fixes and conceptually minor changes (e.g. adding a parameter to a function) are out of the
+scope of PDEPs. A PDEP should be used for changes that are not immediate and not obvious, when
+everybody in the pandas community needs to be aware of the possibility of an upcoming change.
+Such changes require detailed documentation before being implemented and frequently lead to a
+significant discussion within the community.
 
-PDEP are appropriate for user facing changes, internal changes and organizational
-discussions. Examples of topics worth a PDEP could include moving a module from
-pandas to a separate repository, a refactoring of the pandas block manager or
-a proposal of a new code of conduct.
+PDEP are appropriate for user facing changes, internal changes and significant discussions.
+Examples of topics worth a PDEP could include substantial API changes, breaking behavior changes,
+moving a module from pandas to a separate repository, a refactoring of the pandas block manager
+or a proposal of a new code of conduct. It is not always trivial to know which issue has enough
+scope to require the full PDEP process. Some simple API changes have sufficient consensus among
+the core team, and minimal impact on the community. On the other hand, if an issue becomes
+controversial, i.e. it generated a significant discussion, one could suggest opening a PDEP to
+formalize and document the discussion, making it easier for the wider community to participate.
+For context, see the list of issues that could have been a PDEP at the bottom of this page.
 
 ## PDEP guidelines
 
@@ -40,11 +46,11 @@ consider when writing a PDEP are:
 
 ### PDEP authors
 
-Anyone can propose a PDEP, but in most cases developers of pandas itself and related
-projects are expected to author PDEPs. If you are unsure if you should be opening
-an issue or creating a PDEP, it's probably safe to start by
-[opening an issue](https://github.com/pandas-dev/pandas/issues/new/choose), which can
-be eventually moved to a PDEP.
+Anyone can propose a PDEP, but core members need to sponsor a proposal made by non-core
+contributors. To submit a PDEP as a community member, please propose the PDEP concept on
+[an issue](https://github.com/pandas-dev/pandas/issues/new/choose), and find a pandas team
+member to collaborate with. They can co-author the PDEP with you and submit it to the PDEPs
+repository.
 
 ### Workflow
 
@@ -63,8 +69,11 @@ Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
 The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
-The initial status of a PDEP will be `Status: Under discussion`. This will be changed
-to `Status: Accepted` when the PDEP is ready and have the approval of the core team.
+The initial status of a PDEP will be `Status: Draft`. Once it is ready for discussion, the author(s)
+change it to `Status: Under discussion`, and the following are notified: core and triage teams
+and the pandas-dev mailing list. This will be changed to `Status: Accepted` when the PDEP is ready
+and have the approval of the core team.
+
 
 #### Accepted PDEP
 
@@ -123,6 +132,47 @@ be edited, its `Revision: X` label will be increased by one, and a note will be 
 to the `PDEP-N history` section. This will let readers understand that the PDEP has
 changed and avoid confusion.
 
+## List of issues that could have been PDEPs for context
+### Clear examples for potential PDEPs:
+- Adding a new parameter to many existing methods, or deprecating one in many places. For example:
+  - The numeric_only deprecation affected many methods and could have been a PDEP.
+- Adding a new data type has impact on a variety of places that need to handle the data type.
+  Such wide-ranging impact would require a PDEP. For example:
+  - Categorical (GH-7217, GH-8074), StringDtype (GH-8640), ArrowDtype
+- A significant (breaking) change in existing behavior. For example:
+  - copy/view changes (GH-36195)
+- Support of new python features with a wide impact on the project. For example:
+  - Supporting typing within pandas vs. creation of pandas-stubs (GH-43197, GH-45253) New
+    required dependency
+
+### Borderline examples:
+- Small changes to core functionality, such as DataFrame and Series, should always be considered
+  as a PDEP candidate as it will likely have a big impact on users. But the same types of changes in other methods would not be good PDEP candidates. That said, any discussion, no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more attention and/or a formal decision-making process would help. Following are some examples we hope can help clarify our meaning here:
+- API breaking changes, or discussion thereof, could be a PDEP. For example:
+  - Value counts rename (GH-49497). The scope doesn’t justify a PDEP at first, but later a
+    discussion about whether it should be executed as breaking change or with deprecation emerges, which could benefit from a PDEP process.
+- Adding new parameters or methods to an existing method typically won't require a PDEP for
+  non-core features. For example:
+  - Both dropna(percentage) (GH-35299), and Timestamp.normalize() (GH-8794) wouldn't have
+    required a PDEP.
+  - On the other hand, DataFrame.assign() might. While it's a single method without backwards
+    compatibility concerns, it’s also a core feature and the discussion should be highly visible.
+- Deprecating or removing a single method would not require a PDEP in most cases. For example:
+  - DataFrame.xs (GH-6249) is an example of depredations on core features that would be good a
+    candidate for a PDEP.
+- Changing the default value of parameters in a core pandas method is another edge case. For
+  example:
+  - Such changes in dropna,  DataFrame.groupby, or in Series.groupby could be PDEPs.
+- New top level modules and/or exposing internal classes. For example:
+  - Add pandas.api.typing (GH-48577) is relatively small and wouldn’t necessarily require a PDEP.
+
+### A counter-example:
+- Significant changes to developer/contributor processes don't require a PDEP as they aren't
+going to have an impact on users. For example:
+  - Changing the build system to meson
+
+
 ### PDEP-1 History
 
 - 3 August 2022: Initial version
+- 15 February 2023: Revision 1
