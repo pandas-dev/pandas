@@ -1552,11 +1552,11 @@ class ExcelFile:
         """
         Parse specified sheet(s) into a DataFrame.
 
-        Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters.
-
         .. deprecated:: 2.0.0
             Arguments other than sheet_name by position may not work.
+
+        Equivalent to read_excel(ExcelFile, ...)  See the read_excel
+        docstring for more info on accepted parameters.
 
         Returns
         -------
