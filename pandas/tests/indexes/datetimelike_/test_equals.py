@@ -1,24 +1,20 @@
 """
 Tests shared for DatetimeIndex/TimedeltaIndex/PeriodIndex
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-)
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import PeriodIndex
+from pandas import TimedeltaIndex
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    from_dummies,
-    get_dummies,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import from_dummies
+from pandas import get_dummies
 import pandas._testing as tm
 
 

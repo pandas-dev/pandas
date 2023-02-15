@@ -8,15 +8,13 @@ import pytz
 
 from pandas.compat import is_platform_little_endian
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    Interval,
-    RangeIndex,
-    Series,
-    date_range,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import RangeIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 
 

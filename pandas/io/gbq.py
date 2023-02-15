@@ -1,10 +1,8 @@
 """ Google BigQuery support """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
+from typing import TYPE_CHECKING
 
 from pandas.compat._optional import import_optional_dependency
 

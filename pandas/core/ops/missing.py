@@ -27,11 +27,9 @@ import operator
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_scalar
 
 from pandas.core.ops import roperator
 

@@ -11,15 +11,13 @@ import pytest
 from pandas.errors import SpecificationError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    Series,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -640,11 +638,9 @@ def test_groupby_agg_err_catching(err_cls):
     #  in _python_agg_general
 
     # Use a non-standard EA to make sure we don't go down ndarray paths
-    from pandas.tests.extension.decimal.array import (
-        DecimalArray,
-        make_data,
-        to_decimal,
-    )
+    from pandas.tests.extension.decimal.array import DecimalArray
+    from pandas.tests.extension.decimal.array import make_data
+    from pandas.tests.extension.decimal.array import to_decimal
 
     data = make_data()[:5]
     df = DataFrame(

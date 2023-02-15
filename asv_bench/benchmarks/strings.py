@@ -2,12 +2,10 @@ import warnings
 
 import numpy as np
 
-from pandas import (
-    NA,
-    Categorical,
-    DataFrame,
-    Series,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import NA
+from pandas import Series
 from pandas.arrays import StringArray
 
 from .pandas_vb_common import tm

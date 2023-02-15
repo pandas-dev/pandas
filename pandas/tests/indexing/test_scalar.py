@@ -1,20 +1,16 @@
 """ test scalar indexing, including at and iat """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import itertools
 
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

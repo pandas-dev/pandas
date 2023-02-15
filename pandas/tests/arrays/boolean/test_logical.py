@@ -6,11 +6,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import BooleanArray
-from pandas.core.ops.mask_ops import (
-    kleene_and,
-    kleene_or,
-    kleene_xor,
-)
+from pandas.core.ops.mask_ops import kleene_and
+from pandas.core.ops.mask_ops import kleene_or
+from pandas.core.ops.mask_ops import kleene_xor
 from pandas.tests.extension.base import BaseOpsUtil
 
 

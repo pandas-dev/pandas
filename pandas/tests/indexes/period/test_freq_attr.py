@@ -2,10 +2,8 @@ import pytest
 
 from pandas.compat import PY311
 
-from pandas import (
-    offsets,
-    period_range,
-)
+from pandas import offsets
+from pandas import period_range
 import pandas._testing as tm
 
 

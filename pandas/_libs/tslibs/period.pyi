@@ -6,10 +6,8 @@ import numpy as np
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
-from pandas._typing import (
-    Frequency,
-    npt,
-)
+from pandas._typing import Frequency
+from pandas._typing import npt
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str

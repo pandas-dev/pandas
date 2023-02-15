@@ -7,71 +7,55 @@ from io import BytesIO
 import os
 from textwrap import fill
 from types import TracebackType
-from typing import (
-    IO,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    List,
-    Literal,
-    Mapping,
-    Sequence,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import IO
+from typing import Iterable
+from typing import List
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import Union
+from typing import cast
+from typing import overload
 import zipfile
 
-from pandas._config import (
-    config,
-    using_nullable_dtypes,
-)
+from pandas._config import config
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import (
-    DtypeArg,
-    FilePath,
-    IntStrT,
-    ReadBuffer,
-    StorageOptions,
-    WriteExcelBuffer,
-)
-from pandas.compat._optional import (
-    get_version,
-    import_optional_dependency,
-)
+from pandas._typing import DtypeArg
+from pandas._typing import FilePath
+from pandas._typing import IntStrT
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteExcelBuffer
+from pandas.compat._optional import get_version
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import (
-    Appender,
-    doc,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_float,
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 from pandas.util.version import Version
 
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-    stringify_path,
-    validate_header_arg,
-)
-from pandas.io.excel._util import (
-    fill_mi_header,
-    get_default_engine,
-    get_writer,
-    maybe_convert_usecols,
-    pop_header_name,
-)
+from pandas.io.common import IOHandles
+from pandas.io.common import get_handle
+from pandas.io.common import stringify_path
+from pandas.io.common import validate_header_arg
+from pandas.io.excel._util import fill_mi_header
+from pandas.io.excel._util import get_default_engine
+from pandas.io.excel._util import get_writer
+from pandas.io.excel._util import maybe_convert_usecols
+from pandas.io.excel._util import pop_header_name
 from pandas.io.parsers import TextParser
 from pandas.io.parsers.readers import validate_integer
 

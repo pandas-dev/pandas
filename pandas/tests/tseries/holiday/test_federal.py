@@ -3,12 +3,10 @@ from datetime import datetime
 from pandas import DatetimeIndex
 import pandas._testing as tm
 
-from pandas.tseries.holiday import (
-    AbstractHolidayCalendar,
-    USFederalHolidayCalendar,
-    USMartinLutherKingJr,
-    USMemorialDay,
-)
+from pandas.tseries.holiday import AbstractHolidayCalendar
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.holiday import USMartinLutherKingJr
+from pandas.tseries.holiday import USMemorialDay
 
 
 def test_no_mlk_before_1986():

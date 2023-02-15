@@ -1,29 +1,25 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-    tzinfo,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import tzinfo
 from os import PathLike
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Hashable,
-    Iterator,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    Type as type_t,
-    TypeVar,
-    Union,
-)
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Hashable
+from typing import Iterator
+from typing import List
+from typing import Literal
+from typing import Mapping
+from typing import Optional
+from typing import Protocol
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import Type as type_t
+from typing import TypeVar
+from typing import Union
 
 import numpy as np
 
@@ -33,36 +29,28 @@ import numpy as np
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-    from pandas._libs import (
-        NaTType,
-        Period,
-        Timedelta,
-        Timestamp,
-    )
+    from pandas._libs import NaTType
+    from pandas._libs import Period
+    from pandas._libs import Timedelta
+    from pandas._libs import Timestamp
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
+    from pandas.arrays import DatetimeArray
+    from pandas.arrays import TimedeltaArray
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
-    from pandas.core.groupby.generic import (
-        DataFrameGroupBy,
-        GroupBy,
-        SeriesGroupBy,
-    )
+    from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.groupby.generic import GroupBy
+    from pandas.core.groupby.generic import SeriesGroupBy
     from pandas.core.indexes.base import Index
-    from pandas.core.internals import (
-        ArrayManager,
-        BlockManager,
-        SingleArrayManager,
-        SingleBlockManager,
-    )
+    from pandas.core.internals import ArrayManager
+    from pandas.core.internals import BlockManager
+    from pandas.core.internals import SingleArrayManager
+    from pandas.core.internals import SingleBlockManager
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow

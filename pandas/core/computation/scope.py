@@ -10,10 +10,8 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import (
-    ChainMap,
-    TypeVar,
-)
+from typing import ChainMap
+from typing import TypeVar
 
 import numpy as np
 

@@ -4,19 +4,15 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._libs.algos import (
-    Infinity,
-    NegInfinity,
-)
+from pandas._libs.algos import Infinity
+from pandas._libs.algos import NegInfinity
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import NA
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 

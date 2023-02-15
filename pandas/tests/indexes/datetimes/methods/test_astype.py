@@ -6,14 +6,12 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    PeriodIndex,
-    Timestamp,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

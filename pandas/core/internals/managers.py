@@ -1,89 +1,67 @@
 from __future__ import annotations
 
 import itertools
-from typing import (
-    Any,
-    Callable,
-    Hashable,
-    Literal,
-    Sequence,
-    TypeVar,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Literal
+from typing import Sequence
+from typing import TypeVar
+from typing import cast
 import warnings
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._libs import (
-    algos as libalgos,
-    internals as libinternals,
-    lib,
-)
+from pandas._libs import algos as libalgos
+from pandas._libs import internals as libinternals
+from pandas._libs import lib
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    Shape,
-    npt,
-    type_t,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import QuantileInterpolation
+from pandas._typing import Shape
+from pandas._typing import npt
+from pandas._typing import type_t
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_1d_only_ea_dtype,
-    is_dtype_equal,
-    is_list_like,
-)
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    array_equals,
-    isna,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import array_equals
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 import pandas.core.common as com
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import (
-    Index,
-    ensure_index,
-)
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-    interleaved_dtype,
-)
-from pandas.core.internals.blocks import (
-    Block,
-    NumpyBlock,
-    ensure_block_shape,
-    extend_blocks,
-    get_block_type,
-    new_block,
-    new_block_2d,
-)
-from pandas.core.internals.ops import (
-    blockwise_all,
-    operate_blockwise,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.internals.base import DataManager
+from pandas.core.internals.base import SingleDataManager
+from pandas.core.internals.base import interleaved_dtype
+from pandas.core.internals.blocks import Block
+from pandas.core.internals.blocks import NumpyBlock
+from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import extend_blocks
+from pandas.core.internals.blocks import get_block_type
+from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import new_block_2d
+from pandas.core.internals.ops import blockwise_all
+from pandas.core.internals.ops import operate_blockwise
 
 T = TypeVar("T", bound="BaseBlockManager")
 

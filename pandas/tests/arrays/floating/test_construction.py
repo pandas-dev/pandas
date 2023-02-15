@@ -4,10 +4,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
-from pandas.core.arrays.floating import (
-    Float32Dtype,
-    Float64Dtype,
-)
+from pandas.core.arrays.floating import Float32Dtype
+from pandas.core.arrays.floating import Float64Dtype
 
 
 def test_uses_pandas_na():

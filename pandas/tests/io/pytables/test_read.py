@@ -9,18 +9,14 @@ from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    HDFStore,
-    Index,
-    Series,
-    _testing as tm,
-    read_hdf,
-)
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-)
+from pandas import DataFrame
+from pandas import HDFStore
+from pandas import Index
+from pandas import Series
+from pandas import _testing as tm
+from pandas import read_hdf
+from pandas.tests.io.pytables.common import _maybe_remove
+from pandas.tests.io.pytables.common import ensure_clean_store
 from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator

@@ -1,16 +1,12 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    HDFStore,
-    date_range,
-    read_hdf,
-)
+from pandas import DataFrame
+from pandas import HDFStore
+from pandas import date_range
+from pandas import read_hdf
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import tm
 
 
 class HDFStoreDataFrame(BaseIO):

@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import MultiIndex
 
 
 class TestEquals:

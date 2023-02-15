@@ -1,36 +1,26 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import type_t
 
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_accumulations
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
+from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.masked import BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow

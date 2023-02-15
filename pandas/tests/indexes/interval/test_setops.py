@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    IntervalIndex,
-    Timestamp,
-    interval_range,
-)
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import Timestamp
+from pandas import interval_range
 import pandas._testing as tm
 
 

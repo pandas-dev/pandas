@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import operator
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.ops import roperator
 
@@ -29,11 +27,9 @@ def _get_method_wrappers(cls):
     """
     # TODO: make these non-runtime imports once the relevant functions
     #  are no longer in __init__
-    from pandas.core.ops import (
-        flex_arith_method_FRAME,
-        flex_comp_method_FRAME,
-        flex_method_SERIES,
-    )
+    from pandas.core.ops import flex_arith_method_FRAME
+    from pandas.core.ops import flex_comp_method_FRAME
+    from pandas.core.ops import flex_method_SERIES
 
     if issubclass(cls, ABCSeries):
         # Just Series

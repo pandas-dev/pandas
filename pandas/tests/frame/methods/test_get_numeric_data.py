@@ -1,13 +1,11 @@
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 

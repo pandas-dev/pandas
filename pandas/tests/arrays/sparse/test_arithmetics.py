@@ -5,10 +5,8 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseDtype
 
 
 @pytest.fixture(params=["integer", "block"])

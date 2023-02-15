@@ -3,19 +3,15 @@ from __future__ import annotations
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Mapping
+from typing import cast
 import warnings
 
 from pandas._libs.properties import cache_readonly
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F
+from pandas._typing import T
 from pandas.util._exceptions import find_stack_level
 
 

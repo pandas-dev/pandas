@@ -3,13 +3,11 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    intp_t,
-    ndarray,
-    uint8_t,
-    uint64_t,
-)
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint64_t
 
 cnp.import_array()
 
@@ -17,25 +15,19 @@ cnp.import_array()
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    get_unit_from_dtype,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport get_unit_from_dtype
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-from pandas._libs import (
-    algos,
-    hashtable as _hash,
-)
+from pandas._libs import algos
+from pandas._libs import hashtable as _hash
 
 from pandas._libs.lib cimport eq_NA_compat
-from pandas._libs.missing cimport (
-    C_NA,
-    checknull,
-    is_matching_na,
-)
+from pandas._libs.missing cimport C_NA
+from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport is_matching_na
 
 # Defines shift of MultiIndex codes to avoid negative codes (missing values)
 multiindex_nulls_shift = 2

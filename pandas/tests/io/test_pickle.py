@@ -30,27 +30,21 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    get_lzma_file,
-    is_platform_little_endian,
-)
+from pandas.compat import get_lzma_file
+from pandas.compat import is_platform_little_endian
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.compressors import flatten_buffer
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Index,
-    Series,
-    period_range,
-)
+from pandas import Index
+from pandas import Series
+from pandas import period_range
 import pandas._testing as tm
 
 import pandas.io.common as icom
-from pandas.tseries.offsets import (
-    Day,
-    MonthEnd,
-)
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import MonthEnd
 
 
 @pytest.fixture(scope="module")

@@ -16,19 +16,16 @@ FUNCTIONS:
 """
 from datetime import timezone
 
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    date,
-    import_datetime,
-    timedelta,
-    tzinfo,
-)
-from _strptime import (
-    TimeRE as _TimeRE,
-    _getlang,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport date
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport timedelta
+from cpython.datetime cimport tzinfo
+
 from _strptime import LocaleTime  # no-cython-lint
+from _strptime import TimeRE as _TimeRE
+from _strptime import _getlang
 
 import_datetime()
 
@@ -39,37 +36,29 @@ import numpy as np
 import pytz
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    ndarray,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.conversion cimport (
-    convert_timezone,
-    get_datetime64_nanos,
-)
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_nat_strings as nat_strings,
-)
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_ns,
-    check_dts_bounds,
-    npy_datetimestruct,
-    npy_datetimestruct_to_datetime,
-    pydate_to_dt64,
-    pydatetime_to_dt64,
-    string_to_dts,
-)
+from pandas._libs.tslibs.conversion cimport convert_timezone
+from pandas._libs.tslibs.conversion cimport get_datetime64_nanos
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_nat_strings as nat_strings
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
+from pandas._libs.tslibs.np_datetime cimport check_dts_bounds
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct_to_datetime
+from pandas._libs.tslibs.np_datetime cimport pydate_to_dt64
+from pandas._libs.tslibs.np_datetime cimport pydatetime_to_dt64
+from pandas._libs.tslibs.np_datetime cimport string_to_dts
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
+from pandas._libs.util cimport is_datetime64_object
+from pandas._libs.util cimport is_float_object
+from pandas._libs.util cimport is_integer_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 

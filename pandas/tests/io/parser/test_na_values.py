@@ -9,11 +9,9 @@ import pytest
 
 from pandas._libs.parsers import STR_NA_VALUES
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")

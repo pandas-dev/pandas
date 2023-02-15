@@ -1,25 +1,21 @@
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    NaT,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    isna,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 from pandas.core.arrays import period_array
 

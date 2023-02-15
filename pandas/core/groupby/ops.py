@@ -9,91 +9,71 @@ from __future__ import annotations
 
 import collections
 import functools
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Generic,
-    Hashable,
-    Iterator,
-    Sequence,
-    final,
-)
+from typing import Callable
+from typing import Generic
+from typing import Hashable
+from typing import Iterator
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import final
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    lib,
-)
+from pandas._libs import NaT
+from pandas._libs import lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    NDFrameT,
-    Shape,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import NDFrameT
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import (
-    maybe_cast_pointwise_result,
-    maybe_downcast_to_dtype,
-)
-from pandas.core.dtypes.common import (
-    ensure_float64,
-    ensure_int64,
-    ensure_platform_int,
-    ensure_uint64,
-    is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_complex_dtype,
-    is_datetime64_any_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_period_dtype,
-    is_sparse,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_float64
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import ensure_uint64
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_sparse
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import (
-    isna,
-    maybe_fill,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import maybe_fill
 
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
+from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
-from pandas.core.indexes.api import (
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import CategoricalIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import ensure_index
 from pandas.core.series import Series
-from pandas.core.sorting import (
-    compress_group_index,
-    decons_obs_group_ids,
-    get_flattened_list,
-    get_group_index,
-    get_group_index_sorter,
-    get_indexer_dict,
-)
+from pandas.core.sorting import compress_group_index
+from pandas.core.sorting import decons_obs_group_ids
+from pandas.core.sorting import get_flattened_list
+from pandas.core.sorting import get_group_index
+from pandas.core.sorting import get_group_index_sorter
+from pandas.core.sorting import get_indexer_dict
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame

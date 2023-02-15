@@ -1,35 +1,27 @@
 from __future__ import annotations
 
 import mmap
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Tuple,
-    cast,
-)
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import cast
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-    WriteExcelBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import Scalar
+from pandas._typing import StorageOptions
+from pandas._typing import WriteExcelBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.excel._base import (
-    BaseExcelReader,
-    ExcelWriter,
-)
-from pandas.io.excel._util import (
-    combine_kwargs,
-    validate_freeze_panes,
-)
+from pandas.io.excel._base import BaseExcelReader
+from pandas.io.excel._base import ExcelWriter
+from pandas.io.excel._util import combine_kwargs
+from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
@@ -259,10 +251,8 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-        from openpyxl.styles import (
-            GradientFill,
-            PatternFill,
-        )
+        from openpyxl.styles import GradientFill
+        from openpyxl.styles import PatternFill
 
         _pattern_fill_key_map = {
             "patternType": "fill_type",
@@ -566,10 +556,8 @@ class OpenpyxlReader(BaseExcelReader):
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell) -> Scalar:
-        from openpyxl.cell.cell import (
-            TYPE_ERROR,
-            TYPE_NUMERIC,
-        )
+        from openpyxl.cell.cell import TYPE_ERROR
+        from openpyxl.cell.cell import TYPE_NUMERIC
 
         if cell.value is None:
             return ""  # compat with xlrd

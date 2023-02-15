@@ -3,47 +3,35 @@ datetimelike delegation
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_period_dtype,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import (
-    PandasDelegate,
-    delegate_names,
-)
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import delegate_names
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.dtype import ArrowDtype
-from pandas.core.base import (
-    NoNewAttributesMixin,
-    PandasObject,
-)
+from pandas.core.base import NoNewAttributesMixin
+from pandas.core.base import PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):

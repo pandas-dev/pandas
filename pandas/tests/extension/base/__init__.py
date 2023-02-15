@@ -44,10 +44,8 @@ by defining the staticmethods ``assert_frame_equal`` and
 from pandas.tests.extension.base.accumulate import BaseAccumulateTests  # noqa
 from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
 from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
-from pandas.tests.extension.base.dim2 import (  # noqa
-    Dim2CompatTests,
-    NDArrayBacked2DTests,
-)
+from pandas.tests.extension.base.dim2 import Dim2CompatTests  # noqa
+from pandas.tests.extension.base.dim2 import NDArrayBacked2DTests
 from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
 from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
 from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
@@ -56,17 +54,13 @@ from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa
 from pandas.tests.extension.base.io import BaseParsingTests  # noqa
 from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa
 from pandas.tests.extension.base.missing import BaseMissingTests  # noqa
-from pandas.tests.extension.base.ops import (  # noqa
-    BaseArithmeticOpsTests,
-    BaseComparisonOpsTests,
-    BaseOpsUtil,
-    BaseUnaryOpsTests,
-)
+from pandas.tests.extension.base.ops import BaseArithmeticOpsTests  # noqa
+from pandas.tests.extension.base.ops import BaseComparisonOpsTests
+from pandas.tests.extension.base.ops import BaseOpsUtil
+from pandas.tests.extension.base.ops import BaseUnaryOpsTests
 from pandas.tests.extension.base.printing import BasePrintingTests  # noqa
-from pandas.tests.extension.base.reduce import (  # noqa
-    BaseBooleanReduceTests,
-    BaseNoReduceTests,
-    BaseNumericReduceTests,
-)
+from pandas.tests.extension.base.reduce import BaseBooleanReduceTests  # noqa
+from pandas.tests.extension.base.reduce import BaseNoReduceTests
+from pandas.tests.extension.base.reduce import BaseNumericReduceTests
 from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa
 from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa

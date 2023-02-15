@@ -4,104 +4,76 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterator,
-    Literal,
-    Sequence,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Hashable
+from typing import Iterator
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import overload
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    NaT,
-    algos as libalgos,
-    lib,
-)
+from pandas._libs import NaT
+from pandas._libs import algos as libalgos
+from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AstypeArg
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import NpDtype
+from pandas._typing import Ordered
+from pandas._typing import Shape
+from pandas._typing import SortKind
+from pandas._typing import npt
+from pandas._typing import type_t
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    coerce_indexer_dtype,
-    find_common_type,
-)
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-    is_any_real_numeric_dtype,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_dict_like,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_hashable,
-    is_integer_dtype,
-    is_list_like,
-    is_scalar,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
 
-from pandas.core import (
-    algorithms,
-    arraylike,
-    ops,
-)
-from pandas.core.accessor import (
-    PandasDelegate,
-    delegate_names,
-)
-from pandas.core.algorithms import (
-    factorize,
-    take_nd,
-)
-from pandas.core.arrays._mixins import (
-    NDArrayBackedExtensionArray,
-    ravel_compat,
-)
-from pandas.core.base import (
-    ExtensionArray,
-    NoNewAttributesMixin,
-    PandasObject,
-)
+from pandas.core import algorithms
+from pandas.core import arraylike
+from pandas.core import ops
+from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import delegate_names
+from pandas.core.algorithms import factorize
+from pandas.core.algorithms import take_nd
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import ravel_compat
+from pandas.core.base import ExtensionArray
+from pandas.core.base import NoNewAttributesMixin
+from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import (
-    extract_array,
-    sanitize_array,
-)
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -109,11 +81,9 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
 
 
 CategoricalT = TypeVar("CategoricalT", bound="Categorical")
@@ -579,12 +549,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
         """
-        from pandas import (
-            Index,
-            to_datetime,
-            to_numeric,
-            to_timedelta,
-        )
+        from pandas import Index
+        from pandas import to_datetime
+        from pandas import to_numeric
+        from pandas import to_timedelta
 
         cats = Index(inferred_categories)
         known_categories = (
@@ -1481,10 +1449,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         --------
         Series.value_counts
         """
-        from pandas import (
-            CategoricalIndex,
-            Series,
-        )
+        from pandas import CategoricalIndex
+        from pandas import Series
 
         code, cat = self._codes, self.categories
         ncat, mask = (len(cat), code >= 0)

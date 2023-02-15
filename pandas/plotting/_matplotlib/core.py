@@ -1,56 +1,44 @@
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Literal,
-    Sequence,
-)
+from abc import ABC
+from abc import abstractmethod
+from typing import Hashable
+from typing import Iterable
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
 import warnings
 
 import matplotlib as mpl
 from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import (
-    IndexLabel,
-    PlottingOrientation,
-    npt,
-)
+from pandas._typing import IndexLabel
+from pandas._typing import PlottingOrientation
+from pandas._typing import npt
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_any_real_numeric_dtype,
-    is_categorical_dtype,
-    is_extension_array_dtype,
-    is_float,
-    is_float_dtype,
-    is_hashable,
-    is_integer,
-    is_integer_dtype,
-    is_iterator,
-    is_list_like,
-    is_number,
-    is_numeric_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_iterator
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -61,21 +49,17 @@ from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_con
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
-    format_dateaxis,
-    maybe_convert_index,
-    maybe_resample,
-    use_dynamic_x,
-)
-from pandas.plotting._matplotlib.tools import (
-    create_subplots,
-    flatten_axes,
-    format_date_labels,
-    get_all_lines,
-    get_xlim,
-    handle_shared_axes,
-)
+from pandas.plotting._matplotlib.timeseries import decorate_axes
+from pandas.plotting._matplotlib.timeseries import format_dateaxis
+from pandas.plotting._matplotlib.timeseries import maybe_convert_index
+from pandas.plotting._matplotlib.timeseries import maybe_resample
+from pandas.plotting._matplotlib.timeseries import use_dynamic_x
+from pandas.plotting._matplotlib.tools import create_subplots
+from pandas.plotting._matplotlib.tools import flatten_axes
+from pandas.plotting._matplotlib.tools import format_date_labels
+from pandas.plotting._matplotlib.tools import get_all_lines
+from pandas.plotting._matplotlib.tools import get_xlim
+from pandas.plotting._matplotlib.tools import handle_shared_axes
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

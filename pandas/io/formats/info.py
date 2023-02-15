@@ -1,35 +1,27 @@
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC
+from abc import abstractmethod
 import sys
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
+from typing import Iterable
+from typing import Iterator
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Dtype,
-    WriteBuffer,
-)
+from pandas._typing import Dtype
+from pandas._typing import WriteBuffer
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
 
 
 frame_max_cols_sub = dedent(

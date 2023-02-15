@@ -7,21 +7,17 @@ import pytz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Series,
-    bdate_range,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Series
+from pandas import bdate_range
+from pandas import date_range
 import pandas._testing as tm
 
-from pandas.tseries.offsets import (
-    BMonthEnd,
-    Minute,
-    MonthEnd,
-)
+from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import MonthEnd
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

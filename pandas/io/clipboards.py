@@ -11,10 +11,8 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas import (
-    get_option,
-    option_context,
-)
+from pandas import get_option
+from pandas import option_context
 
 
 def read_clipboard(

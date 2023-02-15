@@ -1,7 +1,5 @@
-from datetime import (
-    time,
-    timedelta,
-)
+from datetime import time
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -9,12 +7,10 @@ import pytest
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
-from pandas import (
-    Series,
-    TimedeltaIndex,
-    isna,
-    to_timedelta,
-)
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import isna
+from pandas import to_timedelta
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 

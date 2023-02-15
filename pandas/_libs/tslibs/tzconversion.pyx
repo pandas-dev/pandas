@@ -2,14 +2,12 @@
 timezone conversion
 """
 cimport cython
-from cpython.datetime cimport (
-    PyDelta_Check,
-    datetime,
-    datetime_new,
-    import_datetime,
-    timedelta,
-    tzinfo,
-)
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport datetime
+from cpython.datetime cimport datetime_new
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport timedelta
+from cpython.datetime cimport tzinfo
 from cython cimport Py_ssize_t
 
 import_datetime()
@@ -18,34 +16,26 @@ import numpy as np
 import pytz
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    intp_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 cnp.import_array()
 
-from pandas._libs.tslibs.dtypes cimport (
-    periods_per_day,
-    periods_per_second,
-)
+from pandas._libs.tslibs.dtypes cimport periods_per_day
+from pandas._libs.tslibs.dtypes cimport periods_per_second
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    npy_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    pydatetime_to_dt64,
-)
-from pandas._libs.tslibs.timezones cimport (
-    get_dst_info,
-    is_fixed_offset,
-    is_tzlocal,
-    is_utc,
-    is_zoneinfo,
-    utc_stdlib,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pydatetime_to_dt64
+from pandas._libs.tslibs.timezones cimport get_dst_info
+from pandas._libs.tslibs.timezones cimport is_fixed_offset
+from pandas._libs.tslibs.timezones cimport is_tzlocal
+from pandas._libs.tslibs.timezones cimport is_utc
+from pandas._libs.tslibs.timezones cimport is_zoneinfo
+from pandas._libs.tslibs.timezones cimport utc_stdlib
 
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)

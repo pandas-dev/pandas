@@ -7,12 +7,10 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    option_context,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import option_context
+from pandas import to_datetime
 
 
 def test_repr_embedded_ndarray():

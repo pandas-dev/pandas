@@ -10,22 +10,16 @@ from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
-from pandas.api.types import (
-    is_categorical_dtype,
-    is_string_dtype,
-)
+from pandas.api.types import is_categorical_dtype
+from pandas.api.types import is_string_dtype
 from pandas.core.interchange.buffer import PandasBuffer
-from pandas.core.interchange.dataframe_protocol import (
-    Column,
-    ColumnBuffers,
-    ColumnNullType,
-    DtypeKind,
-)
-from pandas.core.interchange.utils import (
-    ArrowCTypes,
-    Endianness,
-    dtype_to_arrow_c_fmt,
-)
+from pandas.core.interchange.dataframe_protocol import Column
+from pandas.core.interchange.dataframe_protocol import ColumnBuffers
+from pandas.core.interchange.dataframe_protocol import ColumnNullType
+from pandas.core.interchange.dataframe_protocol import DtypeKind
+from pandas.core.interchange.utils import ArrowCTypes
+from pandas.core.interchange.utils import Endianness
+from pandas.core.interchange.utils import dtype_to_arrow_c_fmt
 
 _NP_KINDS = {
     "i": DtypeKind.INT,

@@ -14,19 +14,15 @@ from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    Timestamp,
-    read_json,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import NA
+from pandas import Series
+from pandas import Timestamp
+from pandas import read_json
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
 
 def assert_json_roundtrip_equal(result, expected, orient):

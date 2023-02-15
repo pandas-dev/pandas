@@ -2,17 +2,13 @@
 # cython: warn.undeclared=True, warn.maybe_uninitialized=True, warn.unused=True
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
-from libc.stdint cimport (
-    int64_t,
-    uint8_t,
-    uint16_t,
-    uint32_t,
-    uint64_t,
-)
-from libc.stdlib cimport (
-    calloc,
-    free,
-)
+from libc.stdint cimport int64_t
+from libc.stdint cimport uint8_t
+from libc.stdint cimport uint16_t
+from libc.stdint cimport uint32_t
+from libc.stdint cimport uint64_t
+from libc.stdlib cimport calloc
+from libc.stdlib cimport free
 
 import numpy as np
 

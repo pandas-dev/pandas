@@ -15,10 +15,8 @@ import ast
 import os
 from pathlib import Path
 import sys
-from typing import (
-    Iterator,
-    Sequence,
-)
+from typing import Iterator
+from typing import Sequence
 
 PRAGMA = "# not a test"
 

@@ -5,21 +5,17 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-    bdate_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import bdate_range
 import pandas._testing as tm
 
 

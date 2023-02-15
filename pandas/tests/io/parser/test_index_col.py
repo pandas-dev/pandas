@@ -8,11 +8,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
 import pandas._testing as tm
 
 # TODO(1.4): Change me to xfails at release time

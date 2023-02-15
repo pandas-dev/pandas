@@ -4,17 +4,15 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    NaT,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    notna,
-    offsets,
-    timedelta_range,
-    to_timedelta,
-)
+from pandas import Index
+from pandas import NaT
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import notna
+from pandas import offsets
+from pandas import timedelta_range
+from pandas import to_timedelta
 import pandas._testing as tm
 
 

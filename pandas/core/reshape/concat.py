@@ -4,57 +4,45 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Hashable,
-    Iterable,
-    Literal,
-    Mapping,
-    cast,
-    overload,
-)
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Literal
+from typing import Mapping
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import overload
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    HashableT,
-)
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import HashableT
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_bool
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.categorical import (
-    factorize_from_iterable,
-    factorize_from_iterables,
-)
+from pandas.core.arrays.categorical import factorize_from_iterable
+from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-    all_indexes_same,
-    default_index,
-    ensure_index,
-    get_objs_combined_axis,
-    get_unanimous_names,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import all_indexes_same
+from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.indexes.api import get_objs_combined_axis
+from pandas.core.indexes.api import get_unanimous_names
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------

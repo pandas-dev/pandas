@@ -1,8 +1,6 @@
 from collections import deque
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
+from datetime import timezone
 from enum import Enum
 import functools
 import operator
@@ -14,23 +12,17 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 import pandas.core.common as com
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import (
-    _MIN_ELEMENTS,
-    NUMEXPR_INSTALLED,
-)
-from pandas.tests.frame.common import (
-    _check_mixed_float,
-    _check_mixed_int,
-)
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import _MIN_ELEMENTS
+from pandas.tests.frame.common import _check_mixed_float
+from pandas.tests.frame.common import _check_mixed_int
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])

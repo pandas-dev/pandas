@@ -2,11 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas import Index
+from pandas import TimedeltaIndex
+from pandas import timedelta_range
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour

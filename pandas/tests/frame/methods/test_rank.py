@@ -1,21 +1,15 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas._libs.algos import (
-    Infinity,
-    NegInfinity,
-)
+from pandas._libs.algos import Infinity
+from pandas._libs.algos import NegInfinity
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 

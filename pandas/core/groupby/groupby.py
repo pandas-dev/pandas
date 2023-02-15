@@ -9,136 +9,104 @@ expose these user-facing objects to provide specific functionality.
 from __future__ import annotations
 
 import datetime
-from functools import (
-    partial,
-    wraps,
-)
+from functools import partial
+from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
-    Literal,
-    Mapping,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    final,
-)
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import Union
+from typing import cast
+from typing import final
 import warnings
 
 import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import (
-    Timestamp,
-    lib,
-)
+from pandas._libs import Timestamp
+from pandas._libs import lib
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
 from pandas._libs.missing import NA
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    Axis,
-    AxisInt,
-    DtypeObj,
-    FillnaOptions,
-    IndexLabel,
-    NDFrameT,
-    PositionalIndexer,
-    RandomState,
-    Scalar,
-    T,
-    npt,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import FillnaOptions
+from pandas._typing import IndexLabel
+from pandas._typing import NDFrameT
+from pandas._typing import PositionalIndexer
+from pandas._typing import RandomState
+from pandas._typing import Scalar
+from pandas._typing import T
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    DataError,
-)
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    cache_readonly,
-    doc,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import DataError
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_hashable,
-    is_integer,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core import (
-    algorithms,
-    sample,
-)
+from pandas.core import algorithms
+from pandas.core import sample
 from pandas.core._numba import executor
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    BooleanArray,
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    FloatingArray,
-    TimedeltaArray,
-)
-from pandas.core.base import (
-    PandasObject,
-    SelectionMixin,
-)
+from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import TimedeltaArray
+from pandas.core.base import PandasObject
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    numba_,
-    ops,
-)
+from pandas.core.groupby import base
+from pandas.core.groupby import numba_
+from pandas.core.groupby import ops
 from pandas.core.groupby.grouper import get_grouper
-from pandas.core.groupby.indexing import (
-    GroupByIndexingMixin,
-    GroupByNthSelector,
-)
-from pandas.core.indexes.api import (
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    default_index,
-)
+from pandas.core.groupby.indexing import GroupByIndexingMixin
+from pandas.core.groupby.indexing import GroupByNthSelector
+from pandas.core.indexes.api import CategoricalIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import RangeIndex
+from pandas.core.indexes.api import default_index
 from pandas.core.internals.blocks import ensure_block_shape
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-from pandas.core.util.numba_ import (
-    get_jit_arguments,
-    maybe_use_numba,
-)
+from pandas.core.util.numba_ import get_jit_arguments
+from pandas.core.util.numba_ import maybe_use_numba
 
 if TYPE_CHECKING:
-    from pandas.core.window import (
-        ExpandingGroupby,
-        ExponentialMovingWindowGroupby,
-        RollingGroupby,
-    )
+    from pandas.core.window import ExpandingGroupby
+    from pandas.core.window import ExponentialMovingWindowGroupby
+    from pandas.core.window import RollingGroupby
 
 _common_see_also = """
         See Also

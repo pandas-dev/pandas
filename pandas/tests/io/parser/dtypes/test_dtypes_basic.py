@@ -11,16 +11,12 @@ import pytest
 from pandas.errors import ParserWarning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Timestamp
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    IntegerArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import StringArray
 
 
 @pytest.mark.parametrize("dtype", [str, object])

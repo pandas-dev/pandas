@@ -8,15 +8,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timedelta,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import date_range
 import pandas._testing as tm
 from pandas.core.reshape import reshape as reshape_lib
 

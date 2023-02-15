@@ -1,30 +1,22 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Literal,
-    cast,
-)
+from typing import Iterable
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._typing import PositionalIndexer
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
     from pandas.core.groupby import groupby
 
 

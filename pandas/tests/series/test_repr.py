@@ -1,22 +1,18 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    option_context,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import date_range
+from pandas import option_context
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

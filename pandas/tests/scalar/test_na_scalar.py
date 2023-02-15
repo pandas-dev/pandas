@@ -1,8 +1,6 @@
-from datetime import (
-    date,
-    time,
-    timedelta,
-)
+from datetime import date
+from datetime import time
+from datetime import timedelta
 import pickle
 
 import numpy as np

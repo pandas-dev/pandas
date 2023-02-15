@@ -1,27 +1,21 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
 
-from hypothesis import (
-    given,
-    strategies as st,
-)
+from hypothesis import given
+from hypothesis import strategies as st
 import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    NaT,
-    iNaT,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
-from pandas import (
-    Timedelta,
-    TimedeltaIndex,
-    to_timedelta,
-)
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import to_timedelta
 import pandas._testing as tm
 
 

@@ -1,9 +1,7 @@
 import calendar
-from datetime import (
-    date,
-    datetime,
-    time,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
 import locale
 import unicodedata
 
@@ -14,30 +12,24 @@ import pytz
 from pandas._libs.tslibs.timezones import maybe_get_tz
 from pandas.errors import SettingWithCopyError
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Period,
-    PeriodIndex,
-    Series,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
@@ -661,10 +653,8 @@ class TestSeriesDatetimeValues:
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.core.indexes.accessors import (
-            CombinedDatetimelikeProperties,
-            DatetimeProperties,
-        )
+        from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+        from pandas.core.indexes.accessors import DatetimeProperties
 
         assert Series.dt is CombinedDatetimelikeProperties
 

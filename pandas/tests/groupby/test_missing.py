@@ -2,11 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import date_range
 import pandas._testing as tm
 
 

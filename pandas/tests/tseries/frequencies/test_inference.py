@@ -1,38 +1,28 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.ccalendar import (
-    DAYS,
-    MONTHS,
-)
+from pandas._libs.tslibs.ccalendar import DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.tools.datetimes import to_datetime
 
-from pandas.tseries import (
-    frequencies,
-    offsets,
-)
+from pandas.tseries import frequencies
+from pandas.tseries import offsets
 
 
 @pytest.fixture(

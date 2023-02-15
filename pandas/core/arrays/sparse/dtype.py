@@ -2,38 +2,28 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import type_t
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 if TYPE_CHECKING:
     from pandas.core.arrays.sparse.array import SparseArray

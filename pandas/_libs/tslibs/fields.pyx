@@ -12,42 +12,34 @@ from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int8_t,
-    int32_t,
-    int64_t,
-    ndarray,
-    uint32_t,
-)
+from numpy cimport int8_t
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint32_t
 
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import (
-    DAYS_FULL,
-    MONTHS_FULL,
-)
+from pandas._libs.tslibs.ccalendar import DAYS_FULL
+from pandas._libs.tslibs.ccalendar import MONTHS_FULL
 
-from pandas._libs.tslibs.ccalendar cimport (
-    dayofweek,
-    get_day_of_year,
-    get_days_in_month,
-    get_firstbday,
-    get_iso_calendar,
-    get_lastbday,
-    get_week_of_year,
-    iso_calendar_t,
-)
+from pandas._libs.tslibs.ccalendar cimport dayofweek
+from pandas._libs.tslibs.ccalendar cimport get_day_of_year
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.ccalendar cimport get_firstbday
+from pandas._libs.tslibs.ccalendar cimport get_iso_calendar
+from pandas._libs.tslibs.ccalendar cimport get_lastbday
+from pandas._libs.tslibs.ccalendar cimport get_week_of_year
+from pandas._libs.tslibs.ccalendar cimport iso_calendar_t
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_ns,
-    npy_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    pandas_timedelta_to_timedeltastruct,
-    pandas_timedeltastruct,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pandas_timedelta_to_timedeltastruct
+from pandas._libs.tslibs.np_datetime cimport pandas_timedeltastruct
 
 
 @cython.wraparound(False)

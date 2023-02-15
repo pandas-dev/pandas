@@ -7,39 +7,31 @@ import pytz
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.base import _registry as registry
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
-    is_dtype_equal,
-    is_interval_dtype,
-    is_period_dtype,
-    is_string_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
-    IntervalIndex,
-    Series,
-    date_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseDtype
 
 
 class Base:

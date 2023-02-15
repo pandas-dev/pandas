@@ -1,13 +1,9 @@
 import numbers
-from operator import (
-    le,
-    lt,
-)
+from operator import le
+from operator import lt
 
-from cpython.datetime cimport (
-    PyDelta_Check,
-    import_datetime,
-)
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport import_datetime
 
 import_datetime()
 
@@ -18,15 +14,13 @@ from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    NPY_QUICKSORT,
-    PyArray_ArgSort,
-    PyArray_Take,
-    float64_t,
-    int64_t,
-    ndarray,
-    uint64_t,
-)
+from numpy cimport NPY_QUICKSORT
+from numpy cimport PyArray_ArgSort
+from numpy cimport PyArray_Take
+from numpy cimport float64_t
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint64_t
 
 cnp.import_array()
 
@@ -36,11 +30,9 @@ from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport tz_compare
-from pandas._libs.tslibs.util cimport (
-    is_float_object,
-    is_integer_object,
-    is_timedelta64_object,
-)
+from pandas._libs.tslibs.util cimport is_float_object
+from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_timedelta64_object
 
 VALID_CLOSED = frozenset(["left", "right", "both", "neither"])
 

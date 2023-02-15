@@ -7,12 +7,10 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Grouper,
-    Series,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Grouper
+from pandas import Series
 from pandas.tests.groupby import get_groupby_method_args
 
 

@@ -1,109 +1,85 @@
 import re
 
 cimport numpy as cnp
-from cpython.object cimport (
-    Py_EQ,
-    Py_NE,
-    PyObject,
-    PyObject_RichCompare,
-    PyObject_RichCompareBool,
-)
-from numpy cimport (
-    int32_t,
-    int64_t,
-    ndarray,
-)
+from cpython.object cimport PyObject
+from cpython.object cimport PyObject_RichCompare
+from cpython.object cimport PyObject_RichCompareBool
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_NE
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 import numpy as np
 
 cnp.import_array()
 
 cimport cython
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    datetime,
-    import_datetime,
-)
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
-from libc.string cimport (
-    memset,
-    strlen,
-)
-from libc.time cimport (
-    strftime,
-    tm,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport datetime
+from cpython.datetime cimport import_datetime
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
+from libc.string cimport memset
+from libc.string cimport strlen
+from libc.time cimport strftime
+from libc.time cimport tm
 
 # import datetime C API
 import_datetime()
 
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.missing cimport C_NA
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_D,
-    astype_overflowsafe,
-    check_dts_bounds,
-    get_timedelta64_value,
-    npy_datetimestruct,
-    npy_datetimestruct_to_datetime,
-    pandas_datetime_to_datetimestruct,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_D
+from pandas._libs.tslibs.np_datetime cimport astype_overflowsafe
+from pandas._libs.tslibs.np_datetime cimport check_dts_bounds
+from pandas._libs.tslibs.np_datetime cimport get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct_to_datetime
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
-from pandas._libs.tslibs.ccalendar cimport (
-    dayofweek,
-    get_day_of_year,
-    get_days_in_month,
-    get_week_of_year,
-    is_leapyear,
-)
-from pandas._libs.tslibs.timedeltas cimport (
-    delta_to_nanoseconds,
-    is_any_td_scalar,
-)
+from pandas._libs.tslibs.ccalendar cimport dayofweek
+from pandas._libs.tslibs.ccalendar cimport get_day_of_year
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.ccalendar cimport get_week_of_year
+from pandas._libs.tslibs.ccalendar cimport is_leapyear
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar
 
 from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
-from pandas._libs.tslibs.dtypes cimport (
-    FR_ANN,
-    FR_BUS,
-    FR_DAY,
-    FR_HR,
-    FR_MIN,
-    FR_MS,
-    FR_MTH,
-    FR_NS,
-    FR_QTR,
-    FR_SEC,
-    FR_UND,
-    FR_US,
-    FR_WK,
-    PeriodDtypeBase,
-    attrname_to_abbrevs,
-    freq_group_code_to_npy_unit,
-)
+from pandas._libs.tslibs.dtypes cimport FR_ANN
+from pandas._libs.tslibs.dtypes cimport FR_BUS
+from pandas._libs.tslibs.dtypes cimport FR_DAY
+from pandas._libs.tslibs.dtypes cimport FR_HR
+from pandas._libs.tslibs.dtypes cimport FR_MIN
+from pandas._libs.tslibs.dtypes cimport FR_MS
+from pandas._libs.tslibs.dtypes cimport FR_MTH
+from pandas._libs.tslibs.dtypes cimport FR_NS
+from pandas._libs.tslibs.dtypes cimport FR_QTR
+from pandas._libs.tslibs.dtypes cimport FR_SEC
+from pandas._libs.tslibs.dtypes cimport FR_UND
+from pandas._libs.tslibs.dtypes cimport FR_US
+from pandas._libs.tslibs.dtypes cimport FR_WK
+from pandas._libs.tslibs.dtypes cimport PeriodDtypeBase
+from pandas._libs.tslibs.dtypes cimport attrname_to_abbrevs
+from pandas._libs.tslibs.dtypes cimport freq_group_code_to_npy_unit
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-    c_nat_strings as nat_strings,
-    checknull_with_nat,
-)
-from pandas._libs.tslibs.offsets cimport (
-    BaseOffset,
-    is_offset_object,
-    is_tick_object,
-    to_offset,
-)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport c_nat_strings as nat_strings
+from pandas._libs.tslibs.nattype cimport checknull_with_nat
+from pandas._libs.tslibs.offsets cimport BaseOffset
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.offsets cimport is_tick_object
+from pandas._libs.tslibs.offsets cimport to_offset
 
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 

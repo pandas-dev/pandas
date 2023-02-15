@@ -5,19 +5,15 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 from pandas.io.formats.format import DataFrameFormatter
-from pandas.io.formats.latex import (
-    RegularTableBuilder,
-    RowBodyIterator,
-    RowHeaderIterator,
-    RowStringConverter,
-)
+from pandas.io.formats.latex import RegularTableBuilder
+from pandas.io.formats.latex import RowBodyIterator
+from pandas.io.formats.latex import RowHeaderIterator
+from pandas.io.formats.latex import RowStringConverter
 
 pytest.importorskip("jinja2")
 

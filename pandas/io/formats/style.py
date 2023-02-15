@@ -7,47 +7,37 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Generator,
-    Hashable,
-    Sequence,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Generator
+from typing import Hashable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import overload
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    FilePath,
-    IndexLabel,
-    Level,
-    QuantileInterpolation,
-    Scalar,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import FilePath
+from pandas._typing import IndexLabel
+from pandas._typing import Level
+from pandas._typing import QuantileInterpolation
+from pandas._typing import Scalar
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import (
-    Substitution,
-    doc,
-)
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import doc
 
 import pandas as pd
-from pandas import (
-    IndexSlice,
-    RangeIndex,
-)
+from pandas import IndexSlice
+from pandas import RangeIndex
 import pandas.core.common as com
-from pandas.core.frame import (
-    DataFrame,
-    Series,
-)
+from pandas.core.frame import DataFrame
+from pandas.core.frame import Series
 from pandas.core.generic import NDFrame
 from pandas.core.shared_docs import _shared_docs
 
@@ -55,18 +45,16 @@ from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
-from pandas.io.formats.style_render import (
-    CSSProperties,
-    CSSStyles,
-    ExtFormatter,
-    StylerRenderer,
-    Subset,
-    Tooltips,
-    format_table_styles,
-    maybe_convert_css_to_tuples,
-    non_reducing_slice,
-    refactor_levels,
-)
+from pandas.io.formats.style_render import CSSProperties
+from pandas.io.formats.style_render import CSSStyles
+from pandas.io.formats.style_render import ExtFormatter
+from pandas.io.formats.style_render import StylerRenderer
+from pandas.io.formats.style_render import Subset
+from pandas.io.formats.style_render import Tooltips
+from pandas.io.formats.style_render import format_table_styles
+from pandas.io.formats.style_render import maybe_convert_css_to_tuples
+from pandas.io.formats.style_render import non_reducing_slice
+from pandas.io.formats.style_render import refactor_levels
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap

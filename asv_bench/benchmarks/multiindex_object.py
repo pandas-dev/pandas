@@ -2,15 +2,13 @@ import string
 
 import numpy as np
 
-from pandas import (
-    NA,
-    DataFrame,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    array,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NA
+from pandas import RangeIndex
+from pandas import Series
+from pandas import array
+from pandas import date_range
 
 from .pandas_vb_common import tm
 

@@ -5,26 +5,20 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs.ccalendar import (
-    DAYS,
-    MONTHS,
-)
+from pandas._libs.tslibs.ccalendar import DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import (
-    Period,
-    PeriodIndex,
-    period_range,
-)
+from pandas.core.indexes.period import Period
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import period_range
 from pandas.core.resample import _get_period_range_edges
 
 from pandas.tseries import offsets

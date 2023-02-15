@@ -13,21 +13,17 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_datetime64tz_dtype,
-    is_signed_integer_dtype,
-    pandas_dtype,
-)
+from pandas.api.types import is_bool_dtype
+from pandas.api.types import is_datetime64tz_dtype
+from pandas.api.types import is_signed_integer_dtype
+from pandas.api.types import pandas_dtype
 
 
 def test_union_same_types(index):

@@ -4,10 +4,8 @@ from datetime import time
 
 import numpy as np
 
-from pandas._typing import (
-    Scalar,
-    StorageOptions,
-)
+from pandas._typing import Scalar
+from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -64,13 +62,11 @@ class XlrdReader(BaseExcelReader):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-        from xlrd import (
-            XL_CELL_BOOLEAN,
-            XL_CELL_DATE,
-            XL_CELL_ERROR,
-            XL_CELL_NUMBER,
-            xldate,
-        )
+        from xlrd import XL_CELL_BOOLEAN
+        from xlrd import XL_CELL_DATE
+        from xlrd import XL_CELL_ERROR
+        from xlrd import XL_CELL_NUMBER
+        from xlrd import xldate
 
         epoch1904 = self.book.datemode
 

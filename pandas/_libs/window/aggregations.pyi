@@ -1,15 +1,11 @@
-from typing import (
-    Any,
-    Callable,
-    Literal,
-)
+from typing import Any
+from typing import Callable
+from typing import Literal
 
 import numpy as np
 
-from pandas._typing import (
-    WindowingRankType,
-    npt,
-)
+from pandas._typing import WindowingRankType
+from pandas._typing import npt
 
 def roll_sum(
     values: np.ndarray,  # const float64_t[:]

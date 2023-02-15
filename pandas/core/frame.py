@@ -18,220 +18,172 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Iterator,
-    Literal,
-    Mapping,
-    Sequence,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Iterator
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import overload
 import warnings
 
 import numpy as np
 from numpy import ma
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import get_option
+from pandas._config import using_copy_on_write
 
-from pandas._libs import (
-    algos as libalgos,
-    lib,
-    properties,
-)
+from pandas._libs import algos as libalgos
+from pandas._libs import lib
+from pandas._libs import properties
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import (
-    NoDefault,
-    is_range_indexer,
-    no_default,
-)
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    ColspaceArgType,
-    CompressionOptions,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    MergeHow,
-    NaPosition,
-    PythonFuncType,
-    QuantileInterpolation,
-    ReadBuffer,
-    Renamer,
-    Scalar,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
-)
+from pandas._libs.lib import NoDefault
+from pandas._libs.lib import is_range_indexer
+from pandas._libs.lib import no_default
+from pandas._typing import AggFuncType
+from pandas._typing import AlignJoin
+from pandas._typing import AnyAll
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import Axes
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import ColspaceArgType
+from pandas._typing import CompressionOptions
+from pandas._typing import CorrelationMethod
+from pandas._typing import DropKeep
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import FilePath
+from pandas._typing import FillnaOptions
+from pandas._typing import FloatFormatType
+from pandas._typing import FormattersType
+from pandas._typing import Frequency
+from pandas._typing import IgnoreRaise
+from pandas._typing import IndexKeyFunc
+from pandas._typing import IndexLabel
+from pandas._typing import Level
+from pandas._typing import MergeHow
+from pandas._typing import NaPosition
+from pandas._typing import PythonFuncType
+from pandas._typing import QuantileInterpolation
+from pandas._typing import ReadBuffer
+from pandas._typing import Renamer
+from pandas._typing import Scalar
+from pandas._typing import SortKind
+from pandas._typing import StorageOptions
+from pandas._typing import Suffixes
+from pandas._typing import TimedeltaConvertibleTypes
+from pandas._typing import TimestampConvertibleTypes
+from pandas._typing import ValueKeyFunc
+from pandas._typing import WriteBuffer
+from pandas._typing import npt
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import (
-    function as nv,
-    np_percentile_argname,
-)
-from pandas.errors import (
-    ChainedAssignmentError,
-    InvalidIndexError,
-    _chained_assignment_msg,
-)
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
+from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import np_percentile_argname
+from pandas.errors import ChainedAssignmentError
+from pandas.errors import InvalidIndexError
+from pandas.errors import _chained_assignment_msg
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import (
-    validate_ascending,
-    validate_bool_kwarg,
-    validate_percentile,
-)
+from pandas.util._validators import validate_ascending
+from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_percentile
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    can_hold_element,
-    construct_1d_arraylike_from_scalar,
-    construct_2d_arraylike_from_scalar,
-    find_common_type,
-    infer_dtype_from_scalar,
-    invalidate_string_dtypes,
-    maybe_box_native,
-    maybe_downcast_to_dtype,
-)
-from pandas.core.dtypes.common import (
-    infer_dtype_from_object,
-    is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_dataclass,
-    is_dict_like,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float,
-    is_float_dtype,
-    is_hashable,
-    is_integer,
-    is_integer_dtype,
-    is_iterator,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_sequence,
-    needs_i8_conversion,
-    pandas_dtype,
-)
+from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
+from pandas.core.dtypes.cast import construct_2d_arraylike_from_scalar
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.cast import invalidate_string_dtypes
+from pandas.core.dtypes.cast import maybe_box_native
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import infer_dtype_from_object
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_dataclass
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_iterator
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_sequence
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core import (
-    algorithms,
-    common as com,
-    nanops,
-    ops,
-)
+from pandas.core import algorithms
+from pandas.core import common as com
+from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import (
-    reconstruct_func,
-    relabel_result,
-)
+from pandas.core.apply import reconstruct_func
+from pandas.core.apply import relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    sanitize_array,
-    sanitize_masked_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
+from pandas.core.construction import sanitize_masked_array
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import check_key_length
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    default_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
-from pandas.core.indexes.multi import (
-    MultiIndex,
-    maybe_droplevels,
-)
-from pandas.core.indexing import (
-    check_bool_indexer,
-    check_dict_or_set_indexers,
-)
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
-from pandas.core.internals.construction import (
-    arrays_to_mgr,
-    dataclasses_to_dicts,
-    dict_to_mgr,
-    mgr_to_mgr,
-    ndarray_to_mgr,
-    nested_data_to_arrays,
-    rec_array_to_mgr,
-    reorder_arrays,
-    to_arrays,
-    treat_as_nested,
-)
+from pandas.core.indexes.api import DatetimeIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import PeriodIndex
+from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.indexes.api import ensure_index_from_sequences
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexing import check_bool_indexer
+from pandas.core.indexing import check_dict_or_set_indexers
+from pandas.core.internals import ArrayManager
+from pandas.core.internals import BlockManager
+from pandas.core.internals.construction import arrays_to_mgr
+from pandas.core.internals.construction import dataclasses_to_dicts
+from pandas.core.internals.construction import dict_to_mgr
+from pandas.core.internals.construction import mgr_to_mgr
+from pandas.core.internals.construction import ndarray_to_mgr
+from pandas.core.internals.construction import nested_data_to_arrays
+from pandas.core.internals.construction import rec_array_to_mgr
+from pandas.core.internals.construction import reorder_arrays
+from pandas.core.internals.construction import to_arrays
+from pandas.core.internals.construction import treat_as_nested
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import (
-    get_group_index,
-    lexsort_indexer,
-    nargsort,
-)
+from pandas.core.sorting import get_group_index
+from pandas.core.sorting import lexsort_indexer
+from pandas.core.sorting import nargsort
 
 from pandas.io.common import get_handle
-from pandas.io.formats import (
-    console,
-    format as fmt,
-)
-from pandas.io.formats.info import (
-    INFO_DOCSTRING,
-    DataFrameInfo,
-    frame_sub_kwargs,
-)
+from pandas.io.formats import console
+from pandas.io.formats import format as fmt
+from pandas.io.formats.info import DataFrameInfo
+from pandas.io.formats.info import INFO_DOCSTRING
+from pandas.io.formats.info import frame_sub_kwargs
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2637,15 +2589,11 @@ class DataFrame(NDFrame, OpsMixin):
         elif version == 117:
             # Incompatible import of "statawriter" (imported name has type
             # "Type[StataWriter117]", local name has type "Type[StataWriter]")
-            from pandas.io.stata import (  # type: ignore[assignment]
-                StataWriter117 as statawriter,
-            )
+            from pandas.io.stata import StataWriter117 as statawriter
         else:  # versions 118 and 119
             # Incompatible import of "statawriter" (imported name has type
             # "Type[StataWriter117]", local name has type "Type[StataWriter]")
-            from pandas.io.stata import (  # type: ignore[assignment]
-                StataWriterUTF8 as statawriter,
-            )
+            from pandas.io.stata import StataWriterUTF8 as statawriter
 
         kwargs: dict[str, Any] = {}
         if version is None or version >= 117:
@@ -3283,10 +3231,8 @@ class DataFrame(NDFrame, OpsMixin):
         </doc:data>
         """
 
-        from pandas.io.formats.xml import (
-            EtreeXMLFormatter,
-            LxmlXMLFormatter,
-        )
+        from pandas.io.formats.xml import EtreeXMLFormatter
+        from pandas.io.formats.xml import LxmlXMLFormatter
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
@@ -8728,10 +8674,8 @@ Parrot 2  Parrot       24.0
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import (
-            stack,
-            stack_multiple,
-        )
+        from pandas.core.reshape.reshape import stack
+        from pandas.core.reshape.reshape import stack_multiple
 
         if isinstance(level, (tuple, list)):
             result = stack_multiple(self, level, dropna=dropna)

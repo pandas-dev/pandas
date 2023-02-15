@@ -3,13 +3,11 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas import (
-    NA,
-    Index,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+from pandas import Index
+from pandas import NA
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 

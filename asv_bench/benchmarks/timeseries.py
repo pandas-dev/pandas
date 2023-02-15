@@ -3,13 +3,11 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 
 from pandas.tseries.frequencies import infer_freq
 

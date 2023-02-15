@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Collection,
-    Literal,
-    NamedTuple,
-)
+from typing import Collection
+from typing import Literal
+from typing import NamedTuple
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib.artist import setp
@@ -21,17 +19,13 @@ import pandas as pd
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import (
-    LinePlot,
-    MPLPlot,
-)
+from pandas.plotting._matplotlib.core import LinePlot
+from pandas.plotting._matplotlib.core import MPLPlot
 from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import (
-    create_subplots,
-    flatten_axes,
-    maybe_adjust_figure,
-)
+from pandas.plotting._matplotlib.tools import create_subplots
+from pandas.plotting._matplotlib.tools import flatten_axes
+from pandas.plotting._matplotlib.tools import maybe_adjust_figure
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

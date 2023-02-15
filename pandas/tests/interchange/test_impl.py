@@ -10,10 +10,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.interchange.column import PandasColumn
-from pandas.core.interchange.dataframe_protocol import (
-    ColumnNullType,
-    DtypeKind,
-)
+from pandas.core.interchange.dataframe_protocol import ColumnNullType
+from pandas.core.interchange.dataframe_protocol import DtypeKind
 from pandas.core.interchange.from_dataframe import from_dataframe
 
 test_data_categorical = {

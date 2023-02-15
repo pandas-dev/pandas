@@ -2,102 +2,76 @@ from __future__ import annotations
 
 import copy
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Hashable,
-    Literal,
-    cast,
-    final,
-    no_type_check,
-)
+from typing import Callable
+from typing import Hashable
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import final
+from typing import no_type_check
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    BaseOffset,
-    IncompatibleFrequency,
-    NaT,
-    Period,
-    Timedelta,
-    Timestamp,
-    to_offset,
-)
-from pandas._typing import (
-    AnyArrayLike,
-    Axis,
-    AxisInt,
-    Frequency,
-    IndexLabel,
-    NDFrameT,
-    QuantileInterpolation,
-    T,
-    TimedeltaConvertibleTypes,
-    TimeGrouperOrigin,
-    TimestampConvertibleTypes,
-    npt,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import Period
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import to_offset
+from pandas._typing import AnyArrayLike
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import Frequency
+from pandas._typing import IndexLabel
+from pandas._typing import NDFrameT
+from pandas._typing import QuantileInterpolation
+from pandas._typing import T
+from pandas._typing import TimeGrouperOrigin
+from pandas._typing import TimedeltaConvertibleTypes
+from pandas._typing import TimestampConvertibleTypes
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.generic import (
-    NDFrame,
-    _shared_docs,
-)
+from pandas.core.generic import NDFrame
+from pandas.core.generic import _shared_docs
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import (
-    BaseGroupBy,
-    GroupBy,
-    _pipe_template,
-    get_groupby,
-)
+from pandas.core.groupby.groupby import BaseGroupBy
+from pandas.core.groupby.groupby import GroupBy
+from pandas.core.groupby.groupby import _pipe_template
+from pandas.core.groupby.groupby import get_groupby
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.datetimes import (
-    DatetimeIndex,
-    date_range,
-)
-from pandas.core.indexes.period import (
-    PeriodIndex,
-    period_range,
-)
-from pandas.core.indexes.timedeltas import (
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import period_range
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.timedeltas import timedelta_range
 
-from pandas.tseries.frequencies import (
-    is_subperiod,
-    is_superperiod,
-)
-from pandas.tseries.offsets import (
-    Day,
-    Tick,
-)
+from pandas.tseries.frequencies import is_subperiod
+from pandas.tseries.frequencies import is_superperiod
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
 
 _shared_docs_kwargs: dict[str, str] = {}
 

@@ -3,28 +3,20 @@ Tests for offsets.BusinessHour
 """
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    time as dt_time,
-)
+from datetime import datetime
+from datetime import time as dt_time
 
 import pytest
 
-from pandas._libs.tslibs import (
-    Timedelta,
-    Timestamp,
-)
-from pandas._libs.tslibs.offsets import (
-    BDay,
-    BusinessHour,
-    Nano,
-)
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.offsets import BDay
+from pandas._libs.tslibs.offsets import BusinessHour
+from pandas._libs.tslibs.offsets import Nano
 
-from pandas import (
-    DatetimeIndex,
-    _testing as tm,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import _testing as tm
+from pandas import date_range
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 

@@ -7,10 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import option_context
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")

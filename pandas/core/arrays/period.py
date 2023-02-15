@@ -2,77 +2,59 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Literal,
-    Sequence,
-    TypeVar,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 
-from pandas._libs import (
-    algos as libalgos,
-    lib,
-)
+from pandas._libs import algos as libalgos
+from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaT,
-    NaTType,
-    Timedelta,
-    astype_overflowsafe,
-    dt64arr_to_periodarr as c_dt64arr_to_periodarr,
-    get_unit_from_dtype,
-    iNaT,
-    parsing,
-    period as libperiod,
-    to_offset,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import astype_overflowsafe
+from pandas._libs.tslibs import dt64arr_to_periodarr as c_dt64arr_to_periodarr
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs.offsets import (
-    Tick,
-    delta_to_tick,
-)
-from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ,
-    IncompatibleFrequency,
-    Period,
-    get_period_field_arr,
-    period_asfreq_arr,
-)
-from pandas._typing import (
-    AnyArrayLike,
-    Dtype,
-    NpDtype,
-    npt,
-)
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas._libs.tslibs.offsets import Tick
+from pandas._libs.tslibs.offsets import delta_to_tick
+from pandas._libs.tslibs.period import DIFFERENT_FREQ
+from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs.period import get_period_field_arr
+from pandas._libs.tslibs.period import period_asfreq_arr
+from pandas._typing import AnyArrayLike
+from pandas._typing import Dtype
+from pandas._typing import NpDtype
+from pandas._typing import npt
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
-    is_period_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-    ABCTimedeltaArray,
-)
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCTimedeltaArray
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
@@ -80,15 +62,11 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
 
-    from pandas.core.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import TimedeltaArray
     from pandas.core.arrays.base import ExtensionArray
 
 

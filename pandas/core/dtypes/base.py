@@ -3,31 +3,25 @@ Extend pandas with custom array types.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import overload
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
-from pandas._typing import (
-    DtypeObj,
-    Shape,
-    npt,
-    type_t,
-)
+from pandas._typing import DtypeObj
+from pandas._typing import Shape
+from pandas._typing import npt
+from pandas._typing import type_t
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray

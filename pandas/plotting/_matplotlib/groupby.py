@@ -2,19 +2,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._typing import (
-    Dict,
-    IndexLabel,
-)
+from pandas._typing import Dict
+from pandas._typing import IndexLabel
 
 from pandas.core.dtypes.missing import remove_na_arraylike
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    concat,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
 
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 

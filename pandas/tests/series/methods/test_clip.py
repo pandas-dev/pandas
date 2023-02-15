@@ -4,12 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    Timestamp,
-    isna,
-    notna,
-)
+from pandas import Series
+from pandas import Timestamp
+from pandas import isna
+from pandas import notna
 import pandas._testing as tm
 
 

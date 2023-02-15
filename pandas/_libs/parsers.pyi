@@ -1,15 +1,11 @@
-from typing import (
-    Hashable,
-    Literal,
-)
+from typing import Hashable
+from typing import Literal
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Dtype,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Dtype
+from pandas._typing import npt
 
 STR_NA_VALUES: set[str]
 

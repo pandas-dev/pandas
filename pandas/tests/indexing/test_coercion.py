@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import itertools
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas.compat import IS64
+from pandas.compat import is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm

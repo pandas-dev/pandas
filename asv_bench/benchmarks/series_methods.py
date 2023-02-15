@@ -2,13 +2,11 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import (
-    NA,
-    Index,
-    NaT,
-    Series,
-    date_range,
-)
+from pandas import Index
+from pandas import NA
+from pandas import NaT
+from pandas import Series
+from pandas import date_range
 
 from .pandas_vb_common import tm
 

@@ -11,13 +11,11 @@ from __future__ import annotations
 import collections
 import itertools
 import re
-from typing import (
-    Callable,
-    Iterator,
-    SupportsInt,
-    Tuple,
-    Union,
-)
+from typing import Callable
+from typing import Iterator
+from typing import SupportsInt
+from typing import Tuple
+from typing import Union
 import warnings
 
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]

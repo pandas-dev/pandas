@@ -5,11 +5,9 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 from decimal import Decimal
-from io import (
-    BytesIO,
-    StringIO,
-    TextIOWrapper,
-)
+from io import BytesIO
+from io import StringIO
+from io import TextIOWrapper
 import mmap
 import os
 import tarfile
@@ -17,18 +15,14 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import IS64
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    concat,
-)
+from pandas import DataFrame
+from pandas import concat
 import pandas._testing as tm
 
 

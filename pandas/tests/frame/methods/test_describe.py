@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

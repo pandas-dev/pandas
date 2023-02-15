@@ -2,14 +2,12 @@
 Period benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.period for benchmarks that rely only on tslibs.
 """
-from pandas import (
-    DataFrame,
-    Period,
-    PeriodIndex,
-    Series,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import date_range
+from pandas import period_range
 
 from pandas.tseries.frequencies import to_offset
 

@@ -4,23 +4,17 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_little_endian
-from pandas.errors import (
-    ClosedFileError,
-    PossibleDataLossError,
-)
+from pandas.errors import ClosedFileError
+from pandas.errors import PossibleDataLossError
 
-from pandas import (
-    DataFrame,
-    HDFStore,
-    Series,
-    _testing as tm,
-    read_hdf,
-)
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-    tables,
-)
+from pandas import DataFrame
+from pandas import HDFStore
+from pandas import Series
+from pandas import _testing as tm
+from pandas import read_hdf
+from pandas.tests.io.pytables.common import _maybe_remove
+from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.tests.io.pytables.common import tables
 
 from pandas.io import pytables
 from pandas.io.pytables import Term

@@ -1,7 +1,5 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 
 from hypothesis import given
 import numpy as np

@@ -1,26 +1,20 @@
-from datetime import (
-    date as _date,
-    datetime,
-    time as _time,
-    timedelta,
-    tzinfo as _tzinfo,
-)
+from datetime import date as _date
+from datetime import datetime
+from datetime import time as _time
+from datetime import timedelta
+from datetime import tzinfo as _tzinfo
 from time import struct_time
-from typing import (
-    ClassVar,
-    TypeVar,
-    overload,
-)
+from typing import ClassVar
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaTType,
-    Period,
-    Tick,
-    Timedelta,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Period
+from pandas._libs.tslibs import Tick
+from pandas._libs.tslibs import Timedelta
 
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 

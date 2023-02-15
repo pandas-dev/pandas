@@ -1,23 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    concat,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
-from pandas.api.indexers import (
-    BaseIndexer,
-    FixedForwardWindowIndexer,
-)
-from pandas.core.indexers.objects import (
-    ExpandingIndexer,
-    FixedWindowIndexer,
-    VariableOffsetWindowIndexer,
-)
+from pandas.api.indexers import BaseIndexer
+from pandas.api.indexers import FixedForwardWindowIndexer
+from pandas.core.indexers.objects import ExpandingIndexer
+from pandas.core.indexers.objects import FixedWindowIndexer
+from pandas.core.indexers.objects import VariableOffsetWindowIndexer
 
 from pandas.tseries.offsets import BusinessDay
 

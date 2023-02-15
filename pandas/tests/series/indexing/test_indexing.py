@@ -7,20 +7,18 @@ import pytest
 
 from pandas.errors import IndexingError
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    concat,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

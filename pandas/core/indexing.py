@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from contextlib import suppress
 import sys
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Sequence,
-    TypeVar,
-    cast,
-    final,
-)
+from typing import Hashable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import final
 
 import numpy as np
 
@@ -17,73 +15,53 @@ from pandas._config import using_copy_on_write
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas._typing import (
-    Axis,
-    AxisInt,
-)
+from pandas._typing import Axis
+from pandas._typing import AxisInt
 from pandas.compat import PYPY
-from pandas.errors import (
-    AbstractMethodError,
-    ChainedAssignmentError,
-    IndexingError,
-    InvalidIndexError,
-    LossySetitemError,
-    _chained_assignment_msg,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import ChainedAssignmentError
+from pandas.errors import IndexingError
+from pandas.errors import InvalidIndexError
+from pandas.errors import LossySetitemError
+from pandas.errors import _chained_assignment_msg
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.cast import (
-    can_hold_element,
-    maybe_promote,
-)
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_extension_array_dtype,
-    is_hashable,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_sequence,
-)
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_iterator
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_sequence
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    infer_fill_value,
-    is_valid_na_for_dtype,
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import infer_fill_value
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core import algorithms as algos
 import pandas.core.common as com
-from pandas.core.construction import (
-    array as pd_array,
-    extract_array,
-)
-from pandas.core.indexers import (
-    check_array_indexer,
-    is_empty_indexer,
-    is_list_like_indexer,
-    is_scalar_indexer,
-    length_of_indexer,
-)
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.construction import array as pd_array
+from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import is_empty_indexer
+from pandas.core.indexers import is_list_like_indexer
+from pandas.core.indexers import is_scalar_indexer
+from pandas.core.indexers import length_of_indexer
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 _LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 

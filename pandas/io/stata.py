@@ -18,16 +18,14 @@ import os
 import struct
 import sys
 from types import TracebackType
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    AnyStr,
-    Final,
-    Hashable,
-    Sequence,
-    cast,
-)
+from typing import Any
+from typing import AnyStr
+from typing import Final
+from typing import Hashable
+from typing import IO
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -35,41 +33,31 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
-from pandas.errors import (
-    CategoricalConversionWarning,
-    InvalidColumnName,
-    PossiblePrecisionLoss,
-    ValueLabelTypeMismatch,
-)
-from pandas.util._decorators import (
-    Appender,
-    doc,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
+from pandas.errors import CategoricalConversionWarning
+from pandas.errors import InvalidColumnName
+from pandas.errors import PossiblePrecisionLoss
+from pandas.errors import ValueLabelTypeMismatch
+from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
 
-from pandas import (
-    Categorical,
-    DatetimeIndex,
-    NaT,
-    Timestamp,
-    isna,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import Timestamp
+from pandas import isna
+from pandas import to_datetime
+from pandas import to_timedelta
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.frame import DataFrame

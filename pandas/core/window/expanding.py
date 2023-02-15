@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-)
+from typing import Any
+from typing import Callable
+from typing import TYPE_CHECKING
 
-from pandas._typing import (
-    Axis,
-    QuantileInterpolation,
-    WindowingRankType,
-)
+from pandas._typing import Axis
+from pandas._typing import QuantileInterpolation
+from pandas._typing import WindowingRankType
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
@@ -19,26 +15,20 @@ if TYPE_CHECKING:
 
 from pandas.util._decorators import doc
 
-from pandas.core.indexers.objects import (
-    BaseIndexer,
-    ExpandingIndexer,
-    GroupbyIndexer,
-)
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    numba_notes,
-    template_header,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-    window_apply_parameters,
-)
-from pandas.core.window.rolling import (
-    BaseWindowGroupby,
-    RollingAndExpandingMixin,
-)
+from pandas.core.indexers.objects import BaseIndexer
+from pandas.core.indexers.objects import ExpandingIndexer
+from pandas.core.indexers.objects import GroupbyIndexer
+from pandas.core.window.doc import _shared_docs
+from pandas.core.window.doc import create_section_header
+from pandas.core.window.doc import kwargs_numeric_only
+from pandas.core.window.doc import numba_notes
+from pandas.core.window.doc import template_header
+from pandas.core.window.doc import template_returns
+from pandas.core.window.doc import template_see_also
+from pandas.core.window.doc import window_agg_numba_parameters
+from pandas.core.window.doc import window_apply_parameters
+from pandas.core.window.rolling import BaseWindowGroupby
+from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
 class Expanding(RollingAndExpandingMixin):

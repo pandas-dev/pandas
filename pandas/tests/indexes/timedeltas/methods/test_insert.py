@@ -6,12 +6,10 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
-from pandas import (
-    Index,
-    Timedelta,
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas import Index
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

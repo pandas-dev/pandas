@@ -2,19 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
-from pandas.api.types import (
-    is_float_dtype,
-    is_unsigned_integer_dtype,
-)
+from pandas.api.types import is_float_dtype
+from pandas.api.types import is_unsigned_integer_dtype
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])

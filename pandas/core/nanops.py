@@ -3,59 +3,49 @@ from __future__ import annotations
 import functools
 import itertools
 import operator
-from typing import (
-    Any,
-    Callable,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import cast
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    NaT,
-    NaTType,
-    iNaT,
-    lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    CorrelationMethod,
-    Dtype,
-    DtypeObj,
-    F,
-    Scalar,
-    Shape,
-    npt,
-)
+from pandas._libs import NaT
+from pandas._libs import NaTType
+from pandas._libs import iNaT
+from pandas._libs import lib
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import CorrelationMethod
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import F
+from pandas._typing import Scalar
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_any_int_dtype,
-    is_bool_dtype,
-    is_complex,
-    is_datetime64_any_dtype,
-    is_float,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_any_int_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_complex
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-    notna,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import notna
 
 from pandas.core.construction import extract_array
 

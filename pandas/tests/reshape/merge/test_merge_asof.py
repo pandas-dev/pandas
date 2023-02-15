@@ -5,13 +5,11 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import (
-    Index,
-    Timedelta,
-    merge_asof,
-    read_csv,
-    to_datetime,
-)
+from pandas import Index
+from pandas import Timedelta
+from pandas import merge_asof
+from pandas import read_csv
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 

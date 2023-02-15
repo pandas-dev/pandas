@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import inspect
 
 import numpy as np
@@ -11,16 +9,14 @@ from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    isna,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.common as com

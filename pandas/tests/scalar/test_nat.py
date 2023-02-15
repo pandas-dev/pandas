@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import operator
 
 import numpy as np
@@ -12,25 +10,21 @@ from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
-from pandas import (
-    DatetimeIndex,
-    DatetimeTZDtype,
-    Index,
-    NaT,
-    Period,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    isna,
-    offsets,
-)
+from pandas import DatetimeIndex
+from pandas import DatetimeTZDtype
+from pandas import Index
+from pandas import NaT
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import isna
+from pandas import offsets
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.ops import roperator
 
 

@@ -5,12 +5,10 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
@@ -18,62 +16,52 @@ import itertools
 from numbers import Number
 import re
 import sys
-from typing import (
-    Generic,
-    Iterator,
-    TypeVar,
-)
+from typing import Generic
+from typing import Iterator
+from typing import TypeVar
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-    ops as libops,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
+from pandas._libs import ops as libops
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
-from pandas.core.dtypes.common import (
-    ensure_int32,
-    is_bool,
-    is_complex,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
-    is_float,
-    is_integer,
-    is_number,
-    is_scalar,
-    is_scipy_sparse,
-    is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
-)
+from pandas.core.dtypes.common import ensure_int32
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_complex
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_scipy_sparse
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import is_timedelta64_ns_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DateOffset,
-    DatetimeIndex,
-    Index,
-    Interval,
-    Period,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DateOffset
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
 
 
 @pytest.fixture(params=[True, False], ids=str)

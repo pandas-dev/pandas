@@ -1,14 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Interval,
-    NaT,
-    Series,
-    Timestamp,
-    interval_range,
-)
+from pandas import DataFrame
+from pandas import Interval
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import interval_range
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 

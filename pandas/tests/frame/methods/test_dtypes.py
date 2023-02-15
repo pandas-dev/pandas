@@ -6,12 +6,10 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
+from pandas import option_context
 import pandas._testing as tm
 
 

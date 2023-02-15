@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Series,
-)
+from pandas import NA
+from pandas import Series
 import pandas._testing as tm
 
 

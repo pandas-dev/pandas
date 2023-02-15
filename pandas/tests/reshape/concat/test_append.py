@@ -6,14 +6,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    concat,
-    isna,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import isna
 import pandas._testing as tm
 
 

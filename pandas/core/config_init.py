@@ -15,16 +15,14 @@ import os
 from typing import Callable
 
 import pandas._config.config as cf
-from pandas._config.config import (
-    is_bool,
-    is_callable,
-    is_instance_factory,
-    is_int,
-    is_nonnegative_int,
-    is_one_of_factory,
-    is_str,
-    is_text,
-)
+from pandas._config.config import is_bool
+from pandas._config.config import is_callable
+from pandas._config.config import is_instance_factory
+from pandas._config.config import is_int
+from pandas._config.config import is_nonnegative_int
+from pandas._config.config import is_one_of_factory
+from pandas._config.config import is_str
+from pandas._config.config import is_text
 
 # compute
 
@@ -689,10 +687,8 @@ register_converter_doc = """
 
 
 def register_converter_cb(key) -> None:
-    from pandas.plotting import (
-        deregister_matplotlib_converters,
-        register_matplotlib_converters,
-    )
+    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import register_matplotlib_converters
 
     if cf.get_option(key):
         register_matplotlib_converters()

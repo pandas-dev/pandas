@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    IntervalIndex,
-    date_range,
-)
+from pandas import IntervalIndex
+from pandas import date_range
 
 
 class TestEquals:

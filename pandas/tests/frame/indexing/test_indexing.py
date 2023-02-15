@@ -1,8 +1,6 @@
 from collections import namedtuple
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from decimal import Decimal
 import re
 
@@ -10,29 +8,25 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-    SettingWithCopyError,
-)
+from pandas.errors import InvalidIndexError
+from pandas.errors import PerformanceWarning
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    notna,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import notna
+from pandas import to_datetime
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy

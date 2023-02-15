@@ -3,11 +3,9 @@ from __future__ import annotations
 import numpy as np
 
 from pandas.core.algorithms import unique1d
-from pandas.core.arrays.categorical import (
-    Categorical,
-    CategoricalDtype,
-    recode_for_categories,
-)
+from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays.categorical import CategoricalDtype
+from pandas.core.arrays.categorical import recode_for_categories
 
 
 def recode_for_groupby(

@@ -3,25 +3,21 @@ Tests for offset behavior with indices.
 """
 import pytest
 
-from pandas import (
-    Series,
-    date_range,
-)
+from pandas import Series
+from pandas import date_range
 
-from pandas.tseries.offsets import (
-    BMonthBegin,
-    BMonthEnd,
-    BQuarterBegin,
-    BQuarterEnd,
-    BYearBegin,
-    BYearEnd,
-    MonthBegin,
-    MonthEnd,
-    QuarterBegin,
-    QuarterEnd,
-    YearBegin,
-    YearEnd,
-)
+from pandas.tseries.offsets import BMonthBegin
+from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import BQuarterBegin
+from pandas.tseries.offsets import BQuarterEnd
+from pandas.tseries.offsets import BYearBegin
+from pandas.tseries.offsets import BYearEnd
+from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import MonthEnd
+from pandas.tseries.offsets import QuarterBegin
+from pandas.tseries.offsets import QuarterEnd
+from pandas.tseries.offsets import YearBegin
+from pandas.tseries.offsets import YearEnd
 
 
 @pytest.mark.parametrize("n", [-2, 1])

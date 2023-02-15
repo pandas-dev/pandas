@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    Series,
-)
+from pandas import Categorical
+from pandas import Series
 
 
 def test_nunique():

@@ -20,11 +20,9 @@ from __future__ import annotations
 import contextlib
 from contextlib import closing
 import csv
-from datetime import (
-    date,
-    datetime,
-    time,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
 from io import StringIO
 from pathlib import Path
 import sqlite3
@@ -34,40 +32,32 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    isna,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import isna
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
 from pandas.io import sql
-from pandas.io.sql import (
-    SQLAlchemyEngine,
-    SQLDatabase,
-    SQLiteDatabase,
-    get_engine,
-    pandasSQL_builder,
-    read_sql_query,
-    read_sql_table,
-)
+from pandas.io.sql import SQLAlchemyEngine
+from pandas.io.sql import SQLDatabase
+from pandas.io.sql import SQLiteDatabase
+from pandas.io.sql import get_engine
+from pandas.io.sql import pandasSQL_builder
+from pandas.io.sql import read_sql_query
+from pandas.io.sql import read_sql_table
 
 try:
     import sqlalchemy
@@ -104,14 +94,12 @@ SQL_STRINGS = {
 
 
 def iris_table_metadata(dialect: str):
-    from sqlalchemy import (
-        REAL,
-        Column,
-        Float,
-        MetaData,
-        String,
-        Table,
-    )
+    from sqlalchemy import Column
+    from sqlalchemy import Float
+    from sqlalchemy import MetaData
+    from sqlalchemy import REAL
+    from sqlalchemy import String
+    from sqlalchemy import Table
 
     dtype = Float if dialect == "postgresql" else REAL
     metadata = MetaData()
@@ -188,16 +176,14 @@ def create_and_load_iris_view(conn):
 
 
 def types_table_metadata(dialect: str):
-    from sqlalchemy import (
-        TEXT,
-        Boolean,
-        Column,
-        DateTime,
-        Float,
-        Integer,
-        MetaData,
-        Table,
-    )
+    from sqlalchemy import Boolean
+    from sqlalchemy import Column
+    from sqlalchemy import DateTime
+    from sqlalchemy import Float
+    from sqlalchemy import Integer
+    from sqlalchemy import MetaData
+    from sqlalchemy import TEXT
+    from sqlalchemy import Table
 
     date_type = TEXT if dialect == "sqlite" else DateTime
     bool_type = Integer if dialect == "sqlite" else Boolean
@@ -614,12 +600,10 @@ def test_read_iris_query_chunksize(conn, request):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_query_expression_with_parameter(conn, request):
     conn = request.getfixturevalue(conn)
-    from sqlalchemy import (
-        MetaData,
-        Table,
-        create_engine,
-        select,
-    )
+    from sqlalchemy import MetaData
+    from sqlalchemy import Table
+    from sqlalchemy import create_engine
+    from sqlalchemy import select
 
     metadata = MetaData()
     autoload_con = create_engine(conn) if isinstance(conn, str) else conn
@@ -1641,10 +1625,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
-        from sqlalchemy import (
-            bindparam,
-            select,
-        )
+        from sqlalchemy import bindparam
+        from sqlalchemy import select
 
         iris = iris_table_metadata(self.flavor)
         name_select = select(iris).where(iris.c.Name == bindparam("name"))
@@ -2201,10 +2183,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self.drop_table(tbl, self.conn)
 
     def test_dtype(self):
-        from sqlalchemy import (
-            TEXT,
-            String,
-        )
+        from sqlalchemy import String
+        from sqlalchemy import TEXT
         from sqlalchemy.schema import MetaData
 
         cols = ["A", "B"]
@@ -2236,12 +2216,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypeb, TEXT)
 
     def test_notna_dtype(self):
-        from sqlalchemy import (
-            Boolean,
-            DateTime,
-            Float,
-            Integer,
-        )
+        from sqlalchemy import Boolean
+        from sqlalchemy import DateTime
+        from sqlalchemy import Float
+        from sqlalchemy import Integer
         from sqlalchemy.schema import MetaData
 
         cols = {
@@ -2265,11 +2243,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(col_dict["Float"].type, Float)
 
     def test_double_precision(self):
-        from sqlalchemy import (
-            BigInteger,
-            Float,
-            Integer,
-        )
+        from sqlalchemy import BigInteger
+        from sqlalchemy import Float
+        from sqlalchemy import Integer
         from sqlalchemy.schema import MetaData
 
         V = 1.23456789101112131415
@@ -2370,16 +2346,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             tm.assert_equal(df, res)
 
     def test_temporary_table(self):
-        from sqlalchemy import (
-            Column,
-            Integer,
-            Unicode,
-            select,
-        )
-        from sqlalchemy.orm import (
-            Session,
-            declarative_base,
-        )
+        from sqlalchemy import Column
+        from sqlalchemy import Integer
+        from sqlalchemy import Unicode
+        from sqlalchemy import select
+        from sqlalchemy.orm import Session
+        from sqlalchemy.orm import declarative_base
 
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -2643,15 +2615,11 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         # Test for the is_named_tuple() function
         # Placed here due to its usage of sqlalchemy
 
-        from sqlalchemy import (
-            Column,
-            Integer,
-            String,
-        )
-        from sqlalchemy.orm import (
-            declarative_base,
-            sessionmaker,
-        )
+        from sqlalchemy import Column
+        from sqlalchemy import Integer
+        from sqlalchemy import String
+        from sqlalchemy.orm import declarative_base
+        from sqlalchemy.orm import sessionmaker
 
         BaseModel = declarative_base()
 

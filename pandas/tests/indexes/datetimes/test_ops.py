@@ -5,12 +5,10 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    bdate_range,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import bdate_range
+from pandas import date_range
 import pandas._testing as tm
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)

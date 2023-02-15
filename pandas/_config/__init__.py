@@ -18,15 +18,13 @@ __all__ = [
 ]
 from pandas._config import config
 from pandas._config import dates  # pyright: ignore # noqa:F401
-from pandas._config.config import (
-    _global_config,
-    describe_option,
-    get_option,
-    option_context,
-    options,
-    reset_option,
-    set_option,
-)
+from pandas._config.config import _global_config
+from pandas._config.config import describe_option
+from pandas._config.config import get_option
+from pandas._config.config import option_context
+from pandas._config.config import options
+from pandas._config.config import reset_option
+from pandas._config.config import set_option
 from pandas._config.display import detect_console_encoding
 
 

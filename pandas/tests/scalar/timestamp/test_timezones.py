@@ -1,35 +1,27 @@
 """
 Tests for Timestamp timezone-related methods
 """
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 import re
 
 import dateutil
-from dateutil.tz import (
-    gettz,
-    tzoffset,
-)
+from dateutil.tz import gettz
+from dateutil.tz import tzoffset
 import pytest
 import pytz
-from pytz.exceptions import (
-    AmbiguousTimeError,
-    NonExistentTimeError,
-)
+from pytz.exceptions import AmbiguousTimeError
+from pytz.exceptions import NonExistentTimeError
 
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NaT,
-    Timestamp,
-)
+from pandas import NaT
+from pandas import Timestamp
 
 try:
     from zoneinfo import ZoneInfo

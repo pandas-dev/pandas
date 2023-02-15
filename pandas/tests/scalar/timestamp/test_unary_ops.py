@@ -1,25 +1,21 @@
 from datetime import datetime
 
 from dateutil.tz import gettz
-from hypothesis import (
-    given,
-    strategies as st,
-)
+from hypothesis import given
+from hypothesis import strategies as st
 import numpy as np
 import pytest
 import pytz
 from pytz import utc
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    NaT,
-    OutOfBoundsDatetime,
-    Timedelta,
-    Timestamp,
-    conversion,
-    iNaT,
-    to_offset,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td

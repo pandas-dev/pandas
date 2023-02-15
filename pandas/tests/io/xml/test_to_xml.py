@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import BytesIO
+from io import StringIO
 import os
 
 import numpy as np
@@ -11,11 +9,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import NA
 import pandas._testing as tm
 from pandas.tests.io.test_compression import _compression_to_extension
 

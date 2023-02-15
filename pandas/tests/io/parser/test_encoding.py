@@ -2,10 +2,8 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
-from io import (
-    BytesIO,
-    TextIOWrapper,
-)
+from io import BytesIO
+from io import TextIOWrapper
 import os
 import tempfile
 import uuid
@@ -13,10 +11,8 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    read_csv,
-)
+from pandas import DataFrame
+from pandas import read_csv
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")

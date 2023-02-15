@@ -2,11 +2,9 @@ import pytest
 
 from pandas import TimedeltaIndex
 
-from pandas.tseries.offsets import (
-    DateOffset,
-    Day,
-    Hour,
-)
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Hour
 
 
 class TestFreq:

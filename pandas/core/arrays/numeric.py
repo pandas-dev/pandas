@@ -1,41 +1,31 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Mapping,
-    TypeVar,
-)
+from typing import Any
+from typing import Callable
+from typing import Mapping
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import npt
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
 
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
+from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.masked import BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow

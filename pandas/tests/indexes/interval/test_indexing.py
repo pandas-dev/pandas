@@ -5,23 +5,21 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas import (
-    NA,
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Timedelta,
-    Timestamp,
-    array,
-    date_range,
-    interval_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import array
+from pandas import date_range
+from pandas import interval_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

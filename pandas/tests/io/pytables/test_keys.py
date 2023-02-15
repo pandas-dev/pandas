@@ -1,14 +1,10 @@
 import pytest
 
-from pandas import (
-    DataFrame,
-    HDFStore,
-    _testing as tm,
-)
-from pandas.tests.io.pytables.common import (
-    ensure_clean_store,
-    tables,
-)
+from pandas import DataFrame
+from pandas import HDFStore
+from pandas import _testing as tm
+from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.tests.io.pytables.common import tables
 
 pytestmark = pytest.mark.single_cpu
 

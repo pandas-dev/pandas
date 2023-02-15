@@ -5,11 +5,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_integer
 from pandas.core.arrays import IntegerArray
-from pandas.core.arrays.integer import (
-    Int8Dtype,
-    Int32Dtype,
-    Int64Dtype,
-)
+from pandas.core.arrays.integer import Int8Dtype
+from pandas.core.arrays.integer import Int32Dtype
+from pandas.core.arrays.integer import Int64Dtype
 
 
 @pytest.fixture(params=[pd.array, IntegerArray._from_sequence])

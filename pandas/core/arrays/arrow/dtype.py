@@ -4,18 +4,14 @@ import re
 
 import numpy as np
 
-from pandas._typing import (
-    TYPE_CHECKING,
-    DtypeObj,
-    type_t,
-)
+from pandas._typing import DtypeObj
+from pandas._typing import TYPE_CHECKING
+from pandas._typing import type_t
 from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import (
-    StorageExtensionDtype,
-    register_extension_dtype,
-)
+from pandas.core.dtypes.base import StorageExtensionDtype
+from pandas.core.dtypes.base import register_extension_dtype
 
 if not pa_version_under7p0:
     import pyarrow as pa

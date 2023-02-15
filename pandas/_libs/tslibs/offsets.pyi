@@ -1,14 +1,10 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
-from typing import (
-    Any,
-    Collection,
-    Literal,
-    TypeVar,
-    overload,
-)
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Collection
+from typing import Literal
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 

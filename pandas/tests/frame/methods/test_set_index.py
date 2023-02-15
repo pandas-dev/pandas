@@ -2,25 +2,21 @@
 See also: test_reindex.py:TestReindexSetIndex
 """
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    period_range,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import period_range
+from pandas import to_datetime
 import pandas._testing as tm
 
 

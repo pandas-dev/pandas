@@ -8,43 +8,33 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.compat import IS64
+from pandas.compat import pa_version_under7p0
+from pandas.errors import InvalidIndexError
+from pandas.errors import PerformanceWarning
 from pandas.util._test_decorators import async_mark
 
-from pandas.core.dtypes.common import (
-    is_any_real_numeric_dtype,
-    is_numeric_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    IntervalIndex,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import IntervalIndex
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-    _get_combined_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import _get_combined_index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.indexes.api import ensure_index_from_sequences
 from pandas.tests.indexes.common import Base
 
 

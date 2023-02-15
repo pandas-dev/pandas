@@ -6,27 +6,21 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    NaT,
-    OutOfBoundsDatetime,
-    Timestamp,
-)
+from pandas._libs import NaT
+from pandas._libs import OutOfBoundsDatetime
+from pandas._libs import Timestamp
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Period,
-    PeriodIndex,
-    TimedeltaIndex,
-)
+from pandas import DatetimeIndex
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import TimedeltaIndex
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PandasArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 

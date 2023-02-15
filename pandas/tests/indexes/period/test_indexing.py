@@ -8,17 +8,15 @@ from pandas._libs.tslibs import period as libperiod
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    Period,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    date_range,
-    notna,
-    period_range,
-)
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import date_range
+from pandas import notna
+from pandas import period_range
 import pandas._testing as tm
 
 dti4 = date_range("2016-01-01", periods=4)

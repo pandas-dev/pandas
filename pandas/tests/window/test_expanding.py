@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    isna,
-    notna,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import isna
+from pandas import notna
 import pandas._testing as tm
 
 

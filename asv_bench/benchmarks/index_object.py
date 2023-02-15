@@ -2,15 +2,13 @@ import gc
 
 import numpy as np
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import date_range
 
 from .pandas_vb_common import tm
 

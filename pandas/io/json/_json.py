@@ -1,85 +1,67 @@
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC
+from abc import abstractmethod
 from collections import abc
 from io import StringIO
 from itertools import islice
 from types import TracebackType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Generic,
-    Literal,
-    Mapping,
-    TypeVar,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Generic
+from typing import Literal
+from typing import Mapping
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
+from pandas._config import get_option
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._libs.json import (
-    dumps,
-    loads,
-)
+from pandas._libs.json import dumps
+from pandas._libs.json import loads
 from pandas._libs.tslibs import iNaT
-from pandas._typing import (
-    CompressionOptions,
-    DtypeArg,
-    FilePath,
-    IndexLabel,
-    JSONEngine,
-    JSONSerializable,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import DtypeArg
+from pandas._typing import FilePath
+from pandas._typing import IndexLabel
+from pandas._typing import JSONEngine
+from pandas._typing import JSONSerializable
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    ensure_str,
-    is_period_dtype,
-)
+from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.common import is_period_dtype
 from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    isna,
-    notna,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import isna
+from pandas import notna
+from pandas import to_datetime
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import (
-    IOHandles,
-    dedup_names,
-    extension_to_compression,
-    file_exists,
-    get_handle,
-    is_fsspec_url,
-    is_potential_multi_index,
-    is_url,
-    stringify_path,
-)
+from pandas.io.common import IOHandles
+from pandas.io.common import dedup_names
+from pandas.io.common import extension_to_compression
+from pandas.io.common import file_exists
+from pandas.io.common import get_handle
+from pandas.io.common import is_fsspec_url
+from pandas.io.common import is_potential_multi_index
+from pandas.io.common import is_url
+from pandas.io.common import stringify_path
 from pandas.io.json._normalize import convert_to_line_delimits
-from pandas.io.json._table_schema import (
-    build_table_schema,
-    parse_table_schema,
-)
+from pandas.io.json._table_schema import build_table_schema
+from pandas.io.json._table_schema import parse_table_schema
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:

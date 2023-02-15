@@ -6,25 +6,23 @@ from pytz import utc
 from pandas import DatetimeIndex
 import pandas._testing as tm
 
-from pandas.tseries.holiday import (
-    MO,
-    SA,
-    AbstractHolidayCalendar,
-    DateOffset,
-    EasterMonday,
-    GoodFriday,
-    Holiday,
-    HolidayCalendarFactory,
-    Timestamp,
-    USColumbusDay,
-    USLaborDay,
-    USMartinLutherKingJr,
-    USMemorialDay,
-    USPresidentsDay,
-    USThanksgivingDay,
-    get_calendar,
-    next_monday,
-)
+from pandas.tseries.holiday import AbstractHolidayCalendar
+from pandas.tseries.holiday import DateOffset
+from pandas.tseries.holiday import EasterMonday
+from pandas.tseries.holiday import GoodFriday
+from pandas.tseries.holiday import Holiday
+from pandas.tseries.holiday import HolidayCalendarFactory
+from pandas.tseries.holiday import MO
+from pandas.tseries.holiday import SA
+from pandas.tseries.holiday import Timestamp
+from pandas.tseries.holiday import USColumbusDay
+from pandas.tseries.holiday import USLaborDay
+from pandas.tseries.holiday import USMartinLutherKingJr
+from pandas.tseries.holiday import USMemorialDay
+from pandas.tseries.holiday import USPresidentsDay
+from pandas.tseries.holiday import USThanksgivingDay
+from pandas.tseries.holiday import get_calendar
+from pandas.tseries.holiday import next_monday
 
 
 @pytest.mark.parametrize(

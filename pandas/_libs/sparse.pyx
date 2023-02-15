@@ -1,15 +1,14 @@
 cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    float64_t,
-    int8_t,
-    int32_t,
-    int64_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport float64_t
+from numpy cimport int8_t
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 cnp.import_array()
 

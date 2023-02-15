@@ -6,50 +6,40 @@ Note: pandas.core.common is *not* part of the public API.
 from __future__ import annotations
 
 import builtins
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
+from collections import defaultdict
 import contextlib
 from functools import partial
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Collection
+from typing import Generator
+from typing import Hashable
+from typing import Iterable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import overload
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    NpDtype,
-    RandomState,
-    T,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import NpDtype
+from pandas._typing import RandomState
+from pandas._typing import T
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_extension_array_dtype,
-    is_integer,
-)
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 

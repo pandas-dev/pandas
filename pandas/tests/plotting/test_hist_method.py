@@ -6,17 +6,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import to_datetime
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
 
 
 @pytest.fixture
@@ -106,10 +102,8 @@ class TestSeriesPlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import (
-            gcf,
-            subplot,
-        )
+        from matplotlib.pyplot import gcf
+        from matplotlib.pyplot import subplot
 
         x = Series(np.random.randn(2))
         y = Series(np.random.randn(2))

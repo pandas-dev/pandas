@@ -2,15 +2,13 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    period_range,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Period
+from pandas import Series
+from pandas import period_range
+from pandas import to_datetime
 import pandas._testing as tm
 
 

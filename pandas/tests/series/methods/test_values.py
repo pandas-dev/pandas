@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    IntervalIndex,
-    Series,
-    period_range,
-)
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import period_range
 import pandas._testing as tm
 
 

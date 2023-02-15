@@ -1,7 +1,5 @@
-from datetime import (
-    date,
-    timedelta,
-)
+from datetime import date
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -10,18 +8,14 @@ from pandas._libs.tslibs.timezones import maybe_get_tz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-)
+from pandas.tests.io.pytables.common import _maybe_remove
+from pandas.tests.io.pytables.common import ensure_clean_store
 
 
 def _compare_with_tz(a, b):

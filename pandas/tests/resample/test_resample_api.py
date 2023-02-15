@@ -7,11 +7,9 @@ from pandas._libs import lib
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    NamedAgg,
-    Series,
-)
+from pandas import DataFrame
+from pandas import NamedAgg
+from pandas import Series
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 

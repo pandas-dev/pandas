@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    NaT,
-    Timestamp,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import Timestamp
+from pandas import option_context
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler

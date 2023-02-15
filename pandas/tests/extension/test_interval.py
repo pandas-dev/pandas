@@ -18,10 +18,8 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Interval,
-    Series,
-)
+from pandas import Interval
+from pandas import Series
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 

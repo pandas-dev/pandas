@@ -5,11 +5,9 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
-from pandas import (
-    DataFrame,
-    arrays,
-    get_option,
-)
+from pandas import DataFrame
+from pandas import arrays
+from pandas import get_option
 
 from pandas.io.parsers.base_parser import ParserBase
 

@@ -4,11 +4,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    NaT,
-    concat,
-)
+from pandas import DataFrame
+from pandas import NaT
+from pandas import concat
 import pandas._testing as tm
 
 

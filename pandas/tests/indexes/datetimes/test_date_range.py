@@ -2,11 +2,9 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-from datetime import (
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -14,25 +12,21 @@ import pytz
 from pytz import timezone
 
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.offsets import (
-    BDay,
-    CDay,
-    DateOffset,
-    MonthEnd,
-    prefix_mapping,
-)
+from pandas._libs.tslibs.offsets import BDay
+from pandas._libs.tslibs.offsets import CDay
+from pandas._libs.tslibs.offsets import DateOffset
+from pandas._libs.tslibs.offsets import MonthEnd
+from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Timedelta,
-    Timestamp,
-    bdate_range,
-    date_range,
-    offsets,
-)
+from pandas import DatetimeIndex
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import bdate_range
+from pandas import date_range
+from pandas import offsets
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import _generate_range as generate_range
 

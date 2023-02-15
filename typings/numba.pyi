@@ -1,10 +1,8 @@
 # pyright: reportIncompleteStub = false
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Literal
+from typing import overload
 
 import numba
 

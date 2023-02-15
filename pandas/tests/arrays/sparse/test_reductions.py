@@ -1,15 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NaT,
-    Timestamp,
-    isna,
-)
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas import NaT
+from pandas import Timestamp
+from pandas import isna
+from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseDtype
 
 
 class TestReductions:

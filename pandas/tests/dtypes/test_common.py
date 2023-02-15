@@ -7,14 +7,12 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
 import pandas.core.dtypes.common as com
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    CategoricalDtypeType,
-    DatetimeTZDtype,
-    ExtensionDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd

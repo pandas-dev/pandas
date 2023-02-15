@@ -1,7 +1,5 @@
-from typing import (
-    Generic,
-    TypeVar,
-)
+from typing import Generic
+from typing import TypeVar
 
 from pandas.core.indexing import IndexingMixin
 

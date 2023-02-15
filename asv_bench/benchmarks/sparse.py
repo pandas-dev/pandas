@@ -2,11 +2,9 @@ import numpy as np
 import scipy.sparse
 
 import pandas as pd
-from pandas import (
-    MultiIndex,
-    Series,
-    date_range,
-)
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
 from pandas.arrays import SparseArray
 
 

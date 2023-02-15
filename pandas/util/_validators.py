@@ -4,19 +4,15 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-from typing import (
-    Iterable,
-    Sequence,
-    TypeVar,
-    overload,
-)
+from typing import Iterable
+from typing import Sequence
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_integer,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_integer
 
 BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)

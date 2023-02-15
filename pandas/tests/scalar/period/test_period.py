@@ -1,35 +1,25 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    iNaT,
-    period as libperiod,
-)
-from pandas._libs.tslibs.ccalendar import (
-    DAYS,
-    MONTHS,
-)
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs.ccalendar import DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import (
-    INVALID_FREQ_ERR_MSG,
-    IncompatibleFrequency,
-)
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
-from pandas import (
-    NaT,
-    Period,
-    Timedelta,
-    Timestamp,
-    offsets,
-)
+from pandas import NaT
+from pandas import Period
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import offsets
 import pandas._testing as tm
 
 

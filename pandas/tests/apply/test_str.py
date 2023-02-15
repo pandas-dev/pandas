@@ -6,15 +6,11 @@ import pytest
 
 from pandas.core.dtypes.common import is_number
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
-from pandas.tests.apply.common import (
-    frame_transform_kernels,
-    series_transform_kernels,
-)
+from pandas.tests.apply.common import frame_transform_kernels
+from pandas.tests.apply.common import series_transform_kernels
 
 
 @pytest.mark.parametrize("func", ["sum", "mean", "min", "max", "std"])

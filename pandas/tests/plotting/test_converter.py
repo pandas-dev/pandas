@@ -1,7 +1,5 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 import subprocess
 import sys
 
@@ -10,27 +8,21 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas import (
-    Index,
-    Period,
-    PeriodIndex,
-    Series,
-    Timestamp,
-    arrays,
-    date_range,
-)
+from pandas import Index
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import arrays
+from pandas import date_range
 import pandas._testing as tm
 
-from pandas.plotting import (
-    deregister_matplotlib_converters,
-    register_matplotlib_converters,
-)
-from pandas.tseries.offsets import (
-    Day,
-    Micro,
-    Milli,
-    Second,
-)
+from pandas.plotting import deregister_matplotlib_converters
+from pandas.plotting import register_matplotlib_converters
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Micro
+from pandas.tseries.offsets import Milli
+from pandas.tseries.offsets import Second
 
 try:
     from pandas.plotting._matplotlib import converter

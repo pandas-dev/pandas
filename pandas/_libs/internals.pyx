@@ -12,22 +12,18 @@ cdef extern from "Python.h":
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    NPY_INTP,
-    int64_t,
-    intp_t,
-    ndarray,
-)
+from numpy cimport NPY_INTP
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
 
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
 from pandas._libs.arrays cimport NDArrayBacked
-from pandas._libs.util cimport (
-    is_array,
-    is_integer_object,
-)
+from pandas._libs.util cimport is_array
+from pandas._libs.util cimport is_integer_object
 
 
 @cython.final
@@ -792,10 +788,8 @@ cdef class BlockManager:
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
-        from pandas.core.internals.blocks import (
-            ensure_block_shape,
-            new_block,
-        )
+        from pandas.core.internals.blocks import ensure_block_shape
+        from pandas.core.internals.blocks import new_block
         from pandas.core.internals.managers import ensure_index
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:

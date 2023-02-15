@@ -11,35 +11,27 @@ from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
 from pandas.compat import is_numpy_dev
 
-from pandas.core.dtypes.common import (
-    is_float,
-    is_scalar,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    is_valid_na_for_dtype,
-    isna,
-    isnull,
-    na_value_for_dtype,
-    notna,
-    notnull,
-)
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import notnull
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    Series,
-    TimedeltaIndex,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import date_range
 import pandas._testing as tm
 
 fix_now = pd.Timestamp("2021-01-01")

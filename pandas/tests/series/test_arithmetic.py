@@ -1,8 +1,6 @@
-from datetime import (
-    date,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import timedelta
+from datetime import timezone
 from decimal import Decimal
 import operator
 
@@ -11,26 +9,20 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Index,
-    Series,
-    Timedelta,
-    bdate_range,
-    date_range,
-    isna,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import Series
+from pandas import Timedelta
+from pandas import bdate_range
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
 
 

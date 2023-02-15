@@ -1,43 +1,29 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Literal,
-)
+from typing import Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._typing import PlottingOrientation
 
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_list_like,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    remove_na_arraylike,
-)
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import remove_na_arraylike
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import (
-    LinePlot,
-    MPLPlot,
-)
-from pandas.plotting._matplotlib.groupby import (
-    create_iter_data_given_by,
-    reformat_hist_y_given_by,
-)
+from pandas.plotting._matplotlib.core import LinePlot
+from pandas.plotting._matplotlib.core import MPLPlot
+from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
+from pandas.plotting._matplotlib.groupby import reformat_hist_y_given_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
-from pandas.plotting._matplotlib.tools import (
-    create_subplots,
-    flatten_axes,
-    maybe_adjust_figure,
-    set_ticks_props,
-)
+from pandas.plotting._matplotlib.tools import create_subplots
+from pandas.plotting._matplotlib.tools import flatten_axes
+from pandas.plotting._matplotlib.tools import maybe_adjust_figure
+from pandas.plotting._matplotlib.tools import set_ticks_props
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

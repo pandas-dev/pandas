@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Sequence,
-)
+from typing import Iterable
+from typing import Sequence
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib import ticker
@@ -16,11 +14,9 @@ import numpy as np
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -29,10 +25,8 @@ if TYPE_CHECKING:
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 def do_adjust_figure(fig: Figure) -> bool:

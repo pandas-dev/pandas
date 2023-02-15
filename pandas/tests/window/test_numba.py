@@ -1,20 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-    is_platform_windows,
-)
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_windows
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    option_context,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import option_context
+from pandas import to_datetime
 import pandas._testing as tm
 
 # TODO(GH#44584): Mark these as pytest.mark.single_cpu

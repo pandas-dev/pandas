@@ -3,16 +3,14 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.indexes.accessors import Properties

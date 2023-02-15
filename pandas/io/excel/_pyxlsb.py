@@ -1,12 +1,10 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import Scalar
+from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 

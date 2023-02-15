@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    TimedeltaIndex,
-    Timestamp,
-)
+from pandas import TimedeltaIndex
+from pandas import Timestamp
 import pandas._testing as tm
 
 

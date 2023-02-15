@@ -11,23 +11,19 @@ import pytest
 from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
-from pandas.compat.pyarrow import (
-    pa_version_under7p0,
-    pa_version_under8p0,
-)
+from pandas.compat.pyarrow import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under8p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
-from pandas.io.parquet import (
-    FastParquetImpl,
-    PyArrowImpl,
-    get_engine,
-    read_parquet,
-    to_parquet,
-)
+from pandas.io.parquet import FastParquetImpl
+from pandas.io.parquet import PyArrowImpl
+from pandas.io.parquet import get_engine
+from pandas.io.parquet import read_parquet
+from pandas.io.parquet import to_parquet
 
 try:
     import pyarrow

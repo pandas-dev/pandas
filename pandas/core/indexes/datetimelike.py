@@ -3,68 +3,50 @@ Base and utility classes for tseries type pandas objects.
 """
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Sequence,
-    TypeVar,
-    cast,
-    final,
-)
+from typing import Any
+from typing import Callable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import final
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    Timedelta,
-    lib,
-)
-from pandas._libs.tslibs import (
-    BaseOffset,
-    Resolution,
-    Tick,
-    parsing,
-    to_offset,
-)
-from pandas._typing import (
-    Axis,
-    npt,
-)
+from pandas._libs import NaT
+from pandas._libs import Timedelta
+from pandas._libs import lib
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import Tick
+from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import to_offset
+from pandas._typing import Axis
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.errors import NullFrequencyError
-from pandas.util._decorators import (
-    Appender,
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.concat import concat_compat
 
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    _index_shared_docs,
-)
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import _index_shared_docs
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta

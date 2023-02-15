@@ -10,15 +10,11 @@ from datetime import datetime
 import pytest
 
 import pandas as pd
-from pandas.tests.tseries.offsets.common import (
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.offsets import (
-    BMonthBegin,
-    BMonthEnd,
-)
+from pandas.tseries.offsets import BMonthBegin
+from pandas.tseries.offsets import BMonthEnd
 
 
 @pytest.mark.parametrize("n", [-2, 1])

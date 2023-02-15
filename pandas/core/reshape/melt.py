@@ -1,29 +1,23 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import Hashable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs

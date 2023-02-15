@@ -1,9 +1,7 @@
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
 
 
 class TestGetValue:

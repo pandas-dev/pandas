@@ -10,24 +10,18 @@ from pandas.core.dtypes.base import _registry as registry
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
-from pandas.arrays import (
-    BooleanArray,
-    DatetimeArray,
-    FloatingArray,
-    IntegerArray,
-    IntervalArray,
-    SparseArray,
-    TimedeltaArray,
-)
-from pandas.core.arrays import (
-    PandasArray,
-    period_array,
-)
-from pandas.tests.extension.decimal import (
-    DecimalArray,
-    DecimalDtype,
-    to_decimal,
-)
+from pandas.arrays import BooleanArray
+from pandas.arrays import DatetimeArray
+from pandas.arrays import FloatingArray
+from pandas.arrays import IntegerArray
+from pandas.arrays import IntervalArray
+from pandas.arrays import SparseArray
+from pandas.arrays import TimedeltaArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import period_array
+from pandas.tests.extension.decimal import DecimalArray
+from pandas.tests.extension.decimal import DecimalDtype
+from pandas.tests.extension.decimal import to_decimal
 
 
 @pytest.mark.parametrize(

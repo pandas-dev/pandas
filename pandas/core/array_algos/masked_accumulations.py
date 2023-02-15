@@ -11,11 +11,9 @@ import numpy as np
 
 from pandas._typing import npt
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 
 
 def _cum_func(

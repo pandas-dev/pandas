@@ -9,10 +9,8 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+from pandas import DataFrame
+from pandas import Index
 import pandas._testing as tm
 
 _msg_validate_usecols_arg = (

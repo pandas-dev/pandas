@@ -10,20 +10,14 @@ import numpy as np
 from pandas._typing import AxisInt
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import (
-    common_dtype_categorical_compat,
-    find_common_type,
-)
+from pandas.core.dtypes.cast import common_dtype_categorical_compat
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    ExtensionDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCExtensionArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import ABCCategoricalIndex
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCSeries
 
 if TYPE_CHECKING:
     from pandas.core.arrays import Categorical

@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import to_datetime
 
 
 @pytest.fixture

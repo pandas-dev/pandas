@@ -7,10 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 # GH#43650: Some expected failures with the pyarrow engine can occasionally

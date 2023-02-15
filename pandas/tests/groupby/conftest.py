@@ -3,10 +3,8 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.core.groupby.base import (
-    reduction_kernels,
-    transformation_kernels,
-)
+from pandas.core.groupby.base import reduction_kernels
+from pandas.core.groupby.base import transformation_kernels
 
 
 @pytest.fixture(params=[True, False])

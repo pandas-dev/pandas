@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
 
 
 def kleene_or(

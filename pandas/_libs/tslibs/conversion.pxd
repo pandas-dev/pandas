@@ -1,17 +1,11 @@
-from cpython.datetime cimport (
-    datetime,
-    tzinfo,
-)
-from numpy cimport (
-    int32_t,
-    int64_t,
-    ndarray,
-)
+from cpython.datetime cimport datetime
+from cpython.datetime cimport tzinfo
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport ndarray
 
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    npy_datetimestruct,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport tz_compare
 

@@ -3,46 +3,38 @@ Quantilization functions and related stuff
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Literal,
-)
+from typing import Any
+from typing import Callable
+from typing import Literal
 
 import numpy as np
 
-from pandas._libs import (
-    Timedelta,
-    Timestamp,
-)
+from pandas._libs import Timedelta
+from pandas._libs import Timestamp
 from pandas._libs.lib import infer_dtype
 from pandas._typing import IntervalLeftRight
 
-from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    ensure_platform_int,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_extension_array_dtype,
-    is_integer,
-    is_list_like,
-    is_numeric_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import DT64NS_DTYPE
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas import (
-    Categorical,
-    Index,
-    IntervalIndex,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import to_datetime
+from pandas import to_timedelta
 from pandas.core import nanops
 import pandas.core.algorithms as algos
 

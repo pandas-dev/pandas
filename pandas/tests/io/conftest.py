@@ -5,12 +5,10 @@ import time
 
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_arm,
-    is_platform_mac,
-    is_platform_windows,
-)
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_arm
+from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm

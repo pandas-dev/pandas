@@ -13,10 +13,8 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY311
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-)
+from pandas.errors import EmptyDataError
+from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame

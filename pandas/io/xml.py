@@ -5,45 +5,37 @@
 from __future__ import annotations
 
 import io
-from typing import (
-    Any,
-    Callable,
-    Sequence,
-)
+from typing import Any
+from typing import Callable
+from typing import Sequence
 
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    TYPE_CHECKING,
-    CompressionOptions,
-    ConvertersArg,
-    DtypeArg,
-    FilePath,
-    ParseDatesArg,
-    ReadBuffer,
-    StorageOptions,
-    XMLParsers,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import ConvertersArg
+from pandas._typing import DtypeArg
+from pandas._typing import FilePath
+from pandas._typing import ParseDatesArg
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import TYPE_CHECKING
+from pandas._typing import XMLParsers
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    ParserError,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import ParserError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import (
-    file_exists,
-    get_handle,
-    infer_compression,
-    is_fsspec_url,
-    is_url,
-    stringify_path,
-)
+from pandas.io.common import file_exists
+from pandas.io.common import get_handle
+from pandas.io.common import infer_compression
+from pandas.io.common import is_fsspec_url
+from pandas.io.common import is_url
+from pandas.io.common import stringify_path
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
@@ -524,10 +516,8 @@ class _EtreeFrameParser(_XMLFrameParser):
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
     ) -> Element:
-        from xml.etree.ElementTree import (
-            XMLParser,
-            parse,
-        )
+        from xml.etree.ElementTree import XMLParser
+        from xml.etree.ElementTree import parse
 
         handle_data = get_data_from_filepath(
             filepath_or_buffer=raw_doc,
@@ -630,11 +620,9 @@ class _LxmlFrameParser(_XMLFrameParser):
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
     ) -> etree._Element:
-        from lxml.etree import (
-            XMLParser,
-            fromstring,
-            parse,
-        )
+        from lxml.etree import XMLParser
+        from lxml.etree import fromstring
+        from lxml.etree import parse
 
         handle_data = get_data_from_filepath(
             filepath_or_buffer=raw_doc,

@@ -8,18 +8,14 @@ import pytest
 from pandas._config.config import option_context
 
 import pandas.util._test_decorators as td
-from pandas.util._test_decorators import (
-    async_mark,
-    skip_if_no,
-)
+from pandas.util._test_decorators import async_mark
+from pandas.util._test_decorators import skip_if_no
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

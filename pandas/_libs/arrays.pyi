@@ -2,10 +2,8 @@ from typing import Sequence
 
 import numpy as np
 
-from pandas._typing import (
-    DtypeObj,
-    Shape,
-)
+from pandas._typing import DtypeObj
+from pandas._typing import Shape
 
 class NDArrayBacked:
     _dtype: DtypeObj

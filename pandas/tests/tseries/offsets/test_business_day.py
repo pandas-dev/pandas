@@ -3,30 +3,22 @@ Tests for offsets.BDay
 """
 from __future__ import annotations
 
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    BDay,
-    BMonthEnd,
-)
+from pandas._libs.tslibs.offsets import ApplyTypeError
+from pandas._libs.tslibs.offsets import BDay
+from pandas._libs.tslibs.offsets import BMonthEnd
 
-from pandas import (
-    DatetimeIndex,
-    Timedelta,
-    _testing as tm,
-)
-from pandas.tests.tseries.offsets.common import (
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas import DatetimeIndex
+from pandas import Timedelta
+from pandas import _testing as tm
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
 

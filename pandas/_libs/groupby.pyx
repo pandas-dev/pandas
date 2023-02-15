@@ -1,49 +1,37 @@
 cimport cython
-from cython cimport (
-    Py_ssize_t,
-    floating,
-)
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
+from cython cimport Py_ssize_t
+from cython cimport floating
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    complex64_t,
-    complex128_t,
-    float32_t,
-    float64_t,
-    int8_t,
-    int64_t,
-    intp_t,
-    ndarray,
-    uint8_t,
-    uint64_t,
-)
+from numpy cimport complex64_t
+from numpy cimport complex128_t
+from numpy cimport float32_t
+from numpy cimport float64_t
+from numpy cimport int8_t
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint64_t
 from numpy.math cimport NAN
 
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.algos cimport (
-    get_rank_nan_fill_val,
-    kth_smallest_c,
-)
+from pandas._libs.algos cimport get_rank_nan_fill_val
+from pandas._libs.algos cimport kth_smallest_c
 
-from pandas._libs.algos import (
-    groupsort_indexer,
-    rank_1d,
-    take_2d_axis1_bool_bool,
-    take_2d_axis1_float64_float64,
-)
+from pandas._libs.algos import groupsort_indexer
+from pandas._libs.algos import rank_1d
+from pandas._libs.algos import take_2d_axis1_bool_bool
+from pandas._libs.algos import take_2d_axis1_float64_float64
 
-from pandas._libs.dtypes cimport (
-    numeric_object_t,
-    numeric_t,
-)
+from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs.dtypes cimport numeric_t
 from pandas._libs.missing cimport checknull
 
 

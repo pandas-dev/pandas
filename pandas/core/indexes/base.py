@@ -4,188 +4,146 @@ from datetime import datetime
 import functools
 from itertools import zip_longest
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    ClassVar,
-    Hashable,
-    Iterable,
-    Literal,
-    NoReturn,
-    Sequence,
-    TypeVar,
-    cast,
-    final,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import ClassVar
+from typing import Hashable
+from typing import Iterable
+from typing import Literal
+from typing import NoReturn
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import final
+from typing import overload
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    NaT,
-    algos as libalgos,
-    index as libindex,
-    lib,
-)
+from pandas._libs import NaT
+from pandas._libs import algos as libalgos
+from pandas._libs import index as libindex
+from pandas._libs import lib
 import pandas._libs.join as libjoin
-from pandas._libs.lib import (
-    is_datetime_array,
-    no_default,
-)
+from pandas._libs.lib import is_datetime_array
+from pandas._libs.lib import no_default
 from pandas._libs.missing import is_float_nan
-from pandas._libs.tslibs import (
-    IncompatibleFrequency,
-    OutOfBoundsDatetime,
-    Timestamp,
-    tz_compare,
-)
-from pandas._typing import (
-    AnyAll,
-    ArrayLike,
-    Axes,
-    Axis,
-    DropKeep,
-    DtypeObj,
-    F,
-    IgnoreRaise,
-    IndexLabel,
-    JoinHow,
-    Level,
-    Shape,
-    npt,
-)
+from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import tz_compare
+from pandas._typing import AnyAll
+from pandas._typing import ArrayLike
+from pandas._typing import Axes
+from pandas._typing import Axis
+from pandas._typing import DropKeep
+from pandas._typing import DtypeObj
+from pandas._typing import F
+from pandas._typing import IgnoreRaise
+from pandas._typing import IndexLabel
+from pandas._typing import JoinHow
+from pandas._typing import Level
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    DuplicateLabelError,
-    InvalidIndexError,
-)
-from pandas.util._decorators import (
-    Appender,
-    cache_readonly,
-    doc,
-)
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_exception,
-)
+from pandas.errors import DuplicateLabelError
+from pandas.errors import InvalidIndexError
+from pandas.util._decorators import Appender
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    can_hold_element,
-    common_dtype_categorical_compat,
-    ensure_dtype_can_hold_na,
-    find_result_type,
-    infer_dtype_from,
-    maybe_cast_pointwise_result,
-    np_can_hold_element,
-)
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    ensure_platform_int,
-    is_any_real_numeric_dtype,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_ea_or_datetimelike_dtype,
-    is_extension_array_dtype,
-    is_float,
-    is_float_dtype,
-    is_hashable,
-    is_integer,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_iterator,
-    is_list_like,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_signed_integer_dtype,
-    is_string_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
-    validate_all_hashable,
-)
+from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import common_dtype_categorical_compat
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import find_result_type
+from pandas.core.dtypes.cast import infer_dtype_from
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
+from pandas.core.dtypes.cast import np_can_hold_element
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_ea_or_datetimelike_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_hashable
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_iterator
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_signed_integer_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import validate_all_hashable
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    ExtensionDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-    ABCTimedeltaIndex,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDatetimeIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCTimedeltaIndex
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    is_valid_na_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
 
-from pandas.core import (
-    arraylike,
-    ops,
-)
+from pandas.core import arraylike
+from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import (
-    setitem_datetimelike_compat,
-    validate_putmask,
-)
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    Categorical,
-    ExtensionArray,
-)
+from pandas.core.array_algos.putmask import setitem_datetimelike_compat
+from pandas.core.array_algos.putmask import validate_putmask
+from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.string_ import StringArray
-from pandas.core.base import (
-    IndexOpsMixin,
-    PandasObject,
-)
+from pandas.core.base import IndexOpsMixin
+from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    sanitize_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import (
-    ensure_key_mapped,
-    get_group_index_sorter,
-    nargsort,
-)
+from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import get_group_index_sorter
+from pandas.core.sorting import nargsort
 from pandas.core.strings import StringMethods
 
-from pandas.io.formats.printing import (
-    PrettyDict,
-    default_pprint,
-    format_object_summary,
-    pprint_thing,
-)
+from pandas.io.formats.printing import PrettyDict
+from pandas.io.formats.printing import default_pprint
+from pandas.io.formats.printing import format_object_summary
+from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import (
-        CategoricalIndex,
-        DataFrame,
-        MultiIndex,
-        Series,
-    )
+    from pandas import CategoricalIndex
+    from pandas import DataFrame
+    from pandas import MultiIndex
+    from pandas import Series
     from pandas.core.arrays import PeriodArray
 
 

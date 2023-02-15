@@ -9,10 +9,8 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    parsing,
-    strptime,
-)
+from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import strptime
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 import pandas.util._test_decorators as td
 

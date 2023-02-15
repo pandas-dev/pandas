@@ -55,27 +55,23 @@ https://github.com/pyviz/hvplot as a reference on how to write a backend.
 For the discussion about the API see
 https://github.com/pandas-dev/pandas/issues/26747.
 """
-from pandas.plotting._core import (
-    PlotAccessor,
-    boxplot,
-    boxplot_frame,
-    boxplot_frame_groupby,
-    hist_frame,
-    hist_series,
-)
-from pandas.plotting._misc import (
-    andrews_curves,
-    autocorrelation_plot,
-    bootstrap_plot,
-    deregister as deregister_matplotlib_converters,
-    lag_plot,
-    parallel_coordinates,
-    plot_params,
-    radviz,
-    register as register_matplotlib_converters,
-    scatter_matrix,
-    table,
-)
+from pandas.plotting._core import PlotAccessor
+from pandas.plotting._core import boxplot
+from pandas.plotting._core import boxplot_frame
+from pandas.plotting._core import boxplot_frame_groupby
+from pandas.plotting._core import hist_frame
+from pandas.plotting._core import hist_series
+from pandas.plotting._misc import andrews_curves
+from pandas.plotting._misc import autocorrelation_plot
+from pandas.plotting._misc import bootstrap_plot
+from pandas.plotting._misc import deregister as deregister_matplotlib_converters
+from pandas.plotting._misc import lag_plot
+from pandas.plotting._misc import parallel_coordinates
+from pandas.plotting._misc import plot_params
+from pandas.plotting._misc import radviz
+from pandas.plotting._misc import register as register_matplotlib_converters
+from pandas.plotting._misc import scatter_matrix
+from pandas.plotting._misc import table
 
 __all__ = [
     "PlotAccessor",

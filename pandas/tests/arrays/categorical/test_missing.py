@@ -6,13 +6,11 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    isna,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import isna
 import pandas._testing as tm
 
 

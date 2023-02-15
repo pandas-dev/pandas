@@ -8,19 +8,15 @@ it is likely that these benchmarks will be unaffected.
 
 import numpy as np
 
-from pandas import (
-    NaT,
-    Series,
-    date_range,
-    to_datetime,
-    to_numeric,
-    to_timedelta,
-)
+from pandas import NaT
+from pandas import Series
+from pandas import date_range
+from pandas import to_datetime
+from pandas import to_numeric
+from pandas import to_timedelta
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
+from .pandas_vb_common import tm
 
 
 class ToNumeric:

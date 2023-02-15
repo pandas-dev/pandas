@@ -5,18 +5,14 @@ from __future__ import annotations
 
 import codecs
 import io
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
+from typing import TYPE_CHECKING
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
@@ -26,10 +22,8 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
-from pandas.io.xml import (
-    get_data_from_filepath,
-    preprocess_data,
-)
+from pandas.io.xml import get_data_from_filepath
+from pandas.io.xml import preprocess_data
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -335,11 +329,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
     """
 
     def build_tree(self) -> bytes:
-        from xml.etree.ElementTree import (
-            Element,
-            SubElement,
-            tostring,
-        )
+        from xml.etree.ElementTree import Element
+        from xml.etree.ElementTree import SubElement
+        from xml.etree.ElementTree import tostring
 
         self.root = Element(
             f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
@@ -453,11 +445,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         This method initializes the root and builds attributes and elements
         with optional namespaces.
         """
-        from lxml.etree import (
-            Element,
-            SubElement,
-            tostring,
-        )
+        from lxml.etree import Element
+        from lxml.etree import SubElement
+        from lxml.etree import tostring
 
         self.root = Element(f"{self.prefix_uri}{self.root_name}", nsmap=self.namespaces)
 
@@ -522,12 +512,10 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         conditionally by its specific object type, then transforms
         original tree with XSLT script.
         """
-        from lxml.etree import (
-            XSLT,
-            XMLParser,
-            fromstring,
-            parse,
-        )
+        from lxml.etree import XMLParser
+        from lxml.etree import XSLT
+        from lxml.etree import fromstring
+        from lxml.etree import parse
 
         style_doc = self.stylesheet
         assert style_doc is not None  # is ensured by caller

@@ -1,22 +1,18 @@
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    bdate_range,
-    date_range,
-    notna,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timestamp
+from pandas import bdate_range
+from pandas import date_range
+from pandas import notna
 import pandas._testing as tm
 
 from pandas.tseries.frequencies import to_offset

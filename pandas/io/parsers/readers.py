@@ -10,16 +10,14 @@ import csv
 import sys
 from textwrap import fill
 from types import TracebackType
-from typing import (
-    IO,
-    Any,
-    Callable,
-    Hashable,
-    Literal,
-    NamedTuple,
-    Sequence,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import IO
+from typing import Literal
+from typing import NamedTuple
+from typing import Sequence
+from typing import overload
 import warnings
 
 import numpy as np
@@ -28,50 +26,38 @@ from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import (
-    CompressionOptions,
-    CSVEngine,
-    DtypeArg,
-    FilePath,
-    IndexLabel,
-    ReadCsvBuffer,
-    StorageOptions,
-)
-from pandas.errors import (
-    AbstractMethodError,
-    ParserWarning,
-)
+from pandas._typing import CSVEngine
+from pandas._typing import CompressionOptions
+from pandas._typing import DtypeArg
+from pandas._typing import FilePath
+from pandas._typing import IndexLabel
+from pandas._typing import ReadCsvBuffer
+from pandas._typing import StorageOptions
+from pandas.errors import AbstractMethodError
+from pandas.errors import ParserWarning
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_file_like,
-    is_float,
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_file_like
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-    stringify_path,
-    validate_header_arg,
-)
+from pandas.io.common import IOHandles
+from pandas.io.common import get_handle
+from pandas.io.common import stringify_path
+from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
-from pandas.io.parsers.base_parser import (
-    ParserBase,
-    is_index_col,
-    parser_defaults,
-)
+from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.parsers.base_parser import is_index_col
+from pandas.io.parsers.base_parser import parser_defaults
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import (
-    FixedWidthFieldParser,
-    PythonParser,
-)
+from pandas.io.parsers.python_parser import FixedWidthFieldParser
+from pandas.io.parsers.python_parser import PythonParser
 
 _doc_read_csv_and_table = (
     r"""

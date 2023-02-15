@@ -3,18 +3,16 @@ import io
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    date_range,
-    read_csv,
-    read_excel,
-    read_feather,
-    read_json,
-    read_parquet,
-    read_pickle,
-    read_stata,
-    read_table,
-)
+from pandas import DataFrame
+from pandas import date_range
+from pandas import read_csv
+from pandas import read_excel
+from pandas import read_feather
+from pandas import read_json
+from pandas import read_parquet
+from pandas import read_pickle
+from pandas import read_stata
+from pandas import read_table
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 

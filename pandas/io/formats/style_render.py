@@ -3,18 +3,16 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 import re
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any
+from typing import Callable
+from typing import DefaultDict
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import TypedDict
+from typing import Union
 from uuid import uuid4
 
 import numpy as np
@@ -22,32 +20,26 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    Level,
-)
+from pandas._typing import Axis
+from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_complex,
-    is_float,
-    is_integer,
-)
+from pandas.core.dtypes.common import is_complex
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import (
-    DataFrame,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    isna,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import Series
+from pandas import isna
 from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
+from markupsafe import escape as escape_html
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]

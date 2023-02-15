@@ -1,25 +1,19 @@
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import BytesIO
+from io import StringIO
 import random
 import string
 
 import numpy as np
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    concat,
-    date_range,
-    read_csv,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import concat
+from pandas import date_range
+from pandas import read_csv
+from pandas import to_datetime
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import tm
 
 
 class ToCSV(BaseIO):

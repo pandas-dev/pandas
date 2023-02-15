@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Index
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
 
 

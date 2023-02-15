@@ -41,46 +41,42 @@ import sys
 import numpy as np
 
 import pandas
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Period,
-    RangeIndex,
-    Series,
-    Timestamp,
-    bdate_range,
-    date_range,
-    interval_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Period
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import bdate_range
+from pandas import date_range
+from pandas import interval_range
+from pandas import period_range
+from pandas import timedelta_range
 from pandas.arrays import SparseArray
 
-from pandas.tseries.offsets import (
-    FY5253,
-    BusinessDay,
-    BusinessHour,
-    CustomBusinessDay,
-    DateOffset,
-    Day,
-    Easter,
-    Hour,
-    LastWeekOfMonth,
-    Minute,
-    MonthBegin,
-    MonthEnd,
-    QuarterBegin,
-    QuarterEnd,
-    SemiMonthBegin,
-    SemiMonthEnd,
-    Week,
-    WeekOfMonth,
-    YearBegin,
-    YearEnd,
-)
+from pandas.tseries.offsets import BusinessDay
+from pandas.tseries.offsets import BusinessHour
+from pandas.tseries.offsets import CustomBusinessDay
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Easter
+from pandas.tseries.offsets import FY5253
+from pandas.tseries.offsets import Hour
+from pandas.tseries.offsets import LastWeekOfMonth
+from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import MonthEnd
+from pandas.tseries.offsets import QuarterBegin
+from pandas.tseries.offsets import QuarterEnd
+from pandas.tseries.offsets import SemiMonthBegin
+from pandas.tseries.offsets import SemiMonthEnd
+from pandas.tseries.offsets import Week
+from pandas.tseries.offsets import WeekOfMonth
+from pandas.tseries.offsets import YearBegin
+from pandas.tseries.offsets import YearEnd
 
 
 def _create_sp_series():

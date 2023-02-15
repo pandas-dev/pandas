@@ -1,22 +1,18 @@
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
+from datetime import timezone
 
 import numpy as np
 import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas import (
-    CategoricalDtype,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+from pandas import CategoricalDtype
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

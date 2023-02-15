@@ -4,10 +4,8 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -177,11 +175,9 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-        from matplotlib.collections import (
-            Collection,
-            LineCollection,
-            PolyCollection,
-        )
+        from matplotlib.collections import Collection
+        from matplotlib.collections import LineCollection
+        from matplotlib.collections import PolyCollection
         from matplotlib.lines import Line2D
 
         conv = self.colorconverter

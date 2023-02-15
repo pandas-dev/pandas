@@ -8,17 +8,13 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.interchange.column import PandasColumn
-from pandas.core.interchange.dataframe_protocol import (
-    Buffer,
-    Column,
-    ColumnNullType,
-    DataFrame as DataFrameXchg,
-    DtypeKind,
-)
-from pandas.core.interchange.utils import (
-    ArrowCTypes,
-    Endianness,
-)
+from pandas.core.interchange.dataframe_protocol import Buffer
+from pandas.core.interchange.dataframe_protocol import Column
+from pandas.core.interchange.dataframe_protocol import ColumnNullType
+from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
+from pandas.core.interchange.dataframe_protocol import DtypeKind
+from pandas.core.interchange.utils import ArrowCTypes
+from pandas.core.interchange.utils import Endianness
 
 _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},

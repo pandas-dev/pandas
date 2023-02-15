@@ -1,82 +1,64 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterator,
-    Literal,
-    Sequence,
-    TypeVar,
-    overload,
-)
+from typing import Any
+from typing import Iterator
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import overload
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    DtypeObj,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    npt,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import is_supported_unit
+from pandas._typing import ArrayLike
+from pandas._typing import AstypeArg
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import NpDtype
+from pandas._typing import PositionalIndexer
+from pandas._typing import Scalar
+from pandas._typing import ScalarIndexer
+from pandas._typing import SequenceIndexer
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.inference import is_array_like
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    is_valid_na_for_dtype,
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core import (
-    algorithms as algos,
-    arraylike,
-    missing,
-    nanops,
-    ops,
-)
-from pandas.core.algorithms import (
-    factorize_array,
-    isin,
-    take,
-)
-from pandas.core.array_algos import (
-    masked_accumulations,
-    masked_reductions,
-)
+from pandas.core import algorithms as algos
+from pandas.core import arraylike
+from pandas.core import missing
+from pandas.core import nanops
+from pandas.core import ops
+from pandas.core.algorithms import factorize_array
+from pandas.core.algorithms import isin
+from pandas.core.algorithms import take
+from pandas.core.array_algos import masked_accumulations
+from pandas.core.array_algos import masked_reductions
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -556,11 +538,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         def reconstruct(x):
             # we don't worry about scalar `x` here, since we
             # raise for reduce up above.
-            from pandas.core.arrays import (
-                BooleanArray,
-                FloatingArray,
-                IntegerArray,
-            )
+            from pandas.core.arrays import BooleanArray
+            from pandas.core.arrays import FloatingArray
+            from pandas.core.arrays import IntegerArray
 
             if is_bool_dtype(x.dtype):
                 m = mask.copy()
@@ -991,10 +971,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import (
-            Index,
-            Series,
-        )
+        from pandas import Index
+        from pandas import Series
         from pandas.arrays import IntegerArray
 
         keys, value_counts = algos.value_counts_arraylike(

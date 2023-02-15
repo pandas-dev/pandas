@@ -6,12 +6,10 @@ import pytest
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import (
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

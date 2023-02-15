@@ -1,20 +1,14 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
-from hypothesis import (
-    assume,
-    given,
-    strategies as st,
-)
+from hypothesis import assume
+from hypothesis import given
+from hypothesis import strategies as st
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

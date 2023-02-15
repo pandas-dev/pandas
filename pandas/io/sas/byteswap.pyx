@@ -5,11 +5,9 @@ function calls.
 In the SAS7BDAT parser, they may be called up to (n_rows * n_cols) times.
 """
 from cython cimport Py_ssize_t
-from libc.stdint cimport (
-    uint16_t,
-    uint32_t,
-    uint64_t,
-)
+from libc.stdint cimport uint16_t
+from libc.stdint cimport uint32_t
+from libc.stdint cimport uint64_t
 
 
 def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):

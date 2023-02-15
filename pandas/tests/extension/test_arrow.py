@@ -10,45 +10,37 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-)
-from io import (
-    BytesIO,
-    StringIO,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from io import BytesIO
+from io import StringIO
 import pickle
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    PY311,
-    is_ci_environment,
-    is_platform_windows,
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
-    pa_version_under11p0,
-)
+from pandas.compat import PY311
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_windows
+from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under8p0
+from pandas.compat import pa_version_under9p0
+from pandas.compat import pa_version_under11p0
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_signed_integer_dtype,
-    is_string_dtype,
-    is_unsigned_integer_dtype,
-)
+from pandas.api.types import is_bool_dtype
+from pandas.api.types import is_float_dtype
+from pandas.api.types import is_integer_dtype
+from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_signed_integer_dtype
+from pandas.api.types import is_string_dtype
+from pandas.api.types import is_unsigned_integer_dtype
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")

@@ -3,18 +3,14 @@ import pytest
 
 from pandas.compat import is_numpy_dev
 
-from pandas.core.dtypes.common import (
-    is_complex_dtype,
-    is_extension_array_dtype,
-)
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
 
-from pandas import (
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

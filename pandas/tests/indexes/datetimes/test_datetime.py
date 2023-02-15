@@ -5,14 +5,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    offsets,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timestamp
+from pandas import date_range
+from pandas import offsets
 import pandas._testing as tm
 
 

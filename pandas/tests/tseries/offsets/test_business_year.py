@@ -9,15 +9,11 @@ from datetime import datetime
 
 import pytest
 
-from pandas.tests.tseries.offsets.common import (
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.offsets import (
-    BYearBegin,
-    BYearEnd,
-)
+from pandas.tseries.offsets import BYearBegin
+from pandas.tseries.offsets import BYearEnd
 
 
 class TestBYearBegin:

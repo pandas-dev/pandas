@@ -4,10 +4,8 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
+from pandas import Index
+from pandas import MultiIndex
 import pandas._testing as tm
 
 

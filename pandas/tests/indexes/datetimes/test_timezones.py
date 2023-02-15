@@ -1,20 +1,16 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-    timezone,
-    tzinfo,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import timezone
+from datetime import tzinfo
 
 import dateutil
-from dateutil.tz import (
-    gettz,
-    tzlocal,
-)
+from dateutil.tz import gettz
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
@@ -24,22 +20,18 @@ try:
 except ImportError:
     ZoneInfo = None
 
-from pandas._libs.tslibs import (
-    conversion,
-    timezones,
-)
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import timezones
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    bdate_range,
-    date_range,
-    isna,
-    to_datetime,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timestamp
+from pandas import bdate_range
+from pandas import date_range
+from pandas import isna
+from pandas import to_datetime
 import pandas._testing as tm
 
 

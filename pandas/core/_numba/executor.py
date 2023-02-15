@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import functools
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 

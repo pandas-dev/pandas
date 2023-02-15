@@ -5,10 +5,8 @@ engine is set to 'python-fwf' internally.
 """
 
 from datetime import datetime
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import BytesIO
+from io import StringIO
 from pathlib import Path
 
 import numpy as np
@@ -17,21 +15,15 @@ import pytest
 from pandas.errors import EmptyDataError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 from pandas.tests.io.test_compression import _compression_to_extension
 
-from pandas.io.parsers import (
-    read_csv,
-    read_fwf,
-)
+from pandas.io.parsers import read_csv
+from pandas.io.parsers import read_fwf
 
 
 def test_basic():

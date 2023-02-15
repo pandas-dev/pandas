@@ -4,13 +4,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Interval,
-    Series,
-    isnull,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Interval
+from pandas import Series
+from pandas import isnull
 import pandas._testing as tm
 
 

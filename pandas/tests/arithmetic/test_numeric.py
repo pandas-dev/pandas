@@ -12,21 +12,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    RangeIndex,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    array,
-)
+from pandas import Index
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import array
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
-from pandas.tests.arithmetic.common import (
-    assert_invalid_addsub_type,
-    assert_invalid_comparison,
-)
+from pandas.tests.arithmetic.common import assert_invalid_addsub_type
+from pandas.tests.arithmetic.common import assert_invalid_comparison
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])

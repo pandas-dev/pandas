@@ -10,22 +10,18 @@ import pytest
 
 from pandas.errors import IndexingError
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    date_range,
-    offsets,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import date_range
+from pandas import offsets
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj

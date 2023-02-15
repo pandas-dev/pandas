@@ -1,10 +1,8 @@
 import pytest
 
-from pandas import (
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-)
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

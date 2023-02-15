@@ -3,15 +3,13 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import (
-    DatetimeIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    notna,
-    offsets,
-)
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import notna
+from pandas import offsets
 import pandas._testing as tm
 
 
@@ -114,10 +112,8 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import (
-            PeriodIndex,
-            period_range,
-        )
+        from pandas import PeriodIndex
+        from pandas import period_range
 
         # array or list or dates
         N = 50

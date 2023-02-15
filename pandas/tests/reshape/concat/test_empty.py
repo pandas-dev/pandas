@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    RangeIndex,
-    Series,
-    concat,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import RangeIndex
+from pandas import Series
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
 
 

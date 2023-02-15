@@ -1,21 +1,19 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    Float64Dtype,
-    Index,
-    MultiIndex,
-    NaT,
-    Period,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    isna,
-)
+from pandas import Categorical
+from pandas import Float64Dtype
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 
 

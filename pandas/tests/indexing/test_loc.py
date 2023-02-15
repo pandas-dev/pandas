@@ -1,11 +1,9 @@
 """ test label based indexing with loc """
 from collections import namedtuple
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 import re
 
 from dateutil.tz import gettz
@@ -16,31 +14,27 @@ from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    Period,
-    PeriodIndex,
-    Series,
-    SparseDtype,
-    Timedelta,
-    Timestamp,
-    date_range,
-    timedelta_range,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import SparseDtype
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import timedelta_range
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_scalar,
-)
+from pandas.api.types import is_bool_dtype
+from pandas.api.types import is_scalar
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 

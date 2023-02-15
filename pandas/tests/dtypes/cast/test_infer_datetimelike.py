@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    NaT,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
 
 
 @pytest.mark.parametrize(

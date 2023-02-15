@@ -1,22 +1,18 @@
 import numpy as np
 import pytest
 
-from pandas._libs.parsers import (  # type: ignore[attr-defined]
-    _maybe_upcast,
-    na_values,
-)
+from pandas._libs.parsers import _maybe_upcast  # type: ignore[attr-defined]
+from pandas._libs.parsers import na_values
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import NA
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import StringArray
 
 
 def test_maybe_upcast(any_real_numpy_dtype):

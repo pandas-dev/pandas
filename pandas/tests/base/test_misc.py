@@ -3,22 +3,16 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    PYPY,
-)
+from pandas.compat import IS64
+from pandas.compat import PYPY
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_object_dtype
 
 import pandas as pd
-from pandas import (
-    Index,
-    Series,
-)
+from pandas import Index
+from pandas import Series
 import pandas._testing as tm
 
 

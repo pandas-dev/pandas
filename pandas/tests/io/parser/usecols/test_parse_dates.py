@@ -6,11 +6,9 @@ from io import StringIO
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Timestamp
 import pandas._testing as tm
 
 _msg_validate_usecols_arg = (

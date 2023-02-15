@@ -3,11 +3,9 @@ Timedelta benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
 """
 
-from pandas import (
-    DataFrame,
-    Series,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import timedelta_range
 
 
 class DatetimeAccessor:

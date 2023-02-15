@@ -5,14 +5,12 @@ import pytest
 
 from pandas.errors import SettingWithCopyError
 
-from pandas import (
-    DataFrame,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    concat,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay

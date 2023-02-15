@@ -5,18 +5,14 @@ Currently only includes to_coo helpers.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import Iterable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    IndexLabel,
-    npt,
-)
+from pandas._typing import IndexLabel
+from pandas._typing import npt
 
 from pandas.core.dtypes.missing import notna
 

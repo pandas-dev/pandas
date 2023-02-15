@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Scalar
+from pandas._typing import npt
 from pandas.compat.numpy import np_percentile_argname
 
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 
 def quantile_compat(

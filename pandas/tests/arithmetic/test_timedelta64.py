@@ -1,38 +1,30 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    OutOfBoundsDatetime,
-    PerformanceWarning,
-)
+from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    NaT,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    offsets,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import offsets
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray
-from pandas.tests.arithmetic.common import (
-    assert_invalid_addsub_type,
-    assert_invalid_comparison,
-    get_upcast_box,
-)
+from pandas.tests.arithmetic.common import assert_invalid_addsub_type
+from pandas.tests.arithmetic.common import assert_invalid_comparison
+from pandas.tests.arithmetic.common import get_upcast_box
 
 
 def assert_dtype(obj, expected_dtype):

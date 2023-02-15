@@ -6,10 +6,8 @@ from typing import cast
 
 import numpy as np
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.indexes.api import MultiIndex
 

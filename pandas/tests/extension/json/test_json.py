@@ -7,11 +7,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
-from pandas.tests.extension.json.array import (
-    JSONArray,
-    JSONDtype,
-    make_data,
-)
+from pandas.tests.extension.json.array import JSONArray
+from pandas.tests.extension.json.array import JSONDtype
+from pandas.tests.extension.json.array import make_data
 
 
 @pytest.fixture

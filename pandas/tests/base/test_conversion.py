@@ -1,29 +1,23 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import CategoricalIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    IntervalArray,
-    PandasArray,
-    PeriodArray,
-    SparseArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import SparseArray
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestToIterable:

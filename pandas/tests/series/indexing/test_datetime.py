@@ -1,16 +1,12 @@
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import re
 
-from dateutil.tz import (
-    gettz,
-    tzutc,
-)
+from dateutil.tz import gettz
+from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
@@ -18,13 +14,11 @@ import pytz
 from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

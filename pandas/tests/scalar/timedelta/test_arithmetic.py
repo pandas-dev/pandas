@@ -1,10 +1,8 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import operator
 
 import numpy as np
@@ -13,12 +11,10 @@ import pytest
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
-from pandas import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    offsets,
-)
+from pandas import NaT
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import offsets
 import pandas._testing as tm
 from pandas.core import ops
 

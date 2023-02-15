@@ -3,11 +3,9 @@ import numpy as np
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 

@@ -7,10 +7,8 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    Series,
-    _testing as tm,
-)
+from pandas import Series
+from pandas import _testing as tm
 
 # --------------------------------------------------------------------------------------
 # str.contains

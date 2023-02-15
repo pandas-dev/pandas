@@ -1,40 +1,32 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 import re
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    TimedeltaIndex,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import TimedeltaIndex
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import (
-    MergeError,
-    merge,
-)
+from pandas.core.reshape.merge import MergeError
+from pandas.core.reshape.merge import merge
 
 
 def get_test_data(ngroups=8, n=50):

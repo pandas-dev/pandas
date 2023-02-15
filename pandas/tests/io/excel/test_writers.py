@@ -1,8 +1,6 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 from functools import partial
 from io import BytesIO
 import os
@@ -14,21 +12,17 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import option_context
 import pandas._testing as tm
 
-from pandas.io.excel import (
-    ExcelFile,
-    ExcelWriter,
-    _OpenpyxlWriter,
-    _XlsxWriter,
-    register_writer,
-)
+from pandas.io.excel import ExcelFile
+from pandas.io.excel import ExcelWriter
+from pandas.io.excel import _OpenpyxlWriter
+from pandas.io.excel import _XlsxWriter
+from pandas.io.excel import register_writer
 from pandas.io.excel._util import _writers
 
 

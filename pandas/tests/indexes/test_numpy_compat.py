@@ -1,19 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    TimedeltaIndex,
-    isna,
-)
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import PeriodIndex
+from pandas import TimedeltaIndex
+from pandas import isna
 import pandas._testing as tm
-from pandas.api.types import (
-    is_complex_dtype,
-    is_numeric_dtype,
-)
+from pandas.api.types import is_complex_dtype
+from pandas.api.types import is_numeric_dtype
 from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 

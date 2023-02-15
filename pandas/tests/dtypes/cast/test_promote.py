@@ -11,16 +11,14 @@ import pytest
 from pandas._libs.tslibs import NaT
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 

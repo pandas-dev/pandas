@@ -6,16 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    Interval,
-    Series,
-    Timedelta,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 

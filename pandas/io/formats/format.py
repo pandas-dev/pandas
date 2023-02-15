@@ -5,114 +5,92 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from csv import (
-    QUOTE_NONE,
-    QUOTE_NONNUMERIC,
-)
+from csv import QUOTE_NONE
+from csv import QUOTE_NONNUMERIC
 from decimal import Decimal
 from functools import partial
 from io import StringIO
 import math
 import re
 from shutil import get_terminal_size
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Final,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Final
+from typing import Generator
+from typing import Hashable
+from typing import IO
+from typing import Iterable
+from typing import List
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 from unicodedata import east_asian_width
 
 import numpy as np
 
-from pandas._config.config import (
-    get_option,
-    set_option,
-)
+from pandas._config.config import get_option
+from pandas._config.config import set_option
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas._libs.tslibs import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    get_unit_from_dtype,
-    iNaT,
-    periods_per_day,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import periods_per_day
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Axes
+from pandas._typing import ColspaceArgType
+from pandas._typing import ColspaceType
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import FloatFormatType
+from pandas._typing import FormattersType
+from pandas._typing import IndexLabel
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_numeric_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import PeriodIndex
+from pandas.core.indexes.api import ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import (
-    check_parent_directory,
-    stringify_path,
-)
+from pandas.io.common import check_parent_directory
+from pandas.io.common import stringify_path
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 common_docstring: Final = """
@@ -1091,10 +1069,8 @@ class DataFrameRenderer:
         render_links : bool, default False
             Convert URLs to HTML links.
         """
-        from pandas.io.formats.html import (
-            HTMLFormatter,
-            NotebookFormatter,
-        )
+        from pandas.io.formats.html import HTMLFormatter
+        from pandas.io.formats.html import NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
 

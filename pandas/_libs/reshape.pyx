@@ -1,10 +1,8 @@
 cimport cython
 from cython cimport Py_ssize_t
-from numpy cimport (
-    int64_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 import numpy as np
 

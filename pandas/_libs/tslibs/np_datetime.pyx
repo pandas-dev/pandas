@@ -1,23 +1,19 @@
 cimport cython
-from cpython.datetime cimport (
-    PyDateTime_CheckExact,
-    PyDateTime_DATE_GET_HOUR,
-    PyDateTime_DATE_GET_MICROSECOND,
-    PyDateTime_DATE_GET_MINUTE,
-    PyDateTime_DATE_GET_SECOND,
-    PyDateTime_GET_DAY,
-    PyDateTime_GET_MONTH,
-    PyDateTime_GET_YEAR,
-    import_datetime,
-)
-from cpython.object cimport (
-    Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
-    Py_NE,
-)
+from cpython.datetime cimport PyDateTime_CheckExact
+from cpython.datetime cimport PyDateTime_DATE_GET_HOUR
+from cpython.datetime cimport PyDateTime_DATE_GET_MICROSECOND
+from cpython.datetime cimport PyDateTime_DATE_GET_MINUTE
+from cpython.datetime cimport PyDateTime_DATE_GET_SECOND
+from cpython.datetime cimport PyDateTime_GET_DAY
+from cpython.datetime cimport PyDateTime_GET_MONTH
+from cpython.datetime cimport PyDateTime_GET_YEAR
+from cpython.datetime cimport import_datetime
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_GE
+from cpython.object cimport Py_GT
+from cpython.object cimport Py_LE
+from cpython.object cimport Py_LT
+from cpython.object cimport Py_NE
 
 import_datetime()
 
@@ -26,11 +22,9 @@ import numpy as np
 cimport numpy as cnp
 
 cnp.import_array()
-from numpy cimport (
-    int64_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 

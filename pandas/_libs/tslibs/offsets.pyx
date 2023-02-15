@@ -2,16 +2,14 @@ import re
 import time
 
 cimport cython
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    date,
-    datetime,
-    import_datetime,
-    time as dt_time,
-    timedelta,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport date
+from cpython.datetime cimport datetime
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport time as dt_time
+from cpython.datetime cimport timedelta
 
 import_datetime()
 
@@ -20,10 +18,8 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    ndarray,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 cnp.import_array()
 
@@ -32,46 +28,34 @@ cnp.import_array()
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
+from pandas._libs.tslibs.util cimport is_datetime64_object
+from pandas._libs.tslibs.util cimport is_float_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from pandas._libs.tslibs.ccalendar import (
-    MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
-    int_to_weekday,
-    weekday_to_int,
-)
+from pandas._libs.tslibs.ccalendar import MONTH_ALIASES
+from pandas._libs.tslibs.ccalendar import MONTH_TO_CAL_NUM
+from pandas._libs.tslibs.ccalendar import int_to_weekday
+from pandas._libs.tslibs.ccalendar import weekday_to_int
 
-from pandas._libs.tslibs.ccalendar cimport (
-    dayofweek,
-    get_days_in_month,
-    get_firstbday,
-    get_lastbday,
-)
+from pandas._libs.tslibs.ccalendar cimport dayofweek
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.ccalendar cimport get_firstbday
+from pandas._libs.tslibs.ccalendar cimport get_lastbday
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport periods_per_day
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-)
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    get_unit_from_dtype,
-    npy_datetimestruct,
-    npy_datetimestruct_to_datetime,
-    pandas_datetime_to_datetimestruct,
-    pydate_to_dtstruct,
-)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport get_unit_from_dtype
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct_to_datetime
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pydate_to_dtstruct
 
 from .dtypes cimport PeriodDtypeCode
-from .timedeltas cimport (
-    _Timedelta,
-    delta_to_nanoseconds,
-    is_any_td_scalar,
-)
+from .timedeltas cimport _Timedelta
+from .timedeltas cimport delta_to_nanoseconds
+from .timedeltas cimport is_any_td_scalar
 
 from .timedeltas import Timedelta
 

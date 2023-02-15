@@ -17,11 +17,9 @@ from sysconfig import get_config_vars
 
 import numpy
 from pkg_resources import parse_version
-from setuptools import (
-    Command,
-    Extension,
-    setup,
-)
+from setuptools import Command
+from setuptools import Extension
+from setuptools import setup
 from setuptools.command.build_ext import build_ext as _build_ext
 import versioneer
 
@@ -40,10 +38,8 @@ def is_platform_mac():
 min_cython_ver = "0.29.32"
 
 try:
-    from Cython import (
-        Tempita,
-        __version__ as _CYTHON_VERSION,
-    )
+    from Cython import Tempita
+    from Cython import __version__ as _CYTHON_VERSION
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = parse_version(_CYTHON_VERSION) >= parse_version(min_cython_ver)

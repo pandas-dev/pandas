@@ -1,18 +1,16 @@
-from pandas.core.indexers.utils import (
-    check_array_indexer,
-    check_key_length,
-    check_setitem_lengths,
-    disallow_ndim_indexing,
-    is_empty_indexer,
-    is_list_like_indexer,
-    is_scalar_indexer,
-    is_valid_positional_slice,
-    length_of_indexer,
-    maybe_convert_indices,
-    unpack_1tuple,
-    unpack_tuple_and_ellipses,
-    validate_indices,
-)
+from pandas.core.indexers.utils import check_array_indexer
+from pandas.core.indexers.utils import check_key_length
+from pandas.core.indexers.utils import check_setitem_lengths
+from pandas.core.indexers.utils import disallow_ndim_indexing
+from pandas.core.indexers.utils import is_empty_indexer
+from pandas.core.indexers.utils import is_list_like_indexer
+from pandas.core.indexers.utils import is_scalar_indexer
+from pandas.core.indexers.utils import is_valid_positional_slice
+from pandas.core.indexers.utils import length_of_indexer
+from pandas.core.indexers.utils import maybe_convert_indices
+from pandas.core.indexers.utils import unpack_1tuple
+from pandas.core.indexers.utils import unpack_tuple_and_ellipses
+from pandas.core.indexers.utils import validate_indices
 
 __all__ = [
     "is_valid_positional_slice",

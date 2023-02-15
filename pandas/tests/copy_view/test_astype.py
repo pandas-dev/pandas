@@ -3,12 +3,10 @@ import pytest
 
 from pandas.compat import pa_version_under7p0
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 

@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 from pandas.tseries import offsets

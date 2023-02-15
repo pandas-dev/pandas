@@ -1,30 +1,22 @@
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 
-from pandas._libs import (
-    index as libindex,
-    lib,
-)
-from pandas._libs.tslibs import (
-    Resolution,
-    Timedelta,
-    to_offset,
-)
+from pandas._libs import index as libindex
+from pandas._libs import lib
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import to_offset
 from pandas._typing import DtypeObj
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    is_scalar,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_timedelta64_dtype
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import (
-    Index,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 

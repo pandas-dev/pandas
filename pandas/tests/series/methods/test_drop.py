@@ -1,9 +1,7 @@
 import pytest
 
-from pandas import (
-    Index,
-    Series,
-)
+from pandas import Index
+from pandas import Series
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
 

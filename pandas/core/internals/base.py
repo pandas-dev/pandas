@@ -4,32 +4,24 @@ inherit from this class.
 """
 from __future__ import annotations
 
-from typing import (
-    Literal,
-    TypeVar,
-    final,
-)
+from typing import Literal
+from typing import TypeVar
+from typing import final
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Shape,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import Shape
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    np_can_hold_element,
-)
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import np_can_hold_element
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import (
-    Index,
-    default_index,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import default_index
 
 T = TypeVar("T", bound="DataManager")
 

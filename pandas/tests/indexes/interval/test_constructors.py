@@ -6,17 +6,15 @@ import pytest
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    date_range,
-    notna,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import date_range
+from pandas import notna
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com

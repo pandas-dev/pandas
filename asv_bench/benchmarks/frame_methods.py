@@ -3,16 +3,14 @@ import warnings
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    NaT,
-    Series,
-    date_range,
-    isnull,
-    period_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import date_range
+from pandas import isnull
+from pandas import period_range
+from pandas import timedelta_range
 
 from .pandas_vb_common import tm
 

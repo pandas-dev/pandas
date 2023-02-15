@@ -3,27 +3,21 @@ Low-dependency indexing utilities.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._typing import AnyArrayLike
 
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_extension_array_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-)
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame

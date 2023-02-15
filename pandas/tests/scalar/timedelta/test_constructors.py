@@ -7,12 +7,10 @@ import pytest
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
-from pandas import (
-    NaT,
-    Timedelta,
-    offsets,
-    to_timedelta,
-)
+from pandas import NaT
+from pandas import Timedelta
+from pandas import offsets
+from pandas import to_timedelta
 
 
 def test_construct_with_weeks_unit_overflow():

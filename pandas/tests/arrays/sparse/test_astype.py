@@ -3,16 +3,12 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseDtype
 
 
 class TestAstype:

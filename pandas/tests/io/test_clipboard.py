@@ -5,36 +5,26 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_linux,
-    is_platform_mac,
-)
-from pandas.errors import (
-    PyperclipException,
-    PyperclipWindowsException,
-)
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_linux
+from pandas.compat import is_platform_mac
+from pandas.errors import PyperclipException
+from pandas.errors import PyperclipWindowsException
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-    get_option,
-    read_clipboard,
-)
+from pandas import DataFrame
+from pandas import NA
+from pandas import Series
+from pandas import get_option
+from pandas import read_clipboard
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
-from pandas.io.clipboard import (
-    CheckedCall,
-    _stringifyText,
-    clipboard_get,
-    clipboard_set,
-)
+from pandas.io.clipboard import CheckedCall
+from pandas.io.clipboard import _stringifyText
+from pandas.io.clipboard import clipboard_get
+from pandas.io.clipboard import clipboard_set
 
 
 def build_kwargs(sep, excel):

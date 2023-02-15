@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from importlib import reload
 import string
 import sys
@@ -12,20 +10,18 @@ import pytest
 from pandas._libs.tslibs import iNaT
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    Categorical,
-    CategoricalDtype,
-    DatetimeTZDtype,
-    Index,
-    Interval,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-    cut,
-    date_range,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import DatetimeTZDtype
+from pandas import Index
+from pandas import Interval
+from pandas import NA
+from pandas import NaT
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
 import pandas._testing as tm
 
 

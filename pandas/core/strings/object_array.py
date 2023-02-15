@@ -4,11 +4,9 @@ import functools
 import re
 import sys
 import textwrap
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Literal,
-)
+from typing import Callable
+from typing import Literal
+from typing import TYPE_CHECKING
 import unicodedata
 
 import numpy as np
@@ -16,10 +14,8 @@ import numpy as np
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import (
-    NpDtype,
-    Scalar,
-)
+from pandas._typing import NpDtype
+from pandas._typing import Scalar
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna

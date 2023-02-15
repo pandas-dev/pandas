@@ -3,15 +3,11 @@ Module for formatting output data in Latex.
 """
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    Sequence,
-)
+from abc import ABC
+from abc import abstractmethod
+from typing import Iterator
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 

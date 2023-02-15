@@ -5,19 +5,15 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    interval_range,
-    plotting,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import interval_range
+from pandas import plotting
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
 
 
 @td.skip_if_mpl

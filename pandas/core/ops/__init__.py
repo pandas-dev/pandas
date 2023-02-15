@@ -6,79 +6,57 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    Level,
-)
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_list_like,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import (
-    algorithms,
-    roperator,
-)
-from pandas.core.ops.array_ops import (
-    arithmetic_op,
-    comp_method_OBJECT_ARRAY,
-    comparison_op,
-    get_array_op,
-    logical_op,
-    maybe_prepare_scalar_for_op,
-)
-from pandas.core.ops.common import (
-    get_op_result_name,
-    unpack_zerodim_and_defer,
-)
-from pandas.core.ops.docstrings import (
-    _flex_comp_doc_FRAME,
-    _op_descriptions,
-    make_flex_doc,
-)
+from pandas.core import algorithms
+from pandas.core import roperator
+from pandas.core.ops.array_ops import arithmetic_op
+from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY
+from pandas.core.ops.array_ops import comparison_op
+from pandas.core.ops.array_ops import get_array_op
+from pandas.core.ops.array_ops import logical_op
+from pandas.core.ops.array_ops import maybe_prepare_scalar_for_op
+from pandas.core.ops.common import get_op_result_name
+from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.docstrings import _flex_comp_doc_FRAME
+from pandas.core.ops.docstrings import _op_descriptions
+from pandas.core.ops.docstrings import make_flex_doc
 from pandas.core.ops.invalid import invalid_comparison
-from pandas.core.ops.mask_ops import (
-    kleene_and,
-    kleene_or,
-    kleene_xor,
-)
+from pandas.core.ops.mask_ops import kleene_and
+from pandas.core.ops.mask_ops import kleene_or
+from pandas.core.ops.mask_ops import kleene_xor
 from pandas.core.ops.methods import add_flex_arithmetic_methods
-from pandas.core.roperator import (
-    radd,
-    rand_,
-    rdiv,
-    rdivmod,
-    rfloordiv,
-    rmod,
-    rmul,
-    ror_,
-    rpow,
-    rsub,
-    rtruediv,
-    rxor,
-)
+from pandas.core.roperator import radd
+from pandas.core.roperator import rand_
+from pandas.core.roperator import rdiv
+from pandas.core.roperator import rdivmod
+from pandas.core.roperator import rfloordiv
+from pandas.core.roperator import rmod
+from pandas.core.roperator import rmul
+from pandas.core.roperator import ror_
+from pandas.core.roperator import rpow
+from pandas.core.roperator import rsub
+from pandas.core.roperator import rtruediv
+from pandas.core.roperator import rxor
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 # -----------------------------------------------------------------------------
 # constants

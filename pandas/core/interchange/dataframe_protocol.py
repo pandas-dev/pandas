@@ -4,17 +4,13 @@ A verbatim copy (vendored) of the spec from https://github.com/data-apis/datafra
 
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC
+from abc import abstractmethod
 import enum
-from typing import (
-    Any,
-    Iterable,
-    Sequence,
-    TypedDict,
-)
+from typing import Any
+from typing import Iterable
+from typing import Sequence
+from typing import TypedDict
 
 
 class DlpackDeviceType(enum.IntEnum):

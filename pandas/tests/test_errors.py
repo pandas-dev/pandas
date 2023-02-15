@@ -1,9 +1,7 @@
 import pytest
 
-from pandas.errors import (
-    AbstractMethodError,
-    UndefinedVariableError,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import UndefinedVariableError
 
 import pandas as pd
 

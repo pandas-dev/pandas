@@ -3,53 +3,41 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import (
-    lru_cache,
-    reduce,
-)
+from functools import lru_cache
+from functools import reduce
 import itertools
 import re
-from typing import (
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Mapping
+from typing import Sequence
+from typing import cast
 import warnings
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import (
-    IndexLabel,
-    StorageOptions,
-)
+from pandas._typing import IndexLabel
+from pandas._typing import StorageOptions
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes import missing
-from pandas.core.dtypes.common import (
-    is_float,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_scalar
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import PeriodIndex
 import pandas.core.common as com
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
-from pandas.io.formats.css import (
-    CSSResolver,
-    CSSWarning,
-)
+from pandas.io.formats.css import CSSResolver
+from pandas.io.formats.css import CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 

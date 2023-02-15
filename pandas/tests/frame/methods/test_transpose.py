@@ -3,13 +3,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    IntervalIndex,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import IntervalIndex
+from pandas import date_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

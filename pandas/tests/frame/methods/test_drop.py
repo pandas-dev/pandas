@@ -6,14 +6,12 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

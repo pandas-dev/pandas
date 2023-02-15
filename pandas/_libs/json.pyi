@@ -1,7 +1,5 @@
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Any
+from typing import Callable
 
 def dumps(
     obj: Any,

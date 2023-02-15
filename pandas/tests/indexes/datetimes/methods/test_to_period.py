@@ -8,14 +8,12 @@ import pytz
 from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
-from pandas import (
-    DatetimeIndex,
-    Period,
-    PeriodIndex,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DatetimeIndex
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

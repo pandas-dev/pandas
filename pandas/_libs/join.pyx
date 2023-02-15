@@ -1,23 +1,20 @@
 cimport cython
 from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    intp_t,
-    ndarray,
-    uint64_t,
-)
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint64_t
 
 cnp.import_array()
 
 from pandas._libs.algos import groupsort_indexer
 
-from pandas._libs.dtypes cimport (
-    numeric_object_t,
-    numeric_t,
-)
+from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs.dtypes cimport numeric_t
 
 
 @cython.wraparound(False)
@@ -666,12 +663,10 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from pandas._libs.hashtable cimport (
-    HashTable,
-    Int64HashTable,
-    PyObjectHashTable,
-    UInt64HashTable,
-)
+from pandas._libs.hashtable cimport HashTable
+from pandas._libs.hashtable cimport Int64HashTable
+from pandas._libs.hashtable cimport PyObjectHashTable
+from pandas._libs.hashtable cimport UInt64HashTable
 
 ctypedef fused by_t:
     object

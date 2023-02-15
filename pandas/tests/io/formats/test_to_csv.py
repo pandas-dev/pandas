@@ -8,10 +8,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    compat,
-)
+from pandas import DataFrame
+from pandas import compat
 import pandas._testing as tm
 from pandas.tests.io.test_compression import _compression_to_extension
 

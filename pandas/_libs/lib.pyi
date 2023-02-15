@@ -1,23 +1,19 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
 
-from typing import (
-    Any,
-    Callable,
-    Final,
-    Generator,
-    Hashable,
-    Literal,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Final
+from typing import Generator
+from typing import Hashable
+from typing import Literal
+from typing import overload
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeObj
+from pandas._typing import npt
 
 # placeholder until we can specify np.ndarray[object, ndim=2]
 ndarray_obj_2d = np.ndarray

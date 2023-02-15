@@ -1,17 +1,13 @@
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 import dateutil.tz
 import pytest
 import pytz
 
-from pandas._libs.tslibs import (
-    conversion,
-    timezones,
-)
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import timezones
 from pandas.compat import is_platform_windows
 
 from pandas import Timestamp

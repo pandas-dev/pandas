@@ -1,10 +1,8 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.arrays.masked_shared import (
-    ComparisonOps,
-    NumericOps,
-)
+from pandas.tests.arrays.masked_shared import ComparisonOps
+from pandas.tests.arrays.masked_shared import NumericOps
 
 
 class TestComparisonOps(NumericOps, ComparisonOps):

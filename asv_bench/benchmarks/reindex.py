@@ -1,13 +1,11 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import period_range
 
 from .pandas_vb_common import tm
 

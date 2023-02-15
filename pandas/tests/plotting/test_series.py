@@ -10,17 +10,13 @@ from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    plotting,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
+from pandas import plotting
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
 
 
 @pytest.fixture

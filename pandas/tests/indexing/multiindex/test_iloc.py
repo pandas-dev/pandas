@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 
 

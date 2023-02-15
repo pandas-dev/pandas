@@ -1,16 +1,12 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas._testing as tm
-from pandas.core.indexes.api import (
-    Index,
-    RangeIndex,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import RangeIndex
 
 
 @pytest.fixture

@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-)
+from pandas import Categorical
+from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 

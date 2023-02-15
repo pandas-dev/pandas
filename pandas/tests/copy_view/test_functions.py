@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    concat,
-    merge,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import concat
+from pandas import merge
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 

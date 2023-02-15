@@ -3,10 +3,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import date_range
 from pandas.tests.plotting.common import TestPlotBase
 
 

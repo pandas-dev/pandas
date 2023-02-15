@@ -15,17 +15,15 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import IS64
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    NaT,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

@@ -9,47 +9,37 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterator,
-    Sized,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterator
+from typing import Sized
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._libs.tslibs import (
-    BaseOffset,
-    to_offset,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    QuantileInterpolation,
-    WindowingRankType,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import NDFrameT
+from pandas._typing import QuantileInterpolation
+from pandas._typing import WindowingRankType
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    ensure_float64,
-    is_bool,
-    is_integer,
-    is_list_like,
-    is_numeric_dtype,
-    is_scalar,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import ensure_float64
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import notna
 
 from pandas.core._numba import executor
@@ -58,51 +48,37 @@ from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
-from pandas.core.indexers.objects import (
-    BaseIndexer,
-    FixedWindowIndexer,
-    GroupbyIndexer,
-    VariableWindowIndexer,
-)
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    TimedeltaIndex,
-)
+from pandas.core.indexers.objects import BaseIndexer
+from pandas.core.indexers.objects import FixedWindowIndexer
+from pandas.core.indexers.objects import GroupbyIndexer
+from pandas.core.indexers.objects import VariableWindowIndexer
+from pandas.core.indexes.api import DatetimeIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import PeriodIndex
+from pandas.core.indexes.api import TimedeltaIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.util.numba_ import (
-    get_jit_arguments,
-    maybe_use_numba,
-)
-from pandas.core.window.common import (
-    flex_binary_moment,
-    zsqrt,
-)
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    kwargs_scipy,
-    numba_notes,
-    template_header,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-    window_apply_parameters,
-)
-from pandas.core.window.numba_ import (
-    generate_manual_numpy_nan_agg_with_axis,
-    generate_numba_apply_func,
-    generate_numba_table_func,
-)
+from pandas.core.util.numba_ import get_jit_arguments
+from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.window.common import flex_binary_moment
+from pandas.core.window.common import zsqrt
+from pandas.core.window.doc import _shared_docs
+from pandas.core.window.doc import create_section_header
+from pandas.core.window.doc import kwargs_numeric_only
+from pandas.core.window.doc import kwargs_scipy
+from pandas.core.window.doc import numba_notes
+from pandas.core.window.doc import template_header
+from pandas.core.window.doc import template_returns
+from pandas.core.window.doc import template_see_also
+from pandas.core.window.doc import window_agg_numba_parameters
+from pandas.core.window.doc import window_apply_parameters
+from pandas.core.window.numba_ import generate_manual_numpy_nan_agg_with_axis
+from pandas.core.window.numba_ import generate_numba_apply_func
+from pandas.core.window.numba_ import generate_numba_table_func
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
 

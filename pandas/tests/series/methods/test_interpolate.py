@@ -4,13 +4,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    isna,
-)
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 
 

@@ -5,13 +5,11 @@ from numpy import iinfo
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    option_context,
-    to_numeric,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import option_context
+from pandas import to_numeric
 import pandas._testing as tm
 
 

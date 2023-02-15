@@ -3,14 +3,12 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-from contextlib import (
-    contextmanager,
-    nullcontext,
-)
+from contextlib import contextmanager
+from contextlib import nullcontext
 import re
 import sys
-from typing import (
-    Generator,
-    Literal,
-    Sequence,
-    Type,
-    cast,
-)
+from typing import Generator
+from typing import Literal
+from typing import Sequence
+from typing import Type
+from typing import cast
 import warnings
 
 
@@ -207,10 +203,8 @@ def _is_unexpected_warning(
 def _assert_raised_with_correct_stacklevel(
     actual_warning: warnings.WarningMessage,
 ) -> None:
-    from inspect import (
-        getframeinfo,
-        stack,
-    )
+    from inspect import getframeinfo
+    from inspect import stack
 
     caller = getframeinfo(stack()[4][0])
     msg = (

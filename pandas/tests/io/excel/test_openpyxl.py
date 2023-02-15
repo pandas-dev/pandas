@@ -9,10 +9,8 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.excel import (
-    ExcelWriter,
-    _OpenpyxlWriter,
-)
+from pandas.io.excel import ExcelWriter
+from pandas.io.excel import _OpenpyxlWriter
 
 openpyxl = pytest.importorskip("openpyxl")
 

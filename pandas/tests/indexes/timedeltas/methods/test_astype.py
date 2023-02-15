@@ -4,13 +4,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    NaT,
-    Timedelta,
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas import Index
+from pandas import NaT
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

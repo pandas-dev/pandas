@@ -4,10 +4,8 @@ Note: includes tests for `last`
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    bdate_range,
-)
+from pandas import DataFrame
+from pandas import bdate_range
 import pandas._testing as tm
 
 

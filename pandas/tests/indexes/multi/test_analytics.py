@@ -2,12 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-    date_range,
-    period_range,
-)
+from pandas import Index
+from pandas import MultiIndex
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

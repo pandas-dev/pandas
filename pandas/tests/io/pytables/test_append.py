@@ -10,18 +10,14 @@ from pandas._libs.tslibs import Timestamp
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    _testing as tm,
-    concat,
-    date_range,
-    read_hdf,
-)
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import _testing as tm
+from pandas import concat
+from pandas import date_range
+from pandas import read_hdf
+from pandas.tests.io.pytables.common import _maybe_remove
+from pandas.tests.io.pytables.common import ensure_clean_store
 
 pytestmark = pytest.mark.single_cpu
 

@@ -2,14 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge

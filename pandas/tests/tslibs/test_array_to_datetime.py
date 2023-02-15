@@ -1,18 +1,14 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    iNaT,
-    tslib,
-)
+from pandas._libs import iNaT
+from pandas._libs import tslib
 
 from pandas import Timestamp
 import pandas._testing as tm

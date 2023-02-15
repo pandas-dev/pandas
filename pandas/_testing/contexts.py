@@ -4,18 +4,14 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 import tempfile
-from typing import (
-    IO,
-    Any,
-    Generator,
-)
+from typing import Any
+from typing import Generator
+from typing import IO
 import uuid
 
-from pandas._typing import (
-    BaseBuffer,
-    CompressionOptions,
-    FilePath,
-)
+from pandas._typing import BaseBuffer
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 

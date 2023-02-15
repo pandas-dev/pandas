@@ -2,10 +2,8 @@ from textwrap import dedent
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
 
 pytest.importorskip("jinja2")
 

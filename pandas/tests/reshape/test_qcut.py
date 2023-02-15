@@ -4,28 +4,24 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DatetimeIndex,
-    Interval,
-    IntervalIndex,
-    NaT,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    cut,
-    date_range,
-    isna,
-    qcut,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DatetimeIndex
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import NaT
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
+from pandas import isna
+from pandas import qcut
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
-from pandas.tseries.offsets import (
-    Day,
-    Nano,
-)
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Nano
 
 
 def test_qcut():

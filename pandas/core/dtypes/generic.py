@@ -1,33 +1,27 @@
 """ define generic base classes for pandas objects """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Type,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import Type
+from typing import cast
 
 if TYPE_CHECKING:
-    from pandas import (
-        Categorical,
-        CategoricalIndex,
-        DataFrame,
-        DatetimeIndex,
-        Index,
-        IntervalIndex,
-        MultiIndex,
-        PeriodIndex,
-        RangeIndex,
-        Series,
-        TimedeltaIndex,
-    )
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-        PandasArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas import Categorical
+    from pandas import CategoricalIndex
+    from pandas import DataFrame
+    from pandas import DatetimeIndex
+    from pandas import Index
+    from pandas import IntervalIndex
+    from pandas import MultiIndex
+    from pandas import PeriodIndex
+    from pandas import RangeIndex
+    from pandas import Series
+    from pandas import TimedeltaIndex
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import PandasArray
+    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import TimedeltaArray
     from pandas.core.generic import NDFrame
 
 

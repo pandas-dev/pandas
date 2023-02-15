@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import Scalar
+from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -94,11 +90,9 @@ class ODFReader(BaseExcelReader):
         """
         Parse an ODF Table into a list of lists
         """
-        from odf.table import (
-            CoveredTableCell,
-            TableCell,
-            TableRow,
-        )
+        from odf.table import CoveredTableCell
+        from odf.table import TableCell
+        from odf.table import TableRow
 
         covered_cell_name = CoveredTableCell().qname
         table_cell_name = TableCell().qname

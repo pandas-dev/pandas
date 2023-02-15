@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    Literal,
-    cast,
-)
+from typing import Literal
+from typing import cast
 
 import numpy as np
 
@@ -11,43 +9,35 @@ from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_categorical_dtype,
-    is_extension_array_dtype,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_number,
-    is_numeric_dtype,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    TimedeltaIndex,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import TimedeltaIndex
 from pandas.core.algorithms import take_nd
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    IntervalArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index

@@ -4,20 +4,16 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-from pandas.errors import (
-    NumExprClobberingError,
-    UndefinedVariableError,
-)
+from pandas.errors import NumExprClobberingError
+from pandas.errors import UndefinedVariableError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 

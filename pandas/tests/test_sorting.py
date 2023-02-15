@@ -5,30 +5,24 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_windows,
-)
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_windows
 
-from pandas import (
-    NA,
-    DataFrame,
-    MultiIndex,
-    Series,
-    array,
-    concat,
-    merge,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import array
+from pandas import concat
+from pandas import merge
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
-from pandas.core.sorting import (
-    _decons_group_index,
-    get_group_index,
-    is_int64_overflow_possible,
-    lexsort_indexer,
-    nargsort,
-)
+from pandas.core.sorting import _decons_group_index
+from pandas.core.sorting import get_group_index
+from pandas.core.sorting import is_int64_overflow_possible
+from pandas.core.sorting import lexsort_indexer
+from pandas.core.sorting import nargsort
 
 
 @pytest.fixture

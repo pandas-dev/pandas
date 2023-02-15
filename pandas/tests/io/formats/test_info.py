@@ -7,19 +7,15 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    PYPY,
-)
+from pandas.compat import IS64
+from pandas.compat import PYPY
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    option_context,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import option_context
 import pandas._testing as tm
 
 

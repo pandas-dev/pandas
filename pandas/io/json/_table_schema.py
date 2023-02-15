@@ -5,34 +5,28 @@ https://specs.frictionlessdata.io/table-schema/
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    cast,
-)
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 from pandas._libs.json import loads
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    DtypeObj,
-    JSONSerializable,
-)
+from pandas._typing import DtypeObj
+from pandas._typing import JSONSerializable
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_period_dtype,
-    is_string_dtype,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame

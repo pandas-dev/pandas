@@ -1,79 +1,65 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    time,
-    timedelta,
-    tzinfo,
-)
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    cast,
-)
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import tzinfo
+from typing import Iterator
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    tslib,
-)
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaT,
-    NaTType,
-    Resolution,
-    Timestamp,
-    astype_overflowsafe,
-    fields,
-    get_resolution,
-    get_supported_reso,
-    get_unit_from_dtype,
-    ints_to_pydatetime,
-    is_date_array_normalized,
-    is_supported_unit,
-    is_unitless,
-    normalize_i8_timestamps,
-    npy_unit_to_abbrev,
-    timezones,
-    to_offset,
-    tz_convert_from_utc,
-    tzconversion,
-)
+from pandas._libs import lib
+from pandas._libs import tslib
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import astype_overflowsafe
+from pandas._libs.tslibs import fields
+from pandas._libs.tslibs import get_resolution
+from pandas._libs.tslibs import get_supported_reso
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import ints_to_pydatetime
+from pandas._libs.tslibs import is_date_array_normalized
+from pandas._libs.tslibs import is_supported_unit
+from pandas._libs.tslibs import is_unitless
+from pandas._libs.tslibs import normalize_i8_timestamps
+from pandas._libs.tslibs import npy_unit_to_abbrev
+from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import tz_convert_from_utc
+from pandas._libs.tslibs import tzconversion
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._typing import (
-    DateTimeErrorChoices,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
+from pandas._typing import DateTimeErrorChoices
+from pandas._typing import IntervalClosedType
+from pandas._typing import TimeAmbiguous
+from pandas._typing import TimeNonexistent
+from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    INT64_DTYPE,
-    is_bool_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_object_dtype,
-    is_period_dtype,
-    is_sparse,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.common import DT64NS_DTYPE
+from pandas.core.dtypes.common import INT64_DTYPE
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_sparse
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
@@ -81,10 +67,8 @@ from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
-from pandas.tseries.offsets import (
-    Day,
-    Tick,
-)
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas import DataFrame

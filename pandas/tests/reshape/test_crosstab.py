@@ -4,14 +4,12 @@ import pytest
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    crosstab,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import crosstab
 import pandas._testing as tm
 
 

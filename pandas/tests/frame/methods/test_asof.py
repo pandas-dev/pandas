@@ -3,15 +3,13 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import (
-    DataFrame,
-    Period,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Period
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import to_datetime
 import pandas._testing as tm
 
 

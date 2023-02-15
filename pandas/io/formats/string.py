@@ -4,10 +4,8 @@ Module for formatting output data in console (to string).
 from __future__ import annotations
 
 from shutil import get_terminal_size
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import Iterable
+from typing import TYPE_CHECKING
 
 import numpy as np
 

@@ -3,11 +3,9 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import (
-    NaT,
-    Period,
-    PeriodIndex,
-)
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
 import pandas._testing as tm
 
 

@@ -3,19 +3,17 @@ import math
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    CategoricalIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    NaT,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import NA
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 import pandas.core.common as com
 

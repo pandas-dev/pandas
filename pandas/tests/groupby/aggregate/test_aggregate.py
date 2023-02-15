@@ -14,14 +14,12 @@ from pandas.errors import SpecificationError
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
 

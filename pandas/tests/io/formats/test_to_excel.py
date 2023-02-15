@@ -11,10 +11,8 @@ import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
-from pandas.io.formats.excel import (
-    CssExcelCell,
-    CSSToExcelConverter,
-)
+from pandas.io.formats.excel import CSSToExcelConverter
+from pandas.io.formats.excel import CssExcelCell
 
 
 @pytest.mark.parametrize(

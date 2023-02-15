@@ -7,13 +7,11 @@ import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 

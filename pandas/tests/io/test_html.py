@@ -1,9 +1,7 @@
 from functools import partial
 from importlib import reload
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import BytesIO
+from io import StringIO
 import os
 from pathlib import Path
 import re
@@ -18,21 +16,17 @@ from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    read_csv,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import read_csv
+from pandas import to_datetime
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html

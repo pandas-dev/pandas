@@ -3,16 +3,12 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64,
-    delta_to_nanoseconds,
-    ints_to_pytimedelta,
-)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import ints_to_pytimedelta
 
-from pandas import (
-    Timedelta,
-    offsets,
-)
+from pandas import Timedelta
+from pandas import offsets
 import pandas._testing as tm
 
 

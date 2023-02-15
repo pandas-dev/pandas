@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    Timedelta,
-    lib,
-    writers as libwriters,
-)
+from pandas._libs import Timedelta
+from pandas._libs import lib
+from pandas._libs import writers as libwriters
 
 from pandas import Index
 import pandas._testing as tm

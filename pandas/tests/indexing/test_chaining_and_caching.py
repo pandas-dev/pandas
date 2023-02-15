@@ -3,20 +3,16 @@ from string import ascii_letters as letters
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    SettingWithCopyError,
-    SettingWithCopyWarning,
-)
+from pandas.errors import SettingWithCopyError
+from pandas.errors import SettingWithCopyWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import option_context
 import pandas._testing as tm
 
 msg = "A value is trying to be set on a copy of a slice from a DataFrame"

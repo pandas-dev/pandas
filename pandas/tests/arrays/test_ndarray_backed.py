@@ -3,16 +3,12 @@ Tests for subclasses of NDArrayBackedExtensionArray
 """
 import numpy as np
 
-from pandas import (
-    CategoricalIndex,
-    date_range,
-)
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    PandasArray,
-    TimedeltaArray,
-)
+from pandas import CategoricalIndex
+from pandas import date_range
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestEmpty:

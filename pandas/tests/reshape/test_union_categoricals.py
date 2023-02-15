@@ -4,11 +4,9 @@ import pytest
 from pandas.core.dtypes.concat import union_categoricals
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Series,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Series
 import pandas._testing as tm
 
 

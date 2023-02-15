@@ -4,16 +4,14 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

@@ -6,13 +6,11 @@ import pytest
 from pandas.errors import MergeError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 

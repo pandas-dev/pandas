@@ -1,60 +1,50 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    TypeVar,
-    cast,
-)
+from typing import Any
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
-from pandas.compat import (
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
-    pa_version_under11p0,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import FillnaOptions
+from pandas._typing import Iterator
+from pandas._typing import NpDtype
+from pandas._typing import PositionalIndexer
+from pandas._typing import Scalar
+from pandas._typing import SortKind
+from pandas._typing import TakeIndexer
+from pandas._typing import TimeAmbiguous
+from pandas._typing import TimeNonexistent
+from pandas._typing import npt
+from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under8p0
+from pandas.compat import pa_version_under9p0
+from pandas.compat import pa_version_under11p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
-from pandas.core.indexers import (
-    check_array_indexer,
-    unpack_tuple_and_ellipses,
-    validate_indices,
-)
+from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import unpack_tuple_and_ellipses
+from pandas.core.indexers import validate_indices
 
 from pandas.tseries.frequencies import to_offset
 
@@ -125,10 +115,8 @@ if not pa_version_under7p0:
     }
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
 
     from pandas import Series
 
@@ -925,10 +913,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             data = self._data
 
-        from pandas import (
-            Index,
-            Series,
-        )
+        from pandas import Index
+        from pandas import Series
 
         vc = data.value_counts()
 

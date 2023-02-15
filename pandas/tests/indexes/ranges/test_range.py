@@ -4,10 +4,8 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import (
-    Index,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import RangeIndex
 import pandas._testing as tm
 from pandas.tests.indexes.common import NumericBase
 

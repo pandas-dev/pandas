@@ -3,20 +3,16 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    IntervalDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-    IntervalIndex,
-    NaT,
-    Timedelta,
-    Timestamp,
-    interval_range,
-)
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import NaT
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import interval_range
 import pandas._testing as tm
 
 

@@ -7,11 +7,9 @@ import pytest
 
 from pandas import option_context
 import pandas._testing as tm
-from pandas.core.api import (
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas.core.api import DataFrame
+from pandas.core.api import Index
+from pandas.core.api import Series
 from pandas.core.computation import expressions as expr
 
 

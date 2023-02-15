@@ -7,22 +7,20 @@ from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-    DataFrame,
-    DatetimeTZDtype,
-    Index,
-    Interval,
-    IntervalDtype,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-    concat,
-    date_range,
-    option_context,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import DataFrame
+from pandas import DatetimeTZDtype
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalDtype
+from pandas import NaT
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import option_context
 import pandas._testing as tm
 
 

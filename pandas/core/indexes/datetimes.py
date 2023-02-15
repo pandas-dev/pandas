@@ -2,68 +2,50 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import Hashable
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 import pytz
 
-from pandas._libs import (
-    NaT,
-    Period,
-    Timestamp,
-    index as libindex,
-    lib,
-)
-from pandas._libs.tslibs import (
-    Resolution,
-    periods_per_day,
-    timezones,
-    to_offset,
-)
+from pandas._libs import NaT
+from pandas._libs import Period
+from pandas._libs import Timestamp
+from pandas._libs import index as libindex
+from pandas._libs import lib
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import periods_per_day
+from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Frequency,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import Frequency
+from pandas._typing import IntervalClosedType
+from pandas._typing import TimeAmbiguous
+from pandas._typing import TimeNonexistent
+from pandas._typing import npt
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.arrays.datetimes import (
-    DatetimeArray,
-    tz_to_dtype,
-)
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.datetimes import tz_to_dtype
 import pandas.core.common as com
-from pandas.core.indexes.base import (
-    Index,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas.core.api import (
-        DataFrame,
-        PeriodIndex,
-    )
+    from pandas.core.api import DataFrame
+    from pandas.core.api import PeriodIndex
 
 
 def _new_DatetimeIndex(cls, d):

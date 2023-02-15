@@ -3,11 +3,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
 import pandas._testing as tm
 
 

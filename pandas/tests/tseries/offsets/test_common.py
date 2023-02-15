@@ -3,42 +3,36 @@ from datetime import datetime
 from dateutil.tz.tz import tzlocal
 import pytest
 
-from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
-    Timestamp,
-)
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import Timestamp
+from pandas.compat import IS64
+from pandas.compat import is_platform_windows
 
-from pandas.tseries.offsets import (
-    FY5253,
-    BDay,
-    BMonthBegin,
-    BMonthEnd,
-    BQuarterBegin,
-    BQuarterEnd,
-    BusinessHour,
-    BYearBegin,
-    BYearEnd,
-    CBMonthBegin,
-    CBMonthEnd,
-    CDay,
-    CustomBusinessHour,
-    DateOffset,
-    FY5253Quarter,
-    LastWeekOfMonth,
-    MonthBegin,
-    MonthEnd,
-    QuarterEnd,
-    SemiMonthBegin,
-    SemiMonthEnd,
-    Week,
-    WeekOfMonth,
-    YearBegin,
-    YearEnd,
-)
+from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import BMonthBegin
+from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import BQuarterBegin
+from pandas.tseries.offsets import BQuarterEnd
+from pandas.tseries.offsets import BYearBegin
+from pandas.tseries.offsets import BYearEnd
+from pandas.tseries.offsets import BusinessHour
+from pandas.tseries.offsets import CBMonthBegin
+from pandas.tseries.offsets import CBMonthEnd
+from pandas.tseries.offsets import CDay
+from pandas.tseries.offsets import CustomBusinessHour
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import FY5253
+from pandas.tseries.offsets import FY5253Quarter
+from pandas.tseries.offsets import LastWeekOfMonth
+from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import MonthEnd
+from pandas.tseries.offsets import QuarterEnd
+from pandas.tseries.offsets import SemiMonthBegin
+from pandas.tseries.offsets import SemiMonthEnd
+from pandas.tseries.offsets import Week
+from pandas.tseries.offsets import WeekOfMonth
+from pandas.tseries.offsets import YearBegin
+from pandas.tseries.offsets import YearEnd
 
 
 def _get_offset(klass, value=1, normalize=False):

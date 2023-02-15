@@ -50,26 +50,20 @@ Implementation
 
 from __future__ import annotations
 
-from contextlib import (
-    ContextDecorator,
-    contextmanager,
-)
+from contextlib import ContextDecorator
+from contextlib import contextmanager
 import re
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Generic,
-    Iterable,
-    NamedTuple,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Generator
+from typing import Generic
+from typing import Iterable
+from typing import NamedTuple
+from typing import cast
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F
+from pandas._typing import T
 from pandas.util._exceptions import find_stack_level
 
 

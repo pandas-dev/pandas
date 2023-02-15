@@ -2,14 +2,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas._libs.tslibs.np_datetime import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-    astype_overflowsafe,
-    is_unitless,
-    py_get_unit_from_dtype,
-    py_td64_to_tdstruct,
-)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
+from pandas._libs.tslibs.np_datetime import astype_overflowsafe
+from pandas._libs.tslibs.np_datetime import is_unitless
+from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
+from pandas._libs.tslibs.np_datetime import py_td64_to_tdstruct
 
 import pandas._testing as tm
 

@@ -5,37 +5,29 @@ Method NDFrame.describe() delegates actual execution to function describe_ndfram
 """
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Sequence,
-    cast,
-)
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import (
-    DtypeObj,
-    NDFrameT,
-    npt,
-)
+from pandas._typing import DtypeObj
+from pandas._typing import NDFrameT
+from pandas._typing import npt
 from pandas.util._validators import validate_percentile
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_datetime64_any_dtype,
-    is_extension_array_dtype,
-    is_numeric_dtype,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
 
 import pandas as pd
 from pandas.core.reshape.concat import concat
@@ -43,10 +35,8 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 def describe_ndframe(

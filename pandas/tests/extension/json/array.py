@@ -13,36 +13,28 @@ hack around pandas by using UserDicts.
 """
 from __future__ import annotations
 
-from collections import (
-    UserDict,
-    abc,
-)
+from collections import UserDict
+from collections import abc
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import (
-    Any,
-    Mapping,
-)
+from typing import Any
+from typing import Mapping
 
 import numpy as np
 
 from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_list_like,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
-from pandas.api.extensions import (
-    ExtensionArray,
-    ExtensionDtype,
-)
+from pandas.api.extensions import ExtensionArray
+from pandas.api.extensions import ExtensionDtype
 from pandas.core.indexers import unpack_tuple_and_ellipses
 
 

@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

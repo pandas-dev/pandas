@@ -8,12 +8,10 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
-from pandas.tests.extension.decimal.array import (
-    DecimalArray,
-    DecimalDtype,
-    make_data,
-    to_decimal,
-)
+from pandas.tests.extension.decimal.array import DecimalArray
+from pandas.tests.extension.decimal.array import DecimalDtype
+from pandas.tests.extension.decimal.array import make_data
+from pandas.tests.extension.decimal.array import to_decimal
 
 
 @pytest.fixture

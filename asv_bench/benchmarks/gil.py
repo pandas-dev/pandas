@@ -3,28 +3,24 @@ import threading
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    factorize,
-    read_csv,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
+from pandas import factorize
+from pandas import read_csv
 from pandas.core.algorithms import take_nd
 
 from .pandas_vb_common import tm
 
 try:
-    from pandas import (
-        rolling_kurt,
-        rolling_max,
-        rolling_mean,
-        rolling_median,
-        rolling_min,
-        rolling_skew,
-        rolling_std,
-        rolling_var,
-    )
+    from pandas import rolling_kurt
+    from pandas import rolling_max
+    from pandas import rolling_mean
+    from pandas import rolling_median
+    from pandas import rolling_min
+    from pandas import rolling_skew
+    from pandas import rolling_std
+    from pandas import rolling_var
 
     have_rolling_methods = True
 except ImportError:
@@ -33,7 +29,6 @@ try:
     from pandas._libs import algos
 except ImportError:
     from pandas import algos
-
 
 from .pandas_vb_common import BaseIO  # isort:skip
 

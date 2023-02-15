@@ -1,37 +1,27 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-from typing import (
-    Literal,
-    _GenericAlias,
-)
+from typing import Literal
+from typing import _GenericAlias
 
 cimport cython
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    PyTime_Check,
-    import_datetime,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport PyTime_Check
+from cpython.datetime cimport import_datetime
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
-from cpython.object cimport (
-    Py_EQ,
-    PyObject,
-    PyObject_RichCompareBool,
-    PyTypeObject,
-)
+from cpython.object cimport PyObject
+from cpython.object cimport PyObject_RichCompareBool
+from cpython.object cimport PyTypeObject
+from cpython.object cimport Py_EQ
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
-from cpython.tuple cimport (
-    PyTuple_New,
-    PyTuple_SET_ITEM,
-)
-from cython cimport (
-    Py_ssize_t,
-    floating,
-)
+from cpython.tuple cimport PyTuple_New
+from cpython.tuple cimport PyTuple_SET_ITEM
+from cython cimport Py_ssize_t
+from cython cimport floating
 
 from pandas._libs.missing import check_na_tuples_nonequal
 
@@ -40,23 +30,21 @@ import_datetime()
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    NPY_OBJECT,
-    PyArray_Check,
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
-    complex128_t,
-    flatiter,
-    float64_t,
-    int32_t,
-    int64_t,
-    intp_t,
-    ndarray,
-    uint8_t,
-    uint64_t,
-)
+from numpy cimport NPY_OBJECT
+from numpy cimport PyArray_Check
+from numpy cimport PyArray_GETITEM
+from numpy cimport PyArray_ITER_DATA
+from numpy cimport PyArray_ITER_NEXT
+from numpy cimport PyArray_IterNew
+from numpy cimport complex128_t
+from numpy cimport flatiter
+from numpy cimport float64_t
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint64_t
 
 cnp.import_array()
 
@@ -93,35 +81,25 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-    is_nan,
-)
+from pandas._libs.util cimport INT64_MAX
+from pandas._libs.util cimport INT64_MIN
+from pandas._libs.util cimport UINT64_MAX
+from pandas._libs.util cimport is_nan
 
-from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-)
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.period import Period
 
-from pandas._libs.missing cimport (
-    C_NA,
-    checknull,
-    is_matching_na,
-    is_null_datetime64,
-    is_null_timedelta64,
-)
-from pandas._libs.tslibs.conversion cimport (
-    _TSObject,
-    convert_to_tsobject,
-)
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-    checknull_with_nat,
-)
+from pandas._libs.missing cimport C_NA
+from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport is_matching_na
+from pandas._libs.missing cimport is_null_datetime64
+from pandas._libs.missing cimport is_null_timedelta64
+from pandas._libs.tslibs.conversion cimport _TSObject
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport checknull_with_nat
 from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object

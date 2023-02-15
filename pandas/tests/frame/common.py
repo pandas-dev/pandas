@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from pandas._typing import AxisInt
 
-from pandas import (
-    DataFrame,
-    concat,
-)
+from pandas import DataFrame
+from pandas import concat
 
 
 def _check_mixed_float(df, dtype=None):

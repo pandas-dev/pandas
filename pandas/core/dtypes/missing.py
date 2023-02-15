@@ -5,10 +5,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    overload,
-)
+from typing import TYPE_CHECKING
+from typing import overload
 
 import numpy as np
 
@@ -16,52 +14,42 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
-from pandas._libs.tslibs import (
-    NaT,
-    iNaT,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    TD64NS_DTYPE,
-    ensure_object,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_complex_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_string_or_object_np_dtype,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    ExtensionDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import DT64NS_DTYPE
+from pandas.core.dtypes.common import TD64NS_DTYPE
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_or_object_np_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        ArrayLike,
-        DtypeObj,
-        NDFrame,
-        NDFrameT,
-        Scalar,
-        npt,
-    )
+    from pandas._typing import ArrayLike
+    from pandas._typing import DtypeObj
+    from pandas._typing import NDFrame
+    from pandas._typing import NDFrameT
+    from pandas._typing import Scalar
+    from pandas._typing import npt
 
     from pandas.core.indexes.base import Index
 

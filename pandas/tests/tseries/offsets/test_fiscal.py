@@ -7,16 +7,12 @@ from dateutil.relativedelta import relativedelta
 import pytest
 
 from pandas import Timestamp
-from pandas.tests.tseries.offsets.common import (
-    WeekDay,
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import WeekDay
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.offsets import (
-    FY5253,
-    FY5253Quarter,
-)
+from pandas.tseries.offsets import FY5253
+from pandas.tseries.offsets import FY5253Quarter
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):

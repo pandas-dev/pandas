@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    Series,
-    date_range,
-)
+from pandas import Series
+from pandas import date_range
 
 
 class TestIsMonotonic:

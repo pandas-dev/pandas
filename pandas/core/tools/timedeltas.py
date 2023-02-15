@@ -4,43 +4,31 @@ timedelta support tools
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import (
-    TYPE_CHECKING,
-    overload,
-)
+from typing import TYPE_CHECKING
+from typing import overload
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    NaT,
-    NaTType,
-)
-from pandas._libs.tslibs.timedeltas import (
-    Timedelta,
-    parse_timedelta_unit,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timedeltas import parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import UnitChoices
-    from pandas._typing import (
-        ArrayLike,
-        DateTimeErrorChoices,
-    )
+    from pandas._typing import ArrayLike
+    from pandas._typing import DateTimeErrorChoices
 
-    from pandas import (
-        Index,
-        Series,
-        TimedeltaIndex,
-    )
+    from pandas import Index
+    from pandas import Series
+    from pandas import TimedeltaIndex
 
 
 @overload

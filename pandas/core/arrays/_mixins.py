@@ -1,59 +1,47 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Sequence,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import overload
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    F,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    TakeIndexer,
-    npt,
-    type_t,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import F
+from pandas._typing import PositionalIndexer2D
+from pandas._typing import PositionalIndexerTuple
+from pandas._typing import ScalarIndexer
+from pandas._typing import SequenceIndexer
+from pandas._typing import Shape
+from pandas._typing import TakeIndexer
+from pandas._typing import npt
+from pandas._typing import type_t
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._validators import (
-    validate_bool_kwarg,
-    validate_fillna_kwargs,
-    validate_insert_loc,
-)
+from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import validate_insert_loc
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    ExtensionDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import (
-    take,
-    unique,
-    value_counts,
-)
+from pandas.core.algorithms import take
+from pandas.core.algorithms import unique
+from pandas.core.algorithms import value_counts
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
@@ -66,10 +54,8 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
 
     from pandas import Series
 
@@ -433,10 +419,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         if self.ndim != 1:
             raise NotImplementedError
 
-        from pandas import (
-            Index,
-            Series,
-        )
+        from pandas import Index
+        from pandas import Series
 
         if dropna:
             # error: Unsupported operand type for ~ ("ExtensionArray")

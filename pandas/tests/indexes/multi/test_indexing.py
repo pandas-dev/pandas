@@ -4,18 +4,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Index,
-    MultiIndex,
-    date_range,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import MultiIndex
+from pandas import date_range
 import pandas._testing as tm
 
 

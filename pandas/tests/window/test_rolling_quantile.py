@@ -3,13 +3,11 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    concat,
-    isna,
-    notna,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import concat
+from pandas import isna
+from pandas import notna
 import pandas._testing as tm
 
 from pandas.tseries import offsets

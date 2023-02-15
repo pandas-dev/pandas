@@ -3,21 +3,17 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-)
+from typing import Any
+from typing import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.util.numba_ import (
-    NumbaUtilError,
-    jit_user_function,
-)
+from pandas.core.util.numba_ import NumbaUtilError
+from pandas.core.util.numba_ import jit_user_function
 
 
 def validate_udf(func: Callable) -> None:

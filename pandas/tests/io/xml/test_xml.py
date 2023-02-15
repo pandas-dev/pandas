@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import BytesIO
+from io import StringIO
 from lzma import LZMAError
 import os
 from tarfile import ReadError
@@ -16,23 +14,17 @@ import pytest
 
 from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-)
+from pandas.errors import EmptyDataError
+from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import NA
+from pandas import Series
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml

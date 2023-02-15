@@ -3,15 +3,11 @@ Core eval alignment algorithms.
 """
 from __future__ import annotations
 
-from functools import (
-    partial,
-    wraps,
-)
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Sequence,
-)
+from functools import partial
+from functools import wraps
+from typing import Callable
+from typing import Sequence
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -19,10 +15,8 @@ import numpy as np
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com

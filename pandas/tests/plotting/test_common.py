@@ -3,11 +3,9 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-    _gen_two_subplots,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
+from pandas.tests.plotting.common import _gen_two_subplots
 
 
 @td.skip_if_no_mpl

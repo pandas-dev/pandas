@@ -9,48 +9,34 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    NumExprClobberingError,
-    PerformanceWarning,
-    UndefinedVariableError,
-)
+from pandas.errors import NumExprClobberingError
+from pandas.errors import PerformanceWarning
+from pandas.errors import UndefinedVariableError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_float,
-    is_list_like,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
-from pandas.core.computation import (
-    expr,
-    pytables,
-)
+from pandas.core.computation import expr
+from pandas.core.computation import pytables
 from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import (
-    BaseExprVisitor,
-    PandasExprVisitor,
-    PythonExprVisitor,
-)
-from pandas.core.computation.expressions import (
-    NUMEXPR_INSTALLED,
-    USE_NUMEXPR,
-)
-from pandas.core.computation.ops import (
-    ARITH_OPS_SYMS,
-    SPECIAL_CASE_ARITH_OPS_SYMS,
-    _binary_math_ops,
-    _binary_ops_dict,
-    _unary_math_ops,
-)
+from pandas.core.computation.expr import BaseExprVisitor
+from pandas.core.computation.expr import PandasExprVisitor
+from pandas.core.computation.expr import PythonExprVisitor
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import USE_NUMEXPR
+from pandas.core.computation.ops import ARITH_OPS_SYMS
+from pandas.core.computation.ops import SPECIAL_CASE_ARITH_OPS_SYMS
+from pandas.core.computation.ops import _binary_math_ops
+from pandas.core.computation.ops import _binary_ops_dict
+from pandas.core.computation.ops import _unary_math_ops
 from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 

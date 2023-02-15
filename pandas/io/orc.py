@@ -3,30 +3,22 @@ from __future__ import annotations
 
 import io
 from types import ModuleType
-from typing import (
-    Any,
-    Literal,
-)
+from typing import Any
+from typing import Literal
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
+from pandas._config import get_option
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import WriteBuffer
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame

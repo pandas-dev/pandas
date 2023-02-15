@@ -7,28 +7,26 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.offsets import (
-    BMonthBegin,
-    BMonthEnd,
-    BQuarterBegin,
-    BQuarterEnd,
-    BYearBegin,
-    BYearEnd,
-    CBMonthBegin,
-    CBMonthEnd,
-    CustomBusinessDay,
-    DateOffset,
-    Day,
-    MonthBegin,
-    MonthEnd,
-    QuarterBegin,
-    QuarterEnd,
-    SemiMonthBegin,
-    SemiMonthEnd,
-    Week,
-    YearBegin,
-    YearEnd,
-)
+from pandas._libs.tslibs.offsets import BMonthBegin
+from pandas._libs.tslibs.offsets import BMonthEnd
+from pandas._libs.tslibs.offsets import BQuarterBegin
+from pandas._libs.tslibs.offsets import BQuarterEnd
+from pandas._libs.tslibs.offsets import BYearBegin
+from pandas._libs.tslibs.offsets import BYearEnd
+from pandas._libs.tslibs.offsets import CBMonthBegin
+from pandas._libs.tslibs.offsets import CBMonthEnd
+from pandas._libs.tslibs.offsets import CustomBusinessDay
+from pandas._libs.tslibs.offsets import DateOffset
+from pandas._libs.tslibs.offsets import Day
+from pandas._libs.tslibs.offsets import MonthBegin
+from pandas._libs.tslibs.offsets import MonthEnd
+from pandas._libs.tslibs.offsets import QuarterBegin
+from pandas._libs.tslibs.offsets import QuarterEnd
+from pandas._libs.tslibs.offsets import SemiMonthBegin
+from pandas._libs.tslibs.offsets import SemiMonthEnd
+from pandas._libs.tslibs.offsets import Week
+from pandas._libs.tslibs.offsets import YearBegin
+from pandas._libs.tslibs.offsets import YearEnd
 
 from pandas.util.version import Version
 

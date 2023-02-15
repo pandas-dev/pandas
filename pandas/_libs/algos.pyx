@@ -1,56 +1,46 @@
 cimport cython
 from cython cimport Py_ssize_t
-from libc.math cimport (
-    fabs,
-    sqrt,
-)
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
+from libc.math cimport fabs
+from libc.math cimport sqrt
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
 from libc.string cimport memmove
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    NPY_FLOAT64,
-    NPY_INT8,
-    NPY_INT16,
-    NPY_INT32,
-    NPY_INT64,
-    NPY_OBJECT,
-    NPY_UINT64,
-    float32_t,
-    float64_t,
-    int8_t,
-    int16_t,
-    int32_t,
-    int64_t,
-    intp_t,
-    ndarray,
-    uint8_t,
-    uint16_t,
-    uint32_t,
-    uint64_t,
-)
+from numpy cimport NPY_FLOAT64
+from numpy cimport NPY_INT8
+from numpy cimport NPY_INT16
+from numpy cimport NPY_INT32
+from numpy cimport NPY_INT64
+from numpy cimport NPY_OBJECT
+from numpy cimport NPY_UINT64
+from numpy cimport float32_t
+from numpy cimport float64_t
+from numpy cimport int8_t
+from numpy cimport int16_t
+from numpy cimport int32_t
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint16_t
+from numpy cimport uint32_t
+from numpy cimport uint64_t
 
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.dtypes cimport (
-    numeric_object_t,
-    numeric_t,
-)
-from pandas._libs.khash cimport (
-    kh_destroy_int64,
-    kh_get_int64,
-    kh_init_int64,
-    kh_int64_t,
-    kh_put_int64,
-    kh_resize_int64,
-    khiter_t,
-)
+from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs.dtypes cimport numeric_t
+from pandas._libs.khash cimport kh_destroy_int64
+from pandas._libs.khash cimport kh_get_int64
+from pandas._libs.khash cimport kh_init_int64
+from pandas._libs.khash cimport kh_int64_t
+from pandas._libs.khash cimport kh_put_int64
+from pandas._libs.khash cimport kh_resize_int64
+from pandas._libs.khash cimport khiter_t
 from pandas._libs.util cimport get_nat
 
 import pandas._libs.missing as missing

@@ -15,11 +15,9 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.internals import BlockManager
 
 

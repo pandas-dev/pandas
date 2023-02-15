@@ -7,31 +7,25 @@ from typing import Any
 
 import numpy as np
 
-from pandas._libs.tslibs import (
-    Timedelta,
-    Timestamp,
-)
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
 from pandas._typing import npt
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
-from pandas.core.computation import (
-    expr,
-    ops,
-    scope as _scope,
-)
+from pandas.core.computation import expr
+from pandas.core.computation import ops
+from pandas.core.computation import scope as _scope
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import is_term
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
-from pandas.io.formats.printing import (
-    pprint_thing,
-    pprint_thing_encoded,
-)
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing_encoded
 
 
 class PyTablesScope(_scope.Scope):

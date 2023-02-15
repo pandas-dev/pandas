@@ -1,7 +1,5 @@
-from copy import (
-    copy,
-    deepcopy,
-)
+from copy import copy
+from copy import deepcopy
 
 import pytest
 

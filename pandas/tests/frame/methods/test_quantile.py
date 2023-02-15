@@ -1,18 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import (
-    np_percentile_argname,
-    np_version_under1p21,
-)
+from pandas.compat.numpy import np_percentile_argname
+from pandas.compat.numpy import np_version_under1p21
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

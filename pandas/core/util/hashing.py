@@ -4,43 +4,33 @@ data hash pandas / numpy objects
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Iterator,
-    cast,
-)
+from typing import Hashable
+from typing import Iterable
+from typing import Iterator
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.hashing import hash_object_array
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import npt
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_list_like,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 if TYPE_CHECKING:
-    from pandas import (
-        Categorical,
-        DataFrame,
-        Index,
-        MultiIndex,
-        Series,
-    )
+    from pandas import Categorical
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import MultiIndex
+    from pandas import Series
 
 
 # 16 byte long hashing key
@@ -196,10 +186,8 @@ def hash_tuples(
     if not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
-    from pandas import (
-        Categorical,
-        MultiIndex,
-    )
+    from pandas import Categorical
+    from pandas import MultiIndex
 
     if not isinstance(vals, ABCMultiIndex):
         mi = MultiIndex.from_tuples(vals)
@@ -339,11 +327,9 @@ def _hash_ndarray(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import (
-                Categorical,
-                Index,
-                factorize,
-            )
+            from pandas import Categorical
+            from pandas import Index
+            from pandas import factorize
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)

@@ -9,18 +9,14 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas.core.accessor import (
-    PandasDelegate,
-    delegate_names,
-)
+from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import delegate_names
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 class BaseAccessor:
@@ -363,10 +359,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import (
-            default_index,
-            ensure_index,
-        )
+        from pandas.core.indexes.api import default_index
+        from pandas.core.indexes.api import ensure_index
 
         N, K = data.shape
         if index is None:

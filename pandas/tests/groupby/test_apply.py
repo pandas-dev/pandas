@@ -1,20 +1,16 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 from io import StringIO
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    bdate_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import bdate_range
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 

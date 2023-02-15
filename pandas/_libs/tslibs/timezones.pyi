@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    tzinfo,
-)
+from datetime import datetime
+from datetime import tzinfo
 from typing import Callable
 
 import numpy as np

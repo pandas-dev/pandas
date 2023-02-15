@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    NamedTuple,
-)
+from typing import Iterator
+from typing import NamedTuple
+from typing import TYPE_CHECKING
 
 from pandas._typing import ArrayLike
 

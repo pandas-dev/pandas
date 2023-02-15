@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import date_range
 import pandas._testing as tm
 
 

@@ -2,19 +2,15 @@ import sys
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    concat,
-    date_range,
-    json_normalize,
-    read_json,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import concat
+from pandas import date_range
+from pandas import json_normalize
+from pandas import read_json
+from pandas import timedelta_range
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import tm
 
 
 class ReadJSON(BaseIO):

@@ -1,7 +1,5 @@
-from collections import (
-    Counter,
-    defaultdict,
-)
+from collections import Counter
+from collections import defaultdict
 from decimal import Decimal
 import math
 
@@ -9,15 +7,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-    isna,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
+from pandas import isna
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.tests.apply.common import series_transform_kernels
 

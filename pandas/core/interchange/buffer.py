@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas.core.interchange.dataframe_protocol import (
-    Buffer,
-    DlpackDeviceType,
-)
+from pandas.core.interchange.dataframe_protocol import Buffer
+from pandas.core.interchange.dataframe_protocol import DlpackDeviceType
 from pandas.util.version import Version
 
 _NUMPY_HAS_DLPACK = Version(np.__version__) >= Version("1.22.0")

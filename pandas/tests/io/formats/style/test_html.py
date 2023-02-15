@@ -1,16 +1,12 @@
-from textwrap import (
-    dedent,
-    indent,
-)
+from textwrap import dedent
+from textwrap import indent
 
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import option_context
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler

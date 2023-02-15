@@ -2,10 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    NaT,
-)
+from pandas import Index
+from pandas import NaT
 import pandas._testing as tm
 
 

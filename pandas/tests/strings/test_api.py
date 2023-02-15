@@ -1,13 +1,11 @@
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-    get_option,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import _testing as tm
+from pandas import get_option
 from pandas.core import strings
 
 

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import (
-    TYPE_CHECKING,
-    Generator,
-)
+from typing import Generator
+from typing import TYPE_CHECKING
 
 from pandas.plotting._core import _get_plot_backend
 
@@ -13,10 +11,8 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     import numpy as np
 
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 
 def table(ax, data, **kwargs):

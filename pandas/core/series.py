@@ -5,181 +5,141 @@ from __future__ import annotations
 
 import sys
 from textwrap import dedent
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Literal,
-    Mapping,
-    Sequence,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import IO
+from typing import Iterable
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import Union
+from typing import cast
+from typing import overload
 import warnings
 import weakref
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import get_option
+from pandas._config import using_copy_on_write
 
-from pandas._libs import (
-    lib,
-    properties,
-    reshape,
-)
-from pandas._libs.lib import (
-    is_range_indexer,
-    no_default,
-)
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    NaPosition,
-    QuantileInterpolation,
-    Renamer,
-    Scalar,
-    SingleManager,
-    SortKind,
-    StorageOptions,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
-)
+from pandas._libs import lib
+from pandas._libs import properties
+from pandas._libs import reshape
+from pandas._libs.lib import is_range_indexer
+from pandas._libs.lib import no_default
+from pandas._typing import AggFuncType
+from pandas._typing import AlignJoin
+from pandas._typing import AnyAll
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import CorrelationMethod
+from pandas._typing import DropKeep
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import FilePath
+from pandas._typing import FillnaOptions
+from pandas._typing import Frequency
+from pandas._typing import IgnoreRaise
+from pandas._typing import IndexKeyFunc
+from pandas._typing import IndexLabel
+from pandas._typing import Level
+from pandas._typing import NaPosition
+from pandas._typing import QuantileInterpolation
+from pandas._typing import Renamer
+from pandas._typing import Scalar
+from pandas._typing import SingleManager
+from pandas._typing import SortKind
+from pandas._typing import StorageOptions
+from pandas._typing import TimedeltaConvertibleTypes
+from pandas._typing import TimestampConvertibleTypes
+from pandas._typing import ValueKeyFunc
+from pandas._typing import WriteBuffer
+from pandas._typing import npt
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    ChainedAssignmentError,
-    InvalidIndexError,
-    _chained_assignment_msg,
-)
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
+from pandas.errors import ChainedAssignmentError
+from pandas.errors import InvalidIndexError
+from pandas.errors import _chained_assignment_msg
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import (
-    validate_ascending,
-    validate_bool_kwarg,
-    validate_percentile,
-)
+from pandas.util._validators import validate_ascending
+from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_percentile
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    convert_dtypes,
-    maybe_box_native,
-    maybe_cast_pointwise_result,
-)
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_dict_like,
-    is_extension_array_dtype,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    pandas_dtype,
-    validate_all_hashable,
-)
+from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import convert_dtypes
+from pandas.core.dtypes.cast import maybe_box_native
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_iterator
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import validate_all_hashable
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-    notna,
-    remove_na_arraylike,
-)
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import remove_na_arraylike
 
-from pandas.core import (
-    algorithms,
-    base,
-    common as com,
-    missing,
-    nanops,
-    ops,
-)
+from pandas.core import algorithms
+from pandas.core import base
+from pandas.core import common as com
+from pandas.core import missing
+from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.construction import (
-    extract_array,
-    sanitize_array,
-)
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import (
-    disallow_ndim_indexing,
-    unpack_1tuple,
-)
+from pandas.core.indexers import disallow_ndim_indexing
+from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    default_index,
-    ensure_index,
-)
+from pandas.core.indexes.api import DatetimeIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import PeriodIndex
+from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import ensure_index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
-from pandas.core.indexing import (
-    check_bool_indexer,
-    check_dict_or_set_indexers,
-)
-from pandas.core.internals import (
-    SingleArrayManager,
-    SingleBlockManager,
-)
+from pandas.core.indexing import check_bool_indexer
+from pandas.core.indexing import check_dict_or_set_indexers
+from pandas.core.internals import SingleArrayManager
+from pandas.core.internals import SingleBlockManager
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import (
-    ensure_key_mapped,
-    nargsort,
-)
+from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.info import (
-    INFO_DOCSTRING,
-    SeriesInfo,
-    series_sub_kwargs,
-)
+from pandas.io.formats.info import INFO_DOCSTRING
+from pandas.io.formats.info import SeriesInfo
+from pandas.io.formats.info import series_sub_kwargs
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-        Suffixes,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
+    from pandas._typing import Suffixes
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy

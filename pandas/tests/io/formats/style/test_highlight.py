@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    IndexSlice,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
+from pandas import NA
 
 pytest.importorskip("jinja2")
 

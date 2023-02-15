@@ -1,9 +1,7 @@
 from cpython.datetime cimport tzinfo
-from numpy cimport (
-    int64_t,
-    intp_t,
-    ndarray,
-)
+from numpy cimport int64_t
+from numpy cimport intp_t
+from numpy cimport ndarray
 
 from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 

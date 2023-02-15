@@ -1,14 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-    NaT,
-    Timestamp,
-    array,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import NaT
+from pandas import Timestamp
+from pandas import array
+from pandas import to_datetime
 import pandas._testing as tm
 
 

@@ -2,59 +2,45 @@ from __future__ import annotations
 
 import contextlib
 import datetime as pydt
-from datetime import (
-    datetime,
-    timedelta,
-    tzinfo,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import tzinfo
 import functools
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Final,
-    Generator,
-    cast,
-)
+from typing import Any
+from typing import Final
+from typing import Generator
+from typing import TYPE_CHECKING
+from typing import cast
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as mdates
-from matplotlib.ticker import (
-    AutoLocator,
-    Formatter,
-    Locator,
-)
+from matplotlib.ticker import AutoLocator
+from matplotlib.ticker import Formatter
+from matplotlib.ticker import Locator
 from matplotlib.transforms import nonsingular
 import matplotlib.units as munits
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    Timestamp,
-    to_offset,
-)
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._typing import F
 
-from pandas.core.dtypes.common import (
-    is_float,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_nested_list_like,
-)
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_nested_list_like
 
-from pandas import (
-    Index,
-    Series,
-    get_option,
-)
+from pandas import Index
+from pandas import Series
+from pandas import get_option
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import (
-    Period,
-    PeriodIndex,
-    period_range,
-)
+from pandas.core.indexes.period import Period
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import period_range
 import pandas.core.tools.datetimes as tools
 
 if TYPE_CHECKING:

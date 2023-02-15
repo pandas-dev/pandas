@@ -6,14 +6,10 @@ import inspect
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
-from pandas.core.groupby.generic import (
-    DataFrameGroupBy,
-    SeriesGroupBy,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy
 
 
 def test_frame_consistency(request, groupby_func):

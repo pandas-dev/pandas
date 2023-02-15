@@ -3,18 +3,16 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    NaT,
-    PeriodIndex,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    date_range,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import date_range
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
 

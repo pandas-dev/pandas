@@ -3,56 +3,46 @@ Common type operations.
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Any
+from typing import Callable
 
 import numpy as np
 
-from pandas._libs import (
-    Interval,
-    Period,
-    algos,
-    lib,
-)
+from pandas._libs import Interval
+from pandas._libs import Period
+from pandas._libs import algos
+from pandas._libs import lib
 from pandas._libs.tslibs import conversion
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.base import _registry as registry
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    ExtensionDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
-from pandas.core.dtypes.inference import (
-    is_array_like,
-    is_bool,
-    is_complex,
-    is_dataclass,
-    is_decimal,
-    is_dict_like,
-    is_file_like,
-    is_float,
-    is_hashable,
-    is_integer,
-    is_interval,
-    is_iterator,
-    is_list_like,
-    is_named_tuple,
-    is_nested_list_like,
-    is_number,
-    is_re,
-    is_re_compilable,
-    is_scalar,
-    is_sequence,
-)
+from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.inference import is_bool
+from pandas.core.dtypes.inference import is_complex
+from pandas.core.dtypes.inference import is_dataclass
+from pandas.core.dtypes.inference import is_decimal
+from pandas.core.dtypes.inference import is_dict_like
+from pandas.core.dtypes.inference import is_file_like
+from pandas.core.dtypes.inference import is_float
+from pandas.core.dtypes.inference import is_hashable
+from pandas.core.dtypes.inference import is_integer
+from pandas.core.dtypes.inference import is_interval
+from pandas.core.dtypes.inference import is_iterator
+from pandas.core.dtypes.inference import is_list_like
+from pandas.core.dtypes.inference import is_named_tuple
+from pandas.core.dtypes.inference import is_nested_list_like
+from pandas.core.dtypes.inference import is_number
+from pandas.core.dtypes.inference import is_re
+from pandas.core.dtypes.inference import is_re_compilable
+from pandas.core.dtypes.inference import is_scalar
+from pandas.core.dtypes.inference import is_sequence
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
@@ -1304,12 +1294,10 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     ExtensionArray that does not support 2D, or more specifically that does
     not use HybridBlock.
     """
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import TimedeltaArray
 
     return isinstance(obj, ExtensionArray) and not isinstance(
         obj, (DatetimeArray, TimedeltaArray, PeriodArray)

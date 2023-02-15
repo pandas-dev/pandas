@@ -3,63 +3,51 @@ Tests of pandas.tseries.offsets
 """
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-)
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
+from datetime import datetime
+from datetime import timedelta
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    conversion,
-    timezones,
-)
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import timezones
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import (
-    _get_offset,
-    _offset_map,
-)
+from pandas._libs.tslibs.offsets import _get_offset
+from pandas._libs.tslibs.offsets import _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import PerformanceWarning
 
-from pandas import (
-    DatetimeIndex,
-    Series,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import WeekDay
 
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (
-    FY5253,
-    BaseOffset,
-    BDay,
-    BMonthEnd,
-    BusinessHour,
-    CustomBusinessDay,
-    CustomBusinessHour,
-    CustomBusinessMonthBegin,
-    CustomBusinessMonthEnd,
-    DateOffset,
-    Easter,
-    FY5253Quarter,
-    LastWeekOfMonth,
-    MonthBegin,
-    Nano,
-    Tick,
-    Week,
-    WeekOfMonth,
-)
+from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import BaseOffset
+from pandas.tseries.offsets import BusinessHour
+from pandas.tseries.offsets import CustomBusinessDay
+from pandas.tseries.offsets import CustomBusinessHour
+from pandas.tseries.offsets import CustomBusinessMonthBegin
+from pandas.tseries.offsets import CustomBusinessMonthEnd
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import Easter
+from pandas.tseries.offsets import FY5253
+from pandas.tseries.offsets import FY5253Quarter
+from pandas.tseries.offsets import LastWeekOfMonth
+from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import Nano
+from pandas.tseries.offsets import Tick
+from pandas.tseries.offsets import Week
+from pandas.tseries.offsets import WeekOfMonth
 
 _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 

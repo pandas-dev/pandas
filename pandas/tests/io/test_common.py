@@ -4,11 +4,9 @@ Tests for the pandas.io.common functionalities
 import codecs
 import errno
 from functools import partial
-from io import (
-    BytesIO,
-    StringIO,
-    UnsupportedOperation,
-)
+from io import BytesIO
+from io import StringIO
+from io import UnsupportedOperation
 import mmap
 import os
 from pathlib import Path

@@ -4,11 +4,9 @@ from pandas._libs.tslibs.dtypes import _period_code_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import (
-    Period,
-    Timestamp,
-    offsets,
-)
+from pandas import Period
+from pandas import Timestamp
+from pandas import offsets
 
 
 class TestFreqConversion:

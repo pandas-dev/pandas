@@ -6,24 +6,20 @@ import pytest
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Index,
-    Interval,
-    IntervalIndex,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    IntervalArray,
-)
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import IntervalArray
 from pandas.tests.arithmetic.common import get_upcast_box
 
 

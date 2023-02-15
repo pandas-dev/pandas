@@ -1,16 +1,10 @@
 cimport cython
-from cpython.mem cimport (
-    PyMem_Free,
-    PyMem_Malloc,
-)
-from cpython.ref cimport (
-    Py_INCREF,
-    PyObject,
-)
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
+from cpython.mem cimport PyMem_Free
+from cpython.mem cimport PyMem_Malloc
+from cpython.ref cimport PyObject
+from cpython.ref cimport Py_INCREF
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
 
 import numpy as np
 
@@ -22,17 +16,15 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.dtypes cimport numeric_object_t
-from pandas._libs.khash cimport (
-    KHASH_TRACE_DOMAIN,
-    are_equivalent_float32_t,
-    are_equivalent_float64_t,
-    are_equivalent_khcomplex64_t,
-    are_equivalent_khcomplex128_t,
-    kh_needed_n_buckets,
-    kh_python_hash_equal,
-    kh_python_hash_func,
-    khiter_t,
-)
+from pandas._libs.khash cimport KHASH_TRACE_DOMAIN
+from pandas._libs.khash cimport are_equivalent_float32_t
+from pandas._libs.khash cimport are_equivalent_float64_t
+from pandas._libs.khash cimport are_equivalent_khcomplex64_t
+from pandas._libs.khash cimport are_equivalent_khcomplex128_t
+from pandas._libs.khash cimport kh_needed_n_buckets
+from pandas._libs.khash cimport kh_python_hash_equal
+from pandas._libs.khash cimport kh_python_hash_func
+from pandas._libs.khash cimport khiter_t
 from pandas._libs.missing cimport checknull
 
 

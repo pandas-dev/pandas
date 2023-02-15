@@ -1,8 +1,6 @@
-from pandas.io.excel._base import (
-    ExcelFile,
-    ExcelWriter,
-    read_excel,
-)
+from pandas.io.excel._base import ExcelFile
+from pandas.io.excel._base import ExcelWriter
+from pandas.io.excel._base import read_excel
 from pandas.io.excel._odswriter import ODSWriter as _ODSWriter
 from pandas.io.excel._openpyxl import OpenpyxlWriter as _OpenpyxlWriter
 from pandas.io.excel._util import register_writer

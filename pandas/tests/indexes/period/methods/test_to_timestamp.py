@@ -3,15 +3,13 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    PeriodIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

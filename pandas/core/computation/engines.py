@@ -8,14 +8,10 @@ from typing import TYPE_CHECKING
 
 from pandas.errors import NumExprClobberingError
 
-from pandas.core.computation.align import (
-    align_terms,
-    reconstruct_object,
-)
-from pandas.core.computation.ops import (
-    MATHOPS,
-    REDUCTIONS,
-)
+from pandas.core.computation.align import align_terms
+from pandas.core.computation.align import reconstruct_object
+from pandas.core.computation.ops import MATHOPS
+from pandas.core.computation.ops import REDUCTIONS
 
 from pandas.io.formats import printing
 

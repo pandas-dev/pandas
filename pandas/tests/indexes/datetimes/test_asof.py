@@ -1,11 +1,9 @@
 from datetime import timedelta
 
-from pandas import (
-    Index,
-    Timestamp,
-    date_range,
-    isna,
-)
+from pandas import Index
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 
 

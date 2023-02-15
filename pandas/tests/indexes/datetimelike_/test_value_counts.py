@@ -1,15 +1,13 @@
 import numpy as np
 
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    PeriodIndex,
-    Series,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

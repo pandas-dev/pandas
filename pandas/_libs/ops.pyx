@@ -1,24 +1,20 @@
 import operator
 
 cimport cython
-from cpython.object cimport (
-    Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
-    Py_NE,
-    PyObject_RichCompareBool,
-)
+from cpython.object cimport PyObject_RichCompareBool
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_GE
+from cpython.object cimport Py_GT
+from cpython.object cimport Py_LE
+from cpython.object cimport Py_LT
+from cpython.object cimport Py_NE
 from cython cimport Py_ssize_t
 
 import numpy as np
 
-from numpy cimport (
-    import_array,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport import_array
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 import_array()
 

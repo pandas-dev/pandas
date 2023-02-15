@@ -5,11 +5,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range

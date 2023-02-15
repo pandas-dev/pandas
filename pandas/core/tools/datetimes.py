@@ -4,81 +4,63 @@ from collections import abc
 from datetime import datetime
 from functools import partial
 from itertools import islice
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Hashable,
-    List,
-    Tuple,
-    TypedDict,
-    Union,
-    cast,
-    overload,
-)
+from typing import Callable
+from typing import Hashable
+from typing import List
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import TypedDict
+from typing import Union
+from typing import cast
+from typing import overload
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    tslib,
-)
-from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
-    Timedelta,
-    Timestamp,
-    astype_overflowsafe,
-    get_unit_from_dtype,
-    iNaT,
-    is_supported_unit,
-    nat_strings,
-    parsing,
-    timezones as libtimezones,
-)
+from pandas._libs import lib
+from pandas._libs import tslib
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import astype_overflowsafe
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import is_supported_unit
+from pandas._libs.tslibs import nat_strings
+from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import timezones as libtimezones
 from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.parsing import (
-    DateParseError,
-    guess_datetime_format,
-)
+from pandas._libs.tslibs.parsing import DateParseError
+from pandas._libs.tslibs.parsing import guess_datetime_format
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    DateTimeErrorChoices,
-    npt,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import DateTimeErrorChoices
+from pandas._typing import npt
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_float,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_numeric_dtype,
-    is_scalar,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import (
-    DatetimeArray,
-    IntegerArray,
-    PandasArray,
-)
+from pandas.arrays import DatetimeArray
+from pandas.arrays import IntegerArray
+from pandas.arrays import PandasArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.arrays.datetimes import (
-    maybe_convert_dtype,
-    objects_to_datetime64ns,
-    tz_to_dtype,
-)
+from pandas.core.arrays.datetimes import maybe_convert_dtype
+from pandas.core.arrays.datetimes import objects_to_datetime64ns
+from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -87,10 +69,8 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
 
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -1134,11 +1114,9 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
     -------
     Series
     """
-    from pandas import (
-        DataFrame,
-        to_numeric,
-        to_timedelta,
-    )
+    from pandas import DataFrame
+    from pandas import to_numeric
+    from pandas import to_timedelta
 
     arg = DataFrame(arg)
     if not arg.columns.is_unique:

@@ -3,41 +3,33 @@ from __future__ import annotations
 
 import io
 import os
-from typing import (
-    Any,
-    Literal,
-)
+from typing import Any
+from typing import Literal
 from warnings import catch_warnings
 
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    arrays,
-    get_option,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import arrays
+from pandas import get_option
 from pandas.core.shared_docs import _shared_docs
 from pandas.util.version import Version
 
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-    is_fsspec_url,
-    is_url,
-    stringify_path,
-)
+from pandas.io.common import IOHandles
+from pandas.io.common import get_handle
+from pandas.io.common import is_fsspec_url
+from pandas.io.common import is_url
+from pandas.io.common import stringify_path
 
 
 def get_engine(engine: str) -> BaseImpl:

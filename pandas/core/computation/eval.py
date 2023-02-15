@@ -13,10 +13,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import (
-    PARSERS,
-    Expr,
-)
+from pandas.core.computation.expr import Expr
+from pandas.core.computation.expr import PARSERS
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 from pandas.core.generic import NDFrame

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 import numpy as np
@@ -16,13 +14,11 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_1d_only_ea_dtype,
-    is_extension_array_dtype,
-    is_integer,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
@@ -30,18 +26,14 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
-from pandas.core.sorting import (
-    compress_group_index,
-    decons_obs_group_ids,
-    get_compressed_ids,
-    get_group_index,
-    get_group_index_sorter,
-)
+from pandas.core.sorting import compress_group_index
+from pandas.core.sorting import decons_obs_group_ids
+from pandas.core.sorting import get_compressed_ids
+from pandas.core.sorting import get_group_index
+from pandas.core.sorting import get_group_index_sorter
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray

@@ -2,40 +2,30 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pandas.plotting._matplotlib.boxplot import (
-    BoxPlot,
-    boxplot,
-    boxplot_frame,
-    boxplot_frame_groupby,
-)
-from pandas.plotting._matplotlib.converter import (
-    deregister,
-    register,
-)
-from pandas.plotting._matplotlib.core import (
-    AreaPlot,
-    BarhPlot,
-    BarPlot,
-    HexBinPlot,
-    LinePlot,
-    PiePlot,
-    ScatterPlot,
-)
-from pandas.plotting._matplotlib.hist import (
-    HistPlot,
-    KdePlot,
-    hist_frame,
-    hist_series,
-)
-from pandas.plotting._matplotlib.misc import (
-    andrews_curves,
-    autocorrelation_plot,
-    bootstrap_plot,
-    lag_plot,
-    parallel_coordinates,
-    radviz,
-    scatter_matrix,
-)
+from pandas.plotting._matplotlib.boxplot import BoxPlot
+from pandas.plotting._matplotlib.boxplot import boxplot
+from pandas.plotting._matplotlib.boxplot import boxplot_frame
+from pandas.plotting._matplotlib.boxplot import boxplot_frame_groupby
+from pandas.plotting._matplotlib.converter import deregister
+from pandas.plotting._matplotlib.converter import register
+from pandas.plotting._matplotlib.core import AreaPlot
+from pandas.plotting._matplotlib.core import BarPlot
+from pandas.plotting._matplotlib.core import BarhPlot
+from pandas.plotting._matplotlib.core import HexBinPlot
+from pandas.plotting._matplotlib.core import LinePlot
+from pandas.plotting._matplotlib.core import PiePlot
+from pandas.plotting._matplotlib.core import ScatterPlot
+from pandas.plotting._matplotlib.hist import HistPlot
+from pandas.plotting._matplotlib.hist import KdePlot
+from pandas.plotting._matplotlib.hist import hist_frame
+from pandas.plotting._matplotlib.hist import hist_series
+from pandas.plotting._matplotlib.misc import andrews_curves
+from pandas.plotting._matplotlib.misc import autocorrelation_plot
+from pandas.plotting._matplotlib.misc import bootstrap_plot
+from pandas.plotting._matplotlib.misc import lag_plot
+from pandas.plotting._matplotlib.misc import parallel_coordinates
+from pandas.plotting._matplotlib.misc import radviz
+from pandas.plotting._matplotlib.misc import scatter_matrix
 from pandas.plotting._matplotlib.tools import table
 
 if TYPE_CHECKING:

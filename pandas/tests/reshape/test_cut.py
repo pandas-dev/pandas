@@ -2,24 +2,22 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    cut,
-    date_range,
-    interval_range,
-    isna,
-    qcut,
-    timedelta_range,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
+from pandas import interval_range
+from pandas import isna
+from pandas import qcut
+from pandas import timedelta_range
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod

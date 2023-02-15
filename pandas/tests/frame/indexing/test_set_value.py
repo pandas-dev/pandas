@@ -2,10 +2,8 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
 
-from pandas import (
-    DataFrame,
-    isna,
-)
+from pandas import DataFrame
+from pandas import isna
 
 
 class TestSetValue:

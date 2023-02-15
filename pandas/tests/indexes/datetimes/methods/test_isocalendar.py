@@ -1,7 +1,5 @@
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
 import pandas._testing as tm
 
 

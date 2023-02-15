@@ -11,11 +11,9 @@ from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 from pandas._typing import F
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
@@ -54,10 +52,8 @@ def _unpack_zerodim_and_defer(method, name: str):
     method
     """
     if sys.version_info < (3, 9):
-        from pandas.util._str_methods import (
-            removeprefix,
-            removesuffix,
-        )
+        from pandas.util._str_methods import removeprefix
+        from pandas.util._str_methods import removesuffix
 
         stripped_name = removesuffix(removeprefix(name, "__"), "__")
     else:

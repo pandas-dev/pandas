@@ -21,10 +21,8 @@ cdef extern from "Python.h":
     object PyUnicode_DecodeLocale(const char *str, const char *errors) nogil
 
 
-from numpy cimport (
-    float64_t,
-    int64_t,
-)
+from numpy cimport float64_t
+from numpy cimport int64_t
 
 
 cdef extern from "numpy/arrayobject.h":

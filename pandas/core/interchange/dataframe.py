@@ -7,10 +7,8 @@ from pandas.core.interchange.column import PandasColumn
 from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-    )
+    from pandas import DataFrame
+    from pandas import Index
 
 
 class PandasDataFrameXchg(DataFrameXchg):

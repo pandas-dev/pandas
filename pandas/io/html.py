@@ -9,28 +9,22 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import re
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Literal,
-    Pattern,
-    Sequence,
-    cast,
-)
+from typing import Iterable
+from typing import Literal
+from typing import Pattern
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    BaseBuffer,
-    FilePath,
-    ReadBuffer,
-)
+from pandas._typing import BaseBuffer
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    EmptyDataError,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -39,14 +33,12 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
 
-from pandas.io.common import (
-    file_exists,
-    get_handle,
-    is_url,
-    stringify_path,
-    urlopen,
-    validate_header_arg,
-)
+from pandas.io.common import file_exists
+from pandas.io.common import get_handle
+from pandas.io.common import is_url
+from pandas.io.common import stringify_path
+from pandas.io.common import urlopen
+from pandas.io.common import validate_header_arg
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -784,11 +776,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pandas.io.html._HtmlFrameParser._build_doc
         """
         from lxml.etree import XMLSyntaxError
-        from lxml.html import (
-            HTMLParser,
-            fromstring,
-            parse,
-        )
+        from lxml.html import HTMLParser
+        from lxml.html import fromstring
+        from lxml.html import parse
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 

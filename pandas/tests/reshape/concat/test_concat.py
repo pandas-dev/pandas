@@ -1,34 +1,26 @@
-from collections import (
-    abc,
-    deque,
-)
+from collections import abc
+from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from typing import Iterator
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
+from warnings import catch_warnings
+from warnings import simplefilter
 
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    Series,
-    concat,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.tests.extension.decimal import to_decimal

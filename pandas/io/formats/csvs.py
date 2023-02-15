@@ -6,34 +6,28 @@ from __future__ import annotations
 
 import csv as csvlib
 import os
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Hashable,
-    Iterator,
-    Sequence,
-    cast,
-)
+from typing import Any
+from typing import Hashable
+from typing import Iterator
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import FloatFormatType
+from pandas._typing import IndexLabel
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-)
+from pandas.core.dtypes.generic import ABCDatetimeIndex
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCPeriodIndex
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index

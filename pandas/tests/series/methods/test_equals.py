@@ -9,11 +9,9 @@ from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_float
 
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 
 

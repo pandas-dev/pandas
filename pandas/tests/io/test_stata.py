@@ -16,24 +16,20 @@ from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.frame import (
-    DataFrame,
-    Series,
-)
+from pandas.core.frame import DataFrame
+from pandas.core.frame import Series
 from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv
-from pandas.io.stata import (
-    CategoricalConversionWarning,
-    InvalidColumnName,
-    PossiblePrecisionLoss,
-    StataMissingValue,
-    StataReader,
-    StataWriter,
-    StataWriterUTF8,
-    ValueLabelTypeMismatch,
-    read_stata,
-)
+from pandas.io.stata import CategoricalConversionWarning
+from pandas.io.stata import InvalidColumnName
+from pandas.io.stata import PossiblePrecisionLoss
+from pandas.io.stata import StataMissingValue
+from pandas.io.stata import StataReader
+from pandas.io.stata import StataWriter
+from pandas.io.stata import StataWriterUTF8
+from pandas.io.stata import ValueLabelTypeMismatch
+from pandas.io.stata import read_stata
 
 
 @pytest.fixture

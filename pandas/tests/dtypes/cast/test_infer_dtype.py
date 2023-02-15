@@ -1,28 +1,22 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import (
-    infer_dtype_from,
-    infer_dtype_from_array,
-    infer_dtype_from_scalar,
-)
+from pandas.core.dtypes.cast import infer_dtype_from
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import is_dtype_equal
 
-from pandas import (
-    Categorical,
-    Interval,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import Categorical
+from pandas import Interval
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 
 
 @pytest.fixture(params=[True, False])

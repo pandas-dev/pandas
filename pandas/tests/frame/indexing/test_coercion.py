@@ -8,14 +8,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

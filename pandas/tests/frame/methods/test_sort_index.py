@@ -2,16 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    CategoricalDtype,
-    CategoricalIndex,
-    DataFrame,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+from pandas import CategoricalDtype
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

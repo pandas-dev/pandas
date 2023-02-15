@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    PeriodIndex,
-    period_range,
-)
+from pandas import PeriodIndex
+from pandas import period_range
 import pandas._testing as tm
 
 

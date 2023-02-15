@@ -1,11 +1,9 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Index,
-    RangeIndex,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import RangeIndex
+from pandas import Series
 import pandas._testing as tm
 
 # -----------------------------------------------------------------------------

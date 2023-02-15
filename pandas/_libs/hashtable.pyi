@@ -1,8 +1,6 @@
-from typing import (
-    Any,
-    Hashable,
-    Literal,
-)
+from typing import Any
+from typing import Hashable
+from typing import Literal
 
 import numpy as np
 

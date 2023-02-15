@@ -6,11 +6,9 @@ import pytz
 from pandas.errors import NullFrequencyError
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Series,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)

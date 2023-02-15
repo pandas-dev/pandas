@@ -7,14 +7,12 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
 import pandas._testing as tm
 
 # TODO(1.4): Change me into individual xfails at release time

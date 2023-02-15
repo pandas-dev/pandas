@@ -7,14 +7,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timedelta,
-    Timestamp,
-    date_range,
-    offsets,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import offsets
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 

@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    Series,
-    interval_range,
-)
+from pandas import Series
+from pandas import interval_range
 import pandas._testing as tm
 
 

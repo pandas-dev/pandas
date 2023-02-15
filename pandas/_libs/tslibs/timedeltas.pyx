@@ -2,82 +2,62 @@ import collections
 import warnings
 
 cimport cython
-from cpython.object cimport (
-    Py_EQ,
-    Py_NE,
-    PyObject,
-    PyObject_RichCompare,
-)
+from cpython.object cimport PyObject
+from cpython.object cimport PyObject_RichCompare
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_NE
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    ndarray,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 cnp.import_array()
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDelta_Check,
-    import_datetime,
-    timedelta,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport timedelta
 
 import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.conversion cimport (
-    cast_from_unit,
-    precision_from_unit,
-)
-from pandas._libs.tslibs.dtypes cimport (
-    get_supported_reso,
-    npy_unit_to_abbrev,
-)
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-    c_nat_strings as nat_strings,
-    checknull_with_nat,
-)
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_ns,
-    cmp_dtstructs,
-    cmp_scalar,
-    convert_reso,
-    get_datetime64_unit,
-    get_timedelta64_value,
-    get_unit_from_dtype,
-    npy_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    pandas_timedelta_to_timedeltastruct,
-    pandas_timedeltastruct,
-)
+from pandas._libs.tslibs.conversion cimport cast_from_unit
+from pandas._libs.tslibs.conversion cimport precision_from_unit
+from pandas._libs.tslibs.dtypes cimport get_supported_reso
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport c_nat_strings as nat_strings
+from pandas._libs.tslibs.nattype cimport checknull_with_nat
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
+from pandas._libs.tslibs.np_datetime cimport cmp_dtstructs
+from pandas._libs.tslibs.np_datetime cimport cmp_scalar
+from pandas._libs.tslibs.np_datetime cimport convert_reso
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_unit
+from pandas._libs.tslibs.np_datetime cimport get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport get_unit_from_dtype
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pandas_timedelta_to_timedeltastruct
+from pandas._libs.tslibs.np_datetime cimport pandas_timedeltastruct
 
-from pandas._libs.tslibs.np_datetime import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
-from pandas._libs.tslibs.util cimport (
-    is_array,
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-    is_timedelta64_object,
-)
+from pandas._libs.tslibs.util cimport is_array
+from pandas._libs.tslibs.util cimport is_datetime64_object
+from pandas._libs.tslibs.util cimport is_float_object
+from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_timedelta64_object
 
-from pandas._libs.tslibs.fields import (
-    RoundTo,
-    round_nsint64,
-)
+from pandas._libs.tslibs.fields import RoundTo
+from pandas._libs.tslibs.fields import round_nsint64
 
 # ----------------------------------------------------------------------
 # Constants

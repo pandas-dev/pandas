@@ -3,12 +3,10 @@ Tests date parsing functionality for all of the
 parsers defined in parsers.py
 """
 
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from io import StringIO
 
 from dateutil.parser import parse as du_parse
@@ -22,14 +20,12 @@ from pandas._libs.tslibs.parsing import py_parse_datetime_string
 from pandas.compat.pyarrow import pa_version_under7p0
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range

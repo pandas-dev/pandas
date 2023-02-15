@@ -4,10 +4,8 @@ import pytest
 from pandas.errors import SettingWithCopyWarning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 

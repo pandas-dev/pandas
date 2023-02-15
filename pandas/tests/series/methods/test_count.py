@@ -1,10 +1,8 @@
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Series,
-)
+from pandas import Categorical
+from pandas import Series
 
 
 class TestSeriesCount:

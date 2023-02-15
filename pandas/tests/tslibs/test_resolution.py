@@ -1,10 +1,8 @@
 import numpy as np
 import pytz
 
-from pandas._libs.tslibs import (
-    Resolution,
-    get_resolution,
-)
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import get_resolution
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 

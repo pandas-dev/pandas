@@ -12,23 +12,19 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    notna,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import notna
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
-from pandas.core import (
-    algorithms,
-    nanops,
-)
+from pandas.core import algorithms
+from pandas.core import nanops
 
 
 def assert_stat_op_calc(

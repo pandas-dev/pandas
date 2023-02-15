@@ -3,38 +3,30 @@ import numbers
 from sys import maxsize
 
 cimport cython
-from cpython.datetime cimport (
-    date,
-    time,
-    timedelta,
-)
+from cpython.datetime cimport date
+from cpython.datetime cimport time
+from cpython.datetime cimport timedelta
 from cython cimport Py_ssize_t
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    flatiter,
-    float64_t,
-    int64_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport flatiter
+from numpy cimport float64_t
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.tslibs.nattype cimport (
-    c_NaT as NaT,
-    checknull_with_nat,
-    is_dt64nat,
-    is_td64nat,
-)
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_unit,
-    get_datetime64_value,
-    get_timedelta64_value,
-)
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport checknull_with_nat
+from pandas._libs.tslibs.nattype cimport is_dt64nat
+from pandas._libs.tslibs.nattype cimport is_td64nat
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_unit
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value
+from pandas._libs.tslibs.np_datetime cimport get_timedelta64_value
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 

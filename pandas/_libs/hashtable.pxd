@@ -1,38 +1,34 @@
-from numpy cimport (
-    intp_t,
-    ndarray,
-)
+from numpy cimport intp_t
+from numpy cimport ndarray
 
-from pandas._libs.khash cimport (
-    complex64_t,
-    complex128_t,
-    float32_t,
-    float64_t,
-    int8_t,
-    int16_t,
-    int32_t,
-    int64_t,
-    kh_complex64_t,
-    kh_complex128_t,
-    kh_float32_t,
-    kh_float64_t,
-    kh_int8_t,
-    kh_int16_t,
-    kh_int32_t,
-    kh_int64_t,
-    kh_pymap_t,
-    kh_str_t,
-    kh_uint8_t,
-    kh_uint16_t,
-    kh_uint32_t,
-    kh_uint64_t,
-    khcomplex64_t,
-    khcomplex128_t,
-    uint8_t,
-    uint16_t,
-    uint32_t,
-    uint64_t,
-)
+from pandas._libs.khash cimport complex64_t
+from pandas._libs.khash cimport complex128_t
+from pandas._libs.khash cimport float32_t
+from pandas._libs.khash cimport float64_t
+from pandas._libs.khash cimport int8_t
+from pandas._libs.khash cimport int16_t
+from pandas._libs.khash cimport int32_t
+from pandas._libs.khash cimport int64_t
+from pandas._libs.khash cimport kh_complex64_t
+from pandas._libs.khash cimport kh_complex128_t
+from pandas._libs.khash cimport kh_float32_t
+from pandas._libs.khash cimport kh_float64_t
+from pandas._libs.khash cimport kh_int8_t
+from pandas._libs.khash cimport kh_int16_t
+from pandas._libs.khash cimport kh_int32_t
+from pandas._libs.khash cimport kh_int64_t
+from pandas._libs.khash cimport kh_pymap_t
+from pandas._libs.khash cimport kh_str_t
+from pandas._libs.khash cimport kh_uint8_t
+from pandas._libs.khash cimport kh_uint16_t
+from pandas._libs.khash cimport kh_uint32_t
+from pandas._libs.khash cimport kh_uint64_t
+from pandas._libs.khash cimport khcomplex64_t
+from pandas._libs.khash cimport khcomplex128_t
+from pandas._libs.khash cimport uint8_t
+from pandas._libs.khash cimport uint16_t
+from pandas._libs.khash cimport uint32_t
+from pandas._libs.khash cimport uint64_t
 
 # prototypes for sharing
 

@@ -3,10 +3,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    Categorical,
-    DataFrame,
-)
+from pandas import Categorical
+from pandas import DataFrame
 
 # _is_homogeneous_type always returns True for ArrayManager
 pytestmark = td.skip_array_manager_invalid_test

@@ -1,24 +1,18 @@
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
+from datetime import timezone
 
 import numpy as np
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    to_datetime,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timestamp
+from pandas import date_range
+from pandas import to_datetime
 import pandas._testing as tm
 
-from pandas.tseries.offsets import (
-    BDay,
-    BMonthEnd,
-)
+from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import BMonthEnd
 
 
 class TestJoin:

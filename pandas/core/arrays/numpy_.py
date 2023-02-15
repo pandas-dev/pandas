@@ -3,33 +3,25 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Scalar,
-    npt,
-)
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import is_supported_unit
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import NpDtype
+from pandas._typing import Scalar
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import (
-    arraylike,
-    nanops,
-    ops,
-)
+from pandas.core import arraylike
+from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike

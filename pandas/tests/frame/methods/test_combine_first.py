@@ -10,12 +10,10 @@ from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 
 

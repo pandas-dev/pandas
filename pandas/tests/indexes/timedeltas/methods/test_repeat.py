@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas import TimedeltaIndex
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

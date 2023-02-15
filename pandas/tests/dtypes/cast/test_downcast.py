@@ -5,10 +5,8 @@ import pytest
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
-from pandas import (
-    Series,
-    Timedelta,
-)
+from pandas import Series
+from pandas import Timedelta
 import pandas._testing as tm
 
 

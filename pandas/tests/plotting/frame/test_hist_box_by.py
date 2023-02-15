@@ -7,10 +7,8 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
 
 
 @pytest.fixture

@@ -1,10 +1,8 @@
 """
 test with the TimeGrouper / grouping with datetimes
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from io import StringIO
 
 import numpy as np
@@ -14,16 +12,14 @@ import pytz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    offsets,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import offsets
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper

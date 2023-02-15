@@ -1,14 +1,12 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Series,
-    date_range,
-    option_context,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Series
+from pandas import date_range
+from pandas import option_context
+from pandas import period_range
+from pandas import timedelta_range
 
 
 class TestCategoricalReprWithFactor:

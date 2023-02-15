@@ -1,12 +1,10 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    Index,
-    NaT,
-    Series,
-    date_range,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import date_range
 
 from ..pandas_vb_common import tm
 

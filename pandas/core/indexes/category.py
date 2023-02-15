@@ -1,47 +1,31 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Hashable,
-)
+from typing import Any
+from typing import Hashable
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import npt
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_scalar,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    notna,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core.arrays.categorical import (
-    Categorical,
-    contains,
-)
+from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays.categorical import contains
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    maybe_extract_name,
-)
-from pandas.core.indexes.extension import (
-    NDArrayBackedExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import maybe_extract_name
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
+from pandas.core.indexes.extension import inherit_names
 
 from pandas.io.formats.printing import pprint_thing
 

@@ -3,12 +3,10 @@ import random
 import numpy as np
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-)
+from pandas import DatetimeIndex
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 
 

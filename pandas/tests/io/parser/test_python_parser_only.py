@@ -7,25 +7,19 @@ arguments when parsing.
 from __future__ import annotations
 
 import csv
-from io import (
-    BytesIO,
-    StringIO,
-    TextIOWrapper,
-)
+from io import BytesIO
+from io import StringIO
+from io import TextIOWrapper
 from typing import Iterator
 
 import pytest
 
-from pandas.errors import (
-    ParserError,
-    ParserWarning,
-)
+from pandas.errors import ParserError
+from pandas.errors import ParserWarning
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
 import pandas._testing as tm
 
 

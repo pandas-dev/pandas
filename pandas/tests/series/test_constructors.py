@@ -1,8 +1,6 @@
 from collections import OrderedDict
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from typing import Iterator
 
 from dateutil.tz import tzoffset
@@ -10,44 +8,36 @@ import numpy as np
 from numpy import ma
 import pytest
 
-from pandas._libs import (
-    iNaT,
-    lib,
-)
+from pandas._libs import iNaT
+from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Period,
-    RangeIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Period
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
-from pandas.core.arrays import (
-    IntegerArray,
-    IntervalArray,
-    period_array,
-)
+from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import period_array
 from pandas.core.internals.blocks import NumericBlock
 
 

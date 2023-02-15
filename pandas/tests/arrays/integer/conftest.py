@@ -2,16 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.integer import (
-    Int8Dtype,
-    Int16Dtype,
-    Int32Dtype,
-    Int64Dtype,
-    UInt8Dtype,
-    UInt16Dtype,
-    UInt32Dtype,
-    UInt64Dtype,
-)
+from pandas.core.arrays.integer import Int8Dtype
+from pandas.core.arrays.integer import Int16Dtype
+from pandas.core.arrays.integer import Int32Dtype
+from pandas.core.arrays.integer import Int64Dtype
+from pandas.core.arrays.integer import UInt8Dtype
+from pandas.core.arrays.integer import UInt16Dtype
+from pandas.core.arrays.integer import UInt32Dtype
+from pandas.core.arrays.integer import UInt64Dtype
 
 
 @pytest.fixture(

@@ -9,10 +9,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    Timestamp,
-)
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core import ops
 

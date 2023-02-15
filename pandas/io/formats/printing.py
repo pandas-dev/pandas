@@ -4,16 +4,14 @@ Printing tools.
 from __future__ import annotations
 
 import sys
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Sequence,
-    TypeVar,
-    Union,
-)
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import Mapping
+from typing import Sequence
+from typing import TypeVar
+from typing import Union
 
 from pandas._config import get_option
 

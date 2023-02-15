@@ -8,10 +8,8 @@ These are used for:
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    NoReturn,
-)
+from typing import Any
+from typing import NoReturn
 
 from pandas.core.base import PandasObject
 

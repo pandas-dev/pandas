@@ -1,30 +1,26 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    NaT,
-    Period,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    date_range,
-    isna,
-    timedelta_range,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import timedelta_range
+from pandas import to_timedelta
 import pandas._testing as tm
 from pandas.core import nanops
 

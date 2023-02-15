@@ -21,17 +21,15 @@ from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_float_dtype
 
-from pandas import (
-    NA,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    PeriodIndex,
-    RangeIndex,
-    TimedeltaIndex,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import TimedeltaIndex
 import pandas._testing as tm
 
 

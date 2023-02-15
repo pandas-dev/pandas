@@ -8,120 +8,94 @@ import os
 import re
 import string
 from sys import byteorder
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    ContextManager,
-    Counter,
-    Iterable,
-    cast,
-)
+from typing import Callable
+from typing import ContextManager
+from typing import Counter
+from typing import Iterable
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._config.localization import (
-    can_set_locale,
-    get_locales,
-    set_locale,
-)
+from pandas._config.localization import can_set_locale
+from pandas._config.localization import get_locales
+from pandas._config.localization import set_locale
 
-from pandas._typing import (
-    Dtype,
-    Frequency,
-    NpDtype,
-)
+from pandas._typing import Dtype
+from pandas._typing import Frequency
+from pandas._typing import NpDtype
 from pandas.compat import pa_version_under7p0
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_sequence,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_sequence
+from pandas.core.dtypes.common import is_signed_integer_dtype
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
-from pandas import (
-    ArrowDtype,
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    bdate_range,
-)
-from pandas._testing._io import (
-    close,
-    network,
-    round_trip_localpath,
-    round_trip_pathlib,
-    round_trip_pickle,
-    write_to_compressed,
-)
-from pandas._testing._random import (
-    rands,
-    rands_array,
-)
-from pandas._testing._warnings import (
-    assert_produces_warning,
-    maybe_produces_warning,
-)
-from pandas._testing.asserters import (
-    assert_almost_equal,
-    assert_attr_equal,
-    assert_categorical_equal,
-    assert_class_equal,
-    assert_contains_all,
-    assert_copy,
-    assert_datetime_array_equal,
-    assert_dict_equal,
-    assert_equal,
-    assert_extension_array_equal,
-    assert_frame_equal,
-    assert_index_equal,
-    assert_indexing_slices_equivalent,
-    assert_interval_array_equal,
-    assert_is_sorted,
-    assert_is_valid_plot_return_object,
-    assert_metadata_equivalent,
-    assert_numpy_array_equal,
-    assert_period_array_equal,
-    assert_series_equal,
-    assert_sp_array_equal,
-    assert_timedelta_array_equal,
-    raise_assert_detail,
-)
-from pandas._testing.compat import (
-    get_dtype,
-    get_obj,
-)
-from pandas._testing.contexts import (
-    decompress_file,
-    ensure_clean,
-    ensure_safe_environment_variables,
-    raises_chained_assignment_error,
-    set_timezone,
-    use_numexpr,
-    with_csv_dialect,
-)
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    ExtensionArray,
-    PandasArray,
-)
+from pandas import ArrowDtype
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import bdate_range
+from pandas._testing._io import close
+from pandas._testing._io import network
+from pandas._testing._io import round_trip_localpath
+from pandas._testing._io import round_trip_pathlib
+from pandas._testing._io import round_trip_pickle
+from pandas._testing._io import write_to_compressed
+from pandas._testing._random import rands
+from pandas._testing._random import rands_array
+from pandas._testing._warnings import assert_produces_warning
+from pandas._testing._warnings import maybe_produces_warning
+from pandas._testing.asserters import assert_almost_equal
+from pandas._testing.asserters import assert_attr_equal
+from pandas._testing.asserters import assert_categorical_equal
+from pandas._testing.asserters import assert_class_equal
+from pandas._testing.asserters import assert_contains_all
+from pandas._testing.asserters import assert_copy
+from pandas._testing.asserters import assert_datetime_array_equal
+from pandas._testing.asserters import assert_dict_equal
+from pandas._testing.asserters import assert_equal
+from pandas._testing.asserters import assert_extension_array_equal
+from pandas._testing.asserters import assert_frame_equal
+from pandas._testing.asserters import assert_index_equal
+from pandas._testing.asserters import assert_indexing_slices_equivalent
+from pandas._testing.asserters import assert_interval_array_equal
+from pandas._testing.asserters import assert_is_sorted
+from pandas._testing.asserters import assert_is_valid_plot_return_object
+from pandas._testing.asserters import assert_metadata_equivalent
+from pandas._testing.asserters import assert_numpy_array_equal
+from pandas._testing.asserters import assert_period_array_equal
+from pandas._testing.asserters import assert_series_equal
+from pandas._testing.asserters import assert_sp_array_equal
+from pandas._testing.asserters import assert_timedelta_array_equal
+from pandas._testing.asserters import raise_assert_detail
+from pandas._testing.compat import get_dtype
+from pandas._testing.compat import get_obj
+from pandas._testing.contexts import decompress_file
+from pandas._testing.contexts import ensure_clean
+from pandas._testing.contexts import ensure_safe_environment_variables
+from pandas._testing.contexts import raises_chained_assignment_error
+from pandas._testing.contexts import set_timezone
+from pandas._testing.contexts import use_numexpr
+from pandas._testing.contexts import with_csv_dialect
+from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import PandasArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas import (
-        PeriodIndex,
-        TimedeltaIndex,
-    )
+    from pandas import PeriodIndex
+    from pandas import TimedeltaIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30

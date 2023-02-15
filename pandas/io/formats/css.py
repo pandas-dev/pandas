@@ -4,12 +4,10 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 from __future__ import annotations
 
 import re
-from typing import (
-    Callable,
-    Generator,
-    Iterable,
-    Iterator,
-)
+from typing import Callable
+from typing import Generator
+from typing import Iterable
+from typing import Iterator
 import warnings
 
 from pandas.errors import CSSWarning

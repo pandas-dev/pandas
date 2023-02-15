@@ -5,29 +5,21 @@ retrieval and to reduce dependency on DB-specific API.
 
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from contextlib import (
-    ExitStack,
-    contextmanager,
-)
-from datetime import (
-    date,
-    datetime,
-    time,
-)
+from abc import ABC
+from abc import abstractmethod
+from contextlib import ExitStack
+from contextlib import contextmanager
+from datetime import date
+from datetime import datetime
+from datetime import time
 from functools import partial
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterator,
-    Literal,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Iterator
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import overload
 import warnings
 
 import numpy as np
@@ -35,32 +27,24 @@ import numpy as np
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    DateTimeErrorChoices,
-    DtypeArg,
-    IndexLabel,
-)
+from pandas._typing import DateTimeErrorChoices
+from pandas._typing import DtypeArg
+from pandas._typing import IndexLabel
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    DatabaseError,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import DatabaseError
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_dict_like,
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
-from pandas.core.api import (
-    DataFrame,
-    Series,
-)
+from pandas.core.api import DataFrame
+from pandas.core.api import Series
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -69,10 +53,8 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from sqlalchemy import Table
-    from sqlalchemy.sql.expression import (
-        Select,
-        TextClause,
-    )
+    from sqlalchemy.sql.expression import Select
+    from sqlalchemy.sql.expression import TextClause
 
 
 # -----------------------------------------------------------------------------
@@ -1203,11 +1185,9 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import (
-            Column,
-            PrimaryKeyConstraint,
-            Table,
-        )
+        from sqlalchemy import Column
+        from sqlalchemy import PrimaryKeyConstraint
+        from sqlalchemy import Table
         from sqlalchemy.schema import MetaData
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
@@ -1296,18 +1276,16 @@ class SQLTable(PandasObject):
         # Needed for inserting typed data containing NULLs, GH 8778.
         col_type = lib.infer_dtype(col, skipna=True)
 
-        from sqlalchemy.types import (
-            TIMESTAMP,
-            BigInteger,
-            Boolean,
-            Date,
-            DateTime,
-            Float,
-            Integer,
-            SmallInteger,
-            Text,
-            Time,
-        )
+        from sqlalchemy.types import BigInteger
+        from sqlalchemy.types import Boolean
+        from sqlalchemy.types import Date
+        from sqlalchemy.types import DateTime
+        from sqlalchemy.types import Float
+        from sqlalchemy.types import Integer
+        from sqlalchemy.types import SmallInteger
+        from sqlalchemy.types import TIMESTAMP
+        from sqlalchemy.types import Text
+        from sqlalchemy.types import Time
 
         if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
@@ -1356,14 +1334,12 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import (
-            TIMESTAMP,
-            Boolean,
-            Date,
-            DateTime,
-            Float,
-            Integer,
-        )
+        from sqlalchemy.types import Boolean
+        from sqlalchemy.types import Date
+        from sqlalchemy.types import DateTime
+        from sqlalchemy.types import Float
+        from sqlalchemy.types import Integer
+        from sqlalchemy.types import TIMESTAMP
 
         if isinstance(sqltype, Float):
             return float
@@ -1990,10 +1966,8 @@ class SQLDatabase(PandasSQL):
         return insp.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
-        from sqlalchemy import (
-            Numeric,
-            Table,
-        )
+        from sqlalchemy import Numeric
+        from sqlalchemy import Table
 
         schema = schema or self.meta.schema
         tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)

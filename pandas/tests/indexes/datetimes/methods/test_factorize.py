@@ -1,11 +1,9 @@
 import numpy as np
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    date_range,
-    factorize,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import date_range
+from pandas import factorize
 import pandas._testing as tm
 
 

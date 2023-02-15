@@ -1,38 +1,30 @@
 """
 Tests for offsets.Tick and subclasses
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
-from hypothesis import (
-    assume,
-    example,
-    given,
-)
+from hypothesis import assume
+from hypothesis import example
+from hypothesis import given
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
 
-from pandas import (
-    Timedelta,
-    Timestamp,
-)
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas._testing._hypothesis import INT_NEG_999_TO_POS_999
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (
-    Hour,
-    Micro,
-    Milli,
-    Minute,
-    Nano,
-    Second,
-)
+from pandas.tseries.offsets import Hour
+from pandas.tseries.offsets import Micro
+from pandas.tseries.offsets import Milli
+from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import Nano
+from pandas.tseries.offsets import Second
 
 # ---------------------------------------------------------------------
 # Test Helpers

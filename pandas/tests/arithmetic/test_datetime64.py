@@ -1,15 +1,11 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import (
-    datetime,
-    time,
-    timedelta,
-)
-from itertools import (
-    product,
-    starmap,
-)
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from itertools import product
+from itertools import starmap
 import operator
 import warnings
 
@@ -22,25 +18,21 @@ from pandas._libs.tslibs.offsets import shift_months
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    DateOffset,
-    DatetimeIndex,
-    NaT,
-    Period,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    date_range,
-)
+from pandas import DateOffset
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 from pandas.core.ops import roperator
-from pandas.tests.arithmetic.common import (
-    assert_cannot_add,
-    assert_invalid_addsub_type,
-    assert_invalid_comparison,
-    get_upcast_box,
-)
+from pandas.tests.arithmetic.common import assert_cannot_add
+from pandas.tests.arithmetic.common import assert_invalid_addsub_type
+from pandas.tests.arithmetic.common import assert_invalid_comparison
+from pandas.tests.arithmetic.common import get_upcast_box
 
 # ------------------------------------------------------------------
 # Comparisons

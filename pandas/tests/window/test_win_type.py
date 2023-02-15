@@ -3,13 +3,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timedelta,
-    concat,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timedelta
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 

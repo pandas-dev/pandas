@@ -24,11 +24,9 @@ try:
 except ImportError:
     from pandas._libs.tslibs.resolution import get_resolution
 
-from .tslib import (
-    _sizes,
-    _tzs,
-    tzlocal_obj,
-)
+from .tslib import _sizes
+from .tslib import _tzs
+from .tslib import tzlocal_obj
 
 
 class TimeResolution:

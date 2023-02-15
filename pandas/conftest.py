@@ -20,58 +20,44 @@ Instead of splitting it was decided to define sections here:
 from __future__ import annotations
 
 from collections import abc
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import timezone
 from decimal import Decimal
 import operator
 import os
-from typing import (
-    Callable,
-    Hashable,
-    Iterator,
-)
+from typing import Callable
+from typing import Hashable
+from typing import Iterator
 
-from dateutil.tz import (
-    tzlocal,
-    tzutc,
-)
+from dateutil.tz import tzlocal
+from dateutil.tz import tzutc
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import (
-    FixedOffset,
-    utc,
-)
+from pytz import FixedOffset
+from pytz import utc
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Interval,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    compat,
-)
+from pandas import DataFrame
+from pandas import Interval
+from pandas import Period
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import compat
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
 
 try:
     import pyarrow as pa

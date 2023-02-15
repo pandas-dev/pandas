@@ -1,9 +1,7 @@
 import pytest
 
-from scripts.validate_exception_location import (
-    ERROR_MESSAGE,
-    validate_exception_and_warning_placement,
-)
+from scripts.validate_exception_location import ERROR_MESSAGE
+from scripts.validate_exception_location import validate_exception_and_warning_placement
 
 PATH = "t.py"
 

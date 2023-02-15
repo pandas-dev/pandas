@@ -1,18 +1,14 @@
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    datetime,
-    import_datetime,
-    timedelta,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport datetime
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport timedelta
 
 import_datetime()
-from cpython.object cimport (
-    Py_EQ,
-    Py_NE,
-    PyObject_RichCompare,
-)
+from cpython.object cimport PyObject_RichCompare
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_NE
 
 import numpy as np
 
@@ -22,10 +18,8 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value
+from pandas._libs.tslibs.np_datetime cimport get_timedelta64_value
 
 # ----------------------------------------------------------------------
 # Constants

@@ -4,21 +4,17 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_timedelta64_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 

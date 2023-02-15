@@ -6,10 +6,8 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 import pandas._testing as tm

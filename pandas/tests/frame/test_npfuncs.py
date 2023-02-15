@@ -3,10 +3,8 @@ Tests for np.foo applied to DataFrame, not necessarily ufuncs.
 """
 import numpy as np
 
-from pandas import (
-    Categorical,
-    DataFrame,
-)
+from pandas import Categorical
+from pandas import DataFrame
 import pandas._testing as tm
 
 

@@ -5,51 +5,43 @@ from collections import defaultdict
 from contextlib import nullcontext
 from functools import partial
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    ContextManager,
-    DefaultDict,
-    Dict,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
-    Sequence,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import ContextManager
+from typing import DefaultDict
+from typing import Dict
+from typing import Hashable
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._typing import (
-    AggFuncType,
-    AggFuncTypeBase,
-    AggFuncTypeDict,
-    AggObjType,
-    Axis,
-    AxisInt,
-    NDFrameT,
-    npt,
-)
+from pandas._typing import AggFuncType
+from pandas._typing import AggFuncTypeBase
+from pandas._typing import AggFuncTypeDict
+from pandas._typing import AggObjType
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import NDFrameT
+from pandas._typing import npt
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import is_nested_object
-from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_extension_array_dtype,
-    is_list_like,
-    is_sequence,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCNDFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_sequence
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCNDFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
@@ -57,11 +49,9 @@ import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
     from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
@@ -294,10 +284,8 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
+        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas.core.groupby.generic import SeriesGroupBy
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -390,10 +378,8 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation.
         """
         from pandas import Index
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
+        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas.core.groupby.generic import SeriesGroupBy
         from pandas.core.reshape.concat import concat
 
         obj = self.obj

@@ -1,8 +1,6 @@
-from datetime import (
-    datetime,
-    timedelta,
-    tzinfo as _tzinfo,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import tzinfo as _tzinfo
 
 import numpy as np
 

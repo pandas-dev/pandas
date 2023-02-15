@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Index,
-    Interval,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import Interval
 import pandas._testing as tm
 
 

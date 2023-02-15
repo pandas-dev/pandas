@@ -1,21 +1,17 @@
-from collections import (
-    OrderedDict,
-    defaultdict,
-)
+from collections import OrderedDict
+from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

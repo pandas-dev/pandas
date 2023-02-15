@@ -46,13 +46,11 @@ __version__ = "1.7.0"
 
 import contextlib
 import ctypes
-from ctypes import (
-    c_size_t,
-    c_wchar,
-    c_wchar_p,
-    get_errno,
-    sizeof,
-)
+from ctypes import c_size_t
+from ctypes import c_wchar
+from ctypes import c_wchar_p
+from ctypes import get_errno
+from ctypes import sizeof
 import os
 import platform
 from shutil import which
@@ -60,10 +58,8 @@ import subprocess
 import time
 import warnings
 
-from pandas.errors import (
-    PyperclipException,
-    PyperclipWindowsException,
-)
+from pandas.errors import PyperclipException
+from pandas.errors import PyperclipWindowsException
 from pandas.util._exceptions import find_stack_level
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
@@ -322,19 +318,17 @@ class CheckedCall:
 def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
-    from ctypes.wintypes import (
-        BOOL,
-        DWORD,
-        HANDLE,
-        HGLOBAL,
-        HINSTANCE,
-        HMENU,
-        HWND,
-        INT,
-        LPCSTR,
-        LPVOID,
-        UINT,
-    )
+    from ctypes.wintypes import BOOL
+    from ctypes.wintypes import DWORD
+    from ctypes.wintypes import HANDLE
+    from ctypes.wintypes import HGLOBAL
+    from ctypes.wintypes import HINSTANCE
+    from ctypes.wintypes import HMENU
+    from ctypes.wintypes import HWND
+    from ctypes.wintypes import INT
+    from ctypes.wintypes import LPCSTR
+    from ctypes.wintypes import LPVOID
+    from ctypes.wintypes import UINT
 
     windll = ctypes.windll
     msvcrt = ctypes.CDLL("msvcrt")

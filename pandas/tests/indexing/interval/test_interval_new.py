@@ -5,12 +5,10 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-)
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Series
 import pandas._testing as tm
 
 

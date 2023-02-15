@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    NaT,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import NaT
+from pandas import date_range
 import pandas._testing as tm
 
 

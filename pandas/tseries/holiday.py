@@ -1,37 +1,29 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import warnings
 
-from dateutil.relativedelta import (
-    FR,
-    MO,
-    SA,
-    SU,
-    TH,
-    TU,
-    WE,
-)
+from dateutil.relativedelta import FR
+from dateutil.relativedelta import MO
+from dateutil.relativedelta import SA
+from dateutil.relativedelta import SU
+from dateutil.relativedelta import TH
+from dateutil.relativedelta import TU
+from dateutil.relativedelta import WE
 import numpy as np
 
 from pandas.errors import PerformanceWarning
 
-from pandas import (
-    DateOffset,
-    DatetimeIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-)
+from pandas import DateOffset
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
 
-from pandas.tseries.offsets import (
-    Day,
-    Easter,
-)
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Easter
 
 
 def next_monday(dt: datetime) -> datetime:

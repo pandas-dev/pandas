@@ -5,49 +5,41 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    algos as libalgos,
-    hashtable as ht,
-)
+from pandas._libs import algos as libalgos
+from pandas._libs import hashtable as ht
 from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Period,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    timedelta_range,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import timedelta_range
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import TimedeltaArray
 import pandas.core.common as com
 
 

@@ -9,10 +9,8 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    Axis,
-    TimedeltaConvertibleTypes,
-)
+from pandas._typing import Axis
+from pandas._typing import TimedeltaConvertibleTypes
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
@@ -20,45 +18,31 @@ if TYPE_CHECKING:
 
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import common
-from pandas.core.indexers.objects import (
-    BaseIndexer,
-    ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
-)
-from pandas.core.util.numba_ import (
-    get_jit_arguments,
-    maybe_use_numba,
-)
+from pandas.core.indexers.objects import BaseIndexer
+from pandas.core.indexers.objects import ExponentialMovingWindowIndexer
+from pandas.core.indexers.objects import GroupbyIndexer
+from pandas.core.util.numba_ import get_jit_arguments
+from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    numba_notes,
-    template_header,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-)
-from pandas.core.window.numba_ import (
-    generate_numba_ewm_func,
-    generate_numba_ewm_table_func,
-)
-from pandas.core.window.online import (
-    EWMMeanState,
-    generate_online_numba_ewma_func,
-)
-from pandas.core.window.rolling import (
-    BaseWindow,
-    BaseWindowGroupby,
-)
+from pandas.core.window.doc import _shared_docs
+from pandas.core.window.doc import create_section_header
+from pandas.core.window.doc import kwargs_numeric_only
+from pandas.core.window.doc import numba_notes
+from pandas.core.window.doc import template_header
+from pandas.core.window.doc import template_returns
+from pandas.core.window.doc import template_see_also
+from pandas.core.window.doc import window_agg_numba_parameters
+from pandas.core.window.numba_ import generate_numba_ewm_func
+from pandas.core.window.numba_ import generate_numba_ewm_table_func
+from pandas.core.window.online import EWMMeanState
+from pandas.core.window.online import generate_online_numba_ewma_func
+from pandas.core.window.rolling import BaseWindow
+from pandas.core.window.rolling import BaseWindowGroupby
 
 
 def get_center_of_mass(

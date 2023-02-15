@@ -1,16 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
-from pandas.io.pytables import (
-    HDFStore,
-    read_hdf,
-)
+from pandas.io.pytables import HDFStore
+from pandas.io.pytables import read_hdf
 
 pytest.importorskip("tables")
 

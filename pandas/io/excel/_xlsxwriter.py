@@ -3,17 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from pandas._libs import json
-from pandas._typing import (
-    FilePath,
-    StorageOptions,
-    WriteExcelBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import StorageOptions
+from pandas._typing import WriteExcelBuffer
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import (
-    combine_kwargs,
-    validate_freeze_panes,
-)
+from pandas.io.excel._util import combine_kwargs
+from pandas.io.excel._util import validate_freeze_panes
 
 
 class _XlsxStyler:

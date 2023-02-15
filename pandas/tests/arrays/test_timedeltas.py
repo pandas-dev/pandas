@@ -6,10 +6,8 @@ import pytest
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestNonNano:

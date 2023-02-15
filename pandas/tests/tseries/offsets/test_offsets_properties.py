@@ -7,18 +7,14 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
-from hypothesis import (
-    assume,
-    given,
-)
+from hypothesis import assume
+from hypothesis import given
 import pytest
 import pytz
 
 import pandas as pd
-from pandas._testing._hypothesis import (
-    DATETIME_JAN_1_1900_OPTIONAL_TZ,
-    YQM_OFFSET,
-)
+from pandas._testing._hypothesis import DATETIME_JAN_1_1900_OPTIONAL_TZ
+from pandas._testing._hypothesis import YQM_OFFSET
 
 # ----------------------------------------------------------------
 # Offset-specific behaviour tests

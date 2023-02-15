@@ -4,26 +4,22 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-    cut,
-    date_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
 import pandas._testing as tm
 
 

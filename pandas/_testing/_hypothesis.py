@@ -11,20 +11,18 @@ from pandas.compat import is_platform_windows
 
 import pandas as pd
 
-from pandas.tseries.offsets import (
-    BMonthBegin,
-    BMonthEnd,
-    BQuarterBegin,
-    BQuarterEnd,
-    BYearBegin,
-    BYearEnd,
-    MonthBegin,
-    MonthEnd,
-    QuarterBegin,
-    QuarterEnd,
-    YearBegin,
-    YearEnd,
-)
+from pandas.tseries.offsets import BMonthBegin
+from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import BQuarterBegin
+from pandas.tseries.offsets import BQuarterEnd
+from pandas.tseries.offsets import BYearBegin
+from pandas.tseries.offsets import BYearEnd
+from pandas.tseries.offsets import MonthBegin
+from pandas.tseries.offsets import MonthEnd
+from pandas.tseries.offsets import QuarterBegin
+from pandas.tseries.offsets import QuarterEnd
+from pandas.tseries.offsets import YearBegin
+from pandas.tseries.offsets import YearEnd
 
 OPTIONAL_INTS = st.lists(st.one_of(st.integers(), st.none()), max_size=10, min_size=3)
 

@@ -2,65 +2,53 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    cast,
-)
+from typing import Iterator
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    tslibs,
-)
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaT,
-    NaTType,
-    Tick,
-    Timedelta,
-    astype_overflowsafe,
-    get_supported_reso,
-    get_unit_from_dtype,
-    iNaT,
-    is_supported_unit,
-    npy_unit_to_abbrev,
-    periods_per_second,
-    to_offset,
-)
+from pandas._libs import lib
+from pandas._libs import tslibs
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Tick
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import astype_overflowsafe
+from pandas._libs.tslibs import get_supported_reso
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import is_supported_unit
+from pandas._libs.tslibs import npy_unit_to_abbrev
+from pandas._libs.tslibs import periods_per_second
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64,
-    floordiv_object_array,
-    ints_to_pytimedelta,
-    parse_timedelta_unit,
-    truediv_object_array,
-)
-from pandas._typing import (
-    AxisInt,
-    DateTimeErrorChoices,
-    DtypeObj,
-    NpDtype,
-    npt,
-)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.timedeltas import floordiv_object_array
+from pandas._libs.tslibs.timedeltas import ints_to_pytimedelta
+from pandas._libs.tslibs.timedeltas import parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import truediv_object_array
+from pandas._typing import AxisInt
+from pandas._typing import DateTimeErrorChoices
+from pandas._typing import DtypeObj
+from pandas._typing import NpDtype
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.common import (
-    TD64NS_DTYPE,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import TD64NS_DTYPE
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops

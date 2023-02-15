@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-    NaT,
-    RangeIndex,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

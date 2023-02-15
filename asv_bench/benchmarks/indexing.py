@@ -7,19 +7,17 @@ import warnings
 
 import numpy as np
 
-from pandas import (
-    NA,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-    concat,
-    date_range,
-    option_context,
-    period_range,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import concat
+from pandas import date_range
+from pandas import option_context
+from pandas import period_range
 
 from .pandas_vb_common import tm
 

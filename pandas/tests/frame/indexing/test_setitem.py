@@ -6,37 +6,31 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_object_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Period,
-    PeriodIndex,
-    Series,
-    Timestamp,
-    cut,
-    date_range,
-    notna,
-    period_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
+from pandas import notna
+from pandas import period_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 

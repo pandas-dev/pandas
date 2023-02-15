@@ -1,12 +1,10 @@
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Period,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Period
+from pandas import date_range
 import pandas._testing as tm
 
 

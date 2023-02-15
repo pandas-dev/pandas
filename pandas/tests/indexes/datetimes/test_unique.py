@@ -1,13 +1,9 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    Timestamp,
-)
+from pandas import DatetimeIndex
+from pandas import NaT
+from pandas import Timestamp
 import pandas._testing as tm
 
 

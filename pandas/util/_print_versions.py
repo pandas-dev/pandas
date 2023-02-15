@@ -9,11 +9,9 @@ import struct
 import sys
 
 from pandas._typing import JSONSerializable
-from pandas.compat._optional import (
-    VERSIONS,
-    get_version,
-    import_optional_dependency,
-)
+from pandas.compat._optional import VERSIONS
+from pandas.compat._optional import get_version
+from pandas.compat._optional import import_optional_dependency
 
 
 def _get_commit_hash() -> str | None:

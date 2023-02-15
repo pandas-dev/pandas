@@ -3,11 +3,9 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    notna,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import notna
 
 
 def create_series():

@@ -8,19 +8,15 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    plotting,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import date_range
+from pandas import plotting
+from pandas import timedelta_range
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
 

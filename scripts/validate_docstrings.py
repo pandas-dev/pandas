@@ -30,10 +30,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy
 from numpydoc.docscrape import get_doc_object
-from numpydoc.validate import (
-    Validator,
-    validate,
-)
+from numpydoc.validate import Validator
+from numpydoc.validate import validate
 
 import pandas
 

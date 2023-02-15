@@ -4,13 +4,11 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-    NamedAgg,
-    Series,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import NamedAgg
+from pandas import Series
+from pandas import option_context
 import pandas._testing as tm
 
 

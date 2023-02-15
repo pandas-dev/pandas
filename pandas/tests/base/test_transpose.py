@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalDtype,
-    DataFrame,
-)
+from pandas import CategoricalDtype
+from pandas import DataFrame
 import pandas._testing as tm
 
 

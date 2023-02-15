@@ -6,10 +6,8 @@ from pandas.compat import PY311
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    MultiIndex,
-)
+from pandas import CategoricalIndex
+from pandas import MultiIndex
 import pandas._testing as tm
 
 

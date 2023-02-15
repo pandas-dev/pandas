@@ -6,10 +6,8 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
+from pandas import Index
+from pandas import MultiIndex
 import pandas._testing as tm
 
 

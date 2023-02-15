@@ -5,14 +5,12 @@ from email.parser import Parser
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalDtype,
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import CategoricalDtype
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

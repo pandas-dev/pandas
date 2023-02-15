@@ -4,48 +4,38 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterator,
-    final,
-)
+from typing import Hashable
+from typing import Iterator
+from typing import TYPE_CHECKING
+from typing import final
 import warnings
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import NDFrameT
+from pandas._typing import npt
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_list_like,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_scalar
 
 from pandas.core import algorithms
-from pandas.core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby
-from pandas.core.indexes.api import (
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import CategoricalIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing

@@ -3,33 +3,25 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
-from copy import (
-    copy,
-    deepcopy,
-)
+from copy import copy
+from copy import deepcopy
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
+from pandas.compat import IS64
+from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-)
+from pandas import CategoricalIndex
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

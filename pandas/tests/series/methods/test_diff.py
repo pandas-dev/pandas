@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    TimedeltaIndex,
-    date_range,
-)
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import date_range
 import pandas._testing as tm
 
 

@@ -3,39 +3,31 @@ import hashlib
 import os
 import tempfile
 import time
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
+from warnings import catch_warnings
+from warnings import simplefilter
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import timedelta_range
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-    safe_close,
-)
+from pandas.tests.io.pytables.common import _maybe_remove
+from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.tests.io.pytables.common import safe_close
 
 _default_compressor = "blosc"
 
-from pandas.io.pytables import (
-    HDFStore,
-    read_hdf,
-)
+from pandas.io.pytables import HDFStore
+from pandas.io.pytables import read_hdf
 
 pytestmark = pytest.mark.single_cpu
 

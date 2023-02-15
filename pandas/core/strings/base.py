@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import abc
 import re
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Literal,
-)
+from typing import Callable
+from typing import Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 

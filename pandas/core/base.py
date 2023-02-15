@@ -5,83 +5,63 @@ Base and utility classes for pandas objects.
 from __future__ import annotations
 
 import textwrap
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Hashable,
-    Iterator,
-    Literal,
-    TypeVar,
-    cast,
-    final,
-    overload,
-)
+from typing import Any
+from typing import Generic
+from typing import Hashable
+from typing import Iterator
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import final
+from typing import overload
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    DtypeObj,
-    IndexLabel,
-    NDFrameT,
-    Shape,
-    npt,
-)
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import IndexLabel
+from pandas._typing import NDFrameT
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import can_hold_element
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dict_like,
-    is_extension_array_dtype,
-    is_object_dtype,
-    is_scalar,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    remove_na_arraylike,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import remove_na_arraylike
 
-from pandas.core import (
-    algorithms,
-    nanops,
-    ops,
-)
+from pandas.core import algorithms
+from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        DropKeep,
-        NumpySorter,
-        NumpyValueArrayLike,
-        ScalarLike_co,
-    )
+    from pandas._typing import DropKeep
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
+    from pandas._typing import ScalarLike_co
 
-    from pandas import (
-        Categorical,
-        Index,
-        Series,
-    )
+    from pandas import Categorical
+    from pandas import Index
+    from pandas import Series
 
 
 _shared_docs: dict[str, str] = {}

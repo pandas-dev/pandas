@@ -2,19 +2,15 @@
 # at https://github.com/veorq/SipHash
 
 cimport cython
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
 
 import numpy as np
 
-from numpy cimport (
-    import_array,
-    ndarray,
-    uint8_t,
-    uint64_t,
-)
+from numpy cimport import_array
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint64_t
 
 import_array()
 

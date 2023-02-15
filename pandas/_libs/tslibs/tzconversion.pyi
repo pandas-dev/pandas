@@ -1,7 +1,5 @@
-from datetime import (
-    timedelta,
-    tzinfo,
-)
+from datetime import timedelta
+from datetime import tzinfo
 from typing import Iterable
 
 import numpy as np

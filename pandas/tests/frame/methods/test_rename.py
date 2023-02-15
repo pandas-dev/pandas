@@ -4,12 +4,10 @@ import inspect
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    merge,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import merge
 import pandas._testing as tm
 
 

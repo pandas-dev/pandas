@@ -16,43 +16,31 @@ Reference for binary data compression:
 from __future__ import annotations
 
 from collections import abc
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import sys
 from typing import cast
 
 import numpy as np
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-)
-from pandas.errors import (
-    EmptyDataError,
-    OutOfBoundsDatetime,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas.errors import EmptyDataError
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    isna,
-)
+from pandas import DataFrame
+from pandas import isna
 
 from pandas.io.common import get_handle
-from pandas.io.sas._byteswap import (
-    read_double_with_byteswap,
-    read_float_with_byteswap,
-    read_uint16_with_byteswap,
-    read_uint32_with_byteswap,
-    read_uint64_with_byteswap,
-)
-from pandas.io.sas._sas import (
-    Parser,
-    get_subheader_index,
-)
+from pandas.io.sas._byteswap import read_double_with_byteswap
+from pandas.io.sas._byteswap import read_float_with_byteswap
+from pandas.io.sas._byteswap import read_uint16_with_byteswap
+from pandas.io.sas._byteswap import read_uint32_with_byteswap
+from pandas.io.sas._byteswap import read_uint64_with_byteswap
+from pandas.io.sas._sas import Parser
+from pandas.io.sas._sas import get_subheader_index
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 

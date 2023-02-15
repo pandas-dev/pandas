@@ -1,10 +1,8 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    round,
-    signbit,
-    sqrt,
-)
+from libc.math cimport round
+from libc.math cimport signbit
+from libc.math cimport sqrt
 from libcpp.deque cimport deque
 
 from pandas._libs.algos cimport TiebreakEnumType
@@ -12,12 +10,10 @@ from pandas._libs.algos cimport TiebreakEnumType
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    float32_t,
-    float64_t,
-    int64_t,
-    ndarray,
-)
+from numpy cimport float32_t
+from numpy cimport float64_t
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 cnp.import_array()
 

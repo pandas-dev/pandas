@@ -1,31 +1,23 @@
 """ feather-format compat """
 from __future__ import annotations
 
-from typing import (
-    Hashable,
-    Sequence,
-)
+from typing import Hashable
+from typing import Sequence
 
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import (
-    arrays,
-    get_option,
-)
-from pandas.core.api import (
-    DataFrame,
-    RangeIndex,
-)
+from pandas import arrays
+from pandas import get_option
+from pandas.core.api import DataFrame
+from pandas.core.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle

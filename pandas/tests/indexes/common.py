@@ -8,25 +8,21 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    TimedeltaIndex,
-    isna,
-)
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import PeriodIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import isna
 import pandas._testing as tm
 from pandas.core.arrays import BaseMaskedArray
 

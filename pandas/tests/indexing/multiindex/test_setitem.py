@@ -5,15 +5,13 @@ from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    notna,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
+from pandas import notna
 import pandas._testing as tm
 
 

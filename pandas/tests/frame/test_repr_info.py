@@ -1,25 +1,21 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    DataFrame,
-    MultiIndex,
-    NaT,
-    PeriodIndex,
-    Series,
-    Timestamp,
-    date_range,
-    option_context,
-    period_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import option_context
+from pandas import period_range
 import pandas._testing as tm
 
 import pandas.io.formats.format as fmt

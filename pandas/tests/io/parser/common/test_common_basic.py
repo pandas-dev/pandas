@@ -12,18 +12,14 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-)
+from pandas.errors import EmptyDataError
+from pandas.errors import ParserError
+from pandas.errors import ParserWarning
 
-from pandas import (
-    DataFrame,
-    Index,
-    Timestamp,
-    compat,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Timestamp
+from pandas import compat
 import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader

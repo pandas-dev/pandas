@@ -6,97 +6,75 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Literal,
-    Sequence,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import cast
+from typing import overload
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import (
-    BlockIndex,
-    IntIndex,
-    SparseIndex,
-)
+from pandas._libs.sparse import BlockIndex
+from pandas._libs.sparse import IntIndex
+from pandas._libs.sparse import SparseIndex
 from pandas._libs.tslibs import NaT
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Axis,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AstypeArg
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import NpDtype
+from pandas._typing import PositionalIndexer
+from pandas._typing import Scalar
+from pandas._typing import ScalarIndexer
+from pandas._typing import SequenceIndexer
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import (
-    validate_bool_kwarg,
-    validate_insert_loc,
-)
+from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_insert_loc
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import (
-    construct_1d_arraylike_from_scalar,
-    find_common_type,
-    maybe_box_datetimelike,
-)
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_dtype_equal,
-    is_integer,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-    notna,
-)
+from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import maybe_box_datetimelike
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import notna
 
-from pandas.core import (
-    arraylike,
-    ops,
-)
+from pandas.core import arraylike
+from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    sanitize_array,
-)
-from pandas.core.indexers import (
-    check_array_indexer,
-    unpack_tuple_and_ellipses,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
+from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import unpack_tuple_and_ellipses
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
 
@@ -113,10 +91,8 @@ if TYPE_CHECKING:
 
     from scipy.sparse import spmatrix
 
-    from pandas._typing import (
-        FillnaOptions,
-        NumpySorter,
-    )
+    from pandas._typing import FillnaOptions
+    from pandas._typing import NumpySorter
 
     SparseIndexKind = Literal["integer", "block"]
 
@@ -862,10 +838,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         counts : Series
         """
-        from pandas import (
-            Index,
-            Series,
-        )
+        from pandas import Index
+        from pandas import Series
 
         keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps

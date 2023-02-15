@@ -1,17 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Timedelta,
-    timedelta_range,
-    to_timedelta,
-)
+from pandas import Timedelta
+from pandas import timedelta_range
+from pandas import to_timedelta
 import pandas._testing as tm
 
-from pandas.tseries.offsets import (
-    Day,
-    Second,
-)
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Second
 
 
 class TestTimedeltas:

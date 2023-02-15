@@ -6,10 +6,8 @@ that can be mixed into or pinned onto other pandas classes.
 """
 from __future__ import annotations
 
-from typing import (
-    Callable,
-    final,
-)
+from typing import Callable
+from typing import final
 import warnings
 
 from pandas.util._decorators import doc

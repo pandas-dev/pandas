@@ -5,14 +5,12 @@ import pytest
 
 from pandas.compat import PY311
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    Series,
-    StringDtype,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import StringDtype
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
 

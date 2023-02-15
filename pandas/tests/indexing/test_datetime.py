@@ -3,13 +3,11 @@ import re
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

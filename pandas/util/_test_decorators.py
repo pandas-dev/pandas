@@ -28,10 +28,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 import gc
 import locale
-from typing import (
-    Callable,
-    Generator,
-)
+from typing import Callable
+from typing import Generator
 
 import numpy as np
 import pytest
@@ -39,16 +37,12 @@ import pytest
 from pandas._config import get_option
 
 from pandas._typing import F
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas.compat import IS64
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.computation.expressions import (
-    NUMEXPR_INSTALLED,
-    USE_NUMEXPR,
-)
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import USE_NUMEXPR
 from pandas.util.version import Version
 
 

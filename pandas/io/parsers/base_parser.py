@@ -6,85 +6,69 @@ import csv
 import datetime
 from enum import Enum
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    List,
-    Literal,
-    Mapping,
-    Sequence,
-    Tuple,
-    cast,
-    final,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import List
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import cast
+from typing import final
+from typing import overload
 import warnings
 
 import numpy as np
 
 from pandas._config.config import get_option
 
-from pandas._libs import (
-    lib,
-    parsers,
-)
+from pandas._libs import lib
+from pandas._libs import parsers
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    Scalar,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeArg
+from pandas._typing import DtypeObj
+from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    ParserError,
-    ParserWarning,
-)
+from pandas.errors import ParserError
+from pandas.errors import ParserWarning
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
-    is_dict_like,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import StringDtype
 from pandas.core import algorithms
-from pandas.core.arrays import (
-    ArrowExtensionArray,
-    BooleanArray,
-    Categorical,
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-    default_index,
-    ensure_index_from_sequences,
-)
+from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import ensure_index_from_sequences
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 

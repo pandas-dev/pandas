@@ -1,29 +1,21 @@
 from __future__ import annotations
 
 import functools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import overload
 
 import numpy as np
 
-from pandas._libs import (
-    algos as libalgos,
-    lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    npt,
-)
+from pandas._libs import algos as libalgos
+from pandas._libs import lib
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import npt
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_1d_only_ea_obj,
-)
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_1d_only_ea_obj
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike

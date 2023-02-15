@@ -1,18 +1,14 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    bdate_range,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import bdate_range
 
 
 @pytest.fixture(params=[True, False])

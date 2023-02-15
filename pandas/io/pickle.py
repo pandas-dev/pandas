@@ -5,13 +5,11 @@ import pickle
 from typing import Any
 import warnings
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadPickleBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadPickleBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 

@@ -4,10 +4,8 @@ Cython implementations of functions resembling the stdlib calendar module
 """
 
 cimport cython
-from numpy cimport (
-    int32_t,
-    int64_t,
-)
+from numpy cimport int32_t
+from numpy cimport int64_t
 
 # ----------------------------------------------------------------------
 # Constants

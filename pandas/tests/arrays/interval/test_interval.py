@@ -4,15 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    timedelta_range,
-)
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 

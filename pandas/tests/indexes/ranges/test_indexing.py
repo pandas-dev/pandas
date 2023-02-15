@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

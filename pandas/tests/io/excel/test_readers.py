@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    time,
-)
+from datetime import datetime
+from datetime import time
 from functools import partial
 import os
 from pathlib import Path
@@ -15,17 +13,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
+from pandas.core.arrays import ArrowStringArray
+from pandas.core.arrays import StringArray
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [

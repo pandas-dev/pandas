@@ -12,11 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-    is_platform_windows,
-)
+from pandas.compat import is_ci_environment
+from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 
 import pandas._testing as tm

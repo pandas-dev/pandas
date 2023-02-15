@@ -5,18 +5,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    interval_range,
-    isna,
-    notna,
-    timedelta_range,
-)
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import interval_range
+from pandas import isna
+from pandas import notna
+from pandas import timedelta_range
 import pandas._testing as tm
 import pandas.core.common as com
 

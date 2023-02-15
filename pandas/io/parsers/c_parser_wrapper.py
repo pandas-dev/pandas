@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Mapping,
-    Sequence,
-)
+from typing import Hashable
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -14,40 +12,30 @@ import numpy as np
 from pandas._config.config import get_option
 
 from pandas._libs import parsers
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    ReadCsvBuffer,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeArg
+from pandas._typing import DtypeObj
+from pandas._typing import ReadCsvBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.concat import union_categoricals
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
-from pandas.io.common import (
-    dedup_names,
-    is_potential_multi_index,
-)
-from pandas.io.parsers.base_parser import (
-    ParserBase,
-    ParserError,
-    is_index_col,
-)
+from pandas.io.common import dedup_names
+from pandas.io.common import is_potential_multi_index
+from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.parsers.base_parser import ParserError
+from pandas.io.parsers.base_parser import is_index_col
 
 if TYPE_CHECKING:
-    from pandas import (
-        Index,
-        MultiIndex,
-    )
+    from pandas import Index
+    from pandas import MultiIndex
 
 
 class CParserWrapper(ParserBase):

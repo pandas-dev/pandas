@@ -3,22 +3,20 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-    CategoricalIndex,
-    DataFrame,
-    DateOffset,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    get_dummies,
-    period_range,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DateOffset
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import get_dummies
+from pandas import period_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 

@@ -2,12 +2,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-)
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 

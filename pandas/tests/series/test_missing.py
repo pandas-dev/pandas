@@ -6,13 +6,11 @@ import pytest
 from pandas._libs import iNaT
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Index,
-    NaT,
-    Series,
-    isna,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import isna
 import pandas._testing as tm
 
 

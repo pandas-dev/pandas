@@ -1,7 +1,5 @@
-from typing import (
-    Sequence,
-    TypeVar,
-)
+from typing import Sequence
+from typing import TypeVar
 
 import numpy as np
 

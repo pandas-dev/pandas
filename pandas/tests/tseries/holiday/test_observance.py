@@ -2,18 +2,16 @@ from datetime import datetime
 
 import pytest
 
-from pandas.tseries.holiday import (
-    after_nearest_workday,
-    before_nearest_workday,
-    nearest_workday,
-    next_monday,
-    next_monday_or_tuesday,
-    next_workday,
-    previous_friday,
-    previous_workday,
-    sunday_to_monday,
-    weekend_to_monday,
-)
+from pandas.tseries.holiday import after_nearest_workday
+from pandas.tseries.holiday import before_nearest_workday
+from pandas.tseries.holiday import nearest_workday
+from pandas.tseries.holiday import next_monday
+from pandas.tseries.holiday import next_monday_or_tuesday
+from pandas.tseries.holiday import next_workday
+from pandas.tseries.holiday import previous_friday
+from pandas.tseries.holiday import previous_workday
+from pandas.tseries.holiday import sunday_to_monday
+from pandas.tseries.holiday import weekend_to_monday
 
 _WEDNESDAY = datetime(2014, 4, 9)
 _THURSDAY = datetime(2014, 4, 10)

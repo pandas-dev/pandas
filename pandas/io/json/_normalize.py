@@ -2,25 +2,19 @@
 # JSON normalization routines
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
+from collections import defaultdict
 import copy
 import sys
-from typing import (
-    Any,
-    DefaultDict,
-    Iterable,
-)
+from typing import Any
+from typing import DefaultDict
+from typing import Iterable
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import (
-    IgnoreRaise,
-    Scalar,
-)
+from pandas._typing import IgnoreRaise
+from pandas._typing import Scalar
 
 import pandas as pd
 from pandas import DataFrame

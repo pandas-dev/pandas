@@ -1,8 +1,6 @@
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 from itertools import product
 
 import numpy as np
@@ -11,16 +9,14 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Grouper,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-    date_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Grouper
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import concat
+from pandas import date_range
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape import reshape as reshape_lib

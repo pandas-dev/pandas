@@ -1,16 +1,12 @@
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import date_range
 
-from pandas.tseries.offsets import (
-    BDay,
-    DateOffset,
-    Day,
-    Hour,
-)
+from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import Hour
 
 
 class TestFreq:

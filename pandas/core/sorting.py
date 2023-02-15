@@ -2,43 +2,33 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    DefaultDict,
-    Hashable,
-    Iterable,
-    Sequence,
-    cast,
-)
+from typing import Callable
+from typing import DefaultDict
+from typing import Hashable
+from typing import Iterable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._libs import (
-    algos,
-    hashtable,
-    lib,
-)
+from pandas._libs import algos
+from pandas._libs import hashtable
+from pandas._libs import lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import (
-    AxisInt,
-    IndexKeyFunc,
-    Level,
-    NaPosition,
-    Shape,
-    SortKind,
-    npt,
-)
+from pandas._typing import AxisInt
+from pandas._typing import IndexKeyFunc
+from pandas._typing import Level
+from pandas._typing import NaPosition
+from pandas._typing import Shape
+from pandas._typing import SortKind
+from pandas._typing import npt
 
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-    is_extension_array_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCMultiIndex,
-    ABCRangeIndex,
-)
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCRangeIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array

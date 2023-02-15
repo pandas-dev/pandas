@@ -4,13 +4,11 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-    to_timedelta,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import to_timedelta
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 

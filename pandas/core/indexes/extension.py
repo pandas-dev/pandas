@@ -3,22 +3,16 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    TypeVar,
-)
+from typing import Callable
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import npt
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.generic import ABCDataFrame
 

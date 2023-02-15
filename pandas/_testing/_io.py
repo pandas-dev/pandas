@@ -6,17 +6,13 @@ import gzip
 import io
 import socket
 import tarfile
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-)
+from typing import Any
+from typing import Callable
+from typing import TYPE_CHECKING
 import zipfile
 
-from pandas._typing import (
-    FilePath,
-    ReadPickleBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import ReadPickleBuffer
 from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 
@@ -27,10 +23,8 @@ from pandas._testing.contexts import ensure_clean
 from pandas.io.common import urlopen
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Series
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -423,10 +417,8 @@ def write_to_compressed(compression, path, data, dest: str = "test"):
 
 
 def close(fignum=None) -> None:
-    from matplotlib.pyplot import (
-        close as _close,
-        get_fignums,
-    )
+    from matplotlib.pyplot import close as _close
+    from matplotlib.pyplot import get_fignums
 
     if fignum is None:
         for fignum in get_fignums():

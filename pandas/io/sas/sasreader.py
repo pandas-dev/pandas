@@ -3,22 +3,16 @@ Read SAS sas7bdat or xport files.
 """
 from __future__ import annotations
 
-from abc import (
-    ABCMeta,
-    abstractmethod,
-)
+from abc import ABCMeta
+from abc import abstractmethod
 from types import TracebackType
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    overload,
-)
+from typing import Hashable
+from typing import TYPE_CHECKING
+from typing import overload
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs

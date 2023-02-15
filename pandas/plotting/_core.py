@@ -2,27 +2,19 @@ from __future__ import annotations
 
 import importlib
 import types
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
 
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_list_like,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.base import PandasObject
 

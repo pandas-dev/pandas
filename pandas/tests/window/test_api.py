@@ -1,22 +1,18 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    DataError,
-    SpecificationError,
-)
+from pandas.errors import DataError
+from pandas.errors import SpecificationError
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Period
+from pandas import Series
+from pandas import Timestamp
+from pandas import concat
+from pandas import date_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Literal,
-    MutableMapping,
-    Sequence,
-    TypeVar,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Literal
+from typing import MutableMapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import overload
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 
 if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter

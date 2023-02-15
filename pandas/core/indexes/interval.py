@@ -1,96 +1,70 @@
 """ define the IntervalIndex """
 from __future__ import annotations
 
-from operator import (
-    le,
-    lt,
-)
+from operator import le
+from operator import lt
 import textwrap
-from typing import (
-    Any,
-    Hashable,
-    Literal,
-)
+from typing import Any
+from typing import Hashable
+from typing import Literal
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.interval import (
-    Interval,
-    IntervalMixin,
-    IntervalTree,
-)
-from pandas._libs.tslibs import (
-    BaseOffset,
-    Timedelta,
-    Timestamp,
-    to_offset,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    IntervalClosedType,
-    npt,
-)
+from pandas._libs.interval import Interval
+from pandas._libs.interval import IntervalMixin
+from pandas._libs.interval import IntervalTree
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import to_offset
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import IntervalClosedType
+from pandas._typing import npt
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import (
-    Appender,
-    cache_readonly,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from_scalar,
-    maybe_box_datetimelike,
-    maybe_downcast_numeric,
-    maybe_upcast_numeric_to_64bit,
-)
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_dtype_equal,
-    is_float,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_list_like,
-    is_number,
-    is_object_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.cast import maybe_box_datetimelike
+from pandas.core.dtypes.cast import maybe_downcast_numeric
+from pandas.core.dtypes.cast import maybe_upcast_numeric_to_64bit
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
-from pandas.core.arrays.interval import (
-    IntervalArray,
-    _interval_shared_docs,
-)
+from pandas.core.arrays.interval import IntervalArray
+from pandas.core.arrays.interval import _interval_shared_docs
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    _index_shared_docs,
-    ensure_index,
-    maybe_extract_name,
-)
-from pandas.core.indexes.datetimes import (
-    DatetimeIndex,
-    date_range,
-)
-from pandas.core.indexes.extension import (
-    ExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import ensure_index
+from pandas.core.indexes.base import maybe_extract_name
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.extension import ExtensionIndex
+from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.timedeltas import (
-    TimedeltaIndex,
-    timedelta_range,
-)
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.timedeltas import timedelta_range
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 

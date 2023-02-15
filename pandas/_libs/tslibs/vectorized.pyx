@@ -1,37 +1,27 @@
 cimport cython
-from cpython.datetime cimport (
-    date,
-    datetime,
-    time,
-    tzinfo,
-)
+from cpython.datetime cimport date
+from cpython.datetime cimport datetime
+from cpython.datetime cimport time
+from cpython.datetime cimport tzinfo
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    ndarray,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
 
 cnp.import_array()
 
 from .dtypes import Resolution
 
-from .dtypes cimport (
-    c_Resolution,
-    periods_per_day,
-)
-from .nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-)
-from .np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_ns,
-    npy_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-)
+from .dtypes cimport c_Resolution
+from .dtypes cimport periods_per_day
+from .nattype cimport NPY_NAT
+from .nattype cimport c_NaT as NaT
+from .np_datetime cimport NPY_DATETIMEUNIT
+from .np_datetime cimport NPY_FR_ns
+from .np_datetime cimport npy_datetimestruct
+from .np_datetime cimport pandas_datetime_to_datetimestruct
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc

@@ -1,7 +1,5 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 import itertools
 
 import numpy as np
@@ -12,13 +10,11 @@ from pandas.compat import pa_version_under7p0
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 
 

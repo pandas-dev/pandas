@@ -1,17 +1,13 @@
 from datetime import timedelta
-from typing import (
-    ClassVar,
-    Literal,
-    TypeVar,
-    overload,
-)
+from typing import ClassVar
+from typing import Literal
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 
-from pandas._libs.tslibs import (
-    NaTType,
-    Tick,
-)
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Tick
 from pandas._typing import npt
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs

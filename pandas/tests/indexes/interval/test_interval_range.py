@@ -5,16 +5,14 @@ import pytest
 
 from pandas.core.dtypes.common import is_integer
 
-from pandas import (
-    DateOffset,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    interval_range,
-    timedelta_range,
-)
+from pandas import DateOffset
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import interval_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day

@@ -1,110 +1,84 @@
 from __future__ import annotations
 
 import operator
-from operator import (
-    le,
-    lt,
-)
+from operator import le
+from operator import lt
 import textwrap
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    Literal,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Iterator
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import Union
+from typing import cast
+from typing import overload
 
 import numpy as np
 
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._libs.interval import (
-    VALID_CLOSED,
-    Interval,
-    IntervalMixin,
-    intervals_to_interval_bounds,
-)
+from pandas._libs.interval import Interval
+from pandas._libs.interval import IntervalMixin
+from pandas._libs.interval import VALID_CLOSED
+from pandas._libs.interval import intervals_to_interval_bounds
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    IntervalClosedType,
-    NpDtype,
-    PositionalIndexer,
-    ScalarIndexer,
-    SequenceIndexer,
-    SortKind,
-    TimeArrayLike,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import IntervalClosedType
+from pandas._typing import NpDtype
+from pandas._typing import PositionalIndexer
+from pandas._typing import ScalarIndexer
+from pandas._typing import SequenceIndexer
+from pandas._typing import SortKind
+from pandas._typing import TimeArrayLike
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    maybe_upcast_numeric_to_64bit,
-)
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
-)
+from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import maybe_upcast_numeric_to_64bit
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCIntervalIndex,
-    ABCPeriodIndex,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    notna,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDatetimeIndex
+from pandas.core.dtypes.generic import ABCIntervalIndex
+from pandas.core.dtypes.generic import ABCPeriodIndex
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
-from pandas.core.algorithms import (
-    isin,
-    take,
-    unique,
-    value_counts,
-)
-from pandas.core.arrays.base import (
-    ExtensionArray,
-    _extension_array_shared_docs,
-)
+from pandas.core.algorithms import isin
+from pandas.core.algorithms import take
+from pandas.core.algorithms import unique
+from pandas.core.algorithms import value_counts
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.base import _extension_array_shared_docs
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import array as pd_array
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
-from pandas.core.ops import (
-    invalid_comparison,
-    unpack_zerodim_and_defer,
-)
+from pandas.core.ops import invalid_comparison
+from pandas.core.ops import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from pandas import (
-        Index,
-        Series,
-    )
+    from pandas import Index
+    from pandas import Series
 
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")

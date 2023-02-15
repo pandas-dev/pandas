@@ -5,89 +5,65 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
-from typing import (
-    Any,
-    Hashable,
-    Sequence,
-)
+from typing import Any
+from typing import Hashable
+from typing import Sequence
 
 import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    Manager,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeObj
+from pandas._typing import Manager
+from pandas._typing import npt
 
-from pandas.core.dtypes.cast import (
-    construct_1d_arraylike_from_scalar,
-    dict_compat,
-    maybe_cast_to_datetime,
-    maybe_convert_platform,
-    maybe_infer_to_datetimelike,
-)
-from pandas.core.dtypes.common import (
-    is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_named_tuple,
-    is_object_dtype,
-)
+from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
+from pandas.core.dtypes.cast import dict_compat
+from pandas.core.dtypes.cast import maybe_cast_to_datetime
+from pandas.core.dtypes.cast import maybe_convert_platform
+from pandas.core.dtypes.cast import maybe_infer_to_datetimelike
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_named_tuple
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core import (
-    algorithms,
-    common as com,
-)
-from pandas.core.arrays import (
-    BooleanArray,
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core import algorithms
+from pandas.core import common as com
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    range_to_ndarray,
-    sanitize_array,
-)
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    TimedeltaIndex,
-    default_index,
-    ensure_index,
-    get_objs_combined_axis,
-    union_indexes,
-)
-from pandas.core.internals.array_manager import (
-    ArrayManager,
-    SingleArrayManager,
-)
-from pandas.core.internals.blocks import (
-    BlockPlacement,
-    ensure_block_shape,
-    new_block_2d,
-)
-from pandas.core.internals.managers import (
-    BlockManager,
-    SingleBlockManager,
-    create_block_manager_from_blocks,
-    create_block_manager_from_column_arrays,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.construction import range_to_ndarray
+from pandas.core.construction import sanitize_array
+from pandas.core.indexes.api import DatetimeIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import TimedeltaIndex
+from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.indexes.api import get_objs_combined_axis
+from pandas.core.indexes.api import union_indexes
+from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.array_manager import SingleArrayManager
+from pandas.core.internals.blocks import BlockPlacement
+from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import new_block_2d
+from pandas.core.internals.managers import BlockManager
+from pandas.core.internals.managers import SingleBlockManager
+from pandas.core.internals.managers import create_block_manager_from_blocks
+from pandas.core.internals.managers import create_block_manager_from_column_arrays
 
 # ---------------------------------------------------------------------
 # BlockManager Interface

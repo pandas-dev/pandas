@@ -7,21 +7,15 @@ benchmarks will be affected.
 """
 import numpy as np
 
-from pandas._libs.lib import (
-    infer_dtype,
-    is_list_like,
-    is_scalar,
-)
+from pandas._libs.lib import infer_dtype
+from pandas._libs.lib import is_list_like
+from pandas._libs.lib import is_scalar
 
-from pandas import (
-    NA,
-    NaT,
-)
+from pandas import NA
+from pandas import NaT
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
+from .pandas_vb_common import tm
 
 try:
     from pandas.util import cache_readonly

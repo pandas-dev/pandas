@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.groupby.groupby import get_groupby

@@ -6,10 +6,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    read_excel,
-)
+from pandas import DataFrame
+from pandas import read_excel
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter

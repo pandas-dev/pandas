@@ -5,11 +5,9 @@ from pandas.errors import DataError
 
 from pandas.core.dtypes.common import pandas_dtype
 
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import NA
+from pandas import Series
 import pandas._testing as tm
 
 # gh-12373 : rolling functions error on float32 data

@@ -1,10 +1,8 @@
 """ common utilities """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Literal,
-)
+from typing import Any
+from typing import Literal
 
 
 def _mklbl(prefix: str, n: int):

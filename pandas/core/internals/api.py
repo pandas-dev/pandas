@@ -13,24 +13,20 @@ import numpy as np
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_period_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import pandas_dtype
 
 from pandas.core.arrays import DatetimeArray
 from pandas.core.construction import extract_array
-from pandas.core.internals.blocks import (
-    Block,
-    DatetimeTZBlock,
-    ExtensionBlock,
-    check_ndim,
-    ensure_block_shape,
-    extract_pandas_array,
-    get_block_type,
-    maybe_coerce_values,
-)
+from pandas.core.internals.blocks import Block
+from pandas.core.internals.blocks import DatetimeTZBlock
+from pandas.core.internals.blocks import ExtensionBlock
+from pandas.core.internals.blocks import check_ndim
+from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import extract_pandas_array
+from pandas.core.internals.blocks import get_block_type
+from pandas.core.internals.blocks import maybe_coerce_values
 
 
 def make_block(

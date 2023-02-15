@@ -9,15 +9,11 @@ from datetime import datetime
 
 import pytest
 
-from pandas.tests.tseries.offsets.common import (
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.offsets import (
-    BQuarterBegin,
-    BQuarterEnd,
-)
+from pandas.tseries.offsets import BQuarterBegin
+from pandas.tseries.offsets import BQuarterEnd
 
 
 def test_quarterly_dont_normalize():

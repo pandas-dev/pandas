@@ -1,71 +1,51 @@
-from pandas._libs import (
-    NaT,
-    Period,
-    Timedelta,
-    Timestamp,
-)
+from pandas._libs import NaT
+from pandas._libs import Period
+from pandas._libs import Timedelta
+from pandas._libs import Timestamp
 from pandas._libs.missing import NA
 
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    isnull,
-    notna,
-    notnull,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import notnull
 
-from pandas.core.algorithms import (
-    factorize,
-    unique,
-    value_counts,
-)
+from pandas.core.algorithms import factorize
+from pandas.core.algorithms import unique
+from pandas.core.algorithms import value_counts
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
-    Float32Dtype,
-    Float64Dtype,
-)
-from pandas.core.arrays.integer import (
-    Int8Dtype,
-    Int16Dtype,
-    Int32Dtype,
-    Int64Dtype,
-    UInt8Dtype,
-    UInt16Dtype,
-    UInt32Dtype,
-    UInt64Dtype,
-)
+from pandas.core.arrays.floating import Float32Dtype
+from pandas.core.arrays.floating import Float64Dtype
+from pandas.core.arrays.integer import Int8Dtype
+from pandas.core.arrays.integer import Int16Dtype
+from pandas.core.arrays.integer import Int32Dtype
+from pandas.core.arrays.integer import Int64Dtype
+from pandas.core.arrays.integer import UInt8Dtype
+from pandas.core.arrays.integer import UInt16Dtype
+from pandas.core.arrays.integer import UInt32Dtype
+from pandas.core.arrays.integer import UInt64Dtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array
 from pandas.core.flags import Flags
-from pandas.core.groupby import (
-    Grouper,
-    NamedAgg,
-)
-from pandas.core.indexes.api import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    TimedeltaIndex,
-)
-from pandas.core.indexes.datetimes import (
-    bdate_range,
-    date_range,
-)
-from pandas.core.indexes.interval import (
-    Interval,
-    interval_range,
-)
+from pandas.core.groupby import Grouper
+from pandas.core.groupby import NamedAgg
+from pandas.core.indexes.api import CategoricalIndex
+from pandas.core.indexes.api import DatetimeIndex
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import IntervalIndex
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import PeriodIndex
+from pandas.core.indexes.api import RangeIndex
+from pandas.core.indexes.api import TimedeltaIndex
+from pandas.core.indexes.datetimes import bdate_range
+from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.interval import Interval
+from pandas.core.indexes.interval import interval_range
 from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexing import IndexSlice

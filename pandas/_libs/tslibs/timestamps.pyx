@@ -14,34 +14,28 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    ndarray,
-    uint8_t,
-)
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    PyTZInfo_Check,
-    datetime,
-    import_datetime,
-    time as dt_time,
-    tzinfo as tzinfo_type,
-)
-from cpython.object cimport (
-    Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
-    Py_NE,
-    PyObject_RichCompare,
-    PyObject_RichCompareBool,
-)
+from cpython.datetime cimport PyDateTime_Check
+from cpython.datetime cimport PyDate_Check
+from cpython.datetime cimport PyDelta_Check
+from cpython.datetime cimport PyTZInfo_Check
+from cpython.datetime cimport datetime
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport time as dt_time
+from cpython.datetime cimport tzinfo as tzinfo_type
+from cpython.object cimport PyObject_RichCompare
+from cpython.object cimport PyObject_RichCompareBool
+from cpython.object cimport Py_EQ
+from cpython.object cimport Py_GE
+from cpython.object cimport Py_GT
+from cpython.object cimport Py_LE
+from cpython.object cimport Py_LT
+from cpython.object cimport Py_NE
 
 import_datetime()
 
@@ -50,75 +44,55 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas._libs.tslibs.conversion cimport (
-    _TSObject,
-    convert_datetime_to_tsobject,
-    convert_to_tsobject,
-    maybe_localize_tso,
-)
-from pandas._libs.tslibs.dtypes cimport (
-    npy_unit_to_abbrev,
-    periods_per_day,
-    periods_per_second,
-)
-from pandas._libs.tslibs.util cimport (
-    is_array,
-    is_datetime64_object,
-    is_integer_object,
-)
+from pandas._libs.tslibs.conversion cimport _TSObject
+from pandas._libs.tslibs.conversion cimport convert_datetime_to_tsobject
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.conversion cimport maybe_localize_tso
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport periods_per_day
+from pandas._libs.tslibs.dtypes cimport periods_per_second
+from pandas._libs.tslibs.util cimport is_array
+from pandas._libs.tslibs.util cimport is_datetime64_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from pandas._libs.tslibs.fields import (
-    RoundTo,
-    get_date_name_field,
-    get_start_end_field,
-    round_nsint64,
-)
+from pandas._libs.tslibs.fields import RoundTo
+from pandas._libs.tslibs.fields import get_date_name_field
+from pandas._libs.tslibs.fields import get_start_end_field
+from pandas._libs.tslibs.fields import round_nsint64
 
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-)
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    NPY_FR_ns,
-    check_dts_bounds,
-    cmp_dtstructs,
-    cmp_scalar,
-    convert_reso,
-    get_datetime64_unit,
-    get_datetime64_value,
-    get_unit_from_dtype,
-    npy_datetimestruct,
-    npy_datetimestruct_to_datetime,
-    pandas_datetime_to_datetimestruct,
-    pydatetime_to_dtstruct,
-)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
+from pandas._libs.tslibs.np_datetime cimport check_dts_bounds
+from pandas._libs.tslibs.np_datetime cimport cmp_dtstructs
+from pandas._libs.tslibs.np_datetime cimport cmp_scalar
+from pandas._libs.tslibs.np_datetime cimport convert_reso
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_unit
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value
+from pandas._libs.tslibs.np_datetime cimport get_unit_from_dtype
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct_to_datetime
+from pandas._libs.tslibs.np_datetime cimport pandas_datetime_to_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport pydatetime_to_dtstruct
 
-from pandas._libs.tslibs.np_datetime import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
 from pandas._libs.tslibs.offsets cimport to_offset
-from pandas._libs.tslibs.timedeltas cimport (
-    _Timedelta,
-    delta_to_nanoseconds,
-    is_any_td_scalar,
-)
+from pandas._libs.tslibs.timedeltas cimport _Timedelta
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar
 
 from pandas._libs.tslibs.timedeltas import Timedelta
 
-from pandas._libs.tslibs.timezones cimport (
-    get_timezone,
-    is_utc,
-    maybe_get_tz,
-    treat_tz_as_pytz,
-    utc_stdlib as UTC,
-)
-from pandas._libs.tslibs.tzconversion cimport (
-    tz_convert_from_utc_single,
-    tz_localize_to_utc_single,
-)
+from pandas._libs.tslibs.timezones cimport get_timezone
+from pandas._libs.tslibs.timezones cimport is_utc
+from pandas._libs.tslibs.timezones cimport maybe_get_tz
+from pandas._libs.tslibs.timezones cimport treat_tz_as_pytz
+from pandas._libs.tslibs.timezones cimport utc_stdlib as UTC
+from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
+from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 # ----------------------------------------------------------------------
 # Constants

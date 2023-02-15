@@ -12,19 +12,15 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    npy_unit_to_abbrev,
-    tz_compare,
-)
+from pandas._libs.tslibs import npy_unit_to_abbrev
+from pandas._libs.tslibs import tz_compare
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestNonNano:

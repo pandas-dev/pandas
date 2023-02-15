@@ -1,20 +1,16 @@
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-    Timedelta,
-    Timestamp,
-    offsets,
-    to_offset,
-)
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsTimedelta
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import offsets
+from pandas._libs.tslibs import to_offset
 
 import pandas._testing as tm
 

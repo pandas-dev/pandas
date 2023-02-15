@@ -5,23 +5,19 @@ import json
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.json._table_schema import (
-    as_json_table_type,
-    build_table_schema,
-    convert_json_field_to_pandas_type,
-    convert_pandas_type_to_json_field,
-    set_default_names,
-)
+from pandas.io.json._table_schema import as_json_table_type
+from pandas.io.json._table_schema import build_table_schema
+from pandas.io.json._table_schema import convert_json_field_to_pandas_type
+from pandas.io.json._table_schema import convert_pandas_type_to_json_field
+from pandas.io.json._table_schema import set_default_names
 
 
 @pytest.fixture

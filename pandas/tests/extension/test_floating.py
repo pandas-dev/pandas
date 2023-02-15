@@ -21,10 +21,8 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_float_dtype
-from pandas.core.arrays.floating import (
-    Float32Dtype,
-    Float64Dtype,
-)
+from pandas.core.arrays.floating import Float32Dtype
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.tests.extension import base
 
 

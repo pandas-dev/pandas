@@ -4,15 +4,13 @@ Tests for DataFrame.mask; tests DataFrame.where as a side-effect.
 
 import numpy as np
 
-from pandas import (
-    NA,
-    DataFrame,
-    Float64Dtype,
-    Series,
-    StringDtype,
-    Timedelta,
-    isna,
-)
+from pandas import DataFrame
+from pandas import Float64Dtype
+from pandas import NA
+from pandas import Series
+from pandas import StringDtype
+from pandas import Timedelta
+from pandas import isna
 import pandas._testing as tm
 
 

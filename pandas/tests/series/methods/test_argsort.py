@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    Timestamp,
-    isna,
-)
+from pandas import Series
+from pandas import Timestamp
+from pandas import isna
 import pandas._testing as tm
 
 

@@ -5,11 +5,9 @@ import pytest
 from pandas.errors import ParserWarning
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import to_datetime
 import pandas._testing as tm
 
 from pandas.io.xml import read_xml

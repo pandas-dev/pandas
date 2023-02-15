@@ -2,22 +2,18 @@ from datetime import datetime
 
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    offsets,
-    to_datetime,
-)
+from pandas import DatetimeIndex
+from pandas import offsets
+from pandas import to_datetime
 import pandas._testing as tm
 
-from pandas.tseries.holiday import (
-    AbstractHolidayCalendar,
-    Holiday,
-    Timestamp,
-    USFederalHolidayCalendar,
-    USLaborDay,
-    USThanksgivingDay,
-    get_calendar,
-)
+from pandas.tseries.holiday import AbstractHolidayCalendar
+from pandas.tseries.holiday import Holiday
+from pandas.tseries.holiday import Timestamp
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.holiday import USLaborDay
+from pandas.tseries.holiday import USThanksgivingDay
+from pandas.tseries.holiday import get_calendar
 
 
 @pytest.mark.parametrize(

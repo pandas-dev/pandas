@@ -3,13 +3,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    CategoricalDtype,
-    DataFrame,
-    NaT,
-    Series,
-    Timestamp,
-)
+from pandas import CategoricalDtype
+from pandas import DataFrame
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

@@ -1,29 +1,23 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_platform_arm,
-    is_platform_mac,
-    is_platform_power,
-)
+from pandas.compat import is_platform_arm
+from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_power
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    MultiIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    period_range,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import to_datetime
+from pandas import to_timedelta
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.indexers.objects import VariableOffsetWindowIndexer

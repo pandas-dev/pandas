@@ -3,95 +3,67 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Hashable,
-    Literal,
-    TypeVar,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Literal
+from typing import TypeVar
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    algos as libalgos,
-    lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    npt,
-)
+from pandas._libs import NaT
+from pandas._libs import algos as libalgos
+from pandas._libs import lib
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import QuantileInterpolation
+from pandas._typing import npt
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
-from pandas.core.dtypes.cast import (
-    ensure_dtype_can_hold_na,
-    infer_dtype_from_scalar,
-)
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_integer,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_timedelta64_ns_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    array_equals,
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_timedelta64_ns_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import array_equals
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.take import take_1d
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    PandasArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    sanitize_array,
-)
-from pandas.core.indexers import (
-    maybe_convert_indices,
-    validate_indices,
-)
-from pandas.core.indexes.api import (
-    Index,
-    ensure_index,
-)
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-    interleaved_dtype,
-)
-from pandas.core.internals.blocks import (
-    ensure_block_shape,
-    external_values,
-    extract_pandas_array,
-    maybe_coerce_values,
-    new_block,
-    to_native_types,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.construction import sanitize_array
+from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import validate_indices
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import ensure_index
+from pandas.core.internals.base import DataManager
+from pandas.core.internals.base import SingleDataManager
+from pandas.core.internals.base import interleaved_dtype
+from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import external_values
+from pandas.core.internals.blocks import extract_pandas_array
+from pandas.core.internals.blocks import maybe_coerce_values
+from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import to_native_types
 
 T = TypeVar("T", bound="BaseArrayManager")
 

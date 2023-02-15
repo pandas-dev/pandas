@@ -5,24 +5,18 @@ from __future__ import annotations
 
 import operator
 import re
-from typing import (
-    Any,
-    Pattern,
-)
+from typing import Any
+from typing import Pattern
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Scalar
+from pandas._typing import npt
 
-from pandas.core.dtypes.common import (
-    is_re,
-    is_re_compilable,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_re
+from pandas.core.dtypes.common import is_re_compilable
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 

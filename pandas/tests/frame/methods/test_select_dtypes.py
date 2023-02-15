@@ -4,10 +4,8 @@ import pytest
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 

@@ -6,105 +6,81 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Literal,
-    Sequence,
-    cast,
-    final,
-)
+from typing import Hashable
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import final
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    algos,
-    hashtable as htable,
-    iNaT,
-    lib,
-)
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    IndexLabel,
-    TakeIndexer,
-    npt,
-)
+from pandas._libs import algos
+from pandas._libs import hashtable as htable
+from pandas._libs import iNaT
+from pandas._libs import lib
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import IndexLabel
+from pandas._typing import TakeIndexer
+from pandas._typing import npt
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
-    infer_dtype_from_array,
-    sanitize_to_nanoseconds,
-)
-from pandas.core.dtypes.common import (
-    ensure_float64,
-    ensure_object,
-    ensure_platform_int,
-    is_array_like,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_signed_integer_dtype,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.cast import sanitize_to_nanoseconds
+from pandas.core.dtypes.common import ensure_float64
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_signed_integer_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import (
-    BaseMaskedDtype,
-    ExtensionDtype,
-    PandasDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
-    ABCExtensionArray,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCSeries,
-    ABCTimedeltaArray,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.generic import ABCDatetimeArray
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCTimedeltaArray
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.array_algos.take import take_nd
-from pandas.core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import array as pd_array
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
 
-    from pandas import (
-        Categorical,
-        DataFrame,
-        Index,
-        Series,
-    )
-    from pandas.core.arrays import (
-        BaseMaskedArray,
-        ExtensionArray,
-    )
+    from pandas import Categorical
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
+    from pandas.core.arrays import BaseMaskedArray
+    from pandas.core.arrays import ExtensionArray
 
 
 # --------------- #
@@ -840,10 +816,8 @@ def value_counts(
     -------
     Series
     """
-    from pandas import (
-        Index,
-        Series,
-    )
+    from pandas import Index
+    from pandas import Series
 
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"

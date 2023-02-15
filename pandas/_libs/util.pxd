@@ -1,17 +1,15 @@
 cimport numpy as cnp
-from libc.stdint cimport (
-    INT8_MAX,
-    INT8_MIN,
-    INT16_MAX,
-    INT16_MIN,
-    INT32_MAX,
-    INT32_MIN,
-    INT64_MAX,
-    INT64_MIN,
-    UINT8_MAX,
-    UINT16_MAX,
-    UINT32_MAX,
-    UINT64_MAX,
-)
+from libc.stdint cimport INT8_MAX
+from libc.stdint cimport INT8_MIN
+from libc.stdint cimport INT16_MAX
+from libc.stdint cimport INT16_MIN
+from libc.stdint cimport INT32_MAX
+from libc.stdint cimport INT32_MIN
+from libc.stdint cimport INT64_MAX
+from libc.stdint cimport INT64_MIN
+from libc.stdint cimport UINT8_MAX
+from libc.stdint cimport UINT16_MAX
+from libc.stdint cimport UINT32_MAX
+from libc.stdint cimport UINT64_MAX
 
 from pandas._libs.tslibs.util cimport *

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 from pandas._config import using_nullable_dtypes
 

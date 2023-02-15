@@ -6,25 +6,21 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
+from pandas import MultiIndex
+from pandas import Series
+from pandas import option_context
 import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import (  # isort:skip
     Styler,
 )
-from pandas.io.formats.style_render import (
-    _get_level_lengths,
-    _get_trimming_maximums,
-    maybe_convert_css_to_tuples,
-    non_reducing_slice,
-)
+from pandas.io.formats.style_render import _get_level_lengths
+from pandas.io.formats.style_render import _get_trimming_maximums
+from pandas.io.formats.style_render import maybe_convert_css_to_tuples
+from pandas.io.formats.style_render import non_reducing_slice
 
 
 @pytest.fixture

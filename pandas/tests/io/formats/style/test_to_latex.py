@@ -3,21 +3,17 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    option_context,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import option_context
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
-from pandas.io.formats.style_render import (
-    _parse_latex_cell_styles,
-    _parse_latex_css_conversion,
-    _parse_latex_header_span,
-    _parse_latex_table_styles,
-    _parse_latex_table_wrapping,
-)
+from pandas.io.formats.style_render import _parse_latex_cell_styles
+from pandas.io.formats.style_render import _parse_latex_css_conversion
+from pandas.io.formats.style_render import _parse_latex_header_span
+from pandas.io.formats.style_render import _parse_latex_table_styles
+from pandas.io.formats.style_render import _parse_latex_table_wrapping
 
 
 @pytest.fixture

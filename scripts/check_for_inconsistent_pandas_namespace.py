@@ -23,13 +23,11 @@ https://github.com/asottile/pyupgrade .
 import argparse
 import ast
 import sys
-from typing import (
-    MutableMapping,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Set,
-)
+from typing import MutableMapping
+from typing import NamedTuple
+from typing import Optional
+from typing import Sequence
+from typing import Set
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
@@ -63,11 +61,9 @@ class Visitor(ast.NodeVisitor):
 
 
 def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str:
-    from tokenize_rt import (
-        reversed_enumerate,
-        src_to_tokens,
-        tokens_to_src,
-    )
+    from tokenize_rt import reversed_enumerate
+    from tokenize_rt import src_to_tokens
+    from tokenize_rt import tokens_to_src
 
     tokens = src_to_tokens(content)
     for n, i in reversed_enumerate(tokens):

@@ -1,10 +1,8 @@
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Literal,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Iterable
+from typing import Literal
+from typing import overload
 
 import numpy as np
 

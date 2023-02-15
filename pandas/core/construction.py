@@ -6,68 +6,54 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-    overload,
-)
+from typing import Optional
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import Union
+from typing import cast
+from typing import overload
 
 import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs.period import Period
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    Dtype,
-    DtypeObj,
-    T,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import T
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    _registry as registry,
-)
-from pandas.core.dtypes.cast import (
-    construct_1d_arraylike_from_scalar,
-    construct_1d_object_array_from_listlike,
-    maybe_cast_to_datetime,
-    maybe_cast_to_integer_array,
-    maybe_convert_platform,
-    maybe_infer_to_datetimelike,
-    maybe_promote,
-)
-from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_timedelta64_ns_dtype,
-)
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import _registry as registry
+from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import maybe_cast_to_datetime
+from pandas.core.dtypes.cast import maybe_cast_to_integer_array
+from pandas.core.dtypes.cast import maybe_convert_platform
+from pandas.core.dtypes.cast import maybe_infer_to_datetimelike
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_timedelta64_ns_dtype
 from pandas.core.dtypes.dtypes import PandasDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndex,
-    ABCPandasArray,
-    ABCRangeIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCPandasArray
+from pandas.core.dtypes.generic import ABCRangeIndex
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas import (
-        Index,
-        Series,
-    )
+    from pandas import Index
+    from pandas import Series
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -293,17 +279,15 @@ def array(
       ...
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
-    from pandas.core.arrays import (
-        BooleanArray,
-        DatetimeArray,
-        ExtensionArray,
-        FloatingArray,
-        IntegerArray,
-        IntervalArray,
-        PandasArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import BooleanArray
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import FloatingArray
+    from pandas.core.arrays import IntegerArray
+    from pandas.core.arrays import IntervalArray
+    from pandas.core.arrays import PandasArray
+    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import TimedeltaArray
     from pandas.core.arrays.string_ import StringDtype
 
     if lib.is_scalar(data):

@@ -2,116 +2,88 @@ from __future__ import annotations
 
 from functools import wraps
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    Sequence,
-    cast,
-    final,
-)
+from typing import Any
+from typing import Callable
+from typing import Iterable
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
+from typing import final
 
 import numpy as np
 
-from pandas._libs import (
-    Timestamp,
-    internals as libinternals,
-    lib,
-    writers,
-)
-from pandas._libs.internals import (
-    BlockPlacement,
-    BlockValuesRefs,
-)
+from pandas._libs import Timestamp
+from pandas._libs import internals as libinternals
+from pandas._libs import lib
+from pandas._libs import writers
+from pandas._libs.internals import BlockPlacement
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.missing import NA
 from pandas._libs.tslibs import IncompatibleFrequency
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    F,
-    FillnaOptions,
-    IgnoreRaise,
-    QuantileInterpolation,
-    Shape,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import F
+from pandas._typing import FillnaOptions
+from pandas._typing import IgnoreRaise
+from pandas._typing import QuantileInterpolation
+from pandas._typing import Shape
+from pandas._typing import npt
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.astype import (
-    astype_array_safe,
-    astype_is_view,
-)
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    can_hold_element,
-    find_result_type,
-    maybe_downcast_to_dtype,
-    np_can_hold_element,
-)
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_1d_only_ea_dtype,
-    is_1d_only_ea_obj,
-    is_dtype_equal,
-    is_interval_dtype,
-    is_list_like,
-    is_sparse,
-    is_string_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCPandasArray,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.astype import astype_array_safe
+from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import find_result_type
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import np_can_hold_element
+from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.common import is_1d_only_ea_obj
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_sparse
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCPandasArray
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core import missing
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import (
-    extract_bool_array,
-    putmask_inplace,
-    putmask_without_repeat,
-    setitem_datetimelike_compat,
-    validate_putmask,
-)
+from pandas.core.array_algos.putmask import extract_bool_array
+from pandas.core.array_algos.putmask import putmask_inplace
+from pandas.core.array_algos.putmask import putmask_without_repeat
+from pandas.core.array_algos.putmask import setitem_datetimelike_compat
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.array_algos.quantile import quantile_compat
-from pandas.core.array_algos.replace import (
-    compare_or_regex_search,
-    replace_regex,
-    should_use_regex,
-)
+from pandas.core.array_algos.replace import compare_or_regex_search
+from pandas.core.array_algos.replace import replace_regex
+from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    IntervalArray,
-    PandasArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:

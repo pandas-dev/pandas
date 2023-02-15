@@ -3,42 +3,30 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import (
-    Timestamp,
-    get_unit_from_dtype,
-    periods_per_day,
-    tz_convert_from_utc,
-)
-from pandas._libs.tslibs.ccalendar import (
-    DAYS,
-    MONTH_ALIASES,
-    MONTH_NUMBERS,
-    MONTHS,
-    int_to_weekday,
-)
-from pandas._libs.tslibs.fields import (
-    build_field_sarray,
-    month_position_check,
-)
-from pandas._libs.tslibs.offsets import (
-    DateOffset,
-    Day,
-    to_offset,
-)
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import periods_per_day
+from pandas._libs.tslibs import tz_convert_from_utc
+from pandas._libs.tslibs.ccalendar import DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.ccalendar import MONTH_ALIASES
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar import int_to_weekday
+from pandas._libs.tslibs.fields import build_field_sarray
+from pandas._libs.tslibs.fields import month_position_check
+from pandas._libs.tslibs.offsets import DateOffset
+from pandas._libs.tslibs.offsets import Day
+from pandas._libs.tslibs.offsets import to_offset
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_numeric_dtype,
-    is_period_dtype,
-    is_timedelta64_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
@@ -129,10 +117,8 @@ def infer_freq(index) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    from pandas.core.api import (
-        DatetimeIndex,
-        Index,
-    )
+    from pandas.core.api import DatetimeIndex
+    from pandas.core.api import Index
 
     if isinstance(index, ABCSeries):
         values = index._values

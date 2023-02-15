@@ -1,18 +1,14 @@
-from typing import (
-    Any,
-    Generic,
-    TypeVar,
-    overload,
-)
+from typing import Any
+from typing import Generic
+from typing import TypeVar
+from typing import overload
 
 import numpy as np
 import numpy.typing as npt
 
-from pandas._typing import (
-    IntervalClosedType,
-    Timedelta,
-    Timestamp,
-)
+from pandas._typing import IntervalClosedType
+from pandas._typing import Timedelta
+from pandas._typing import Timestamp
 
 VALID_CLOSED: frozenset[str]
 

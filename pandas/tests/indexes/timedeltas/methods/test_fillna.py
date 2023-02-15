@@ -1,9 +1,7 @@
-from pandas import (
-    Index,
-    NaT,
-    Timedelta,
-    TimedeltaIndex,
-)
+from pandas import Index
+from pandas import NaT
+from pandas import Timedelta
+from pandas import TimedeltaIndex
 import pandas._testing as tm
 
 

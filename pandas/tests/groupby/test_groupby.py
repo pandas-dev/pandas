@@ -5,25 +5,21 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import (
-    PerformanceWarning,
-    SpecificationError,
-)
+from pandas.errors import PerformanceWarning
+from pandas.errors import SpecificationError
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Grouper,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Grouper
+from pandas import Index
+from pandas import MultiIndex
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com

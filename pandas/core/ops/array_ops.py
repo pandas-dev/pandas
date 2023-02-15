@@ -11,48 +11,34 @@ from typing import Any
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    lib,
-    ops as libops,
-)
+from pandas._libs import NaT
+from pandas._libs import Timedelta
+from pandas._libs import Timestamp
+from pandas._libs import lib
+from pandas._libs import ops as libops
 from pandas._libs.tslibs import BaseOffset
-from pandas._typing import (
-    ArrayLike,
-    Shape,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import Shape
 
-from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
-    find_common_type,
-)
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_numeric_v_string_like,
-    is_object_dtype,
-    is_scalar,
-)
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_numeric_v_string_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
 from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import (
-    missing,
-    roperator,
-)
+from pandas.core.ops import missing
+from pandas.core.ops import roperator
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 

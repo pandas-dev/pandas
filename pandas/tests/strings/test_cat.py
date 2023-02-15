@@ -3,14 +3,12 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-    concat,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import _testing as tm
+from pandas import concat
 
 
 def assert_series_or_index_equal(left, right):

@@ -1,56 +1,42 @@
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
+from collections import defaultdict
 import csv
 from io import StringIO
 import re
 import sys
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    DefaultDict,
-    Hashable,
-    Iterator,
-    List,
-    Literal,
-    Mapping,
-    Sequence,
-    cast,
-)
+from typing import DefaultDict
+from typing import Hashable
+from typing import IO
+from typing import Iterator
+from typing import List
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    ReadCsvBuffer,
-    Scalar,
-)
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import ReadCsvBuffer
+from pandas._typing import Scalar
+from pandas.errors import EmptyDataError
+from pandas.errors import ParserError
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
-from pandas.io.common import (
-    dedup_names,
-    is_potential_multi_index,
-)
-from pandas.io.parsers.base_parser import (
-    ParserBase,
-    parser_defaults,
-)
+from pandas.io.common import dedup_names
+from pandas.io.common import is_potential_multi_index
+from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.parsers.base_parser import parser_defaults
 
 if TYPE_CHECKING:
-    from pandas import (
-        Index,
-        MultiIndex,
-    )
+    from pandas import Index
+    from pandas import MultiIndex
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness

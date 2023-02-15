@@ -16,12 +16,10 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    CompressionOptions,
-    DatetimeNaTType,
-    FilePath,
-    ReadBuffer,
-)
+from pandas._typing import CompressionOptions
+from pandas._typing import DatetimeNaTType
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 

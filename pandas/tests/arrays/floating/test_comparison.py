@@ -4,10 +4,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
-from pandas.tests.arrays.masked_shared import (
-    ComparisonOps,
-    NumericOps,
-)
+from pandas.tests.arrays.masked_shared import ComparisonOps
+from pandas.tests.arrays.masked_shared import NumericOps
 
 
 class TestComparisonOps(NumericOps, ComparisonOps):

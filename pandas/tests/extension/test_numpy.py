@@ -19,10 +19,8 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import can_hold_element
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
 
 import pandas as pd
 import pandas._testing as tm

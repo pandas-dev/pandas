@@ -3,11 +3,9 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    _testing as tm,
-)
+from pandas import DataFrame
+from pandas import Series
+from pandas import _testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_store
 
 pytestmark = pytest.mark.single_cpu

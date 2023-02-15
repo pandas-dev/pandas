@@ -9,10 +9,8 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import (
-    AxisInt,
-    npt,
-)
+from pandas._typing import AxisInt
+from pandas._typing import npt
 
 from pandas.core.nanops import check_below_min_count
 

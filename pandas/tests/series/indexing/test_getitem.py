@@ -1,34 +1,28 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
-from datetime import (
-    date,
-    datetime,
-    time,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    conversion,
-    timezones,
-)
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import timezones
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 

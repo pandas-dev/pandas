@@ -7,17 +7,13 @@ from numpy cimport import_array
 
 import_array()
 
-from pandas._libs.util cimport (
-    is_array,
-    is_complex_object,
-    is_real_number_object,
-)
+from pandas._libs.util cimport is_array
+from pandas._libs.util cimport is_complex_object
+from pandas._libs.util cimport is_real_number_object
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import isna
 
 
 cdef bint isiterable(obj):

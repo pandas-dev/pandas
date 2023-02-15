@@ -7,16 +7,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Series,
-    StringDtype,
-    Timestamp,
-    date_range,
-    isna,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Series
+from pandas import StringDtype
+from pandas import Timestamp
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
 from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 

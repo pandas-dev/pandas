@@ -1,14 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Interval,
-    MultiIndex,
-    Series,
-    StringDtype,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import MultiIndex
+from pandas import Series
+from pandas import StringDtype
 import pandas._testing as tm
 
 

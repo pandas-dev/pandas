@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -9,13 +7,11 @@ import pytest
 from pandas.errors import UnsortedIndexError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas.tests.indexing.common import _mklbl
 

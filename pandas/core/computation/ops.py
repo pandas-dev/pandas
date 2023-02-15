@@ -7,33 +7,25 @@ from __future__ import annotations
 from datetime import datetime
 from functools import partial
 import operator
-from typing import (
-    Callable,
-    Iterable,
-    Iterator,
-    Literal,
-)
+from typing import Callable
+from typing import Iterable
+from typing import Iterator
+from typing import Literal
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import (
-    ensure_decoded,
-    result_type_many,
-)
+from pandas.core.computation.common import ensure_decoded
+from pandas.core.computation.common import result_type_many
 from pandas.core.computation.scope import DEFAULT_GLOBALS
 
-from pandas.io.formats.printing import (
-    pprint_thing,
-    pprint_thing_encoded,
-)
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing_encoded
 
 REDUCTIONS = ("sum", "prod", "min", "max")
 

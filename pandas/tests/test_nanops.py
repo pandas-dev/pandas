@@ -10,10 +10,8 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    Series,
-    isna,
-)
+from pandas import Series
+from pandas import isna
 import pandas._testing as tm
 from pandas.core import nanops
 from pandas.core.arrays import DatetimeArray

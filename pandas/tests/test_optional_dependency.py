@@ -3,10 +3,8 @@ import types
 
 import pytest
 
-from pandas.compat._optional import (
-    VERSIONS,
-    import_optional_dependency,
-)
+from pandas.compat._optional import VERSIONS
+from pandas.compat._optional import import_optional_dependency
 
 import pandas._testing as tm
 

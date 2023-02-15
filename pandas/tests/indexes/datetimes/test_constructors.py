@@ -1,8 +1,6 @@
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from functools import partial
 from operator import attrgetter
 
@@ -11,25 +9,19 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
-    astype_overflowsafe,
-)
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import astype_overflowsafe
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    offsets,
-    to_datetime,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Timestamp
+from pandas import date_range
+from pandas import offsets
+from pandas import to_datetime
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    period_array,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:

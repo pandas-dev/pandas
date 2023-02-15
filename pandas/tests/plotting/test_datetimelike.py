@@ -1,41 +1,31 @@
 """ Test cases for time series specific (freq conversion, etc) """
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 import pickle
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    BaseOffset,
-    to_offset,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import to_offset
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    concat,
-    isna,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import NaT
+from pandas import Series
+from pandas import concat
+from pandas import isna
+from pandas import to_datetime
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import (
-    DatetimeIndex,
-    bdate_range,
-    date_range,
-)
-from pandas.core.indexes.period import (
-    Period,
-    PeriodIndex,
-    period_range,
-)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.datetimes import bdate_range
+from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.period import Period
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
 

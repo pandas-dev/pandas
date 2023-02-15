@@ -5,36 +5,28 @@ particularly ones that differ from numpy.
 from __future__ import annotations
 
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    overload,
-)
+from typing import TYPE_CHECKING
+from typing import overload
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    IgnoreRaise,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import DtypeObj
+from pandas._typing import IgnoreRaise
 from pandas.errors import IntCastingNaNError
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_dtype_equal,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray

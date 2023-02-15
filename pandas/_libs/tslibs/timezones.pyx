@@ -1,7 +1,5 @@
-from datetime import (
-    timedelta,
-    timezone,
-)
+from datetime import timedelta
+from datetime import timezone
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -13,20 +11,16 @@ except ImportError:
     zoneinfo = None
     ZoneInfo = None
 
-from cpython.datetime cimport (
-    datetime,
-    timedelta,
-    tzinfo,
-)
+from cpython.datetime cimport datetime
+from cpython.datetime cimport timedelta
+from cpython.datetime cimport tzinfo
 
 # dateutil compat
 
-from dateutil.tz import (
-    gettz as dateutil_gettz,
-    tzfile as _dateutil_tzfile,
-    tzlocal as _dateutil_tzlocal,
-    tzutc as _dateutil_tzutc,
-)
+from dateutil.tz import gettz as dateutil_gettz
+from dateutil.tz import tzfile as _dateutil_tzfile
+from dateutil.tz import tzlocal as _dateutil_tzlocal
+from dateutil.tz import tzutc as _dateutil_tzutc
 import numpy as np
 import pytz
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
@@ -37,10 +31,8 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport (
-    get_nat,
-    is_integer_object,
-)
+from pandas._libs.tslibs.util cimport get_nat
+from pandas._libs.tslibs.util cimport is_integer_object
 
 
 cdef int64_t NPY_NAT = get_nat()

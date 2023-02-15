@@ -1,14 +1,10 @@
-from typing import (
-    Sequence,
-    overload,
-)
+from typing import Sequence
+from typing import overload
 
-from pandas._typing import (
-    AnyArrayLike,
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import DataFrame
+from pandas._typing import Index
+from pandas._typing import Series
 
 # note: this is a lie to make type checkers happy (they special
 # case property). cache_readonly uses attribute names similar to

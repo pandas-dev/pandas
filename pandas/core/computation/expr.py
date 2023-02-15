@@ -4,16 +4,12 @@
 from __future__ import annotations
 
 import ast
-from functools import (
-    partial,
-    reduce,
-)
+from functools import partial
+from functools import reduce
 from keyword import iskeyword
 import tokenize
-from typing import (
-    Callable,
-    TypeVar,
-)
+from typing import Callable
+from typing import TypeVar
 
 import numpy as np
 
@@ -21,27 +17,23 @@ from pandas.compat import PY39
 from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
-from pandas.core.computation.ops import (
-    ARITH_OPS_SYMS,
-    BOOL_OPS_SYMS,
-    CMP_OPS_SYMS,
-    LOCAL_TAG,
-    MATHOPS,
-    REDUCTIONS,
-    UNARY_OPS_SYMS,
-    BinOp,
-    Constant,
-    Div,
-    FuncNode,
-    Op,
-    Term,
-    UnaryOp,
-    is_term,
-)
-from pandas.core.computation.parsing import (
-    clean_backtick_quoted_toks,
-    tokenize_string,
-)
+from pandas.core.computation.ops import ARITH_OPS_SYMS
+from pandas.core.computation.ops import BOOL_OPS_SYMS
+from pandas.core.computation.ops import BinOp
+from pandas.core.computation.ops import CMP_OPS_SYMS
+from pandas.core.computation.ops import Constant
+from pandas.core.computation.ops import Div
+from pandas.core.computation.ops import FuncNode
+from pandas.core.computation.ops import LOCAL_TAG
+from pandas.core.computation.ops import MATHOPS
+from pandas.core.computation.ops import Op
+from pandas.core.computation.ops import REDUCTIONS
+from pandas.core.computation.ops import Term
+from pandas.core.computation.ops import UNARY_OPS_SYMS
+from pandas.core.computation.ops import UnaryOp
+from pandas.core.computation.ops import is_term
+from pandas.core.computation.parsing import clean_backtick_quoted_toks
+from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import Scope
 
 from pandas.io.formats import printing

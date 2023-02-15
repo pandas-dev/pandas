@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    MultiIndex,
-    Series,
-    array,
-)
+from pandas import DataFrame
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import array
 import pandas._testing as tm
 
 

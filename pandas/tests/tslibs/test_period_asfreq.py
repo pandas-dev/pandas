@@ -1,15 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    iNaT,
-    to_offset,
-)
-from pandas._libs.tslibs.period import (
-    extract_ordinals,
-    period_asfreq,
-    period_ordinal,
-)
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs.period import extract_ordinals
+from pandas._libs.tslibs.period import period_asfreq
+from pandas._libs.tslibs.period import period_ordinal
 
 import pandas._testing as tm
 

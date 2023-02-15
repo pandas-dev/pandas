@@ -1,9 +1,7 @@
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    date_range,
-)
+from pandas import DatetimeIndex
+from pandas import date_range
 import pandas._testing as tm
 
 

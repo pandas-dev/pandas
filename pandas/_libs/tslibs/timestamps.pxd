@@ -1,14 +1,10 @@
-from cpython.datetime cimport (
-    datetime,
-    tzinfo,
-)
+from cpython.datetime cimport datetime
+from cpython.datetime cimport tzinfo
 from numpy cimport int64_t
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    npy_datetimestruct,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 from pandas._libs.tslibs.offsets cimport BaseOffset
 
 

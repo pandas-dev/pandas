@@ -1,26 +1,20 @@
 import datetime as dt
-from typing import (
-    Any,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
+from typing import cast
 
 import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    PositionalIndexer,
-)
+from pandas._typing import Dtype
+from pandas._typing import PositionalIndexer
 
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from pandas.api.extensions import (
-    ExtensionArray,
-    ExtensionDtype,
-)
+from pandas.api.extensions import ExtensionArray
+from pandas.api.extensions import ExtensionDtype
 from pandas.api.types import pandas_dtype
 
 

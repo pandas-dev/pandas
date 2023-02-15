@@ -6,10 +6,8 @@ import pytest
 
 from pandas.compat._optional import VERSIONS
 
-from pandas import (
-    read_csv,
-    read_table,
-)
+from pandas import read_csv
+from pandas import read_table
 import pandas._testing as tm
 
 

@@ -1,10 +1,8 @@
 import numpy as np
 
-from pandas import (
-    TimedeltaIndex,
-    factorize,
-    timedelta_range,
-)
+from pandas import TimedeltaIndex
+from pandas import factorize
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

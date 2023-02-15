@@ -4,29 +4,23 @@ Module for formatting output data in HTML.
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import (
-    Any,
-    Final,
-    Hashable,
-    Iterable,
-    Mapping,
-    cast,
-)
+from typing import Any
+from typing import Final
+from typing import Hashable
+from typing import Iterable
+from typing import Mapping
+from typing import cast
 
 from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas import (
-    MultiIndex,
-    option_context,
-)
+from pandas import MultiIndex
+from pandas import option_context
 
 from pandas.io.common import is_url
-from pandas.io.formats.format import (
-    DataFrameFormatter,
-    get_level_lengths,
-)
+from pandas.io.formats.format import DataFrameFormatter
+from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 

@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 
 

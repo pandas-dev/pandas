@@ -2,10 +2,8 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_int64_dtype
 
-from pandas import (
-    Index,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import RangeIndex
 import pandas._testing as tm
 
 

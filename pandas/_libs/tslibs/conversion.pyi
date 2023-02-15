@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    tzinfo,
-)
+from datetime import datetime
+from datetime import tzinfo
 
 import numpy as np
 

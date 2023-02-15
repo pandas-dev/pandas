@@ -1,9 +1,7 @@
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-)
+from pandas import CategoricalIndex
+from pandas import Index
 import pandas._testing as tm
 
 

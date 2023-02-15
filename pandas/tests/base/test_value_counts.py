@@ -8,16 +8,14 @@ from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-)
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import TimedeltaIndex
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 

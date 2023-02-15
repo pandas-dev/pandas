@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-)
+from pandas import DataFrame
+from pandas import IndexSlice
 
 
 class Render:

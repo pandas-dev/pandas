@@ -1,11 +1,9 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    IntervalIndex,
-    Series,
-    date_range,
-)
+from pandas import Categorical
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 
 

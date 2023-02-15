@@ -1,9 +1,7 @@
 import numpy as np
 
-from pandas import (
-    PeriodIndex,
-    factorize,
-)
+from pandas import PeriodIndex
+from pandas import factorize
 import pandas._testing as tm
 
 

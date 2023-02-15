@@ -6,21 +6,17 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    HDFStore,
-    MultiIndex,
-    _testing as tm,
-    date_range,
-    read_hdf,
-)
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import HDFStore
+from pandas import MultiIndex
+from pandas import _testing as tm
+from pandas import date_range
+from pandas import read_hdf
 from pandas.tests.io.pytables.common import ensure_clean_store
 
-from pandas.io.pytables import (
-    Term,
-    _maybe_adjust_name,
-)
+from pandas.io.pytables import Term
+from pandas.io.pytables import _maybe_adjust_name
 
 pytestmark = pytest.mark.single_cpu
 

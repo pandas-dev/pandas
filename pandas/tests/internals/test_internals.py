@@ -1,7 +1,5 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 import itertools
 import re
 
@@ -15,33 +13,25 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    period_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import period_range
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    DatetimeArray,
-    SparseArray,
-    TimedeltaArray,
-)
-from pandas.core.internals import (
-    BlockManager,
-    SingleBlockManager,
-    make_block,
-)
-from pandas.core.internals.blocks import (
-    ensure_block_shape,
-    new_block,
-)
+from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import SparseArray
+from pandas.core.arrays import TimedeltaArray
+from pandas.core.internals import BlockManager
+from pandas.core.internals import SingleBlockManager
+from pandas.core.internals import make_block
+from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import new_block
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests

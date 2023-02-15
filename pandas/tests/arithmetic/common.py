@@ -4,17 +4,13 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    array,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import array
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    PandasArray,
-)
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import PandasArray
 
 
 def assert_cannot_add(left, right, msg="cannot add"):

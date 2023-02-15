@@ -4,11 +4,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas._testing as tm
 
 

@@ -8,17 +8,15 @@ import pytest
 from pandas.errors import ParserError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    read_csv,
-    to_datetime,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import read_csv
+from pandas import to_datetime
 import pandas._testing as tm
 import pandas.core.common as com
 

@@ -2,30 +2,24 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-from typing import (
-    Hashable,
-    Iterable,
-)
+from typing import Hashable
+from typing import Iterable
 
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
 from pandas._typing import NpDtype
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import pandas_dtype
 
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import (
-    Index,
-    default_index,
-)
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import default_index
 from pandas.core.series import Series
 
 

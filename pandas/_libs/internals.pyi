@@ -1,18 +1,14 @@
-from typing import (
-    Iterator,
-    Sequence,
-    final,
-    overload,
-)
+from typing import Iterator
+from typing import Sequence
+from typing import final
+from typing import overload
 import weakref
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    T,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import T
+from pandas._typing import npt
 
 from pandas import Index
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray

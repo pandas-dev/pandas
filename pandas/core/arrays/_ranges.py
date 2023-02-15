@@ -7,13 +7,11 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs.lib import i8max
-from pandas._libs.tslibs import (
-    BaseOffset,
-    OutOfBoundsDatetime,
-    Timedelta,
-    Timestamp,
-    iNaT,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import iNaT
 from pandas._typing import npt
 
 

@@ -3,44 +3,32 @@ Routines for filling missing data.
 """
 from __future__ import annotations
 
-from functools import (
-    partial,
-    wraps,
-)
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    cast,
-)
+from functools import partial
+from functools import wraps
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    algos,
-    lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    AxisInt,
-    F,
-    npt,
-)
+from pandas._libs import NaT
+from pandas._libs import algos
+from pandas._libs import lib
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import F
+from pandas._typing import npt
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_numeric_v_string_like,
-    is_object_dtype,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_numeric_v_string_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 if TYPE_CHECKING:
     from pandas import Index

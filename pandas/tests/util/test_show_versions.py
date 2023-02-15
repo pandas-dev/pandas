@@ -2,10 +2,8 @@ import json
 import os
 import re
 
-from pandas.util._print_versions import (
-    _get_dependency_info,
-    _get_sys_info,
-)
+from pandas.util._print_versions import _get_dependency_info
+from pandas.util._print_versions import _get_sys_info
 
 import pandas as pd
 

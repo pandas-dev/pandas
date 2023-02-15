@@ -3,53 +3,43 @@ from __future__ import annotations
 import codecs
 from functools import wraps
 import re
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Hashable,
-    Literal,
-    cast,
-)
+from typing import Callable
+from typing import Hashable
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AlignJoin,
-    DtypeObj,
-    F,
-    Scalar,
-)
+from pandas._typing import AlignJoin
+from pandas._typing import DtypeObj
+from pandas._typing import F
+from pandas._typing import Scalar
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_integer,
-    is_list_like,
-    is_object_dtype,
-    is_re,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_re
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
 
 _shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -247,10 +237,8 @@ class StringMethods(NoNewAttributesMixin):
         returns_string: bool = True,
         returns_bool: bool = False,
     ):
-        from pandas import (
-            Index,
-            MultiIndex,
-        )
+        from pandas import Index
+        from pandas import MultiIndex
 
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):
             if isinstance(result, ABCDataFrame):
@@ -365,10 +353,8 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import (
-            DataFrame,
-            Series,
-        )
+        from pandas import DataFrame
+        from pandas import Series
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndex) else self._orig.index
@@ -550,11 +536,9 @@ class StringMethods(NoNewAttributesMixin):
         For more examples, see :ref:`here <text.concatenate>`.
         """
         # TODO: dispatch
-        from pandas import (
-            Index,
-            Series,
-            concat,
-        )
+        from pandas import Index
+        from pandas import Series
+        from pandas import concat
 
         if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")

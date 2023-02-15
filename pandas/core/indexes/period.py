@@ -1,49 +1,37 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from typing import Hashable
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaT,
-    Period,
-    Resolution,
-    Tick,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import Period
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import Tick
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import npt
+from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.arrays.period import (
-    PeriodArray,
-    period_array,
-    raise_on_incompatible,
-    validate_dtype_freq,
-)
+from pandas.core.arrays.period import PeriodArray
+from pandas.core.arrays.period import period_array
+from pandas.core.arrays.period import raise_on_incompatible
+from pandas.core.arrays.period import validate_dtype_freq
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.datetimes import (
-    DatetimeIndex,
-    Index,
-)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.datetimes import Index
 from pandas.core.indexes.extension import inherit_names
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)

@@ -5,18 +5,14 @@ Period benchmarks that rely on other parts of pandas.
 
 import numpy as np
 
-from pandas._libs.tslibs.period import (
-    Period,
-    periodarr_to_dt64arr,
-)
+from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs.period import periodarr_to_dt64arr
 
 from pandas.tseries.frequencies import to_offset
 
-from .tslib import (
-    _sizes,
-    _tzs,
-    tzlocal_obj,
-)
+from .tslib import _sizes
+from .tslib import _tzs
+from .tslib import tzlocal_obj
 
 try:
     from pandas._libs.tslibs.vectorized import dt64arr_to_periodarr

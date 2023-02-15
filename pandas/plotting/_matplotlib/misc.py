@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import random
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import Hashable
+from typing import TYPE_CHECKING
 
 from matplotlib import patches
 import matplotlib.lines as mlines
@@ -14,22 +12,18 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import (
-    create_subplots,
-    do_adjust_figure,
-    maybe_adjust_figure,
-    set_ticks_props,
-)
+from pandas.plotting._matplotlib.tools import create_subplots
+from pandas.plotting._matplotlib.tools import do_adjust_figure
+from pandas.plotting._matplotlib.tools import maybe_adjust_figure
+from pandas.plotting._matplotlib.tools import set_ticks_props
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import DataFrame
+    from pandas import Index
+    from pandas import Series
 
 
 def scatter_matrix(

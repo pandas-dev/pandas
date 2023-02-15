@@ -7,17 +7,13 @@ import pytest
 from pandas.compat import PYPY
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
-from pandas.core.base import (
-    NoNewAttributesMixin,
-    PandasObject,
-)
+from pandas.core.base import NoNewAttributesMixin
+from pandas.core.base import PandasObject
 
 
 def series_via_frame_from_dict(x, **kwargs):

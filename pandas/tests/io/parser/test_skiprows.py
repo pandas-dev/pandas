@@ -11,10 +11,8 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+from pandas import DataFrame
+from pandas import Index
 import pandas._testing as tm
 
 # XFAIL ME PLS once hanging tests issues identified

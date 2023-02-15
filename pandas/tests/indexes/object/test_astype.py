@@ -1,9 +1,7 @@
 import pytest
 
-from pandas import (
-    Index,
-    NaT,
-)
+from pandas import Index
+from pandas import NaT
 import pandas._testing as tm
 
 

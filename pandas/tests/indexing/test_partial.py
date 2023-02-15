@@ -8,15 +8,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Period,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Period
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
 import pandas._testing as tm
 
 

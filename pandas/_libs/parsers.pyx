@@ -1,11 +1,9 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
 from collections import defaultdict
-from csv import (
-    QUOTE_MINIMAL,
-    QUOTE_NONE,
-    QUOTE_NONNUMERIC,
-)
+from csv import QUOTE_MINIMAL
+from csv import QUOTE_NONE
+from csv import QUOTE_NONNUMERIC
 import sys
 import time
 import warnings
@@ -14,36 +12,26 @@ from pandas.errors import ParserError
 from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
-from pandas.core.arrays import (
-    ArrowExtensionArray,
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
 
 cimport cython
 from cpython.bytes cimport PyBytes_AsString
-from cpython.exc cimport (
-    PyErr_Fetch,
-    PyErr_Occurred,
-)
+from cpython.exc cimport PyErr_Fetch
+from cpython.exc cimport PyErr_Occurred
 from cpython.object cimport PyObject
-from cpython.ref cimport (
-    Py_INCREF,
-    Py_XDECREF,
-)
-from cpython.unicode cimport (
-    PyUnicode_AsUTF8String,
-    PyUnicode_Decode,
-    PyUnicode_DecodeUTF8,
-)
+from cpython.ref cimport Py_INCREF
+from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String
+from cpython.unicode cimport PyUnicode_Decode
+from cpython.unicode cimport PyUnicode_DecodeUTF8
 from cython cimport Py_ssize_t
 from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
-)
+from libc.string cimport strcasecmp
+from libc.string cimport strlen
+from libc.string cimport strncpy
 
 
 cdef extern from "Python.h":
@@ -54,66 +42,56 @@ cdef extern from "Python.h":
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    float64_t,
-    int64_t,
-    ndarray,
-    uint8_t,
-    uint64_t,
-)
+from numpy cimport float64_t
+from numpy cimport int64_t
+from numpy cimport ndarray
+from numpy cimport uint8_t
+from numpy cimport uint64_t
 
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-)
+from pandas._libs.util cimport INT64_MAX
+from pandas._libs.util cimport INT64_MIN
+from pandas._libs.util cimport UINT64_MAX
 
 from pandas._libs import lib
 
-from pandas._libs.khash cimport (
-    kh_destroy_float64,
-    kh_destroy_str,
-    kh_destroy_str_starts,
-    kh_destroy_strbox,
-    kh_exist_str,
-    kh_float64_t,
-    kh_get_float64,
-    kh_get_str,
-    kh_get_str_starts_item,
-    kh_get_strbox,
-    kh_init_float64,
-    kh_init_str,
-    kh_init_str_starts,
-    kh_init_strbox,
-    kh_put_float64,
-    kh_put_str,
-    kh_put_str_starts_item,
-    kh_put_strbox,
-    kh_resize_float64,
-    kh_resize_str_starts,
-    kh_str_starts_t,
-    kh_str_t,
-    kh_strbox_t,
-    khiter_t,
-)
+from pandas._libs.khash cimport kh_destroy_float64
+from pandas._libs.khash cimport kh_destroy_str
+from pandas._libs.khash cimport kh_destroy_str_starts
+from pandas._libs.khash cimport kh_destroy_strbox
+from pandas._libs.khash cimport kh_exist_str
+from pandas._libs.khash cimport kh_float64_t
+from pandas._libs.khash cimport kh_get_float64
+from pandas._libs.khash cimport kh_get_str
+from pandas._libs.khash cimport kh_get_str_starts_item
+from pandas._libs.khash cimport kh_get_strbox
+from pandas._libs.khash cimport kh_init_float64
+from pandas._libs.khash cimport kh_init_str
+from pandas._libs.khash cimport kh_init_str_starts
+from pandas._libs.khash cimport kh_init_strbox
+from pandas._libs.khash cimport kh_put_float64
+from pandas._libs.khash cimport kh_put_str
+from pandas._libs.khash cimport kh_put_str_starts_item
+from pandas._libs.khash cimport kh_put_strbox
+from pandas._libs.khash cimport kh_resize_float64
+from pandas._libs.khash cimport kh_resize_str_starts
+from pandas._libs.khash cimport kh_str_starts_t
+from pandas._libs.khash cimport kh_str_t
+from pandas._libs.khash cimport kh_strbox_t
+from pandas._libs.khash cimport khiter_t
 
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-)
+from pandas.errors import EmptyDataError
+from pandas.errors import ParserError
+from pandas.errors import ParserWarning
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_dict_like
 

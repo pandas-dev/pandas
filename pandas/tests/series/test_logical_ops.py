@@ -4,12 +4,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    bdate_range,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import Series
+from pandas import bdate_range
 import pandas._testing as tm
 from pandas.core import ops
 

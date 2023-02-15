@@ -2,10 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    RangeIndex,
-)
+from pandas import Index
+from pandas import RangeIndex
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
 

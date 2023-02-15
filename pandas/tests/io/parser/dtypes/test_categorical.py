@@ -11,11 +11,9 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Timestamp
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")

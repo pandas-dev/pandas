@@ -3,10 +3,8 @@ Tests involving custom Index subclasses
 """
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+from pandas import DataFrame
+from pandas import Index
 import pandas._testing as tm
 
 

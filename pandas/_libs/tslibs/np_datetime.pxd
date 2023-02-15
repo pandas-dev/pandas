@@ -1,12 +1,8 @@
 cimport numpy as cnp
-from cpython.datetime cimport (
-    date,
-    datetime,
-)
-from numpy cimport (
-    int32_t,
-    int64_t,
-)
+from cpython.datetime cimport date
+from cpython.datetime cimport datetime
+from numpy cimport int32_t
+from numpy cimport int64_t
 
 
 # TODO(cython3): most of these can be cimported directly from numpy

@@ -1,21 +1,17 @@
-from hypothesis import (
-    assume,
-    example,
-    given,
-    strategies as st,
-)
+from hypothesis import assume
+from hypothesis import example
+from hypothesis import given
+from hypothesis import strategies as st
 import numpy as np
 import pytest
 
 import pandas._testing as tm
 
-from pandas.io.sas._byteswap import (
-    read_double_with_byteswap,
-    read_float_with_byteswap,
-    read_uint16_with_byteswap,
-    read_uint32_with_byteswap,
-    read_uint64_with_byteswap,
-)
+from pandas.io.sas._byteswap import read_double_with_byteswap
+from pandas.io.sas._byteswap import read_float_with_byteswap
+from pandas.io.sas._byteswap import read_uint16_with_byteswap
+from pandas.io.sas._byteswap import read_uint32_with_byteswap
+from pandas.io.sas._byteswap import read_uint64_with_byteswap
 
 
 @given(read_offset=st.integers(0, 11), number=st.integers(min_value=0))

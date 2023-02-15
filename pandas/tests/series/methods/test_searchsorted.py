@@ -2,11 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 

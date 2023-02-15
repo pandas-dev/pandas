@@ -1,10 +1,8 @@
 import calendar
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -13,17 +11,13 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import (
-    PY39,
-    PY310,
-)
+from pandas.compat import PY39
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import (
-    Period,
-    Timedelta,
-    Timestamp,
-)
+from pandas import Period
+from pandas import Timedelta
+from pandas import Timestamp
 
 if PY39:
     import zoneinfo

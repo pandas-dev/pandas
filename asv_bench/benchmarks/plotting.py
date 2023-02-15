@@ -10,12 +10,10 @@ from unittest import mock
 import matplotlib
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    date_range,
-)
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Series
+from pandas import date_range
 
 try:
     from pandas.plotting import andrews_curves

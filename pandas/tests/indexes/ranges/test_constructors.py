@@ -3,11 +3,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    RangeIndex,
-    Series,
-)
+from pandas import Index
+from pandas import RangeIndex
+from pandas import Series
 import pandas._testing as tm
 
 

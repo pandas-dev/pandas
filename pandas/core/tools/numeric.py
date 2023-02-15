@@ -4,34 +4,26 @@ from typing import Literal
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
+from pandas._config import get_option
+from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    DateTimeErrorChoices,
-    npt,
-)
+from pandas._typing import DateTimeErrorChoices
+from pandas._typing import npt
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_decimal,
-    is_integer_dtype,
-    is_number,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_decimal
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
 from pandas.core.arrays import BaseMaskedArray
@@ -281,12 +273,10 @@ def to_numeric(
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
-        from pandas.core.arrays import (
-            ArrowExtensionArray,
-            BooleanArray,
-            FloatingArray,
-            IntegerArray,
-        )
+        from pandas.core.arrays import ArrowExtensionArray
+        from pandas.core.arrays import BooleanArray
+        from pandas.core.arrays import FloatingArray
+        from pandas.core.arrays import IntegerArray
 
         klass: type[IntegerArray] | type[BooleanArray] | type[FloatingArray]
         if is_integer_dtype(data.dtype):

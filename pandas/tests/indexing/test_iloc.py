@@ -2,10 +2,8 @@
 
 from datetime import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
+from warnings import catch_warnings
+from warnings import simplefilter
 
 import numpy as np
 import pytest
@@ -13,23 +11,21 @@ import pytest
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    Categorical,
-    CategoricalDtype,
-    DataFrame,
-    Index,
-    Interval,
-    NaT,
-    Series,
-    Timestamp,
-    array,
-    concat,
-    date_range,
-    interval_range,
-    isna,
-    to_datetime,
-)
+from pandas import Categorical
+from pandas import CategoricalDtype
+from pandas import DataFrame
+from pandas import Index
+from pandas import Interval
+from pandas import NA
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import array
+from pandas import concat
+from pandas import date_range
+from pandas import interval_range
+from pandas import isna
+from pandas import to_datetime
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises

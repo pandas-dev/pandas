@@ -3,16 +3,14 @@ import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas import (
-    Index,
-    NaT,
-    Period,
-    PeriodIndex,
-    Series,
-    date_range,
-    offsets,
-    period_range,
-)
+from pandas import Index
+from pandas import NaT
+from pandas import Period
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import date_range
+from pandas import offsets
+from pandas import period_range
 import pandas._testing as tm
 from pandas.tests.indexes.datetimelike import DatetimeLike
 

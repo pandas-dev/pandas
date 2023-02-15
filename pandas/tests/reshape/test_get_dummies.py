@@ -7,19 +7,15 @@ import pytest
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    RangeIndex,
-    Series,
-    get_dummies,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import RangeIndex
+from pandas import Series
+from pandas import get_dummies
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseDtype
 
 
 class TestGetDummies:

@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Interval,
-    Period,
-    Timedelta,
-    Timestamp,
-)
+from pandas import Interval
+from pandas import Period
+from pandas import Timedelta
+from pandas import Timestamp
 import pandas._testing as tm
 import pandas.core.common as com
 

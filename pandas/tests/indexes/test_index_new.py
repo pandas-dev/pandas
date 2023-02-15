@@ -1,33 +1,29 @@
 """
 Tests for the Index constructor conducting inference.
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    PeriodIndex,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    array,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NA
+from pandas import NaT
+from pandas import PeriodIndex
+from pandas import Series
+from pandas import TimedeltaIndex
+from pandas import Timestamp
+from pandas import array
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

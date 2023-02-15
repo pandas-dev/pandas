@@ -3,14 +3,12 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Index,
-    IntervalIndex,
-    Series,
-    Timestamp,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import Index
+from pandas import IntervalIndex
+from pandas import Series
+from pandas import Timestamp
 import pandas._testing as tm
 
 

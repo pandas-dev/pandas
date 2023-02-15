@@ -5,17 +5,13 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.api.types import (
-    is_extension_array_dtype,
-    pandas_dtype,
-)
+from pandas.api.types import is_extension_array_dtype
+from pandas.api.types import pandas_dtype
 
-from .pandas_vb_common import (
-    datetime_dtypes,
-    extension_dtypes,
-    numeric_dtypes,
-    string_dtypes,
-)
+from .pandas_vb_common import datetime_dtypes
+from .pandas_vb_common import extension_dtypes
+from .pandas_vb_common import numeric_dtypes
+from .pandas_vb_common import string_dtypes
 
 _numpy_dtypes = [
     np.dtype(dtype) for dtype in (numeric_dtypes + datetime_dtypes + string_dtypes)

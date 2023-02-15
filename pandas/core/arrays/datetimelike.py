@@ -1,158 +1,120 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 from functools import wraps
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterator,
-    Literal,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    final,
-    overload,
-)
+from typing import Any
+from typing import Callable
+from typing import Iterator
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import Union
+from typing import cast
+from typing import final
+from typing import overload
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    algos,
-    lib,
-)
+from pandas._libs import algos
+from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import (
-    BaseOffset,
-    IncompatibleFrequency,
-    NaT,
-    NaTType,
-    Period,
-    Resolution,
-    Tick,
-    Timedelta,
-    Timestamp,
-    astype_overflowsafe,
-    delta_to_nanoseconds,
-    get_unit_from_dtype,
-    iNaT,
-    ints_to_pydatetime,
-    ints_to_pytimedelta,
-    to_offset,
-)
-from pandas._libs.tslibs.fields import (
-    RoundTo,
-    round_nsint64,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Period
+from pandas._libs.tslibs import Resolution
+from pandas._libs.tslibs import Tick
+from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import astype_overflowsafe
+from pandas._libs.tslibs import delta_to_nanoseconds
+from pandas._libs.tslibs import get_unit_from_dtype
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import ints_to_pydatetime
+from pandas._libs.tslibs import ints_to_pytimedelta
+from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs.fields import RoundTo
+from pandas._libs.tslibs.fields import round_nsint64
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DatetimeLikeScalar,
-    Dtype,
-    DtypeObj,
-    F,
-    NpDtype,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DatetimeLikeScalar
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import F
+from pandas._typing import NpDtype
+from pandas._typing import PositionalIndexer2D
+from pandas._typing import PositionalIndexerTuple
+from pandas._typing import ScalarIndexer
+from pandas._typing import SequenceIndexer
+from pandas._typing import TimeAmbiguous
+from pandas._typing import TimeNonexistent
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    InvalidComparison,
-    PerformanceWarning,
-)
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    cache_readonly,
-)
+from pandas.errors import AbstractMethodError
+from pandas.errors import InvalidComparison
+from pandas.errors import PerformanceWarning
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_all_strings,
-    is_categorical_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_period_dtype,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    pandas_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    ExtensionDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCCategorical,
-    ABCMultiIndex,
-)
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.common import is_all_strings
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import is_datetime64_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_timedelta64_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import ABCCategorical
+from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import isna
 
-from pandas.core import (
-    algorithms,
-    nanops,
-    ops,
-)
-from pandas.core.algorithms import (
-    checked_add_with_arr,
-    isin,
-    unique1d,
-)
+from pandas.core import algorithms
+from pandas.core import nanops
+from pandas.core import ops
+from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import isin
+from pandas.core.algorithms import unique1d
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import (
-    NDArrayBackedExtensionArray,
-    ravel_compat,
-)
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import ravel_compat
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
-from pandas.core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
-from pandas.core.indexers import (
-    check_array_indexer,
-    check_setitem_lengths,
-)
+from pandas.core.construction import array as pd_array
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import (
-    invalid_comparison,
-    make_invalid_op,
-)
+from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import make_invalid_op
 
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        DatetimeArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import TimedeltaArray
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")

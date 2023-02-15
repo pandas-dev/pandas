@@ -1,74 +1,62 @@
 """Common IO api utilities"""
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC
+from abc import abstractmethod
 import codecs
 from collections import defaultdict
 import dataclasses
 import functools
 import gzip
-from io import (
-    BufferedIOBase,
-    BytesIO,
-    RawIOBase,
-    StringIO,
-    TextIOBase,
-    TextIOWrapper,
-)
+from io import BufferedIOBase
+from io import BytesIO
+from io import RawIOBase
+from io import StringIO
+from io import TextIOBase
+from io import TextIOWrapper
 import mmap
 import os
 from pathlib import Path
 import re
 import tarfile
-from typing import (
-    IO,
-    Any,
-    AnyStr,
-    DefaultDict,
-    Generic,
-    Hashable,
-    Literal,
-    Mapping,
-    Sequence,
-    TypeVar,
-    cast,
-    overload,
-)
-from urllib.parse import (
-    urljoin,
-    urlparse as parse_url,
-    uses_netloc,
-    uses_params,
-    uses_relative,
-)
+from typing import Any
+from typing import AnyStr
+from typing import DefaultDict
+from typing import Generic
+from typing import Hashable
+from typing import IO
+from typing import Literal
+from typing import Mapping
+from typing import Sequence
+from typing import TypeVar
+from typing import cast
+from typing import overload
+from urllib.parse import urljoin
+from urllib.parse import urlparse as parse_url
+from urllib.parse import uses_netloc
+from urllib.parse import uses_params
+from urllib.parse import uses_relative
 import warnings
 import zipfile
 
-from pandas._typing import (
-    BaseBuffer,
-    CompressionDict,
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    ReadCsvBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._typing import BaseBuffer
+from pandas._typing import CompressionDict
+from pandas._typing import CompressionOptions
+from pandas._typing import FilePath
+from pandas._typing import ReadBuffer
+from pandas._typing import ReadCsvBuffer
+from pandas._typing import StorageOptions
+from pandas._typing import WriteBuffer
 from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.compressors import BZ2File as _BZ2File
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_file_like,
-    is_integer,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_file_like
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
@@ -397,10 +385,8 @@ def _get_filepath_or_buffer(
         err_types_to_retry_with_anon: list[Any] = []
         try:
             import_optional_dependency("botocore")
-            from botocore.exceptions import (
-                ClientError,
-                NoCredentialsError,
-            )
+            from botocore.exceptions import ClientError
+            from botocore.exceptions import NoCredentialsError
 
             err_types_to_retry_with_anon = [
                 ClientError,

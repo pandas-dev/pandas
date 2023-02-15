@@ -2,11 +2,9 @@
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 from contextlib import nullcontext
-from datetime import (
-    datetime,
-    time,
-    timedelta,
-)
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 from io import StringIO
 import itertools
 import locale
@@ -22,27 +20,23 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas.compat import IS64
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    get_option,
-    option_context,
-    read_csv,
-    reset_option,
-    set_option,
-)
+from pandas import DataFrame
+from pandas import Index
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import get_option
+from pandas import option_context
+from pandas import read_csv
+from pandas import reset_option
+from pandas import set_option
 import pandas._testing as tm
 
 from pandas.io.formats import printing

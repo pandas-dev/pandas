@@ -1,52 +1,40 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Literal,
-)
+from typing import Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    Scalar,
-    npt,
-    type_t,
-)
+from pandas._typing import AxisInt
+from pandas._typing import Dtype
+from pandas._typing import Scalar
+from pandas._typing import npt
+from pandas._typing import type_t
 from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    StorageExtensionDtype,
-    register_extension_dtype,
-)
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_dtype_equal,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import StorageExtensionDtype
+from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import IntegerArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.numpy_ import PandasArray
@@ -57,10 +45,8 @@ from pandas.core.missing import isna
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    from pandas._typing import NumpySorter
+    from pandas._typing import NumpyValueArrayLike
 
     from pandas import Series
 

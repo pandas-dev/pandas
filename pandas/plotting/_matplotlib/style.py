@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Collection,
-    Iterator,
-    cast,
-)
+from typing import Collection
+from typing import Iterator
+from typing import TYPE_CHECKING
+from typing import cast
 import warnings
 
 import matplotlib as mpl

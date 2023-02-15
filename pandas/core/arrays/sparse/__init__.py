@@ -1,13 +1,9 @@
-from pandas.core.arrays.sparse.accessor import (
-    SparseAccessor,
-    SparseFrameAccessor,
-)
-from pandas.core.arrays.sparse.array import (
-    BlockIndex,
-    IntIndex,
-    SparseArray,
-    make_sparse_index,
-)
+from pandas.core.arrays.sparse.accessor import SparseAccessor
+from pandas.core.arrays.sparse.accessor import SparseFrameAccessor
+from pandas.core.arrays.sparse.array import BlockIndex
+from pandas.core.arrays.sparse.array import IntIndex
+from pandas.core.arrays.sparse.array import SparseArray
+from pandas.core.arrays.sparse.array import make_sparse_index
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
 __all__ = [

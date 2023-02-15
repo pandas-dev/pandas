@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    date_range,
-)
+from pandas import Series
+from pandas import date_range
 import pandas._testing as tm
 
 

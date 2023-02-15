@@ -1,17 +1,13 @@
-from copy import (
-    copy,
-    deepcopy,
-)
+from copy import copy
+from copy import deepcopy
 
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------

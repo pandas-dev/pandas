@@ -3,18 +3,14 @@ EA-compatible analogue to np.putmask
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
+from pandas._typing import ArrayLike
+from pandas._typing import npt
 from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from

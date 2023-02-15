@@ -1,43 +1,33 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    Callable,
-    Union,
-)
+from typing import Callable
+from typing import Union
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    Scalar,
-    npt,
-)
+from pandas._libs import lib
+from pandas._libs import missing as libmissing
+from pandas._typing import Dtype
+from pandas._typing import Scalar
+from pandas._typing import npt
 from pandas.compat import pa_version_under7p0
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_dtype_equal,
-    is_integer_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
-from pandas.core.arrays.string_ import (
-    BaseStringArray,
-    StringDtype,
-)
+from pandas.core.arrays.string_ import BaseStringArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under7p0:
@@ -216,10 +206,8 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         # TODO: de-duplicate with StringArray method. This method is moreless copy and
         # paste.
 
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
+        from pandas.arrays import BooleanArray
+        from pandas.arrays import IntegerArray
 
         if dtype is None:
             dtype = self.dtype

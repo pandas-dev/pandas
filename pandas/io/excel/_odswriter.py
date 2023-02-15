@@ -2,26 +2,20 @@ from __future__ import annotations
 
 from collections import defaultdict
 import datetime
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    DefaultDict,
-    Tuple,
-    cast,
-)
+from typing import Any
+from typing import DefaultDict
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import cast
 
 from pandas._libs import json
-from pandas._typing import (
-    FilePath,
-    StorageOptions,
-    WriteExcelBuffer,
-)
+from pandas._typing import FilePath
+from pandas._typing import StorageOptions
+from pandas._typing import WriteExcelBuffer
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import (
-    combine_kwargs,
-    validate_freeze_panes,
-)
+from pandas.io.excel._util import combine_kwargs
+from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from pandas.io.formats.excel import ExcelCell
@@ -100,11 +94,9 @@ class ODSWriter(ExcelWriter):
         """
         Write the frame cells using odf
         """
-        from odf.table import (
-            Table,
-            TableCell,
-            TableRow,
-        )
+        from odf.table import Table
+        from odf.table import TableCell
+        from odf.table import TableRow
         from odf.text import P
 
         sheet_name = self._get_sheet_name(sheet_name)
@@ -238,12 +230,10 @@ class ODSWriter(ExcelWriter):
         style_key : str
             Unique style key for later reference in sheet
         """
-        from odf.style import (
-            ParagraphProperties,
-            Style,
-            TableCellProperties,
-            TextProperties,
-        )
+        from odf.style import ParagraphProperties
+        from odf.style import Style
+        from odf.style import TableCellProperties
+        from odf.style import TextProperties
 
         if style is None:
             return None
@@ -290,13 +280,11 @@ class ODSWriter(ExcelWriter):
         freeze_panes : tuple of (int, int)
             Freeze pane location x and y
         """
-        from odf.config import (
-            ConfigItem,
-            ConfigItemMapEntry,
-            ConfigItemMapIndexed,
-            ConfigItemMapNamed,
-            ConfigItemSet,
-        )
+        from odf.config import ConfigItem
+        from odf.config import ConfigItemMapEntry
+        from odf.config import ConfigItemMapIndexed
+        from odf.config import ConfigItemMapNamed
+        from odf.config import ConfigItemSet
 
         config_item_set = ConfigItemSet(name="ooo:view-settings")
         self.book.settings.addElement(config_item_set)

@@ -1,30 +1,24 @@
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    NA,
-    Categorical,
-    DataFrame,
-    Float64Dtype,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Float64Dtype
+from pandas import MultiIndex
+from pandas import NA
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
 
 from .pandas_vb_common import tm
 
 try:
-    from pandas.tseries.offsets import (
-        Hour,
-        Nano,
-    )
+    from pandas.tseries.offsets import Hour
+    from pandas.tseries.offsets import Nano
 except ImportError:
     # For compatibility with older versions
-    from pandas.core.datetools import (
-        Hour,
-        Nano,
-    )
+    from pandas.core.datetools import Hour
+    from pandas.core.datetools import Nano
 
 
 class FromDicts:

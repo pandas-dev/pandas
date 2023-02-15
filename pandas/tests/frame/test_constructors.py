@@ -1,16 +1,12 @@
 import array
-from collections import (
-    OrderedDict,
-    abc,
-    defaultdict,
-    namedtuple,
-)
+from collections import OrderedDict
+from collections import abc
+from collections import defaultdict
+from collections import namedtuple
 from dataclasses import make_dataclass
-from datetime import (
-    date,
-    datetime,
-    timedelta,
-)
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 import functools
 import random
 import re
@@ -27,39 +23,33 @@ from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-    PandasDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Interval,
-    MultiIndex,
-    Period,
-    RangeIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    cut,
-    date_range,
-    isna,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DataFrame
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import MultiIndex
+from pandas import Period
+from pandas import RangeIndex
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import cut
+from pandas import date_range
+from pandas import isna
 import pandas._testing as tm
-from pandas.arrays import (
-    DatetimeArray,
-    IntervalArray,
-    PeriodArray,
-    SparseArray,
-    TimedeltaArray,
-)
+from pandas.arrays import DatetimeArray
+from pandas.arrays import IntervalArray
+from pandas.arrays import PeriodArray
+from pandas.arrays import SparseArray
+from pandas.arrays import TimedeltaArray
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [

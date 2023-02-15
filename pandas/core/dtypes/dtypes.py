@@ -4,12 +4,10 @@ Define extension dtypes.
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    MutableMapping,
-    cast,
-)
+from typing import Any
+from typing import MutableMapping
+from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 import pytz
@@ -17,57 +15,41 @@ import pytz
 from pandas._libs import missing as libmissing
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslibs import (
-    BaseOffset,
-    NaT,
-    NaTType,
-    Period,
-    Timestamp,
-    timezones,
-    to_offset,
-    tz_compare,
-)
-from pandas._libs.tslibs.dtypes import (
-    PeriodDtypeBase,
-    abbrev_to_npy_unit,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Ordered,
-    npt,
-    type_t,
-)
+from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaTType
+from pandas._libs.tslibs import Period
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import tz_compare
+from pandas._libs.tslibs.dtypes import PeriodDtypeBase
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._typing import Dtype
+from pandas._typing import DtypeObj
+from pandas._typing import Ordered
+from pandas._typing import npt
+from pandas._typing import type_t
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCIndex,
-)
-from pandas.core.dtypes.inference import (
-    is_bool,
-    is_list_like,
-)
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.generic import ABCCategoricalIndex
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.inference import is_bool
+from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
     from datetime import tzinfo
 
     import pyarrow
 
-    from pandas import (
-        Categorical,
-        Index,
-    )
-    from pandas.core.arrays import (
-        BaseMaskedArray,
-        DatetimeArray,
-        IntervalArray,
-        PandasArray,
-        PeriodArray,
-    )
+    from pandas import Categorical
+    from pandas import Index
+    from pandas.core.arrays import BaseMaskedArray
+    from pandas.core.arrays import DatetimeArray
+    from pandas.core.arrays import IntervalArray
+    from pandas.core.arrays import PandasArray
+    from pandas.core.arrays import PeriodArray
 
 str_type = str
 
@@ -438,11 +420,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @cache_readonly
     def _hash_categories(self) -> int:
-        from pandas.core.util.hashing import (
-            combine_hash_arrays,
-            hash_array,
-            hash_tuples,
-        )
+        from pandas.core.util.hashing import combine_hash_arrays
+        from pandas.core.util.hashing import hash_array
+        from pandas.core.util.hashing import hash_tuples
 
         categories = self.categories
         ordered = self.ordered
@@ -1078,10 +1058,8 @@ class IntervalDtype(PandasExtensionDtype):
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None, closed: str_type | None = None):
-        from pandas.core.dtypes.common import (
-            is_string_dtype,
-            pandas_dtype,
-        )
+        from pandas.core.dtypes.common import is_string_dtype
+        from pandas.core.dtypes.common import pandas_dtype
 
         if closed is not None and closed not in {"right", "left", "both", "neither"}:
             raise ValueError("closed must be one of 'right', 'left', 'both', 'neither'")

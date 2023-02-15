@@ -1,11 +1,9 @@
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_string_dtype,
-)
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
 import pandas._testing as tm

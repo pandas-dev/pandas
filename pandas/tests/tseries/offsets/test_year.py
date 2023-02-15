@@ -13,15 +13,11 @@ import pytest
 from pandas.compat import is_numpy_dev
 
 from pandas import Timestamp
-from pandas.tests.tseries.offsets.common import (
-    assert_is_on_offset,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import assert_is_on_offset
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.offsets import (
-    YearBegin,
-    YearEnd,
-)
+from pandas.tseries.offsets import YearBegin
+from pandas.tseries.offsets import YearEnd
 
 
 class TestYearBegin:

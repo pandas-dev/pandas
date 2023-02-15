@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    Series,
-)
+from pandas import Categorical
+from pandas import NA
+from pandas import Series
 import pandas._testing as tm
 
 

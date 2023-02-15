@@ -7,93 +7,73 @@ import copy as cp
 import datetime
 from functools import partial
 import string
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Literal,
-    Sequence,
-    cast,
-)
+from typing import Hashable
+from typing import Literal
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import cast
 import uuid
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    Timedelta,
-    hashtable as libhashtable,
-    join as libjoin,
-    lib,
-)
+from pandas._libs import Timedelta
+from pandas._libs import hashtable as libhashtable
+from pandas._libs import join as libjoin
+from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    IndexLabel,
-    JoinHow,
-    MergeHow,
-    Shape,
-    Suffixes,
-    npt,
-)
+from pandas._typing import AnyArrayLike
+from pandas._typing import ArrayLike
+from pandas._typing import AxisInt
+from pandas._typing import DtypeObj
+from pandas._typing import IndexLabel
+from pandas._typing import JoinHow
+from pandas._typing import MergeHow
+from pandas._typing import Shape
+from pandas._typing import Suffixes
+from pandas._typing import npt
 from pandas.errors import MergeError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    cache_readonly,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import (
-    ensure_float64,
-    ensure_int64,
-    ensure_object,
-    is_array_like,
-    is_bool,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_list_like,
-    is_number,
-    is_numeric_dtype,
-    is_object_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import ensure_float64
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_object
+from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import na_value_for_dtype
 
-from pandas import (
-    Categorical,
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import Categorical
+from pandas import Index
+from pandas import MultiIndex
+from pandas import Series
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    ExtensionArray,
-)
+from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible

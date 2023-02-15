@@ -8,13 +8,11 @@ import warnings
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
-from cpython.datetime cimport (
-    datetime,
-    datetime_new,
-    import_datetime,
-    timedelta,
-    tzinfo,
-)
+from cpython.datetime cimport datetime
+from cpython.datetime cimport datetime_new
+from cpython.datetime cimport import_datetime
+from cpython.datetime cimport timedelta
+from cpython.datetime cimport tzinfo
 
 from datetime import timezone
 
@@ -27,14 +25,12 @@ import_datetime()
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
-    flatiter,
-    float64_t,
-)
+from numpy cimport PyArray_GETITEM
+from numpy cimport PyArray_ITER_DATA
+from numpy cimport PyArray_ITER_NEXT
+from numpy cimport PyArray_IterNew
+from numpy cimport flatiter
+from numpy cimport float64_t
 
 cnp.import_array()
 
@@ -42,43 +38,31 @@ cnp.import_array()
 
 from decimal import InvalidOperation
 
-from dateutil.parser import (
-    DEFAULTPARSER,
-    parse as du_parse,
-)
+from dateutil.parser import DEFAULTPARSER
+from dateutil.parser import parse as du_parse
 from dateutil.relativedelta import relativedelta
-from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
-    tzoffset,
-    tzutc as _dateutil_tzutc,
-)
+from dateutil.tz import tzlocal as _dateutil_tzlocal
+from dateutil.tz import tzoffset
+from dateutil.tz import tzutc as _dateutil_tzutc
 
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
-from pandas._libs.tslibs.dtypes cimport (
-    attrname_to_npy_unit,
-    npy_unit_to_attrname,
-)
-from pandas._libs.tslibs.nattype cimport (
-    c_NaT as NaT,
-    c_nat_strings as nat_strings,
-)
+from pandas._libs.tslibs.dtypes cimport attrname_to_npy_unit
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_attrname
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport c_nat_strings as nat_strings
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.np_datetime cimport (
-    NPY_DATETIMEUNIT,
-    npy_datetimestruct,
-    string_to_dts,
-)
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport string_to_dts
 
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas._libs.tslibs.util cimport (
-    get_c_string_buf_and_size,
-    is_array,
-)
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+from pandas._libs.tslibs.util cimport is_array
 
 
 cdef extern from "../src/headers/portable.h":

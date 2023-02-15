@@ -1,33 +1,27 @@
-from datetime import (
-    date,
-    datetime,
-)
+from datetime import date
+from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+from pandas import Categorical
+from pandas import CategoricalIndex
+from pandas import DatetimeIndex
+from pandas import Index
+from pandas import Interval
+from pandas import IntervalIndex
+from pandas import MultiIndex
+from pandas import NaT
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import period_range
+from pandas import timedelta_range
 import pandas._testing as tm
 
 

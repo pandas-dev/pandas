@@ -5,10 +5,8 @@ from typing import Iterator
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    read_json,
-)
+from pandas import DataFrame
+from pandas import read_json
 import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader

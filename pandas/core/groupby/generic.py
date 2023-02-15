@@ -10,85 +10,67 @@ from __future__ import annotations
 from collections import abc
 from functools import partial
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Literal,
-    Mapping,
-    NamedTuple,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any
+from typing import Callable
+from typing import Hashable
+from typing import Iterable
+from typing import Literal
+from typing import Mapping
+from typing import NamedTuple
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import Union
+from typing import cast
 
 import numpy as np
 
-from pandas._libs import (
-    Interval,
-    lib,
-    reduction as libreduction,
-)
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    FillnaOptions,
-    IndexLabel,
-    Manager,
-    Manager2D,
-    SingleManager,
-    TakeIndexer,
-)
+from pandas._libs import Interval
+from pandas._libs import lib
+from pandas._libs import reduction as libreduction
+from pandas._typing import ArrayLike
+from pandas._typing import Axis
+from pandas._typing import AxisInt
+from pandas._typing import CorrelationMethod
+from pandas._typing import FillnaOptions
+from pandas._typing import IndexLabel
+from pandas._typing import Manager
+from pandas._typing import Manager2D
+from pandas._typing import SingleManager
+from pandas._typing import TakeIndexer
 from pandas.errors import SpecificationError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import Substitution
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    is_bool,
-    is_categorical_dtype,
-    is_dict_like,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_numeric_dtype,
-    is_scalar,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_interval_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import notna
 
 from pandas.core import algorithms
-from pandas.core.apply import (
-    GroupByApply,
-    maybe_mangle_lambdas,
-    reconstruct_func,
-    validate_func_kwargs,
-)
+from pandas.core.apply import GroupByApply
+from pandas.core.apply import maybe_mangle_lambdas
+from pandas.core.apply import reconstruct_func
+from pandas.core.apply import validate_func_kwargs
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
-from pandas.core.groupby.groupby import (
-    GroupBy,
-    GroupByPlot,
-    _agg_template,
-    _apply_docs,
-    _transform_template,
-)
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-    all_indexes_same,
-    default_index,
-)
+from pandas.core.groupby.groupby import GroupBy
+from pandas.core.groupby.groupby import GroupByPlot
+from pandas.core.groupby.groupby import _agg_template
+from pandas.core.groupby.groupby import _apply_docs
+from pandas.core.groupby.groupby import _transform_template
+from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import all_indexes_same
+from pandas.core.indexes.api import default_index
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 

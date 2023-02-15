@@ -15,14 +15,12 @@ import ast
 import sys
 import token
 import tokenize
-from typing import (
-    IO,
-    Callable,
-    Iterable,
-    List,
-    Set,
-    Tuple,
-)
+from typing import Callable
+from typing import IO
+from typing import Iterable
+from typing import List
+from typing import Set
+from typing import Tuple
 
 PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_extension_array_shared_docs",

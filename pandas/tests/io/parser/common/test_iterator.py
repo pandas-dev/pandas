@@ -6,10 +6,8 @@ from io import StringIO
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    concat,
-)
+from pandas import DataFrame
+from pandas import concat
 import pandas._testing as tm
 
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")

@@ -12,10 +12,8 @@ from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -152,10 +150,8 @@ def test_statsmodels():
 
 def test_scikit_learn():
     sklearn = import_module("sklearn")  # noqa:F841
-    from sklearn import (
-        datasets,
-        svm,
-    )
+    from sklearn import datasets
+    from sklearn import svm
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)

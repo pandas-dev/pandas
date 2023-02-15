@@ -1,15 +1,11 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    date_range,
-    read_stata,
-)
+from pandas import DataFrame
+from pandas import date_range
+from pandas import read_stata
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import tm
 
 
 class Stata(BaseIO):

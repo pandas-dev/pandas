@@ -1,7 +1,5 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
+from datetime import timedelta
 import itertools
 
 import numpy as np
@@ -11,19 +9,15 @@ from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-    option_context,
-)
+from pandas import Categorical
+from pandas import DataFrame
+from pandas import Series
+from pandas import Timestamp
+from pandas import date_range
+from pandas import option_context
 import pandas._testing as tm
-from pandas.core.internals import (
-    NumericBlock,
-    ObjectBlock,
-)
+from pandas.core.internals import NumericBlock
+from pandas.core.internals import ObjectBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

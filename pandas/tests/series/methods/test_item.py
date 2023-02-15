@@ -4,12 +4,10 @@ numpy scalars.
 """
 import pytest
 
-from pandas import (
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+from pandas import Series
+from pandas import Timedelta
+from pandas import Timestamp
+from pandas import date_range
 
 
 class TestItem:
