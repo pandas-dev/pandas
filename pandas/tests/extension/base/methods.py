@@ -250,7 +250,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
         result.iloc[0, 0] = filled_val
 
-        tm.assert_extension_array_equal(df.A.values, df_orig.A.values)
+        self.assert_frame_equal(df, df_orig)
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -261,7 +261,7 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.fillna(filled_val)
         result.iloc[0] = filled_val
 
-        tm.assert_extension_array_equal(ser.values, ser_orig.values)
+        self.assert_series_equal(ser, ser_orig)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."
