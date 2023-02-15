@@ -8,7 +8,6 @@ import pandas._testing as tm
 
 class TestGetNumericData:
     def test_get_numeric_data_preserve_dtype(self, using_copy_on_write):
-
         # get the numeric data
         obj = Series([1, 2, 3])
         result = obj._get_numeric_data()

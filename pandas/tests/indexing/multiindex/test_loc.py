@@ -227,7 +227,6 @@ class TestMultiIndexLoc:
             s.loc["a", "d", "g", "j"]
 
     def test_loc_multiindex_indexer_none(self):
-
         # GH6788
         # multi-index indexer is None (meaning take all)
         attributes = ["Attribute" + str(i) for i in range(1)]
@@ -251,7 +250,6 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_multiindex_incomplete(self):
-
         # GH 7399
         # incomplete indexers
         s = Series(

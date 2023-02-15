@@ -326,7 +326,6 @@ class Resampler(BaseGroupBy, PandasObject):
         axis="",
     )
     def aggregate(self, func=None, *args, **kwargs):
-
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
@@ -1253,7 +1252,6 @@ class DatetimeIndexResampler(Resampler):
         return DatetimeIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-
         # this is how we are actually creating the bins
         if self.kind == "period":
             return self._timegrouper._get_time_period_bins(self.ax)
@@ -1291,7 +1289,6 @@ class DatetimeIndexResampler(Resampler):
             and len(self.grouper.binlabels) > len(ax)
             and how is None
         ):
-
             # let's do an asfreq
             return self.asfreq()
 
@@ -1741,6 +1738,7 @@ class TimeGrouper(Grouper):
             ax.min(),
             ax.max(),
             self.freq,
+            unit=ax.unit,
             closed=self.closed,
             origin=self.origin,
             offset=self.offset,
@@ -1760,7 +1758,8 @@ class TimeGrouper(Grouper):
             name=ax.name,
             ambiguous=True,
             nonexistent="shift_forward",
-        ).as_unit(ax.unit)
+            unit=ax.unit,
+        )
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
@@ -1948,7 +1947,6 @@ class TimeGrouper(Grouper):
 def _take_new_index(
     obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
 ) -> NDFrameT:
-
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
         # error: Incompatible return value type (got "Series", expected "NDFrameT")
@@ -1970,6 +1968,7 @@ def _get_timestamp_range_edges(
     first: Timestamp,
     last: Timestamp,
     freq: BaseOffset,
+    unit: str,
     closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
@@ -2025,7 +2024,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset
+            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -2092,7 +2091,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last_ts)
 
     first_ts, last_ts = _get_timestamp_range_edges(
-        first_ts, last_ts, freq, closed=closed, origin=origin, offset=offset
+        first_ts, last_ts, freq, unit="ns", closed=closed, origin=origin, offset=offset
     )
 
     first = (first_ts + int(adjust_first) * freq).to_period(freq)
@@ -2125,32 +2124,35 @@ def _adjust_dates_anchored(
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
+    unit: str = "ns",
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
     # not a multiple of the frequency. See GH 8683
     # To handle frequencies that are not multiple or divisible by a day we let
     # the possibility to define a fixed origin timestamp. See GH 31809
-    first = first.as_unit("ns")
-    last = last.as_unit("ns")
+    first = first.as_unit(unit)
+    last = last.as_unit(unit)
     if offset is not None:
-        offset = offset.as_unit("ns")
+        offset = offset.as_unit(unit)
 
-    origin_nanos = 0  # origin == "epoch"
+    freq_value = Timedelta(freq).as_unit(unit)._value
+
+    origin_timestamp = 0  # origin == "epoch"
     if origin == "start_day":
-        origin_nanos = first.normalize()._value
+        origin_timestamp = first.normalize()._value
     elif origin == "start":
-        origin_nanos = first._value
+        origin_timestamp = first._value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.as_unit("ns")._value
+        origin_timestamp = origin.as_unit(unit)._value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin_last._value - first._value) // freq.nanos
+        sub_freq_times = (origin_last._value - first._value) // freq_value
         if closed == "left":
             sub_freq_times += 1
         first = origin_last - sub_freq_times * freq
-        origin_nanos = first._value
-    origin_nanos += offset._value if offset else 0
+        origin_timestamp = first._value
+    origin_timestamp += offset._value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
     # Perform the calculation in UTC in order to avoid localizing on an
@@ -2162,19 +2164,19 @@ def _adjust_dates_anchored(
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
 
-    foffset = (first._value - origin_nanos) % freq.nanos
-    loffset = (last._value - origin_nanos) % freq.nanos
+    foffset = (first._value - origin_timestamp) % freq_value
+    loffset = (last._value - origin_timestamp) % freq_value
 
     if closed == "right":
         if foffset > 0:
             # roll back
             fresult_int = first._value - foffset
         else:
-            fresult_int = first._value - freq.nanos
+            fresult_int = first._value - freq_value
 
         if loffset > 0:
             # roll forward
-            lresult_int = last._value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq_value - loffset)
         else:
             # already the end of the road
             lresult_int = last._value
@@ -2187,11 +2189,11 @@ def _adjust_dates_anchored(
 
         if loffset > 0:
             # roll forward
-            lresult_int = last._value + (freq.nanos - loffset)
+            lresult_int = last._value + (freq_value - loffset)
         else:
-            lresult_int = last._value + freq.nanos
-    fresult = Timestamp(fresult_int)
-    lresult = Timestamp(lresult_int)
+            lresult_int = last._value + freq_value
+    fresult = Timestamp(fresult_int, unit=unit)
+    lresult = Timestamp(lresult_int, unit=unit)
     if first_tzinfo is not None:
         fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
     if last_tzinfo is not None:
