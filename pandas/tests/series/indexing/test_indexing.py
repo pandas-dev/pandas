@@ -95,8 +95,6 @@ def test_basic_getitem_dt64tz_values():
 def test_getitem_setitem_ellipsis():
     s = Series(np.random.randn(10))
 
-    np.fix(s)
-
     result = s[...]
     tm.assert_series_equal(result, s)
 
