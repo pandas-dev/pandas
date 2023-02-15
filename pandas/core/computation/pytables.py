@@ -3,10 +3,7 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
 
 import numpy as np
 
@@ -35,9 +32,6 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
-
-if TYPE_CHECKING:
-    from pandas.compat.chainmap import DeepChainMap
 
 
 class PyTablesScope(_scope.Scope):
@@ -99,7 +93,6 @@ class Constant(Term):
 
 
 class BinOp(ops.BinOp):
-
     _max_selectors = 31
 
     op: str
@@ -289,7 +282,6 @@ class FilterBinOp(BinOp):
         return [self.filter]
 
     def evaluate(self):
-
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -297,10 +289,8 @@ class FilterBinOp(BinOp):
         values = list(rhs)
 
         if self.is_in_table:
-
             # if too many values to create the expression, use a filter instead
             if self.op in ["==", "!="] and len(values) > self._max_selectors:
-
                 filter_op = self.generate_filter_op()
                 self.filter = (self.lhs, filter_op, Index(values))
 
@@ -309,7 +299,6 @@ class FilterBinOp(BinOp):
 
         # equality conditions
         if self.op in ["==", "!="]:
-
             filter_op = self.generate_filter_op()
             self.filter = (self.lhs, filter_op, Index(values))
 
@@ -353,7 +342,6 @@ class ConditionBinOp(BinOp):
         return self.condition
 
     def evaluate(self):
-
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -366,7 +354,6 @@ class ConditionBinOp(BinOp):
 
         # equality conditions
         if self.op in ["==", "!="]:
-
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
@@ -389,7 +376,6 @@ class JointConditionBinOp(ConditionBinOp):
 
 class UnaryOp(ops.UnaryOp):
     def prune(self, klass):
-
         if self.op != "~":
             raise NotImplementedError("UnaryOp only support invert type ops")
 
@@ -477,7 +463,6 @@ class PyTablesExprVisitor(BaseExprVisitor):
             try:
                 return self.term_type(getattr(resolved, attr), self.env)
             except AttributeError:
-
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
@@ -557,7 +542,6 @@ class PyTablesExpr(expr.Expr):
         encoding=None,
         scope_level: int = 0,
     ) -> None:
-
         where = _validate_where(where)
 
         self.encoding = encoding
@@ -567,7 +551,7 @@ class PyTablesExpr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict: DeepChainMap[Any, Any] | None = None
+        local_dict: _scope.DeepChainMap[Any, Any] | None = None
 
         if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope

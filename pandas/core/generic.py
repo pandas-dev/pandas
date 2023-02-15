@@ -187,7 +187,6 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.frame import DataFrame
@@ -250,9 +249,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ]
     _internal_names_set: set[str] = set(_internal_names)
     _accessors: set[str] = set()
-    _hidden_attrs: frozenset[str] = frozenset(
-        ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values"]
-    )
+    _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
     _is_copy: weakref.ReferenceType[NDFrame] | None = None
     _mgr: Manager
@@ -1714,7 +1711,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and key in self.axes[axis_int].names
             and any(key in self.axes[ax] for ax in other_axes)
         ):
-
             # Build an informative and grammatical warning
             level_article, level_type = (
                 ("an", "index") if axis_int == 0 else ("a", "column")
@@ -1775,7 +1771,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # Check for duplicates
         if values.ndim > 1:
-
             if other_axes and isinstance(self._get_axis(other_axes[0]), MultiIndex):
                 multi_message = (
                     "\n"
@@ -3233,13 +3228,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             columns. By default, 'l' will be used for all columns except
             columns of numbers, which default to 'r'.
         longtable : bool, optional
-            By default, the value will be read from the pandas config
-            module. Use a longtable environment instead of tabular. Requires
+            Use a longtable environment instead of tabular. Requires
             adding a \usepackage{{longtable}} to your LaTeX preamble.
+            By default, the value will be read from the pandas config
+            module, and set to `True` if the option ``styler.latex.environment`` is
+            `"longtable"`.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
         escape : bool, optional
             By default, the value will be read from the pandas config
-            module. When set to False prevents from escaping latex special
+            module and set to `True` if the option ``styler.format.escape`` is
+            `"latex"`. When set to False prevents from escaping latex special
             characters in column names.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to `False`.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3247,16 +3252,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Character recognized as decimal separator, e.g. ',' in Europe.
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
-        multicolumn_format : str, default 'l'
+            The default will be read from the config module, and is set
+            as the option ``styler.sparse.columns``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed.
+        multicolumn_format : str, default 'r'
             The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
-        multirow : bool, default False
+            The default will be read from the config module, and is set as the option
+            ``styler.latex.multicol_align``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to "r".
+        multirow : bool, default True
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
-            from the pandas config module.
+            from the pandas config module, and is set as the option
+            ``styler.sparse.index``.
+
+            .. versionchanged:: 2.0.0
+               The pandas option affecting this argument has changed, as has the
+               default value to `True`.
         caption : str or tuple, optional
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
@@ -3324,15 +3343,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = config.get_option("display.latex.longtable")
+            longtable = config.get_option("styler.latex.environment") == "longtable"
         if escape is None:
-            escape = config.get_option("display.latex.escape")
+            escape = config.get_option("styler.format.escape") == "latex"
         if multicolumn is None:
-            multicolumn = config.get_option("display.latex.multicolumn")
+            multicolumn = config.get_option("styler.sparse.columns")
         if multicolumn_format is None:
-            multicolumn_format = config.get_option("display.latex.multicolumn_format")
+            multicolumn_format = config.get_option("styler.latex.multicol_align")
         if multirow is None:
-            multirow = config.get_option("display.latex.multirow")
+            multirow = config.get_option("styler.sparse.index")
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")
@@ -3418,7 +3437,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "label": label,
             "position": position,
             "column_format": column_format,
-            "clines": "skip-last;data" if multirow else None,
+            "clines": "skip-last;data"
+            if (multirow and isinstance(self.index, MultiIndex))
+            else None,
             "bold_rows": bold_rows,
         }
 
@@ -4492,7 +4513,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         errors: IgnoreRaise = "raise",
     ) -> NDFrameT | None:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if labels is not None:
@@ -5033,7 +5053,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_index: bool_t = False,
         key: IndexKeyFunc = None,
     ) -> NDFrameT | None:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         ascending = validate_ascending(ascending)
@@ -6061,7 +6080,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _check_inplace_setting(self, value) -> bool_t:
         """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
-
             # allow an actual np.nan thru
             if is_float(value) and np.isnan(value):
                 return True
@@ -6647,7 +6665,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # https://github.com/python/mypy/issues/8354
                 return cast(NDFrameT, result)
             else:
-                return self.copy()
+                return self.copy(deep=None)
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -6931,17 +6949,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             elif not is_list_like(value):
                 if axis == 1:
-
                     result = self.T.fillna(value=value, limit=limit).T
 
                     new_data = result
                 else:
-
                     new_data = self._mgr.fillna(
                         value=value, limit=limit, inplace=inplace, downcast=downcast
                     )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-
                 new_data = self.where(self.notna(), value)._mgr
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
@@ -7258,7 +7273,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 to_replace, value, inplace=inplace, limit=limit, regex=regex
             )
         else:
-
             # need a non-zero len on all axes
             if not self.size:
                 if inplace:
@@ -7325,7 +7339,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     regex, value, inplace=inplace, limit=limit, regex=True
                 )
             else:
-
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
                     # Operate column-wise
@@ -7997,7 +8010,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
-
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -9505,7 +9517,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # series/series compat, other must always be a Series
         if not axis:
-
             # equal
             if self.index.equals(other.index):
                 join_index, lidx, ridx = None, None, None
@@ -9526,7 +9537,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             right = other._reindex_indexer(join_index, ridx, copy)
 
         else:
-
             # one has > 1 ndim
             fdata = self._mgr
             join_index = self.axes[1]
@@ -9586,7 +9596,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
+            # CoW: Make sure reference is not kept alive
+            cond = cond.align(self, join="right", broadcast_axis=1, copy=False)[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -9618,18 +9629,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # try to align with other
         if isinstance(other, NDFrame):
-
             # align with me
             if other.ndim <= self.ndim:
-
-                _, other = self.align(
+                # CoW: Make sure reference is not kept alive
+                other = self.align(
                     other,
                     join="left",
                     axis=axis,
                     level=level,
                     fill_value=None,
                     copy=False,
-                )
+                )[1]
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
@@ -9656,7 +9666,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other = extract_array(other, extract_numpy=True)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
-
             if other.shape != self.shape:
                 if self.ndim != 1:
                     # In the ndim == 1 case we may have
@@ -9942,7 +9951,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level: Level = None,
     ) -> NDFrameT | None:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = common.apply_if_callable(cond, self)
 
@@ -10786,7 +10794,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def pct_change(
         self: NDFrameT,
         periods: int = 1,
-        fill_method: Literal["backfill", "bfill", "pad", "ffill"] = "pad",
+        fill_method: Literal["backfill", "bfill", "pad", "ffill"] | None = "pad",
         limit=None,
         freq=None,
         **kwargs,
@@ -11729,7 +11737,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_dtype_equal(result.dtype, self.dtype)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
-            self._values[:] = result._values
+            # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
+            # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
+            self._mgr.setitem_inplace(  # type: ignore[union-attr]
+                slice(None), result._values
+            )
             return self
 
         # Delete cacher

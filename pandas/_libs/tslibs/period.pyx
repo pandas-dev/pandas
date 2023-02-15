@@ -2474,6 +2474,7 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
 
+        >>> from pandas import Period
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
@@ -2579,7 +2580,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
-                                           value in nat_strings):
+                                           (value in nat_strings or len(value) == 0)):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT

@@ -235,6 +235,7 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
+
 # error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
 # definition in base class "NDFrame"
 # error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
@@ -268,7 +269,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    name : str, optional
+    name : Hashable, default None
         The name to give to the Series.
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
@@ -345,9 +346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _internal_names_set = {"index"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
-        base.IndexOpsMixin._hidden_attrs
-        | NDFrame._hidden_attrs
-        | frozenset(["compress", "ptp"])
+        base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -374,7 +373,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
-
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
@@ -426,7 +424,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
         if isinstance(data, Index):
-
             if dtype is not None:
                 # astype copies
                 data = data.astype(dtype)
@@ -446,10 +443,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
-                if using_copy_on_write():
-                    data = data._mgr.copy(deep=False)
-                else:
-                    data = data._mgr
+                data = data._mgr.copy(deep=False)
             else:
                 data = data.reindex(index, copy=copy)
                 copy = False
@@ -586,6 +580,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.dtype
+        dtype('int64')
         """
         return self._mgr.dtype
 
@@ -593,6 +593,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.dtypes
+        dtype('int64')
         """
         # DataFrame compatibility
         return self.dtype
@@ -1114,7 +1120,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
-            if is_integer(key) and self.index.inferred_type != "integer":
+            if is_integer(key):
                 if not self.index._should_fallback_to_positional:
                     # GH#33469
                     self.loc[key] = value
@@ -5468,7 +5474,7 @@ Keep all original rows and also all original values
         if infer_objects:
             input_series = input_series.infer_objects()
             if is_object_dtype(input_series):
-                input_series = input_series.copy()
+                input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
             dtype_backend = get_option("mode.dtype_backend")
@@ -5483,7 +5489,7 @@ Keep all original rows and also all original values
             )
             result = input_series.astype(inferred_dtype)
         else:
-            result = input_series.copy()
+            result = input_series.copy(deep=None)
         return result
 
     # error: Cannot determine type of 'isna'
@@ -5728,6 +5734,22 @@ Keep all original rows and also all original values
         -------
         Series
             Series with index converted to PeriodIndex.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2023', '2024', '2025'])
+        >>> s = pd.Series([1, 2, 3], index=idx)
+        >>> s = s.to_period()
+        >>> s
+        2023    1
+        2024    2
+        2025    3
+        Freq: A-DEC, dtype: int64
+
+        Viewing the index
+
+        >>> s.index
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

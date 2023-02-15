@@ -235,7 +235,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
@@ -646,12 +645,15 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
-
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy:
+                # if not copying data, ensure to still return a shallow copy
+                # to avoid the result sharing the same Manager
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
@@ -3813,6 +3815,8 @@ class DataFrame(NDFrame, OpsMixin):
             # string in the key. If the result is a Series, exclude the
             # implied empty string from its name.
             if len(result.columns) == 1:
+                # e.g. test_frame_getitem_multicolumn_empty_level,
+                #  test_frame_mixed_depth_get, test_loc_setitem_single_column_slice
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
@@ -3998,7 +4002,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self[col] = igetitem(value, i)
 
         else:
-
             ilocs = self.columns.get_indexer_non_unique(key)[0]
             if (ilocs < 0).any():
                 # key entries not in self.columns
@@ -6721,7 +6724,6 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
             # need to rewrap columns in Series to apply key function
@@ -7824,13 +7826,13 @@ Keep all original rows and columns and also all original values
         result = {}
         for col in new_columns:
             series = this[col]
-            otherSeries = other[col]
+            other_series = other[col]
 
             this_dtype = series.dtype
-            other_dtype = otherSeries.dtype
+            other_dtype = other_series.dtype
 
             this_mask = isna(series)
-            other_mask = isna(otherSeries)
+            other_mask = isna(other_series)
 
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
@@ -7840,9 +7842,9 @@ Keep all original rows and columns and also all original values
 
             if do_fill:
                 series = series.copy()
-                otherSeries = otherSeries.copy()
+                other_series = other_series.copy()
                 series[this_mask] = fill_value
-                otherSeries[other_mask] = fill_value
+                other_series[other_mask] = fill_value
 
             if col not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
@@ -7857,9 +7859,9 @@ Keep all original rows and columns and also all original values
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 series = series.astype(new_dtype, copy=False)
-                otherSeries = otherSeries.astype(new_dtype, copy=False)
+                other_series = other_series.astype(new_dtype, copy=False)
 
-            arr = func(series, otherSeries)
+            arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
                 # if new_dtype is an EA Dtype, then `func` is expected to return
                 # the correct dtype without any additional casting
@@ -8252,18 +8254,18 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
+        columns : str or object or a list of str
+            Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
 
             .. versionchanged:: 1.1.0
                Also accept list of index names.
-
-        columns : str or object or a list of str
-            Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
 
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
@@ -8387,9 +8389,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(
-        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
-    ) -> DataFrame:
+    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -8953,7 +8953,6 @@ Parrot 2  Parrot       24.0
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
-
         return melt(
             self,
             id_vars=id_vars,
@@ -9811,7 +9810,7 @@ Parrot 2  Parrot       24.0
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
+        copy: bool | None = None,
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
@@ -9921,7 +9920,7 @@ Parrot 2  Parrot       24.0
                 except KeyError:
                     yield vals
 
-        def _series_round(ser: Series, decimals: int):
+        def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
             return ser
@@ -10609,7 +10608,6 @@ Parrot 2  Parrot       24.0
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
-
         axis = self._get_axis_number(axis)
         if numeric_only:
             data = self._get_numeric_data()

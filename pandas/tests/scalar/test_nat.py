@@ -43,7 +43,6 @@ from pandas.core.ops import roperator
     ],
 )
 def test_nat_fields(nat, idx):
-
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
@@ -57,7 +56,6 @@ def test_nat_fields(nat, idx):
         assert np.isnan(result)
 
     for field in idx._bool_ops:
-
         result = getattr(NaT, field)
         assert result is False
 
@@ -97,20 +95,11 @@ def test_nat_vector_field_access():
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
+@pytest.mark.parametrize(
+    "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
+)
 def test_identity(klass, value):
     assert klass(value) is NaT
-
-
-@pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value, request):
-    if klass is Period and value == "":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Period cannot parse empty string")
-        )
-
-    assert klass(value)._value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])

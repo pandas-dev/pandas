@@ -300,7 +300,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):

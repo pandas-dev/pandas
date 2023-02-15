@@ -794,7 +794,6 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:
-
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
             if not skipna:
@@ -1081,7 +1080,6 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
-
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -1512,6 +1510,10 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
+    if mask is None and min_count == 0:
+        # nothing to check; short-circuit
+        return result
+
     if axis is not None and isinstance(result, np.ndarray):
         if mask is not None:
             null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
