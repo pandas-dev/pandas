@@ -11737,7 +11737,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_dtype_equal(result.dtype, self.dtype)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
-            self._mgr.setitem_inplace(slice(None), result._values)
+            # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
+            # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
+            self._mgr.setitem_inplace(  # type: ignore[union-attr]
+                slice(None), result._values
+            )
             return self
 
         # Delete cacher
