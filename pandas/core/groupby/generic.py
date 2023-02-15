@@ -1418,7 +1418,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
-        key_index,
+        key_index: Index | None,
         is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
