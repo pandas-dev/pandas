@@ -7,6 +7,7 @@ from cython cimport Py_ssize_t
 
 
 cdef extern from "Python.h":
+    # TODO(cython3): from cpython.pyport cimport PY_SSIZE_T_MAX
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
