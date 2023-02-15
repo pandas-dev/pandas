@@ -170,7 +170,7 @@ changed and avoid confusion.
   example:
   - Such changes in `dropna`,  `DataFrame.groupby`, or in `Series.groupby` could be PDEPs.
 - New top level modules and/or exposing internal classes. For example:
-  - Add pandas.api.typing` ([GH-48577][48577]) is relatively small and wouldn’t necessarily
+  - Add `pandas.api.typing` ([GH-48577][48577]) is relatively small and wouldn’t necessarily
     require a PDEP.
 
 ### A counter-example:
