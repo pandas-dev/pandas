@@ -362,6 +362,7 @@ def ndarray_to_mgr(
         block_values = [nb]
 
     if len(columns) == 0:
+        # TODO: check len(values) == 0?
         block_values = []
 
     return create_block_manager_from_blocks(
@@ -506,6 +507,8 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
     # We only get here with `not treat_as_nested(values)`
 
     if len(values) == 0:
+        # TODO: check for length-zero range, in which case return int64 dtype?
+        # TODO: re-use anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)
@@ -1007,6 +1010,12 @@ def convert_object_array(
                 try_float=coerce_float,
                 convert_to_nullable_dtype=use_nullable_dtypes,
             )
+            # Notes on cases that get here 2023-02-15
+            # 1) we DO get here when arr is all Timestamps and dtype=None
+            # 2) disabling this doesn't break the world, so this must be
+            #    getting caught at a higher level
+            # 3) passing convert_datetime to maybe_convert_objects get this right
+            # 4) convert_timedelta?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):

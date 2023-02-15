@@ -1779,6 +1779,7 @@ class _iLocIndexer(_LocationIndexer):
                             self.obj[key] = empty_value
 
                         else:
+                            # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
@@ -1866,6 +1867,8 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
             elif np.ndim(value) == 2:
+                # TODO: avoid np.ndim call in case it isn't an ndarray, since
+                #  that will construct an ndarray, which will be wasteful
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):

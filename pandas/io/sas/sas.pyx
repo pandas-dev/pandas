@@ -1,5 +1,5 @@
 # cython: language_level=3, initializedcheck=False
-# cython: warn.undeclared=True, warn.maybe_uninitialized=True, warn.unused=True
+# cython: warn.maybe_uninitialized=True, warn.unused=True
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
