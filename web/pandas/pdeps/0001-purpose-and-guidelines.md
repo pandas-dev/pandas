@@ -140,9 +140,9 @@ changed and avoid confusion.
   Such wide-ranging impact would require a PDEP. For example:
   - `Categorical` ([GH-7217][7217], [GH-8074][8074]), `StringDtype` ([GH-8640][8640]), `ArrowDtype`
 - A significant (breaking) change in existing behavior. For example:
-  - copy/view changes ([GH-36195][36195])
+  - Copy/view changes ([GH-36195][36195])
 - Support of new python features with a wide impact on the project. For example:
-  - Supporting typing within pandas vs. creation of pandas-stubs ([GH-43197][43197],
+  - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
 - New required dependency
 
