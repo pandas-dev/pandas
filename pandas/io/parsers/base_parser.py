@@ -1111,7 +1111,7 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
-    def converter(*date_cols, col: str):
+    def converter(*date_cols, col):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
             date_f = (
