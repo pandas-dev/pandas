@@ -869,7 +869,7 @@ def test_read_csv_skip_blank_rows(all_parsers):
     # GH22693
     parser = all_parsers
     csv_f = StringIO(
-"""A, B, C, D
+        """A, B, C, D
 FOO, 1, 2, 3
 FOO, 4, 5, 6
 ,,,
