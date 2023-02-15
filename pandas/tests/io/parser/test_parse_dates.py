@@ -2155,3 +2155,66 @@ def test_parse_dot_separated_dates(all_parsers):
     )
     expected = DataFrame({"b": [1, 2]}, index=expected_index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_dict_format(all_parsers):
+    # GH#
+    parser = all_parsers
+    data = """a,b
+2019-12-31,31-12-2019
+2020-12-31,31-12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data),
+        date_format={"a": "%Y-%m-%d", "b": "%d-%m-%Y"},
+        parse_dates=["a", "b"],
+    )
+    expected = DataFrame(
+        {
+            "a": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+            "b": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
+)
+def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
+    # GH#
+    parser = all_parsers
+    data = """a,b
+31-,12-2019
+31-,12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
+    )
+    expected = DataFrame(
+        {
+            key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_parse_dates_dict_format_index(all_parsers):
+    # GH#
+    parser = all_parsers
+    data = """a,b
+2019-12-31,31-12-2019
+2020-12-31,31-12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data), date_format={"a": "%Y-%m-%d"}, parse_dates=True, index_col=0
+    )
+    expected = DataFrame(
+        {
+            "b": ["31-12-2019", "31-12-2020"],
+        },
+        index=Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)

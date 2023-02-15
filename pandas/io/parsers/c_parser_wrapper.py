@@ -355,7 +355,10 @@ class CParserWrapper(ParserBase):
 
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
-            values = self._date_conv(values)
+            values = self._date_conv(
+                values,
+                col=self.index_names[index] if self.index_names is not None else None,
+            )
         return values
 
 

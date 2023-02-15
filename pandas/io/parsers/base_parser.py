@@ -455,7 +455,10 @@ class ParserBase:
 
         for i, arr in enumerate(index):
             if try_parse_dates and self._should_parse_dates(i):
-                arr = self._date_conv(arr)
+                arr = self._date_conv(
+                    arr,
+                    col=self.index_names[i] if self.index_names is not None else None,
+                )
 
             if self.na_filter:
                 col_na_values = self.na_values
@@ -1108,13 +1111,16 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
-    def converter(*date_cols):
+    def converter(*date_cols, col: str):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
+            date_f = (
+                date_format.get(col) if isinstance(date_format, dict) else date_format
+            )
 
             return tools.to_datetime(
                 ensure_object(strs),
-                format=date_format,
+                format=date_f,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",
@@ -1218,7 +1224,9 @@ def _process_date_conversion(
                     continue
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
-                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
+                data_dict[colspec] = converter(
+                    np.asarray(data_dict[colspec]), col=colspec
+                )
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -1279,7 +1287,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
-    new_col = parser(*to_parse)
+    new_col = parser(*to_parse, col=new_name)
     return new_name, new_col, colnames
 
 

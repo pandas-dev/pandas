@@ -254,9 +254,9 @@ date_parser : function, optional
   .. deprecated:: 2.0.0
    Use ``date_format`` instead, or read in as ``object`` and then apply
    :func:`to_datetime` as-needed.
-date_format : str, default ``None``
+date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex (e.g. different formats for different columns),
+   format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
     .. versionadded:: 2.0.0
@@ -944,7 +944,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
-    date_format : str, default None
+    date_format : str or dict of column -> format default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
