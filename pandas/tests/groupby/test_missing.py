@@ -56,7 +56,6 @@ def test_fillna_with_string_dtype(method, expected):
 
 
 def test_fill_consistency():
-
     # GH9221
     # pass thru keyword arguments to the generated wrapper
     # are set if the passed kw is None (only)

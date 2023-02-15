@@ -21,7 +21,6 @@ def test_group_by_copy():
 
 
 def test_mutate_groups():
-
     # GH3380
 
     df = pd.DataFrame(
@@ -54,7 +53,6 @@ def test_mutate_groups():
 
 
 def test_no_mutate_but_looks_like():
-
     # GH 8467
     # first show's mutation indicator
     # second does not, but should yield the same results

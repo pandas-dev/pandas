@@ -429,7 +429,6 @@ class TestCategoricalAPIWithFactor:
 
 class TestPrivateCategoricalAPI:
     def test_codes_immutable(self):
-
         # Codes should be read only
         c = Categorical(["a", "b", "c", "a", np.nan])
         exp = np.array([0, 1, 2, 0, -1], dtype="int8")

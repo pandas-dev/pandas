@@ -11,7 +11,6 @@ except ImportError:
 
 
 class DoesStringLookLikeDatetime:
-
     params = (["2Q2005", "0.0", "10000"],)
     param_names = ["value"]
 
@@ -24,7 +23,6 @@ class DoesStringLookLikeDatetime:
 
 
 class ConcatDateCols:
-
     params = ([1234567890, "AAAA"], [1, 2])
     param_names = ["value", "dim"]
 

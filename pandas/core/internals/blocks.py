@@ -130,7 +130,6 @@ def maybe_split(meth: F) -> F:
 
     @wraps(meth)
     def newfunc(self, *args, **kwargs) -> list[Block]:
-
         if self.ndim == 1 or self.shape[0] == 1:
             return meth(self, *args, **kwargs)
         else:
@@ -249,7 +248,6 @@ class Block(PandasObject):
         if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
-
             shape = " x ".join([str(s) for s in self.shape])
             result = f"{name}: {self.mgr_locs.indexer}, {shape}, dtype: {self.dtype}"
 
@@ -1069,7 +1067,6 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
-
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
@@ -1279,7 +1276,6 @@ class Block(PandasObject):
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -1450,7 +1446,6 @@ class Block(PandasObject):
         # don't share data
         refs = self.refs if self.refs.has_reference() else None
         for idx in loc:
-
             if idx == previous_loc + 1:
                 # There is no column between current and last idx
                 pass
@@ -1582,7 +1577,6 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
@@ -1654,7 +1648,6 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
@@ -1854,7 +1847,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             #  Length 1 is reached vis setitem_single_block and setitem_single_column
             #  each of which pass indexer=(pi,)
             if len(indexer) == 2:
-
                 if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                     # GH#44703 went through indexing.maybe_convert_ix
                     first, second = indexer
@@ -2475,7 +2467,6 @@ def to_native_types(
         return new_values
 
     else:
-
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 

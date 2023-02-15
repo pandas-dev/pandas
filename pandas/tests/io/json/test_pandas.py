@@ -242,7 +242,6 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_mixed(self, orient, convert_axes):
-
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
@@ -721,13 +720,11 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, df)
 
     def test_typ(self):
-
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
         result = read_json(s.to_json(), typ=None)
         tm.assert_series_equal(result, s)
 
     def test_reconstruction_index(self):
-
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = read_json(df.to_json())
 
@@ -744,7 +741,6 @@ class TestPandasContainer:
                 read_json(path)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
-
         # frame
         json = datetime_frame.to_json()
         result = read_json(json)
@@ -757,7 +753,6 @@ class TestPandasContainer:
         assert result.name is None
 
     def test_convert_dates(self, datetime_series, datetime_frame):
-
         # frame
         df = datetime_frame
         df["date"] = Timestamp("20130101")
@@ -1920,7 +1915,6 @@ class TestPandasContainer:
         )
 
         if dtype_backend == "pyarrow":
-
             from pandas.arrays import ArrowExtensionArray
 
             expected = DataFrame(

@@ -30,7 +30,6 @@ pytestmark = pytest.mark.single_cpu
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
 def test_mode(setup_path, tmp_path, mode):
-
     df = tm.makeTimeDataFrame()
     msg = r"[\S]* does not exist"
     path = tmp_path / setup_path
@@ -88,7 +87,6 @@ def test_default_mode(tmp_path, setup_path):
 
 
 def test_reopen_handle(tmp_path, setup_path):
-
     path = tmp_path / setup_path
 
     store = HDFStore(path, mode="a")
@@ -141,9 +139,7 @@ def test_reopen_handle(tmp_path, setup_path):
 
 
 def test_open_args(setup_path):
-
     with tm.ensure_clean(setup_path) as path:
-
         df = tm.makeDataFrame()
 
         # create an in memory store
@@ -163,7 +159,6 @@ def test_open_args(setup_path):
 
 
 def test_flush(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
         store.flush()
@@ -243,7 +238,7 @@ def test_complibs(tmp_path, setup_path):
     all_levels = range(0, 10)
     all_tests = [(lib, lvl) for lib in all_complibs for lvl in all_levels]
 
-    for (lib, lvl) in all_tests:
+    for lib, lvl in all_tests:
         tmpfile = tmp_path / setup_path
         gname = "foo"
 
@@ -266,7 +261,6 @@ def test_complibs(tmp_path, setup_path):
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
 def test_encoding(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
         df.loc[2, "A"] = np.nan
@@ -343,7 +337,6 @@ def test_multiple_open_close(tmp_path, setup_path):
 
         store1.close()
     else:
-
         # multiples
         store1 = HDFStore(path)
         store2 = HDFStore(path)

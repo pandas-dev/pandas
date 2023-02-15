@@ -251,7 +251,6 @@ class TestIndexReductions:
         assert isna(idx.min())
 
     def test_minmax_timedelta64(self):
-
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
         assert idx1.is_monotonic_increasing
@@ -478,7 +477,6 @@ class TestIndexReductions:
             np.argmax(dr, out=0)
 
     def test_minmax_period(self):
-
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         assert not idx1.is_monotonic_increasing
@@ -528,7 +526,6 @@ class TestIndexReductions:
             np.argmax(pr, out=0)
 
     def test_min_max_categorical(self):
-
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         msg = (
             r"Categorical is not ordered for operation min\n"
@@ -675,7 +672,6 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
-
         # GH#34814
         # consistency for nullable dtypes on empty or ALL-NA mean
 
@@ -691,7 +687,6 @@ class TestSeriesReductions:
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
-
         # GH#7869
         # consistency on empty
 
@@ -723,7 +718,6 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("dtype", ["int32", "int64"])
     def test_sum_overflow_int(self, use_bottleneck, dtype):
-
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
@@ -1026,7 +1020,6 @@ class TestSeriesReductions:
         assert not df.all().any()
 
     def test_timedelta64_analytics(self):
-
         # index min/max
         dti = date_range("2012-1-1", periods=3, freq="D")
         td = Series(dti) - Timestamp("20120101")
