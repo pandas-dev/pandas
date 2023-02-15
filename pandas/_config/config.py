@@ -426,6 +426,7 @@ class option_context(ContextDecorator):
 
     Examples
     --------
+    >>> from pandas import option_context
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     pass
     """
