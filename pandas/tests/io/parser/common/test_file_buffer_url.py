@@ -13,6 +13,7 @@ import uuid
 
 import pytest
 
+from pandas.compat import is_ci_environment
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -393,7 +394,6 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     parser = all_parsers
 
     with open(datapath("io", "data", "csv", "iris.csv")) as path:
-
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:
@@ -404,8 +404,13 @@ def test_context_manageri_user_provided(all_parsers, datapath):
             assert not reader.handles.handle.closed
 
 
-def test_file_descriptor_leak(all_parsers):
+def test_file_descriptor_leak(all_parsers, using_copy_on_write, request):
     # GH 31488
+    if using_copy_on_write and is_ci_environment():
+        mark = pytest.mark.xfail(
+            reason="2023-02-12 frequent-but-flaky failures", strict=False
+        )
+        request.node.add_marker(mark)
 
     parser = all_parsers
     with tm.ensure_clean() as path:

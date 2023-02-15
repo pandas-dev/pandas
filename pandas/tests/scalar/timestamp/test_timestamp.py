@@ -381,7 +381,6 @@ class TestTimestamp:
         check(value, **check_kwargs)
 
     def test_roundtrip(self):
-
         # test value to string and back conversions
         # further test accessors
         base = Timestamp("20140101 00:00:00").as_unit("ns")
@@ -827,7 +826,6 @@ class TestNonNano:
         "td", [timedelta(days=4), Timedelta(days=4), np.timedelta64(4, "D")]
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
-
         exp_reso = max(ts._creso, Timedelta(td)._creso)
 
         result = ts - td

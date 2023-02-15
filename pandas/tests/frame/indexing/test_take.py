@@ -8,7 +8,6 @@ class TestDataFrameTake:
         # homogeneous
         order = [3, 1, 2, 0]
         for df in [float_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -21,7 +20,6 @@ class TestDataFrameTake:
         # negative indices
         order = [2, 1, -1]
         for df in [float_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -46,11 +44,9 @@ class TestDataFrameTake:
             df.take([3, 1, 2, -5], axis=1)
 
     def test_take_mixed_type(self, float_string_frame):
-
         # mixed-dtype
         order = [4, 1, 2, 0, 3]
         for df in [float_string_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -63,7 +59,6 @@ class TestDataFrameTake:
         # negative indices
         order = [4, 1, -2]
         for df in [float_string_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -77,7 +72,6 @@ class TestDataFrameTake:
         # by dtype
         order = [1, 2, 0, 3]
         for df in [mixed_float_frame, mixed_int_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)

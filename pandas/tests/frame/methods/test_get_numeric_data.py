@@ -21,7 +21,6 @@ class TestGetNumericData:
         tm.assert_frame_equal(result, expected)
 
     def test_get_numeric_data(self):
-
         datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
 

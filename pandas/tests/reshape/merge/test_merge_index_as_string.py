@@ -131,7 +131,6 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
     ],
 )
 def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
-
     # Construct expected result
     expected = compute_expected(left_df, right_df, on=on, how=how)
 
@@ -152,7 +151,6 @@ def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
 def test_merge_indexes_and_columns_lefton_righton(
     left_df, right_df, left_on, right_on, how
 ):
-
     # Construct expected result
     expected = compute_expected(
         left_df, right_df, left_on=left_on, right_on=right_on, how=how
@@ -165,7 +163,6 @@ def test_merge_indexes_and_columns_lefton_righton(
 
 @pytest.mark.parametrize("left_index", ["inner", ["inner", "outer"]])
 def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
-
     # Construct left_df
     left_df = df1.set_index(left_index)
 

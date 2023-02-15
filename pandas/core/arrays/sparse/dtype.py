@@ -82,7 +82,6 @@ class SparseDtype(ExtensionDtype):
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
     def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
-
         if isinstance(dtype, type(self)):
             if fill_value is None:
                 fill_value = dtype.fill_value
