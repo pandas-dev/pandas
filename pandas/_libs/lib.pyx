@@ -777,7 +777,10 @@ cpdef ndarray[object] ensure_string_array(
             already_copied = True
 
         if not checknull(val):
-            if not util.is_float_object(val):
+            if isinstance(val, bytes):
+                # GH#49658 discussion of desired behavior here
+                result[i] = val.decode()
+            elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:
@@ -921,29 +924,19 @@ def get_level_sorter(
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                    const intp_t[:] labels,
                    Py_ssize_t max_bin,
-                   int axis):
+                   ):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int64_t, ndim=2] counts
 
-    assert (axis == 0 or axis == 1)
     n, k = (<object>mask).shape
 
-    if axis == 0:
-        counts = np.zeros((max_bin, k), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[labels[i], j] += 1
-
-    else:  # axis == 1
-        counts = np.zeros((n, max_bin), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[i, labels[j]] += 1
+    counts = np.zeros((n, max_bin), dtype="i8")
+    with nogil:
+        for i in range(n):
+            for j in range(k):
+                if mask[i, j]:
+                    counts[i, labels[j]] += 1
 
     return counts
 
@@ -1710,6 +1703,7 @@ cdef class Validator:
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or value is C_NA or util.is_nan(value)
+        # TODO: include decimal NA?
 
     cdef bint is_array_typed(self) except -1:
         return False
