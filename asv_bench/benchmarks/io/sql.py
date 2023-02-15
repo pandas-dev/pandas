@@ -14,7 +14,6 @@ from ..pandas_vb_common import tm
 
 
 class SQL:
-
     params = ["sqlalchemy", "sqlite"]
     param_names = ["connection"]
 
@@ -52,7 +51,6 @@ class SQL:
 
 
 class WriteSQLDtypes:
-
     params = (
         ["sqlalchemy", "sqlite"],
         [
@@ -136,7 +134,6 @@ class ReadSQLTable:
 
 
 class ReadSQLTableDtypes:
-
     params = [
         "float",
         "float_with_nan",

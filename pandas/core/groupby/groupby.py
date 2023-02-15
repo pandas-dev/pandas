@@ -909,7 +909,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         observed: bool = False,
         dropna: bool = True,
     ) -> None:
-
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
@@ -1010,9 +1009,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         from pandas.core.reshape.concat import concat
 
         if self.group_keys and not is_transform:
-
             if self.as_index:
-
                 # possible MI return case
                 group_keys = self.grouper.result_index
                 group_levels = self.grouper.levels
@@ -1027,7 +1024,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-
                 # GH5610, returns a MI, with the first level being a
                 # range index
                 keys = list(range(len(values)))
@@ -1059,7 +1055,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         name = self.obj.name if self.obj.ndim == 1 else self._selection
         if isinstance(result, Series) and name is not None:
-
             result.name = name
 
         return result
@@ -1320,7 +1315,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
-
         func = com.is_builtin_func(func)
 
         if isinstance(func, str):
@@ -1348,7 +1342,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "func must be a callable if args or kwargs are supplied"
                 )
         else:
-
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
@@ -1451,7 +1444,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alias: str,
         npfunc: Callable,
     ):
-
         result = self._cython_agg_general(
             how=alias,
             alt=npfunc,
@@ -1550,7 +1542,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
             return self._transform_with_numba(
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -3093,7 +3084,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # get a new grouper for our dropped obj
         if self.keys is None and self.level is None:
-
             # we don't have the grouper info available
             # (e.g. we have selected out
             # a column that is not in the current object)
@@ -3108,7 +3098,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouper = Index(values, dtype="Int64")
 
         else:
-
             # create a grouper with the original parameters, but on dropped
             # object
             grouper, _, _ = get_grouper(
@@ -4275,7 +4264,6 @@ def get_groupby(
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool | lib.NoDefault = True,
 ) -> GroupBy:
-
     klass: type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy

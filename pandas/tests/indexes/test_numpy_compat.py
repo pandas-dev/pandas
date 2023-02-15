@@ -109,7 +109,6 @@ def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
