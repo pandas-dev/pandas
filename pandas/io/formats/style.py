@@ -512,7 +512,6 @@ class Styler(StylerRenderer):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
-
         from pandas.io.formats.excel import ExcelFormatter
 
         formatter = ExcelFormatter(

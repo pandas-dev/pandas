@@ -32,7 +32,7 @@ class TestDatetimeEngine:
         "scalar",
         [
             pd.Timedelta(pd.Timestamp("2016-01-01").asm8.view("m8[ns]")),
-            pd.Timestamp("2016-01-01").value,
+            pd.Timestamp("2016-01-01")._value,
             pd.Timestamp("2016-01-01").to_pydatetime(),
             pd.Timestamp("2016-01-01").to_datetime64(),
         ],
@@ -58,7 +58,7 @@ class TestTimedeltaEngine:
         "scalar",
         [
             pd.Timestamp(pd.Timedelta(days=42).asm8.view("datetime64[ns]")),
-            pd.Timedelta(days=42).value,
+            pd.Timedelta(days=42)._value,
             pd.Timedelta(days=42).to_pytimedelta(),
             pd.Timedelta(days=42).to_timedelta64(),
         ],
@@ -142,7 +142,6 @@ class TestObjectEngine:
     values = list("abc")
 
     def test_is_monotonic(self):
-
         num = 1000
         arr = np.array(["a"] * num + ["a"] * num + ["c"] * num, dtype=self.dtype)
 

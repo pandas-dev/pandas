@@ -19,7 +19,7 @@ from pandas.errors import (
 from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import (
-    is_any_numeric_dtype,
+    is_any_real_numeric_dtype,
     is_numeric_dtype,
     is_object_dtype,
 )
@@ -402,7 +402,6 @@ class TestIndex(Base):
         assert not Index(["a", "b", "c"]).equals(comp)
 
     def test_identical(self):
-
         # index
         i1 = Index(["a", "b", "c"])
         i2 = Index(["a", "b", "c"])
@@ -659,7 +658,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert is_any_numeric_dtype(index) is expected
+        assert is_any_real_numeric_dtype(index) is expected
 
     @pytest.mark.parametrize(
         "index, expected",

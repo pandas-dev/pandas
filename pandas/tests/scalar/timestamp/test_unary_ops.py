@@ -13,6 +13,7 @@ from pytz import utc
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
     conversion,
@@ -27,7 +28,6 @@ import pandas._testing as tm
 
 
 class TestTimestampUnaryOps:
-
     # --------------------------------------------------------------
     def test_round_divison_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
@@ -268,21 +268,21 @@ class TestTimestampUnaryOps:
 
         # test floor
         result = dt.floor(freq)
-        assert result.value % unit == 0, f"floor not a {freq} multiple"
-        assert 0 <= dt.value - result.value < unit, "floor error"
+        assert result._value % unit == 0, f"floor not a {freq} multiple"
+        assert 0 <= dt._value - result._value < unit, "floor error"
 
         # test ceil
         result = dt.ceil(freq)
-        assert result.value % unit == 0, f"ceil not a {freq} multiple"
-        assert 0 <= result.value - dt.value < unit, "ceil error"
+        assert result._value % unit == 0, f"ceil not a {freq} multiple"
+        assert 0 <= result._value - dt._value < unit, "ceil error"
 
         # test round
         result = dt.round(freq)
-        assert result.value % unit == 0, f"round not a {freq} multiple"
-        assert abs(result.value - dt.value) <= unit // 2, "round error"
-        if unit % 2 == 0 and abs(result.value - dt.value) == unit // 2:
+        assert result._value % unit == 0, f"round not a {freq} multiple"
+        assert abs(result._value - dt._value) <= unit // 2, "round error"
+        if unit % 2 == 0 and abs(result._value - dt._value) == unit // 2:
             # round half to even
-            assert result.value // unit % 2 == 0, "round half to even error"
+            assert result._value // unit % 2 == 0, "round half to even error"
 
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timedelta
@@ -315,7 +315,7 @@ class TestTimestampUnaryOps:
 
         def checker(res, ts, nanos):
             if method is Timestamp.round:
-                diff = np.abs((res - ts).value)
+                diff = np.abs((res - ts)._value)
                 assert diff <= nanos / 2
             elif method is Timestamp.floor:
                 assert res <= ts
@@ -326,42 +326,55 @@ class TestTimestampUnaryOps:
 
         res = method(ts, "us")
         nanos = 1000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "ms")
         nanos = 1_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "s")
         nanos = 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "min")
         nanos = 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "h")
         nanos = 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "D")
         nanos = 24 * 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
     # --------------------------------------------------------------
     # Timestamp.replace
+
+    def test_replace_out_of_pydatetime_bounds(self):
+        # GH#50348
+        ts = Timestamp("2016-01-01").as_unit("ns")
+
+        msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(year=99_999)
+
+        ts = ts.as_unit("ms")
+        result = ts.replace(year=99_999)
+        assert result.year == 99_999
+        assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(

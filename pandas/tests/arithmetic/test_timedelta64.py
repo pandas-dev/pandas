@@ -353,7 +353,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
     def test_subtraction_ops_with_tz(self, box_with_array):
-
         # check that dt/dti subtraction ops with tz are validated
         dti = pd.date_range("20130101", periods=3)
         dti = tm.box_expected(dti, box_with_array)
@@ -690,7 +689,7 @@ class TestAddSubNaTMasking:
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
-        _NaT = NaT.value + 1
+        _NaT = NaT._value + 1
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([106580], "D") + Timestamp("2000")
@@ -754,7 +753,7 @@ class TestTimedeltaArraylikeAddSubOps:
             #  supported GH#29794
             DataFrame([NaT]).apply(pd.to_timedelta)  # TODO: belongs elsewhere?
 
-        dfn = DataFrame([NaT.value]).apply(pd.to_timedelta)
+        dfn = DataFrame([NaT._value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")

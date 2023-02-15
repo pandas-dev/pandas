@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -26,7 +27,6 @@ def test_frame():
 
 
 def test_str():
-
     r = test_series.resample("H")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
@@ -41,7 +41,6 @@ def test_str():
 
 
 def test_api():
-
     r = test_series.resample("H")
     result = r.mean()
     assert isinstance(result, Series)
@@ -54,7 +53,6 @@ def test_api():
 
 
 def test_groupby_resample_api():
-
     # GH 12448
     # .groupby(...).resample(...) hitting warnings
     # when appropriate
@@ -78,7 +76,6 @@ def test_groupby_resample_api():
 
 
 def test_groupby_resample_on_api():
-
     # GH 15021
     # .groupby(...).resample(on=...) results in an unexpected
     # keyword warning.
@@ -137,7 +134,6 @@ def test_pipe(test_frame):
 
 
 def test_getitem(test_frame):
-
     r = test_frame.resample("H")
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
 
@@ -163,14 +159,12 @@ def test_select_bad_cols(key, test_frame):
 
 
 def test_attribute_access(test_frame):
-
     r = test_frame.resample("H")
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
 
 
 @pytest.mark.parametrize("attr", ["groups", "ngroups", "indices"])
 def test_api_compat_before_use(attr):
-
     # make sure that we are setting the binner
     # on these attributes
     rng = date_range("1/1/2012", periods=100, freq="S")
@@ -186,7 +180,6 @@ def test_api_compat_before_use(attr):
 
 
 def tests_raises_on_nuisance(test_frame):
-
     df = test_frame
     df["D"] = "foo"
     r = df.resample("H")
@@ -202,7 +195,6 @@ def tests_raises_on_nuisance(test_frame):
 
 
 def test_downsample_but_actually_upsampling():
-
     # this is reindex / asfreq
     rng = date_range("1/1/2012", periods=100, freq="S")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
@@ -215,7 +207,6 @@ def test_downsample_but_actually_upsampling():
 
 
 def test_combined_up_downsampling_of_irregular():
-
     # since we are really doing an operation like this
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
@@ -295,7 +286,6 @@ def test_transform_frame(on):
 
 
 def test_fillna():
-
     # need to upsample here
     rng = date_range("1/1/2012", periods=10, freq="2S")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
@@ -339,7 +329,6 @@ def test_apply_without_aggregation2():
 
 
 def test_agg_consistency():
-
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
@@ -404,12 +393,16 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        # In case 2, "date" is an index and a column, so agg still tries to agg
+        # In case 2, "date" is an index and a column, so get included in the agg
         if t == cases[2]:
-            # .var on dt64 column raises
-            msg = "Cannot cast DatetimeArray to dtype float64"
-            with pytest.raises(TypeError, match=msg):
-                t.aggregate([np.mean, np.std])
+            date_mean = t["date"].mean()
+            date_std = t["date"].std()
+            exp = pd.concat([date_mean, date_std, expected], axis=1)
+            exp.columns = pd.MultiIndex.from_product(
+                [["date", "A", "B"], ["mean", "std"]]
+            )
+            result = t.aggregate([np.mean, np.std])
+            tm.assert_frame_equal(result, exp)
         else:
             result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, expected)
@@ -583,7 +576,6 @@ def test_multi_agg_axis_1_raises(func):
 
 
 def test_agg_nested_dicts():
-
     np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
@@ -607,7 +599,6 @@ def test_agg_nested_dicts():
             t.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
     for t in cases:
-
         with pytest.raises(pd.errors.SpecificationError, match=msg):
             t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
@@ -630,6 +621,31 @@ def test_try_aggregate_non_existing_column():
     msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
+
+
+def test_agg_list_like_func_with_args():
+    # 50624
+    df = DataFrame(
+        {"x": [1, 2, 3]}, index=date_range("2020-01-01", periods=3, freq="D")
+    )
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        df.resample("D").agg([foo1, foo2], 3, b=3, c=4)
+
+    result = df.resample("D").agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        index=date_range("2020-01-01", periods=3, freq="D"),
+        columns=pd.MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_selection_api_validation():
@@ -907,7 +923,8 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+        msg = rf"Cannot use numeric_only=True with SeriesGroupBy\.{method}"
+        with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
@@ -916,3 +933,43 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, raises",
+    [
+        ("sum", True),
+        ("prod", True),
+        ("min", True),
+        ("max", True),
+        ("first", False),
+        ("last", False),
+        ("median", False),
+        ("mean", True),
+        ("std", True),
+        ("var", True),
+        ("sem", False),
+        ("ohlc", False),
+        ("nunique", False),
+    ],
+)
+def test_args_kwargs_depr(method, raises):
+    index = date_range("20180101", periods=3, freq="h")
+    df = Series([2, 4, 6], index=index)
+    resampled = df.resample("30min")
+    args = ()
+
+    func = getattr(resampled, method)
+
+    error_msg = "numpy operations are not valid with resample."
+    error_msg_type = "too many arguments passed in"
+    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
+
+    if raises:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                func(*args, 1, 2, 3)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            with pytest.raises(TypeError, match=error_msg_type):
+                func(*args, 1, 2, 3)

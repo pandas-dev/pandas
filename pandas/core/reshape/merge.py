@@ -25,6 +25,7 @@ from pandas._libs import (
     join as libjoin,
     lib,
 )
+from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -134,7 +135,7 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool = True,
+    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -179,7 +180,6 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         rby = right.groupby(by, sort=False)
 
     for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
-
         if rby is None:
             rhs = right
         else:
@@ -744,7 +744,7 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool,
+        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -757,7 +757,7 @@ class _MergeOperation:
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
-        if left_indexer is not None:
+        if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
             # Pinning the index here (and in the right code just below) is not
             #  necessary, but makes the `.take` more performant if we have e.g.
             #  a MultiIndex for left.index.
@@ -773,7 +773,9 @@ class _MergeOperation:
             left = left._constructor(lmgr)
         left.index = join_index
 
-        if right_indexer is not None:
+        if right_indexer is not None and not is_range_indexer(
+            right_indexer, len(right)
+        ):
             rmgr = right._mgr.reindex_indexer(
                 join_index,
                 right_indexer,
@@ -793,7 +795,7 @@ class _MergeOperation:
         result = concat([left, right], axis=1, copy=copy)
         return result
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -835,7 +837,6 @@ class _MergeOperation:
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
-
         columns = left.columns.union(right.columns)
 
         for i in ["_left_indicator", "_right_indicator"]:
@@ -861,7 +862,6 @@ class _MergeOperation:
         return left, right
 
     def _indicator_post_merge(self, result: DataFrame) -> DataFrame:
-
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
@@ -914,7 +914,6 @@ class _MergeOperation:
                 and left_key == right_key
                 and name not in result.index.names
             ):
-
                 names_to_restore.append(name)
 
         if names_to_restore:
@@ -926,7 +925,6 @@ class _MergeOperation:
         left_indexer: np.ndarray | None,
         right_indexer: np.ndarray | None,
     ) -> None:
-
         left_has_missing = None
         right_has_missing = None
 
@@ -940,10 +938,8 @@ class _MergeOperation:
             take_left, take_right = None, None
 
             if name in result:
-
                 if left_indexer is not None and right_indexer is not None:
                     if name in self.left:
-
                         if left_has_missing is None:
                             left_has_missing = (left_indexer == -1).any()
 
@@ -956,7 +952,6 @@ class _MergeOperation:
                                 take_left = self.left[name]._values
 
                     elif name in self.right:
-
                         if right_has_missing is None:
                             right_has_missing = (right_indexer == -1).any()
 
@@ -973,7 +968,6 @@ class _MergeOperation:
                 take_right = self.right_join_keys[i]
 
             if take_left is not None or take_right is not None:
-
                 if take_left is None:
                     lvals = result[name]._values
                 else:
@@ -1325,9 +1319,7 @@ class _MergeOperation:
 
                         mask = ~np.isnan(lk)
                         match = lk == casted
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any], Any]" has no attribute "all"
-                        if not match[mask].all():  # type: ignore[union-attr]
+                        if not match[mask].all():
                             warnings.warn(
                                 "You are merging on int and float "
                                 "columns where the float values "
@@ -1347,9 +1339,7 @@ class _MergeOperation:
 
                         mask = ~np.isnan(rk)
                         match = rk == casted
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any], Any]" has no attribute "all"
-                        if not match[mask].all():  # type: ignore[union-attr]
+                        if not match[mask].all():
                             warnings.warn(
                                 "You are merging on int and float "
                                 "columns where the float values "
@@ -1474,7 +1464,6 @@ class _MergeOperation:
                 )
         # Hm, any way to make this logic less complicated??
         elif self.on is None and left_on is None and right_on is None:
-
             if self.left_index and self.right_index:
                 left_on, right_on = (), ()
             elif self.left_index:
@@ -1548,7 +1537,6 @@ class _MergeOperation:
         return left_on, right_on
 
     def _validate(self, validate: str) -> None:
-
         # Check uniqueness of each
         if self.left_index:
             left_unique = self.orig_left.index.is_unique
@@ -1787,7 +1775,6 @@ class _OrderedMerge(_MergeOperation):
         fill_method: str | None = None,
         how: JoinHow | Literal["asof"] = "outer",
     ) -> None:
-
         self.fill_method = fill_method
         _MergeOperation.__init__(
             self,
@@ -1804,7 +1791,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool = True) -> DataFrame:
+    def get_result(self, copy: bool | None = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -1880,7 +1867,6 @@ class _AsOfMerge(_OrderedMerge):
         allow_exact_matches: bool = True,
         direction: str = "backward",
     ) -> None:
-
         self.by = by
         self.left_by = left_by
         self.right_by = right_by
@@ -1985,7 +1971,6 @@ class _AsOfMerge(_OrderedMerge):
     def _get_merge_keys(
         self,
     ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[Hashable]]:
-
         # note this function has side effects
         (left_join_keys, right_join_keys, join_names) = super()._get_merge_keys()
 
@@ -2014,7 +1999,6 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
-
             if self.left_index:
                 # Actually more specifically an Index
                 lt = cast(AnyArrayLike, self.left.index)
@@ -2123,7 +2107,7 @@ class _AsOfMerge(_OrderedMerge):
                     lvs = ensure_wrapped_if_datetimelike(left_values)
                     tolerance = tolerance.as_unit(lvs.unit)
 
-                tolerance = tolerance.value
+                tolerance = tolerance._value
 
             # TODO: require left_values.dtype == right_values.dtype, or at least
             #  comparable for e.g. dt64tz
@@ -2153,10 +2137,14 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(lbv.dtype)
             by_type_caster = _type_casters[by_type]
-            # error: Cannot call function of unknown type
-            left_by_values = by_type_caster(lbv)  # type: ignore[operator]
-            # error: Cannot call function of unknown type
-            right_by_values = by_type_caster(rbv)  # type: ignore[operator]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            left_by_values = by_type_caster(lbv)  # type: ignore[assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[generic]]", variable has type
+            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
+            right_by_values = by_type_caster(rbv)  # type: ignore[assignment]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
@@ -2185,7 +2173,6 @@ class _AsOfMerge(_OrderedMerge):
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     # left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(index.levels[n], join_keys[n], sort=sort)
@@ -2464,7 +2451,6 @@ def _convert_arrays_and_get_rizer_klass(
 def _sort_labels(
     uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     llength = len(left)
     labels = np.concatenate([left, right])
 
@@ -2480,7 +2466,6 @@ def _get_join_keys(
     shape: Shape,
     sort: bool,
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-
     # how many levels can be done without overflow
     nlev = next(
         lev

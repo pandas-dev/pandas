@@ -156,8 +156,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return libindex.PeriodEngine
 
     @cache_readonly
-    # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"
-    def _resolution_obj(self) -> Resolution:  # type: ignore[override]
+    def _resolution_obj(self) -> Resolution:
         # for compat with DatetimeIndex
         return self.dtype._resolution_obj
 
@@ -208,7 +207,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name: Hashable = None,
         **fields,
     ) -> PeriodIndex:
-
         valid_field_set = {
             "year",
             "month",
@@ -402,7 +400,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             key = NaT
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:

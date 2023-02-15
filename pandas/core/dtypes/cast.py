@@ -99,7 +99,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import Index
     from pandas.core.arrays import (
         Categorical,
@@ -363,7 +362,6 @@ def maybe_downcast_numeric(
             return result
 
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
-
         if not result.size:
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
@@ -398,7 +396,11 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        new_result = result.astype(dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "overflow encountered in cast", RuntimeWarning
+            )
+            new_result = result.astype(dtype)
 
         # Adjust tolerances based on floating point size
         size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
@@ -775,7 +777,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         val = lib.item_from_zerodim(val)
 
     elif isinstance(val, str):
-
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
         # so this is kind of bad. Alternately we could use np.repeat
@@ -787,16 +788,12 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
-            # error: Non-overlapping identity check (left operand type:
-            # "Timestamp", right operand type: "NaTType")
-            if val is not NaT:  # type: ignore[comparison-overlap]
+            if val is not NaT:
                 val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -1027,7 +1024,6 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-
         if is_object_dtype(input_array.dtype):
             inferred_dtype = lib.infer_dtype(input_array)
         else:
@@ -1349,7 +1345,6 @@ def common_dtype_categorical_compat(
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
     if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
-
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1441,7 +1436,6 @@ def find_common_type(types):
 def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
-
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
@@ -1498,7 +1492,6 @@ def construct_1d_arraylike_from_scalar(
         subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
-
         if length and is_integer_dtype(dtype) and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
@@ -1606,7 +1599,9 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                 )
                 casted = np.array(arr, dtype=dtype, copy=False)
         else:
-            casted = arr.astype(dtype, copy=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
@@ -1618,7 +1613,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
         return casted
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         if np.array_equal(arr, casted):
             return casted
 
@@ -1821,7 +1816,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # see test_where_complex GH#6345
                 return dtype.type(element)
 
-            casted = dtype.type(element)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                casted = dtype.type(element)
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize

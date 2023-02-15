@@ -472,7 +472,6 @@ def read_excel(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
-
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
@@ -720,7 +719,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         use_nullable_dtypes: bool = False,
         **kwds,
     ):
-
         validate_header_arg(header)
         validate_integer("nrows", nrows)
 
@@ -806,7 +804,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # a row containing just the index name(s)
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
-
                 index_col_list: Sequence[int]
                 if isinstance(index_col, int):
                     index_col_list = [index_col]
@@ -1413,14 +1410,14 @@ def inspect_excel_format(
 
 class ExcelFile:
     """
-    Class for parsing tabular excel sheets into DataFrame objects.
+    Class for parsing tabular Excel sheets into DataFrame objects.
 
     See read_excel for more documentation.
 
     Parameters
     ----------
     path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpyxl workbook.
+        A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -1448,6 +1445,7 @@ class ExcelFile:
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
            .. versionadded:: 1.3.0
+
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.

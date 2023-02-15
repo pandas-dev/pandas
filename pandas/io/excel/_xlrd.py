@@ -79,7 +79,6 @@ class XlrdReader(BaseExcelReader):
             converts the contents of the cell into a pandas appropriate object
             """
             if cell_typ == XL_CELL_DATE:
-
                 # Use the newer xlrd datetime handling.
                 try:
                     cell_contents = xldate.xldate_as_datetime(cell_contents, epoch1904)

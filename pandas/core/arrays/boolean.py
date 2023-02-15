@@ -288,8 +288,10 @@ class BooleanArray(BaseMaskedArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
     # Fill values used for any/all
-    _truthy_value = True
-    _falsey_value = False
+    # Incompatible types in assignment (expression has type "bool", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = True  # type: ignore[assignment]
+    _falsey_value = False  # type: ignore[assignment]
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -345,7 +347,6 @@ class BooleanArray(BaseMaskedArray):
         return coerce_to_array(value, copy=copy)
 
     def _logical_method(self, other, op):
-
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None

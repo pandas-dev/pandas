@@ -12,7 +12,7 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
 )
 import pandas.util._test_decorators as td
@@ -45,6 +45,7 @@ except ImportError:
 
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
+
 
 # setup engines & skips
 @pytest.fixture(
@@ -221,7 +222,7 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under6p0:
+    if pa_version_under7p0:
         import pyarrow.parquet as pq
 
         dataset = pq.ParquetDataset(path, validate_schema=False)
@@ -424,7 +425,6 @@ class TestBasic(Base):
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
-
         if compression == "snappy":
             pytest.importorskip("snappy")
 
@@ -591,6 +591,7 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
@@ -640,6 +641,7 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes_option(self, engine, request):
         # GH#50748
         import pyarrow.parquet as pq
@@ -698,7 +700,6 @@ class TestBasic(Base):
 
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
-
         df = df_full
 
         # additional supported types for pyarrow
@@ -782,7 +783,6 @@ class TestParquetPyArrow(Base):
             assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
-
         # supported in >= 0.7.0
         df = pd.DataFrame()
         df["a"] = pd.Categorical(list("abcdef"))
@@ -966,8 +966,8 @@ class TestParquetPyArrow(Base):
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
-        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
-        if not pa_version_under6p0:
+        # Note in previous pyarrows(<7.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under7p0:
             ver = "2.6"
         else:
             ver = "2.0"
@@ -976,7 +976,7 @@ class TestParquetPyArrow(Base):
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
-            not pa_version_under6p0
+            not pa_version_under7p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
@@ -1071,7 +1071,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_duplicate_columns(self, fp):
-
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         msg = "Cannot create parquet dataset with duplicate column names"
@@ -1085,7 +1084,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp, expected=expected, check_dtype=False)
 
     def test_unsupported(self, fp):
-
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # error from fastparquet -> don't check exact error message

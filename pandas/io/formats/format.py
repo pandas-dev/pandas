@@ -1229,7 +1229,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -1916,7 +1918,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 

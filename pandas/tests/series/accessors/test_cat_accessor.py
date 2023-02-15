@@ -72,7 +72,6 @@ class TestCatAccessor:
             cat.cat.xlabel = "a"
 
     def test_categorical_delegations(self):
-
         # invalid accessor
         msg = r"Can only use \.cat accessor with a 'category' dtype"
         with pytest.raises(AttributeError, match=msg):
@@ -167,6 +166,7 @@ class TestCatAccessor:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            ("as_unit", ("s"), {}),
         ]
         if idx.dtype == "M8[ns]":
             # exclude dt64tz since that is already localized and would raise

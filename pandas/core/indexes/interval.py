@@ -218,7 +218,6 @@ class IntervalIndex(ExtensionIndex):
         name: Hashable = None,
         verify_integrity: bool = True,
     ) -> IntervalIndex:
-
         name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -546,7 +545,7 @@ class IntervalIndex(ExtensionIndex):
             if lib.is_period(key):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
-                key_i8 = key_i8.value
+                key_i8 = key_i8._value
             elif isinstance(key_i8, (np.datetime64, np.timedelta64)):
                 key_i8 = key_i8.view("i8")
         else:
@@ -673,7 +672,6 @@ class IntervalIndex(ExtensionIndex):
         limit: int | None = None,
         tolerance: Any | None = None,
     ) -> npt.NDArray[np.intp]:
-
         if isinstance(target, IntervalIndex):
             # We only get here with not self.is_overlapping
             # -> at most one match per interval in target

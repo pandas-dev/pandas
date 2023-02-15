@@ -55,6 +55,7 @@ def group_any_all(
     mask: np.ndarray,  # const uint8_t[::1]
     val_test: Literal["any", "all"],
     skipna: bool,
+    nullable: bool,
 ) -> None: ...
 def group_sum(
     out: np.ndarray,  # complexfloatingintuint_t[:, ::1]
@@ -84,6 +85,7 @@ def group_var(
     ddof: int = ...,  # int64_t
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    is_datetimelike: bool = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]

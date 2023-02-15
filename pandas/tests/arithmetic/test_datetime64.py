@@ -393,7 +393,6 @@ class TestDatetime64SeriesComparison:
 
 
 class TestDatetimeIndexComparisons:
-
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
         index = tm.makeDateIndex(100)
@@ -442,7 +441,6 @@ class TestDatetimeIndexComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_dti_cmp_nat(self, dtype, box_with_array):
-
         left = DatetimeIndex([Timestamp("2011-01-01"), NaT, Timestamp("2011-01-03")])
         right = DatetimeIndex([NaT, NaT, Timestamp("2011-01-03")])
 
@@ -505,7 +503,6 @@ class TestDatetimeIndexComparisons:
         # Check pd.NaT is handles as the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, idx2 in cases:
-
                 result = idx1 < idx2
                 expected = np.array([True, False, False, False, True, False])
                 tm.assert_numpy_array_equal(result, expected)
@@ -926,7 +923,6 @@ class TestDatetime64Arithmetic:
             other - obj
 
     def test_dt64arr_add_sub_td64ndarray(self, tz_naive_fixture, box_with_array):
-
         tz = tz_naive_fixture
         dti = date_range("2016-01-01", periods=3, tz=tz)
         tdi = TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
@@ -1040,7 +1036,6 @@ class TestDatetime64Arithmetic:
     def test_dt64arr_aware_sub_dt64ndarray_raises(
         self, tz_aware_fixture, box_with_array
     ):
-
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=3, tz=tz)
         dt64vals = dti.values
@@ -1228,7 +1223,6 @@ class TestDatetime64Arithmetic:
 
 
 class TestDatetime64DateOffsetArithmetic:
-
     # -------------------------------------------------------------
     # Tick DateOffsets
 
@@ -1719,15 +1713,15 @@ class TestDatetime64OverflowHandling:
             with pytest.raises(OverflowError, match=msg):
                 dtimax - variant
 
-        expected = Timestamp.max.value - tspos.value
+        expected = Timestamp.max._value - tspos._value
         for variant in ts_pos_variants:
             res = dtimax - variant
-            assert res[1].value == expected
+            assert res[1]._value == expected
 
-        expected = Timestamp.min.value - tsneg.value
+        expected = Timestamp.min._value - tsneg._value
         for variant in ts_neg_variants:
             res = dtimin - variant
-            assert res[1].value == expected
+            assert res[1]._value == expected
 
         for variant in ts_pos_variants:
             with pytest.raises(OverflowError, match=msg):
@@ -1742,13 +1736,13 @@ class TestDatetime64OverflowHandling:
         ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"])
 
         # General tests
-        expected = Timestamp.max.value - ts_pos[1].value
+        expected = Timestamp.max._value - ts_pos[1]._value
         result = dtimax - ts_pos
-        assert result[1].value == expected
+        assert result[1]._value == expected
 
-        expected = Timestamp.min.value - ts_neg[1].value
+        expected = Timestamp.min._value - ts_neg[1]._value
         result = dtimin - ts_neg
-        assert result[1].value == expected
+        assert result[1]._value == expected
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
             dtimax - ts_neg
@@ -1783,7 +1777,6 @@ class TestTimestampSeriesArithmetic:
             b - a
 
     def test_operators_datetimelike(self):
-
         # ## timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
@@ -2442,4 +2435,4 @@ def test_dt64arr_addsub_object_dtype_2d():
         result2 = dta - dta.astype(object)
 
     assert result2.shape == (4, 1)
-    assert all(td.value == 0 for td in result2.ravel())
+    assert all(td._value == 0 for td in result2.ravel())

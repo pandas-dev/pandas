@@ -32,7 +32,6 @@ def load_reduce(self):
         stack[-1] = func(*args)
         return
     except TypeError as err:
-
         # If we have a deprecated function,
         # try to replace and try again.
 
@@ -168,7 +167,7 @@ def load_newobj(self) -> None:
         arr = np.array([], dtype="m8[ns]")
         obj = cls.__new__(cls, arr, arr.dtype)
     elif cls is BlockManager and not args:
-        obj = cls.__new__(cls, (), [], None, False)
+        obj = cls.__new__(cls, (), [], False)
     else:
         obj = cls.__new__(cls, *args)
 

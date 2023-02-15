@@ -1001,14 +1001,23 @@ way to parse dates is to explicitly set ``format=``.
    )
    df
 
-In the case that you have mixed datetime formats within the same column, you'll need to
-first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+In the case that you have mixed datetime formats within the same column, you can
+pass  ``format='mixed'``
 
 .. ipython:: python
 
    data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
-   df['date'] = df['date'].apply(pd.to_datetime)
+   df['date'] = pd.to_datetime(df['date'], format='mixed')
+   df
+
+or, if your datetime formats are all ISO8601 (possibly not identically-formatted):
+
+.. ipython:: python
+
+   data = io.StringIO("date\n2020-01-01\n2020-01-01 03:00\n")
+   df = pd.read_csv(data)
+   df['date'] = pd.to_datetime(df['date'], format='ISO8601')
    df
 
 .. ipython:: python
@@ -2069,6 +2078,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
+* ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
+  The ``"pyarrow"`` is only available when ``lines=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -2249,6 +2260,16 @@ For line-delimited json files, pandas can also return an iterator which reads in
       reader
       for chunk in reader:
           print(chunk)
+
+Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
+
+.. ipython:: python
+
+   from io import BytesIO
+   df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
+   df
+
+.. versionadded:: 2.0.0
 
 .. _io.table_schema:
 
@@ -5486,11 +5507,8 @@ included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
-If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
-for mysql for backwards compatibility, but this is deprecated and will be
-removed in a future version).
-This mode requires a Python database adapter which respect the `Python
-DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
+If SQLAlchemy is not installed, you can use a :class:`sqlite3.Connection` in place of
+a SQLAlchemy engine, connection, or URI string.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -5868,7 +5886,7 @@ If you have an SQLAlchemy description of your database you can express where con
        sa.Column("Col_3", sa.Boolean),
    )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
+   pd.read_sql(sa.select(data_table).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5876,7 +5894,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
 
     import datetime as dt
 
-    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam("date"))
+    expr = sa.select(data_table).where(data_table.c.Date > sa.bindparam("date"))
     pd.read_sql(expr, engine, params={"date": dt.datetime(2010, 10, 18)})
 
 

@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -497,7 +497,6 @@ def test_from_product_index_series_categorical(ordered, f):
 
 
 def test_from_product():
-
     first = ["foo", "bar", "buz"]
     second = ["a", "b", "c"]
     names = ["first", "second"]
@@ -596,7 +595,6 @@ def test_from_product_readonly():
 
 
 def test_create_index_existing_name(idx):
-
     # GH11193, when an existing index is passed, and a new name is not
     # specified, the new index should inherit the previous object name
     index = idx
@@ -650,7 +648,7 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.skipif(pa_version_under6p0, reason="minimum pyarrow not installed")
+@pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
     import pyarrow as pa
@@ -809,7 +807,6 @@ def test_datetimeindex():
 
 
 def test_constructor_with_tz():
-
     index = pd.DatetimeIndex(
         ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
     )

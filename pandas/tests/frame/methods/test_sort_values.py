@@ -291,7 +291,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_datetimes(self):
-
         # GH#3461, argsort / lexsort differences for a datetime column
         df = DataFrame(
             ["a", "a", "a", "b", "c", "d", "e", "f", "g"],
@@ -349,13 +348,12 @@ class TestDataFrameSortValues:
         cp.sort_values()  # it works!
 
     def test_sort_values_nat_values_in_int_column(self):
-
         # GH#14922: "sorting with large float and multiple columns incorrect"
 
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT.value))
+        int_values = (2, int(NaT._value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -509,7 +507,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_nat(self):
-
         # GH#16836
 
         d1 = [Timestamp(x) for x in ["2016-01-01", "2015-01-01", np.nan, "2016-01-01"]]

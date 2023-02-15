@@ -25,14 +25,14 @@ gcsfs
 ipython
 jinja2
 lxml
-matplotlib>=3.6.1
+matplotlib>=3.6.1, <3.7.0
 numba>=0.53.1
 numexpr>=2.8.0
-openpyxl
+openpyxl<3.1.1
 odfpy
 py
 psycopg2-binary
-pyarrow<11
+pyarrow
 pymysql
 pyreadstat
 tables
@@ -40,7 +40,7 @@ python-snappy
 pyxlsb
 s3fs>=2021.08.0
 scipy
-sqlalchemy<1.4.46
+sqlalchemy
 tabulate
 tzdata>=2022.1
 xarray
@@ -52,11 +52,11 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==22.10.0
+black==23.1.0
 cpplint
 flake8==6.0.0
 isort>=5.2.1
-mypy==0.991
+mypy==1.0
 pre-commit>=2.15.0
 pyupgrade
 ruff==0.0.215

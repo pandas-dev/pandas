@@ -418,7 +418,6 @@ class TestClipboard:
             # Clipboard can sometimes keep previous param causing flaky CI failures
             subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
@@ -426,9 +425,6 @@ class TestClipboard:
         # GH#50502
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-
-        if dtype_backend == "pyarrow" and engine == "c":
-            pytest.skip(reason="c engine not yet supported")
 
         if string_storage == "python":
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))

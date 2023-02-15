@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -111,7 +111,6 @@ class TestAstype:
         tm.assert_frame_equal(casted, expected)
 
     def test_astype_with_view_float(self, float_frame):
-
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
         casted = tf.astype(np.float32, copy=False)
@@ -121,7 +120,6 @@ class TestAstype:
         casted = tf.astype(np.int64, copy=False)  # noqa
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
-
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
 
         casted = tf.astype(np.int64)
@@ -870,7 +868,7 @@ def test_frame_astype_no_copy():
     assert np.shares_memory(df.b.values, result.b.values)
 
 
-@pytest.mark.skipif(pa_version_under6p0, reason="pyarrow is required for this test")
+@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow is required for this test")
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_astype_copies(dtype):
     # GH#50984

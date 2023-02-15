@@ -18,7 +18,6 @@ import pandas._testing as tm
 
 class TestSeriesMissingData:
     def test_categorical_nan_handling(self):
-
         # NaNs are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
         tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
@@ -37,14 +36,13 @@ class TestSeriesMissingData:
         tm.assert_series_equal(dr, de)
 
     def test_timedelta64_nan(self):
-
         td = Series([timedelta(days=i) for i in range(10)])
 
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
         assert isna(td1[0])
-        assert td1[0].value == iNaT
+        assert td1[0]._value == iNaT
         td1[0] = td[0]
         assert not isna(td1[0])
 
@@ -58,7 +56,7 @@ class TestSeriesMissingData:
 
         td1[2] = NaT
         assert isna(td1[2])
-        assert td1[2].value == iNaT
+        assert td1[2]._value == iNaT
         td1[2] = td[2]
         assert not isna(td1[2])
 

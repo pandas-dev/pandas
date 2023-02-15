@@ -393,8 +393,8 @@ class TestTimedeltaMultiplicationDivision:
 
         assert op(td, np.nan) is NaT
 
-        assert op(-1, td).value == -1 * td.value
-        assert op(-1.0, td).value == -1.0 * td.value
+        assert op(-1, td)._value == -1 * td._value
+        assert op(-1.0, td)._value == -1.0 * td._value
 
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):
@@ -459,15 +459,14 @@ class TestTimedeltaMultiplicationDivision:
         assert np.isnan(td / NaT)
 
     def test_td_div_td64_non_nano(self):
-
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / (86400 * 10**9)
+        assert result == td._value / (86400 * 10**9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / 10**9
+        assert result == td._value / 10**9
         result = td / np.timedelta64(1, "ns")
-        assert result == td.value
+        assert result == td._value
 
         # floordiv
         td = Timedelta("1 days 2 hours 3 ns")
@@ -476,7 +475,7 @@ class TestTimedeltaMultiplicationDivision:
         result = td // np.timedelta64(1, "s")
         assert result == 93600
         result = td // np.timedelta64(1, "ns")
-        assert result == td.value
+        assert result == td._value
 
     def test_td_div_numeric_scalar(self):
         # GH#19738
@@ -1100,7 +1099,6 @@ def test_ops_error_str():
     td = Timedelta("1 day")
 
     for left, right in [(td, "a"), ("a", td)]:
-
         msg = "|".join(
             [
                 "unsupported operand type",

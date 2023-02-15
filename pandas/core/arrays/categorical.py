@@ -47,7 +47,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_any_numeric_dtype,
+    is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -73,7 +73,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
-    notna,
 )
 
 from pandas.core import (
@@ -88,7 +87,6 @@ from pandas.core.accessor import (
 from pandas.core.algorithms import (
     factorize,
     take_nd,
-    unique1d,
 )
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
@@ -367,7 +365,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         fastpath: bool = False,
         copy: bool = True,
     ) -> None:
-
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
         )
@@ -596,7 +593,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if is_any_numeric_dtype(dtype.categories):
+            if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
@@ -1135,14 +1132,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [NaN, 'c', 'b', 'c', NaN]
         Categories (2, object): ['b', 'c']
         """
+        from pandas import Index
+
         if not is_list_like(removals):
             removals = [removals]
 
-        removals = {x for x in set(removals) if notna(x)}
+        removals = Index(removals).unique().dropna()
         new_categories = self.dtype.categories.difference(removals)
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
+            not_included = set(not_included)
             raise ValueError(f"removals must all be in old categories: {not_included}")
 
         return self.set_categories(new_categories, ordered=self.ordered, rename=False)
@@ -1674,13 +1674,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [5, 2, 2, 1, 1]
         Categories (3, int64): [1, 2, 5]
 
-        Inplace sorting can be done as well:
-
-        >>> c.sort_values(inplace=True)
-        >>> c
-        [1, 1, 2, 2, 5]
-        Categories (3, int64): [1, 2, 5]
-        >>>
         >>> c = pd.Categorical([1, 2, 2, 1, 5])
 
         'sort_values' behaviour with NaNs. Note that 'na_position'
@@ -1759,7 +1752,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif is_any_numeric_dtype(self.categories):
+        elif is_any_real_numeric_dtype(self.categories):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
@@ -2103,8 +2096,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        unique_codes = unique1d(self.codes)
-        return self._from_backing_data(unique_codes)
+        # pylint: disable=useless-parent-delegation
+        return super().unique()
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes

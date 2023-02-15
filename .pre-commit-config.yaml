@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
 repos:
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.215
+    rev: v0.0.244
     hooks:
     -   id: ruff
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
@@ -25,7 +25,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.6'
+    rev: 'v2.7'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -38,7 +38,7 @@ repos:
         types_or: [python, rst, markdown]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.10.1
+    rev: v0.12.4
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -71,12 +71,12 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.9
+    rev: v2.16.1
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.9
+    rev: v2.16.1
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -101,7 +101,7 @@ repos:
     -   id: pyupgrade
         args: [--py38-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
@@ -125,7 +125,7 @@ repos:
         language: python
         require_serial: true
         types_or: [python, pyi]
-        additional_dependencies: [black==22.10.0]
+        additional_dependencies: [black==23.1.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright
@@ -135,11 +135,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.284
+        - pyright@1.1.292
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]

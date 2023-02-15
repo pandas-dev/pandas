@@ -118,7 +118,6 @@ class TestSeriesMisc:
         assert pydoc.getdoc(Series.index)
 
     def test_ndarray_compat(self):
-
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
             np.random.randn(1000, 3),
@@ -287,3 +286,10 @@ class TestSeriesMisc:
             else:
                 # reducer
                 assert result == expected
+
+
+@pytest.mark.parametrize("converter", [int, float, complex])
+def test_float_int_deprecated(converter):
+    # GH 51101
+    with tm.assert_produces_warning(FutureWarning):
+        assert converter(Series([1])) == converter(1)

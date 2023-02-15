@@ -245,7 +245,6 @@ class TestGetitemCallable:
 
 class TestGetitemBooleanMask:
     def test_getitem_bool_mask_categorical_index(self):
-
         df3 = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -375,7 +374,6 @@ class TestGetitemBooleanMask:
         str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
-
         # where
         df = DataFrame(
             np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"

@@ -948,6 +948,55 @@ def test_repeat_values_new_names(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_repeat_elements(parser):
+    xml = """\
+<shapes>
+  <shape>
+    <value item="name">circle</value>
+    <value item="family">ellipse</value>
+    <value item="degrees">360</value>
+    <value item="sides">0</value>
+  </shape>
+  <shape>
+    <value item="name">triangle</value>
+    <value item="family">polygon</value>
+    <value item="degrees">180</value>
+    <value item="sides">3</value>
+  </shape>
+  <shape>
+    <value item="name">square</value>
+    <value item="family">polygon</value>
+    <value item="degrees">360</value>
+    <value item="sides">4</value>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(
+        xml,
+        xpath=".//shape",
+        parser=parser,
+        names=["name", "family", "degrees", "sides"],
+    )
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["value", "value", "value", "value"]},
+        names=["name", "family", "degrees", "sides"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "triangle", "square"],
+            "family": ["ellipse", "polygon", "polygon"],
+            "degrees": [360, 180, 360],
+            "sides": [0, 3, 4],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 def test_names_option_wrong_length(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
@@ -1773,11 +1822,8 @@ def test_s3_parser_consistency():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     # GH#50500
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
     data = """<?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
 <row>
@@ -1809,6 +1855,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
     else:
+        pa = pytest.importorskip("pyarrow")
         string_array = ArrowStringArray(pa.array(["x", "y"]))
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
@@ -1831,6 +1878,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     )
 
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(

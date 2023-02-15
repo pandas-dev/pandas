@@ -37,9 +37,35 @@ def test_repr():
     assert result == expected
 
 
+def test_groupby_std_datetimelike():
+    # GH#48481
+    tdi = pd.timedelta_range("1 Day", periods=10000)
+    ser = Series(tdi)
+    ser[::5] *= 2  # get different std for different groups
+
+    df = ser.to_frame("A")
+
+    df["B"] = ser + Timestamp(0)
+    df["C"] = ser + Timestamp(0, tz="UTC")
+    df.iloc[-1] = pd.NaT  # last group includes NaTs
+
+    gb = df.groupby(list(range(5)) * 2000)
+
+    result = gb.std()
+
+    # Note: this does not _exactly_ match what we would get if we did
+    # [gb.get_group(i).std() for i in gb.groups]
+    #  but it _does_ match the floating point error we get doing the
+    #  same operation on int64 data xref GH#51332
+    td1 = Timedelta("2887 days 11:21:02.326710176")
+    td4 = Timedelta("2886 days 00:42:34.664668096")
+    exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
+    expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
 def test_basic(dtype):
-
     data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
     index = np.arange(9)
@@ -295,7 +321,6 @@ def test_with_na_groups(dtype):
 
 
 def test_indices_concatenation_order():
-
     # GH 2808
 
     def f1(x):
@@ -465,8 +490,6 @@ def test_multi_func(df):
     col2 = df["B"]
 
     grouped = df.groupby([col1.get, col2.get])
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     agged = grouped.mean(numeric_only=True)
     expected = df.groupby(["A", "B"]).mean()
 
@@ -665,17 +688,11 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["C", "D"]].agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected2 = grouped.mean(numeric_only=True)
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -793,11 +810,7 @@ def test_groupby_as_index_cython(df):
 
     # single-key
     grouped = data.groupby("A", as_index=False)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     result = grouped.mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        data.groupby(["A"]).mean()
     expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
     expected.index = RangeIndex(len(expected))
@@ -960,11 +973,7 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["v1", "v2"]].agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
@@ -1002,7 +1011,6 @@ def test_wrap_aggregated_output_multindex(mframe):
 
 
 def test_groupby_level_apply(mframe):
-
     result = mframe.groupby(level=0).count()
     assert result.index.name == "first"
     result = mframe.groupby(level=1).count()
@@ -1148,8 +1156,6 @@ def test_groupby_with_hier_columns():
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(level=0).mean()
     result = df.groupby(level=0).mean(numeric_only=True)
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
@@ -1162,7 +1168,6 @@ def test_grouping_ndarray(df):
 
 
 def test_groupby_wrong_multi_labels():
-
     index = Index([0, 1, 2, 3, 4], name="index")
     data = DataFrame(
         {
@@ -1183,11 +1188,7 @@ def test_groupby_wrong_multi_labels():
 
 
 def test_groupby_series_with_name(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"]).mean()
     result = df.groupby(df["A"]).mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"], as_index=False).mean()
     result2 = df.groupby(df["A"], as_index=False).mean(numeric_only=True)
     assert result.index.name == "A"
     assert "A" in result2
@@ -1290,7 +1291,6 @@ def test_series_grouper_noncontig_index():
 
 
 def test_convert_objects_leave_decimal_alone():
-
     s = Series(range(5))
     labels = np.array(["a", "b", "c", "d", "e"], dtype="O")
 
@@ -1337,11 +1337,7 @@ def test_groupby_unit64_float_conversion():
 
 
 def test_groupby_list_infer_array_like(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(list(df["A"])).mean()
     result = df.groupby(list(df["A"])).mean(numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby(df["A"]).mean()
     expected = df.groupby(df["A"]).mean(numeric_only=True)
     tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -1455,8 +1451,6 @@ def test_groupby_2d_malformed():
     d["zeros"] = [0, 0]
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
-    with pytest.raises(TypeError, match="Could not convert"):
-        d.groupby(["group"]).mean()
     tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
@@ -1524,7 +1518,6 @@ def test_dont_clobber_name_column():
 
 
 def test_skip_group_keys():
-
     tsf = tm.makeTimeDataFrame()
 
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
@@ -1652,7 +1645,6 @@ def test_groupby_sort_multiindex_series():
 
 
 def test_groupby_reindex_inside_function():
-
     periods = 1000
     ind = date_range(start="2012/1/1", freq="5min", periods=periods)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)
@@ -2408,7 +2400,9 @@ def test_groupby_duplicate_columns():
     ).astype(object)
     df.columns = ["A", "B", "B"]
     result = df.groupby([0, 0, 0, 0]).min()
-    expected = DataFrame([["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"])
+    expected = DataFrame(
+        [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -2828,3 +2822,13 @@ def test_groupby_reduce_period():
     expected = ser[:10]
     expected.index = Index(range(10), dtype=np.int_)
     tm.assert_series_equal(res, expected)
+
+
+def test_obj_with_exclusions_duplicate_columns():
+    # GH#50806
+    df = DataFrame([[0, 1, 2, 3]])
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    result = gb._obj_with_exclusions
+    expected = df.take([0, 2, 3], axis=1)
+    tm.assert_frame_equal(result, expected)

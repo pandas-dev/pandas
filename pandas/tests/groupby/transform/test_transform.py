@@ -82,7 +82,6 @@ def test_transform():
 
 
 def test_transform_fast():
-
     df = DataFrame({"id": np.arange(100000) / 3, "val": np.random.randn(100000)})
 
     grp = df.groupby("id")["val"]
@@ -194,7 +193,6 @@ def test_transform_axis_1_reducer(request, reduction_func):
 
 
 def test_transform_axis_ts(tsframe):
-
     # make sure that we are setting the axes
     # correctly when on axis=0 or 1
     # in the presence of a non-monotonic indexer
@@ -464,7 +462,6 @@ def test_transform_length():
 
 
 def test_transform_coercion():
-
     # 14457
     # when we are transforming be sure to not coerce
     # via assignment
@@ -478,7 +475,6 @@ def test_transform_coercion():
 
 
 def test_groupby_transform_with_int():
-
     # GH 3740, make sure that we might upcast on item-by-item transform
 
     # floats
@@ -708,6 +704,7 @@ def test_cython_transform_frame(op, args, targop):
             {"by": "string"},
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
+            # TODO: remove or enable commented-out code
 
             gb = df.groupby(group_keys=False, **gb_target)
 
