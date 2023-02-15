@@ -17,7 +17,7 @@ import pandas._testing as tm
 
 class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
-        ts = Timestamp("20130101").as_unit("ns").value
+        ts = Timestamp("20130101").as_unit("ns")._value
         dti = DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(np.random.randn(100), index=dti)
 
