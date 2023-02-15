@@ -240,23 +240,26 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
-    def test_fillna_copy_frame(self, data_missing):
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.A.values is not result.A.values
+        if using_copy_on_write:
+            assert df.A.values is result.A.values
+        else:
+            assert df.A.values is not result.A.values
 
-    def test_fillna_copy_series(self, data_missing, no_op_with_cow: bool = False):
+    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        if no_op_with_cow:
+        if using_copy_on_write:
             assert ser._values is result._values
         else:
             assert ser._values is not result._values
