@@ -1372,19 +1372,12 @@ def test_quantile(data, interpolation, quantile, request):
 
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
 def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx, request):
     pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
+    if (
         pa.types.is_boolean(pa_dtype)
         and "multi_mode" in request.node.nodeid
         and pa_version_under9p0
@@ -1401,24 +1394,15 @@ def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx, request):
     tm.assert_series_equal(result, expected)
 
 
-def test_mode_dropna_false_mode_na(data, request):
+def test_mode_dropna_false_mode_na(data):
     # GH 50982
-    pa_dtype = data.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
     more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
     result = more_nans.mode(dropna=False)
     expected = pd.Series([None], dtype=data.dtype)
     tm.assert_series_equal(result, expected)
 
-    equal_nans = pd.Series([None, data[0]], dtype=data.dtype)
-    result = equal_nans.mode(dropna=False)
-    expected = pd.Series([data[0], None], dtype=data.dtype)
+    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
 
