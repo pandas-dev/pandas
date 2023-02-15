@@ -17,8 +17,8 @@ from pandas._libs.tslibs.offsets import CBMonthBegin
 from pandas._libs.tslibs.offsets import CBMonthEnd
 from pandas._libs.tslibs.offsets import CDay
 
-from pandas import _testing as tm
 from pandas import date_range
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_is_on_offset
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 from pandas.tests.tseries.offsets.test_offsets import _ApplyCases

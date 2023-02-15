@@ -8,7 +8,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 # --------------------------------------------------------------------------------------
 # str.contains

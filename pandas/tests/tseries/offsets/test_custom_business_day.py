@@ -9,8 +9,8 @@ import pytest
 
 from pandas._libs.tslibs.offsets import CDay
 
-from pandas import _testing as tm
 from pandas import read_pickle
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries.holiday import USFederalHolidayCalendar

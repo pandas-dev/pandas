@@ -8,7 +8,7 @@ from pandas import DataFrame
 from pandas import Index
 from pandas import MultiIndex
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 
 def test_extract_expand_kwarg_wrong_type_raises(any_string_dtype):

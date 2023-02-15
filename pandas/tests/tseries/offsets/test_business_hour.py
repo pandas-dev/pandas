@@ -15,8 +15,8 @@ from pandas._libs.tslibs.offsets import BusinessHour
 from pandas._libs.tslibs.offsets import Nano
 
 from pandas import DatetimeIndex
-from pandas import _testing as tm
 from pandas import date_range
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 

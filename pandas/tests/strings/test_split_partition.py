@@ -9,7 +9,7 @@ from pandas import DataFrame
 from pandas import Index
 from pandas import MultiIndex
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])

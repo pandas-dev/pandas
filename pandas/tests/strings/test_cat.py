@@ -7,8 +7,8 @@ from pandas import DataFrame
 from pandas import Index
 from pandas import MultiIndex
 from pandas import Series
-from pandas import _testing as tm
 from pandas import concat
+import pandas._testing as tm
 
 
 def assert_series_or_index_equal(left, right):

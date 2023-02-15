@@ -10,8 +10,8 @@ from pandas.errors import PossibleDataLossError
 from pandas import DataFrame
 from pandas import HDFStore
 from pandas import Series
-from pandas import _testing as tm
 from pandas import read_hdf
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import _maybe_remove
 from pandas.tests.io.pytables.common import ensure_clean_store
 from pandas.tests.io.pytables.common import tables

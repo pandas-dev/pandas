@@ -167,7 +167,7 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas import _testing as tm
+      >>> import pandas._testing as tm
       >>> @tm.network
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):

@@ -5,7 +5,7 @@ from pandas._libs import lib
 
 from pandas import DataFrame
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Falling back")

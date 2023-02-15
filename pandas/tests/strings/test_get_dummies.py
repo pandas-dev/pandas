@@ -4,7 +4,7 @@ from pandas import DataFrame
 from pandas import Index
 from pandas import MultiIndex
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 
 def test_get_dummies(any_string_dtype):

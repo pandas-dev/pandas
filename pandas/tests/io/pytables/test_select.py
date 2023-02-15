@@ -11,12 +11,12 @@ from pandas import HDFStore
 from pandas import Index
 from pandas import MultiIndex
 from pandas import Series
-from pandas import _testing as tm
 from pandas import bdate_range
 from pandas import concat
 from pandas import date_range
 from pandas import isna
 from pandas import read_hdf
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import _maybe_remove
 from pandas.tests.io.pytables.common import ensure_clean_store
 

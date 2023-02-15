@@ -10,9 +10,9 @@ from pandas import CategoricalIndex
 from pandas import DataFrame
 from pandas import HDFStore
 from pandas import MultiIndex
-from pandas import _testing as tm
 from pandas import date_range
 from pandas import read_hdf
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import Term

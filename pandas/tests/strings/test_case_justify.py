@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas import _testing as tm
+import pandas._testing as tm
 
 
 def test_title(any_string_dtype):

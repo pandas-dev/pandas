@@ -16,7 +16,7 @@ from pandas._libs.tslibs.offsets import BMonthEnd
 
 from pandas import DatetimeIndex
 from pandas import Timedelta
-from pandas import _testing as tm
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_is_on_offset
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
