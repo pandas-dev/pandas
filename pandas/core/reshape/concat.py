@@ -21,6 +21,7 @@ from pandas._config import using_copy_on_write
 
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
+        Dtype,
         HashableT,
     )
 
@@ -563,6 +565,18 @@ class _Concatenator:
 
         self.new_axes = self._get_new_axes()
 
+    def _maybe_float_dtype(self) -> Dtype | None:
+        """If all columns in all objs  are float only, we may be able to optimize."""
+        all_dtypes = [
+            blk.dtype
+            for df in self.objs
+            for blk in df._mgr.blocks  # type: ignore[union-attr]
+        ]
+        all_dtypes = [*dict.fromkeys(all_dtypes)]
+        if len(all_dtypes) != 1:
+            return None
+        return all_dtypes[0] if is_float_dtype(all_dtypes[0]) else None
+
     def get_result(self):
         cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
@@ -597,6 +611,7 @@ class _Concatenator:
         # combine block managers
         else:
             sample = cast("DataFrame", self.objs[0])
+            maybe_float = self._maybe_float_dtype()
 
             mgrs_indexers = []
             for obj in self.objs:
@@ -608,9 +623,17 @@ class _Concatenator:
                         continue
 
                     # 1-ax to convert BlockManager axis to DataFrame axis
-                    obj_labels = obj.axes[1 - ax]
-                    if not new_labels.equals(obj_labels):
-                        indexers[ax] = obj_labels.get_indexer(new_labels)
+                    obj_labels = obj.axes[self.bm_axis]
+                    if new_labels.equals(obj_labels):
+                        continue
+                    if maybe_float is not None and obj_labels.is_unique:
+                        # by aligning dataframes to new_labels, we get a perf boost
+                        # only done with frames with all floats ATM
+                        obj = obj.reindex(new_labels, axis=self.bm_axis)
+                        obj = obj.astype(maybe_float)
+                        continue
+
+                    indexers[ax] = obj_labels.get_indexer(new_labels)
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
