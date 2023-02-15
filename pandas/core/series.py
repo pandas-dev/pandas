@@ -235,6 +235,7 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
+
 # error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
 # definition in base class "NDFrame"
 # error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
@@ -345,9 +346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _internal_names_set = {"index"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
-        base.IndexOpsMixin._hidden_attrs
-        | NDFrame._hidden_attrs
-        | frozenset(["compress", "ptp"])
+        base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -374,7 +373,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
-
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
@@ -426,7 +424,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
         if isinstance(data, Index):
-
             if dtype is not None:
                 # astype copies
                 data = data.astype(dtype)
@@ -1111,7 +1108,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
-            if is_integer(key) and self.index.inferred_type != "integer":
+            if is_integer(key):
                 if not self.index._should_fallback_to_positional:
                     # GH#33469
                     self.loc[key] = value

@@ -364,7 +364,6 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
     def test_where_datetime(self):
-
         # GH 3311
         df = DataFrame(
             {

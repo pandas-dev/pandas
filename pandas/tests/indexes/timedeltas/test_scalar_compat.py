@@ -103,7 +103,7 @@ class TestVectorizedTimedelta:
         t1c = TimedeltaIndex([1, 1, 1], unit="D")
 
         # note that negative times round DOWN! so don't give whole numbers
-        for (freq, s1, s2) in [
+        for freq, s1, s2 in [
             ("N", t1, t2),
             ("U", t1, t2),
             (
@@ -124,7 +124,6 @@ class TestVectorizedTimedelta:
             ("H", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
             ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
         ]:
-
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)
             r2 = t2.round(freq)

@@ -98,7 +98,6 @@ class TestTimedeltas:
             to_timedelta(arg, errors=errors)
 
     def test_to_timedelta_invalid_errors(self):
-
         # bad value for errors parameter
         msg = "errors must be one of"
         with pytest.raises(ValueError, match=msg):

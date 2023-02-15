@@ -454,7 +454,6 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         tupleize_cols: bool = True,
     ) -> Index:
-
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -479,7 +478,6 @@ class Index(IndexOpsMixin, PandasObject):
             pass
 
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
@@ -500,7 +498,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise cls._raise_scalar_data_error(data)
 
         else:
-
             if tupleize_cols:
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -798,7 +795,6 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
-
             if isinstance(target_values, BaseMaskedArray):
                 return _masked_engines[target_values.dtype.name](target_values)
             elif self._engine_type is libindex.ObjectEngine:
@@ -922,7 +918,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self[:]
 
     def view(self, cls=None):
-
         # we need to see if we are subclassing an
         # index type here
         if cls is not None and not hasattr(cls, "_typ"):
@@ -1211,7 +1206,6 @@ class Index(IndexOpsMixin, PandasObject):
         return f"{klass_name}({data}{prepr})"
 
     def _format_space(self) -> str_t:
-
         # using space here controls if the attributes
         # are line separated or not (the default)
 
@@ -3023,10 +3017,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _validate_sort_keyword(self, sort):
-        if sort not in [None, False]:
+        if sort not in [None, False, True]:
             raise ValueError(
                 "The 'sort' keyword only takes the values of "
-                f"None or False; {sort} was passed."
+                f"None, True, or False; {sort} was passed."
             )
 
     @final
@@ -3070,6 +3064,7 @@ class Index(IndexOpsMixin, PandasObject):
                  A RuntimeWarning is issued in this case.
 
             * False : do not sort the result.
+            * True : Sort the result (which may raise TypeError).
 
         Returns
         -------
@@ -3154,10 +3149,16 @@ class Index(IndexOpsMixin, PandasObject):
         elif not len(other) or self.equals(other):
             # NB: whether this (and the `if not len(self)` check below) come before
             #  or after the is_dtype_equal check above affects the returned dtype
-            return self._get_reconciled_name_object(other)
+            result = self._get_reconciled_name_object(other)
+            if sort is True:
+                return result.sort_values()
+            return result
 
         elif not len(self):
-            return other._get_reconciled_name_object(self)
+            result = other._get_reconciled_name_object(self)
+            if sort is True:
+                return result.sort_values()
+            return result
 
         result = self._union(other, sort=sort)
 
@@ -3258,12 +3259,13 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : False or None, default False
+        sort : True, False or None, default False
             Whether to sort the resulting index.
 
-            * False : do not sort the result.
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
+            * False : do not sort the result.
+            * True : Sort the result (which may raise TypeError).
 
         Returns
         -------
@@ -3285,8 +3287,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.equals(other):
             if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
+                result = self.unique()._get_reconciled_name_object(other)
+            else:
+                result = self._get_reconciled_name_object(other)
+            if sort is True:
+                result = result.sort_values()
+            return result
 
         if len(self) == 0 or len(other) == 0:
             # fastpath; we need to be careful about having commutativity
@@ -3403,7 +3409,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : False or None, default None
+        sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
             incomparable elements is caught by pandas.
@@ -3411,6 +3417,7 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
+            * True : Sort the result (which may raise TypeError).
 
         Returns
         -------
@@ -3439,11 +3446,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(other) == 0:
             # Note: we do not (yet) sort even if sort=None GH#24959
-            return self.rename(result_name)
+            result = self.rename(result_name)
+            if sort is True:
+                return result.sort_values()
+            return result
 
         if not self._should_compare(other):
             # Nothing matches -> difference is everything
-            return self.rename(result_name)
+            result = self.rename(result_name)
+            if sort is True:
+                return result.sort_values()
+            return result
 
         result = self._difference(other, sort=sort)
         return self._wrap_difference_result(other, result)
@@ -3479,7 +3492,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : False or None, default None
+        sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
             incomparable elements is caught by pandas.
@@ -3487,6 +3500,7 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
+            * True : Sort the result (which may raise TypeError).
 
         Returns
         -------
@@ -3732,10 +3746,11 @@ class Index(IndexOpsMixin, PandasObject):
             # Only call equals if we have same dtype to avoid inference/casting
             return np.arange(len(target), dtype=np.intp)
 
-        if not is_dtype_equal(self.dtype, target.dtype) and not is_interval_dtype(
-            self.dtype
-        ):
-            # IntervalIndex gets special treatment for partial-indexing
+        if not is_dtype_equal(
+            self.dtype, target.dtype
+        ) and not self._should_partial_index(target):
+            # _should_partial_index e.g. IntervalIndex with numeric scalars
+            #  that can be matched to Interval scalars.
             dtype = self._find_common_type_compat(target)
 
             this = self.astype(dtype, copy=False)
@@ -3859,7 +3874,6 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_fill_indexer(
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> npt.NDArray[np.intp]:
-
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
@@ -3967,7 +3981,6 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: npt.NDArray[np.intp],
         tolerance,
     ) -> npt.NDArray[np.intp]:
-
         distance = self._difference_compat(target, indexer)
 
         return np.where(distance <= tolerance, indexer, -1)
@@ -4217,17 +4230,11 @@ class Index(IndexOpsMixin, PandasObject):
                     )
                 elif self._is_multi:
                     raise ValueError("cannot handle a non-unique multi-index!")
-                else:
-                    if method is not None or limit is not None:
-                        raise ValueError(
-                            "cannot reindex a non-unique index "
-                            "with a method or limit"
-                        )
-                    indexer, _ = self.get_indexer_non_unique(target)
-
-                if not self.is_unique:
+                elif not self.is_unique:
                     # GH#42568
                     raise ValueError("cannot reindex on an axis with duplicate labels")
+                else:
+                    indexer, _ = self.get_indexer_non_unique(target)
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
@@ -4289,12 +4296,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             # GH#38906
             if not len(self):
-
                 new_indexer = np.arange(0, dtype=np.intp)
 
             # a unique indexer
             elif target.is_unique:
-
                 # see GH5553, make sure we use the right indexer
                 new_indexer = np.arange(len(indexer), dtype=np.intp)
                 new_indexer[cur_indexer] = np.arange(len(cur_labels))
@@ -4303,7 +4308,6 @@ class Index(IndexOpsMixin, PandasObject):
             # we have a non_unique selector, need to use the original
             # indexer here
             else:
-
                 # need to retake to have the same size as the indexer
                 indexer[~check] = -1
 
@@ -4405,7 +4409,6 @@ class Index(IndexOpsMixin, PandasObject):
         # try to figure out the join level
         # GH3662
         if level is None and (self._is_multi or other._is_multi):
-
             # have the same levels/names so a simple join
             if self.names == other.names:
                 pass
@@ -4536,7 +4539,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot join with no overlapping index names")
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-
             # Drop the non-matching levels from left and right respectively
             ldrop_names = sorted(self_names - overlap, key=self_names_order)
             rdrop_names = sorted(other_names - overlap, key=other_names_order)
@@ -5680,9 +5682,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind in ["i", "u", "f"]:
-            return False
-        return not self._holds_integer()
+        return self.inferred_type not in {
+            "integer",
+            "mixed-integer",
+            "floating",
+            "complex",
+        }
 
     _index_shared_docs[
         "get_indexer_non_unique"
@@ -5739,9 +5744,9 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
-        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
-            # IntervalIndex get special treatment bc numeric scalars can be
-            #  matched to Interval scalars
+        if not self._should_compare(target) and not self._should_partial_index(target):
+            # _should_partial_index e.g. IntervalIndex with numeric scalars
+            #  that can be matched to Interval scalars.
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         pself, ptarget = self._maybe_promote(target)
@@ -5853,7 +5858,6 @@ class Index(IndexOpsMixin, PandasObject):
         nmissing = missing_mask.sum()
 
         if nmissing:
-
             # TODO: remove special-case; this is just to keep exception
             #  message tests from raising while debugging
             use_interval_msg = is_interval_dtype(self.dtype) or (
@@ -7161,10 +7165,12 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
 
 
 def _maybe_try_sort(result, sort):
-    if sort is None:
+    if sort is not False:
         try:
             result = algos.safe_sort(result)
         except TypeError as err:
+            if sort is True:
+                raise
             warnings.warn(
                 f"{err}, sort order is undefined for incomparable objects.",
                 RuntimeWarning,

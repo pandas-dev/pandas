@@ -925,7 +925,6 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
-
         if not _is_label_like(key):
             if obj.ndim == 1:
                 return False
@@ -961,7 +960,6 @@ def get_grouper(
             return False
 
     for gpr, level in zip(keys, levels):
-
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)
