@@ -2501,10 +2501,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        # TODO: 2023-02-05 all tests that get here have self.as_index
-        return self._apply_to_column_groupbys(
+        result = self._apply_to_column_groupbys(
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
+        return result
 
     @doc(DataFrame.describe)
     def describe(
