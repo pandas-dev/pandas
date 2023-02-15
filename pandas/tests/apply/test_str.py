@@ -258,7 +258,6 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
-
     if op == "ngroup":
         request.node.add_marker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")

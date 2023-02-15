@@ -207,7 +207,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name: Hashable = None,
         **fields,
     ) -> PeriodIndex:
-
         valid_field_set = {
             "year",
             "month",
@@ -401,7 +400,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             key = NaT
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:

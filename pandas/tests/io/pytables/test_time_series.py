@@ -14,7 +14,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_store_datetime_fractional_secs(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         dt = datetime.datetime(2012, 1, 2, 3, 4, 5, 123456)
         series = Series([0], [dt])
@@ -23,7 +22,6 @@ def test_store_datetime_fractional_secs(setup_path):
 
 
 def test_tseries_indices_series(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
         ser = Series(np.random.randn(len(idx)), idx)
@@ -45,7 +43,6 @@ def test_tseries_indices_series(setup_path):
 
 
 def test_tseries_indices_frame(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
         df = DataFrame(np.random.randn(len(idx), 3), index=idx)

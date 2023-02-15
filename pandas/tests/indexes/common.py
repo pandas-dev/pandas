@@ -63,7 +63,6 @@ class Base:
             self._index_cls()
 
     def test_shift(self, simple_index):
-
         # GH8083 test the base class for shift
         idx = simple_index
         msg = (
@@ -83,7 +82,6 @@ class Base:
             type(idx)(idx, name=[])
 
     def test_create_index_existing_name(self, simple_index):
-
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
         expected = simple_index
@@ -136,7 +134,6 @@ class Base:
             )
 
     def test_numeric_compat(self, simple_index):
-
         idx = simple_index
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
@@ -187,7 +184,6 @@ class Base:
             idx.any()
 
     def test_repr_roundtrip(self, simple_index):
-
         idx = simple_index
         tm.assert_index_equal(eval(repr(idx)), idx)
 
@@ -600,7 +596,6 @@ class Base:
         ],
     )
     def test_map_dictlike(self, mapper, simple_index):
-
         idx = simple_index
         if isinstance(idx, CategoricalIndex):
             # FIXME: this fails with CategoricalIndex bc it goes through

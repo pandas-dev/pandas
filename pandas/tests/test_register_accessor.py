@@ -98,7 +98,6 @@ def test_overwrite_warns():
 
 
 def test_raises_attribute_error():
-
     with ensure_removed(pd.Series, "bad"):
 
         @pd.api.extensions.register_series_accessor("bad")
