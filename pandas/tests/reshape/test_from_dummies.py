@@ -117,7 +117,6 @@ def test_error_with_prefix_multiple_seperators():
 
 
 def test_error_with_prefix_sep_wrong_type(dummies_basic):
-
     with pytest.raises(
         TypeError,
         match=(

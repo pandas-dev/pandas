@@ -394,7 +394,6 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     parser = all_parsers
 
     with open(datapath("io", "data", "csv", "iris.csv")) as path:
-
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:

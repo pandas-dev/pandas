@@ -210,7 +210,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         copy: bool = False,
         name: Hashable = None,
     ) -> CategoricalIndex:
-
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):

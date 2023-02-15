@@ -108,7 +108,6 @@ class TestFloatNumericIndex(NumericBase):
             index_cls(0.0)
 
     def test_constructor_coerce(self, mixed_index, float_index):
-
         self.check_coerce(mixed_index, Index([1.5, 2, 3, 4, 5]))
         self.check_coerce(float_index, Index(np.arange(5) * 2.5))
 
@@ -117,7 +116,6 @@ class TestFloatNumericIndex(NumericBase):
         self.check_coerce(float_index, result.astype("float64"))
 
     def test_constructor_explicit(self, mixed_index, float_index):
-
         # these don't auto convert
         self.check_coerce(
             float_index, Index((np.arange(5) * 2.5), dtype=object), is_float_index=False
@@ -170,7 +168,6 @@ class TestFloatNumericIndex(NumericBase):
         ],
     )
     def test_lookups_datetimelike_values(self, vals, dtype):
-
         # If we have datetime64 or timedelta64 values, make sure they are
         #  wrapped correctly  GH#31163
         ser = Series(vals, index=range(3, 6))
@@ -389,7 +386,6 @@ class TestIntNumericIndex(NumericInt):
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
         if dtype == np.int64:
-
             without_dtype = Index(arr)
             # as of 2.0 we do not infer a dtype when we get an object-dtype
             #  ndarray of numbers, matching Series behavior
@@ -407,7 +403,6 @@ class TestIntNumericIndex(NumericInt):
         self,
         any_unsigned_int_numpy_dtype,
     ):
-
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
 

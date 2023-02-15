@@ -32,7 +32,6 @@ class TestCategoricalIndexingWithFactor:
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
     def test_setitem(self, factor):
-
         # int/positional
         c = factor.copy()
         c[0] = "b"
@@ -104,7 +103,6 @@ class TestCategoricalIndexingWithFactor:
         assert cat[1] == (0, 1)
 
     def test_setitem_listlike(self):
-
         # GH#9469
         # properly coerce the input indexers
         np.random.seed(1)
@@ -131,7 +129,6 @@ class TestCategoricalIndexing:
         tm.assert_categorical_equal(sliced, expected)
 
     def test_getitem_listlike(self):
-
         # GH 9469
         # properly coerce the input indexers
         np.random.seed(1)
@@ -367,6 +364,7 @@ def non_coercible_categorical(monkeypatch):
     ValueError
         When Categorical.__array__ is called.
     """
+
     # TODO(Categorical): identify other places where this may be
     # useful and move to a conftest.py
     def array(self, dtype=None):
