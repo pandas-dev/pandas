@@ -194,7 +194,6 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
-
         _, ax = self.plt.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis="log")

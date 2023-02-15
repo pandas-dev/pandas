@@ -277,7 +277,6 @@ def _grouped_plot(
     ax=None,
     **kwargs,
 ):
-
     if figsize == "default":
         # allowed to specify mpl default with 'default'
         raise ValueError(

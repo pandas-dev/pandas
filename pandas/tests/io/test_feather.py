@@ -33,7 +33,6 @@ class TestFeather:
                 to_feather(df, path)
 
     def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
-
         if expected is None:
             expected = df
 
@@ -44,7 +43,6 @@ class TestFeather:
             tm.assert_frame_equal(result, expected)
 
     def test_error(self):
-
         msg = "feather only support IO with DataFrames"
         for obj in [
             pd.Series([1, 2, 3]),
@@ -56,7 +54,6 @@ class TestFeather:
             self.check_error_on_write(obj, ValueError, msg)
 
     def test_basic(self):
-
         df = pd.DataFrame(
             {
                 "string": list("abc"),
@@ -92,14 +89,12 @@ class TestFeather:
         self.check_round_trip(df)
 
     def test_duplicate_columns(self):
-
         # https://github.com/wesm/feather/issues/53
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         self.check_external_error_on_write(df)
 
     def test_stringify_columns(self):
-
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         msg = "feather must have string column names"
         self.check_error_on_write(df, ValueError, msg)
@@ -124,7 +119,6 @@ class TestFeather:
         self.check_round_trip(df, expected, columns=["B", "A"])
 
     def test_unsupported_other(self):
-
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         self.check_external_error_on_write(df)
@@ -135,7 +129,6 @@ class TestFeather:
         self.check_round_trip(df, use_threads=False)
 
     def test_write_with_index(self):
-
         df = pd.DataFrame({"A": [1, 2, 3]})
         self.check_round_trip(df)
 
@@ -151,7 +144,6 @@ class TestFeather:
             [1, 3, 4],
             pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
         ]:
-
             df.index = index
             self.check_error_on_write(df, ValueError, msg)
 
@@ -248,7 +240,6 @@ class TestFeather:
         )
 
         if dtype_backend == "pyarrow":
-
             from pandas.arrays import ArrowExtensionArray
 
             expected = pd.DataFrame(

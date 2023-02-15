@@ -13,6 +13,7 @@ from pytz import utc
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
     conversion,
@@ -27,7 +28,6 @@ import pandas._testing as tm
 
 
 class TestTimestampUnaryOps:
-
     # --------------------------------------------------------------
     def test_round_divison_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
@@ -362,6 +362,19 @@ class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
     # Timestamp.replace
+
+    def test_replace_out_of_pydatetime_bounds(self):
+        # GH#50348
+        ts = Timestamp("2016-01-01").as_unit("ns")
+
+        msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(year=99_999)
+
+        ts = ts.as_unit("ms")
+        result = ts.replace(year=99_999)
+        assert result.year == 99_999
+        assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(

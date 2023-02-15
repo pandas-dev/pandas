@@ -19,7 +19,6 @@ def check(result, expected=None):
 
 class TestDataFrameNonuniqueIndexes:
     def test_setattr_columns_vs_construct_with_columns(self):
-
         # assignment
         # GH 3687
         arr = np.random.randn(3, 2)

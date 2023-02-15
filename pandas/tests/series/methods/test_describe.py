@@ -38,7 +38,6 @@ class TestSeriesDescribe:
         tm.assert_series_equal(result, expected)
 
     def test_describe_strs(self):
-
         ser = Series(["a", "a", "b", "c", "d"], name="str_data")
         result = ser.describe()
         expected = Series(

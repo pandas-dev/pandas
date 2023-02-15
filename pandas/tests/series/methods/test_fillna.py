@@ -32,7 +32,7 @@ class TestSeriesFillNA:
         filled2 = series.fillna(value=series.values[2])
 
         expected = series.copy()
-        expected.values[3] = expected.values[2]
+        expected.iloc[3] = expected.iloc[2]
 
         tm.assert_series_equal(filled, expected)
         tm.assert_series_equal(filled2, expected)
@@ -320,7 +320,6 @@ class TestSeriesFillNA:
         tm.assert_equal(result, expected)
 
     def test_datetime64_fillna(self):
-
         ser = Series(
             [
                 Timestamp("20130101"),
@@ -794,7 +793,6 @@ class TestSeriesFillNA:
             ser.fillna((1, 2))
 
     def test_fillna_method_and_limit_invalid(self):
-
         # related GH#9217, make sure limit is an int and greater than 0
         ser = Series([1, 2, 3, None])
         msg = "|".join(

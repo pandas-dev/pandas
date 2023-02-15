@@ -112,7 +112,6 @@ class HDFStoreDataFrame(BaseIO):
 
 
 class HDF(BaseIO):
-
     params = ["table", "fixed"]
     param_names = ["format"]
 

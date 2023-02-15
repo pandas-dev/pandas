@@ -153,7 +153,6 @@ class WrappedCythonOp:
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
-
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
@@ -207,6 +206,7 @@ class WrappedCythonOp:
             if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
+                # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
