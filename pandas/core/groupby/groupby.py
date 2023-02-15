@@ -1043,7 +1043,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
+            # TODO: can we re-use e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
                 indexer, _ = result.index.get_indexer_non_unique(target)
                 result = result.take(indexer, axis=self.axis)
@@ -1460,6 +1462,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         NotImplementedError.
         """
         # We get here with a) EADtypes and b) object dtype
+        assert alt is not None
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
@@ -1775,7 +1778,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 masked = mask & ~isna(bvalues)
 
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
