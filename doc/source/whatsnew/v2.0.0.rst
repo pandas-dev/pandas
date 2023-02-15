@@ -243,8 +243,9 @@ Copy-on-Write improvements
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
 
-- The :class:`DataFrame` constructor now will now respect the Copy-on-Write mechanism
-  when called with another :class:`DataFrame`.
+- The :class:`DataFrame` constructor will now create a lazy copy (deferring the copy until
+  a modification to the data happens) when constructing from an existing
+  :class:`DataFrame` with the default of ``copy=False`` (:issue:`51239`)
 
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Series objects and specifying ``copy=False``, will now use a lazy copy
