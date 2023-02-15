@@ -150,10 +150,11 @@ set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to nece
 To simplify specifying ``use_nullable_dtypes=True`` in several functions, you can set a global option ``nullable_dtypes``
 to ``True``. You will still need to set the global configuration option ``"mode.dtype_backend"`` to ``pyarrow``.
 
-.. ipython:: python
+.. code-block:: ipython
 
-    pd.set_option("mode.dtype_backend", "pyarrow")
-    pd.options.mode.nullable_dtypes = True
+    In [1]: pd.set_option("mode.dtype_backend", "pyarrow")
+
+    In [2]: pd.options.mode.nullable_dtypes = True
 
 Several non-IO reader functions can also use the ``"mode.dtype_backend"`` option to return PyArrow-backed data including:
 
