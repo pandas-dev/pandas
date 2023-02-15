@@ -19,11 +19,6 @@ repos:
     rev: v0.0.244
     hooks:
     -   id: ruff
--   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.1
-    hooks:
-    -   id: absolufy-imports
-        files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
