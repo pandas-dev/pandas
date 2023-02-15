@@ -64,6 +64,7 @@ Guides
     dsintro
     basics
     io
+    pyarrow
     indexing
     advanced
     merging

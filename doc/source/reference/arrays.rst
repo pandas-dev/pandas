@@ -113,6 +113,8 @@ values.
 
    ArrowDtype
 
+For more information, please see the :ref:`PyArrow user guide <pyarrow>`
+
 .. _api.arrays.datetime:
 
 Datetimes
