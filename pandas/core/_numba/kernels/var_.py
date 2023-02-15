@@ -25,7 +25,6 @@ def add_var(
     prev_value: float,
 ) -> tuple[int, float, float, float, int, float]:
     if not np.isnan(val):
-
         if val == prev_value:
             num_consecutive_same_value += 1
         else:
@@ -92,7 +91,6 @@ def sliding_var(
         s = start[i]
         e = end[i]
         if i == 0 or not is_monotonic_increasing_bounds:
-
             prev_value = values[s]
             num_consecutive_same_value = 0
 

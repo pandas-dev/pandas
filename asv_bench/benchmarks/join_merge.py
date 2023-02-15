@@ -23,7 +23,6 @@ except ImportError:
 
 
 class Concat:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -56,7 +55,6 @@ class Concat:
 
 
 class ConcatDataFrames:
-
     params = ([0, 1], [True, False])
     param_names = ["axis", "ignore_index"]
 
@@ -74,7 +72,6 @@ class ConcatDataFrames:
 
 
 class ConcatIndexDtype:
-
     params = (
         ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
         ["monotonic", "non_monotonic", "has_na"],
@@ -114,7 +111,6 @@ class ConcatIndexDtype:
 
 
 class Join:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -223,7 +219,6 @@ class JoinNonUnique:
 
 
 class Merge:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -274,7 +269,6 @@ class Merge:
 
 
 class MergeEA:
-
     params = [
         "Int64",
         "Int32",
@@ -306,7 +300,6 @@ class MergeEA:
 
 
 class I8Merge:
-
     params = ["inner", "outer", "left", "right"]
     param_names = ["how"]
 
