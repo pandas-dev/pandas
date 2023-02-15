@@ -42,7 +42,6 @@ class TestTZLocalize:
         tm.assert_frame_equal(result, expected.T)
 
     def test_tz_localize_naive(self, frame_or_series):
-
         # Can't localize if already tz-aware
         rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
         ts = Series(1, index=rng)

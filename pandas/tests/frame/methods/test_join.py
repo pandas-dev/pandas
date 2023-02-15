@@ -113,7 +113,6 @@ def right_w_dups(right_no_dup):
     ],
 )
 def test_join(left, right, how, sort, expected):
-
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 

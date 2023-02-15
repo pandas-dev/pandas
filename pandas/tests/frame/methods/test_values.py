@@ -115,7 +115,6 @@ class TestDataFrameValues:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_interleave_with_tzaware(self, timezone_frame):
-
         # interleave with object
         result = timezone_frame.assign(D="foo").values
         expected = np.array(
@@ -185,7 +184,6 @@ class TestDataFrameValues:
         assert values.dtype == np.float64
 
     def test_values_lcd(self, mixed_float_frame, mixed_int_frame):
-
         # mixed lcd
         values = mixed_float_frame[["A", "B", "C", "D"]].values
         assert values.dtype == np.float64

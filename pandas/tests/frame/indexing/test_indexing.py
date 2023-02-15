@@ -57,8 +57,16 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match="random"):
             float_frame["random"]
 
-    def test_getitem2(self, float_frame):
+    def test_getitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        result = df[1]
+        expected = DataFrame([[1, 3], [4, 6]], columns=Index([1, 1], dtype=dtype))
+        tm.assert_frame_equal(result, expected, check_exact=True)
 
+    def test_getitem2(self, float_frame):
         df = float_frame.copy()
         df["$10"] = np.random.randn(len(df))
 
@@ -71,8 +79,16 @@ class TestDataFrameIndexing:
         res = df["@awesome_domain"]
         tm.assert_numpy_array_equal(ad, res.values)
 
-    def test_setitem_list(self, float_frame):
+    def test_setitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        df[1] = 10
+        expected = DataFrame([[10, 2, 10], [10, 5, 10]], columns=idx)
+        tm.assert_frame_equal(df, expected, check_exact=True)
 
+    def test_setitem_list(self, float_frame):
         float_frame["E"] = "foo"
         data = float_frame[["A", "B"]]
         float_frame[["B", "A"]] = data
@@ -92,7 +108,6 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
@@ -146,7 +161,6 @@ class TestDataFrameIndexing:
             mixed_float_frame,
             mixed_int_frame,
         ]:
-
             data = df._get_numeric_data()
             bif = df[df > 0]
             bifw = DataFrame(
@@ -167,7 +181,6 @@ class TestDataFrameIndexing:
                     assert bif[c].dtype == df[c].dtype
 
     def test_getitem_boolean_casting(self, datetime_frame):
-
         # don't upcast if we don't need to
         df = datetime_frame.copy()
         df["E"] = 1
@@ -545,7 +558,6 @@ class TestDataFrameIndexing:
     def test_fancy_getitem_slice_mixed(
         self, float_frame, float_string_frame, using_copy_on_write
     ):
-
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -558,7 +570,6 @@ class TestDataFrameIndexing:
 
         sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
-
             assert (float_frame["C"] == 4).all()
 
             # with the enforcement of GH#45333 in 2.0, this remains a view
@@ -1005,7 +1016,6 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_row_slice_view(self, using_copy_on_write, request):
-
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
 
@@ -1026,7 +1036,6 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
-
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
 
         result = df.iloc[:, 1]
@@ -1505,7 +1514,6 @@ class TestDataFrameIndexing:
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
-
         df = uint64_frame
         idx = df["A"].rename("foo")
 

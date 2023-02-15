@@ -146,7 +146,6 @@ class TestiLocBaseIndependent:
         assert df.iloc._is_scalar_access((1, 0))
 
     def test_iloc_exceeds_bounds(self):
-
         # GH6296
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list("ABCDE"))
@@ -275,7 +274,6 @@ class TestiLocBaseIndependent:
             obj.iloc["a"]
 
     def test_iloc_array_not_mutating_negative_indices(self):
-
         # GH 21867
         array_with_neg_numbers = np.array([1, 2, -1])
         array_copy = array_with_neg_numbers.copy()
@@ -399,7 +397,6 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_slice_dups(self):
-
         df1 = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
         df2 = DataFrame(
             np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
@@ -457,7 +454,6 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_list(self):
-
         # setitem with an iloc list
         df = DataFrame(
             np.arange(9).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"]
@@ -486,7 +482,6 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
-
         # GH 6766
         # iloc with a mask aligning from another iloc
         df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
@@ -623,7 +618,6 @@ class TestiLocBaseIndependent:
             df.iloc["j", "D"]
 
     def test_iloc_getitem_doc_issue(self, using_array_manager):
-
         # multi axis slicing issue with single block
         # surfaced in GH 6059
 
@@ -698,7 +692,6 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
     def test_iloc_setitem_list_of_lists(self):
-
         # GH 7551
         # list-of-list is set incorrectly in mixed vs. single dtyped frames
         df = DataFrame(
@@ -729,7 +722,6 @@ class TestiLocBaseIndependent:
         assert is_scalar(result) and result == "Z"
 
     def test_iloc_mask(self):
-
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
         mask = df.a % 2 == 0
@@ -800,7 +792,6 @@ class TestiLocBaseIndependent:
                         )
 
     def test_iloc_non_unique_indexing(self):
-
         # GH 4017, non-unique indexing (on the axis)
         df = DataFrame({"A": [0.1] * 3000, "B": [1] * 3000})
         idx = np.arange(30) * 99
@@ -818,7 +809,6 @@ class TestiLocBaseIndependent:
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
-
         df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
@@ -1110,7 +1100,6 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, df)
 
     def test_iloc_getitem_with_duplicates(self):
-
         df = DataFrame(np.random.rand(3, 3), columns=list("ABC"), index=list("aab"))
 
         result = df.iloc[0]
@@ -1195,7 +1184,6 @@ class TestiLocBaseIndependent:
         assert ser[0] == arr[-1]
 
     def test_iloc_setitem_multicolumn_to_datetime(self):
-
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
 
