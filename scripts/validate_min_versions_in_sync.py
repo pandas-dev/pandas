@@ -101,7 +101,10 @@ def update_yaml_file_version(yaml_file, toml_dic):
                     if version.parse(yaml_version) <= version.parse(
                         toml_deps[yaml_package]
                     ):
-                        yaml_left = yaml_package
+                        if "tzdata" in yaml_package:
+                            yaml_left += operator
+                        else:
+                            yaml_left = yaml_package
                     else:
                         yaml_left = str(dep_line) + ", "
             else:
