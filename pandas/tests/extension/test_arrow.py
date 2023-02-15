@@ -1925,7 +1925,9 @@ def test_str_removesuffix(val):
 )
 def test_str_unsupported_methods(method, args):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match=f"str.{method} not supported."):
+    with pytest.raises(
+        NotImplementedError, match=f"str.{method} not supported with pd.ArrowDtype"
+    ):
         getattr(ser.str, method)(*args)
 
 

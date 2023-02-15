@@ -1600,10 +1600,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(pc.binary_join(self._data, sep))
 
     def _str_partition(self, sep: str, expand: bool):
-        raise NotImplementedError("str.partition not supported.")
+        raise NotImplementedError(
+            "str.partition not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_rpartition(self, sep: str, expand: bool):
-        raise NotImplementedError("str.rpartition not supported.")
+        raise NotImplementedError(
+            "str.rpartition not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
@@ -1692,7 +1696,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(result)
 
     def _str_removeprefix(self, prefix: str):
-        raise NotImplementedError("str.removeprefix not supported.")
+        raise NotImplementedError(
+            "str.removeprefix not supported with pd.ArrowDtype(pa.string())."
+        )
         # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
         # starts_with = pc.starts_with(self._data, pattern=prefix)
         # removed = pc.utf8_slice_codeunits(self._data, len(prefix))
@@ -1706,45 +1712,71 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return type(self)(result)
 
     def _str_casefold(self):
-        raise NotImplementedError("str.casefold not supported.")
+        raise NotImplementedError(
+            "str.casefold not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_encode(self, encoding, errors: str = "strict"):
-        raise NotImplementedError("str.encode not supported.")
+        raise NotImplementedError(
+            "str.encode not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        raise NotImplementedError("str.extract not supported.")
+        raise NotImplementedError(
+            "str.extract not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_findall(self, pat, flags: int = 0):
-        raise NotImplementedError("str.findall not supported.")
+        raise NotImplementedError(
+            "str.findall not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_get_dummies(self, sep: str = "|"):
-        raise NotImplementedError("str.get_dummies not supported.")
+        raise NotImplementedError(
+            "str.get_dummies not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_index(self, sub, start: int = 0, end=None):
-        raise NotImplementedError("str.index not supported.")
+        raise NotImplementedError(
+            "str.index not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_rindex(self, sub, start: int = 0, end=None):
-        raise NotImplementedError("str.rindex not supported.")
+        raise NotImplementedError(
+            "str.rindex not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_normalize(self, form):
-        raise NotImplementedError("str.normalize not supported.")
+        raise NotImplementedError(
+            "str.normalize not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_rfind(self, sub, start: int = 0, end=None):
-        raise NotImplementedError("str.rfind not supported.")
+        raise NotImplementedError(
+            "str.rfind not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_split(
         self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
     ):
-        raise NotImplementedError("str.split not supported.")
+        raise NotImplementedError(
+            "str.split not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError("str.rsplit not supported.")
+        raise NotImplementedError(
+            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_translate(self, table):
-        raise NotImplementedError("str.translate not supported.")
+        raise NotImplementedError(
+            "str.translate not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_wrap(self, width, **kwargs):
-        raise NotImplementedError("str.wrap not supported.")
+        raise NotImplementedError(
+            "str.wrap not supported with pd.ArrowDtype(pa.string())."
+        )
 
     @property
     def _dt_day(self):
