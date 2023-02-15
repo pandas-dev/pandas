@@ -37,7 +37,7 @@ dependencies:
   - matplotlib>=3.6.1
   - numba>=0.53.1
   - numexpr>=2.7.3
-  - openpyxl>=3.0.7
+  - openpyxl>=3.0.7, <3.1.1
   - odfpy>=1.4.1
   - psycopg2>=2.8.6
   - pyarrow<11, >=7.0.0
