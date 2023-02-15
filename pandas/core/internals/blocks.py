@@ -429,6 +429,7 @@ class Block(PandasObject):
             return blocks
 
         if self.dtype == _dtype_obj:
+            # TODO: does it matter that self.dtype might not match blocks[i].dtype?
             # GH#44241 We downcast regardless of the argument;
             #  respecting 'downcast=None' may be worthwhile at some point,
             #  but ATM it breaks too much existing code.
@@ -1070,7 +1071,9 @@ class Block(PandasObject):
                     res_blocks.extend(rbs)
                 return res_blocks
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1101,6 +1104,8 @@ class Block(PandasObject):
         icond, noop = validate_putmask(values, ~cond)
         if noop:
             # GH-39595: Always return a copy; short-circuit up/downcasting
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         if other is lib.no_default:
@@ -1120,8 +1125,10 @@ class Block(PandasObject):
                 # no need to split columns
 
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond)
-                return self._maybe_downcast(blocks, downcast=_downcast)
+                blocks = block.where(orig_other, cond, using_cow=using_cow)
+                return self._maybe_downcast(
+                    blocks, downcast=_downcast, using_cow=using_cow
+                )
 
             else:
                 # since _maybe_downcast would split blocks anyway, we
@@ -1138,7 +1145,9 @@ class Block(PandasObject):
                         oth = other[:, i : i + 1]
 
                     submask = cond[:, i : i + 1]
-                    rbs = nb.where(oth, submask, _downcast=_downcast)
+                    rbs = nb.where(
+                        oth, submask, _downcast=_downcast, using_cow=using_cow
+                    )
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1527,7 +1536,9 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
@@ -1545,6 +1556,8 @@ class EABackedBlock(Block):
         if noop:
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         try:
@@ -1556,15 +1569,19 @@ class EABackedBlock(Block):
                 if is_interval_dtype(self.dtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 else:
                     raise
@@ -1582,7 +1599,7 @@ class EABackedBlock(Block):
                         n = orig_other[:, i : i + 1]
 
                     submask = orig_cond[:, i : i + 1]
-                    rbs = nb.where(n, submask)
+                    rbs = nb.where(n, submask, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1817,39 +1834,38 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         """
         # TODO: ATM this doesn't work for iget/_slice, can we change that?
 
-        if isinstance(indexer, tuple):
+        if isinstance(indexer, tuple) and len(indexer) == 2:
             # TODO(EA2D): not needed with 2D EAs
             #  Should never have length > 2.  Caller is responsible for checking.
             #  Length 1 is reached vis setitem_single_block and setitem_single_column
             #  each of which pass indexer=(pi,)
-            if len(indexer) == 2:
-                if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
-                    # GH#44703 went through indexing.maybe_convert_ix
-                    first, second = indexer
-                    if not (
-                        second.size == 1 and (second == 0).all() and first.shape[1] == 1
-                    ):
-                        raise NotImplementedError(
-                            "This should not be reached. Please report a bug at "
-                            "github.com/pandas-dev/pandas/"
-                        )
-                    indexer = first[:, 0]
-
-                elif lib.is_integer(indexer[1]) and indexer[1] == 0:
-                    # reached via setitem_single_block passing the whole indexer
-                    indexer = indexer[0]
-
-                elif com.is_null_slice(indexer[1]):
-                    indexer = indexer[0]
-
-                elif is_list_like(indexer[1]) and indexer[1][0] == 0:
-                    indexer = indexer[0]
-
-                else:
+            if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
+                # GH#44703 went through indexing.maybe_convert_ix
+                first, second = indexer
+                if not (
+                    second.size == 1 and (second == 0).all() and first.shape[1] == 1
+                ):
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
+                indexer = first[:, 0]
+
+            elif lib.is_integer(indexer[1]) and indexer[1] == 0:
+                # reached via setitem_single_block passing the whole indexer
+                indexer = indexer[0]
+
+            elif com.is_null_slice(indexer[1]):
+                indexer = indexer[0]
+
+            elif is_list_like(indexer[1]) and indexer[1][0] == 0:
+                indexer = indexer[0]
+
+            else:
+                raise NotImplementedError(
+                    "This should not be reached. Please report a bug at "
+                    "github.com/pandas-dev/pandas/"
+                )
         return indexer
 
     @property
