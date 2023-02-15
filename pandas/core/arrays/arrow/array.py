@@ -510,8 +510,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
             if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
-                res = (pc.is_null(self._data, nan_is_null=True) & ~self.isna()).any()
-                return bool(res)
+                return pc.any(pc.is_nan(self._data)).as_py()
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
             return False
