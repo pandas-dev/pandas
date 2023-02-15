@@ -1309,6 +1309,54 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
         assert view.iloc[0, 0] == 5
 
 
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_where_noop(using_copy_on_write, dtype):
+    ser = Series([1, 2, 3], dtype=dtype)
+    ser_orig = ser.copy()
+
+    result = ser.where(ser > 0, 10)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(result))
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+
+    result.iloc[0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+    tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_where(using_copy_on_write, dtype):
+    ser = Series([1, 2, 3], dtype=dtype)
+    ser_orig = ser.copy()
+
+    result = ser.where(ser < 0, 10)
+
+    assert not np.shares_memory(get_array(ser), get_array(result))
+    tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize("dtype, val", [("int64", 10.5), ("Int64", 10)])
+def test_where_noop_on_single_column(using_copy_on_write, dtype, val):
+    df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
+    df_orig = df.copy()
+
+    result = df.where(df < 0, val)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+
+    result.iloc[0, 1] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
