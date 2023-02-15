@@ -358,7 +358,7 @@ class Apply(metaclass=abc.ABCMeta):
                 keys = selected_obj.columns.take(indices)
 
         try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -370,16 +370,6 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> DataFrame | Series:
         """
