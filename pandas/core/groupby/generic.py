@@ -1850,23 +1850,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         return self.obj._constructor(mgr)
 
-    def _iterate_column_groupbys(self, obj: DataFrame):
-        for i, colname in enumerate(obj.columns):
-            yield colname, SeriesGroupBy(
+    def _apply_to_column_groupbys(self, func) -> DataFrame:
+        from pandas.core.reshape.concat import concat
+
+        obj = self._obj_with_exclusions
+        columns = obj.columns
+        sgbs = [
+            SeriesGroupBy(
                 obj.iloc[:, i],
                 selection=colname,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
                 observed=self.observed,
             )
-
-    def _apply_to_column_groupbys(self, func, obj: DataFrame) -> DataFrame:
-        from pandas.core.reshape.concat import concat
-
-        columns = obj.columns
-        results = [
-            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys(obj)
+            for i, colname in enumerate(obj.columns)
         ]
+        results = [func(sgb) for sgb in sgbs]
 
         if not len(results):
             # concat would raise
@@ -1925,10 +1924,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 lambda sgb: sgb.nunique(dropna), self._obj_with_exclusions, is_agg=True
             )
 
-        obj = self._obj_with_exclusions
-        results = self._apply_to_column_groupbys(
-            lambda sgb: sgb.nunique(dropna), obj=obj
-        )
+        results = self._apply_to_column_groupbys(lambda sgb: sgb.nunique(dropna))
 
         if not self.as_index:
             results.index = default_index(len(results))

@@ -1398,7 +1398,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self.grouper.apply(f, data, self.axis)
+        values, mutated = self.grouper.apply_groupwise(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
@@ -2476,9 +2476,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        result = self._apply_to_column_groupbys(
-            lambda x: x.ohlc(), self._obj_with_exclusions
-        )
+        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
