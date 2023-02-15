@@ -227,6 +227,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
   - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
   - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
+  - :meth:`DataFrame.where` / :meth:`Series.where`
   - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
   - :meth:`DataFrame.astype` / :meth:`Series.astype`
   - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
