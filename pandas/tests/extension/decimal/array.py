@@ -233,7 +233,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return cls(np.concatenate([x._data for x in to_concat]))
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-
         if skipna:
             # If we don't have any NAs, we can ignore skipna
             if self.isna().any():

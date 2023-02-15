@@ -104,7 +104,6 @@ class ParserBase:
     _first_chunk: bool
 
     def __init__(self, kwds) -> None:
-
         self.names = kwds.get("names")
         self.orig_names: Sequence[Hashable] | None = None
 
@@ -453,7 +452,6 @@ class ParserBase:
         converters = self._clean_mapping(self.converters)
 
         for i, arr in enumerate(index):
-
             if try_parse_dates and self._should_parse_dates(i):
                 arr = self._date_conv(arr)
 

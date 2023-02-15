@@ -29,7 +29,6 @@ class TestDatetimeIndex:
             dti.get_loc(key)
 
     def test_indexing_with_datetime_tz(self):
-
         # GH#8260
         # support datetime64 with tz
 
@@ -100,7 +99,6 @@ class TestDatetimeIndex:
         assert result == expected
 
     def test_indexing_with_datetimeindex_tz(self, indexer_sl):
-
         # GH 12050
         # indexing on a series with a datetimeindex with tz
         index = date_range("2015-01-01", periods=2, tz="utc")
