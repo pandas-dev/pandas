@@ -325,7 +325,6 @@ class TestSlicing:
                     df[ts_string]
 
     def test_partial_slicing_with_multiindex(self):
-
         # GH 4758
         # partial string indexing with a multi-index buggy
         df = DataFrame(

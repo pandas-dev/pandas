@@ -37,7 +37,6 @@ class TestCategoricalMissing:
         tm.assert_numpy_array_equal(isna(cat), labels == -1)
 
     def test_nan_handling(self):
-
         # Nans are represented as -1 in codes
         c = Categorical(["a", "b", np.nan, "a"])
         tm.assert_index_equal(c.categories, Index(["a", "b"]))

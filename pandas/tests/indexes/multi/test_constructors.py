@@ -497,7 +497,6 @@ def test_from_product_index_series_categorical(ordered, f):
 
 
 def test_from_product():
-
     first = ["foo", "bar", "buz"]
     second = ["a", "b", "c"]
     names = ["first", "second"]
@@ -596,7 +595,6 @@ def test_from_product_readonly():
 
 
 def test_create_index_existing_name(idx):
-
     # GH11193, when an existing index is passed, and a new name is not
     # specified, the new index should inherit the previous object name
     index = idx
@@ -809,7 +807,6 @@ def test_datetimeindex():
 
 
 def test_constructor_with_tz():
-
     index = pd.DatetimeIndex(
         ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
     )

@@ -153,7 +153,6 @@ class WrappedCythonOp:
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
-
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 

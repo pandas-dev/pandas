@@ -89,7 +89,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,

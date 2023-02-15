@@ -20,9 +20,7 @@ pytestmark = [
 
 
 def test_categorical(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # Basic
         _maybe_remove(store, "s")
         s = Series(
@@ -143,7 +141,6 @@ def test_categorical(setup_path):
 
 
 def test_categorical_conversion(tmp_path, setup_path):
-
     # GH13322
     # Check that read_hdf with categorical columns doesn't return rows if
     # where criteria isn't met.

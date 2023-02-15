@@ -28,7 +28,6 @@ def sliding_min_max(
     Q: list = []
     W: list = []
     for i in range(N):
-
         curr_win_size = end[i] - start[i]
         if i == 0:
             st = start[i]
