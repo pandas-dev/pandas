@@ -102,7 +102,7 @@ def update_yaml_file_version(yaml_file, toml_dic):
                         toml_deps[yaml_package]
                     ):
                         if "tzdata" in yaml_package:
-                            yaml_left += operator
+                            yaml_left = yaml_package + operator
                         else:
                             yaml_left = yaml_package
                     else:
