@@ -748,7 +748,7 @@ def test_cut_bins_datetime_intervalindex():
 
 def test_cut_with_nullable_int64():
     # GH 30787
-    series = Series([0, 1, 2, 3, 4, np.nan, 6, 7], dtype="Int64")
+    series = Series([0, 1, 2, 3, 4, pd.NA, 6, 7], dtype="Int64")
     bins = [0, 2, 4, 6, 8]
     intervals = IntervalIndex.from_breaks(bins)
 
