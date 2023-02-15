@@ -275,6 +275,8 @@ class Grouper:
                 )
             else:
                 axis = 0
+        if axis is lib.no_default:
+            axis = 0
 
         self.key = key
         self.level = level
