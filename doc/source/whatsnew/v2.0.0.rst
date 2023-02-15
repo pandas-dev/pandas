@@ -259,6 +259,9 @@ Copy-on-Write improvements
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
 
+- Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
+  Copy-on-Write mechanism.
+
 Copy-on-Write can be enabled through one of
 
 .. code-block:: python

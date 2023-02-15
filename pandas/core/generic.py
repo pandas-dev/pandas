@@ -11735,6 +11735,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self.ndim == 1
             and result._indexed_same(self)
             and is_dtype_equal(result.dtype, self.dtype)
+            and not (using_copy_on_write() and not self._mgr._has_no_reference(0))
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
