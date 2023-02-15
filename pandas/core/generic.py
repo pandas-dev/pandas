@@ -11731,11 +11731,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         result = op(self, other)
 
+        # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
+        # BlockManager, SingleBlockManager]" has no attribute "_has_no_reference"
         if (
             self.ndim == 1
             and result._indexed_same(self)
             and is_dtype_equal(result.dtype, self.dtype)
-            and not (using_copy_on_write() and not self._mgr._has_no_reference(0))
+            and not (
+                using_copy_on_write()
+                and not self._mgr._has_no_reference(0)  # type: ignore[union-attr]
+            )
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
