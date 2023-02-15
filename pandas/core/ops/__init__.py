@@ -163,7 +163,6 @@ def align_method_SERIES(left: Series, right, align_asobject: bool = False):
     if isinstance(right, ABCSeries):
         # avoid repeated alignment
         if not left.index.equals(right.index):
-
             if align_asobject:
                 # to keep original value's dtype for bool ops
                 left = left.astype(object)
@@ -257,7 +256,6 @@ def align_method_FRAME(
         return right
 
     if isinstance(right, np.ndarray):
-
         if right.ndim == 1:
             right = to_series(right)
 

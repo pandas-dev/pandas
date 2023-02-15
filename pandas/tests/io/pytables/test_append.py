@@ -27,13 +27,10 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_append(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # this is allowed by almost always don't want to do it
         # tables.NaturalNameWarning):
         with catch_warnings(record=True):
-
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, "df1")
             store.append("df1", df[:10])
@@ -96,9 +93,7 @@ def test_append(setup_path):
 
 
 def test_append_series(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # basic
         ss = tm.makeStringSeries()
         ts = tm.makeTimeSeries()
@@ -143,7 +138,6 @@ def test_append_series(setup_path):
 
 
 def test_append_some_nans(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             {
@@ -190,9 +184,7 @@ def test_append_some_nans(setup_path):
 
 
 def test_append_all_nans(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(
             {"A1": np.random.randn(20), "A2": np.random.randn(20)},
             index=np.arange(20),
@@ -276,7 +268,6 @@ def test_append_all_nans(setup_path):
 
 def test_append_frame_column_oriented(setup_path):
     with ensure_clean_store(setup_path) as store:
-
         # column oriented
         df = tm.makeTimeDataFrame()
         df.index = df.index._with_freq(None)  # freq doesn't round-trip
@@ -305,12 +296,9 @@ def test_append_frame_column_oriented(setup_path):
 
 
 def test_append_with_different_block_ordering(setup_path):
-
     # GH 4096; using same frames, but different block orderings
     with ensure_clean_store(setup_path) as store:
-
         for i in range(10):
-
             df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
             df["index"] = range(10)
             df["index"] += i * 10
@@ -331,7 +319,6 @@ def test_append_with_different_block_ordering(setup_path):
     # test a different ordering but with more fields (like invalid
     # combinations)
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")
         df["int64"] = Series([1] * len(df), dtype="int64")
         df["int16"] = Series([1] * len(df), dtype="int16")
@@ -355,7 +342,6 @@ def test_append_with_different_block_ordering(setup_path):
 
 
 def test_append_with_strings(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         with catch_warnings(record=True):
 
@@ -434,7 +420,6 @@ def test_append_with_strings(setup_path):
             tm.assert_frame_equal(result, df)
 
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
         # a min_itemsize that creates a data_column
@@ -473,9 +458,7 @@ def test_append_with_strings(setup_path):
 
 
 def test_append_with_empty_string(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # with all empty strings (GH 12242)
         df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
         store.append("df", df[:-1], min_itemsize={"x": 1})
@@ -484,7 +467,6 @@ def test_append_with_empty_string(setup_path):
 
 
 def test_append_with_data_columns(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeTimeDataFrame()
         df.iloc[0, df.columns.get_loc("B")] = 1.0
@@ -653,7 +635,6 @@ def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_d
 
 
 def test_append_misc(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeDataFrame()
         store.append("df", df, chunksize=1)
@@ -684,7 +665,6 @@ def test_append_misc_chunksize(setup_path, chunksize):
 def test_append_misc_empty_frame(setup_path):
     # empty frame, GH4273
     with ensure_clean_store(setup_path) as store:
-
         # 0 len
         df_empty = DataFrame(columns=list("ABC"))
         store.append("df", df_empty)
@@ -709,9 +689,7 @@ def test_append_misc_empty_frame(setup_path):
 # a datetime64 column no longer raising an error
 @td.skip_array_manager_not_yet_implemented
 def test_append_raise(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # test append with invalid input to get good error messages
 
         # list in column
@@ -801,7 +779,6 @@ def test_append_with_timedelta(setup_path):
     df.loc[3:5, "C"] = np.nan
 
     with ensure_clean_store(setup_path) as store:
-
         # table
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
@@ -841,7 +818,6 @@ def test_append_to_multiple(setup_path):
     df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
-
         # exceptions
         msg = "append_to_multiple requires a selector that is in passed dict"
         with pytest.raises(ValueError, match=msg):
@@ -875,7 +851,6 @@ def test_append_to_multiple_dropna(setup_path):
     df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
-
         # dropna=True should guarantee rows are synchronized
         store.append_to_multiple(
             {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True

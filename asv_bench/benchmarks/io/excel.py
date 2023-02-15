@@ -32,7 +32,6 @@ def _generate_dataframe():
 
 
 class WriteExcel:
-
     params = ["openpyxl", "xlsxwriter"]
     param_names = ["engine"]
 
@@ -65,7 +64,6 @@ class WriteExcelStyled:
 
 
 class ReadExcel:
-
     params = ["openpyxl", "odf"]
     param_names = ["engine"]
     fname_excel = "spreadsheet.xlsx"

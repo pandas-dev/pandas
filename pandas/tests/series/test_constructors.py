@@ -140,7 +140,6 @@ class TestSeriesConstructors:
             Series(cdt_arr, index=["A", "B"])
 
     def test_scalar_conversion(self):
-
         # Pass in scalar is disabled
         scalar = Series(0.5)
         assert not isinstance(scalar, float)
@@ -310,7 +309,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_list_like(self):
-
         # make sure that we are coercing different
         # list-likes to standard dtypes and not
         # platform specific
@@ -897,7 +895,6 @@ class TestSeriesConstructors:
             assert s[1] == 5
 
     def test_constructor_datelike_coercion(self):
-
         # GH 9477
         # incorrectly inferring on dateimelike looking when object dtype is
         # specified
@@ -938,7 +935,6 @@ class TestSeriesConstructors:
             assert result.dtype == "M8[ns]"
 
     def test_constructor_dtype_datetime64(self):
-
         s = Series(iNaT, dtype="M8[ns]", index=range(5))
         assert isna(s).all()
 
@@ -1098,7 +1094,6 @@ class TestSeriesConstructors:
         assert "NaN" in str(s)
 
     def test_constructor_with_datetime_tz(self):
-
         # 8260
         # support datetime64 with tz
 
@@ -1259,7 +1254,6 @@ class TestSeriesConstructors:
         assert result.tolist() == data
 
     def test_construction_consistency(self):
-
         # make sure that we are not re-localizing upon construction
         # GH 14928
         ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
@@ -1461,7 +1455,6 @@ class TestSeriesConstructors:
         assert series.dtype == np.float64
 
     def test_fromValue(self, datetime_series):
-
         nans = Series(np.NaN, index=datetime_series.index, dtype=np.float64)
         assert nans.dtype == np.float_
         assert len(nans) == len(datetime_series)
@@ -1484,7 +1477,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(categorical, expected)
 
     def test_constructor_dtype_timedelta64(self):
-
         # basic
         td = Series([timedelta(days=i) for i in range(3)])
         assert td.dtype == "timedelta64[ns]"
@@ -1642,7 +1634,6 @@ class TestSeriesConstructors:
         ids=lambda x: type(x).__name__,
     )
     def test_constructor_cant_cast_datetimelike(self, index):
-
         # floats are not ok
         # strip Index to convert PeriodIndex -> Period
         # We don't care whether the error message says
