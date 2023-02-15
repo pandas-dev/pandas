@@ -5737,14 +5737,19 @@ Keep all original rows and also all original values
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(['2015-01-01', '2015-01-02', '2015-01-03'])
-        >>> idx = idx.to_period()
+        >>> idx = pd.DatetimeIndex(['2023', '2024', '2025'])
         >>> s = pd.Series([1, 2, 3], index=idx)
+        >>> s = s.to_period()
         >>> s
-        2015-01-01    1
-        2015-01-02    2
-        2015-01-03    3
-        Freq: D, dtype: int64
+        2023    1
+        2024    2
+        2025    3
+        Freq: A-DEC, dtype: int64
+
+        Viewing the index
+
+        >>> s.index
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
