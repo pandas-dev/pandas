@@ -132,6 +132,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     Represented internally as int64, and which can be boxed to Timestamp objects
     that are subclasses of datetime and carry metadata.
 
+    .. versionchanged:: 2.0.0
+        The various numeric date/time attributes (:attr:`~DatetimeIndex.day`,
+        :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) now have dtype
+        ``int32``. Previously they had dtype ``int64``.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -311,7 +316,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         copy: bool = False,
         name: Hashable = None,
     ) -> DatetimeIndex:
-
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -545,7 +549,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = Timestamp(key)
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except (ValueError, pytz.NonExistentTimeError) as err:
@@ -580,7 +583,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
-
         # GH#42855 handle date here instead of get_slice_bound
         if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
             # Pandas supports slicing with dates, treated as datetimes at midnight.

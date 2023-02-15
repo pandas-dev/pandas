@@ -302,7 +302,6 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_arithmetic_with_duplicate_index(self):
-
         # GH#8363
         # integer ops with a non-unique index
         index = [2, 2, 3, 3, 4]

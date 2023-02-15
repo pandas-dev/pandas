@@ -260,7 +260,6 @@ class XportReader(ReaderBase, abc.Iterator):
         chunksize=None,
         compression: CompressionOptions = "infer",
     ) -> None:
-
         self._encoding = encoding
         self._lines_read = 0
         self._index = index
@@ -468,7 +467,6 @@ class XportReader(ReaderBase, abc.Iterator):
 
     @Appender(_read_method_doc)
     def read(self, nrows: int | None = None) -> pd.DataFrame:
-
         if nrows is None:
             nrows = self.nobs
 

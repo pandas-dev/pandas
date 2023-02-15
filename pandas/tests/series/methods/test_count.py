@@ -20,7 +20,6 @@ class TestSeriesCount:
             assert Series([pd.Timestamp("1990/1/1")]).count() == 1
 
     def test_count_categorical(self):
-
         ser = Series(
             Categorical(
                 [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True

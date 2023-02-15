@@ -267,7 +267,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _generate_range(  # type: ignore[override]
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ):
-
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")

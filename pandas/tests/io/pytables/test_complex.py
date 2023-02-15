@@ -134,7 +134,6 @@ def test_complex_across_dimensions(tmp_path, setup_path):
     df = DataFrame({"A": s, "B": s})
 
     with catch_warnings(record=True):
-
         objs = [df]
         comps = [tm.assert_frame_equal]
         for obj, comp in zip(objs, comps):

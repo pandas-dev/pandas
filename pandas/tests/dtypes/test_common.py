@@ -35,7 +35,6 @@ def to_numpy_dtypes(dtypes):
 
 
 class TestPandasDtype:
-
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -122,7 +121,6 @@ dtypes = {
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))
 @pytest.mark.parametrize("name2,dtype2", list(dtypes.items()), ids=lambda x: str(x))
 def test_dtype_equal(name1, dtype1, name2, dtype2):
-
     # match equal to self, but not equal to other
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
@@ -496,7 +494,6 @@ def test_is_datetime_or_timedelta_dtype():
     assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
     assert not com.is_datetime_or_timedelta_dtype(np.array(["a", "b"]))
 
-    # TODO(jreback), this is slightly suspect
     assert not com.is_datetime_or_timedelta_dtype(DatetimeTZDtype("ns", "US/Eastern"))
 
     assert com.is_datetime_or_timedelta_dtype(np.datetime64)
