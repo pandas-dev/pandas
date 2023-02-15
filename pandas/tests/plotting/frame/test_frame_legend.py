@@ -28,7 +28,7 @@ class TestFrameLegend(TestPlotBase):
         df.plot("x", "b", c="blue", yerr=None, ax=ax, label="blue")
 
         legend = ax.get_legend()
-        result_handles = legend.legendHandles
+        result_handles = legend.legend_handles
 
         assert isinstance(result_handles[0], LineCollection)
         assert isinstance(result_handles[1], Line2D)
@@ -41,7 +41,7 @@ class TestFrameLegend(TestPlotBase):
         ax = df.plot(legend=True, color={"a": "blue", "b": "green"}, secondary_y="b")
         df2.plot(legend=True, color={"d": "red"}, ax=ax)
         legend = ax.get_legend()
-        result = [handle.get_color() for handle in legend.legendHandles]
+        result = [handle.get_color() for handle in legend.legend_handles]
         expected = ["blue", "green", "red"]
         assert result == expected
 

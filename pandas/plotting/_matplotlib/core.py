@@ -784,8 +784,8 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.LegendHandles because it misses marker info
-                handles = leg.legendHandles
+                # Replace leg.legend_handles because it misses marker info
+                handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:

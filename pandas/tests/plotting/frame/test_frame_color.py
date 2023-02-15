@@ -643,7 +643,7 @@ class TestDataFrameColor(TestPlotBase):
         df1 = DataFrame({"a": [2, 4, 6]})
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
-        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+        for legend, line in zip(result.get_legend().legend_handles, result.lines):
             assert legend.get_color() == line.get_color()
 
     def test_invalid_colormap(self):
