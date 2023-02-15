@@ -26,7 +26,7 @@ scope to require the full PDEP process. Some simple API changes have sufficient 
 the core team, and minimal impact on the community. On the other hand, if an issue becomes
 controversial, i.e. it generated a significant discussion, one could suggest opening a PDEP to
 formalize and document the discussion, making it easier for the wider community to participate.
-For context, see the list of issues that could have been a PDEP at the bottom of this page.
+For context, see [the list of issues that could have been a PDEP](#List-of-issues).
 
 ## PDEP guidelines
 
@@ -132,43 +132,49 @@ be edited, its `Revision: X` label will be increased by one, and a note will be 
 to the `PDEP-N history` section. This will let readers understand that the PDEP has
 changed and avoid confusion.
 
-## List of issues that could have been PDEPs for context
+## <a id="List-of-issues"></a> List of issues that could have been PDEPs for context
 ### Clear examples for potential PDEPs:
 - Adding a new parameter to many existing methods, or deprecating one in many places. For example:
   - The numeric_only deprecation affected many methods and could have been a PDEP.
 - Adding a new data type has impact on a variety of places that need to handle the data type.
   Such wide-ranging impact would require a PDEP. For example:
-  - Categorical (GH-7217, GH-8074), StringDtype (GH-8640), ArrowDtype
+  - Categorical ([GH-7217][7217], [GH-8074][8074]), StringDtype ([GH-8640][8640]), ArrowDtype
 - A significant (breaking) change in existing behavior. For example:
-  - copy/view changes (GH-36195)
+  - copy/view changes ([GH-36195][36195])
 - Support of new python features with a wide impact on the project. For example:
-  - Supporting typing within pandas vs. creation of pandas-stubs (GH-43197, GH-45253) New
-    required dependency
+  - Supporting typing within pandas vs. creation of pandas-stubs ([GH-43197][43197],
+    [GH-45253][45253]) New required dependency
 
 ### Borderline examples:
 - Small changes to core functionality, such as DataFrame and Series, should always be considered
-  as a PDEP candidate as it will likely have a big impact on users. But the same types of changes in other methods would not be good PDEP candidates. That said, any discussion, no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more attention and/or a formal decision-making process would help. Following are some examples we hope can help clarify our meaning here:
+  as a PDEP candidate as it will likely have a big impact on users. But the same types of
+  changes in other methods would not be good PDEP candidates. That said, any discussion, no
+  matter how small the change, which becomes controversial is a PDEP candidate. Consider if more
+  attention and/or a formal decision-making process would help. Following are some examples we
+  hope can help clarify our meaning here:
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
-  - Value counts rename (GH-49497). The scope doesn’t justify a PDEP at first, but later a
-    discussion about whether it should be executed as breaking change or with deprecation emerges, which could benefit from a PDEP process.
+  - Value counts rename ([GH-49497][49497]). The scope doesn’t justify a PDEP at first, but later a
+    discussion about whether it should be executed as breaking change or with deprecation
+    emerges, which could benefit from a PDEP process.
 - Adding new parameters or methods to an existing method typically won't require a PDEP for
   non-core features. For example:
-  - Both dropna(percentage) (GH-35299), and Timestamp.normalize() (GH-8794) wouldn't have
-    required a PDEP.
+  - Both dropna(percentage) ([GH-35299][35299]), and Timestamp.normalize() ([GH-8794][8794])
+    wouldn't have required a PDEP.
   - On the other hand, DataFrame.assign() might. While it's a single method without backwards
     compatibility concerns, it’s also a core feature and the discussion should be highly visible.
 - Deprecating or removing a single method would not require a PDEP in most cases. For example:
-  - DataFrame.xs (GH-6249) is an example of depredations on core features that would be good a
-    candidate for a PDEP.
+  - DataFrame.xs ([GH-6249][6249]) is an example of depredations on core features that would be
+    good a candidate for a PDEP.
 - Changing the default value of parameters in a core pandas method is another edge case. For
   example:
   - Such changes in dropna,  DataFrame.groupby, or in Series.groupby could be PDEPs.
 - New top level modules and/or exposing internal classes. For example:
-  - Add pandas.api.typing (GH-48577) is relatively small and wouldn’t necessarily require a PDEP.
+  - Add pandas.api.typing ([GH-48577][48577]) is relatively small and wouldn’t necessarily
+    require a PDEP.
 
 ### A counter-example:
-- Significant changes to developer/contributor processes don't require a PDEP as they aren't
-going to have an impact on users. For example:
+- Significant changes to contributors' processes don't require a PDEP as they aren't going to
+  have an impact on users. For example:
   - Changing the build system to meson
 
 
@@ -176,3 +182,15 @@ going to have an impact on users. For example:
 
 - 3 August 2022: Initial version
 - 15 February 2023: Revision 1
+
+[7217]: https://github.com/pandas-dev/pandas/pull/7217
+[8074]: https://github.com/pandas-dev/pandas/issues/8074
+[8640]: https://github.com/pandas-dev/pandas/issues/8640
+[36195]: https://github.com/pandas-dev/pandas/issues/36195
+[43197]: https://github.com/pandas-dev/pandas/issues/43197
+[45253]: https://github.com/pandas-dev/pandas/issues/45253
+[49497]: https://github.com/pandas-dev/pandas/issues/49497
+[35299]: https://github.com/pandas-dev/pandas/issues/35299
+[8794]: https://github.com/pandas-dev/pandas/issues/8794
+[6249]: https://github.com/pandas-dev/pandas/issues/6249
+[48577]: https://github.com/pandas-dev/pandas/issues/48577
