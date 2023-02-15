@@ -166,7 +166,6 @@ class CParserWrapper(ParserBase):
             if self._reader.leading_cols == 0 and is_index_col(
                 self.index_col  # type: ignore[has-type]
             ):
-
                 self._name_processed = True
                 (
                     index_names,

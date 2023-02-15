@@ -11,7 +11,10 @@ def get_array(obj, col=None):
     this is done by some other operation).
     """
     if isinstance(obj, Series) and (col is None or obj.name == col):
-        return obj._values
+        arr = obj._values
+        if isinstance(arr, BaseMaskedArray):
+            return arr._data
+        return arr
     assert col is not None
     icol = obj.columns.get_loc(col)
     assert isinstance(icol, int)

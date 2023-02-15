@@ -394,7 +394,6 @@ class TestBlockManager:
         mgr.iget(1)
 
     def test_pickle(self, mgr):
-
         mgr2 = tm.round_trip_pickle(mgr)
         tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
@@ -471,7 +470,6 @@ class TestBlockManager:
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
@@ -485,7 +483,6 @@ class TestBlockManager:
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             bvals = blk.values
             cpvals = cp_blk.values
 

@@ -299,7 +299,6 @@ class BaseXMLFormatter:
         raise AbstractMethodError(self)
 
     def _build_elems(self, sub_element_cls, d: dict[str, Any], elem_row: Any) -> None:
-
         if not self.elem_cols:
             return
 

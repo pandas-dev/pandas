@@ -170,7 +170,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
     ) -> None:
-
         self.index = index
         self.convert_dates = convert_dates
         self.blank_missing = blank_missing
@@ -241,7 +240,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.handles.close()
 
     def _get_properties(self) -> None:
-
         # Check magic number
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
@@ -446,7 +444,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 subheader_processor(subheader_offset, subheader_length)
 
     def _process_rowsize_subheader(self, offset: int, length: int) -> None:
-
         int_len = self._int_length
         lcs_offset = offset
         lcp_offset = offset
@@ -491,7 +488,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         pass
 
     def _process_columntext_subheader(self, offset: int, length: int) -> None:
-
         offset += self._int_length
         text_block_size = self._read_uint(offset, const.text_block_size_length)
 
@@ -655,7 +651,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.columns.append(col)
 
     def read(self, nrows: int | None = None) -> DataFrame:
-
         if (nrows is None) and (self.chunksize is not None):
             nrows = self.chunksize
         elif nrows is None:
@@ -712,7 +707,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return False
 
     def _chunk_to_dataframe(self) -> DataFrame:
-
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
@@ -720,7 +714,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         js, jb = 0, 0
         for j in range(self.column_count):
-
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":

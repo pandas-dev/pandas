@@ -194,7 +194,6 @@ def radviz(
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
 
     for xy, name in zip(s, df.columns):
-
         ax.add_patch(patches.Circle(xy, radius=0.025, facecolor="gray"))
 
         if xy[0] < 0.0 and xy[1] < 0.0:
@@ -297,7 +296,6 @@ def bootstrap_plot(
     samples: int = 500,
     **kwds,
 ) -> Figure:
-
     import matplotlib.pyplot as plt
 
     # TODO: is the failure mentioned below still relevant?

@@ -347,7 +347,6 @@ class Holiday:
             else:
                 offsets = self.offset
             for offset in offsets:
-
                 # if we are adding a non-vectorized value
                 # ignore the PerformanceWarnings:
                 with warnings.catch_warnings():
