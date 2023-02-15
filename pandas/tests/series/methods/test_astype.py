@@ -389,7 +389,13 @@ class TestAstype:
         former_encoding = None
 
         if sys.getdefaultencoding() == "utf-8":
-            test_series.append(Series(["野菜食べないとやばい".encode()]))
+            # GH#45326 as of 2.0 Series.astype matches Index.astype by handling
+            #  bytes with obj.decode() instead of str(obj)
+            item = "野菜食べないとやばい"
+            ser = Series([item.encode()])
+            result = ser.astype("unicode")
+            expected = Series([item])
+            tm.assert_series_equal(result, expected)
 
         for ser in test_series:
             res = ser.astype("unicode")

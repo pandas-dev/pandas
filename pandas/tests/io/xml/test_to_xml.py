@@ -739,7 +739,6 @@ def test_namespace_prefix(parser):
 
 def test_missing_prefix_in_nmsp(parser):
     with pytest.raises(KeyError, match=("doc is not included in namespaces")):
-
         geom_df.to_xml(
             namespaces={"": "http://example.com"}, prefix="doc", parser=parser
         )

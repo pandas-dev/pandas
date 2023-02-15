@@ -168,7 +168,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
 
-        for (mark, kwd, skip_if_found, arg_name) in marks:
+        for mark, kwd, skip_if_found, arg_name in marks:
             if kwd in item.keywords:
                 # If we're skipping, no need to actually add the marker or look for
                 # other markers

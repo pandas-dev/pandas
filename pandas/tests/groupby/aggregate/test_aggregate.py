@@ -56,7 +56,6 @@ def test_agg_must_agg(df):
 
 
 def test_agg_ser_multi_key(df):
-
     f = lambda x: x.sum()
     results = df.C.groupby([df.A, df.B]).aggregate(f)
     expected = df.groupby(["A", "B"]).sum()["C"]
@@ -587,7 +586,8 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
         {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
         dtype=any_numeric_ea_dtype,
     )
-    result = df.groupby("a").ohlc()
+    gb = df.groupby("a")
+    result = gb.ohlc()
     expected = DataFrame(
         [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
         columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
@@ -595,6 +595,11 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
+
+    gb2 = df.groupby("a", as_index=False)
+    result2 = gb2.ohlc()
+    expected2 = expected.reset_index()
+    tm.assert_frame_equal(result2, expected2)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
@@ -1469,4 +1474,50 @@ def test_agg_of_mode_list(test, constant):
     expected = DataFrame(constant)
     expected = expected.set_index(0)
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test__dataframe_groupy_agg_list_like_func_with_args():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+    gb = df.groupby("y")
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        gb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = gb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        index=Index(["a", "b", "c"], name="y"),
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test__series_groupy_agg_list_like_func_with_args():
+    # GH 50624
+    s = Series([1, 2, 3])
+    sgb = s.groupby(s)
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        sgb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = sgb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
+    )
     tm.assert_frame_equal(result, expected)

@@ -143,7 +143,6 @@ class Concat:
 
 
 class ValueCounts:
-
     params = [True, False]
     param_names = ["dropna"]
 
@@ -254,7 +253,6 @@ class Contains:
 
 
 class CategoricalSlicing:
-
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
     param_names = ["index"]
 
