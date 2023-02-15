@@ -321,7 +321,6 @@ class MultiIndex(Index):
         name=None,
         verify_integrity: bool = True,
     ) -> MultiIndex:
-
         # compat with Index
         if name is not None:
             names = name
@@ -1337,7 +1336,6 @@ class MultiIndex(Index):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
-
                 formatted = lev.take(level_codes).format(formatter=formatter)
 
                 # we have some NA
@@ -1535,7 +1533,6 @@ class MultiIndex(Index):
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic_increasing
         except TypeError:
-
             # we have mixed types and np.lexsort is not happy
             return Index(self._values).is_monotonic_increasing
 
@@ -1661,7 +1658,6 @@ class MultiIndex(Index):
 
     @doc(Index.unique)
     def unique(self, level=None):
-
         if level is None:
             return self.drop_duplicates()
         else:
@@ -1881,7 +1877,6 @@ class MultiIndex(Index):
         new_codes = []
 
         for lev, level_codes in zip(self.levels, self.codes):
-
             if not lev.is_monotonic_increasing:
                 try:
                     # indexer to reorder the levels
@@ -1948,7 +1943,6 @@ class MultiIndex(Index):
 
         changed = False
         for lev, level_codes in zip(self.levels, self.codes):
-
             # Since few levels are typically unused, bincount() is more
             # efficient than unique() - however it only accepts positive values
             # (and drops order):
@@ -1956,7 +1950,6 @@ class MultiIndex(Index):
             has_na = int(len(uniques) and (uniques[0] == -1))
 
             if len(uniques) != len(lev) + has_na:
-
                 if lev.isna().any() and len(uniques) == len(lev):
                     break
                 # We have unused levels
@@ -2449,7 +2442,6 @@ class MultiIndex(Index):
 
         # level ordering
         else:
-
             codes = list(self.codes)
             shape = list(self.levshape)
 
@@ -2534,7 +2526,6 @@ class MultiIndex(Index):
     def _get_indexer_strict(
         self, key, axis_name: str
     ) -> tuple[Index, npt.NDArray[np.intp]]:
-
         keyarr = key
         if not isinstance(keyarr, Index):
             keyarr = com.asarray_tuplesafe(keyarr)
@@ -2979,7 +2970,6 @@ class MultiIndex(Index):
             key = tuple(key)
 
         if isinstance(key, tuple) and level == 0:
-
             try:
                 # Check if this tuple is a single key in our first level
                 if key in self.levels[0]:
@@ -2990,7 +2980,6 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
                     try:
@@ -3138,7 +3127,6 @@ class MultiIndex(Index):
                 else:
                     stop = len(level_index) - 1
             except KeyError:
-
                 # we have a partial slice (like looking up a partial date
                 # string)
                 start = stop = level_index.slice_indexer(key.start, key.stop, key.step)
@@ -3166,7 +3154,6 @@ class MultiIndex(Index):
                 return slice(i, j, step)
 
         else:
-
             idx = self._get_loc_single_level_index(level_index, key)
 
             if level > 0 or self._lexsort_depth == 0:
@@ -3258,7 +3245,6 @@ class MultiIndex(Index):
         indexer: npt.NDArray[np.bool_] | None = None
 
         for i, k in enumerate(seq):
-
             lvl_indexer: npt.NDArray[np.bool_] | slice | None = None
 
             if com.is_bool_indexer(k):
@@ -3560,10 +3546,12 @@ class MultiIndex(Index):
             else:
                 result = self._get_reconciled_name_object(other)
 
-            if sort is None:
+            if sort is not False:
                 try:
                     result = result.sort_values()
                 except TypeError:
+                    if sort is True:
+                        raise
                     warnings.warn(
                         "The values in the array are unorderable. "
                         "Pass `sort=False` to suppress this warning.",
@@ -3620,7 +3608,6 @@ class MultiIndex(Index):
         result_names = self.names
 
         if not isinstance(other, Index):
-
             if len(other) == 0:
                 return self[:0], self.names
             else:

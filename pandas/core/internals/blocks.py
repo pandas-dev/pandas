@@ -130,7 +130,6 @@ def maybe_split(meth: F) -> F:
 
     @wraps(meth)
     def newfunc(self, *args, **kwargs) -> list[Block]:
-
         if self.ndim == 1 or self.shape[0] == 1:
             return meth(self, *args, **kwargs)
         else:
@@ -249,7 +248,6 @@ class Block(PandasObject):
         if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
-
             shape = " x ".join([str(s) for s in self.shape])
             result = f"{name}: {self.mgr_locs.indexer}, {shape}, dtype: {self.dtype}"
 
@@ -630,7 +628,6 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        convert: bool = True,
         mask=None,
     ) -> list[Block]:
         """
@@ -644,8 +641,6 @@ class Block(PandasObject):
             Replacement object.
         inplace : bool, default False
             Perform inplace modification.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -788,7 +783,6 @@ class Block(PandasObject):
                 to_replace,
                 value,
                 inplace=inplace,
-                convert=False,
                 mask=mask,
             )
         else:
@@ -1014,6 +1008,7 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
+        using_cow: bool, default False
 
         Returns
         -------
@@ -1048,7 +1043,6 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
-
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
@@ -1188,7 +1182,12 @@ class Block(PandasObject):
         return [self.make_block(result)]
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1207,20 +1206,22 @@ class Block(PandasObject):
         if noop:
             # we can't process the value, but nothing to do
             if inplace:
+                if using_cow:
+                    return [self.copy(deep=False)]
                 # Arbitrarily imposing the convention that we ignore downcast
                 #  on no-op when inplace=True
                 return [self]
             else:
                 # GH#45423 consistent downcasting on no-ops.
-                nb = self.copy()
-                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                nb = self.copy(deep=not using_cow)
+                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
                 return nbs
 
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            nbs = self.putmask(mask.T, value)
+            nbs = self.putmask(mask.T, value, using_cow=using_cow)
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
@@ -1230,7 +1231,10 @@ class Block(PandasObject):
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
         return extend_blocks(
-            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+            [
+                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                for blk in nbs
+            ]
         )
 
     def interpolate(
@@ -1248,7 +1252,6 @@ class Block(PandasObject):
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -1419,7 +1422,6 @@ class Block(PandasObject):
         # don't share data
         refs = self.refs if self.refs.has_reference() else None
         for idx in loc:
-
             if idx == previous_loc + 1:
                 # There is no column between current and last idx
                 pass
@@ -1551,7 +1553,6 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
@@ -1623,7 +1624,6 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
@@ -1725,12 +1725,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     values: ExtensionArray
 
     def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit: int | None = None,
+        inplace: bool = False,
+        downcast=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         if is_interval_dtype(self.dtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
-                value=value, limit=limit, inplace=inplace, downcast=downcast
+                value=value,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
+                using_cow=using_cow,
             )
         new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values)
@@ -1814,7 +1823,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             #  Length 1 is reached vis setitem_single_block and setitem_single_column
             #  each of which pass indexer=(pi,)
             if len(indexer) == 2:
-
                 if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                     # GH#44703 went through indexing.maybe_convert_ix
                     first, second = indexer
@@ -2435,7 +2443,6 @@ def to_native_types(
         return new_values
 
     else:
-
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 

@@ -128,7 +128,6 @@ class TestPeriodIndex:
             (rng7, other7, expected7),
             (rng8, other8, expected8),
         ]:
-
             result_union = rng.union(other, sort=sort)
             if sort is None:
                 expected = expected.sort_values()
@@ -193,7 +192,7 @@ class TestPeriodIndex:
         rng4 = period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
         expected4 = PeriodIndex([], name="idx", freq="D")
 
-        for (rng, expected) in [
+        for rng, expected in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),
@@ -227,7 +226,7 @@ class TestPeriodIndex:
         rng4 = period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
         expected4 = PeriodIndex([], freq="D", name="idx")
 
-        for (rng, expected) in [
+        for rng, expected in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),

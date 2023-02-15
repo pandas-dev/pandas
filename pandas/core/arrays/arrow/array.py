@@ -595,7 +595,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         method: FillnaOptions | None = None,
         limit: int | None = None,
     ) -> ArrowExtensionArrayT:
-
         value, method = validate_fillna_kwargs(value, method)
 
         if limit is not None:

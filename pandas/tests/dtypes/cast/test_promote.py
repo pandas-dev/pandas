@@ -218,7 +218,6 @@ def test_maybe_promote_int_with_float(any_int_numpy_dtype, float_numpy_dtype):
 
 
 def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
-
     dtype = np.dtype(float_numpy_dtype)
     fill_dtype = np.dtype(any_int_numpy_dtype)
 
@@ -260,7 +259,6 @@ def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
     ],
 )
 def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype):
-
     dtype = np.dtype(dtype)
     expected_dtype = np.dtype(expected_dtype)
 

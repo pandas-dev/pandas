@@ -187,7 +187,6 @@ class TestPDApi(Base):
     ]
 
     def test_api(self):
-
         checkthese = (
             self.public_lib
             + self.private_lib

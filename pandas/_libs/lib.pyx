@@ -777,7 +777,10 @@ cpdef ndarray[object] ensure_string_array(
             already_copied = True
 
         if not checknull(val):
-            if not util.is_float_object(val):
+            if isinstance(val, bytes):
+                # GH#49658 discussion of desired behavior here
+                result[i] = val.decode()
+            elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:

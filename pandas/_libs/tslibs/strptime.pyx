@@ -186,6 +186,7 @@ def array_strptime(
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
+        bint string_to_dts_succeeded = 0
 
     assert is_raise or is_ignore or is_coerce
 
@@ -306,44 +307,54 @@ def array_strptime(
             else:
                 val = str(val)
 
-            if iso_format:
-                string_to_dts_failed = string_to_dts(
+            if fmt == "ISO8601":
+                string_to_dts_succeeded = not string_to_dts(
+                    val, &dts, &out_bestunit, &out_local,
+                    &out_tzoffset, False, None, False
+                )
+            elif iso_format:
+                string_to_dts_succeeded = not string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
                     &out_tzoffset, False, fmt, exact
                 )
-                if not string_to_dts_failed:
-                    # No error reported by string_to_dts, pick back up
-                    # where we left off
-                    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-                    if out_local == 1:
-                        # Store the out_tzoffset in seconds
-                        # since we store the total_seconds of
-                        # dateutil.tz.tzoffset objects
-                        tz = timezone(timedelta(minutes=out_tzoffset))
-                        result_timezone[i] = tz
-                        out_local = 0
-                        out_tzoffset = 0
-                    iresult[i] = value
-                    check_dts_bounds(&dts)
-                    continue
+            if string_to_dts_succeeded:
+                # No error reported by string_to_dts, pick back up
+                # where we left off
+                value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                if out_local == 1:
+                    # Store the out_tzoffset in seconds
+                    # since we store the total_seconds of
+                    # dateutil.tz.tzoffset objects
+                    tz = timezone(timedelta(minutes=out_tzoffset))
+                    result_timezone[i] = tz
+                    out_local = 0
+                    out_tzoffset = 0
+                iresult[i] = value
+                check_dts_bounds(&dts)
+                continue
 
             if parse_today_now(val, &iresult[i], utc):
                 continue
 
             # Some ISO formats can't be parsed by string_to_dts
-            # For example, 6-digit YYYYMD. So, if there's an error,
-            # try the string-matching code below.
+            # For example, 6-digit YYYYMD. So, if there's an error, and a format
+            # was specified, then try the string-matching code below. If the format
+            # specified was 'ISO8601', then we need to error, because
+            # only string_to_dts handles mixed ISO8601 formats.
+            if not string_to_dts_succeeded and fmt == "ISO8601":
+                raise ValueError(f"Time data {val} is not ISO8601 format")
 
             # exact matching
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    raise ValueError(f"time data \"{val}\" doesn't "
-                                     f"match format \"{fmt}\"")
+                    raise ValueError(
+                        f"time data \"{val}\" doesn't match format \"{fmt}\""
+                    )
                 if len(val) != found.end():
                     raise ValueError(
-                        f"unconverted data remains: "
-                        f'"{val[found.end():]}"'
+                        "unconverted data remains when parsing with "
+                        f"format \"{fmt}\": \"{val[found.end():]}\""
                     )
 
             # search
@@ -351,8 +362,7 @@ def array_strptime(
                 found = format_regex.search(val)
                 if not found:
                     raise ValueError(
-                        f"time data \"{val}\" doesn't match "
-                        f"format \"{fmt}\""
+                        f"time data \"{val}\" doesn't match format \"{fmt}\""
                     )
 
             iso_year = -1
@@ -504,7 +514,15 @@ def array_strptime(
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
-            ex.args = (f"{str(ex)}, at position {i}",)
+            ex.args = (
+                f"{str(ex)}, at position {i}. You might want to try:\n"
+                "    - passing `format` if your strings have a consistent format;\n"
+                "    - passing `format='ISO8601'` if your strings are "
+                "all ISO8601 but not necessarily in exactly the same format;\n"
+                "    - passing `format='mixed'`, and the format will be "
+                "inferred for each element individually. "
+                "You might want to use `dayfirst` alongside this.",
+            )
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

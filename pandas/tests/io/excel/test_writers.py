@@ -329,7 +329,6 @@ class TestRoundTrip:
 @pytest.mark.usefixtures("set_engine")
 class TestExcelWriter:
     def test_excel_sheet_size(self, path):
-
         # GH 26080
         breaking_row_count = 2**20 + 1
         breaking_col_count = 2**14 + 1
@@ -502,7 +501,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_sheets(self, frame, tsframe, path):
-
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index

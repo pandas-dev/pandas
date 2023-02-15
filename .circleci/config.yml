@@ -26,20 +26,21 @@ jobs:
       image: ubuntu-2004:202101-01
     resource_class: arm.large
     environment:
-      TAG = << pipeline.git.tag >>
-      TRIGGER_SOURCE = << pipeline.trigger_source >>
+      ENV_FILE: ci/deps/circle-38-arm64.yaml
+      TRIGGER_SOURCE: << pipeline.trigger_source >>
     steps:
       - checkout
       - run:
           name: Check if build is necessary
           command: |
             # Check if tag is defined or TRIGGER_SOURCE is scheduled
-            if [[ -n ${TAG} ]]; then
-                export IS_PUSH="true"
+            if [[ -n "$CIRCLE_TAG" ]]; then
+                echo 'export IS_PUSH="true"' >> "$BASH_ENV"
             elif [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
-                export IS_SCHEDULE_DISPATCH="true"
+                echo 'export IS_SCHEDULE_DISPATCH="true"' >> "$BASH_ENV"
             # Look for the build label/[wheel build] in commit
-            elif (git log --format=oneline -n 1 $CIRCLE_SHA1) | grep -q '[wheel build]'; then
+            # grep takes a regex, so need to escape brackets
+            elif (git log --format=oneline -n 1 $CIRCLE_SHA1) | grep -q '\[wheel build\]'; then
                 : # Do nothing
             elif ! (curl https://api.github.com/repos/pandas-dev/pandas/issues/$CIRCLE_PR_NUMBER | jq '.labels' | grep -q 'Build'); then
                 circleci-agent step halt
@@ -51,15 +52,24 @@ jobs:
             cibuildwheel --output-dir wheelhouse
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
+
       - run:
-          name: Upload wheels
+          name: Install Anaconda Client & Upload Wheels
           command: |
-            if [[ -n ${TAG} ]]; then
-                export IS_PUSH="true"
-            fi
-            if [[ $TRIGGER_SOURCE == "scheduled_pipeline" ]]; then
-                export IS_SCHEDULE_DISPATCH="true"
-            fi
+            echo "Install Mambaforge"
+            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+            echo "Downloading $MAMBA_URL"
+            wget -q $MAMBA_URL -O minimamba.sh
+            chmod +x minimamba.sh
+
+            MAMBA_DIR="$HOME/miniconda3"
+            rm -rf $MAMBA_DIR
+            ./minimamba.sh -b -p $MAMBA_DIR
+
+            export PATH=$MAMBA_DIR/bin:$PATH
+
+            mamba install -y -c conda-forge anaconda-client
+
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels
