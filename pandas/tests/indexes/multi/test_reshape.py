@@ -180,7 +180,6 @@ def test_repeat():
 
 
 def test_insert_base(idx):
-
     result = idx[1:4]
 
     # test 0th element
@@ -188,7 +187,6 @@ def test_insert_base(idx):
 
 
 def test_delete_base(idx):
-
     expected = idx[1:]
     result = idx.delete(0)
     assert result.equals(expected)

@@ -180,7 +180,6 @@ class TestGetLoc:
             index.get_loc(slice(0, 1))
 
     def test_get_loc_generator(self, index):
-
         exc = KeyError
         if isinstance(
             index,
@@ -209,7 +208,6 @@ class TestGetLoc:
 
 class TestGetIndexer:
     def test_get_indexer_base(self, index):
-
         if index._index_as_unique:
             expected = np.arange(index.size, dtype=np.intp)
             actual = index.get_indexer(index)

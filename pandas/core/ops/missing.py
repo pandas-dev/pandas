@@ -59,10 +59,8 @@ def _fill_zeros(result, x, y):
         y = np.array(y)
 
     if is_integer_dtype(y.dtype):
-
         ymask = y == 0
         if ymask.any():
-
             # GH#7325, mask and nans must be broadcastable
             mask = ymask & ~np.isnan(result)
 
@@ -114,7 +112,6 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     zmask = y == 0
 
     if zmask.any():
-
         # Flip sign if necessary for -0.0
         zneg_mask = zmask & np.signbit(y)
         zpos_mask = zmask & ~zneg_mask

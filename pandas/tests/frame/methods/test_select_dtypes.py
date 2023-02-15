@@ -327,7 +327,6 @@ class TestSelectDtypes:
             df.select_dtypes(exclude=["datetime64[as]"])
 
     def test_select_dtypes_datetime_with_tz(self):
-
         df2 = DataFrame(
             {
                 "A": Timestamp("20130102", tz="US/Eastern"),

@@ -9,7 +9,6 @@ except ImportError:
 
 
 class Eval:
-
     params = [["numexpr", "python"], [1, "all"]]
     param_names = ["engine", "threads"]
 

@@ -67,7 +67,6 @@ class BaseIndexer:
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         raise NotImplementedError
 
 
@@ -83,7 +82,6 @@ class FixedWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         if center:
             offset = (self.window_size - 1) // 2
         else:
@@ -114,7 +112,6 @@ class VariableWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
         # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
@@ -153,7 +150,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         if step is not None:
             raise NotImplementedError("step not implemented for variable offset window")
         if num_values <= 0:
@@ -229,7 +225,6 @@ class ExpandingIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         return (
             np.zeros(num_values, dtype=np.int64),
             np.arange(1, num_values + 1, dtype=np.int64),
@@ -270,7 +265,6 @@ class FixedForwardWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         if center:
             raise ValueError("Forward-looking windows can't have center=True")
         if closed is not None:
@@ -336,7 +330,6 @@ class GroupbyIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
@@ -394,5 +387,4 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

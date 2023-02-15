@@ -11,7 +11,6 @@ from pandas.tests.copy_view.util import get_array
 
 @td.skip_array_manager_invalid_test
 def test_consolidate(using_copy_on_write):
-
     # create unconsolidated DataFrame
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df["c"] = [4, 5, 6]

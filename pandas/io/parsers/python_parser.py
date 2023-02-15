@@ -476,7 +476,6 @@ class PythonParser(ParserBase):
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
-
                     # if we have grabbed an extra line, but its not in our
                     # format so save in the buffer, and create an blank extra
                     # line for the rest of the parsing code
@@ -677,7 +676,6 @@ class PythonParser(ParserBase):
                 new_row += first_row_bom[end + 1 :]
 
         else:
-
             # No quotation so just remove BOM from first element
             new_row = first_row_bom[1:]
 
@@ -1008,7 +1006,6 @@ class PythonParser(ParserBase):
             and self.index_col is not False  # type: ignore[comparison-overlap]
             and self.usecols is None
         ):
-
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1016,7 +1013,7 @@ class PythonParser(ParserBase):
             content_len = len(content)
             content = []
 
-            for (i, _content) in iter_content:
+            for i, _content in iter_content:
                 actual_len = len(_content)
 
                 if actual_len > col_len:
@@ -1110,7 +1107,6 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-
                         rows_to_skip = 0
                         if self.skiprows is not None and self.pos is not None:
                             # Only read additional rows if pos is in skiprows
