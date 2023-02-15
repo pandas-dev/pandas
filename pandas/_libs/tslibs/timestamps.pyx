@@ -8,6 +8,7 @@ shadows the python class, where we do any heavy lifting.
 """
 
 import warnings
+
 cimport cython
 
 import numpy as np
@@ -80,6 +81,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -1032,19 +1034,19 @@ cdef class _Timestamp(ABCTimestamp):
         stamp = self._repr_base
         zone = None
 
-        try:
-            stamp += self.strftime("%z")
-        except ValueError:
-            year2000 = self.replace(year=2000)
-            stamp += year2000.strftime("%z")
+        if self.tzinfo is not None:
+            try:
+                stamp += self.strftime("%z")
+            except ValueError:
+                year2000 = self.replace(year=2000)
+                stamp += year2000.strftime("%z")
 
-        if self.tzinfo:
             zone = get_timezone(self.tzinfo)
-        try:
-            stamp += zone.strftime(" %%Z")
-        except AttributeError:
-            # e.g. tzlocal has no `strftime`
-            pass
+            try:
+                stamp += zone.strftime(" %%Z")
+            except AttributeError:
+                # e.g. tzlocal has no `strftime`
+                pass
 
         tz = f", tz='{zone}'" if zone is not None else ""
 
@@ -2216,6 +2218,7 @@ default 'raise'
             object k, v
             datetime ts_input
             tzinfo_type tzobj
+            _TSObject ts
 
         # set to naive if needed
         tzobj = self.tzinfo
@@ -2261,7 +2264,20 @@ default 'raise'
             tzobj = tzinfo
 
         # reconstruct & check bounds
-        if tzobj is not None and treat_tz_as_pytz(tzobj):
+        if tzobj is None:
+            # We can avoid going through pydatetime paths, which is robust
+            #  to datetimes outside of pydatetime range.
+            ts = _TSObject()
+            check_dts_bounds(&dts, self._creso)
+            ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            ts.dts = dts
+            ts.creso = self._creso
+            ts.fold = fold
+            return create_timestamp_from_ts(
+                ts.value, dts, tzobj, fold, reso=self._creso
+            )
+
+        elif tzobj is not None and treat_tz_as_pytz(tzobj):
             # replacing across a DST boundary may induce a new tzinfo object
             # see GH#18319
             ts_input = tzobj.localize(datetime(dts.year, dts.month, dts.day,

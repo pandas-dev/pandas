@@ -59,7 +59,6 @@ def df_main_dtypes():
 
 
 class TestNLargestNSmallest:
-
     # ----------------------------------------------------------------------
     # Top / bottom
     @pytest.mark.parametrize(
@@ -85,7 +84,6 @@ class TestNLargestNSmallest:
         # GH#10393
         df = df_strings
         if "b" in order:
-
             error_msg = (
                 f"Column 'b' has dtype object, "
                 f"cannot use method '{nselect_method}' with this dtype"

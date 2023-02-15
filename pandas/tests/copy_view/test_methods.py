@@ -648,6 +648,15 @@ def test_set_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_set_index_mutating_parent_does_not_mutate_index():
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    result = df.set_index("a")
+    expected = result.copy()
+
+    df.iloc[0, 0] = 100
+    tm.assert_frame_equal(result, expected)
+
+
 def test_add_prefix(using_copy_on_write):
     # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -1188,7 +1197,6 @@ def test_items(using_copy_on_write):
     # triggered, and we want to make sure it still works then.
     for i in range(2):
         for name, ser in df.items():
-
             assert np.shares_memory(get_array(ser, name), get_array(df, name))
 
             # mutating df triggers a copy-on-write for that column / block
@@ -1301,6 +1309,54 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
         assert view.iloc[0, 0] == 5
 
 
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_where_noop(using_copy_on_write, dtype):
+    ser = Series([1, 2, 3], dtype=dtype)
+    ser_orig = ser.copy()
+
+    result = ser.where(ser > 0, 10)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(result))
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+
+    result.iloc[0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+    tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_where(using_copy_on_write, dtype):
+    ser = Series([1, 2, 3], dtype=dtype)
+    ser_orig = ser.copy()
+
+    result = ser.where(ser < 0, 10)
+
+    assert not np.shares_memory(get_array(ser), get_array(result))
+    tm.assert_series_equal(ser, ser_orig)
+
+
+@pytest.mark.parametrize("dtype, val", [("int64", 10.5), ("Int64", 10)])
+def test_where_noop_on_single_column(using_copy_on_write, dtype, val):
+    df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
+    df_orig = df.copy()
+
+    result = df.where(df < 0, val)
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+
+    result.iloc[0, 1] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "b"), get_array(result, "b"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
@@ -1357,6 +1413,33 @@ def test_isetitem(using_copy_on_write):
         assert np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
     else:
         assert not np.shares_memory(get_array(df, "c"), get_array(df2, "c"))
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_isetitem_series(using_copy_on_write, dtype):
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = Series([7, 8, 9])
+    ser_orig = ser.copy()
+    df.isetitem(0, ser)
+
+    if using_copy_on_write:
+        # TODO(CoW) this can share memory
+        assert not np.shares_memory(get_array(df, "a"), get_array(ser))
+
+    # mutating dataframe doesn't update series
+    df.loc[0, "a"] = 0
+    tm.assert_series_equal(ser, ser_orig)
+
+    # mutating series doesn't update dataframe
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = Series([7, 8, 9])
+    df.isetitem(0, ser)
+
+    ser.loc[0] = 0
+    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize("key", ["a", ["a"]])
@@ -1444,3 +1527,23 @@ def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axi
             result.iloc[0, 0] = 0
 
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_inplace_arithmetic_series():
+    ser = Series([1, 2, 3])
+    data = get_array(ser)
+    ser *= 2
+    assert np.shares_memory(get_array(ser), data)
+    tm.assert_numpy_array_equal(data, get_array(ser))
+
+
+def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+    view = ser[:]
+    ser *= 2
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(ser), get_array(view))
+        tm.assert_series_equal(ser_orig, view)
+    else:
+        assert np.shares_memory(get_array(ser), get_array(view))

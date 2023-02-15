@@ -189,14 +189,12 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic(self, trades, asof, quotes):
-
         expected = asof
 
         result = merge_asof(trades, quotes, on="time", by="ticker")
         tm.assert_frame_equal(result, expected)
 
     def test_basic_categorical(self, trades, asof, quotes):
-
         expected = asof
         trades.ticker = trades.ticker.astype("category")
         quotes.ticker = quotes.ticker.astype("category")
@@ -206,7 +204,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_left_index(self, trades, asof, quotes):
-
         # GH14253
         expected = asof
         trades = trades.set_index("time")
@@ -221,7 +218,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_right_index(self, trades, asof, quotes):
-
         expected = asof
         quotes = quotes.set_index("time")
 
@@ -231,7 +227,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_left_index_right_index(self, trades, asof, quotes):
-
         expected = asof.set_index("time")
         trades = trades.set_index("time")
         quotes = quotes.set_index("time")
@@ -242,7 +237,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_multi_index_left(self, trades, quotes):
-
         # MultiIndex is prohibited
         trades = trades.set_index(["time", "price"])
         quotes = quotes.set_index("time")
@@ -250,7 +244,6 @@ class TestAsOfMerge:
             merge_asof(trades, quotes, left_index=True, right_index=True)
 
     def test_multi_index_right(self, trades, quotes):
-
         # MultiIndex is prohibited
         trades = trades.set_index("time")
         quotes = quotes.set_index(["time", "bid"])
@@ -258,7 +251,6 @@ class TestAsOfMerge:
             merge_asof(trades, quotes, left_index=True, right_index=True)
 
     def test_on_and_index_left_on(self, trades, quotes):
-
         # "on" parameter and index together is prohibited
         trades = trades.set_index("time")
         quotes = quotes.set_index("time")
@@ -278,7 +270,6 @@ class TestAsOfMerge:
             )
 
     def test_basic_left_by_right_by(self, trades, asof, quotes):
-
         # GH14253
         expected = asof
 
@@ -288,7 +279,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_missing_right_by(self, trades, asof, quotes):
-
         expected = asof
 
         q = quotes[quotes.ticker != "MSFT"]
@@ -477,7 +467,6 @@ class TestAsOfMerge:
             )
 
     def test_basic2(self, datapath):
-
         expected = self.read_data(datapath, "asof2.csv")
         trades = self.read_data(datapath, "trades2.csv")
         quotes = self.read_data(datapath, "quotes2.csv", dedupe=True)
@@ -501,7 +490,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_valid_join_keys(self, trades, quotes):
-
         msg = r"incompatible merge keys \[1\] .* must be the same type"
 
         with pytest.raises(MergeError, match=msg):
@@ -514,7 +502,6 @@ class TestAsOfMerge:
             merge_asof(trades, quotes, by="ticker")
 
     def test_with_duplicates(self, datapath, trades, quotes):
-
         q = (
             pd.concat([quotes, quotes])
             .sort_values(["time", "ticker"])
@@ -525,7 +512,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_with_duplicates_no_on(self):
-
         df1 = pd.DataFrame({"key": [1, 1, 3], "left_val": [1, 2, 3]})
         df2 = pd.DataFrame({"key": [1, 2, 2], "right_val": [1, 2, 3]})
         result = merge_asof(df1, df2, on="key")
@@ -535,7 +521,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_valid_allow_exact_matches(self, trades, quotes):
-
         msg = "allow_exact_matches must be boolean, passed foo"
 
         with pytest.raises(MergeError, match=msg):
@@ -544,7 +529,6 @@ class TestAsOfMerge:
             )
 
     def test_valid_tolerance(self, trades, quotes):
-
         # dti
         merge_asof(trades, quotes, on="time", by="ticker", tolerance=Timedelta("1s"))
 
@@ -591,7 +575,6 @@ class TestAsOfMerge:
             )
 
     def test_non_sorted(self, trades, quotes):
-
         trades = trades.sort_values("time", ascending=False)
         quotes = quotes.sort_values("time", ascending=False)
 
@@ -730,7 +713,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches(self, trades, quotes, allow_exact_matches):
-
         result = merge_asof(
             trades, quotes, on="time", by="ticker", allow_exact_matches=False
         )
@@ -770,7 +752,6 @@ class TestAsOfMerge:
     def test_allow_exact_matches_and_tolerance(
         self, trades, quotes, allow_exact_matches_and_tolerance
     ):
-
         result = merge_asof(
             trades,
             quotes,

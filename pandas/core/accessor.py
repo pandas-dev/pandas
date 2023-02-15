@@ -117,7 +117,6 @@ class PandasDelegate:
             return f
 
         for name in accessors:
-
             if (
                 not raise_on_missing
                 and getattr(delegate, accessor_mapping(name), None) is None

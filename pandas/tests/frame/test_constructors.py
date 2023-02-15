@@ -1399,7 +1399,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_list_of_dicts(self):
-
         result = DataFrame([{}])
         expected = DataFrame(index=RangeIndex(1), columns=[])
         tm.assert_frame_equal(result, expected)
@@ -1872,7 +1871,6 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_with_datetimes1(self):
-
         # GH 2809
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
@@ -2111,13 +2109,14 @@ class TestDataFrameConstructors:
 
     def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
         if not using_array_manager:
-            df = DataFrame(float_frame.values)
+            arr = float_frame.values.copy()
+            df = DataFrame(arr)
 
-            float_frame.values[5] = 5
+            arr[5] = 5
             assert (df.values[5] == 5).all()
 
-            df = DataFrame(float_frame.values, copy=True)
-            float_frame.values[6] = 6
+            df = DataFrame(arr, copy=True)
+            arr[6] = 6
             assert not (df.values[6] == 6).all()
         else:
             arr = float_frame.values.copy()
@@ -2193,7 +2192,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_categorical(self):
-
         # GH8626
 
         # dict creation
@@ -2246,7 +2244,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_categorical_series(self):
-
         items = [1, 2, 3, 1]
         exp = Series(items).astype("category")
         res = Series(items, dtype="category")
@@ -2458,7 +2455,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_str_na(self, string_dtype):
-
         result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
         expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
@@ -2793,7 +2789,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
             DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
 
     def test_from_dict(self):
-
         # 8260
         # support datetime64 with tz
 
@@ -2808,7 +2803,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         tm.assert_series_equal(df["B"], Series(dr, name="B"))
 
     def test_from_index(self):
-
         # from index
         idx2 = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
         df2 = DataFrame(idx2)
@@ -2968,7 +2962,6 @@ class TestFromScalar:
 
     @pytest.fixture
     def constructor(self, frame_or_series, box):
-
         extra = {"index": range(2)}
         if frame_or_series is DataFrame:
             extra["columns"] = ["A"]
@@ -3010,7 +3003,6 @@ class TestFromScalar:
         assert get1(obj) == ts
 
     def test_from_timedelta64_scalar_object(self, constructor):
-
         td = Timedelta(1)
         td64 = td.to_timedelta64()
 
