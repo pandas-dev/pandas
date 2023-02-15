@@ -14,7 +14,7 @@ dependencies:
   # test dependencies
   - pytest>=7.0.0
   - pytest-cov
-  - pytest-asyncio
+  - pytest-asyncio>=0.17.0
   - pytest-xdist>=2.2.0
   - hypothesis>=6.34.2
 
