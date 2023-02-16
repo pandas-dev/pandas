@@ -9,6 +9,30 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_154.strftime_perf:
+
+Strftime performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :class:`Period`'s default formatter (`period_format`) is now much faster. This
+  improves performance of `str(Period)`, `repr(Period)`, and
+  :meth:`Period.strftime(fmt=None)`.
+- New :func:`convert_strftime_format` to convert a strftime formatting template into
+  a python string formatting template.
+- New :meth:`Period.fast_strftime` and :meth:`Timestamp.fast_strftime` leveraging
+  templates created with :func:`convert_strftime_format`
+- New `fast_strftime` boolean flag in all formatting procedures to enable faster
+  strftime operations leveraging :func:`convert_strftime_format` and python string
+  formatting:
+    - in :meth:`DatetimeLikeArrayMixin.strftime` and
+      :meth:`DatetimeIndexOpsMixin.format`. Classes :class:`DatetimeArray`,
+      :class:`PeriodArray`, :class:`DatetimeIndex`, :class:`PeriodIndex` benefit
+      from the improvement. :class:`TimedeltaArray.strftime` and
+      :class:`TimedeltaArray.format` are not impacted as their `date_format`
+      argument is currently ignored.
+    - in :meth:`NDFrame.to_csv`, :meth:`DataFrameRenderer.to_csv` and
+      :class:`CSVFormatter`
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_154.regressions:
 
 Fixed regressions
