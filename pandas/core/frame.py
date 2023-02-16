@@ -10027,7 +10027,7 @@ Parrot 2  Parrot       24.0
         idx = cols.copy()
         if data._can_fast_transpose:
             # Avoid an expensive copy
-            values = self._values
+            values = data._values
             if not isinstance(values, np.ndarray):
                 mat = values.to_numpy(dtype=np.float64, na_value=np.nan, copy=False)
             else:
