@@ -2158,7 +2158,7 @@ def test_parse_dot_separated_dates(all_parsers):
 
 
 def test_parse_dates_dict_format(all_parsers):
-    # GH#
+    # GH#51240
     parser = all_parsers
     data = """a,b
 2019-12-31,31-12-2019
@@ -2183,7 +2183,7 @@ def test_parse_dates_dict_format(all_parsers):
     "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
 )
 def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
-    # GH#
+    # GH#51240
     parser = all_parsers
     data = """a,b
 31-,12-2019
@@ -2202,7 +2202,7 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
 
 @skip_pyarrow
 def test_parse_dates_dict_format_index(all_parsers):
-    # GH#
+    # GH#51240
     parser = all_parsers
     data = """a,b
 2019-12-31,31-12-2019

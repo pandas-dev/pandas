@@ -294,7 +294,7 @@ date_parser : function, default ``None``
   .. deprecated:: 2.0.0
    Use ``date_format`` instead, or read in as ``object`` and then apply
    :func:`to_datetime` as-needed.
-date_format : str or dict of column -> format default ``None``
+date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
