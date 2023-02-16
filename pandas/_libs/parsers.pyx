@@ -15,6 +15,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BooleanArray,
     FloatingArray,
     IntegerArray,
@@ -341,6 +342,7 @@ cdef class TextReader:
         bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
+        str dtype_backend
 
     def __cinit__(self, source,
                   delimiter=b",",  # bytes | str
@@ -377,7 +379,8 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  use_nullable_dtypes=False):
+                  use_nullable_dtypes=False,
+                  dtype_backend="pandas"):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -499,6 +502,7 @@ cdef class TextReader:
         # - dict[Any, DtypeObj]
         self.dtype = dtype
         self.use_nullable_dtypes = use_nullable_dtypes
+        self.dtype_backend = dtype_backend
 
         self.noconvert = set()
 
@@ -844,6 +848,9 @@ cdef class TextReader:
         with nogil:
             status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
+        self._check_tokenize_status(status)
+
+    cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
             print(PyUnicode_DecodeUTF8(
                 self.parser.warn_msg, strlen(self.parser.warn_msg),
@@ -875,15 +882,7 @@ cdef class TextReader:
             with nogil:
                 status = tokenize_all_rows(self.parser, self.encoding_errors)
 
-            if self.parser.warn_msg != NULL:
-                print(PyUnicode_DecodeUTF8(
-                    self.parser.warn_msg, strlen(self.parser.warn_msg),
-                    self.encoding_errors), file=sys.stderr)
-                free(self.parser.warn_msg)
-                self.parser.warn_msg = NULL
-
-            if status < 0:
-                raise_parser_error("Error tokenizing data", self.parser)
+            self._check_tokenize_status(status)
 
         if self.parser_start >= self.parser.lines:
             raise StopIteration
@@ -1054,7 +1053,9 @@ cdef class TextReader:
             ):
                 use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
                 col_res = _maybe_upcast(
-                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                    col_res,
+                    use_nullable_dtypes=use_nullable_dtypes,
+                    dtype_backend=self.dtype_backend,
                 )
 
             if col_res is None:
@@ -1387,7 +1388,9 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+def _maybe_upcast(
+    arr, use_nullable_dtypes: bool = False, dtype_backend: str = "pandas"
+):
     """Sets nullable dtypes or upcasts if nans are present.
 
     Upcast, if use_nullable_dtypes is false and nans are present so that the
@@ -1439,6 +1442,13 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     elif arr.dtype == np.object_:
         if use_nullable_dtypes:
             arr = StringDtype().construct_array_type()._from_sequence(arr)
+
+    if use_nullable_dtypes and dtype_backend == "pyarrow":
+        import pyarrow as pa
+        if isinstance(arr, IntegerArray) and arr.isna().all():
+            # use null instead of int64 in pyarrow
+            arr = arr.to_numpy()
+        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
 
     return arr
 

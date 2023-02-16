@@ -303,6 +303,8 @@ class BaseWindow(SelectionMixin):
             (is_scalar(key) and key in subset) or is_list_like(key)
         ):
             selection = key
+        elif subset.ndim == 1 and is_scalar(key) and key == subset.name:
+            selection = key
 
         new_win = type(self)(subset, selection=selection, **kwargs)
         return new_win
@@ -1249,7 +1251,6 @@ class Window(BaseWindow):
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
-
             # these must apply directly
             result = func(self)
 
@@ -1736,7 +1737,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
-
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -1757,7 +1757,6 @@ class Rolling(RollingAndExpandingMixin):
             self.obj.empty
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
-
             self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs

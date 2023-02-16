@@ -21,6 +21,7 @@ from io import (
     StringIO,
 )
 import pickle
+import re
 
 import numpy as np
 import pytest
@@ -32,6 +33,7 @@ from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
+    pa_version_under11p0,
 )
 from pandas.errors import PerformanceWarning
 
@@ -287,7 +289,7 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif pa.types.is_duration(pa_dtype):
+        elif pa_version_under11p0 and pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -513,13 +515,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
 
-        elif all_numeric_reductions in [
-            "mean",
-            "median",
-            "std",
-            "sem",
-        ] and pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",
@@ -993,7 +988,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
-
     divmod_exc = NotImplementedError
 
     def _patch_combine(self, obj, other, op):
@@ -1599,3 +1593,553 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+@pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
+def test_str_count(pat):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.count(pat)
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_count_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="count not"):
+        ser.str.count("abc", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, str_func", [["left", "rjust"], ["right", "ljust"], ["both", "center"]]
+)
+def test_str_pad(side, str_func):
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.pad(width=3, side=side, fillchar="x")
+    expected = pd.Series(
+        [getattr("a", str_func)(3, "x"), None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_pad_invalid_side():
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(ValueError, match="Invalid side: foo"):
+        ser.str.pad(3, "foo", "x")
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, regex, exp",
+    [
+        ["ab", False, None, False, [True, None]],
+        ["Ab", True, None, False, [False, None]],
+        ["ab", False, True, False, [True, True]],
+        ["a[a-z]{1}", False, None, True, [True, None]],
+        ["A[a-z]{1}", True, None, True, [False, None]],
+    ],
+)
+def test_str_contains(pat, case, na, regex, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(pat, case=case, na=na, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_contains_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="contains not"):
+        ser.str.contains("a", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, pat, na, exp",
+    [
+        ["startswith", "ab", None, [True, None]],
+        ["startswith", "b", False, [False, False]],
+        ["endswith", "b", True, [False, True]],
+        ["endswith", "bc", None, [True, None]],
+    ],
+)
+def test_str_start_ends_with(side, pat, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(pat, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg_name, arg",
+    [["pat", re.compile("b")], ["repl", str], ["case", False], ["flags", 1]],
+)
+def test_str_replace_unsupported(arg_name, arg):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    kwargs = {"pat": "b", "repl": "x", "regex": True}
+    kwargs[arg_name] = arg
+    with pytest.raises(NotImplementedError, match="replace is not supported"):
+        ser.str.replace(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "pat, repl, n, regex, exp",
+    [
+        ["a", "x", -1, False, ["xbxc", None]],
+        ["a", "x", 1, False, ["xbac", None]],
+        ["[a-b]", "x", -1, True, ["xxxc", None]],
+    ],
+)
+def test_str_replace(pat, repl, n, regex, exp):
+    ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(pat, repl, n=n, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_repeat_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="repeat is not"):
+        ser.str.repeat([1, 2])
+
+
+@pytest.mark.xfail(
+    pa_version_under7p0,
+    reason="Unsupported for pyarrow < 7",
+    raises=NotImplementedError,
+)
+def test_str_repeat():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.repeat(2)
+    expected = pd.Series(["abcabc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["ab", False, None, [True, None]],
+        ["Ab", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{1}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_match(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["abc", False, None, [True, None]],
+        ["Abc", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{2}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_fullmatch(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "sub, start, end, exp, exp_typ",
+    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [2, None], pa.int64()]],
+)
+def test_str_find(sub, start, end, exp, exp_typ):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub, start=start, end=end)
+    expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_notimplemented():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="find not implemented"):
+        ser.str.find("ab", start=1)
+
+
+@pytest.mark.parametrize(
+    "i, exp",
+    [
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_get(i, exp):
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.get(i)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    reason="TODO: StringMethods._validate should support Arrow list types",
+    raises=AttributeError,
+)
+def test_str_join():
+    ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
+    result = ser.str.join("=")
+    expected = pd.Series(["a=b=c", "1=2=3", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, exp",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [1, 3, 1, ["bc", None]],
+    ],
+)
+def test_str_slice(start, stop, step, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice(start, stop, step)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, repl, exp",
+    [
+        [1, 2, "x", ["axcd", None]],
+        [None, 2, "x", ["xcd", None]],
+        [None, 2, None, ["cd", None]],
+    ],
+)
+def test_str_slice_replace(start, stop, repl, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice_replace(start, stop, repl)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, method, exp",
+    [
+        ["a1c", "isalnum", True],
+        ["!|,", "isalnum", False],
+        ["aaa", "isalpha", True],
+        ["!!!", "isalpha", False],
+        ["٠", "isdecimal", True],
+        ["~!", "isdecimal", False],
+        ["2", "isdigit", True],
+        ["~", "isdigit", False],
+        ["aaa", "islower", True],
+        ["aaA", "islower", False],
+        ["123", "isnumeric", True],
+        ["11I", "isnumeric", False],
+        [" ", "isspace", True],
+        ["", "isspace", False],
+        ["The That", "istitle", True],
+        ["the That", "istitle", False],
+        ["AAA", "isupper", True],
+        ["AAc", "isupper", False],
+    ],
+)
+def test_str_is_functions(value, method, exp):
+    ser = pd.Series([value, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["capitalize", "Abc def"],
+        ["title", "Abc Def"],
+        ["swapcase", "AbC Def"],
+        ["lower", "abc def"],
+        ["upper", "ABC DEF"],
+    ],
+)
+def test_str_transform_functions(method, exp):
+    ser = pd.Series(["aBc dEF", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_len():
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.len()
+    expected = pd.Series([4, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, to_strip, val",
+    [
+        ["strip", None, " abc "],
+        ["strip", "x", "xabcx"],
+        ["lstrip", None, " abc"],
+        ["lstrip", "x", "xabc"],
+        ["rstrip", None, "abc "],
+        ["rstrip", "x", "abcx"],
+    ],
+)
+def test_str_strip(method, to_strip, val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)(to_strip=to_strip)
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", ["abc123", "abc"])
+def test_str_removesuffix(val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.removesuffix("123")
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ["partition", ("abc", False)],
+        ["rpartition", ("abc", False)],
+        ["removeprefix", ("abc",)],
+        ["casefold", ()],
+        ["encode", ("abc",)],
+        ["extract", (r"[ab](\d)",)],
+        ["findall", ("abc",)],
+        ["get_dummies", ()],
+        ["index", ("abc",)],
+        ["rindex", ("abc",)],
+        ["normalize", ("abc",)],
+        ["rfind", ("abc",)],
+        ["split", ()],
+        ["rsplit", ()],
+        ["translate", ("abc",)],
+        ["wrap", ("abc",)],
+    ],
+)
+def test_str_unsupported_methods(method, args):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(
+        NotImplementedError, match=f"str.{method} not supported with pd.ArrowDtype"
+    ):
+        getattr(ser.str, method)(*args)
+
+
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+def test_duration_from_strings_with_nat(unit):
+    # GH51175
+    strings = ["1000", "NaT"]
+    pa_type = pa.duration(unit)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([1000, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_unsupported_dt(data):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not pa.types.is_temporal(pa_dtype):
+        with pytest.raises(
+            AttributeError, match="Can only use .dt accessor with datetimelike values"
+        ):
+            pd.Series(data).dt
+
+
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ["day", 2],
+        ["day_of_week", 0],
+        ["dayofweek", 0],
+        ["weekday", 0],
+        ["day_of_year", 2],
+        ["dayofyear", 2],
+        ["hour", 3],
+        ["minute", 4],
+        pytest.param(
+            "is_leap_year",
+            False,
+            marks=pytest.mark.xfail(
+                pa_version_under8p0,
+                raises=NotImplementedError,
+                reason="is_leap_year not implemented for pyarrow < 8.0",
+            ),
+        ),
+        ["microsecond", 5],
+        ["month", 1],
+        ["nanosecond", 6],
+        ["quarter", 1],
+        ["second", 7],
+        ["date", date(2023, 1, 2)],
+        ["time", time(3, 4, 7, 5)],
+    ],
+)
+def test_dt_properties(prop, expected):
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2023,
+                month=1,
+                day=2,
+                hour=3,
+                minute=4,
+                second=7,
+                microsecond=5,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = getattr(ser.dt, prop)
+    exp_type = None
+    if isinstance(expected, date):
+        exp_type = pa.date64()
+    elif isinstance(expected, time):
+        exp_type = pa.time64("ns")
+    expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_time_preserve_unit(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.time
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([time(3, 0), None], type=pa.time64(unit)))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+def test_dt_tz(tz):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
+    )
+    result = ser.dt.tz
+    assert result == tz
+
+
+def test_dt_isocalendar():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_strftime(request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S")
+    expected = pd.Series(
+        ["2023-01-02T03:00:00.000000000", None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_tz_options_not_supported(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous is not supported."):
+        getattr(ser.dt, method)("1H", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent is not supported."):
+        getattr(ser.dt, method)("1H", nonexistent="NaT")
+
+
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_roundlike_unsupported_freq(method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(ValueError, match="freq='1B' is not supported"):
+        getattr(ser.dt, method)("1B")
+
+    with pytest.raises(ValueError, match="Must specify a valid frequency: None"):
+        getattr(ser.dt, method)(None)
+
+
+@pytest.mark.xfail(
+    pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
+)
+@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
+@pytest.mark.parametrize("method", ["ceil", "floor", "round"])
+def test_dt_ceil_year_floor(freq, method):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=1), None],
+    )
+    pa_dtype = ArrowDtype(pa.timestamp("ns"))
+    expected = getattr(ser.dt, method)(f"1{freq}").astype(pa_dtype)
+    result = getattr(ser.astype(pa_dtype).dt, method)(f"1{freq}")
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_tz_localize_unsupported_tz_options():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(NotImplementedError, match="ambiguous='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", ambiguous="NaT")
+
+    with pytest.raises(NotImplementedError, match="nonexistent='NaT' is not supported"):
+        ser.dt.tz_localize("UTC", nonexistent="NaT")
+
+
+def test_dt_tz_localize_none():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
+    )
+    result = ser.dt.tz_localize(None)
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_tz_localize(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit)),
+    )
+    result = ser.dt.tz_localize("US/Pacific")
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    )
+    tm.assert_series_equal(result, expected)

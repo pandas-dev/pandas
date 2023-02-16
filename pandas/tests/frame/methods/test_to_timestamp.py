@@ -130,7 +130,6 @@ class TestToTimestamp:
             obj.to_timestamp(axis=2)
 
     def test_to_timestamp_hourly(self, frame_or_series):
-
         index = period_range(freq="H", start="1/1/2001", end="1/2/2001")
         obj = Series(1, index=index, name="foo")
         if frame_or_series is not Series:

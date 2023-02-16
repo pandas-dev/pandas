@@ -197,7 +197,6 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
-
             import pyarrow
 
             if isinstance(array, pyarrow.Array):
@@ -423,7 +422,10 @@ class StringArray(BaseStringArray, PandasArray):
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise TypeError("Must provide strings.")
 
-            value[isna(value)] = libmissing.NA
+            mask = isna(value)
+            if mask.any():
+                value = value.copy()
+                value[isna(value)] = libmissing.NA
 
         super().__setitem__(key, value)
 

@@ -290,6 +290,16 @@ date_parser : function, default ``None``
   values from the columns defined by parse_dates into a single array and pass
   that; and 3) call date_parser once for each row using one or more strings
   (corresponding to the columns defined by parse_dates) as arguments.
+
+  .. deprecated:: 2.0.0
+   Use ``date_format`` instead, or read in as ``object`` and then apply
+   :func:`to_datetime` as-needed.
+date_format : str, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex (e.g. different formats for different columns),
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+    .. versionadded:: 2.0.0
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
 cache_dates : boolean, default True
@@ -800,7 +810,7 @@ Specifying date columns
 +++++++++++++++++++++++
 
 To better facilitate working with datetime data, :func:`read_csv`
-uses the keyword arguments ``parse_dates`` and ``date_parser``
+uses the keyword arguments ``parse_dates`` and ``date_format``
 to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
@@ -898,33 +908,15 @@ data columns:
 Date parsing functions
 ++++++++++++++++++++++
 
-Finally, the parser allows you to specify a custom ``date_parser`` function to
-take full advantage of the flexibility of the date parsing API:
+Finally, the parser allows you to specify a custom ``date_format``.
+Performance-wise, you should try these methods of parsing dates in order:
 
-.. ipython:: python
+1. If you know the format, use ``date_format``, e.g.:
+   ``date_format="%d/%m/%Y"``.
 
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=date_spec, date_parser=pd.to_datetime
-   )
-   df
-
-pandas will try to call the ``date_parser`` function in three different ways. If
-an exception is raised, the next one is tried:
-
-1. ``date_parser`` is first called with one or more arrays as arguments,
-   as defined using ``parse_dates`` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``).
-
-2. If #1 fails, ``date_parser`` is called with all the columns
-   concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-Note that performance-wise, you should try these methods of parsing dates in order:
-
-1. If you know the format, use ``pd.to_datetime()``:
-   ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
-
-2. If you have a really non-standard format, use a custom ``date_parser`` function.
-   For optimal performance, this should be vectorized, i.e., it should accept arrays
-   as arguments.
+2. If you different formats for different columns, or want to pass any extra options (such
+   as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
+   then use ``to_datetime``.
 
 
 .. ipython:: python
@@ -952,16 +944,13 @@ an object-dtype column with strings, even with ``parse_dates``.
    df = pd.read_csv(StringIO(content), parse_dates=["a"])
    df["a"]
 
-To parse the mixed-timezone values as a datetime column, pass a partially-applied
-:func:`to_datetime` with ``utc=True`` as the ``date_parser``.
+To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
+then call :func:`to_datetime` with ``utc=True``.
 
 .. ipython:: python
 
-   df = pd.read_csv(
-       StringIO(content),
-       parse_dates=["a"],
-       date_parser=lambda col: pd.to_datetime(col, utc=True),
-   )
+   df = pd.read_csv(StringIO(content))
+   df["a"] = pd.to_datetime(df["a"], utc=True)
    df["a"]
 
 
@@ -1001,14 +990,23 @@ way to parse dates is to explicitly set ``format=``.
    )
    df
 
-In the case that you have mixed datetime formats within the same column, you'll need to
-first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+In the case that you have mixed datetime formats within the same column, you can
+pass  ``format='mixed'``
 
 .. ipython:: python
 
    data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
-   df['date'] = df['date'].apply(pd.to_datetime)
+   df['date'] = pd.to_datetime(df['date'], format='mixed')
+   df
+
+or, if your datetime formats are all ISO8601 (possibly not identically-formatted):
+
+.. ipython:: python
+
+   data = io.StringIO("date\n2020-01-01\n2020-01-01 03:00\n")
+   df = pd.read_csv(data)
+   df['date'] = pd.to_datetime(df['date'], format='ISO8601')
    df
 
 .. ipython:: python
@@ -2069,6 +2067,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
+* ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
+  The ``"pyarrow"`` is only available when ``lines=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -2249,6 +2249,16 @@ For line-delimited json files, pandas can also return an iterator which reads in
       reader
       for chunk in reader:
           print(chunk)
+
+Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
+
+.. ipython:: python
+
+   from io import BytesIO
+   df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
+   df
+
+.. versionadded:: 2.0.0
 
 .. _io.table_schema:
 
@@ -5486,11 +5496,8 @@ included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
-If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
-for mysql for backwards compatibility, but this is deprecated and will be
-removed in a future version).
-This mode requires a Python database adapter which respect the `Python
-DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
+If SQLAlchemy is not installed, you can use a :class:`sqlite3.Connection` in place of
+a SQLAlchemy engine, connection, or URI string.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -5868,7 +5875,7 @@ If you have an SQLAlchemy description of your database you can express where con
        sa.Column("Col_3", sa.Boolean),
    )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
+   pd.read_sql(sa.select(data_table).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5876,7 +5883,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
 
     import datetime as dt
 
-    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam("date"))
+    expr = sa.select(data_table).where(data_table.c.Date > sa.bindparam("date"))
     pd.read_sql(expr, engine, params={"date": dt.datetime(2010, 10, 18)})
 
 

@@ -46,7 +46,6 @@ def test_styler_to_excel_unstyled(engine):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
                 assert len(col1) == len(col2)
                 for cell1, cell2 in zip(col1, col2):
@@ -141,7 +140,6 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             # test unstyled data cell does not have expected styles
             # test styled cell has expected styles
             u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
@@ -181,7 +179,6 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             # test null styled index cells does not have expected styles
             # test styled cell has expected styles
             ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
@@ -243,7 +240,6 @@ def test_styler_to_excel_border_style(engine, border_style):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             # test unstyled data cell does not have expected styles
             # test styled cell has expected styles
             u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
