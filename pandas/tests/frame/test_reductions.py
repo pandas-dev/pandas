@@ -687,6 +687,20 @@ class TestDataFrameAnalytics:
         expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
+    )
+    def test_std_datetime64_with_nat(self, values, skipna):
+        # GH#51335
+        df = DataFrame({"a": to_datetime(values)})
+        result = df.std(skipna=skipna)
+        if not skipna or all(value is pd.NaT for value in values):
+            expected = Series({"a": pd.NaT}, dtype="timedelta64[ns]")
+        else:
+            # 86400000000000ns == 1 day
+            expected = Series({"a": 86400000000000}, dtype="timedelta64[ns]")
+        tm.assert_series_equal(result, expected)
+
     def test_sum_corner(self):
         empty_frame = DataFrame()
 
