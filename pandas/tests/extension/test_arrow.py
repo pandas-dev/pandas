@@ -1377,17 +1377,6 @@ def test_quantile(data, interpolation, quantile, request):
     ids=["multi_mode", "single_mode"],
 )
 def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx, request):
-    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if (
-        pa.types.is_boolean(pa_dtype)
-        and "multi_mode" in request.node.nodeid
-        and pa_version_under9p0
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="https://issues.apache.org/jira/browse/ARROW-17096",
-            )
-        )
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
     result = ser.mode(dropna=True)
