@@ -341,6 +341,7 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
+            using_cow=using_copy_on_write(),
         )
 
     def setitem(self: T, indexer, value) -> T:
@@ -994,6 +995,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
+            # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
+            #  is this ruled out in the general case?
             result = self.blocks[0].iget((slice(None), loc))
             # in the case of a single block, the new block is a view
             block = new_block(

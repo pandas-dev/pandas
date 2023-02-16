@@ -78,7 +78,6 @@ from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
-    ensure_dtype_can_hold_na,
     find_result_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
@@ -171,7 +170,7 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     nargsort,
 )
-from pandas.core.strings import StringMethods
+from pandas.core.strings.accessor import StringMethods
 
 from pandas.io.formats.printing import (
     PrettyDict,
@@ -365,6 +364,7 @@ class Index(IndexOpsMixin, PandasObject):
         # can_use_libjoin assures sv and ov are ndarrays
         sv = cast(np.ndarray, sv)
         ov = cast(np.ndarray, ov)
+        # similar but not identical to ov.searchsorted(sv)
         return libjoin.left_join_indexer_unique(sv, ov)
 
     @final
@@ -3142,7 +3142,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_equal(self.dtype, other.dtype):
             if (
                 isinstance(self, ABCMultiIndex)
-                and not is_object_dtype(unpack_nested_dtype(other))
+                and not is_object_dtype(_unpack_nested_dtype(other))
                 and len(other) > 0
             ):
                 raise NotImplementedError(
@@ -3222,6 +3222,8 @@ class Index(IndexOpsMixin, PandasObject):
             # other has duplicates
             result_dups = algos.union_with_duplicates(self, other)
             return _maybe_try_sort(result_dups, sort)
+
+        # The rest of this method is analogous to Index._intersection_via_get_indexer
 
         # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
@@ -3810,7 +3812,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return False
             # See https://github.com/pandas-dev/pandas/issues/47772 the commented
             # out code can be restored (instead of hardcoding `return True`)
-            # once that issue if fixed
+            # once that issue is fixed
             # "Index" has no attribute "left"
             # return self.left._should_compare(target)  # type: ignore[attr-defined]
             return True
@@ -4788,6 +4790,9 @@ class Index(IndexOpsMixin, PandasObject):
         assert other.dtype == self.dtype
 
         if self.equals(other):
+            # This is a convenient place for this check, but its correctness
+            #  does not depend on monotonicity, so it could go earlier
+            #  in the calling method.
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
@@ -4859,8 +4864,10 @@ class Index(IndexOpsMixin, PandasObject):
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
-            return isinstance(self.dtype, np.dtype) or isinstance(
-                self.values, BaseMaskedArray
+            return (
+                isinstance(self.dtype, np.dtype)
+                or isinstance(self.values, BaseMaskedArray)
+                or isinstance(self._values, ArrowExtensionArray)
             )
         return not is_interval_dtype(self.dtype)
 
@@ -4955,6 +4962,10 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, BaseMaskedArray):
             # This is only used if our array is monotonic, so no NAs present
             return self._values._data
+        elif isinstance(self._values, ArrowExtensionArray):
+            # This is only used if our array is monotonic, so no missing values
+            # present
+            return self._values.to_numpy()
         return self._get_engine_target()
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
@@ -4964,6 +4975,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
+        elif isinstance(self.values, ArrowExtensionArray):
+            return type(self.values)._from_sequence(result)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
@@ -5776,6 +5789,9 @@ class Index(IndexOpsMixin, PandasObject):
             that = target.astype(dtype, copy=False)
             return this.get_indexer_non_unique(that)
 
+        # TODO: get_indexer has fastpaths for both Categorical-self and
+        #  Categorical-target. Can we do something similar here?
+
         # Note: _maybe_promote ensures we never get here with MultiIndex
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
@@ -5936,7 +5952,7 @@ class Index(IndexOpsMixin, PandasObject):
             If doing an inequality check, i.e. method is not None.
         """
         if method is not None:
-            other = unpack_nested_dtype(target)
+            other = _unpack_nested_dtype(target)
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -6012,16 +6028,6 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_valid_na_for_dtype(target, self.dtype):
-            # e.g. setting NA value into IntervalArray[int64]
-            dtype = ensure_dtype_can_hold_na(self.dtype)
-            if is_dtype_equal(self.dtype, dtype):
-                raise NotImplementedError(
-                    "This should not be reached. Please report a bug at "
-                    "github.com/pandas-dev/pandas"
-                )
-            return dtype
-
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
 
         # special case: if one dtype is uint64 and the other a signed int, return object
@@ -6054,7 +6060,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  respectively.
             return False
 
-        other = unpack_nested_dtype(other)
+        other = _unpack_nested_dtype(other)
         dtype = other.dtype
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
@@ -6066,6 +6072,8 @@ class Index(IndexOpsMixin, PandasObject):
             return dtype.kind == "b"
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
+        # TODO: this was written assuming we only get here with object-dtype,
+        #  which is nom longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -7153,7 +7161,7 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     return names
 
 
-def unpack_nested_dtype(other: _IndexT) -> _IndexT:
+def _unpack_nested_dtype(other: Index) -> Index:
     """
     When checking if our dtype is comparable with another, we need
     to unpack CategoricalDtype to look at its categories.dtype.
@@ -7167,12 +7175,10 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
     Index
     """
     dtype = other.dtype
-    if is_categorical_dtype(dtype):
+    if isinstance(dtype, CategoricalDtype):
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
-        # error: Item  "dtype[Any]"/"ExtensionDtype" of "Union[dtype[Any],
-        # ExtensionDtype]" has no attribute "categories"
-        return dtype.categories  # type: ignore[union-attr]
+        return dtype.categories
     return other
 
 
