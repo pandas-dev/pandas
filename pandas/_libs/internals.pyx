@@ -7,6 +7,7 @@ from cython cimport Py_ssize_t
 
 
 cdef extern from "Python.h":
+    # TODO(cython3): from cpython.pyport cimport PY_SSIZE_T_MAX
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
@@ -874,10 +875,10 @@ cdef class BlockValuesRefs:
     data.
     """
     cdef:
-        public object referenced_blocks
+        public list referenced_blocks
 
     def __cinit__(self, blk: SharedBlock) -> None:
-        self.referenced_blocks = weakref.WeakSet([blk])
+        self.referenced_blocks = [weakref.ref(blk)]
 
     def add_reference(self, blk: SharedBlock) -> None:
         """Adds a new reference to our reference collection.
@@ -887,7 +888,7 @@ cdef class BlockValuesRefs:
         blk: SharedBlock
             The block that the new references should point to.
         """
-        self.referenced_blocks.add(blk)
+        self.referenced_blocks.append(weakref.ref(blk))
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -899,5 +900,8 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
+        self.referenced_blocks = [
+            ref for ref in self.referenced_blocks if ref() is not None
+        ]
         # Checking for more references than block pointing to itself
         return len(self.referenced_blocks) > 1

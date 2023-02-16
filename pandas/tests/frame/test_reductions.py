@@ -142,7 +142,6 @@ def assert_stat_op_calc(
 
 
 class TestDataFrameAnalytics:
-
     # ---------------------------------------------------------------------
     # Reductions
     @pytest.mark.parametrize("axis", [0, 1])
@@ -543,7 +542,6 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_mode_dropna(self, dropna, expected):
-
         df = DataFrame(
             {
                 "A": [12, 12, 19, 11],
@@ -1143,7 +1141,6 @@ class TestDataFrameAnalytics:
         "ignore:'any' with datetime64 dtypes is deprecated.*:FutureWarning"
     )
     def test_any_datetime(self):
-
         # GH 23070
         float_data = [1, np.nan, 3, np.nan]
         datetime_data = [
@@ -1160,7 +1157,6 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     def test_any_all_bool_only(self):
-
         # GH 25101
         df = DataFrame(
             {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]}
@@ -1278,7 +1274,6 @@ class TestDataFrameAnalytics:
         assert result is False
 
     def test_any_all_object_bool_only(self):
-
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
