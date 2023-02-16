@@ -361,7 +361,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
-    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
     _sparse_index: SparseIndex
     _sparse_values: np.ndarray
     _dtype: SparseDtype
@@ -375,7 +375,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
     ) -> None:
-
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
 
@@ -611,6 +610,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
         >>> s.sp_values
         array([1, 2])
@@ -674,6 +674,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.density
         0.6
@@ -687,6 +688,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.npoints
         3
@@ -770,7 +772,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
     def shift(self: SparseArrayT, periods: int = 1, fill_value=None) -> SparseArrayT:
-
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -909,7 +910,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self: SparseArrayT,
         key: PositionalIndexer | tuple[int | ellipsis, ...],
     ) -> SparseArrayT | Any:
-
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
             if key is Ellipsis:
@@ -929,7 +929,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # _NestedSequence[Union[bool, int]]], ...]]"
             data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
-
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
                 start = 0 if key.start is None else key.start
@@ -1126,7 +1125,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         if not is_scalar(v):
@@ -1594,7 +1592,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
-
         values = self._sparse_values
         index = self._sparse_index.indices
         mask = np.asarray(isna(values))

@@ -568,6 +568,7 @@ def test_array_equivalent_nested(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize(
     "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
 )
@@ -610,6 +611,7 @@ def test_array_equivalent_nested_list(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.xfail(reason="failing")
 @pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_mixed_list(strict_nan):
@@ -874,7 +876,6 @@ class TestLibMissing:
             assert not libmissing.is_matching_na(left, right)
 
     def test_is_matching_na_nan_matches_none(self):
-
         assert not libmissing.is_matching_na(None, np.nan)
         assert not libmissing.is_matching_na(np.nan, None)
 
