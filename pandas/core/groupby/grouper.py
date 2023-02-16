@@ -951,8 +951,10 @@ def get_grouper(
                 obj_gpr_column = obj[gpr.name]
             except (AttributeError, KeyError, IndexError, InvalidIndexError):
                 return False
-            ref = weakref.ref(obj_gpr_column._mgr.blocks[0])
-            return ref in gpr._mgr.blocks[0].refs.referenced_blocks
+            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+                ref = weakref.ref(obj_gpr_column._mgr.blocks[0])
+                return ref in gpr._mgr.blocks[0].refs.referenced_blocks
+            return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
