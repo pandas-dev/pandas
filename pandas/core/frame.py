@@ -10019,7 +10019,15 @@ Parrot 2  Parrot       24.0
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
-        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        if data._can_fast_transpose:
+            # Avoid an expensive copy
+            values = self._values
+            if not isinstance(values, np.ndarray):
+                mat = values.to_numpy(dtype=np.float64, na_value=np.nan, copy=False)
+            else:
+                mat = values.astype(np.float64, copy=False)
+        else:
+            mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
