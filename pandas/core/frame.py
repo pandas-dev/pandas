@@ -7814,7 +7814,7 @@ Keep all original rows and columns and also all original values
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
+        # sorts if possible; otherwise align above ensures that these are set-equal
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
