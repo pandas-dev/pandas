@@ -266,7 +266,7 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are consistent by running
 
 .. code-block:: shell
 
@@ -276,11 +276,11 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
     # the following might fail if the installed pandas version does not correspond to your local git version
     pre-commit run --hook-stage manual --all-files stubtest
 
-in your active python environment.
+in your python environment.
 
 .. warning::
 
-    * It is essential that the versions of ``mypy`` and ``numpy`` are the same as used on main. Please see :ref:`how to setup the python environment <contributing.mamba>`.
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or click on a recent CI report, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
