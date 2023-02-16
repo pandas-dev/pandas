@@ -891,9 +891,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             result[mask] = np.asarray(self[mask]._data)
         elif self._hasna:
             mask = self.isna()
-            result = np.ones((len(self),), dtype=dtype) * na_value
-            result[~mask] = np.asarray(self[~mask]._data, dtype=dtype)
-            return result
+            data = self.copy()
+            data[mask] = na_value
+            return np.asarray(data._data, dtype=dtype)
         else:
             result = np.asarray(self._data, dtype=dtype)
             if copy:
