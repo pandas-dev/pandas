@@ -880,12 +880,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             na_value = self.dtype.na_value
 
         pa_type = self._data.type
-        if (
-            is_object_dtype(dtype)
-            or pa.types.is_timestamp(pa_type)
-            or pa.types.is_duration(pa_type)
-        ):
+        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
+            # temporal types with units and/or timezones currently
+            #  require pandas/python scalars to pass all tests
+            # TODO: improve performance (this is slow)
             result = np.array(list(self), dtype=dtype)
+        elif is_object_dtype(dtype) and self._hasna:
+            result = np.empty(len(self), dtype=object)
+            mask = ~self.isna()
+            result[mask] = np.asarray(self[mask]._data)
         else:
             result = np.asarray(self._data, dtype=dtype)
             if copy or self._hasna:
