@@ -5892,33 +5892,58 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         Use ``.pipe`` when chaining together functions that expect
-        Series, DataFrames or GroupBy objects. Instead of writing
+        Series, DataFrames or GroupBy objects.
 
-        >>> df = pd.Dataframe(np.random.rand(2, 2))
-        >>> h = lambda df: [x.lower() for x in df.columns]
-        >>> def g(x, arg1):
-        ...     return x * arg1
-        >>> def func(x, arg2, arg3):
-        ...     return x * arg2 * arg3
-        >>> a = 1
-        >>> b = 2
-        >>> c = 3
-        >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+        Examples
+        --------
+        Constructing a income DataFrame from a dictionary.
+
+        >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
+        >>> income = pd.DataFrame(data, columns=['Salary', 'Others'])
+           Salary  Others
+        0    8000  1000.0
+        1    9500     NaN
+        2    5000  2000.0
+
+        Functions that perform tax reductions on an income DataFrame.
+
+        >>> def federal_tax(income):
+        ...     return income * 0.9
+        >>> def state_tax(income, rate):
+        ...     return income * (1 - rate)
+        >>> def national_insurance(income, rate, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return income * (1 - new_rate)
+
+        Instead of writing
+
+        >>> (national_insurance(state_tax(federal_tax(income), rate=0.12),
+        ...                    rate=0.05,
+        ...                    rate_increase=0.02)
+        ... )# doctest: +SKIP
 
         You can write
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe(func, arg2=b, arg3=c)
+        >>> (income.pipe(federal_tax)
+        ...    .pipe(state_tax, rate=0.12)
+        ...    .pipe(national_insurance, rate=0.05, rate_increase=0.02)
         ... )  # doctest: +SKIP
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``func`` takes its data as ``arg2``:
+        data. For example, suppose ``national_insurance`` takes its data as ``income``
+        in the second argument:
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
+        >>> def national_insurance(rate, income, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return income * (1 - new_rate)
+        >>> (income.pipe(federal_tax)
+        ...    .pipe(state_tax, rate=0.12)
+        ...    .pipe((national_insurance, 'income'), rate=0.05, rate_increase=0.02)
         ...  )  # doctest: +SKIP
         """
         if using_copy_on_write():
