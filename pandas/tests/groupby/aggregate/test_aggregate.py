@@ -321,9 +321,8 @@ def test_wrap_agg_out(three_group):
 
     with pytest.raises(TypeError, match="Test error message"):
         grouped.aggregate(func)
-    columns = ["D", "E", "F"]
-    result = grouped[columns].aggregate(func)
-    exp_grouped = three_group.loc[:, columns]
+    result = grouped[["D", "E", "F"]].aggregate(func)
+    exp_grouped = three_group.loc[:, ["A", "B", "D", "E", "F"]]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
 
