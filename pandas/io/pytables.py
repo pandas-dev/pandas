@@ -4024,6 +4024,10 @@ class Table(Fixed):
         blk_items: list[Index] = get_blk_items(mgr)
 
         if len(data_columns):
+            # TODO: prove that we only get here with axis == 1?
+            #  It is the case in all extant tests, but NOT the case
+            #  outside this `if len(data_columns)` check.
+
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
