@@ -3563,7 +3563,14 @@ class DataFrame(NDFrame, OpsMixin):
             if copy:
                 new_vals = new_vals.copy()
 
-            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_vals, index=self.columns, columns=self.index, copy=False
+            )
+            if using_copy_on_write() and not copy:
+                result._mgr.blocks[0].refs = self._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
+                result._mgr.blocks[0].refs.add_reference(  # type: ignore[union-attr]
+                    result._mgr.blocks[0]  # type: ignore[arg-type, union-attr]
+                )
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])

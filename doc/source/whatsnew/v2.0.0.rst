@@ -261,6 +261,8 @@ Copy-on-Write improvements
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
 
+- :meth:`DataFrame.transpose` will now respect the Copy-on-Write mechanism.
+
 - Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
   Copy-on-Write mechanism.
 
