@@ -222,6 +222,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
+  - :meth:`DataFrame.iterrows`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
   - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
   - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
@@ -1107,7 +1108,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.rank` for pyarrow-backed dtypes (:issue:`50264`)
 - Performance improvement in :meth:`Series.searchsorted` for pyarrow-backed dtypes (:issue:`50447`)
 - Performance improvement in :meth:`Series.fillna` for extension array dtypes (:issue:`49722`, :issue:`50078`)
-- Performance improvement in :meth:`Index.join`, :meth:`Index.intersection` and :meth:`Index.union` for masked dtypes when :class:`Index` is monotonic (:issue:`50310`)
+- Performance improvement in :meth:`Index.join`, :meth:`Index.intersection` and :meth:`Index.union` for masked and arrow dtypes when :class:`Index` is monotonic (:issue:`50310`, :issue:`51365`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
