@@ -11,6 +11,7 @@ from typing import (
     final,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -947,9 +948,11 @@ def get_grouper(
             # For the CoW case, we need an equality check as the identity check
             # no longer works (each Series from column access is a new object)
             try:
-                return gpr.equals(obj[gpr.name])
+                obj_gpr_column = obj[gpr.name]
             except (AttributeError, KeyError, IndexError, InvalidIndexError):
                 return False
+            ref = weakref.ref(obj_gpr_column._mgr.blocks[0])
+            return ref in gpr._mgr.blocks[0].refs.referenced_blocks
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
