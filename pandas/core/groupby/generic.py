@@ -1080,13 +1080,37 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result
+        axis = self.axis
+
+        def func(df):
+            return df.idxmin(axis=axis, skipna=skipna)
+
+        func.__name__ = "idxmin"
+        return self._idxmin_idxmax(func)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result
+        axis = self.axis
+
+        def func(df):
+            return df.idxmax(axis=axis, skipna=skipna)
+
+        func.__name__ = "idxmax"
+        return self._idxmin_idxmax(func)
+
+    def _idxmin_idxmax(self, func: Callable) -> DataFrame:
+        result, mutated = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
+
+        if len(result) == 0:
+            return Series(
+                [],
+                name=self._obj_with_exclusions.name,
+                index=self.grouper.result_index,
+            ).astype(self._obj_with_exclusions.index.dtype)
+        else:
+            return self._wrap_applied_output(
+                self._obj_with_exclusions, result, not_indexed_same=True
+            )
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2112,11 +2136,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 [],
                 columns=self._obj_with_exclusions.columns,
                 index=self.grouper.result_index,
-            ).astype(
-                self.grouper.result_index.dtypes[0]
-                if isinstance(self.grouper.result_index, MultiIndex)
-                else self.grouper.result_index.dtype
-            )
+            ).astype(self._obj_with_exclusions.index.dtype)
         else:
             return self._wrap_applied_output(
                 self._obj_with_exclusions, result, not_indexed_same=True
