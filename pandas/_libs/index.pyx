@@ -1148,6 +1148,8 @@ cdef class MaskedIndexEngine(IndexEngine):
         if hasattr(values, "_mask"):
             return values._data
         # We are an ArrowExtensionArray
+        # Set 1 as na_value to avoid ending up with NA and an object array
+        # TODO: Remove when arrow engine is implemented
         return values.to_numpy(na_value=1, dtype=values.dtype.numpy_dtype)
 
     def _get_mask(self, object values) -> np.ndarray:
