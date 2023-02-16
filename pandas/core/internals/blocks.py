@@ -1741,7 +1741,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 downcast=downcast,
                 using_cow=using_cow,
             )
-        if using_cow and self._can_hold_na and not self.values.isna().any():
+        if using_cow and self._can_hold_na and not self.values._hasna:
             refs = self.refs
             new_values = self.values
         else:
