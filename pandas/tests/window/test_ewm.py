@@ -11,14 +11,12 @@ import pandas._testing as tm
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.ewm(com=0.5).mean()
 
 
 def test_constructor(frame_or_series):
-
     c = frame_or_series(range(5)).ewm
 
     # valid

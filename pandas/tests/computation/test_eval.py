@@ -99,7 +99,6 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
 def lhs(request):
-
     nan_df1 = DataFrame(np.random.rand(10, 5))
     nan_df1[nan_df1 > 0.5] = np.nan
 
@@ -179,7 +178,6 @@ class TestEval:
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
-
             msg = "'(In|NotIn)' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 ex = f"~(lhs {op} rhs)"
@@ -754,7 +752,6 @@ def should_warn(*args):
 
 
 class TestAlignment:
-
     index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
@@ -805,7 +802,6 @@ class TestAlignment:
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
     def test_medium_complex_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -897,7 +893,6 @@ class TestAlignment:
     def test_series_frame_commutativity(
         self, engine, parser, index_name, op, r_idx_type, c_idx_type
     ):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -1723,7 +1718,6 @@ def test_disallowed_nodes(engine, parser):
     inst = VisitorClass("x + 1", engine, parser)
 
     for ops in VisitorClass.unsupported_nodes:
-
         msg = "nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
             getattr(inst, ops)()
@@ -1895,7 +1889,6 @@ def test_set_inplace(using_copy_on_write):
 class TestValidate:
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
-
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
             pd.eval("2+2", inplace=value)

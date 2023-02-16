@@ -172,7 +172,6 @@ def _set_option(*args, **kwargs) -> None:
 
 
 def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
-
     keys = _select_options(pat)
     if len(keys) == 0:
         raise OptionError("No such keys(s)")
@@ -186,7 +185,6 @@ def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 
 
 def _reset_option(pat: str, silent: bool = False) -> None:
-
     keys = _select_options(pat)
 
     if len(keys) == 0:
@@ -842,13 +840,11 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
 
 
 def is_one_of_factory(legal_values) -> Callable[[Any], None]:
-
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
     def inner(x) -> None:
         if x not in legal_values:
-
             if not any(c(x) for c in callables):
                 uvals = [str(lval) for lval in legal_values]
                 pp_values = "|".join(uvals)

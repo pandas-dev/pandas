@@ -193,7 +193,6 @@ class TestPivotTable:
         tm.assert_index_equal(pv_ind.index, m)
 
     def test_pivot_table_categorical(self):
-
         cat1 = Categorical(
             ["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True
         )
@@ -342,7 +341,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_dtypes(self):
-
         # can convert dtypes
         f = DataFrame(
             {
@@ -1106,7 +1104,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_columns_lexsorted(self):
-
         n = 10000
 
         dtype = np.dtype(

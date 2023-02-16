@@ -235,7 +235,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
@@ -646,7 +645,6 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
-
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -3998,7 +3996,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self[col] = igetitem(value, i)
 
         else:
-
             ilocs = self.columns.get_indexer_non_unique(key)[0]
             if (ilocs < 0).any():
                 # key entries not in self.columns
@@ -6721,7 +6718,6 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
             # need to rewrap columns in Series to apply key function
@@ -7818,7 +7814,7 @@ Keep all original rows and columns and also all original values
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
+        # sorts if possible; otherwise align above ensures that these are set-equal
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
@@ -8951,7 +8947,6 @@ Parrot 2  Parrot       24.0
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
-
         return melt(
             self,
             id_vars=id_vars,
@@ -9809,7 +9804,7 @@ Parrot 2  Parrot       24.0
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
+        copy: bool | None = None,
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
@@ -10607,7 +10602,6 @@ Parrot 2  Parrot       24.0
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
-
         axis = self._get_axis_number(axis)
         if numeric_only:
             data = self._get_numeric_data()
