@@ -1617,11 +1617,3 @@ class ExcelFile:
         traceback: TracebackType | None,
     ) -> None:
         self.close()
-
-    def __del__(self) -> None:
-        # Ensure we don't leak file descriptors, but put in try/except in case
-        # attributes are already deleted
-        try:
-            self.close()
-        except AttributeError:
-            pass
