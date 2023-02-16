@@ -1869,9 +1869,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not len(results):
             # concat would raise
-            return DataFrame([], columns=columns, index=self.grouper.result_index)
+            res_df = DataFrame([], columns=columns, index=self.grouper.result_index)
         else:
-            return concat(results, keys=columns, axis=1)
+            res_df = concat(results, keys=columns, axis=1)
+
+        if not self.as_index:
+            res_df.index = default_index(len(res_df))
+            res_df = self._insert_inaxis_grouper(res_df)
+        return res_df
 
     def nunique(self, dropna: bool = True) -> DataFrame:
         """
@@ -1924,13 +1929,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 lambda sgb: sgb.nunique(dropna), self._obj_with_exclusions, is_agg=True
             )
 
-        results = self._apply_to_column_groupbys(lambda sgb: sgb.nunique(dropna))
-
-        if not self.as_index:
-            results.index = default_index(len(results))
-            results = self._insert_inaxis_grouper(results)
-
-        return results
+        return self._apply_to_column_groupbys(lambda sgb: sgb.nunique(dropna))
 
     def idxmax(
         self,

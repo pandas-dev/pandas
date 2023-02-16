@@ -2477,9 +2477,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result)
 
         result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
-        if not self.as_index:
-            result = self._insert_inaxis_grouper(result)
-            result.index = default_index(len(result))
         return result
 
     @doc(DataFrame.describe)
