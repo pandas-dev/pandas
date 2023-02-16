@@ -277,6 +277,7 @@ def merge_ordered(
 
     Examples
     --------
+    >>> from pandas import merge_ordered
     >>> df1 = pd.DataFrame(
     ...     {
     ...         "key": ["a", "c", "e", "a", "c", "e"],

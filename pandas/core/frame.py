@@ -1392,8 +1392,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
+        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
+            if using_cow and self._mgr.is_single_block:
+                s._mgr.blocks[0].refs = self._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
+                s._mgr.blocks[0].refs.add_reference(  # type: ignore[union-attr]
+                    s._mgr.blocks[0]  # type: ignore[arg-type, union-attr]
+                )
             yield k, s
 
     def itertuples(
@@ -7814,7 +7820,7 @@ Keep all original rows and columns and also all original values
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
+        # sorts if possible; otherwise align above ensures that these are set-equal
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}

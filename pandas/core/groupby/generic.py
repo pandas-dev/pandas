@@ -933,7 +933,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
@@ -1424,7 +1424,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
-        key_index,
+        key_index: Index | None,
         is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
@@ -2362,7 +2362,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
@@ -2391,15 +2391,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 2    lion  mammal       80.5
           1  monkey  mammal        NaN
 
-        The order of the specified indices influnces the order in the result.
+        The order of the specified indices influences the order in the result.
         Here, the order is swapped from the previous example.
 
-        >>> gb.take([0, 1])
+        >>> gb.take([1, 0])
                name   class  max_speed
-        1 4  falcon    bird      389.0
-          3  parrot    bird       24.0
-        2 2    lion  mammal       80.5
-          1  monkey  mammal        NaN
+        1 3  parrot    bird       24.0
+          4  falcon    bird      389.0
+        2 1  monkey  mammal        NaN
+          2    lion  mammal       80.5
 
         Take elements at indices 1 and 2 along the axis 1 (column selection).
 
