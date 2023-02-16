@@ -580,7 +580,6 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-
         s = Series(np.arange(10), name="x")
         s_err = np.abs(np.random.randn(10))
         d_err = DataFrame(

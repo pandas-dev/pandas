@@ -424,7 +424,6 @@ class TestTimeConversionFormats:
         ],
     )
     def test_parse_nanoseconds_with_formula(self, cache, arg):
-
         # GH8989
         # truncating the nanoseconds when a format was provided
         expected = to_datetime(arg, cache=cache)
@@ -1110,7 +1109,6 @@ class TestToDatetime:
         assert result == expected
 
     def test_to_datetime_tz(self, cache):
-
         # xref 8260
         # uniform returns a DatetimeIndex
         arr = [
@@ -1248,7 +1246,6 @@ class TestToDatetime:
 
     @td.skip_if_no("psycopg2")
     def test_to_datetime_tz_psycopg2(self, request, cache):
-
         # xref 8260
         import psycopg2
 
@@ -1946,7 +1943,6 @@ class TestToDatetimeUnit:
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_unit_fractional_seconds(self):
-
         # GH13834
         epoch = 1370745748
         ser = Series([epoch + t for t in np.arange(0, 2, 0.25)] + [iNaT]).astype(float)
@@ -2024,7 +2020,6 @@ class TestToDatetimeDataFrame:
         )
 
     def test_dataframe(self, df, cache):
-
         result = to_datetime(
             {"year": df["year"], "month": df["month"], "day": df["day"]}, cache=cache
         )
@@ -2992,7 +2987,6 @@ class TestDatetimeParsingWrappers:
         ],
     )
     def test_parsers(self, date_str, expected, warning, cache):
-
         # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
@@ -3262,7 +3256,6 @@ class TestOrigin:
             to_datetime(1, origin="julian", unit="D")
 
     def test_invalid_unit(self, units, julian_dates):
-
         # checking for invalid combination of origin='julian' and unit != D
         if units != "D":
             msg = "unit must be 'D' for origin='julian'"
@@ -3271,14 +3264,12 @@ class TestOrigin:
 
     @pytest.mark.parametrize("unit", ["ns", "D"])
     def test_invalid_origin(self, unit):
-
         # need to have a numeric specified
         msg = "it must be numeric with a unit specified"
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
     def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
-
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
         )
@@ -3296,7 +3287,6 @@ class TestOrigin:
         ],
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
-
         msg = "|".join(
             [
                 f"origin {origin} is Out of Bounds",
@@ -3443,7 +3433,6 @@ def test_nullable_integer_to_datetime():
 
 @pytest.mark.parametrize("klass", [np.array, list])
 def test_na_to_datetime(nulls_fixture, klass):
-
     if isinstance(nulls_fixture, Decimal):
         with pytest.raises(TypeError, match="not convertible to datetime"):
             to_datetime(klass([nulls_fixture]))

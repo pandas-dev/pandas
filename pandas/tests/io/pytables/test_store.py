@@ -55,7 +55,6 @@ def test_context(setup_path):
 
 
 def test_no_track_times(tmp_path, setup_path):
-
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
 
@@ -99,14 +98,12 @@ def test_no_track_times(tmp_path, setup_path):
 
 
 def test_iter_empty(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         # GH 12221
         assert list(store) == []
 
 
 def test_repr(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
@@ -142,7 +139,6 @@ def test_repr(setup_path):
 
     # storers
     with ensure_clean_store(setup_path) as store:
-
         df = tm.makeDataFrame()
         store.append("df", df)
 
@@ -152,7 +148,6 @@ def test_repr(setup_path):
 
 
 def test_contains(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
         store["b"] = tm.makeDataFrame()
@@ -172,7 +167,6 @@ def test_contains(setup_path):
 
 
 def test_versioning(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
         store["b"] = tm.makeDataFrame()
@@ -260,9 +254,7 @@ def test_walk(where, expected):
 
 
 def test_getattr(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         s = tm.makeTimeSeries()
         store["a"] = s
 
@@ -316,7 +308,6 @@ def test_store_dropna(tmp_path, setup_path):
 
 
 def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
-
     path = tmp_path / setup_path
 
     # min_itemsize in index with to_hdf (GH 10381)
@@ -335,7 +326,6 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
 
 @pytest.mark.parametrize("format", ["fixed", "table"])
 def test_to_hdf_errors(tmp_path, format, setup_path):
-
     data = ["\ud800foo"]
     ser = Series(data, index=Index(data))
     path = tmp_path / setup_path
@@ -347,9 +337,7 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
 
 
 def test_create_table_index(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         with catch_warnings(record=True):
 
             def col(t, column):
@@ -382,7 +370,6 @@ def test_create_table_index_data_columns_argument(setup_path):
     # GH 28156
 
     with ensure_clean_store(setup_path) as store:
-
         with catch_warnings(record=True):
 
             def col(t, column):
@@ -426,7 +413,6 @@ def test_mi_data_columns(setup_path):
 
 
 def test_table_mixed_dtypes(setup_path):
-
     # frame
     df = tm.makeDataFrame()
     df["obj1"] = "foo"
@@ -449,7 +435,6 @@ def test_table_mixed_dtypes(setup_path):
 
 
 def test_calendar_roundtrip_issue(setup_path):
-
     # 8591
     # doc example from tseries holiday section
     weekmask_egypt = "Sun Mon Tue Wed Thu"
@@ -467,7 +452,6 @@ def test_calendar_roundtrip_issue(setup_path):
     s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
     with ensure_clean_store(setup_path) as store:
-
         store.put("fixed", s)
         result = store.select("fixed")
         tm.assert_series_equal(result, s)
@@ -478,9 +462,7 @@ def test_calendar_roundtrip_issue(setup_path):
 
 
 def test_remove(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()
         store["a"] = ts
@@ -519,9 +501,7 @@ def test_remove(setup_path):
 
 
 def test_same_name_scoping(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(np.random.randn(20, 2), index=date_range("20130101", periods=20))
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]
@@ -585,7 +565,6 @@ def test_store_series_name(setup_path):
 
 
 def test_overwrite_node(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeDataFrame()
         ts = tm.makeTimeSeries()
@@ -598,7 +577,6 @@ def test_coordinates(setup_path):
     df = tm.makeTimeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
-
         _maybe_remove(store, "df")
         store.append("df", df)
 
@@ -645,7 +623,6 @@ def test_coordinates(setup_path):
 
     # pass array/mask as the coordinates
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(
             np.random.randn(1000, 2), index=date_range("20000101", periods=1000)
         )
@@ -706,9 +683,7 @@ def test_coordinates(setup_path):
 
 
 def test_start_stop_table(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # table
         df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
         store.append("df", df)
@@ -725,10 +700,8 @@ def test_start_stop_table(setup_path):
 
 
 def test_start_stop_multiple(setup_path):
-
     # GH 16209
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
 
         store.append_to_multiple(
@@ -742,9 +715,7 @@ def test_start_stop_multiple(setup_path):
 
 
 def test_start_stop_fixed(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # fixed, GH 8287
         df = DataFrame(
             {"A": np.random.rand(20), "B": np.random.rand(20)},
@@ -783,7 +754,6 @@ def test_start_stop_fixed(setup_path):
 
 
 def test_select_filter_corner(setup_path):
-
     df = DataFrame(np.random.randn(50, 100))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
@@ -865,7 +835,6 @@ def test_path_localpath_hdfstore():
 
 
 def test_copy():
-
     with catch_warnings(record=True):
 
         def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
@@ -936,7 +905,6 @@ def test_preserve_timedeltaindex_type(setup_path):
     df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
 
     with ensure_clean_store(setup_path) as store:
-
         store["df"] = df
         tm.assert_frame_equal(store["df"], df)
 
