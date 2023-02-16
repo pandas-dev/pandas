@@ -187,7 +187,6 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
     [(None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)],
 )
 def test_index_equal_names(name1, name2):
-
     idx1 = Index([1, 2, 3], name=name1)
     idx2 = Index([1, 2, 3], name=name2)
 

@@ -452,7 +452,6 @@ def test_use_nullable_dtypes_string(all_parsers, string_storage):
     pa = pytest.importorskip("pyarrow")
 
     with pd.option_context("mode.string_storage", string_storage):
-
         parser = all_parsers
 
         data = """a,b

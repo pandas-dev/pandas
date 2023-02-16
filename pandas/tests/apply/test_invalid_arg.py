@@ -112,7 +112,6 @@ def test_series_nested_renamer(renamer):
 
 
 def test_apply_dict_depr():
-
     tsdf = DataFrame(
         np.random.randn(10, 3),
         columns=["A", "B", "C"],
@@ -125,7 +124,6 @@ def test_apply_dict_depr():
 
 @pytest.mark.parametrize("method", ["agg", "transform"])
 def test_dict_nested_renaming_depr(method):
-
     df = DataFrame({"A": range(5), "B": 5})
 
     # nested renaming

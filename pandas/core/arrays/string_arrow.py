@@ -60,7 +60,7 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin):
+class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -116,6 +116,16 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
+
+    def __len__(self) -> int:
+        """
+        Length of this array.
+
+        Returns
+        -------
+        length : int
+        """
+        return len(self._data)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
