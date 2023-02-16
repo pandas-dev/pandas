@@ -1396,10 +1396,9 @@ class DataFrame(NDFrame, OpsMixin):
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if using_cow and self._mgr.is_single_block:
-                s._mgr.blocks[0].refs = self._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
-                s._mgr.blocks[0].refs.add_reference(  # type: ignore[union-attr]
-                    s._mgr.blocks[0]  # type: ignore[arg-type, union-attr]
-                )
+                # Argument 1 to "add_references" of "BaseArrayManager" has incompatible
+                # type "Union[BlockManager, ArrayManager]"; expected "BaseArrayManager"
+                s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             yield k, s
 
     def itertuples(
