@@ -302,8 +302,8 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_equals(data, na_value, as_series)
 
     @pytest.mark.skip("fill-value is interpreted as a dict of values")
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        super().test_fillna_copy_frame(data_missing, using_copy_on_write)
+    def test_fillna_copy_frame(self, data_missing):
+        super().test_fillna_copy_frame(data_missing)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

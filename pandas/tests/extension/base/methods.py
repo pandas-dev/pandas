@@ -240,30 +240,28 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
+        df_orig = df.copy()
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        if using_copy_on_write:
-            assert df.A.values is result.A.values
-        else:
-            assert df.A.values is not result.A.values
+        result.iloc[0, 0] = filled_val
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+        tm.assert_extension_array_equal(df.A.values, df_orig.A.values)
+
+    def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
+        ser_orig = ser.copy()
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
+        result.iloc[0] = filled_val
 
-        if using_copy_on_write:
-            assert ser._values is result._values
-        else:
-            assert ser._values is not result._values
-        assert ser._values is arr
+        tm.assert_extension_array_equal(ser.values, ser_orig.values)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."

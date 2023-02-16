@@ -250,14 +250,14 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         super().test_shift_fill_value(data)
 
     @skip_nested
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
-        super().test_fillna_copy_frame(data_missing, using_copy_on_write)
+        super().test_fillna_copy_frame(data_missing)
 
     @skip_nested
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_series(self, data_missing):
         # The "scalar" for this array isn't a scalar.
-        super().test_fillna_copy_series(data_missing, using_copy_on_write)
+        super().test_fillna_copy_series(data_missing)
 
     @skip_nested
     def test_searchsorted(self, data_for_sorting, as_series):
