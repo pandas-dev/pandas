@@ -341,6 +341,7 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
+            using_cow=using_copy_on_write(),
         )
 
     def setitem(self: T, indexer, value) -> T:
