@@ -3566,7 +3566,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = self._constructor(
                 new_vals, index=self.columns, columns=self.index, copy=False
             )
-            if using_copy_on_write() and not copy:
+            if using_copy_on_write() and not copy and len(self) > 0:
                 result._mgr.blocks[0].refs = self._mgr.blocks[0].refs  # type: ignore[union-attr]  # noqa
                 result._mgr.blocks[0].refs.add_reference(  # type: ignore[union-attr]
                     result._mgr.blocks[0]  # type: ignore[arg-type, union-attr]
