@@ -1537,11 +1537,7 @@ def _maybe_null_out(
         if check_below_min_count(shape, mask, min_count):
             result_dtype = getattr(result, "dtype", None)
             if is_float_dtype(result_dtype):
-                # Preserve dtype when possible
-                # mypy doesn't infer result_dtype is not None
-                result = getattr(
-                    np, f"float{8 * result_dtype.itemsize}"  # type: ignore[union-attr]
-                )("nan")
+                result = result_dtype.type("nan")
             else:
                 result = np.nan
 
