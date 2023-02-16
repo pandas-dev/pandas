@@ -591,7 +591,6 @@ def is_dtype_equal(source, target) -> bool:
         target = get_dtype(target)
         return source == target
     except (TypeError, AttributeError, ImportError):
-
         # invalid comparison
         # object == category will hit this
         return False
@@ -1573,7 +1572,6 @@ def infer_dtype_from_object(dtype) -> type:
     if is_extension_array_dtype(dtype):
         return dtype.type
     elif isinstance(dtype, str):
-
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:

@@ -25,10 +25,10 @@ gcsfs
 ipython
 jinja2
 lxml
-matplotlib>=3.6.1
+matplotlib>=3.6.1, <3.7.0
 numba>=0.53.1
 numexpr>=2.8.0
-openpyxl
+openpyxl<3.1.1
 odfpy
 py
 psycopg2-binary
@@ -52,7 +52,7 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==22.10.0
+black==23.1.0
 cpplint
 flake8==6.0.0
 isort>=5.2.1

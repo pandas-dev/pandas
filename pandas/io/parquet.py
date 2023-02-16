@@ -117,7 +117,6 @@ def _get_path_or_handle(
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
-
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
@@ -228,7 +227,6 @@ class PyArrowImpl(BaseImpl):
         dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-
             if dtype_backend == "pandas":
                 from pandas.io._util import _arrow_dtype_mapping
 

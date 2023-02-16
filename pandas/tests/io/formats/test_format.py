@@ -192,7 +192,6 @@ class TestDataFrameFormatting:
         ],
     )
     def test_show_counts(self, row, columns, show_counts, result):
-
         # Explicit cast to float to avoid implicit cast when setting nan
         df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
         df.iloc[1, 1] = np.nan
@@ -731,7 +730,6 @@ class TestDataFrameFormatting:
     def test_east_asian_unicode_true(self):
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
-
             # mid col
             df = DataFrame(
                 {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
@@ -847,7 +845,6 @@ class TestDataFrameFormatting:
 
             # truncate
             with option_context("display.max_rows", 3, "display.max_columns", 3):
-
                 df = DataFrame(
                     {
                         "a": ["あああああ", "い", "う", "えええ"],
@@ -984,7 +981,6 @@ class TestDataFrameFormatting:
             assert has_doubly_truncated_repr(df)
 
     def test_truncate_with_different_dtypes(self):
-
         # 11594, 12045
         # when truncated the dtypes of the splits can differ
 
@@ -1017,7 +1013,6 @@ class TestDataFrameFormatting:
         assert result.startswith(result2)
 
     def test_datetimelike_frame(self):
-
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
 
@@ -1325,7 +1320,6 @@ class TestDataFrameFormatting:
         assert result == expected
 
     def test_to_string(self):
-
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
@@ -1476,7 +1470,6 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_float_format_no_fixed_width(self):
-
         # GH 21625
         df = DataFrame({"x": [0.19999]})
         expected = "      x\n0 0.200"
@@ -1823,7 +1816,6 @@ c  10  11  12  13  14\
 
     def test_repr_html_float(self):
         with option_context("display.max_rows", 60):
-
             max_rows = get_option("display.max_rows")
             h = max_rows - 1
             df = DataFrame(
@@ -2283,7 +2275,6 @@ class TestSeriesFormatting:
 
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
-
             # unicode index
             s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
             expected = (
@@ -2408,7 +2399,6 @@ class TestSeriesFormatting:
                 assert "+10" in line
 
     def test_datetimeindex(self):
-
         index = date_range("20130102", periods=6)
         s = Series(1, index=index)
         result = s.to_string()
@@ -2869,7 +2859,6 @@ class TestFloatArrayFormatter:
         # Precision was incorrectly shown
 
         with option_context("display.precision", 0):
-
             df_value = DataFrame(value)
             assert str(df_value) == expected
 
@@ -3088,7 +3077,6 @@ class TestDatetime64Formatter:
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
     def test_dates_display(self):
-
         # 10170
         # make sure that we are consistently display date formatting
         x = Series(date_range("20130101 09:00:00", periods=5, freq="D"))
@@ -3137,7 +3125,6 @@ class TestDatetime64Formatter:
         assert result == ["2016-01", "2016-02"]
 
     def test_datetime64formatter_hoursecond(self):
-
         x = Series(
             pd.to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")
         )
