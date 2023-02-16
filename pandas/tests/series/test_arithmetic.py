@@ -349,6 +349,7 @@ class TestSeriesArithmetic:
         result = [1, None, val] + ser
         tm.assert_series_equal(result, expected)
 
+    # TODO: Shouldn't the lists be wrapped before being passed to the EA method?
     @pytest.mark.filterwarnings("ignore:evaluating in Python space:UserWarning")
     def test_add_list_to_masked_array_boolean(self):
         # GH#22962
