@@ -173,7 +173,7 @@ class BaseArrayManager(DataManager):
         """
         Only implemented on the BlockManager level
         """
-        pass
+        return
 
     def __getstate__(self):
         return self.arrays, self._axes
