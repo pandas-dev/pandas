@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core import strings
+from pandas.core.strings.accessor import StringMethods
 
 _any_string_method = [
     ("cat", (), {"sep": ","}),
@@ -89,9 +89,7 @@ _any_string_method = [
     )
 )
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
-missing_methods = {
-    f for f in dir(strings.StringMethods) if not f.startswith("_")
-} - set(ids)
+missing_methods = {f for f in dir(StringMethods) if not f.startswith("_")} - set(ids)
 
 # test that the above list captures all methods of StringMethods
 assert not missing_methods
