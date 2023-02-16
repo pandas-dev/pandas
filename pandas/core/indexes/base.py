@@ -4956,9 +4956,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
         elif isinstance(self.values, ArrowExtensionArray):
-            import pyarrow as pa
-
-            return type(self.values)(pa.array(result))
+            return type(self.values)._from_sequence(result)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
