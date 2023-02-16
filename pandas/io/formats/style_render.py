@@ -1814,7 +1814,7 @@ def _maybe_wrap_formatter(
     if na_rep is None:
         return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_3(x)
+        return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
