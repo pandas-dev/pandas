@@ -62,7 +62,6 @@ class TestUpdate:
         ],
     )
     def test_update_dtypes(self, other, dtype, expected):
-
         ser = Series([10, 11, 12], dtype=dtype)
         other = Series(other, index=[1, 3])
         ser.update(other)

@@ -381,7 +381,6 @@ def test_apply_differently_indexed():
 
 
 def test_apply_bug():
-
     # GH 6125
     positions = DataFrame(
         [
@@ -755,7 +754,6 @@ def test_apply_raw_function_runs_once():
 
 
 def test_applymap_function_runs_once():
-
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save values function is applied to
 
@@ -1071,7 +1069,6 @@ def test_agg_transform(axis, float_frame):
     other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
-
         f_abs = np.abs(float_frame)
         f_sqrt = np.sqrt(float_frame)
 
@@ -1262,7 +1259,6 @@ def test_agg_reduce(axis, float_frame):
 
 
 def test_nuiscance_columns():
-
     # GH 15015
     df = DataFrame(
         {
@@ -1300,7 +1296,6 @@ def test_nuiscance_columns():
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_non_callable_aggregates(how):
-
     # GH 16405
     # 'size' is a property of frame/series
     # validate that this is working
@@ -1625,3 +1620,25 @@ def test_any_apply_keyword_non_zero_axis_regression():
 
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_func_with_args():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3]})
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = df.agg([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)

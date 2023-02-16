@@ -353,7 +353,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
     def test_subtraction_ops_with_tz(self, box_with_array):
-
         # check that dt/dti subtraction ops with tz are validated
         dti = pd.date_range("20130101", periods=3)
         dti = tm.box_expected(dti, box_with_array)

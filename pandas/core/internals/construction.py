@@ -317,7 +317,6 @@ def ndarray_to_mgr(
     _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
-
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
@@ -363,6 +362,7 @@ def ndarray_to_mgr(
         block_values = [nb]
 
     if len(columns) == 0:
+        # TODO: check len(values) == 0?
         block_values = []
 
     return create_block_manager_from_blocks(
@@ -507,6 +507,8 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
     # We only get here with `not treat_as_nested(values)`
 
     if len(values) == 0:
+        # TODO: check for length-zero range, in which case return int64 dtype?
+        # TODO: re-use anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)
@@ -952,7 +954,6 @@ def _validate_or_indexify_columns(
     if columns is None:
         columns = default_index(len(content))
     else:
-
         # Add mask for data which is composed of list of lists
         is_mi_list = isinstance(columns, list) and all(
             isinstance(col, list) for col in columns
@@ -965,7 +966,6 @@ def _validate_or_indexify_columns(
                 f"{len(content)} columns"
             )
         if is_mi_list:
-
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
                 raise ValueError(
@@ -1010,6 +1010,12 @@ def convert_object_array(
                 try_float=coerce_float,
                 convert_to_nullable_dtype=use_nullable_dtypes,
             )
+            # Notes on cases that get here 2023-02-15
+            # 1) we DO get here when arr is all Timestamps and dtype=None
+            # 2) disabling this doesn't break the world, so this must be
+            #    getting caught at a higher level
+            # 3) passing convert_datetime to maybe_convert_objects get this right
+            # 4) convert_timedelta?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
