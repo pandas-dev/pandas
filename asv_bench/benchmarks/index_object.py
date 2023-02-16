@@ -16,7 +16,6 @@ from .pandas_vb_common import tm
 
 
 class SetOperations:
-
     params = (
         ["monotonic", "non_monotonic"],
         ["datetime", "date_string", "int", "strings", "ea_int"],
@@ -125,7 +124,6 @@ class IndexEquals:
 
 class IndexAppend:
     def setup(self):
-
         N = 10_000
         self.range_idx = RangeIndex(0, 100)
         self.int_idx = self.range_idx.astype(int)
@@ -152,7 +150,6 @@ class IndexAppend:
 
 
 class Indexing:
-
     params = ["String", "Float", "Int"]
     param_names = ["dtype"]
 

@@ -352,7 +352,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
-
         assert placements.is_slice_like
         assert blkno != -1
 
@@ -597,9 +596,6 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
 
     elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
-        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
-        # concatting with at least one EA means we are concatting a single column
-        # the non-EA values are 2D arrays with shape (1, n)
 
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"

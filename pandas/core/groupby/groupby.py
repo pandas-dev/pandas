@@ -30,6 +30,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -72,7 +73,6 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
     is_float_dtype,
     is_hashable,
     is_integer,
@@ -80,7 +80,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -89,7 +89,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
-    nanops,
     sample,
 )
 from pandas.core._numba import executor
@@ -97,8 +96,10 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     FloatingArray,
+    TimedeltaArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -908,7 +909,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         observed: bool = False,
         dropna: bool = True,
     ) -> None:
-
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
@@ -1009,9 +1009,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         from pandas.core.reshape.concat import concat
 
         if self.group_keys and not is_transform:
-
             if self.as_index:
-
                 # possible MI return case
                 group_keys = self.grouper.result_index
                 group_levels = self.grouper.levels
@@ -1026,7 +1024,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-
                 # GH5610, returns a MI, with the first level being a
                 # range index
                 keys = list(range(len(values)))
@@ -1046,7 +1043,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
+            # TODO: can we re-use e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
                 indexer, _ = result.index.get_indexer_non_unique(target)
                 result = result.take(indexer, axis=self.axis)
@@ -1058,7 +1057,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         name = self.obj.name if self.obj.ndim == 1 else self._selection
         if isinstance(result, Series) and name is not None:
-
             result.name = name
 
         return result
@@ -1319,7 +1317,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
-
         func = com.is_builtin_func(func)
 
         if isinstance(func, str):
@@ -1342,16 +1339,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, f"nan{func}"):
-                # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, f"nan{func}")
-
             else:
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
                 )
         else:
-
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
@@ -1417,6 +1409,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             is_transform,
         )
 
+    # TODO: I (jbrockmendel) think this should be equivalent to doing grouped_reduce
+    #  on _agg_py_fallback, but trying that here fails a bunch of tests 2023-02-07.
     @final
     def _python_agg_general(self, func, *args, **kwargs):
         func = com.is_builtin_func(func)
@@ -1452,7 +1446,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alias: str,
         npfunc: Callable,
     ):
-
         result = self._cython_agg_general(
             how=alias,
             alt=npfunc,
@@ -1469,6 +1462,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         NotImplementedError.
         """
         # We get here with a) EADtypes and b) object dtype
+        assert alt is not None
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
@@ -1551,7 +1545,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
             return self._transform_with_numba(
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -1785,7 +1778,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 masked = mask & ~isna(bvalues)
 
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -2511,10 +2504,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        # TODO: 2023-02-05 all tests that get here have self.as_index
-        return self._apply_to_column_groupbys(
+        result = self._apply_to_column_groupbys(
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
+        return result
 
     @doc(DataFrame.describe)
     def describe(
@@ -2902,10 +2898,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     out[i, :] = algorithms.take_nd(value_element, indexer)
                 return out
 
-        obj = self._obj_with_exclusions
-        if self.axis == 1:
-            obj = obj.T
-        mgr = obj._mgr
+        mgr = self._get_data_to_aggregate()
         res_mgr = mgr.apply(blk_func)
 
         new_obj = self._wrap_agged_manager(res_mgr)
@@ -3097,7 +3090,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # get a new grouper for our dropped obj
         if self.keys is None and self.level is None:
-
             # we don't have the grouper info available
             # (e.g. we have selected out
             # a column that is not in the current object)
@@ -3112,7 +3104,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouper = Index(values, dtype="Int64")
 
         else:
-
             # create a grouper with the original parameters, but on dropped
             # object
             grouper, _, _ = get_grouper(
@@ -3195,12 +3186,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
-            elif is_datetime64_dtype(vals.dtype):
+            elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
-                out = np.asarray(vals).astype(float)
-            elif is_timedelta64_dtype(vals.dtype):
-                inference = vals.dtype
-                out = np.asarray(vals).astype(float)
+                # In this case we need to delay the casting until after the
+                #  np.lexsort below.
+                # error: Incompatible return value type (got
+                # "Tuple[Union[ExtensionArray, ndarray[Any, Any]], Union[Any,
+                # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
+                # Optional[Union[dtype[Any], ExtensionDtype]]]")
+                return vals, inference  # type: ignore[return-value]
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
@@ -3239,6 +3233,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
+                    if needs_i8_conversion(inference):
+                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+                        # ndarray[Any, Any]]" has no attribute "_ndarray"
+                        vals = vals.astype("i8").view(
+                            orig_vals._ndarray.dtype  # type: ignore[union-attr]
+                        )
+                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+                        # ndarray[Any, Any]]" has no attribute "_from_backing_data"
+                        return orig_vals._from_backing_data(  # type: ignore[union-attr]
+                            vals
+                        )
+
                     assert isinstance(inference, np.dtype)  # for mypy
                     return vals.astype(inference)
 
@@ -3275,6 +3281,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = isna(values)
                 result_mask = None
 
+            is_datetimelike = needs_i8_conversion(values.dtype)
+
             vals, inference = pre_processor(values)
 
             ncols = 1
@@ -3291,6 +3299,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Get an index of values sorted by values and then labels
             order = (vals, shaped_labels)
             sort_arr = np.lexsort(order).astype(np.intp, copy=False)
+
+            if is_datetimelike:
+                # This casting needs to happen after the lexsort in order
+                #  to ensure that NaTs are placed at the end and not the front
+                vals = vals.view("i8").astype(np.float64)
 
             if vals.ndim == 1:
                 # Ea is always 1d
@@ -3724,7 +3737,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 counts = np.zeros(ngroups, dtype=np.int64)
                 func = partial(func, counts=counts)
 
+            is_datetimelike = values.dtype.kind in ["m", "M"]
             vals = values
+            if is_datetimelike and how == "std":
+                vals = vals.view("i8")
             if pre_processing:
                 vals, inferences = pre_processing(vals)
 
@@ -3747,7 +3763,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
                 func = partial(func, result_mask=result_mask)
 
-            func(**kwargs)  # Call func to modify result in place
+            # Call func to modify result in place
+            if how == "std":
+                func(**kwargs, is_datetimelike=is_datetimelike)
+            else:
+                func(**kwargs)
 
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
@@ -3760,6 +3780,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     pp_kwargs["result_mask"] = result_mask
 
                 result = post_processing(result, inferences, **pp_kwargs)
+
+            if how == "std" and is_datetimelike:
+                values = cast("DatetimeArray | TimedeltaArray", values)
+                unit = values.unit
+                with warnings.catch_warnings():
+                    # suppress "RuntimeWarning: invalid value encountered in cast"
+                    warnings.filterwarnings("ignore")
+                    result = result.astype(np.int64, copy=False)
+                result = result.view(f"m8[{unit}]")
 
             return result.T
 
@@ -4241,7 +4270,6 @@ def get_groupby(
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool | lib.NoDefault = True,
 ) -> GroupBy:
-
     klass: type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy

@@ -54,7 +54,6 @@ class TestFrameLegend(TestPlotBase):
         df4 = DataFrame(np.random.rand(3, 3), columns=["j", "k", "l"])
 
         for kind in kinds:
-
             ax = df.plot(kind=kind, legend=True)
             self._check_legend_labels(ax, labels=df.columns)
 

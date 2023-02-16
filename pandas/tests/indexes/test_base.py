@@ -402,7 +402,6 @@ class TestIndex(Base):
         assert not Index(["a", "b", "c"]).equals(comp)
 
     def test_identical(self):
-
         # index
         i1 = Index(["a", "b", "c"])
         i2 = Index(["a", "b", "c"])

@@ -79,7 +79,6 @@ class TestTZLocalize:
         df = ser.to_frame()
 
         if method == "raise":
-
             with tm.external_error_raised(pytz.NonExistentTimeError):
                 dti.tz_localize(tz, nonexistent=method)
             with tm.external_error_raised(pytz.NonExistentTimeError):

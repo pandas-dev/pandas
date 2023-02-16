@@ -243,7 +243,6 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
 
 
 def test_comparison_methods_array(comparison_op, dtype):
-
     op_name = f"__{comparison_op.__name__}__"
 
     a = pd.array(["a", None, "c"], dtype=dtype)
@@ -302,7 +301,6 @@ def test_constructor_nan_like(na):
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
-
     nan_arr = np.array(["a", np.nan], dtype=object)
     expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)

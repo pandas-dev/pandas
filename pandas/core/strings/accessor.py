@@ -3314,7 +3314,6 @@ def str_extractall(arr, pat, flags: int = 0):
 
     for subject_key, subject in arr.items():
         if isinstance(subject, str):
-
             if not is_mi:
                 subject_key = (subject_key,)
 
