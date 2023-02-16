@@ -1359,10 +1359,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         else:
             data = self._data
 
-        if dropna:
-            data = data.drop_null()
-
         res = pc.value_counts(data)
+
+        if dropna:
+            res = data.drop_null()
+
         most_common = res.field("values").filter(
             pc.equal(res.field("counts"), pc.max(res.field("counts")))
         )
