@@ -1227,6 +1227,7 @@ Numeric
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
+- Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
 - Bug in :meth:`DataFrame.query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
 
 Conversion
