@@ -1097,7 +1097,7 @@ def _make_date_converter(
     date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
-    date_format: str | None = None,
+    date_format: dict[Hashable, str] | str | None = None,
 ):
     if date_parser is not lib.no_default:
         warnings.warn(
@@ -1111,16 +1111,16 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
-    def converter(*date_cols, col):
+    def converter(*date_cols, col: Hashable):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
-            date_f = (
+            date_fmt = (
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
             return tools.to_datetime(
                 ensure_object(strs),
-                format=date_f,
+                format=date_fmt,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",

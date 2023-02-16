@@ -397,7 +397,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -437,7 +437,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -477,7 +477,7 @@ def read_excel(
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
     date_parser: Callable | lib.NoDefault = lib.no_default,
-    date_format: str | None = None,
+    date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -726,7 +726,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | None = None,
+        date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -944,7 +944,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
-    date_format : str or dict of column -> format default None
+    date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
@@ -1554,7 +1554,7 @@ class ExcelFile:
         na_values=None,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | None = None,
+        date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,

@@ -912,7 +912,7 @@ Finally, the parser allows you to specify a custom ``date_format``.
 Performance-wise, you should try these methods of parsing dates in order:
 
 1. If you know the format, use ``date_format``, e.g.:
-   ``date_format="%d/%m/%Y"``.
+   ``date_format="%d/%m/%Y"`` or ``date_format={column_name: "%d/%m/%Y"}``.
 
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
