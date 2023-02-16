@@ -294,9 +294,9 @@ date_parser : function, default ``None``
   .. deprecated:: 2.0.0
    Use ``date_format`` instead, or read in as ``object`` and then apply
    :func:`to_datetime` as-needed.
-date_format : str, default ``None``
+date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex (e.g. different formats for different columns),
+   format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
     .. versionadded:: 2.0.0
@@ -912,7 +912,7 @@ Finally, the parser allows you to specify a custom ``date_format``.
 Performance-wise, you should try these methods of parsing dates in order:
 
 1. If you know the format, use ``date_format``, e.g.:
-   ``date_format="%d/%m/%Y"``.
+   ``date_format="%d/%m/%Y"`` or ``date_format={column_name: "%d/%m/%Y"}``.
 
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
