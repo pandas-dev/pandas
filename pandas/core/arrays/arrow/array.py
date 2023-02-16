@@ -13,10 +13,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.ops import (
-    scalar_binop,
-    vec_binop,
-)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -465,11 +461,21 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             operator.add,
             roperator.radd,
         ]:
-            if is_scalar(other):
-                result = scalar_binop(self.to_numpy(), other, op)
+            length = self._data.length()
+            if pa.types.is_string(pa_type):
+                seps = [""] * length
             else:
-                result = vec_binop(self.to_numpy(), np.asarray(other), op)
-            return type(self)._from_sequence(result)
+                seps = [b""] * length
+
+            if is_scalar(other):
+                other = [other] * length
+            elif isinstance(other, type(self)):
+                other = other._data
+            if op is operator.add:
+                result = pc.binary_join_element_wise(self._data, other, seps)
+            else:
+                result = pc.binary_join_element_wise(other, self._data, seps)
+            return type(self)(result)
 
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
