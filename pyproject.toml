@@ -212,6 +212,8 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
+  # tidy imports
+  "TID",
 ]
 
 ignore = [
@@ -272,6 +274,10 @@ exclude = [
   # exclude asv benchmark environments from linting
   "env",
 ]
+
+[tool.ruff.per-file-ignores]
+# relative imports allowed for asv_bench
+"asv_bench/*" = ["TID"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
