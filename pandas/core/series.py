@@ -2677,11 +2677,13 @@ Name: Max Speed, dtype: float64
         if len(this) == 0:
             return np.nan
 
-        this = np.asarray(this.values)
-        other = np.asarray(other.values)
+        this_values = np.asarray(this.values)
+        other_values = np.asarray(other.values)
 
         if method in ["pearson", "spearman", "kendall"] or callable(method):
-            return nanops.nancorr(this, other, method=method, min_periods=min_periods)
+            return nanops.nancorr(
+                this_values, other_values, method=method, min_periods=min_periods
+            )
 
         raise ValueError(
             "method must be either 'pearson', "
@@ -2733,9 +2735,11 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
-        this = np.asarray(this.values)
-        other = np.asarray(other.values)
-        return nanops.nancov(this, other, min_periods=min_periods, ddof=ddof)
+        this_values = np.asarray(this.values)
+        other_values = np.asarray(other.values)
+        return nanops.nancov(
+            this_values, other_values, min_periods=min_periods, ddof=ddof
+        )
 
     @doc(
         klass="Series",
