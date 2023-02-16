@@ -1098,8 +1098,8 @@ class SeriesGroupBy(GroupBy[Series]):
         func.__name__ = "idxmax"
         return self._idxmin_idxmax(func)
 
-    def _idxmin_idxmax(self, func: Callable) -> DataFrame:
-        result, mutated = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
+    def _idxmin_idxmax(self, func: Callable) -> Series:
+        result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
 
         if len(result) == 0:
             return Series(
@@ -2129,7 +2129,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     boxplot = boxplot_frame_groupby
 
     def _idxmin_idxmax(self, func: Callable) -> DataFrame:
-        result, mutated = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
+        result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
 
         if len(result) == 0:
             return DataFrame(
