@@ -1539,6 +1539,42 @@ def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axi
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_update_frame(using_copy_on_write):
+    df1 = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    df2 = DataFrame({"b": [100.0]}, index=[1])
+    df1_orig = df1.copy()
+    view = df1[:]
+
+    df1.update(df2)
+
+    expected = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
+    tm.assert_frame_equal(df1, expected)
+    if using_copy_on_write:
+        # df1 is updated, but its view not
+        tm.assert_frame_equal(view, df1_orig)
+        assert np.shares_memory(get_array(df1, "a"), get_array(view, "a"))
+        assert not np.shares_memory(get_array(df1, "b"), get_array(view, "b"))
+    else:
+        tm.assert_frame_equal(view, expected)
+
+
+def test_update_series(using_copy_on_write):
+    ser1 = Series([1.0, 2.0, 3.0])
+    ser2 = Series([100.0], index=[1])
+    ser1_orig = ser1.copy()
+    view = ser1[:]
+
+    ser1.update(ser2)
+
+    expected = Series([1.0, 100.0, 3.0])
+    tm.assert_series_equal(ser1, expected)
+    if using_copy_on_write:
+        # ser1 is updated, but its view not
+        tm.assert_series_equal(view, ser1_orig)
+    else:
+        tm.assert_series_equal(view, expected)
+
+
 def test_inplace_arithmetic_series():
     ser = Series([1, 2, 3])
     data = get_array(ser)
