@@ -113,8 +113,7 @@ class TestDtype(base.BaseDtypeTests):
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
 
@@ -134,8 +133,7 @@ class TestConstructors(base.BaseConstructorsTests):
 class TestReshaping(base.BaseReshapingTests):
     def test_transpose(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
 
@@ -146,8 +144,7 @@ class TestGetitem(base.BaseGetitemTests):
 class TestSetitem(base.BaseSetitemTests):
     def test_setitem_preserves_views(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
 
@@ -391,10 +388,7 @@ class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
     def arrow_not_supported(self, data, request):
         if isinstance(data, ArrowStringArray):
-            mark = pytest.mark.xfail(
-                reason="2D support not implemented for ArrowStringArray"
-            )
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
 
 
 def test_searchsorted_with_na_raises(data_for_sorting, as_series):
