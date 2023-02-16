@@ -146,7 +146,7 @@ class Preprocessors:
                 posts.append(
                     {
                         "title": entry.title,
-                        "author": entry.author,
+                        "author": getattr(entry, "author", feed_data["feed"]["title"]),
                         "published": published,
                         "feed": feed_data["feed"]["title"],
                         "link": entry.link,
