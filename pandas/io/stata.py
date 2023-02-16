@@ -875,7 +875,6 @@ class StataMissingValue:
         float32_base = struct.pack("<i", int_value)
 
     float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
-    increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
         MISSING_VALUES[key] = "."

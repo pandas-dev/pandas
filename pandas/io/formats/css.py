@@ -200,15 +200,15 @@ class CSSResolver:
     SIDES = ("top", "right", "bottom", "left")
 
     CSS_EXPANSIONS = {
-        **{
+        {
             (f"border-{prop}" if prop else "border"): _border_expander(prop)
             for prop in ["", "top", "right", "bottom", "left"]
         },
-        **{
+        {
             f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
-        **{
+        {
             "margin": _side_expander("margin-{:s}"),
             "padding": _side_expander("padding-{:s}"),
         },

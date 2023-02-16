@@ -53,8 +53,7 @@ class Visitor(ast.NodeVisitor):
         def is_an_exception_subclass(base_id: str) -> bool:
             return (
                 base_id == "Exception"
-                or base_id.endswith("Warning")
-                or base_id.endswith("Error")
+                or base_id.endswith(("Warning", "Error"))
             )
 
         exception_classes = []
