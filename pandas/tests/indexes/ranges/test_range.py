@@ -98,7 +98,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, i, exact=True)
 
     def test_insert(self):
-
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
 
@@ -139,7 +138,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete(self):
-
         idx = RangeIndex(5, name="Foo")
         expected = idx[1:]
         result = idx.delete(0)
@@ -371,7 +369,6 @@ class TestRangeIndex(NumericBase):
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
     def test_nbytes(self):
-
         # memory savings vs int index
         idx = RangeIndex(0, 1000)
         assert idx.nbytes < Index(idx._values).nbytes / 10

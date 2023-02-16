@@ -337,6 +337,10 @@ class _XMLFrameParser:
                 "local disk and not as compressed files or online sources."
             )
 
+        iterparse_repeats = len(self.iterparse[row_node]) != len(
+            set(self.iterparse[row_node])
+        )
+
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
@@ -345,12 +349,13 @@ class _XMLFrameParser:
                     row = {}
 
             if row is not None:
-                if self.names:
+                if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
                             elem_val = elem.text.strip() if elem.text else None
-                            if row.get(nm) != elem_val and nm not in row:
+                            if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
+
                         if col in elem.attrib:
                             if elem.attrib[col] not in row.values() and nm not in row:
                                 row[nm] = elem.attrib[col]
@@ -575,7 +580,6 @@ class _LxmlFrameParser(_XMLFrameParser):
         return xml_dicts
 
     def _validate_path(self) -> list[Any]:
-
         msg = (
             "xpath does not return any nodes or attributes. "
             "Be sure to specify in `xpath` the parent nodes of "

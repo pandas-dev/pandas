@@ -147,6 +147,8 @@ def is_re(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re
+    >>> import re
     >>> is_re(re.compile(".*"))
     True
     >>> is_re("foo")
@@ -170,6 +172,7 @@ def is_re_compilable(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re_compilable
     >>> is_re_compilable(".*")
     True
     >>> is_re_compilable(1)
@@ -310,6 +313,7 @@ def is_named_tuple(obj) -> bool:
     Examples
     --------
     >>> from collections import namedtuple
+    >>> from pandas.api.types import is_named_tuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>

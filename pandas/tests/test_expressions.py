@@ -211,7 +211,6 @@ class TestExpressions:
         right = request.getfixturevalue(right_fix)
 
         def testit():
-
             if opname == "pow":
                 # TODO: get this working
                 return

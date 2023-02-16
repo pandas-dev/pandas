@@ -90,7 +90,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -295,7 +294,6 @@ def _check_object_for_strings(values: np.ndarray) -> str:
     """
     ndtype = values.dtype.name
     if ndtype == "object":
-
         # it's cheaper to use a String Hash Table than Object; we infer
         # including nulls because that is the only difference between
         # StringHashTable and ObjectHashtable
@@ -688,7 +686,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> codes
-    array([0, 0, 1, 2, 0]...)
+    array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -697,7 +695,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> codes
-    array([1, 1, 0, 2, 1]...)
+    array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -707,7 +705,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> codes
-    array([ 0, -1,  1,  2,  0]...)
+    array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -718,7 +716,7 @@ def factorize(
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     ['a', 'c']
     Categories (3, object): ['a', 'b', 'c']
@@ -732,7 +730,7 @@ def factorize(
     >>> cat = pd.Series(['a', 'a', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
 
@@ -874,9 +872,7 @@ def value_counts(
         counts = np.array([len(ii)])
 
     else:
-
         if is_extension_array_dtype(values):
-
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
@@ -1226,7 +1222,6 @@ class SelectNSeries(SelectN):
     """
 
     def compute(self, method: str) -> Series:
-
         from pandas.core.reshape.concat import concat
 
         n = self.n
@@ -1699,6 +1694,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
 
 # --------------------------------------------------------------------
 # Helper functions
+
 
 # Note: safe_sort is in algorithms.py instead of sorting.py because it is
 #  low-dependency, is used in this module, and used private methods from

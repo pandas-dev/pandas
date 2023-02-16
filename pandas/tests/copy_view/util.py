@@ -13,6 +13,7 @@ def get_array(obj, col=None):
     if isinstance(obj, Series) and (col is None or obj.name == col):
         arr = obj._values
     else:
+        assert col is not None
         icol = obj.columns.get_loc(col)
         assert isinstance(icol, int)
         arr = obj._get_column_array(icol)

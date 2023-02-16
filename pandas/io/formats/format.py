@@ -1918,7 +1918,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 
