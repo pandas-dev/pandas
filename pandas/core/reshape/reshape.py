@@ -748,6 +748,7 @@ def _stack_multi_columns(
             chunk = this.loc[:, this.columns[loc]]
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
+
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(
                 frame.dtypes.iloc[0]

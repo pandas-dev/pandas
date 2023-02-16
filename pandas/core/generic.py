@@ -99,6 +99,7 @@ from pandas.util._validators import (
     validate_inclusive,
 )
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -5423,6 +5424,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 indexer = ensure_platform_int(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects (see _reindex_multi)
+            use_na_proxy = fill_value is np.nan
             new_data = new_data.reindex_indexer(
                 index,
                 indexer,
@@ -5430,7 +5432,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 fill_value=fill_value,
                 allow_dups=allow_dups,
                 copy=copy,
+                use_na_proxy=use_na_proxy,
             )
+
+            if use_na_proxy:
+                # Look for np.void and convert to NaN array matching
+                # common dtype of float columns
+                new_blocks = []
+                void_locs = []
+                void_dtype = None
+                for i, blk in enumerate(new_data.blocks):
+                    blk_dtype = blk.dtype
+                    if not isinstance(blk_dtype, ExtensionDtype):
+                        if blk_dtype.kind == "f" and (
+                            void_dtype is None
+                            or blk_dtype.itemsize > void_dtype.itemsize
+                        ):
+                            void_dtype = blk_dtype
+                        if blk_dtype is np.dtype(np.void):
+                            void_locs.append(i)
+                    new_blocks.append(blk)
+
+                if void_dtype is None:
+                    void_dtype = np.float64
+
+                for i in void_locs:
+                    old_block = new_data.blocks[i]
+                    new_blocks[i] = old_block.make_block(
+                        np.full(old_block.shape, np.nan, dtype=void_dtype)
+                    )
+
+                new_data.blocks = tuple(new_blocks)
+
             # If we've made a copy once, no need to make another one
             copy = False
 

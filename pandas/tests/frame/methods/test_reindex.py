@@ -1237,3 +1237,34 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_reindex_doesnt_upcast_nans(self):
+        df = DataFrame(
+            {
+                "a": np.array([1, 2, 3], dtype="float64"),
+                "b": np.array([4, 5, 6], dtype="float32"),
+            }
+        )
+        expected = DataFrame(
+            {
+                "a": np.array([1, 2, np.nan], dtype="float64"),
+                "b": np.array([4, 5, np.nan], dtype="float32"),
+            },
+            index=[0, 1, 4],
+        )
+        res = df.reindex([0, 1, 4])
+        tm.assert_frame_equal(res, expected)
+
+    def test_reindex_nans_matches_dtype(self):
+        # Test that reindexing to make a column that doesn't exist
+        # produces NaNs matching float column dtypes
+        # GH 51059
+        df = DataFrame({"a": np.array([1, 2, 3], dtype="float32")})
+        expected = DataFrame(
+            {
+                "a": np.array([1, 2, 3], dtype="float32"),
+                "d": np.array([np.nan, np.nan, np.nan], dtype="float32"),
+            }
+        )
+        res = df.reindex(columns=["a", "d"])
+        tm.assert_frame_equal(res, expected)

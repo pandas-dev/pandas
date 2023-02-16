@@ -812,11 +812,10 @@ class BaseBlockManager(DataManager):
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
-
                 blocks.append(
                     self._make_na_block(
                         placement=mgr_locs,
-                        fill_value=fill_value,
+                        fill_value=None if use_na_proxy else fill_value,
                         use_na_proxy=use_na_proxy,
                     )
                 )

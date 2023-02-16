@@ -1467,6 +1467,19 @@ class TestStackUnstackMultiLevel:
         expected = ymd.unstack(0).stack(0)
         tm.assert_equal(result, expected)
 
+    def test_stack_nans_doesnt_upcast_float(self):
+        # GH 51059
+        df = DataFrame({("n1", "q1"): [1], ("n2", "q2"): [2]}, dtype="float32")
+        res = df.stack(level=0)
+        exp = DataFrame(
+            {
+                "q1": np.array([1.0, np.nan], dtype="float32"),
+                "q2": np.array([np.nan, 2.0], dtype="float32"),
+            },
+            index=MultiIndex.from_product([[0], ["n1", "n2"]]),
+        )
+        tm.assert_frame_equal(res, exp)
+
     @pytest.mark.parametrize(
         "idx, columns, exp_idx",
         [
