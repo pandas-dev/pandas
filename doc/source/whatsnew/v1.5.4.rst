@@ -28,7 +28,7 @@ Bug fixes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - :class:`Period`'s default formatter (`period_format`) is now significantly
-  (~twice) faster. This improves performance of `str(Period)`, `repr(Period)`, and
+  (~twice) faster. This improves performance of ``str(Period)``, ``repr(Period)``, and
   :meth:`Period.strftime(fmt=None)`.
 
 .. ---------------------------------------------------------------------------
