@@ -690,8 +690,17 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
     )
-    def test_std_datetime64_with_nat(self, values, skipna):
+    def test_std_datetime64_with_nat(
+        self, values, skipna, using_array_manager, request
+    ):
         # GH#51335
+        if using_array_manager and (
+            not skipna or all(value is pd.NaT for value in values)
+        ):
+            mark = pytest.mark.xfail(
+                reason="GH#51446: Incorrect type inference on NaT in reduction result"
+            )
+            request.node.add_marker(mark)
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
