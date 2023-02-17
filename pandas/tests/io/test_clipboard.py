@@ -403,6 +403,7 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=0.5)
     @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(

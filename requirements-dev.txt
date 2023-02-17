@@ -9,6 +9,7 @@ pytest-cov
 pytest-xdist>=2.2.0
 psutil
 pytest-asyncio>=0.17
+pytest-rerunfailures
 coverage
 python-dateutil
 numpy
