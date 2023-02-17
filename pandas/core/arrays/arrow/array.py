@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -510,6 +511,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         """
         return len(self._data)
 
+    def __contains__(self, key) -> bool:
+        # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
+        if isna(key) and key is not self.dtype.na_value:
+            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+                return pc.any(pc.is_nan(self._data)).as_py()
+
+            # e.g. date or timestamp types we do not allow None here to match pd.NA
+            return False
+            # TODO: maybe complex? object?
+
+        return bool(super().__contains__(key))
+
     @property
     def _hasna(self) -> bool:
         return self._data.null_count > 0
@@ -868,14 +881,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             na_value = self.dtype.na_value
 
         pa_type = self._data.type
-        if (
-            is_object_dtype(dtype)
-            or pa.types.is_timestamp(pa_type)
-            or pa.types.is_duration(pa_type)
-        ):
+        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
+            # temporal types with units and/or timezones currently
+            #  require pandas/python scalars to pass all tests
+            # TODO: improve performance (this is slow)
             result = np.array(list(self), dtype=dtype)
+        elif is_object_dtype(dtype) and self._hasna:
+            result = np.empty(len(self), dtype=object)
+            mask = ~self.isna()
+            result[mask] = np.asarray(self[mask]._data)
         else:
-            result = np.asarray(self._data, dtype=dtype)
+            with warnings.catch_warnings():
+                # int dtype with NA raises Warning
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                result = np.asarray(self._data, dtype=dtype)
             if copy or self._hasna:
                 result = result.copy()
         if self._hasna:
