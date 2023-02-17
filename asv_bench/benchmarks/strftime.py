@@ -32,10 +32,13 @@ class DatetimeStrftime:
     def time_frame_datetime_to_str(self, obs):
         self.data["dt"].astype(str)
 
-    def time_frame_datetime_formatting_default_date_only(self, obs):
+    def time_frame_datetime_formatting_default(self, obs):
+        self.data["dt"].dt.strftime(date_format=None)
+
+    def time_frame_datetime_formatting_default_explicit_date_only(self, obs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d")
 
-    def time_frame_datetime_formatting_default(self, obs):
+    def time_frame_datetime_formatting_default_explicit(self, obs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
 
     def time_frame_datetime_formatting_default_with_float(self, obs):
@@ -61,17 +64,16 @@ class PeriodStrftime:
     def time_frame_period_to_str(self, obs, fq):
         self.data["p"].astype(str)
 
-    def time_frame_period_formatting_default_date_only(self, obs, fq):
-        self.data["p"].dt.strftime(date_format="%Y-%m-%d")
-
     def time_frame_period_formatting_default(self, obs, fq):
-        self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
+        """Note that as opposed to datetimes, the default format of periods are
+        many and depend from the period characteristics, so we have almost no chance
+        to reach the same level of performance if a 'default' format string is
+        explicitly provided by the user. See
+        time_frame_datetime_formatting_default_explicit above."""
+        self.data["p"].dt.strftime(date_format=None)
 
     def time_frame_period_formatting_index_default(self, obs, fq):
         self.data.set_index("p").index.format()
-
-    def time_frame_period_formatting_default_with_float(self, obs, fq):
-        self.data["p"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
 
     def time_frame_period_formatting_custom(self, obs, fq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
@@ -101,3 +103,26 @@ class BusinessHourStrftime:
 
     def time_frame_offset_repr(self, obs):
         self.data["off"].apply(repr)
+
+
+if __name__ == "__main__":
+    # A __main__ to easily debug this script
+    for cls in (DatetimeStrftime, PeriodStrftime, BusinessHourStrftime):
+        all_params = dict()
+        all_p_values = cls.params
+        if len(cls.param_names) == 1:
+            all_p_values = (all_p_values,)
+        for p_name, p_values in zip(cls.param_names, all_p_values):
+            all_params[p_name] = p_values
+
+        from itertools import product
+
+        for case in product(*all_params.values()):
+            p_dict = {p_name: p_val for p_name, p_val in zip(all_params.keys(), case)}
+            print(f"{cls.__name__} - {p_dict}")
+            o = cls()
+            o.setup(**p_dict)
+            for m_name, m in cls.__dict__.items():
+                if callable(m):
+                    print(m_name)
+                    m(o, **p_dict)
