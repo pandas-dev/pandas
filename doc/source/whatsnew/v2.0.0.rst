@@ -222,6 +222,7 @@ Copy-on-Write improvements
   - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
   - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
   - :meth:`DataFrame.truncate`
+  - :meth:`DataFrame.iterrows`
   - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
   - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
   - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
@@ -285,6 +286,7 @@ Alternatively, copy on write can be enabled locally through:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added support for ``str`` accessor methods when using :class:`ArrowDtype`  with a ``pyarrow.string`` type (:issue:`50325`)
 - Added support for ``dt`` accessor methods when using :class:`ArrowDtype` with a ``pyarrow.timestamp`` type (:issue:`50954`)
 - :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 - :meth:`.DataFrameGroupBy.quantile`, :meth:`.SeriesGroupBy.quantile` and :meth:`.DataFrameGroupBy.std` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
@@ -1106,7 +1108,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.rank` for pyarrow-backed dtypes (:issue:`50264`)
 - Performance improvement in :meth:`Series.searchsorted` for pyarrow-backed dtypes (:issue:`50447`)
 - Performance improvement in :meth:`Series.fillna` for extension array dtypes (:issue:`49722`, :issue:`50078`)
-- Performance improvement in :meth:`Index.join`, :meth:`Index.intersection` and :meth:`Index.union` for masked dtypes when :class:`Index` is monotonic (:issue:`50310`)
+- Performance improvement in :meth:`Index.join`, :meth:`Index.intersection` and :meth:`Index.union` for masked and arrow dtypes when :class:`Index` is monotonic (:issue:`50310`, :issue:`51365`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
@@ -1115,7 +1117,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`Series.replace` with categorical dtype (:issue:`49404`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
-- Performance improvement for indexing operations with nullable dtypes (:issue:`49420`)
+- Performance improvement for indexing operations with nullable and arrow dtypes (:issue:`49420`, :issue:`51316`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
 - Performance improvement for :func:`api.types.infer_dtype` (:issue:`51054`)
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
@@ -1124,7 +1126,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.__setitem__` (:issue:`50248`, :issue:`50632`)
 - Performance improvement in :class:`~arrays.ArrowExtensionArray` comparison methods when array contains NA (:issue:`50524`)
-- Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`, :issue:`51227`)
 - Performance improvement when parsing strings to :class:`BooleanDtype` (:issue:`50613`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
@@ -1325,6 +1327,7 @@ I/O
 - Bug in :func:`read_csv` unnecessarily overflowing for extension array dtype when containing ``NA`` (:issue:`32134`)
 - Bug in :meth:`DataFrame.to_dict` not converting ``NA`` to ``None`` (:issue:`50795`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
+- Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 

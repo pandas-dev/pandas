@@ -254,9 +254,9 @@ date_parser : function, optional
   .. deprecated:: 2.0.0
    Use ``date_format`` instead, or read in as ``object`` and then apply
    :func:`to_datetime` as-needed.
-date_format : str, default ``None``
+date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex (e.g. different formats for different columns),
+   format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
     .. versionadded:: 2.0.0
@@ -397,7 +397,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -437,7 +437,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -477,7 +477,7 @@ def read_excel(
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
     date_parser: Callable | lib.NoDefault = lib.no_default,
-    date_format: str | None = None,
+    date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -726,7 +726,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | None = None,
+        date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -1554,7 +1554,7 @@ class ExcelFile:
         na_values=None,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | None = None,
+        date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
