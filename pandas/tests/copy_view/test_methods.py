@@ -1595,12 +1595,17 @@ def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
         assert np.shares_memory(get_array(ser), get_array(view))
 
 
-def test_transpose(using_copy_on_write):
+@pytest.mark.parametrize("copy", [True, False])
+def test_transpose(using_copy_on_write, copy):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
-    result = df.T
+    result = df.transpose(copy=copy)
 
-    assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
+    if not copy or using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+
     result.iloc[0, 0] = 100
     if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
