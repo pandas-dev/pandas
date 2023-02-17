@@ -1094,7 +1094,7 @@ class SeriesGroupBy(GroupBy[Series]):
         func.__name__ = "idxmax"
         return self._idxmin_idxmax(func)
 
-    def _idxmin_idxmax(self, func: Callable) -> Series:
+    def _idxmin_idxmax(self, func: Callable) -> DataFrame | Series:
         result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
 
         if len(result) == 0:
@@ -1103,12 +1103,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 name=self._obj_with_exclusions.name,
                 dtype=self._obj_with_exclusions.index.dtype,
             )
-            # return Series(
-            #     [],
-            #     name=self._obj_with_exclusions.name,
-            #     index=self.grouper.result_index,
-            #     dtype=self._obj_with_exclusions.index.dtype,
-            # )
+
         else:
             return self._wrap_applied_output(
                 self._obj_with_exclusions, result, not_indexed_same=True
