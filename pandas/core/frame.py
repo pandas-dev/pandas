@@ -1396,8 +1396,6 @@ class DataFrame(NDFrame, OpsMixin):
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if using_cow and self._mgr.is_single_block:
-                # Argument 1 to "add_references" of "BaseArrayManager" has incompatible
-                # type "Union[BlockManager, ArrayManager]"; expected "BaseArrayManager"
                 s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             yield k, s
 
