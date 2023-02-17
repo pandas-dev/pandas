@@ -11010,6 +11010,37 @@ Parrot 2  Parrot       24.0
         -------
         DataFrame
             The DataFrame has a DatetimeIndex.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2023', '2024'], freq='Y')
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d, index=idx)
+        >>> df1
+              col1   col2
+        2023     1      3
+        2024	 2      4
+
+        The resulting timestamps will be at the beginning of the year in this case
+
+        >>> df1 = df1.to_timestamp()
+        >>> df1
+                    col1   col2
+        2023-01-01     1      3
+        2024-01-01     2      4
+        >>> df1.index
+        DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[ns]', freq=None)
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> df2 = pd.DataFrame(data=d, index=idx)
+        >>> df2 = df2.to_timestamp(freq='M')
+        >>> df2
+                    col1   col2
+        2023-01-31     1      3
+        2024-01-31     2      4
+        >>> df2.index
+        DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
         new_obj = self.copy(deep=copy)
 
