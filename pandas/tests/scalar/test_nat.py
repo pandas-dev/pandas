@@ -536,7 +536,7 @@ def test_to_numpy_alias():
 def test_nat_comparisons(compare_operators_no_eq_ne, other, request):
     # GH 26039
     opname = compare_operators_no_eq_ne
-    if isinstance(other, (np.datetime64, np.timedleta64)) and (
+    if isinstance(other, (np.datetime64, np.timedelta64)) and (
         opname in ["__eq__", "__ne__"] or not is_numpy_dev
     ):
         mark = pytest.mark.xfail(
