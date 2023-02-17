@@ -17,7 +17,6 @@ import pandas._testing as tm
 
 class TestTimedeltaIndexInsert:
     def test_insert(self):
-
         idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
         result = idx.insert(2, timedelta(days=5))

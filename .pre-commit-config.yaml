@@ -15,17 +15,24 @@ default_stages: [
 ci:
     autofix_prs: false
 repos:
+-   repo: local
+    hooks:
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==23.1.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.215
+    rev: v0.0.244
     hooks:
     -   id: ruff
--   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.1
-    hooks:
-    -   id: absolufy-imports
-        files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.6'
+    rev: 'v2.7'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -38,7 +45,7 @@ repos:
         types_or: [python, rst, markdown]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.10.1
+    rev: v0.12.4
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -71,12 +78,12 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.9
+    rev: v2.16.1
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.9
+    rev: v2.16.1
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -101,7 +108,7 @@ repos:
     -   id: pyupgrade
         args: [--py38-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
@@ -116,16 +123,6 @@ repos:
     - id: sphinx-lint
 -   repo: local
     hooks:
-    # NOTE: we make `black` a local hook because if it's installed from
-    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
-    -   id: black
-        name: black
-        description: "Black: The uncompromising Python code formatter"
-        entry: black
-        language: python
-        require_serial: true
-        types_or: [python, pyi]
-        additional_dependencies: [black==22.10.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright

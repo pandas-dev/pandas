@@ -186,7 +186,6 @@ class TestPlotBase:
 
         conv = self.colorconverter
         if linecolors is not None:
-
             if mapping is not None:
                 linecolors = self._get_colors_mapped(mapping, linecolors)
                 linecolors = linecolors[: len(collections)]
@@ -206,7 +205,6 @@ class TestPlotBase:
                 assert result == expected
 
         if facecolors is not None:
-
             if mapping is not None:
                 facecolors = self._get_colors_mapped(mapping, facecolors)
                 facecolors = facecolors[: len(collections)]
@@ -472,7 +470,6 @@ class TestPlotBase:
 
         spndx = 1
         for kind in kinds:
-
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=False)
