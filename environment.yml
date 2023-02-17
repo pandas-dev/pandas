@@ -114,6 +114,7 @@ dependencies:
   - feedparser
   - pyyaml
   - requests
+  - pygments # Code highlighting
 
   - pip:
       - sphinx-toggleprompt

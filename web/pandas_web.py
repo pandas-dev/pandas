@@ -418,6 +418,9 @@ def main(
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
+                # Apply Bootstrap's table formatting manually
+                # Python-Markdown doesn't let us config table attributes by hand
+                body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
