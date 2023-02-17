@@ -125,7 +125,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         -------
         length : int
         """
-        return len(self._data)
+        return len(self._pa_array)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
