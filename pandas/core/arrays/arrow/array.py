@@ -467,6 +467,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             roperator.radd,
         ]:
             length = self._data.length()
+
+            seps: list[str] | list[bytes]
             if pa.types.is_string(pa_type):
                 seps = [""] * length
             else:
