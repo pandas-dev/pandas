@@ -15,7 +15,7 @@ Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 m
 optimizations that become possible through CoW are implemented and supported. A complete list
 can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
 
-We expect that CoW will be enabled per default in version 3.0
+We expect that CoW will be enabled by default in version 3.0
 
 Description
 -----------
