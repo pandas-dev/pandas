@@ -250,14 +250,28 @@ class SeriesGroupBy(GroupBy[Series]):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
+            if self.ngroups == 0:
+                # e.g. test_evaluate_with_empty_groups without any groups to
+                #  iterate over, we have no output on which to do dtype
+                #  inference. We default to using the existing dtype.
+                #  xref GH#51445
+                obj = self._obj_with_exclusions
+                return self.obj._constructor(
+                    [],
+                    name=self.obj.name,
+                    index=self.grouper.result_index,
+                    dtype=obj.dtype,
+                )
+
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
             except KeyError:
-                # TODO: KeyError is raised in _python_agg_general,
-                #  see test_groupby.test_basic
+                # KeyError raised in test_groupby.test_basic is bc the func does
+                #  a dictionary lookup on group.name, but group name is not
+                #  pinned in _python_agg_general, only in _aggregate_named
                 result = self._aggregate_named(func, *args, **kwargs)
 
                 # result is a dict whose keys are the elements of result_index
@@ -266,6 +280,15 @@ class SeriesGroupBy(GroupBy[Series]):
                 return result
 
     agg = aggregate
+
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = com.is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        obj = self._obj_with_exclusions
+        result = self.grouper.agg_series(obj, f)
+        res = obj._constructor(result, name=obj.name)
+        return self._wrap_aggregated_output(res)
 
     def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
@@ -307,18 +330,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         output = self._reindex_output(output)
         return output
-
-    def _indexed_output_to_ndframe(
-        self, output: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series:
-        """
-        Wrap the dict result of a GroupBy aggregation into a Series.
-        """
-        assert len(output) == 1
-        values = next(iter(output.values()))
-        result = self.obj._constructor(values)
-        result.name = self.obj.name
-        return result
 
     def _wrap_applied_output(
         self,
@@ -1319,6 +1330,31 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     agg = aggregate
 
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = com.is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        # iterate through "columns" ex exclusions to populate output dict
+        output: dict[base.OutputKey, ArrayLike] = {}
+
+        if self.ngroups == 0:
+            # e.g. test_evaluate_with_empty_groups different path gets different
+            #  result dtype in empty case.
+            return self._python_apply_general(f, self._selected_obj, is_agg=True)
+
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
+            result = self.grouper.agg_series(obj, f)
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
+
+        if not output:
+            # e.g. test_margins_no_values_no_cols
+            return self._python_apply_general(f, self._selected_obj)
+
+        res = self._indexed_output_to_ndframe(output)
+        return self._wrap_aggregated_output(res)
+
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
@@ -1885,7 +1921,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if self.axis != 0:
             # see test_groupby_crash_on_nunique
-            return self._python_agg_general(lambda sgb: sgb.nunique(dropna))
+            return self._python_apply_general(
+                lambda sgb: sgb.nunique(dropna), self._obj_with_exclusions, is_agg=True
+            )
 
         obj = self._obj_with_exclusions
         results = self._apply_to_column_groupbys(
