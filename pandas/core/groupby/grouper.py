@@ -11,7 +11,6 @@ from typing import (
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -952,8 +951,14 @@ def get_grouper(
             except (AttributeError, KeyError, IndexError, InvalidIndexError):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
-                ref = weakref.ref(obj_gpr_column._mgr.blocks[0])
-                return ref in gpr._mgr.blocks[0].refs.referenced_blocks
+                # Item "SingleArrayManager" of "Union[SingleArrayManager,
+                # SingleBlockManager]" has no attribute "references_same_values"
+                # Argument 1 to "references_same_values" of "BaseBlockManager" has
+                # incompatible type "Union[SingleArrayManager, SingleBlockManager]";
+                # expected "BaseBlockManager
+                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
+                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                )
             return False
         try:
             return gpr is obj[gpr.name]
