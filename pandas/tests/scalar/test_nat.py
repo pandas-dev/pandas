@@ -525,29 +525,24 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        pytest.param(
-            Timedelta(0).to_timedelta64(),
-            marks=pytest.mark.xfail(
-                not is_numpy_dev,
-                reason="td64 doesn't return NotImplemented, see numpy#17017",
-            ),
-        ),
+        Timedelta(0).to_timedelta64(),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        pytest.param(
-            Timestamp(0).to_datetime64(),
-            marks=pytest.mark.xfail(
-                not is_numpy_dev,
-                reason="dt64 doesn't return NotImplemented, see numpy#17017",
-            ),
-        ),
+        Timestamp(0).to_datetime64(),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
 )
-def test_nat_comparisons(compare_operators_no_eq_ne, other):
+def test_nat_comparisons(compare_operators_no_eq_ne, other, request):
     # GH 26039
     opname = compare_operators_no_eq_ne
+    if isinstance(other, (np.datetime64, np.timedleta64)) and (
+        opname in ["__eq__", "__ne__"] or not is_numpy_dev
+    ):
+        mark = pytest.mark.xfail(
+            reason="dt64/td64 don't return NotImplemented, see numpy#17017",
+        )
+        request.node.add_marker(mark)
 
     assert getattr(NaT, opname)(other) is False
 
