@@ -396,6 +396,7 @@ doctest_optionflags = [
 ]
 filterwarnings = [
   "error::ResourceWarning",
+  "ignore:unclosed <ssl.SSLSocket \\[closed\\]:ResourceWarning",
   # Ignore ResourceWarnings from asyncio (other libraries)
   "ignore::ResourceWarning:asyncio",
   "error::pytest.PytestUnraisableExceptionWarning",
