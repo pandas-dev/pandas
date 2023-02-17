@@ -11,7 +11,6 @@ from typing import (
     TypeVar,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -895,10 +894,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             data[self.isna()] = na_value
             return np.asarray(data._data, dtype=dtype)
         else:
-            with warnings.catch_warnings():
-                # int dtype with NA raises Warning
-                warnings.filterwarnings("ignore", category=RuntimeWarning)
-                result = np.asarray(self._data, dtype=dtype)
+            result = np.asarray(self._data, dtype=dtype)
             if copy:
                 result = result.copy()
         if self._hasna:
