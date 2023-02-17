@@ -442,7 +442,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.flags.allows_duplicate_labels
         False
         """
-        df = self.copy(deep=copy)
+        df = self.copy(deep=copy and not using_copy_on_write())
         if allows_duplicate_labels is not None:
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
         return df
@@ -711,6 +711,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
+            if copy and using_copy_on_write():
+                copy = False
             # With copy=False, we create a new object but don't copy the
             #  underlying data.
             obj = self.copy(deep=copy)
@@ -742,7 +744,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            return self.copy(deep=copy)
+            return self.copy(deep=copy and not using_copy_on_write())
 
         mapping = {i: j, j: i}
 
@@ -999,6 +1001,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index = mapper
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
+        if copy and using_copy_on_write():
+            copy = False
         result = self if inplace else self.copy(deep=copy)
 
         for axis_no, replacements in enumerate((index, columns)):
@@ -1214,6 +1218,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if copy and using_copy_on_write():
+            copy = False
 
         if mapper is not lib.no_default:
             # Use v0.23 behavior if a scalar or list
@@ -5333,6 +5340,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
+        if copy and using_copy_on_write():
+            copy = False
         if all(
             self._get_axis(axis_name).identical(ax)
             for axis_name, ax in axes.items()
@@ -6250,6 +6259,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
+        if copy and using_copy_on_write():
+            copy = False
+
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
@@ -10270,8 +10282,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis), ax.truncate(before, after))
 
-        if copy or (copy is None and not using_copy_on_write()):
-            result = result.copy(deep=copy)
+        result = result.copy(deep=copy and not using_copy_on_write())
 
         return result
 
@@ -10352,7 +10363,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_convert(ax, tz)
 
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_convert")
 
@@ -10534,7 +10545,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_localize")
 

@@ -11011,7 +11011,7 @@ Parrot 2  Parrot       24.0
         DataFrame
             The DataFrame has a DatetimeIndex.
         """
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -11068,7 +11068,7 @@ Parrot 2  Parrot       24.0
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)

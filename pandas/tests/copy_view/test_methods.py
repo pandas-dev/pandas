@@ -115,20 +115,79 @@ def test_methods_copy_keyword(
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
     df2 = method(df, copy=copy)
 
-    share_memory = (using_copy_on_write and copy is not True) or copy is False
+    share_memory = using_copy_on_write or copy is False
 
     if request.node.callspec.id.startswith("reindex-"):
         # TODO copy=False without CoW still returns a copy in this case
         if not using_copy_on_write and not using_array_manager and copy is False:
             share_memory = False
-        # TODO copy=True with CoW still returns a view
-        if using_copy_on_write:
-            share_memory = True
 
     if share_memory:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+
+@pytest.mark.parametrize("copy", [True, None, False])
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda ser, copy: ser.rename(index={0: 100}, copy=copy),
+        lambda ser, copy: ser.reindex(index=ser.index, copy=copy),
+        lambda ser, copy: ser.reindex_like(ser, copy=copy),
+        lambda ser, copy: ser.set_axis(["a", "b", "c"], axis="index", copy=copy),
+        lambda ser, copy: ser.rename_axis(index="test", copy=copy),
+        lambda ser, copy: ser.astype("int64", copy=copy),
+        lambda ser, copy: ser.swaplevel(0, 1, copy=copy),
+        lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
+        lambda ser, copy: ser.truncate(0, 5, copy=copy),
+        lambda ser, copy: ser.infer_objects(copy=copy),
+        lambda ser, copy: ser.to_timestamp(copy=copy),
+        lambda ser, copy: ser.to_period(freq="D", copy=copy),
+        lambda ser, copy: ser.tz_localize("US/Central", copy=copy),
+        lambda ser, copy: ser.tz_convert("US/Central", copy=copy),
+        lambda ser, copy: ser.set_flags(allows_duplicate_labels=False, copy=copy),
+    ],
+    ids=[
+        "rename",
+        "reindex",
+        "reindex_like",
+        "set_axis",
+        "rename_axis0",
+        "astype",
+        "swaplevel",
+        "swapaxes",
+        "truncate",
+        "infer_objects",
+        "to_timestamp",
+        "to_period",
+        "tz_localize",
+        "tz_convert",
+        "set_flags",
+    ],
+)
+def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write):
+    index = None
+    if "to_timestamp" in request.node.callspec.id:
+        index = period_range("2012-01-01", freq="D", periods=3)
+    elif "to_period" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_localize" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3)
+    elif "tz_convert" in request.node.callspec.id:
+        index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
+    elif "swaplevel" in request.node.callspec.id:
+        index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
+
+    ser = Series([1, 2, 3], index=index)
+    ser2 = method(ser, copy=copy)
+
+    share_memory = using_copy_on_write or copy is False
+
+    if share_memory:
+        assert np.shares_memory(get_array(ser2), get_array(ser))
+    else:
+        assert not np.shares_memory(get_array(ser2), get_array(ser))
 
 
 # -----------------------------------------------------------------------------
@@ -1111,14 +1170,13 @@ def test_set_flags(using_copy_on_write):
         tm.assert_series_equal(ser, expected)
 
 
-@pytest.mark.parametrize("copy_kwargs", [{"copy": True}, {}])
 @pytest.mark.parametrize("kwargs", [{"mapper": "test"}, {"index": "test"}])
-def test_rename_axis(using_copy_on_write, kwargs, copy_kwargs):
+def test_rename_axis(using_copy_on_write, kwargs):
     df = DataFrame({"a": [1, 2, 3, 4]}, index=Index([1, 2, 3, 4], name="a"))
     df_orig = df.copy()
-    df2 = df.rename_axis(**kwargs, **copy_kwargs)
+    df2 = df.rename_axis(**kwargs)
 
-    if using_copy_on_write and not copy_kwargs:
+    if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

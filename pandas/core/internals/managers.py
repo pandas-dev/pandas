@@ -423,6 +423,8 @@ class BaseBlockManager(DataManager):
                 copy = False
             else:
                 copy = True
+        elif using_copy_on_write():
+            copy = False
 
         return self.apply(
             "astype",
@@ -438,6 +440,8 @@ class BaseBlockManager(DataManager):
                 copy = False
             else:
                 copy = True
+        elif using_copy_on_write():
+            copy = False
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 

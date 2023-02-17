@@ -4129,7 +4129,7 @@ Keep all original rows and also all original values
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result.index = self.index.swaplevel(i, j)
         return result
 
@@ -5714,7 +5714,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
         new_index = self.index.to_timestamp(freq=freq, how=how)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -5754,7 +5754,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
