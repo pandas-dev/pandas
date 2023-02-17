@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -527,7 +528,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesn't return NotImplemented, see numpy#17017"
+                not is_numpy_dev,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0),
@@ -535,7 +537,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesn't return NotImplemented, see numpy#17017"
+                not is_numpy_dev,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0).tz_localize("UTC"),
