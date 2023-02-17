@@ -1213,6 +1213,10 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
+    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+        ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
+
+    # but as of GH#50689, timestamptz is supported
     dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
