@@ -1344,7 +1344,7 @@ def test_quantile(data, interpolation, quantile, request):
     [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx, request):
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
     result = ser.mode(dropna=True)
