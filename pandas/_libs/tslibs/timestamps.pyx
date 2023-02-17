@@ -1451,7 +1451,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
