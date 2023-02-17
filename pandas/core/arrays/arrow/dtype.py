@@ -203,7 +203,6 @@ class ArrowDtype(StorageExtensionDtype):
         except ValueError as err:
             has_parameters = re.search(r"\[.*\]", base_type)
             if has_parameters:
-
                 # Fallback to try common temporal types
                 try:
                     return cls._parse_temporal_dtype_string(base_type)
