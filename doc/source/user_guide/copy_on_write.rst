@@ -85,7 +85,7 @@ two subsequent indexing operations, e.g.
         df
 
 The column ``foo`` is updated where the column ``bar`` is greater than 5.
-This violates the CoW principles though, because it would habe to modify the
+This violates the CoW principles though, because it would have to modify the
 view ``df["foo"]`` and ``df`` in one step. Hence, chained assignment will
 consistently never work and raise a ``ChainedAssignmentError`` with CoW enabled:
 
