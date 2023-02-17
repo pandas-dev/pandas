@@ -948,14 +948,9 @@ def get_grouper(
             # no longer works (each Series from column access is a new object)
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
-                # Item "SingleArrayManager" of "Union[SingleArrayManager,
-                # SingleBlockManager]" has no attribute "references_same_values"
-                # Argument 1 to "references_same_values" of "BaseBlockManager" has
-                # incompatible type "Union[SingleArrayManager, SingleBlockManager]";
-                # expected "BaseBlockManager
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
                     obj_gpr_column._mgr, 0  # type: ignore[arg-type]
                 )
