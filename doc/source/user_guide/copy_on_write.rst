@@ -15,7 +15,11 @@ Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 m
 optimizations that become possible through CoW are implemented and supported. A complete list
 can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
 
-We expect that CoW will be enabled by default in version 3.0
+We expect that CoW will be enabled by default in version 3.0.
+
+CoW will lead to more predictable behavior since it is not possible to update more than
+one object with one statement, e.g. methods won't have side-effects. Additionally, through
+delaying copies as long as possible, the average performance will improve.
 
 Description
 -----------
@@ -71,6 +75,29 @@ reassigned and hence ``df`` does not share data with any other object. No copy
 is necessary when modifying the object. This is generally true for all methods
 listed in :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
 
+Previously, when operating on views, the view and the parent object was modified:
+
+.. ipython:: python
+
+    with pd.option_context("mode.copy_on_write", False):
+        df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+        view = df[:]
+        df.iloc[0, 0] = 100
+
+        df
+        view
+
+CoW triggers a copy when ``df`` is changed to avoid mutating ``view`` as well:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    view = df[:]
+    df.iloc[0, 0] = 100
+
+    df
+    view
+
 Chained Assignment
 ------------------
 
@@ -94,6 +121,9 @@ consistently never work and raise a ``ChainedAssignmentError`` with CoW enabled:
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     df["foo"][df["bar"] > 5] = 100
+
+With copy on write this can either be done by using ``loc`` or doing this
+in multiple steps.
 
 .. _copy_on_write.optimizations:
 
