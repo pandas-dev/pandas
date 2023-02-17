@@ -3,7 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 from pandas.errors import (
     NumExprClobberingError,
     UndefinedVariableError,
@@ -53,7 +52,6 @@ class TestCompat:
         return df.A + 1
 
     def test_query_default(self, df, expected1, expected2):
-
         # GH 12749
         # this should always work, whether NUMEXPR_INSTALLED or not
         result = df.query("A>0")
@@ -62,21 +60,18 @@ class TestCompat:
         tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_None(self, df, expected1, expected2):
-
         result = df.query("A>0", engine=None)
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
         tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_python(self, df, expected1, expected2):
-
         result = df.query("A>0", engine="python")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
         tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_numexpr(self, df, expected1, expected2):
-
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, expected1)
@@ -95,7 +90,6 @@ class TestCompat:
 
 
 class TestDataFrameEval:
-
     # smaller hits python, larger hits numexpr
     @pytest.mark.parametrize("n", [4, 4000])
     @pytest.mark.parametrize(
@@ -108,7 +102,6 @@ class TestDataFrameEval:
         ],
     )
     def test_ops(self, op_str, op, rop, n):
-
         # tst ops and reversed ops in evaluation
         # GH7198
 
@@ -538,7 +531,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-
         engine, parser = self.engine, self.parser
 
         n = m = 10
@@ -1077,7 +1069,6 @@ class TestDataFrameQueryStrings:
         ],
     )
     def test_query_lex_compare_strings(self, parser, engine, op, func):
-
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
@@ -1329,9 +1320,7 @@ class TestDataFrameQueryBacktickQuoting:
             {
                 "a": Series([1, 3], dtype=any_numeric_ea_and_arrow_dtype),
                 "b": Series([2, 4], dtype=any_numeric_ea_and_arrow_dtype),
-                "c": Series(
-                    [1, 1], dtype="int64" if not is_platform_windows() else "int32"
-                ),
+                "c": Series([1, 1], dtype=result["c"].dtype),
             }
         )
         tm.assert_frame_equal(result, expected)

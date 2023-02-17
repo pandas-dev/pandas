@@ -12,7 +12,6 @@ from ..pandas_vb_common import tm
 
 
 class IsIn:
-
     params = [
         "int64",
         "uint64",
@@ -183,7 +182,6 @@ class IsinWithArange:
 
 
 class IsInFloat64:
-
     params = [
         [np.float64, "Float64"],
         ["many_different_values", "few_different_values", "only_nans_values"],

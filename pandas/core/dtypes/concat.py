@@ -48,6 +48,7 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     -------
     a single array, preserving the combined dtypes
     """
+
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x) -> bool:
@@ -102,7 +103,6 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
         if len(kinds) != 1:
-
             if not len(kinds - {"i", "u", "f"}) or not len(kinds - {"b", "i", "u"}):
                 # let numpy coerce
                 pass
