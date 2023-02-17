@@ -54,5 +54,5 @@ jobs:
         if: failure()
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
       cancel-in-progress: true
