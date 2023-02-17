@@ -1080,8 +1080,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        axis = self.axis
-
         def func(df):
             return df.idxmin(axis=axis, skipna=skipna)
 
@@ -1090,8 +1088,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        axis = self.axis
-
         def func(df):
             return df.idxmax(axis=axis, skipna=skipna)
 
@@ -1102,11 +1098,17 @@ class SeriesGroupBy(GroupBy[Series]):
         result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
 
         if len(result) == 0:
-            return Series(
-                [],
-                name=self._obj_with_exclusions.name,
+            return self.obj._constructor(
                 index=self.grouper.result_index,
-            ).astype(self._obj_with_exclusions.index.dtype)
+                name=self._obj_with_exclusions.name,
+                dtype=self._obj_with_exclusions.index.dtype,
+            )
+            # return Series(
+            #     [],
+            #     name=self._obj_with_exclusions.name,
+            #     index=self.grouper.result_index,
+            #     dtype=self._obj_with_exclusions.index.dtype,
+            # )
         else:
             return self._wrap_applied_output(
                 self._obj_with_exclusions, result, not_indexed_same=True
@@ -2132,11 +2134,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
 
         if len(result) == 0:
-            return DataFrame(
-                [],
-                columns=self._obj_with_exclusions.columns,
+            return self.obj._constructor(
                 index=self.grouper.result_index,
-            ).astype(self._obj_with_exclusions.index.dtype)
+                columns=self._obj_with_exclusions.columns,
+                dtype=self._obj_with_exclusions.index.dtype,
+            )
         else:
             return self._wrap_applied_output(
                 self._obj_with_exclusions, result, not_indexed_same=True
