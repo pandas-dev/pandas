@@ -13,7 +13,7 @@ Copy-on-Write (CoW)
 
 Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 most of the
 optimizations that become possible through CoW are implemented and supported. A complete list
-can be found at TODO
+can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
 
 We expect that CoW will be enabled per default in version 3.0
 
