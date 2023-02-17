@@ -363,9 +363,9 @@ def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     Generate the list of files present in the source directory.
     """
     for root, dirs, fnames in os.walk(source_path):
-        if root.startswith("pandas/pdeps"):
-            continue
         root = os.path.relpath(root, source_path)
+        if root.startswith("pdeps"):
+            continue
         for fname in fnames:
             yield os.path.join(root, fname)
 
