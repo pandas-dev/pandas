@@ -5710,6 +5710,35 @@ Keep all original rows and also all original values
         Returns
         -------
         Series with DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2023', '2024', '2025'], freq='Y')
+        >>> s1 = pd.Series([1, 2, 3], index=idx)
+        >>> s1
+        2023    1
+        2024    2
+        2025    3
+        Freq: A-DEC, dtype: int64
+
+        The resulting frequency of the Timestamps is `YearBegin`
+
+        >>> s1 = s1.to_timestamp()
+        >>> s1
+        2023-01-01    1
+        2024-01-01    2
+        2025-01-01    3
+        Freq: AS-JAN, dtype: int64
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> s2 = pd.Series([1, 2, 3], index=idx)
+        >>> s2 = s2.to_timestamp(freq='M')
+        >>> s2
+        2023-01-31    1
+        2024-01-31    2
+        2025-01-31    3
+        Freq: A-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

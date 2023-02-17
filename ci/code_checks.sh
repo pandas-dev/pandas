@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.size \
         pandas.Series.T \
         pandas.Series.hasnans \
-        pandas.Series.to_timestamp \
         pandas.Series.to_list \
         pandas.Series.__iter__ \
         pandas.Series.keys \
@@ -218,7 +217,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
-        pandas.Period.to_timestamp \
         pandas.arrays.PeriodArray \
         pandas.Interval.closed \
         pandas.Interval.left \
@@ -562,7 +560,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.first_valid_index \
         pandas.DataFrame.last_valid_index \
-        pandas.DataFrame.to_timestamp \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.sparse.density \

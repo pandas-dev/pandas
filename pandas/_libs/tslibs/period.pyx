@@ -1841,6 +1841,13 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> timestamp = period.to_timestamp()
+        >>> timestamp
+        Timestamp('2023-01-01 00:00:00')
         """
         how = validate_end_alias(how)
 
