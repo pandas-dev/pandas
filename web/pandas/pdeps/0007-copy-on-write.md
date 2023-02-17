@@ -6,7 +6,7 @@
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1
 
-## Summary
+## Abstract
 
 Short summary of the proposal:
 
@@ -325,14 +325,14 @@ disadvantages:
   mutating the sliced subset also mutates the parent dataframe), in such a case the
   proposal would introduce a new copy compared to the current behaviour.
 
-## Breaking change? Upgrade path with deprecation?
+## Backward compatibility
 
 The proposal in this document is clearly a backwards incompatible change that breaks
 existing behaviour. Because of the current inconsistencies and subtleties around views
 vs. copies and mutation, it would be difficult to change anything without breaking
 changes. The current proposal is not the proposal with the minimal changes, though. A
 change like this will in any case need to be accompanied with a major version bump (for
-example pandas 2.0 or a next version).
+example pandas 3.0).
 
 Doing a traditional deprecation cycle that lives in several minor feature releases will
 probably be too noisy. Indexing is too common an operation to include a warning (even if
@@ -344,26 +344,22 @@ warnings, and then upgrade to the new major release.
 
 ## Implementation
 
-There is a proof-of-concept implementation for this proposal in PR
-[https://github.com/pandas-dev/pandas/pull/41878](https://github.com/pandas-dev/pandas/pull/41878).
-It uses weakrefs to keep track of whether the data of a dataframe/series are viewing the
-data of another (pandas) object or are being viewed by another object. This way,
-whenever the series/dataframe gets modified, we can check if its data first needs to be
-copied before mutating it.
+An initial implementation has been
+[merged](https://github.com/pandas-dev/pandas/pull/46958) and is available since pandas
+1.5 (and significantly improved in 2.0). It uses weakrefs to keep track of whether the
+data of a Dataframe/Series are viewing the data of another (pandas) object or are being
+viewed by another object. This way, whenever the series/dataframe gets modified, we can
+check if its data first needs to be copied before mutating it.
 
-The current proof-of-concept is implemented for the
-[ArrayManager](https://github.com/pandas-dev/pandas/pull/36010), but is not tied to it.
-Depending on how discussions progress on BlockManager vs ArrayManager, it could also be
-implemented for the BlockManager if needed.
+To test the implementation and experiment with the new behaviour, you can can
+enable it with the following option:
 
-To test the implementation and experiment with the new behaviour, you can fetch the
-branch of the linked PR, and then do:
-
-```
->>> pd.options.mode.data_manager = "array"
+```python
+>>> pd.options.mode.copy_on_write = True
 ```
 
-after importing pandas.
+after importing pandas (or setting the `PANDAS_COPY_ON_WRITE=1` environment variable
+before importing pandas).
 
 ## Concrete examples
 
@@ -497,12 +493,10 @@ _Currently_, the Series and DataFrame constructors don't always copy the input
 dtype: int64
 ```
 
-I would propose to also use the shallow copy with Copy-on-Write approach _by default_ in
-the constructors. This would mean that by default, a new Series or DataFrame (like s2 in
-the above example) would not modify the data from which it is being constructed (when
-being modified itself).
-
-(note: this is currently not yet done in the POC PR)
+_With this proposal_, we can also use the shallow copy with Copy-on-Write approach _by
+default_ in the constructors. This would mean that by default, a new Series or DataFrame
+(like `s2` in the above example) would not modify the data from which it is being
+constructed (when being modified itself), honoring the proposed rules.
 
 ## More background: Current behaviour of views vs copy
 
@@ -562,12 +556,15 @@ described in this proposal (mutating a DataFrame/Series never mutates a parent/c
 object, and so chained assignment also doesn't work)
 
 
-### PDEP-7 History
+## PDEP-7 History
 
 - July 2021: Initial version
+- February 2023: Converted into a PDEP
 
-Modified from the original document discussing different options for clear copy/view semantics (started by Tom Augspurger): https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jwURn3sK5k5eVewinxd8OUPk0/edit
+Note: this proposal has been discussed before it was turned into a PDEP. The main
+discussion happened in [GH-36195](https://github.com/pandas-dev/pandas/issues/36195).
+This document is mofied from the original document discussing different options for
+clear copy/view semantics started by Tom Augspurger
+([google doc](https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jwURn3sK5k5eVewinxd8OUPk0/edit)).
 
-Related GitHub issue: [https://github.com/pandas-dev/pandas/issues/36195](https://github.com/pandas-dev/pandas/issues/36195)
-
-Mailing list discussion: [https://mail.python.org/pipermail/pandas-dev/2021-July/001358.html](https://t.co/vT5dOMhNjV?amp=1)
+Related mailing list discussion: [https://mail.python.org/pipermail/pandas-dev/2021-July/001358.html](https://t.co/vT5dOMhNjV?amp=1)
