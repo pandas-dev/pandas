@@ -70,6 +70,18 @@ class PeriodUnaryMethods:
     def time_asfreq(self, freq):
         self.per.asfreq("A")
 
+    def time_str(self, freq):
+        str(self.per)
+
+    def time_repr(self, freq):
+        repr(self.per)
+
+    def time_strftime_default(self, freq):
+        self.per.strftime(None)
+
+    def time_strftime_custom(self, freq):
+        self.per.strftime("%b. %d, %Y was a %A")
+
 
 class PeriodConstructor:
     params = [["D"], [True, False]]
