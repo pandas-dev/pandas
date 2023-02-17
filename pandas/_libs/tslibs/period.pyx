@@ -1845,8 +1845,8 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
         >>> period = pd.Period('2023-1-1', freq='D')
-        >>> period = period.to_timestamp()
-        >>> period
+        >>> timestamp = period.to_timestamp()
+        >>> timestamp
         Timestamp('2023-01-01 00:00:00')
         """
         how = validate_end_alias(how)
