@@ -12,6 +12,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -913,7 +914,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._data)
         else:
-            result = np.asarray(self._data, dtype=dtype)
+            with warnings.catch_warnings():
+                # int dtype with NA raises Warning
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                result = np.asarray(self._data, dtype=dtype)
             if copy or self._hasna:
                 result = result.copy()
         if self._hasna:

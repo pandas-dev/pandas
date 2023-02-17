@@ -1763,7 +1763,7 @@ def test_str_get(i, exp):
 
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
-    raises=AttributeError,
+    raises=NotImplementedError,
 )
 def test_str_join():
     ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
