@@ -1,4 +1,4 @@
-# PDEP-7: In-place methods in pandas
+# PDEP-8: In-place methods in pandas
 
 - Created: 16 February 2023
 - Status: Under discussion
