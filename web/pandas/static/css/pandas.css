@@ -1,3 +1,7 @@
+html {
+    --pst-color-primary: #130654 !important;
+}
+
 body {
     padding-top: 5em;
     color: #444;

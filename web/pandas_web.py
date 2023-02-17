@@ -363,6 +363,8 @@ def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     Generate the list of files present in the source directory.
     """
     for root, dirs, fnames in os.walk(source_path):
+        if root.startswith("pandas/pdeps"):
+            continue
         root = os.path.relpath(root, source_path)
         for fname in fnames:
             yield os.path.join(root, fname)
@@ -428,6 +430,18 @@ def main(
             shutil.copy(
                 os.path.join(source_path, fname), os.path.join(target_path, dirname)
             )
+
+    # build the PDEPs and copy them to the correct location
+    pdep_source = os.path.join(source_path, "pdeps")
+    pdep_build = os.path.join(source_path, "pdeps", "_build")
+    shutil.copy(
+        os.path.join(source_path, "static", "css", "pandas.css"),
+        os.path.join(pdep_source, "_static", "pandas.css"),
+    )
+    os.system(f"sphinx-build -M html {pdep_source} {pdep_build}")
+    shutil.copytree(
+        os.path.join(pdep_build, "html"), os.path.join(target_path, "pdeps")
+    )
 
 
 if __name__ == "__main__":

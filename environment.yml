@@ -114,6 +114,7 @@ dependencies:
   - feedparser
   - pyyaml
   - requests
+  - myst-parser
 
   - pip:
       - sphinx-toggleprompt
