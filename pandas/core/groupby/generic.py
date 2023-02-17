@@ -1079,7 +1079,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
         def func(df):
             return df.idxmin(axis=axis, skipna=skipna)
 
@@ -1087,7 +1087,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._idxmin_idxmax(func)
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
         def func(df):
             return df.idxmax(axis=axis, skipna=skipna)
 
