@@ -87,7 +87,6 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
 
@@ -387,7 +386,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         *,
         unit: str | None = None,
     ) -> DatetimeArray:
-
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
@@ -455,7 +453,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             endpoint_tz = start.tz if start is not None else end.tz
 
             if tz is not None and endpoint_tz is None:
-
                 if not timezones.is_utc(tz):
                     # short-circuit tz_localize_to_utc which would make
                     #  an unnecessary copy with UTC but be a no-op.
@@ -721,7 +718,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Comparison Methods
 
     def _has_same_tz(self, other) -> bool:
-
         # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
@@ -757,7 +753,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Arithmetic Methods
 
     def _add_offset(self, offset) -> DatetimeArray:
-
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
@@ -774,7 +769,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
-            result = type(self)._from_sequence(result)
+            result = type(self)._from_sequence(result).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return result.tz_localize(self.tz)
@@ -2448,7 +2443,6 @@ def _infer_tz_from_endpoints(
 def _maybe_normalize_endpoints(
     start: Timestamp | None, end: Timestamp | None, normalize: bool
 ):
-
     if normalize:
         if start is not None:
             start = start.normalize()

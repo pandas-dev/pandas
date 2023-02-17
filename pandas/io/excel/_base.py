@@ -250,6 +250,16 @@ date_parser : function, optional
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
+
+  .. deprecated:: 2.0.0
+   Use ``date_format`` instead, or read in as ``object`` and then apply
+   :func:`to_datetime` as-needed.
+date_format : str or dict of column -> format, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex,
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+    .. versionadded:: 2.0.0
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -386,7 +396,8 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | None = ...,
+    date_parser: Callable | lib.NoDefault = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -425,7 +436,8 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | None = ...,
+    date_parser: Callable | lib.NoDefault = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -464,7 +476,8 @@ def read_excel(
     na_filter: bool = True,
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
-    date_parser: Callable | None = None,
+    date_parser: Callable | lib.NoDefault = lib.no_default,
+    date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -472,7 +485,6 @@ def read_excel(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
-
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
@@ -509,6 +521,7 @@ def read_excel(
             verbose=verbose,
             parse_dates=parse_dates,
             date_parser=date_parser,
+            date_format=date_format,
             thousands=thousands,
             decimal=decimal,
             comment=comment,
@@ -712,7 +725,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         na_values=None,
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | None = None,
+        date_parser: Callable | lib.NoDefault = lib.no_default,
+        date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -720,7 +734,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         use_nullable_dtypes: bool = False,
         **kwds,
     ):
-
         validate_header_arg(header)
         validate_integer("nrows", nrows)
 
@@ -806,7 +819,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # a row containing just the index name(s)
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
-
                 index_col_list: Sequence[int]
                 if isinstance(index_col, int):
                     index_col_list = [index_col]
@@ -873,6 +885,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
                     date_parser=date_parser,
+                    date_format=date_format,
                     thousands=thousands,
                     decimal=decimal,
                     comment=comment,
@@ -1540,7 +1553,8 @@ class ExcelFile:
         nrows: int | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | None = None,
+        date_parser: Callable | lib.NoDefault = lib.no_default,
+        date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
@@ -1573,6 +1587,7 @@ class ExcelFile:
             na_values=na_values,
             parse_dates=parse_dates,
             date_parser=date_parser,
+            date_format=date_format,
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,

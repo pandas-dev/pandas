@@ -51,7 +51,6 @@ def to_time(
     """
 
     def _convert_listlike(arg, format):
-
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype="O")
 

@@ -70,7 +70,6 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -309,6 +308,12 @@ class IndexOpsMixin(OpsMixin):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.shape
+        (3,)
         """
         return self._values.shape
 
@@ -1153,7 +1158,6 @@ class IndexOpsMixin(OpsMixin):
         sort: bool = False,
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], Index]:
-
         codes, uniques = algorithms.factorize(
             self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
@@ -1301,7 +1305,6 @@ class IndexOpsMixin(OpsMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-
         if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be 1-D array-like or scalar, "

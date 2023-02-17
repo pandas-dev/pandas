@@ -430,7 +430,6 @@ class SharedTests:
         ],
     )
     def test_setitem_object_dtype(self, box, arr1d):
-
         expected = arr1d.copy()[::-1]
         if expected.dtype.kind in ["m", "M"]:
             expected = expected._with_freq(None)
