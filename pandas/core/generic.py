@@ -711,11 +711,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
-            if copy and using_copy_on_write():
-                copy = False
             # With copy=False, we create a new object but don't copy the
             #  underlying data.
-            obj = self.copy(deep=copy)
+            obj = self.copy(deep=copy and not using_copy_on_write())
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
@@ -1001,9 +999,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index = mapper
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
-        if copy and using_copy_on_write():
-            copy = False
-        result = self if inplace else self.copy(deep=copy)
+        result = self if inplace else self.copy(deep=copy and not using_copy_on_write())
 
         for axis_no, replacements in enumerate((index, columns)):
             if replacements is None:
