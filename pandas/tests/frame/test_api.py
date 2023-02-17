@@ -209,7 +209,6 @@ class TestDataFrameMisc:
         assert df.T.empty
 
     def test_with_datetimelikes(self):
-
         df = DataFrame(
             {
                 "A": date_range("20130101", periods=10),
@@ -219,7 +218,7 @@ class TestDataFrameMisc:
         t = df.T
 
         result = t.dtypes.value_counts()
-        expected = Series({np.dtype("object"): 10})
+        expected = Series({np.dtype("object"): 10}, name="count")
         tm.assert_series_equal(result, expected)
 
     def test_deepcopy(self, float_frame):

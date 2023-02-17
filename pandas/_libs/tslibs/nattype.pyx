@@ -357,9 +357,13 @@ class NaTType(_NaT):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
+        base._value= NPY_NAT
 
         return base
+
+    @property
+    def value(self) -> int:
+        return self._value
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
@@ -566,7 +570,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.

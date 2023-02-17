@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 class TestAstype:
     def test_astype_float64_to_uint64(self):
-        # GH#45309 used to incorrectly return Int64Index
+        # GH#45309 used to incorrectly return Index with int64 dtype
         idx = Index([0.0, 5.0, 10.0, 15.0, 20.0], dtype=np.float64)
         result = idx.astype("u8")
         expected = Index([0, 5, 10, 15, 20], dtype=np.uint64)

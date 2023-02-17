@@ -292,7 +292,7 @@ The default behavior, ``errors='raise'``, is to raise when unparsable:
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
-    ValueError: Unknown string format
+    ValueError: Unknown datetime string format
 
 Pass ``errors='ignore'`` to return the original input when unparsable:
 

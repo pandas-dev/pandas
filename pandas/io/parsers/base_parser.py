@@ -104,18 +104,18 @@ class ParserBase:
     _first_chunk: bool
 
     def __init__(self, kwds) -> None:
-
         self.names = kwds.get("names")
-        self.orig_names: list | None = None
+        self.orig_names: Sequence[Hashable] | None = None
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
         self.index_names: Sequence[Hashable] | None = None
-        self.col_names = None
+        self.col_names: Sequence[Hashable] | None = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
-        self.date_parser = kwds.pop("date_parser", None)
+        self.date_parser = kwds.pop("date_parser", lib.no_default)
+        self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
 
@@ -134,6 +134,7 @@ class ParserBase:
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
+            date_format=self.date_format,
             dayfirst=self.dayfirst,
             cache_dates=self.cache_dates,
         )
@@ -269,9 +270,11 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self,
         header,
-        index_names: list | None,
+        index_names: Sequence[Hashable] | None,
         passed_names: bool = False,
-    ):
+    ) -> tuple[
+        Sequence[Hashable], Sequence[Hashable] | None, Sequence[Hashable] | None, bool
+    ]:
         """
         Extract and return the names, index_names, col_names if the column
         names are a MultiIndex.
@@ -451,9 +454,11 @@ class ParserBase:
         converters = self._clean_mapping(self.converters)
 
         for i, arr in enumerate(index):
-
             if try_parse_dates and self._should_parse_dates(i):
-                arr = self._date_conv(arr)
+                arr = self._date_conv(
+                    arr,
+                    col=self.index_names[i] if self.index_names is not None else None,
+                )
 
             if self.na_filter:
                 col_na_values = self.na_values
@@ -1004,7 +1009,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
-    def _clean_index_names(self, columns, index_col):
+    def _clean_index_names(self, columns, index_col) -> tuple[list | None, list, list]:
         if not is_index_col(index_col):
             return None, columns, index_col
 
@@ -1089,16 +1094,33 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=None,
+    date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
+    date_format: dict[Hashable, str] | str | None = None,
 ):
-    def converter(*date_cols):
-        if date_parser is None:
+    if date_parser is not lib.no_default:
+        warnings.warn(
+            "The argument 'date_parser' is deprecated and will "
+            "be removed in a future version. "
+            "Please use 'date_format' instead, or read your data in as 'object' dtype "
+            "and then call 'to_datetime'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if date_parser is not lib.no_default and date_format is not None:
+        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
+
+    def converter(*date_cols, col: Hashable):
+        if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
+            date_fmt = (
+                date_format.get(col) if isinstance(date_format, dict) else date_format
+            )
 
             return tools.to_datetime(
                 ensure_object(strs),
+                format=date_fmt,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",
@@ -1152,7 +1174,8 @@ parser_defaults = {
     "parse_dates": False,
     "keep_date_col": False,
     "dayfirst": False,
-    "date_parser": None,
+    "date_parser": lib.no_default,
+    "date_format": None,
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
@@ -1201,7 +1224,9 @@ def _process_date_conversion(
                     continue
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
-                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
+                data_dict[colspec] = converter(
+                    np.asarray(data_dict[colspec]), col=colspec
+                )
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -1262,7 +1287,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
-    new_col = parser(*to_parse)
+    new_col = parser(*to_parse, col=new_name)
     return new_name, new_col, colnames
 
 

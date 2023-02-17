@@ -8,8 +8,12 @@ from typing import (
     Literal,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
 
+from pandas._libs import lib
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -33,7 +37,7 @@ from pandas.io.common import get_handle
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -55,20 +59,19 @@ def read_orc(
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
     use_nullable_dtypes : bool, default False
-        If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame.
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
 
-        .. versionadded:: 2.0.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
-        .. note
-
-            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
+        .. versionadded:: 2.0
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -85,6 +88,12 @@ def read_orc(
     # we require a newer version of pyarrow than we support for parquet
 
     orc = import_optional_dependency("pyarrow.orc")
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     with get_handle(path, "rb", is_text=False) as handles:
         orc_file = orc.ORCFile(handles.handle)

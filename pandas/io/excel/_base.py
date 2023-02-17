@@ -23,8 +23,12 @@ from typing import (
 )
 import zipfile
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    using_nullable_dtypes,
+)
 
+from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     DtypeArg,
@@ -246,6 +250,16 @@ date_parser : function, optional
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
+
+  .. deprecated:: 2.0.0
+   Use ``date_format`` instead, or read in as ``object`` and then apply
+   :func:`to_datetime` as-needed.
+date_format : str or dict of column -> format, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex,
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+    .. versionadded:: 2.0.0
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -273,6 +287,14 @@ use_nullable_dtypes : bool, default False
     Whether or not to use nullable dtypes as default when reading data. If
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present. Dtype takes precedence if given.
+
+    .. note::
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
     .. versionadded:: 2.0
 
@@ -374,13 +396,14 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | None = ...,
+    date_parser: Callable | lib.NoDefault = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -413,13 +436,14 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | None = ...,
+    date_parser: Callable | lib.NoDefault = ...,
+    date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    use_nullable_dtypes: bool | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -452,15 +476,15 @@ def read_excel(
     na_filter: bool = True,
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
-    date_parser: Callable | None = None,
+    date_parser: Callable | lib.NoDefault = lib.no_default,
+    date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
-
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
@@ -470,6 +494,12 @@ def read_excel(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     try:
         data = io.parse(
@@ -491,6 +521,7 @@ def read_excel(
             verbose=verbose,
             parse_dates=parse_dates,
             date_parser=date_parser,
+            date_format=date_format,
             thousands=thousands,
             decimal=decimal,
             comment=comment,
@@ -694,7 +725,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         na_values=None,
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | None = None,
+        date_parser: Callable | lib.NoDefault = lib.no_default,
+        date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -702,7 +734,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         use_nullable_dtypes: bool = False,
         **kwds,
     ):
-
         validate_header_arg(header)
         validate_integer("nrows", nrows)
 
@@ -726,7 +757,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
         output = {}
 
+        last_sheetname = None
         for asheetname in sheets:
+            last_sheetname = asheetname
             if verbose:
                 print(f"Reading sheet {asheetname}")
 
@@ -786,7 +819,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # a row containing just the index name(s)
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
-
                 index_col_list: Sequence[int]
                 if isinstance(index_col, int):
                     index_col_list = [index_col]
@@ -853,6 +885,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
                     date_parser=date_parser,
+                    date_format=date_format,
                     thousands=thousands,
                     decimal=decimal,
                     comment=comment,
@@ -878,10 +911,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
                 raise err
 
+        if last_sheetname is None:
+            raise ValueError("Sheet name is an empty list")
+
         if ret_dict:
             return output
         else:
-            return output[asheetname]
+            return output[last_sheetname]
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1390,14 +1426,14 @@ def inspect_excel_format(
 
 class ExcelFile:
     """
-    Class for parsing tabular excel sheets into DataFrame objects.
+    Class for parsing tabular Excel sheets into DataFrame objects.
 
     See read_excel for more documentation.
 
     Parameters
     ----------
     path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpyxl workbook.
+        A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -1425,6 +1461,7 @@ class ExcelFile:
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
            .. versionadded:: 1.3.0
+
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -1516,7 +1553,8 @@ class ExcelFile:
         nrows: int | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | None = None,
+        date_parser: Callable | lib.NoDefault = lib.no_default,
+        date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
@@ -1549,6 +1587,7 @@ class ExcelFile:
             na_values=na_values,
             parse_dates=parse_dates,
             date_parser=date_parser,
+            date_format=date_format,
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,

@@ -331,28 +331,25 @@ To automatically fix formatting errors on each commit you make, you can
 set up pre-commit yourself. First, create a Python :ref:`environment
 <contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
 
-Delete your merged branch (optional)
+.. _contributing.update-dev:
+
+Updating the development environment
 ------------------------------------
 
-Once your feature branch is accepted into upstream, you'll probably want to get rid of
-the branch. First, merge upstream main into your branch so git knows it is safe to
-delete your branch::
+After updating your branch to merge in main from upstream, you may need to update
+your development environment to reflect any changes to the various packages that
+are used during development.
 
-    git fetch upstream
-    git checkout main
-    git merge upstream/main
+If using :ref:`mamba <contributing.mamba>`, do::
 
-Then you can do::
+    mamba deactivate
+    mamba env update -f environment.yml
+    mamba activate pandas-dev
 
-    git branch -d shiny-new-feature
+If using :ref:`pip <contributing.pip>` , do::
 
-Make sure you use a lower-case ``-d``, or else git won't warn you if your feature
-branch has not actually been merged.
-
-The branch will still exist on GitHub, so to delete it there do::
-
-    git push origin --delete shiny-new-feature
-
+    # activate the virtual environment based on your platform
+    pythom -m pip install --upgrade -r requirements-dev.txt
 
 Tips for a successful pull request
 ==================================

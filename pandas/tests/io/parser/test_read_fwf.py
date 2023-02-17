@@ -284,15 +284,16 @@ def test_fwf_regression():
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
 
-    result = read_fwf(
-        StringIO(data),
-        index_col=0,
-        header=None,
-        names=names,
-        widths=widths,
-        parse_dates=True,
-        date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
-    )
+    with tm.assert_produces_warning(FutureWarning, match="use 'date_format' instead"):
+        result = read_fwf(
+            StringIO(data),
+            index_col=0,
+            header=None,
+            names=names,
+            widths=widths,
+            parse_dates=True,
+            date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
+        )
     expected = DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
@@ -311,6 +312,16 @@ def test_fwf_regression():
             ]
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
+    )
+    tm.assert_frame_equal(result, expected)
+    result = read_fwf(
+        StringIO(data),
+        index_col=0,
+        header=None,
+        names=names,
+        widths=widths,
+        parse_dates=True,
+        date_format="%Y%j%H%M%S",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -948,23 +959,22 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes(string_storage):
+def test_use_nullable_dtypes(string_storage, dtype_backend):
     # GH#50289
+    if string_storage == "python":
+        arr = StringArray(np.array(["a", "b"], dtype=np.object_))
+        arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
+    else:
+        pa = pytest.importorskip("pyarrow")
+        arr = ArrowStringArray(pa.array(["a", "b"]))
+        arr_na = ArrowStringArray(pa.array([None, "a"]))
 
     data = """a  b    c      d  e     f  g    h  i
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
-        result = read_fwf(StringIO(data), use_nullable_dtypes=True)
-
-    if string_storage == "python":
-        arr = StringArray(np.array(["a", "b"], dtype=np.object_))
-        arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
-    else:
-        import pyarrow as pa
-
-        arr = ArrowStringArray(pa.array(["a", "b"]))
-        arr_na = ArrowStringArray(pa.array([None, "a"]))
+        with pd.option_context("mode.dtype_backend", dtype_backend):
+            result = read_fwf(StringIO(data), use_nullable_dtypes=True)
 
     expected = DataFrame(
         {
@@ -979,4 +989,29 @@ def test_use_nullable_dtypes(string_storage):
             "i": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        expected = DataFrame(
+            {
+                col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                for col in expected.columns
+            }
+        )
+        expected["i"] = ArrowExtensionArray(pa.array([None, None]))
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes_option():
+    # GH#50748
+
+    data = """a
+1
+3"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = read_fwf(StringIO(data))
+
+    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)

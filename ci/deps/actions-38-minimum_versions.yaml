@@ -43,7 +43,7 @@ dependencies:
   - openpyxl=3.0.7
   - pandas-gbq=0.15.0
   - psycopg2=2.8.6
-  - pyarrow=6.0.0
+  - pyarrow=7.0.0
   - pymysql=1.0.2
   - pyreadstat=1.1.2
   - pytables=3.6.1

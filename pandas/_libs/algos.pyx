@@ -1366,7 +1366,7 @@ def rank_2d(
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
-            mask = missing.isnaobj2d(values).view(np.uint8)
+            mask = missing.isnaobj(values).view(np.uint8)
         elif numeric_object_t is float64_t or numeric_object_t is float32_t:
             mask = np.isnan(values).view(np.uint8)
         else:

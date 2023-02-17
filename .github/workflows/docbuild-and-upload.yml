@@ -46,12 +46,6 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
-    - name: Set up maintainers cache
-      uses: actions/cache@v3
-      with:
-        path: maintainers.json
-        key: maintainers
-
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
 

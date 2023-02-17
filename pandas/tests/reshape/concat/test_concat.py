@@ -51,7 +51,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_array_manager):
+    def test_concat_copy(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -82,7 +82,7 @@ class TestConcatenate:
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_array_manager:
+                if using_array_manager or using_copy_on_write:
                     # this is a view on some array in either df or df4
                     assert any(
                         np.shares_memory(arr, other)
@@ -267,7 +267,6 @@ class TestConcatenate:
         concat([df1, df2], sort=sort)
 
     def test_concat_mixed_objs(self):
-
         # concat mixed series/frames
         # G2385
 
@@ -336,7 +335,6 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_dtype_coerceion(self):
-
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 
@@ -409,7 +407,6 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_3602(self):
-
         # GH 3602, duplicate columns
         df1 = DataFrame(
             {

@@ -685,12 +685,6 @@ Replacing more than one value is possible by passing a list.
    df.replace([1.5, df00], [np.nan, "a"])
    df[1].dtype
 
-You can also operate on the DataFrame in place:
-
-.. ipython:: python
-
-   df.replace(1.5, np.nan, inplace=True)
-
 Missing data casting rules and indexing
 ---------------------------------------
 

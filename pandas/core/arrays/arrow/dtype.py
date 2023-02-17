@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
+from decimal import Decimal
 import re
 
 import numpy as np
 
-from pandas._typing import DtypeObj
-from pandas.compat import pa_version_under6p0
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
+from pandas._typing import (
+    TYPE_CHECKING,
+    DtypeObj,
+    type_t,
+)
+from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
@@ -13,8 +28,11 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
 @register_extension_dtype
@@ -66,8 +84,8 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if pa_version_under6p0:
-            raise ImportError("pyarrow>=6.0.0 is required for ArrowDtype")
+        if pa_version_under7p0:
+            raise ImportError("pyarrow>=7.0.0 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
@@ -81,9 +99,40 @@ class ArrowDtype(StorageExtensionDtype):
     @property
     def type(self):
         """
-        Returns pyarrow.DataType.
+        Returns associated scalar type.
         """
-        return type(self.pyarrow_dtype)
+        pa_type = self.pyarrow_dtype
+        if pa.types.is_integer(pa_type):
+            return int
+        elif pa.types.is_floating(pa_type):
+            return float
+        elif pa.types.is_string(pa_type):
+            return str
+        elif pa.types.is_binary(pa_type):
+            return bytes
+        elif pa.types.is_boolean(pa_type):
+            return bool
+        elif pa.types.is_duration(pa_type):
+            if pa_type.unit == "ns":
+                return Timedelta
+            else:
+                return timedelta
+        elif pa.types.is_timestamp(pa_type):
+            if pa_type.unit == "ns":
+                return Timestamp
+            else:
+                return datetime
+        elif pa.types.is_date(pa_type):
+            return date
+        elif pa.types.is_time(pa_type):
+            return time
+        elif pa.types.is_decimal(pa_type):
+            return Decimal
+        elif pa.types.is_null(pa_type):
+            # TODO: None? pd.NA? pa.null?
+            return type(pa_type)
+        else:
+            raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
@@ -95,6 +144,9 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
+        if pa.types.is_string(self.pyarrow_dtype):
+            # pa.string().to_pandas_dtype() = object which we don't want
+            return np.dtype(str)
         try:
             return np.dtype(self.pyarrow_dtype.to_pandas_dtype())
         except (NotImplementedError, TypeError):
@@ -102,6 +154,9 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def kind(self) -> str:
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # To mirror DatetimeTZDtype
+            return "M"
         return self.numpy_dtype.kind
 
     @cache_readonly
@@ -110,7 +165,7 @@ class ArrowDtype(StorageExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> type_t[ArrowExtensionArray]:
         """
         Return the array type associated with this dtype.
 

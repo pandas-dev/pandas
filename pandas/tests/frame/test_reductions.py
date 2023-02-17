@@ -142,7 +142,6 @@ def assert_stat_op_calc(
 
 
 class TestDataFrameAnalytics:
-
     # ---------------------------------------------------------------------
     # Reductions
     @pytest.mark.parametrize("axis", [0, 1])
@@ -543,7 +542,6 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_mode_dropna(self, dropna, expected):
-
         df = DataFrame(
             {
                 "A": [12, 12, 19, 11],
@@ -1138,8 +1136,11 @@ class TestDataFrameAnalytics:
         expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
 
+    # GH#50947 deprecates this but it is not emitting a warning in some builds.
+    @pytest.mark.filterwarnings(
+        "ignore:'any' with datetime64 dtypes is deprecated.*:FutureWarning"
+    )
     def test_any_datetime(self):
-
         # GH 23070
         float_data = [1, np.nan, 3, np.nan]
         datetime_data = [
@@ -1151,11 +1152,11 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": float_data, "B": datetime_data})
 
         result = df.any(axis=1)
+
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
 
     def test_any_all_bool_only(self):
-
         # GH 25101
         df = DataFrame(
             {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]}
@@ -1245,12 +1246,22 @@ class TestDataFrameAnalytics:
             ):
                 getattr(DataFrame(data), func.__name__)(axis=None)
         else:
-            result = func(data)
+            msg = "'(any|all)' with datetime64 dtypes is deprecated"
+            if data.dtypes.apply(lambda x: x.kind == "M").any():
+                warn = FutureWarning
+            else:
+                warn = None
+
+            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+                # GH#34479
+                result = func(data)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
             # method version
-            result = getattr(DataFrame(data), func.__name__)(axis=None)
+            with tm.assert_produces_warning(warn, match=msg):
+                # GH#34479
+                result = getattr(DataFrame(data), func.__name__)(axis=None)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
@@ -1263,7 +1274,6 @@ class TestDataFrameAnalytics:
         assert result is False
 
     def test_any_all_object_bool_only(self):
-
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])

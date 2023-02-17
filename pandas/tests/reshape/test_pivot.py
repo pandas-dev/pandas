@@ -193,7 +193,6 @@ class TestPivotTable:
         tm.assert_index_equal(pv_ind.index, m)
 
     def test_pivot_table_categorical(self):
-
         cat1 = Categorical(
             ["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True
         )
@@ -342,7 +341,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_dtypes(self):
-
         # can convert dtypes
         f = DataFrame(
             {
@@ -799,9 +797,9 @@ class TestPivotTable:
     def test_pivot_columns_none_raise_error(self):
         # GH 30924
         df = DataFrame({"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]})
-        msg = r"pivot\(\) missing 1 required argument: 'columns'"
+        msg = r"pivot\(\) missing 1 required keyword-only argument: 'columns'"
         with pytest.raises(TypeError, match=msg):
-            df.pivot(index="col1", values="col3")
+            df.pivot(index="col1", values="col3")  # pylint: disable=missing-kwoa
 
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
@@ -1106,7 +1104,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_columns_lexsorted(self):
-
         n = 10000
 
         dtype = np.dtype(
@@ -2312,6 +2309,75 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
+        # GH 50342
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+                ("col5",): [
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "bar",
+                    "bar",
+                    "bar",
+                    "bar",
+                ],
+                ("col6", 6): [
+                    "one",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                ],
+                (7, "seven"): [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+            }
+        )
+        result = pivot_table(
+            df, values="D", index=["A", "B"], columns=[(7, "seven")], aggfunc=np.sum
+        )
+        expected = DataFrame(
+            [[4.0, 5.0], [7.0, 6.0], [4.0, 1.0], [np.nan, 6.0]],
+            columns=Index(["large", "small"], name=(7, "seven")),
+            index=MultiIndex.from_arrays(
+                [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
+            ),
+        )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["small"] = expected["small"].astype("int64")
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
@@ -2444,8 +2510,8 @@ class TestPivot:
     def test_pivot_columns_not_given(self):
         # GH#48293
         df = DataFrame({"a": [1], "b": 1})
-        with pytest.raises(TypeError, match="missing 1 required argument"):
-            df.pivot()
+        with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
+            df.pivot()  # pylint: disable=missing-kwoa
 
     def test_pivot_columns_is_none(self):
         # GH#48293

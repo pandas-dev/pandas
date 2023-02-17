@@ -1,3 +1,5 @@
+import re
+
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -1839,6 +1841,13 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> timestamp = period.to_timestamp()
+        >>> timestamp
+        Timestamp('2023-01-01 00:00:00')
         """
         how = validate_end_alias(how)
 
@@ -2472,6 +2481,7 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
 
+        >>> from pandas import Period
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
@@ -2577,7 +2587,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
-                                           value in nat_strings):
+                                           (value in nat_strings or len(value) == 0)):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
@@ -2591,25 +2601,27 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-            dt, reso = parse_datetime_string_with_reso(value, freqstr)
             try:
-                ts = Timestamp(value)
-            except ValueError:
-                nanosecond = 0
-            else:
-                nanosecond = ts.nanosecond
-                if nanosecond != 0:
-                    reso = "nanosecond"
-            if dt is NaT:
-                ordinal = NPY_NAT
+                dt, reso = parse_datetime_string_with_reso(value, freqstr)
+            except ValueError as err:
+                match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
+                if match:
+                    # Case that cannot be parsed (correctly) by our datetime
+                    #  parsing logic
+                    dt, freq = _parse_weekly_str(value, freq)
+                else:
+                    raise err
 
-            if freq is None:
-                try:
+            else:
+                if reso == "nanosecond":
+                    nanosecond = dt.nanosecond
+                if dt is NaT:
+                    ordinal = NPY_NAT
+
+                if freq is None and ordinal != NPY_NAT:
+                    # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                except KeyError:
-                    raise ValueError(f"Invalid frequency or could not "
-                                     f"infer: {reso}")
-                freq = to_offset(freq)
+                    freq = to_offset(freq)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2669,3 +2681,28 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     if how not in {"S", "E"}:
         raise ValueError("How must be one of S or E")
     return how
+
+
+cdef _parse_weekly_str(value, BaseOffset freq):
+    """
+    Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
+    datetime-parsing logic.  This ensures that we can round-trip with
+    Period.__str__ with weekly freq.
+    """
+    # GH#50803
+    start, end = value.split("/")
+    start = Timestamp(start)
+    end = Timestamp(end)
+
+    if (end - start).days != 6:
+        # We are interested in cases where this is str(period)
+        #  of a Week-freq period
+        raise ValueError("Could not parse as weekly-freq Period")
+
+    if freq is None:
+        day_name = end.day_name()[:3].upper()
+        freqstr = f"W-{day_name}"
+        freq = to_offset(freqstr)
+        # We _should_ have freq.is_on_offset(end)
+
+    return end, freq

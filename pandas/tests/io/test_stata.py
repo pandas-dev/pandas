@@ -87,7 +87,6 @@ class TestStata:
 
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -105,7 +104,6 @@ class TestStata:
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self, datapath):
-
         expected = DataFrame.from_records(
             [
                 (
@@ -176,7 +174,6 @@ class TestStata:
         "file", ["stata3_113", "stata3_114", "stata3_115", "stata3_117"]
     )
     def test_read_dta3(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -192,7 +189,6 @@ class TestStata:
         "file", ["stata4_113", "stata4_114", "stata4_115", "stata4_117"]
     )
     def test_read_dta4(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -358,7 +354,6 @@ class TestStata:
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_encoding(self, version, datapath):
-
         # GH 4626, proper encoding handling
         raw = read_stata(datapath("io", "data", "stata", "stata1_encoding.dta"))
         encoded = read_stata(datapath("io", "data", "stata", "stata1_encoding.dta"))
@@ -481,7 +476,6 @@ class TestStata:
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
     )
     def test_read_write_reread_dta15(self, file, datapath):
-
         expected = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
         expected["byte_"] = expected["byte_"].astype(np.int8)
         expected["int_"] = expected["int_"].astype(np.int16)
@@ -1802,10 +1796,12 @@ One or more strings in the dta file could not be decoded using utf-8, and
 so the fallback encoding of latin-1 is being used.  This can happen when a file
 has been incorrectly encoded by Stata or some other software. You should verify
 the string values returned are correct."""
+        # Move path outside of read_stata, or else assert_produces_warning
+        # will block pytests skip mechanism from triggering (failing the test)
+        # if the path is not present
+        path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
         with tm.assert_produces_warning(UnicodeWarning) as w:
-            encoded = read_stata(
-                datapath("io", "data", "stata", "stata1_encoding_118.dta")
-            )
+            encoded = read_stata(path)
             assert len(w) == 151
             assert w[0].message.args[0] == msg
 
@@ -2055,7 +2051,6 @@ def test_compression_roundtrip(compression):
     df.index.name = "index"
 
     with tm.ensure_clean() as path:
-
         df.to_stata(path, compression=compression)
         reread = read_stata(path, compression=compression, index_col="index")
         tm.assert_frame_equal(df, reread)

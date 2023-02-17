@@ -948,6 +948,55 @@ def test_repeat_values_new_names(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_repeat_elements(parser):
+    xml = """\
+<shapes>
+  <shape>
+    <value item="name">circle</value>
+    <value item="family">ellipse</value>
+    <value item="degrees">360</value>
+    <value item="sides">0</value>
+  </shape>
+  <shape>
+    <value item="name">triangle</value>
+    <value item="family">polygon</value>
+    <value item="degrees">180</value>
+    <value item="sides">3</value>
+  </shape>
+  <shape>
+    <value item="name">square</value>
+    <value item="family">polygon</value>
+    <value item="degrees">360</value>
+    <value item="sides">4</value>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(
+        xml,
+        xpath=".//shape",
+        parser=parser,
+        names=["name", "family", "degrees", "sides"],
+    )
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["value", "value", "value", "value"]},
+        names=["name", "family", "degrees", "sides"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "triangle", "square"],
+            "family": ["ellipse", "polygon", "polygon"],
+            "degrees": [360, 180, 360],
+            "sides": [0, 3, 4],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 def test_names_option_wrong_length(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
@@ -1351,17 +1400,80 @@ def test_string_error(parser):
         )
 
 
-def test_file_like_error(datapath, parser, mode):
+def test_file_like_iterparse(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with pytest.raises(
-        ParserError, match=("iterparse is designed for large XML files")
-    ):
-        with open(filename) as f:
-            read_xml(
+
+    with open(filename, mode) as f:
+        if mode == "r" and parser == "lxml":
+            with pytest.raises(
+                TypeError, match=("reading file objects must return bytes objects")
+            ):
+                read_xml(
+                    f,
+                    parser=parser,
+                    iterparse={
+                        "book": ["category", "title", "year", "author", "price"]
+                    },
+                )
+            return None
+        else:
+            df_filelike = read_xml(
                 f,
                 parser=parser,
                 iterparse={"book": ["category", "title", "year", "author", "price"]},
             )
+
+    df_expected = DataFrame(
+        {
+            "category": ["cooking", "children", "web"],
+            "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
+            "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
+            "year": [2005, 2005, 2003],
+            "price": [30.00, 29.99, 39.95],
+        }
+    )
+
+    tm.assert_frame_equal(df_filelike, df_expected)
+
+
+def test_file_io_iterparse(datapath, parser, mode):
+    filename = datapath("io", "data", "xml", "books.xml")
+
+    funcIO = StringIO if mode == "r" else BytesIO
+    with open(filename, mode) as f:
+        with funcIO(f.read()) as b:
+            if mode == "r" and parser == "lxml":
+                with pytest.raises(
+                    TypeError, match=("reading file objects must return bytes objects")
+                ):
+                    read_xml(
+                        b,
+                        parser=parser,
+                        iterparse={
+                            "book": ["category", "title", "year", "author", "price"]
+                        },
+                    )
+                return None
+            else:
+                df_fileio = read_xml(
+                    b,
+                    parser=parser,
+                    iterparse={
+                        "book": ["category", "title", "year", "author", "price"]
+                    },
+                )
+
+    df_expected = DataFrame(
+        {
+            "category": ["cooking", "children", "web"],
+            "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
+            "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
+            "year": [2005, 2005, 2003],
+            "price": [30.00, 29.99, 39.95],
+        }
+    )
+
+    tm.assert_frame_equal(df_fileio, df_expected)
 
 
 @pytest.mark.network
@@ -1710,11 +1822,8 @@ def test_s3_parser_consistency():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     # GH#50500
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
     data = """<?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
 <row>
@@ -1746,6 +1855,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
     else:
+        pa = pytest.importorskip("pyarrow")
         string_array = ArrowStringArray(pa.array(["x", "y"]))
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
@@ -1768,6 +1878,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
     )
 
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(
@@ -1778,4 +1889,22 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         )
         expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes_option(parser):
+    # GH#50748
+
+    data = """<?xml version='1.0' encoding='utf-8'?>
+    <data xmlns="http://example.com">
+    <row>
+      <a>1</a>
+    </row>
+    <row>
+      <a>3</a>
+    </row>
+    </data>"""
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = read_xml(data, parser=parser)
+    expected = DataFrame({"a": Series([1, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)

@@ -4,7 +4,6 @@ Experimental manager based on storing a collection of 1D arrays
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -94,10 +93,6 @@ from pandas.core.internals.blocks import (
     to_native_types,
 )
 
-if TYPE_CHECKING:
-    from pandas.core.api import Float64Index
-
-
 T = TypeVar("T", bound="BaseArrayManager")
 
 
@@ -174,6 +169,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
+    def add_references(self, mgr: BaseArrayManager) -> None:
+        """
+        Only implemented on the BlockManager level
+        """
+        return
+
     def __getstate__(self):
         return self.arrays, self._axes
 
@@ -224,9 +225,7 @@ class BaseArrayManager(DataManager):
             f = kwargs.pop("func")
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -268,7 +267,6 @@ class BaseArrayManager(DataManager):
         result_arrays = []
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -362,7 +360,6 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -371,10 +368,16 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
+    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        if copy is None:
+            copy = True
+
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T, copy: bool) -> T:
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            copy = True
+
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
@@ -814,7 +817,6 @@ class ArrayManager(BaseArrayManager):
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
@@ -952,9 +954,10 @@ class ArrayManager(BaseArrayManager):
             result_indices.append(i)
 
         if len(result_arrays) == 0:
-            index = Index([None])  # placeholder
+            nrows = 0
         else:
-            index = Index(range(result_arrays[0].shape[0]))
+            nrows = result_arrays[0].shape[0]
+        index = Index(range(nrows))
 
         columns = self.items
 
@@ -1013,12 +1016,11 @@ class ArrayManager(BaseArrayManager):
     def quantile(
         self,
         *,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         axis: AxisInt = 0,
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
-
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [
@@ -1144,7 +1146,6 @@ class ArrayManager(BaseArrayManager):
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
-
     __slots__ = [
         "_axes",  # private attribute, because 'axes' has different order, see below
         "arrays",

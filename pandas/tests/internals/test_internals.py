@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
@@ -393,7 +394,6 @@ class TestBlockManager:
         mgr.iget(1)
 
     def test_pickle(self, mgr):
-
         mgr2 = tm.round_trip_pickle(mgr)
         tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
@@ -470,7 +470,6 @@ class TestBlockManager:
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
@@ -484,7 +483,6 @@ class TestBlockManager:
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             bvals = blk.values
             cpvals = cp_blk.values
 
@@ -882,6 +880,30 @@ class TestBlockManager:
         )
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
+
+    def test_iset_split_block(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 0, 0, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 2
+
+    def test_iset_split_block_values(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]), np.array([list(range(10))]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 2, 2, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 3
 
 
 def _as_array(mgr):

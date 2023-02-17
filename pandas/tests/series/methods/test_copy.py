@@ -11,7 +11,6 @@ import pandas._testing as tm
 class TestCopy:
     @pytest.mark.parametrize("deep", ["default", None, False, True])
     def test_copy(self, deep, using_copy_on_write):
-
         ser = Series(np.arange(10), dtype="float64")
 
         # default deep is True

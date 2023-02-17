@@ -233,7 +233,6 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_same_freq(self, resample_method):
-
         # GH12770
         series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
         expected = series

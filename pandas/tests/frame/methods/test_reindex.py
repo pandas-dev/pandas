@@ -54,7 +54,6 @@ class TestReindexSetIndex:
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):
-
         df = DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
@@ -133,6 +132,21 @@ class TestDataFrameSelectReindex:
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
+
+    def test_reindex_copies_ea(self):
+        # https://github.com/pandas-dev/pandas/pull/51197
+        # also ensure to honor copy keyword for ExtensionDtypes
+        N = 10
+        df = DataFrame(np.random.randn(N * 10, N), dtype="Float64")
+        cols = np.arange(N)
+        np.random.shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        assert not np.shares_memory(result[0].array._data, df[0].array._data)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
@@ -674,7 +688,6 @@ class TestDataFrameSelectReindex:
         assert new_frame.empty
 
     def test_reindex_columns_method(self):
-
         # GH 14992, reindexing over columns ignored method
         df = DataFrame(
             data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
@@ -794,7 +807,6 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
-
         # GH4746, reindex on duplicate index error messages
         arr = np.random.randn(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
@@ -811,7 +823,6 @@ class TestDataFrameSelectReindex:
             df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
-
         # reindex is invalid!
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
@@ -841,17 +852,18 @@ class TestDataFrameSelectReindex:
         # https://github.com/pandas-dev/pandas/issues/12392
         # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        with pytest.raises(TypeError, match=r".* is ambiguous."):
+        msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+        with pytest.raises(TypeError, match=msg):
             df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis=1)
+            df.reindex([0, 1], columns=["A"], axis=1)
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis="index")
+            df.reindex([0, 1], columns=["A"], axis="index")
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis="index")
@@ -866,7 +878,7 @@ class TestDataFrameSelectReindex:
             df.reindex(index=[0, 1], columns=[0, 1], axis="columns")
 
         with pytest.raises(TypeError, match="Cannot specify all"):
-            df.reindex([0, 1], [0], ["A"])
+            df.reindex(labels=[0, 1], index=[0], columns=["A"])
 
         # Mixing styles
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):

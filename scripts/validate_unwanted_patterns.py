@@ -53,6 +53,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "__version__",  # check np.__version__ in compat.numpy.function
     "_arrow_dtype_mapping",
     "_global_config",
+    "_chained_assignment_msg",
 }
 
 
