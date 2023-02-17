@@ -336,11 +336,16 @@ example pandas 3.0).
 
 Doing a traditional deprecation cycle that lives in several minor feature releases will
 probably be too noisy. Indexing is too common an operation to include a warning (even if
-we limit it to just those operations that previously returned views). However, it should
-be possible to provide a last release before the major version bump that raises future
-warnings for the cases that will change behaviour. We can then provide a clearly
-documented upgrade path to first upgrade to this one version with warnings, fix all
-warnings, and then upgrade to the new major release.
+we limit it to just those operations that previously returned views). However, we can
+already implement this proposal and make it available before becoming the default
+behaviour, such that users can opt-in and test their code (this is currently possible
+with `pd.options.mode.copy_on_write = True`). Further, it should be possible to also
+provide a "warning" mode that raises warnings for all cases that will change behaviour
+under the Copy-on-Write proposal. If we have such a warning mode, we could also enable
+those warnings by default in a last release before the major version bump. We can then
+provide a clearly documented upgrade path to first enable the warnings, fix all
+warnings, and then enable the Copy-on-Write mode and ensure your code is still working,
+and then finally upgrade to the new major release.
 
 ## Implementation
 
