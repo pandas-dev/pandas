@@ -249,7 +249,8 @@ class BaseBlockManager(DataManager):
 
     def add_references(self, mgr: BaseBlockManager) -> None:
         """
-        Adds the references from one manager to another.
+        Adds the references from one manager to another. We assume that both
+        managers have the same block structure.
         """
         for i, blk in enumerate(self.blocks):
             blk.refs = mgr.blocks[i].refs
