@@ -236,10 +236,7 @@ default False
     say because of an unparsable value or a mixture of timezones, the column
     or index will be returned unaltered as an object data type. For
     non-standard datetime parsing, use ``pd.to_datetime`` after
-    ``pd.read_csv``. To parse an index or column with a mixture of timezones,
-    specify ``date_parser`` to be a partially-applied
-    :func:`pandas.to_datetime` with ``utc=True``. See
-    :ref:`io.csv.mixed_timezones` for more.
+    ``pd.read_csv``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
@@ -264,6 +261,16 @@ date_parser : function, optional
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
+
+  .. deprecated:: 2.0.0
+   Use ``date_format`` instead, or read in as ``object`` and then apply
+   :func:`to_datetime` as-needed.
+date_format : str or dict of column -> format, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex,
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+    .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
 cache_dates : bool, default True
@@ -543,7 +550,10 @@ def _read(
     # if we pass a date_parser and parse_dates=False, we should not parse the
     # dates GH#44366
     if kwds.get("parse_dates", None) is None:
-        if kwds.get("date_parser", None) is None:
+        if (
+            kwds.get("date_parser", lib.no_default) is lib.no_default
+            and kwds.get("date_format", None) is None
+        ):
             kwds["parse_dates"] = False
         else:
             kwds["parse_dates"] = True
@@ -608,6 +618,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[True],
@@ -664,6 +675,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -720,6 +732,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[False] = ...,
@@ -776,6 +789,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -843,7 +857,8 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
-    date_parser=None,
+    date_parser=lib.no_default,
+    date_format: str | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
     # Iteration
@@ -932,6 +947,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[True],
@@ -988,6 +1004,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -1044,6 +1061,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[False] = ...,
@@ -1100,6 +1118,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
+    date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -1167,7 +1186,8 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
-    date_parser=None,
+    date_parser=lib.no_default,
+    date_format: str | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
     # Iteration
@@ -1772,6 +1792,11 @@ def TextParser(*args, **kwds) -> TextFileReader:
     parse_dates : bool, default False
     keep_date_col : bool, default False
     date_parser : function, optional
+
+        .. deprecated:: 2.0.0
+    date_format : str or dict of column -> format, default ``None``
+
+        .. versionadded:: 2.0.0
     skiprows : list of integers
         Row numbers to skip
     skipfooter : int

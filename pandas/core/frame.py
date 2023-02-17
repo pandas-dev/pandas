@@ -213,6 +213,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.methods import selectn
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -1392,8 +1393,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
+        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
+            if using_cow and self._mgr.is_single_block:
+                s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             yield k, s
 
     def itertuples(
@@ -7172,7 +7176,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
         """
-        return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
     def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
@@ -7270,9 +7274,7 @@ class DataFrame(NDFrame, OpsMixin):
         Anguilla       11300  311      AI
         Nauru         337000  182      NR
         """
-        return algorithms.SelectNFrame(
-            self, n=n, keep=keep, columns=columns
-        ).nsmallest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
     @doc(
         Series.swaplevel,
@@ -7814,7 +7816,7 @@ Keep all original rows and columns and also all original values
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
+        # sorts if possible; otherwise align above ensures that these are set-equal
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
@@ -11007,6 +11009,37 @@ Parrot 2  Parrot       24.0
         -------
         DataFrame
             The DataFrame has a DatetimeIndex.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2023', '2024'], freq='Y')
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d, index=idx)
+        >>> df1
+              col1   col2
+        2023     1      3
+        2024	 2      4
+
+        The resulting timestamps will be at the beginning of the year in this case
+
+        >>> df1 = df1.to_timestamp()
+        >>> df1
+                    col1   col2
+        2023-01-01     1      3
+        2024-01-01     2      4
+        >>> df1.index
+        DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[ns]', freq=None)
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> df2 = pd.DataFrame(data=d, index=idx)
+        >>> df2 = df2.to_timestamp(freq='M')
+        >>> df2
+                    col1   col2
+        2023-01-31     1      3
+        2024-01-31     2      4
+        >>> df2.index
+        DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
         new_obj = self.copy(deep=copy)
 
