@@ -1537,7 +1537,8 @@ def _maybe_null_out(
         if check_below_min_count(shape, mask, min_count):
             result_dtype = getattr(result, "dtype", None)
             if is_float_dtype(result_dtype):
-                result = result_dtype.type("nan")
+                # error: Item "None" of "Optional[Any]" has no attribute "type"
+                result = result_dtype.type("nan")  # type: ignore[union-attr]
             else:
                 result = np.nan
 
