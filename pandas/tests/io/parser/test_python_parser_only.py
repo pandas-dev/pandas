@@ -538,7 +538,10 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only):
     tm.assert_frame_equal(result3, expected3)
 
 
-def test_no_thousand_with_dot_convert_for_non_numeric_cols(python_parser_only):
+@pytest.mark.parametrize(
+    "dtype", [{"a": str}, {"a": str, "b": np.int64, "c": np.int64}]
+)
+def test_no_thousand_with_dot_convert_for_non_numeric_cols(python_parser_only, dtype):
     # GH#50270
     parser = python_parser_only
     data = """a;b;c
@@ -549,7 +552,7 @@ def test_no_thousand_with_dot_convert_for_non_numeric_cols(python_parser_only):
     result = parser.read_csv(
         StringIO(data),
         sep=";",
-        dtype={"a": str, "b": np.int64, "c": np.int64},
+        dtype=dtype,
         thousands=".",
     )
     expected = DataFrame(
