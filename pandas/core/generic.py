@@ -5432,10 +5432,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # If we've made a copy once, no need to make another one
             copy = False
 
-        if (copy or copy is None) and new_data is self._mgr:
+        if (
+            (copy or copy is None)
+            and new_data is self._mgr
+            and not using_copy_on_write()
+        ):
             new_data = new_data.copy(deep=copy)
         elif using_copy_on_write() and new_data is self._mgr:
-            new_data = new_data.copy(deep=copy)
+            new_data = new_data.copy(deep=False)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -9516,6 +9520,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_axis: Axis = 0,
     ):
         is_series = isinstance(self, ABCSeries)
+        if copy and using_copy_on_write():
+            copy = False
 
         if (not is_series and axis is None) or axis not in [None, 0, 1]:
             raise ValueError("Must specify axis=0 or 1")
