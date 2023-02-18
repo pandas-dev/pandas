@@ -887,7 +887,7 @@ def read_csv(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory: bool = _c_parser_defaults.low_memory.value,
+    low_memory: bool = _c_parser_defaults["low_memory"].value,
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
@@ -1216,7 +1216,7 @@ def read_table(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory: bool = _c_parser_defaults.low_memory.value,
+    low_memory: bool = _c_parser_defaults["low_memory"].value,
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
@@ -1568,7 +1568,7 @@ class TextFileReader(abc.Iterator):
 
         if "python" in engine:
             for arg in _python_unsupported:
-                if fallback_reason and result[arg] != _c_parser_defaults[arg]:
+                if fallback_reason and result[arg] != _c_parser_defaults[arg].value:
                     raise ValueError(
                         "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "
