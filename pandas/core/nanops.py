@@ -794,7 +794,6 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:
-
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
             if not skipna:
@@ -1081,7 +1080,6 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
-
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -1537,7 +1535,12 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            result_dtype = getattr(result, "dtype", None)
+            if is_float_dtype(result_dtype):
+                # error: Item "None" of "Optional[Any]" has no attribute "type"
+                result = result_dtype.type("nan")  # type: ignore[union-attr]
+            else:
+                result = np.nan
 
     return result
 

@@ -430,7 +430,6 @@ def test_is_names_tuple_fails(ll):
 
 
 def test_is_hashable():
-
     # all new-style classes are hashable by default
     class HashableClass:
         pass
@@ -1063,7 +1062,6 @@ class TestInference:
         ],
     )
     def test_maybe_convert_objects_ea(self, idx):
-
         result = lib.maybe_convert_objects(
             np.array(idx, dtype=object),
             convert_period=True,
@@ -1073,7 +1071,6 @@ class TestInference:
 
 
 class TestTypeInference:
-
     # Dummy class used for testing with Python objects
     class Dummy:
         pass
@@ -1278,7 +1275,6 @@ class TestTypeInference:
         assert result == expected
 
     def test_datetime(self):
-
         dates = [datetime(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
         assert index.inferred_type == "datetime64"
@@ -1547,7 +1543,6 @@ class TestTypeInference:
         assert not func(arr.reshape(2, 1))
 
     def test_date(self):
-
         dates = [date(2012, 1, day) for day in range(1, 20)]
         index = Index(dates)
         assert index.inferred_type == "date"
@@ -1575,7 +1570,6 @@ class TestTypeInference:
         assert result == "date"
 
     def test_is_numeric_array(self):
-
         assert lib.is_float_array(np.array([1, 2.0]))
         assert lib.is_float_array(np.array([1, 2.0, np.nan]))
         assert not lib.is_float_array(np.array([1, 2]))
@@ -1632,7 +1626,6 @@ class TestTypeInference:
         lib.to_object_array_tuples(values)
 
     def test_object(self):
-
         # GH 7431
         # cannot infer more than this as only a single element
         arr = np.array([None], dtype="O")
@@ -1667,7 +1660,6 @@ class TestTypeInference:
         assert not lib.is_period(np.nan)
 
     def test_categorical(self):
-
         # GH 8974
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
@@ -1700,7 +1692,6 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
     def test_interval_mismatched_closed(self, value):
-
         first = Interval(value, value, closed="left")
         second = Interval(value, value, closed="right")
 
@@ -1752,7 +1743,6 @@ class TestTypeInference:
 
 class TestNumberScalar:
     def test_is_number(self):
-
         assert is_number(True)
         assert is_number(1)
         assert is_number(1.1)
@@ -1842,7 +1832,6 @@ class TestNumberScalar:
         assert not is_float(Timedelta("1 days"))
 
     def test_is_datetime_dtypes(self):
-
         ts = pd.date_range("20130101", periods=3)
         tsa = pd.date_range("20130101", periods=3, tz="US/Eastern")
 
@@ -1993,7 +1982,6 @@ def test_datetimeindex_from_empty_datetime64_array(unit):
 
 
 def test_nan_to_nat_conversions():
-
     df = DataFrame(
         {"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")}
     )

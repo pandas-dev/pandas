@@ -24,7 +24,6 @@ from .pandas_vb_common import (
 
 
 class ToNumeric:
-
     params = ["ignore", "coerce"]
     param_names = ["errors"]
 
@@ -54,7 +53,6 @@ class ToNumeric:
 
 
 class ToNumericDowncast:
-
     param_names = ["dtype", "downcast"]
     params = [
         [
@@ -173,7 +171,6 @@ class ToDatetimeYYYYMMDD:
 
 
 class ToDatetimeCacheSmallCount:
-
     params = ([True, False], [50, 500, 5000, 100000])
     param_names = ["cache", "count"]
 
@@ -270,7 +267,6 @@ class ToDatetimeFormat:
 
 
 class ToDatetimeCache:
-
     params = [True, False]
     param_names = ["cache"]
 
@@ -327,7 +323,6 @@ class ToTimedelta:
 
 
 class ToTimedeltaErrors:
-
     params = ["coerce", "ignore"]
     param_names = ["errors"]
 

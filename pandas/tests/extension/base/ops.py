@@ -136,7 +136,6 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
     def _compare_other(self, ser: pd.Series, data, op, other):
-
         if op.__name__ in ["eq", "ne"]:
             # comparison should match point-wise comparisons
             result = op(ser, other)

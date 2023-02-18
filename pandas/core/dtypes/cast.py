@@ -99,7 +99,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import Index
     from pandas.core.arrays import (
         Categorical,
@@ -363,7 +362,6 @@ def maybe_downcast_numeric(
             return result
 
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
-
         if not result.size:
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
@@ -779,7 +777,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         val = lib.item_from_zerodim(val)
 
     elif isinstance(val, str):
-
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
         # so this is kind of bad. Alternately we could use np.repeat
@@ -1027,7 +1024,6 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-
         if is_object_dtype(input_array.dtype):
             inferred_dtype = lib.infer_dtype(input_array)
         else:
@@ -1349,7 +1345,6 @@ def common_dtype_categorical_compat(
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
     if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
-
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1441,7 +1436,6 @@ def find_common_type(types):
 def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
-
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
@@ -1498,7 +1492,6 @@ def construct_1d_arraylike_from_scalar(
         subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
-
         if length and is_integer_dtype(dtype) and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")

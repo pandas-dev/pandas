@@ -580,7 +580,6 @@ class _LxmlFrameParser(_XMLFrameParser):
         return xml_dicts
 
     def _validate_path(self) -> list[Any]:
-
         msg = (
             "xpath does not return any nodes or attributes. "
             "Be sure to specify in `xpath` the parent nodes of "

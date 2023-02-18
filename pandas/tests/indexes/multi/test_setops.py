@@ -131,7 +131,6 @@ def test_empty(idx):
 
 
 def test_difference(idx, sort):
-
     first = idx
     result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
