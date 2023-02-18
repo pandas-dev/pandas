@@ -135,6 +135,8 @@ def test_apply_funcs_over_empty(func):
 
     result = df.apply(getattr(np, func))
     expected = getattr(df, func)()
+    if func in ("sum", "prod"):
+        expected = expected.astype(float)
     tm.assert_series_equal(result, expected)
 
 
