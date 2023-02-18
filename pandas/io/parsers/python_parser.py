@@ -29,6 +29,7 @@ from pandas.errors import (
     ParserError,
 )
 
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.common import (
@@ -1341,9 +1342,10 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     ------
     ValueError : 'skipfooter' was not a non-negative integer.
     """
-    if not isinstance(skipfooter, int):
+    if not is_integer(skipfooter):
         raise ValueError("skipfooter must be an integer")
 
+    skipfooter = cast(int, skipfooter)
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
