@@ -1079,13 +1079,13 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
-        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
+    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
         return result.astype(self._obj_with_exclusions.index.dtype)
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
-        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
+    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
         return result.astype(self._obj_with_exclusions.index.dtype)
 
     @doc(Series.corr.__doc__)
@@ -2016,6 +2016,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def func(df):
             return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
+        func.__name__ = "idxmax"
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
@@ -2101,6 +2102,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def func(df):
             return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
+        func.__name__ = "idxmax"
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
