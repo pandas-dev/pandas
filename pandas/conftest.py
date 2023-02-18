@@ -168,7 +168,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
 
-        for (mark, kwd, skip_if_found, arg_name) in marks:
+        for mark, kwd, skip_if_found, arg_name in marks:
             if kwd in item.keywords:
                 # If we're skipping, no need to actually add the marker or look for
                 # other markers
@@ -289,6 +289,14 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
     """
     return request.param
 
@@ -1409,7 +1417,7 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_FLOAT_DTYPES)
 def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -1614,9 +1622,7 @@ def any_real_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_REAL_DTYPES)
 def any_real_numeric_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
@@ -1676,12 +1682,7 @@ def any_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES
-    + tm.COMPLEX_DTYPES
-    + tm.ALL_INT_EA_DTYPES
-    + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
     Parameterized fixture for all numeric dtypes.

@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
+from decimal import Decimal
 import re
 
 import numpy as np
 
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas._typing import (
     TYPE_CHECKING,
     DtypeObj,
@@ -88,9 +99,40 @@ class ArrowDtype(StorageExtensionDtype):
     @property
     def type(self):
         """
-        Returns pyarrow.DataType.
+        Returns associated scalar type.
         """
-        return type(self.pyarrow_dtype)
+        pa_type = self.pyarrow_dtype
+        if pa.types.is_integer(pa_type):
+            return int
+        elif pa.types.is_floating(pa_type):
+            return float
+        elif pa.types.is_string(pa_type):
+            return str
+        elif pa.types.is_binary(pa_type):
+            return bytes
+        elif pa.types.is_boolean(pa_type):
+            return bool
+        elif pa.types.is_duration(pa_type):
+            if pa_type.unit == "ns":
+                return Timedelta
+            else:
+                return timedelta
+        elif pa.types.is_timestamp(pa_type):
+            if pa_type.unit == "ns":
+                return Timestamp
+            else:
+                return datetime
+        elif pa.types.is_date(pa_type):
+            return date
+        elif pa.types.is_time(pa_type):
+            return time
+        elif pa.types.is_decimal(pa_type):
+            return Decimal
+        elif pa.types.is_null(pa_type):
+            # TODO: None? pd.NA? pa.null?
+            return type(pa_type)
+        else:
+            raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
@@ -112,6 +154,9 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def kind(self) -> str:
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # To mirror DatetimeTZDtype
+            return "M"
         return self.numpy_dtype.kind
 
     @cache_readonly
@@ -158,6 +203,13 @@ class ArrowDtype(StorageExtensionDtype):
         except ValueError as err:
             has_parameters = re.search(r"\[.*\]", base_type)
             if has_parameters:
+                # Fallback to try common temporal types
+                try:
+                    return cls._parse_temporal_dtype_string(base_type)
+                except (NotImplementedError, ValueError):
+                    # Fall through to raise with nice exception message below
+                    pass
+
                 raise NotImplementedError(
                     "Passing pyarrow type specific parameters "
                     f"({has_parameters.group()}) in the string is not supported. "
@@ -166,6 +218,35 @@ class ArrowDtype(StorageExtensionDtype):
                 ) from err
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
         return cls(pa_dtype)
+
+    # TODO(arrow#33642): This can be removed once supported by pyarrow
+    @classmethod
+    def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
+        """
+        Construct a temporal ArrowDtype from string.
+        """
+        # we assume
+        #  1) "[pyarrow]" has already been stripped from the end of our string.
+        #  2) we know "[" is present
+        head, tail = string.split("[", 1)
+
+        if not tail.endswith("]"):
+            raise ValueError
+        tail = tail[:-1]
+
+        if head == "timestamp":
+            assert "," in tail  # otherwise type_for_alias should work
+            unit, tz = tail.split(",", 1)
+            unit = unit.strip()
+            tz = tz.strip()
+            if tz.startswith("tz="):
+                tz = tz[3:]
+
+            pa_type = pa.timestamp(unit, tz=tz)
+            dtype = cls(pa_type)
+            return dtype
+
+        raise NotImplementedError(string)
 
     @property
     def _is_numeric(self) -> bool:

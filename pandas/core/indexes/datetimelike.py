@@ -300,7 +300,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
@@ -486,8 +485,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta.value
-        rng = range(self[0].value, self[-1].value + tick, tick)
+        tick = freq.delta._value
+        rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
     def _can_range_setop(self, other):

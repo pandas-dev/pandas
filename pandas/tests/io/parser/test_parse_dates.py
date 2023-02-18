@@ -60,7 +60,9 @@ def test_read_csv_with_custom_date_parser(all_parsers):
         41051.00 -98573.7302 871458.0640 389.0086
         """
     )
-    result = all_parsers.read_csv(
+    result = all_parsers.read_csv_check_warnings(
+        FutureWarning,
+        "Please use 'date_format' instead",
         testdata,
         delim_whitespace=True,
         parse_dates=True,
@@ -98,7 +100,9 @@ def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
         41051.00 -97.72
         """
     )
-    result = all_parsers.read_csv(
+    result = all_parsers.read_csv_check_warnings(
+        FutureWarning,
+        "Please use 'date_format' instead",
         testdata,
         delim_whitespace=True,
         parse_dates=False,
@@ -173,7 +177,12 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         "keep_date_col": keep_date_col,
         "names": ["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"],
     }
-    result = parser.read_csv(StringIO(data), **kwds)
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
+        StringIO(data),
+        **kwds,
+    )
 
     expected = DataFrame(
         [
@@ -479,7 +488,9 @@ def test_multiple_date_cols_int_cast(all_parsers):
         "parse_dates": parse_dates,
         "date_parser": pd.to_datetime,
     }
-    result = parser.read_csv(StringIO(data), **kwds)
+    result = parser.read_csv_check_warnings(
+        FutureWarning, "use 'date_format' instead", StringIO(data), **kwds
+    )
 
     expected = DataFrame(
         [
@@ -526,8 +537,13 @@ def test_multiple_date_col_timestamp_parse(all_parsers):
     data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
 05/31/2012,15:30:00.029,1306.25,8,E,0,,1306.25"""
 
-    result = parser.read_csv(
-        StringIO(data), parse_dates=[[0, 1]], header=None, date_parser=Timestamp
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
+        StringIO(data),
+        parse_dates=[[0, 1]],
+        header=None,
+        date_parser=Timestamp,
     )
     expected = DataFrame(
         [
@@ -683,7 +699,9 @@ def test_date_parser_int_bug(all_parsers):
         "12345,1,-1,3,invoice_InvoiceResource,search\n"
     )
 
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
         StringIO(data),
         index_col=0,
         parse_dates=[0],
@@ -749,10 +767,15 @@ def test_csv_custom_parser(all_parsers):
 20090103,c,4,5
 """
     parser = all_parsers
-    result = parser.read_csv(
-        StringIO(data), date_parser=lambda x: datetime.strptime(x, "%Y%m%d")
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
+        StringIO(data),
+        date_parser=lambda x: datetime.strptime(x, "%Y%m%d"),
     )
     expected = parser.read_csv(StringIO(data), parse_dates=True)
+    tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(StringIO(data), date_format="%Y%m%d")
     tm.assert_frame_equal(result, expected)
 
 
@@ -900,7 +923,9 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
 02/02/2010,1,2
 """
     if "dayfirst" in kwargs:
-        df = parser.read_csv(
+        df = parser.read_csv_check_warnings(
+            FutureWarning,
+            "use 'date_format' instead",
             StringIO(data),
             names=["time", "Q", "NTU"],
             date_parser=lambda d: du_parse(d, **kwargs),
@@ -922,7 +947,9 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
     else:
         msg = "got an unexpected keyword argument 'day_first'"
         with pytest.raises(TypeError, match=msg):
-            parser.read_csv(
+            parser.read_csv_check_warnings(
+                FutureWarning,
+                "use 'date_format' instead",
                 StringIO(data),
                 names=["time", "Q", "NTU"],
                 date_parser=lambda d: du_parse(d, **kwargs),
@@ -1305,6 +1332,26 @@ def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
     )
 
 
+@pytest.mark.parametrize(
+    "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
+)
+def test_parse_dates_date_parser_and_date_format(all_parsers, reader):
+    # GH 50601
+    parser = all_parsers
+    data = "Date,test\n2012-01-01,1\n,2"
+    msg = "Cannot use both 'date_parser' and 'date_format'"
+    with pytest.raises(TypeError, match=msg):
+        getattr(parser, reader)(
+            FutureWarning,
+            "use 'date_format' instead",
+            StringIO(data),
+            parse_dates=["Date"],
+            date_parser=pd.to_datetime,
+            date_format="ISO8601",
+            sep=",",
+        )
+
+
 @xfail_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
@@ -1355,7 +1402,9 @@ date, time,a,b
 2001-01-06, 00:00:00, 1.0, 11.
 """
     parser = all_parsers
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
         StringIO(data),
         header=[0, 1],
         parse_dates={"date_time": [0, 1]},
@@ -1445,7 +1494,13 @@ date,time,a,b
 )
 def test_parse_date_time(all_parsers, data, kwargs, expected):
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), date_parser=pd.to_datetime, **kwargs)
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
+        StringIO(data),
+        date_parser=pd.to_datetime,
+        **kwargs,
+    )
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so
@@ -1460,7 +1515,9 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
         StringIO(data),
         header=0,
         parse_dates={"ymd": [0, 1, 2]},
@@ -1475,18 +1532,31 @@ def test_parse_date_fields(all_parsers):
 
 
 @xfail_pyarrow
-def test_parse_date_all_fields(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        (
+            "date_parser",
+            lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S"),
+            FutureWarning,
+        ),
+        ("date_format", "%Y %m %d %H %M %S", None),
+    ],
+)
+def test_parse_date_all_fields(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
 year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0,0.0,10.
 2001,01,5,10,0,00,1.,11.
 """
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        warn,
+        "use 'date_format' instead",
         StringIO(data),
         header=0,
-        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
+        **{key: value},
     )
     expected = DataFrame(
         [
@@ -1499,18 +1569,31 @@ year,month,day,hour,minute,second,a,b
 
 
 @xfail_pyarrow
-def test_datetime_fractional_seconds(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        (
+            "date_parser",
+            lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S.%f"),
+            FutureWarning,
+        ),
+        ("date_format", "%Y %m %d %H %M %S.%f", None),
+    ],
+)
+def test_datetime_fractional_seconds(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
 year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0.123456,0.0,10.
 2001,01,5,10,0,0.500000,1.,11.
 """
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        warn,
+        "use 'date_format' instead",
         StringIO(data),
         header=0,
-        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S.%f"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
+        **{key: value},
     )
     expected = DataFrame(
         [
@@ -1530,7 +1613,9 @@ def test_generic(all_parsers):
     def parse_function(yy, mm):
         return [date(year=int(y), month=int(m), day=1) for y, m in zip(yy, mm)]
 
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
         StringIO(data),
         header=0,
         parse_dates={"ym": [0, 1]},
@@ -1563,7 +1648,9 @@ date,time,prn,rxstatus
             arr = [datetime.combine(d, t) for d, t in zip(dt, time)]
         return np.array(arr, dtype="datetime64[s]")
 
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "use 'date_format' instead",
         StringIO(data),
         date_parser=date_parser,
         parse_dates={"datetime": ["date", "time"]},
@@ -1721,7 +1808,8 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     with pytest.raises(
         ValueError,
         match=(
-            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y", at position 1$'
+            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y", '
+            r"at position 1. You might want to try:"
         ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
@@ -1989,7 +2077,14 @@ def test_infer_first_column_as_index(all_parsers):
 
 
 @skip_pyarrow
-def test_replace_nans_before_parsing_dates(all_parsers):
+@pytest.mark.parametrize(
+    ("key", "value", "warn"),
+    [
+        ("date_parser", lambda x: pd.to_datetime(x, format="%Y-%m-%d"), FutureWarning),
+        ("date_format", "%Y-%m-%d", None),
+    ],
+)
+def test_replace_nans_before_parsing_dates(all_parsers, key, value, warn):
     # GH#26203
     parser = all_parsers
     data = """Test
@@ -1999,11 +2094,13 @@ def test_replace_nans_before_parsing_dates(all_parsers):
 #
 2017-09-09
 """
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        warn,
+        "use 'date_format' instead",
         StringIO(data),
         na_values={"Test": ["#", "0"]},
         parse_dates=["Test"],
-        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+        **{key: value},
     )
     expected = DataFrame(
         {
@@ -2057,4 +2154,67 @@ def test_parse_dot_separated_dates(all_parsers):
         warn, msg, StringIO(data), parse_dates=True, index_col=0
     )
     expected = DataFrame({"b": [1, 2]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_dict_format(all_parsers):
+    # GH#51240
+    parser = all_parsers
+    data = """a,b
+2019-12-31,31-12-2019
+2020-12-31,31-12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data),
+        date_format={"a": "%Y-%m-%d", "b": "%d-%m-%Y"},
+        parse_dates=["a", "b"],
+    )
+    expected = DataFrame(
+        {
+            "a": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+            "b": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
+)
+def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
+    # GH#51240
+    parser = all_parsers
+    data = """a,b
+31-,12-2019
+31-,12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
+    )
+    expected = DataFrame(
+        {
+            key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_parse_dates_dict_format_index(all_parsers):
+    # GH#51240
+    parser = all_parsers
+    data = """a,b
+2019-12-31,31-12-2019
+2020-12-31,31-12-2020"""
+
+    result = parser.read_csv(
+        StringIO(data), date_format={"a": "%Y-%m-%d"}, parse_dates=True, index_col=0
+    )
+    expected = DataFrame(
+        {
+            "b": ["31-12-2019", "31-12-2020"],
+        },
+        index=Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")], name="a"),
+    )
     tm.assert_frame_equal(result, expected)

@@ -217,18 +217,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
-            data = self._obj_with_exclusions
-            result = self._aggregate_with_numba(
-                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
+            return self._aggregate_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self.grouper.result_index
-            result = self.obj._constructor(result.ravel(), index=index, name=data.name)
-            if not self.as_index:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
-            return result
 
         relabeling = func is None
         columns = None
@@ -243,7 +235,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func)
+            ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
             if relabeling:
                 # columns is not narrowed by mypy from relabeling flag
                 assert columns is not None  # for mypy
@@ -258,27 +250,47 @@ class SeriesGroupBy(GroupBy[Series]):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
+            if self.ngroups == 0:
+                # e.g. test_evaluate_with_empty_groups without any groups to
+                #  iterate over, we have no output on which to do dtype
+                #  inference. We default to using the existing dtype.
+                #  xref GH#51445
+                obj = self._obj_with_exclusions
+                return self.obj._constructor(
+                    [],
+                    name=self.obj.name,
+                    index=self.grouper.result_index,
+                    dtype=obj.dtype,
+                )
+
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
             except KeyError:
-                # TODO: KeyError is raised in _python_agg_general,
-                #  see test_groupby.test_basic
+                # KeyError raised in test_groupby.test_basic is bc the func does
+                #  a dictionary lookup on group.name, but group name is not
+                #  pinned in _python_agg_general, only in _aggregate_named
                 result = self._aggregate_named(func, *args, **kwargs)
 
                 # result is a dict whose keys are the elements of result_index
-                index = self.grouper.result_index
-                result = Series(result, index=index)
-                if not self.as_index:
-                    result = self._insert_inaxis_grouper(result)
-                    result.index = default_index(len(result))
+                result = Series(result, index=self.grouper.result_index)
+                result = self._wrap_aggregated_output(result)
                 return result
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg) -> DataFrame:
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = com.is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        obj = self._obj_with_exclusions
+        result = self.grouper.agg_series(obj, f)
+        res = obj._constructor(result, name=obj.name)
+        return self._wrap_aggregated_output(res)
+
+    def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
             if self.as_index:
                 # GH 15931
@@ -301,9 +313,8 @@ class SeriesGroupBy(GroupBy[Series]):
             # Combine results using the index, need to adjust index after
             # if as_index=False (GH#50724)
             for idx, (name, func) in enumerate(arg):
-
                 key = base.OutputKey(label=name, position=idx)
-                results[key] = self.aggregate(func)
+                results[key] = self.aggregate(func, *args, **kwargs)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
@@ -319,18 +330,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         output = self._reindex_output(output)
         return output
-
-    def _indexed_output_to_ndframe(
-        self, output: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series:
-        """
-        Wrap the dict result of a GroupBy aggregation into a Series.
-        """
-        assert len(output) == 1
-        values = next(iter(output.values()))
-        result = self.obj._constructor(values)
-        result.name = self.obj.name
-        return result
 
     def _wrap_applied_output(
         self,
@@ -565,7 +564,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # Interpret np.nan as False.
         def true_and_notna(x) -> bool:
             b = wrapper(x)
-            return b and notna(b)
+            return notna(b) and b
 
         try:
             indices = [
@@ -691,7 +690,6 @@ class SeriesGroupBy(GroupBy[Series]):
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
         else:
-
             # lab is a Categorical with categories an IntervalIndex
             cat_ser = cut(Series(val), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
@@ -946,7 +944,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
@@ -1166,7 +1164,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
 
 class DataFrameGroupBy(GroupBy[DataFrame]):
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -1262,14 +1259,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-
         if maybe_use_numba(engine):
-            data = self._obj_with_exclusions
-            result = self._aggregate_with_numba(
-                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            return self._aggregate_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self.grouper.result_index
-            return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
@@ -1278,14 +1271,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result
-        elif relabeling and result is not None:
+        elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
+            result = cast(DataFrame, result)
             result = result.iloc[:, order]
-            result.columns = columns
+            result = cast(DataFrame, result)
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[List[str]]", variable has type
+            # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
+            # Index, Series], Sequence[Any]]")
+            result.columns = columns  # type: ignore[assignment]
 
         if result is None:
-
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
@@ -1302,7 +1300,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
 
             else:
-
                 # try to treat as if we are passing a list
                 gba = GroupByApply(self, [func], args=(), kwargs={})
                 try:
@@ -1311,22 +1308,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 except ValueError as err:
                     if "No objects to concatenate" not in str(err):
                         raise
+                    # _aggregate_frame can fail with e.g. func=Series.mode,
+                    # where it expects 1D values but would be getting 2D values
+                    # In other tests, using aggregate_frame instead of GroupByApply
+                    #  would give correct values but incorrect dtypes
+                    #  object vs float64 in test_cython_agg_empty_buckets
+                    #  float64 vs int64 in test_category_order_apply
                     result = self._aggregate_frame(func)
 
                 else:
-                    sobj = self._selected_obj
-
-                    if isinstance(sobj, Series):
-                        # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = self._obj_with_exclusions.columns.copy()
-                    else:
-                        # Retain our column names
-                        result.columns._set_names(
-                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
-                        )
-                        # select everything except for the last level, which is the one
-                        # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.droplevel(-1)
+                    # GH#32040, GH#35246
+                    # e.g. test_groupby_as_index_select_column_sum_empty_df
+                    result = cast(DataFrame, result)
+                    result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
@@ -1335,6 +1329,31 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return result
 
     agg = aggregate
+
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = com.is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        # iterate through "columns" ex exclusions to populate output dict
+        output: dict[base.OutputKey, ArrayLike] = {}
+
+        if self.ngroups == 0:
+            # e.g. test_evaluate_with_empty_groups different path gets different
+            #  result dtype in empty case.
+            return self._python_apply_general(f, self._selected_obj, is_agg=True)
+
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
+            result = self.grouper.agg_series(obj, f)
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
+
+        if not output:
+            # e.g. test_margins_no_values_no_cols
+            return self._python_apply_general(f, self._selected_obj)
+
+        res = self._indexed_output_to_ndframe(output)
+        return self._wrap_aggregated_output(res)
 
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
@@ -1347,6 +1366,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             for label, values in obj.items():
                 if label in self.exclusions:
+                    # Note: if we tried to just iterate over _obj_with_exclusions,
+                    #  we would break test_wrap_agg_out by yielding a column
+                    #  that is skipped here but not dropped from obj_with_exclusions
                     continue
 
                 yield values
@@ -1358,17 +1380,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
 
         result: dict[Hashable, NDFrame | np.ndarray] = {}
-        if self.axis == 0:
-            # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self.grouper.get_iterator(obj, self.axis):
-                fres = func(data, *args, **kwargs)
-                result[name] = fres
-        else:
-            # we get here in a number of test_multilevel tests
-            for name in self.indices:
-                grp_df = self.get_group(name, obj=obj)
-                fres = func(grp_df, *args, **kwargs)
-                result[name] = fres
+        for name, grp_df in self.grouper.get_iterator(obj, self.axis):
+            fres = func(grp_df, *args, **kwargs)
+            result[name] = fres
 
         result_index = self.grouper.result_index
         other_ax = obj.axes[1 - self.axis]
@@ -1378,22 +1392,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return out
 
-    def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
-        # only for axis==0
-        # tests that get here with non-unique cols:
-        #  test_resample_with_timedelta_yields_no_empty_groups,
-        #  test_resample_apply_product
-
-        obj = self._obj_with_exclusions
-        result: dict[int, NDFrame] = {}
-
-        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
-            result[i] = sgb.aggregate(func, *args, **kwargs)
-
-        res_df = self.obj._constructor(result)
-        res_df.columns = obj.columns
-        return res_df
-
     def _wrap_applied_output(
         self,
         data: DataFrame,
@@ -1401,7 +1399,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
-
         if len(values) == 0:
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
@@ -1414,6 +1411,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return result
 
         # GH12824
+        # using values[0] here breaks test_groupby_apply_none_first
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
@@ -1462,7 +1460,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
-        key_index,
+        key_index: Index | None,
         is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
@@ -1535,8 +1533,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr.set_axis(1, mgr.axes[1])
 
         res_df = self.obj._constructor(res_mgr)
-        if self.axis == 1:
-            res_df = res_df.T
+        res_df = self._maybe_transpose_result(res_df)
         return res_df
 
     def _transform_general(self, func, *args, **kwargs):
@@ -1558,9 +1555,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             object.__setattr__(group, "name", name)
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
-            except TypeError:
-                return self._transform_item_by_item(obj, fast_path)
             except ValueError as err:
+                # e.g. test_transform_with_non_scalar_group
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
             if group.size > 0:
@@ -1693,17 +1689,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return path, res
 
-    def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
-        # iterate through columns, see test_transform_exclude_nuisance
-        #  gets here with non-unique columns
-        output = {}
-        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
-            output[i] = sgb.transform(wrapper)
-
-        result = self.obj._constructor(output, index=obj.index)
-        result.columns = obj.columns
-        return result
-
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Filter elements from groups that don't satisfy a criterion.
@@ -1762,7 +1747,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # interpret the result of the filter
             if is_bool(res) or (is_scalar(res) and isna(res)):
-                if res and notna(res):
+                if notna(res) and res:
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -1865,7 +1850,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         return self.obj._constructor(mgr)
 
-    def _iterate_column_groupbys(self, obj: DataFrame | Series):
+    def _iterate_column_groupbys(self, obj: DataFrame):
         for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
                 obj.iloc[:, i],
@@ -1875,7 +1860,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
             )
 
-    def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: DataFrame) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         columns = obj.columns
@@ -1936,7 +1921,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if self.axis != 0:
             # see test_groupby_crash_on_nunique
-            return self._python_agg_general(lambda sgb: sgb.nunique(dropna))
+            return self._python_apply_general(
+                lambda sgb: sgb.nunique(dropna), self._obj_with_exclusions, is_agg=True
+            )
 
         obj = self._obj_with_exclusions
         results = self._apply_to_column_groupbys(
@@ -2409,7 +2396,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = DataFrame([('falcon', 'bird', 389.0),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan),
@@ -2438,15 +2425,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 2    lion  mammal       80.5
           1  monkey  mammal        NaN
 
-        The order of the specified indices influnces the order in the result.
+        The order of the specified indices influences the order in the result.
         Here, the order is swapped from the previous example.
 
-        >>> gb.take([0, 1])
+        >>> gb.take([1, 0])
                name   class  max_speed
-        1 4  falcon    bird      389.0
-          3  parrot    bird       24.0
-        2 2    lion  mammal       80.5
-          1  monkey  mammal        NaN
+        1 3  parrot    bird       24.0
+          4  falcon    bird      389.0
+        2 1  monkey  mammal        NaN
+          2    lion  mammal       80.5
 
         Take elements at indices 1 and 2 along the axis 1 (column selection).
 

@@ -80,7 +80,6 @@ class TestBusinessDay:
         ids=lambda x: type(x),
     )
     def test_with_offset_index(self, td, dt, offset):
-
         dti = DatetimeIndex([dt])
         expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
 

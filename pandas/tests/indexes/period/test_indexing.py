@@ -219,7 +219,6 @@ class TestGetItem:
             "2013/02/01 09:00",
         ]
         for val in values:
-
             # GH7116
             # these show deprecations as we are trying
             # to slice with non-integer indexers
@@ -570,7 +569,7 @@ class TestWhere:
         mask = notna(i2)
 
         result = pi.where(mask, i2.asi8)
-        expected = pd.Index([NaT.value, NaT.value] + tail, dtype=object)
+        expected = pd.Index([NaT._value, NaT._value] + tail, dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 

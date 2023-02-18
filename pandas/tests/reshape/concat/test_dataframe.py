@@ -13,7 +13,6 @@ import pandas._testing as tm
 
 class TestDataFrameConcat:
     def test_concat_multiple_frames_dtypes(self):
-
         # GH#2759
         df1 = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
         df2 = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
