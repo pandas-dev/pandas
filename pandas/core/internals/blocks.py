@@ -1397,6 +1397,22 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
+    def round(self, decimals) -> Block:
+        """
+        Rounds the values.
+        If the block is not of an integer or float dtype, nothing happens
+
+        Parameters
+        ----------
+        decimals: Number of decimal places to round to.
+            Caller is responsible for validating this
+        """
+        # TODO: EAs?
+        # Maybe fallback to numpy
+        if not self.is_numeric or self.is_bool:
+            return self.copy(deep=None)
+        return new_block_2d(self.values.round(decimals), placement=self._mgr_locs)
+
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
 
