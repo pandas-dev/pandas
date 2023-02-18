@@ -7989,7 +7989,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
-        def clip_values(arr, lower=lower, upper=upper):
+        def blk_func(arr, lower=lower, upper=upper):
             if upper is not None:
                 arr[arr > upper] = upper
             if lower is not None:
@@ -7997,8 +7997,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return arr
 
         result = self if inplace else self.copy()
-        result_mgr = result._mgr.apply(clip_values)
-        result = self._constructor(result_mgr)
+        result_mgr = result._mgr.apply(blk_func)
+        result = self._constructor(result_mgr).__finalize__(self)
         if inplace:
             return self._update_inplace(result)
         else:
