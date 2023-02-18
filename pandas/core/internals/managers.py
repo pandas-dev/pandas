@@ -897,7 +897,7 @@ class BaseBlockManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
@@ -905,7 +905,7 @@ class BaseBlockManager(DataManager):
         """
         Take items along any axis.
 
-        indexer : np.ndarray or slice
+        indexer : np.ndarray[np.intp]
         axis : int, default 1
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
@@ -917,12 +917,8 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
-        # We have 6 tests that get here with a slice
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype=np.intp)
-        )
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
         n = self.shape[axis]
         if convert_indices:
