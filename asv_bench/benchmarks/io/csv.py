@@ -12,6 +12,7 @@ from pandas import (
     DataFrame,
     concat,
     date_range,
+    period_range,
     read_csv,
     to_datetime,
 )
@@ -95,6 +96,40 @@ class ToCSVDatetimeIndex(BaseIO):
         self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
 
     def time_frame_date_no_format_index(self):
+        self.data.to_csv(self.fname)
+
+
+class ToCSVPeriod(BaseIO):
+    fname = "__test__.csv"
+
+    params = ([1000, 10000], ["D", "H"])
+    param_names = ["obs", "fq"]
+
+    def setup(self, obs, fq):
+        rng = period_range(start="2000-01-01", periods=obs, freq=fq)
+        self.data = DataFrame(rng)
+
+    def time_frame_period_formatting_default(self, obs, fq):
+        self.data.to_csv(self.fname)
+
+    def time_frame_period_formatting_custom(self, obs, fq):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
+
+
+class ToCSVPeriodIndex(BaseIO):
+    fname = "__test__.csv"
+
+    params = ([1000, 10000], ["D", "H"])
+    param_names = ["obs", "fq"]
+
+    def setup(self, obs, fq):
+        rng = period_range(start="2000-01-01", periods=obs, freq=fq)
+        self.data = DataFrame({"a": 1}, index=rng)
+
+    def time_frame_period_formatting_index(self, obs, fq):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
+
+    def time_frame_period_no_format_index(self, obs, fq):
         self.data.to_csv(self.fname)
 
 
