@@ -503,7 +503,7 @@ def read_parquet(
             ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
             pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
-            .. versionadded:: 2.0.0
+        .. versionadded:: 2.0.0
 
     **kwargs
         Any additional kwargs are passed to the engine.
