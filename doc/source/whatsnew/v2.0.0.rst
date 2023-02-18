@@ -814,7 +814,7 @@ Other API changes
 - The levels of the index of the :class:`Series` returned from ``Series.sparse.from_coo`` now always have dtype ``int32``. Previously they had dtype ``int64`` (:issue:`50926`)
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 - The methods :meth:`Series.round`, :meth:`DataFrame.__invert__`, :meth:`Series.__invert__`, :meth:`DataFrame.swapaxes`, :meth:`DataFrame.first`, :meth:`DataFrame.last`, :meth:`Series.first`, :meth:`Series.last` and :meth:`DataFrame.align` will now always return new objects (:issue:`51032`)
-- :class:`DataFrameGroupBy` aggregations (e.g. "sum") with object-dtype columns no longer infer non-object dtypes for their results, explicitly call ``result.infer_objects(copy=False)`` on the result to obtain the old behavior (:issue:`51205`)
+- :class:`DataFrame` and :class:`DataFrameGroupBy` aggregations (e.g. "sum") with object-dtype columns no longer infer non-object dtypes for their results, explicitly call ``result.infer_objects(copy=False)`` on the result to obtain the old behavior (:issue:`51205`, :issue:`49603`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 -
 
@@ -1226,10 +1226,11 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.add` cannot apply ufunc when inputs contain mixed DataFrame type and Series type (:issue:`39853`)
 - Bug in arithmetic operations on :class:`Series` not propagating mask when combining masked dtypes and numpy dtypes (:issue:`45810`, :issue:`42630`)
-- Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 - Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 - Bug in :meth:`Series.__add__` casting to object for list and masked :class:`Series` (:issue:`22962`)
+- Bug in :meth:`~arrays.ArrowExtensionArray.mode` where ``dropna=False`` was not respected when there was ``NA`` values (:issue:`50982`)
 - Bug in :meth:`DataFrame.query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
+- Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with tz-aware data containing ``pd.NaT`` and ``axis=1`` would return incorrect results (:issue:`51242`)
 
 Conversion
 ^^^^^^^^^^
