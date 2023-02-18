@@ -1080,34 +1080,13 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
-        def func(df):
-            return df.idxmin(axis=axis, skipna=skipna)
-
-        func.__name__ = "idxmin"
-        return self._idxmin_idxmax(func)
+        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
+        return result.astype(self._obj_with_exclusions.index.dtype)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series | DataFrame:
-        def func(df):
-            return df.idxmax(axis=axis, skipna=skipna)
-
-        func.__name__ = "idxmax"
-        return self._idxmin_idxmax(func)
-
-    def _idxmin_idxmax(self, func: Callable) -> DataFrame | Series:
-        result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
-
-        if len(result) == 0:
-            return self.obj._constructor(
-                index=self.grouper.result_index,
-                name=self._obj_with_exclusions.name,
-                dtype=self._obj_with_exclusions.index.dtype,
-            )
-
-        else:
-            return self._wrap_applied_output(
-                self._obj_with_exclusions, result, not_indexed_same=True
-            )
+        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
+        return result.astype(self._obj_with_exclusions.index.dtype)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2037,8 +2016,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def func(df):
             return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
-        func.__name__ = "idxmax"
-        return self._idxmin_idxmax(func)
+        result = self._python_apply_general(
+            func, self._obj_with_exclusions, not_indexed_same=True
+        )
+        return result.astype(self._obj_with_exclusions.index.dtype, copy=False)
 
     def idxmin(
         self,
@@ -2120,24 +2101,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def func(df):
             return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
-        func.__name__ = "idxmin"
-        return self._idxmin_idxmax(func)
+        result = self._python_apply_general(
+            func, self._obj_with_exclusions, not_indexed_same=True
+        )
+        return result.astype(self._obj_with_exclusions.index.dtype, copy=False)
 
     boxplot = boxplot_frame_groupby
-
-    def _idxmin_idxmax(self, func: Callable) -> DataFrame:
-        result, _ = self.grouper.apply(func, self._obj_with_exclusions, self.axis)
-
-        if len(result) == 0:
-            return self.obj._constructor(
-                index=self.grouper.result_index,
-                columns=self._obj_with_exclusions.columns,
-                dtype=self._obj_with_exclusions.index.dtype,
-            )
-        else:
-            return self._wrap_applied_output(
-                self._obj_with_exclusions, result, not_indexed_same=True
-            )
 
     def value_counts(
         self,
