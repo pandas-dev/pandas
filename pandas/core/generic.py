@@ -7996,7 +7996,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 arr[arr < lower] = lower
             return arr
 
-        result = self if inplace else self.copy()
+        if inplace and not using_copy_on_write():
+            result = self
+        else:
+            result = self.copy()
         result_mgr = result._mgr.apply(blk_func)
         result = self._constructor(result_mgr).__finalize__(self)
         if inplace:
