@@ -2102,7 +2102,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def func(df):
             return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
-        func.__name__ = "idxmax"
+        func.__name__ = "idxmin"
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
