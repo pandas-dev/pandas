@@ -667,9 +667,6 @@ pd_dt_ext = Extension(
     depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
     sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
     include_dirs=[
-        "pandas/_libs/src/ujson/python",
-        "pandas/_libs/src/ujson/lib",
-        "pandas/_libs/src/datetime",
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),
