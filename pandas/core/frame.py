@@ -213,6 +213,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.methods import selectn
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -7175,7 +7176,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
         """
-        return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
     def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
@@ -7273,9 +7274,7 @@ class DataFrame(NDFrame, OpsMixin):
         Anguilla       11300  311      AI
         Nauru         337000  182      NR
         """
-        return algorithms.SelectNFrame(
-            self, n=n, keep=keep, columns=columns
-        ).nsmallest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
     @doc(
         Series.swaplevel,
