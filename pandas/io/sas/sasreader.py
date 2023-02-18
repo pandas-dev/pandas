@@ -104,7 +104,7 @@ def read_sas(
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
-        ``file://localhost/path/to/table.sas``.
+        ``file://localhost/path/to/table.sas7bdat``.
     format : str {{'xport', 'sas7bdat'}} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
