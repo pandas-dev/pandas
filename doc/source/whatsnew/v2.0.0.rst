@@ -1115,6 +1115,7 @@ Performance improvements
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :func:`to_datetime` when parsing strings with timezone offsets (:issue:`50107`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
+- Performance improvement in :meth:`DataFrame.clip` and :meth:`Series.clip` (:issue:`51472`)
 - Performance improvement for :meth:`Series.replace` with categorical dtype (:issue:`49404`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 - Performance improvement for indexing operations with nullable and arrow dtypes (:issue:`49420`, :issue:`51316`)
