@@ -10,6 +10,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include "date_conversions.h"
 #include <../../../tslibs/src/datetime/np_datetime.h>
+#include <../../../tslibs/src/datetime/pd_datetime.h>
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
 
 /*

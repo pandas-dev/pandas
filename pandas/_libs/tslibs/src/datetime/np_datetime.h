@@ -53,9 +53,6 @@ PyObject *extract_utc_offset(PyObject *obj);
 int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out);
 
-npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
-                                            const npy_datetimestruct *dts);
-
 void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
                                        npy_datetimestruct *result);
 

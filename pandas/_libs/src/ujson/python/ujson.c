@@ -40,6 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #include "numpy/arrayobject.h"
+#include <../../../tslibs/src/datetime/pd_datetime.h>
 
 /* objToJSON */
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -447,5 +448,6 @@ PyMODINIT_FUNC PyInit_json(void) {
     }
     */
 
+    PandasDateTime_IMPORT;
     return module;
 }
