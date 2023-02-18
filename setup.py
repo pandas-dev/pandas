@@ -133,6 +133,7 @@ class CleanCommand(Command):
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
+            pjoin(tsbase, "datetime", "pd_datetime.c"),
         ]
 
         for root, dirs, files in os.walk("pandas"):
@@ -656,6 +657,28 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
+
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# pd_datetime
+pd_dt_ext = Extension(
+    "pandas._libs.tslibs.src.datetime.pd_datetime",
+    depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
+    sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
+    include_dirs=[
+        "pandas/_libs/src/ujson/python",
+        "pandas/_libs/src/ujson/lib",
+        "pandas/_libs/src/datetime",
+        numpy.get_include(),
+    ],
+    extra_compile_args=(extra_compile_args),
+    extra_link_args=extra_link_args,
+    define_macros=macros,
+)
+
+
+extensions.append(pd_dt_ext)
 
 # ----------------------------------------------------------------------
 
