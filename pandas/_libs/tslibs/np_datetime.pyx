@@ -56,7 +56,6 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 const char *format, int format_len,
                                 FormatRequirement exact)
 
-
 # ----------------------------------------------------------------------
 # numpy object inspection
 

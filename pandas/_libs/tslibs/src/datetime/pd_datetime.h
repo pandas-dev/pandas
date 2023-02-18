@@ -33,10 +33,9 @@ extern "C" {
 
   #define PandasDateTime_IMPORT \
     PandasDateTimeAPI = (PandasDateTime_CAPI *)PyCapsule_Import(PandasDateTime_CAPSULE_NAME, 0)
-#endif /* !define(_PANDAS_DATETIME_IMPL) */
+#endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* !defined(PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H) */

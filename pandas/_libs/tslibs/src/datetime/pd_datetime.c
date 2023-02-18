@@ -14,6 +14,8 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
+#define _PANDAS_DATETIME_IMPL
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
