@@ -331,6 +331,26 @@ To automatically fix formatting errors on each commit you make, you can
 set up pre-commit yourself. First, create a Python :ref:`environment
 <contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
 
+.. _contributing.update-dev:
+
+Updating the development environment
+------------------------------------
+
+After updating your branch to merge in main from upstream, you may need to update
+your development environment to reflect any changes to the various packages that
+are used during development.
+
+If using :ref:`mamba <contributing.mamba>`, do::
+
+    mamba deactivate
+    mamba env update -f environment.yml
+    mamba activate pandas-dev
+
+If using :ref:`pip <contributing.pip>` , do::
+
+    # activate the virtual environment based on your platform
+    pythom -m pip install --upgrade -r requirements-dev.txt
+
 Tips for a successful pull request
 ==================================
 

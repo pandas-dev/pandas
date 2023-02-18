@@ -324,39 +324,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestGetitemTests(base.BaseGetitemTests):
-    def test_getitem_scalar(self, data):
-        # In the base class we expect data.dtype.type; but this (intentionally)
-        #  returns Python scalars or pd.NA
-        pa_type = data._data.type
-        if pa.types.is_integer(pa_type):
-            exp_type = int
-        elif pa.types.is_floating(pa_type):
-            exp_type = float
-        elif pa.types.is_string(pa_type):
-            exp_type = str
-        elif pa.types.is_binary(pa_type):
-            exp_type = bytes
-        elif pa.types.is_boolean(pa_type):
-            exp_type = bool
-        elif pa.types.is_duration(pa_type):
-            exp_type = timedelta
-        elif pa.types.is_timestamp(pa_type):
-            if pa_type.unit == "ns":
-                exp_type = pd.Timestamp
-            else:
-                exp_type = datetime
-        elif pa.types.is_date(pa_type):
-            exp_type = date
-        elif pa.types.is_time(pa_type):
-            exp_type = time
-        else:
-            raise NotImplementedError(data.dtype)
-
-        result = data[0]
-        assert isinstance(result, exp_type), type(result)
-
-        result = pd.Series(data)[0]
-        assert isinstance(result, exp_type), type(result)
+    pass
 
 
 class TestBaseAccumulateTests(base.BaseAccumulateTests):
@@ -1045,6 +1013,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
+        elif opname in ["__add__", "__radd__"] and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            exc = None
         elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             exc = pa.ArrowNotImplementedError
         else:
@@ -1219,9 +1191,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return
 
         if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_binary(pa_dtype)
-            or pa.types.is_string(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
+            pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1519,6 +1489,16 @@ def test_to_numpy_with_defaults(data):
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_int_with_na():
+    # GH51227: ensure to_numpy does not convert int to float
+    data = [1, None]
+    arr = pd.array(data, dtype="int64[pyarrow]")
+    result = arr.to_numpy()
+    expected = np.array([1, pd.NA], dtype=object)
+    assert isinstance(result[0], int)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_setitem_null_slice(data):
     # GH50248
     orig = data.copy()
@@ -1783,7 +1763,7 @@ def test_str_get(i, exp):
 
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
-    raises=AttributeError,
+    raises=NotImplementedError,
 )
 def test_str_join():
     ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
