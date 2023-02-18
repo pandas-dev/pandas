@@ -3816,6 +3816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def take(self: NDFrameT, indices, axis: Axis = 0, **kwargs) -> NDFrameT:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3902,6 +3903,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
+        elif self.ndim == 1:
+            # TODO: be consistent here for DataFrame vs Series
+            raise TypeError(
+                f"{type(self).__name__}.take requires a sequence of integers, "
+                "not slice."
+            )
 
         new_data = self._mgr.take(
             indices,
@@ -3910,17 +3917,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
+    @final
     def _take_with_is_copy(self: NDFrameT, indices, axis: Axis = 0) -> NDFrameT:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
         for the SettingWithCopyWarning).
 
+        For Series this does the same as the public take (it never sets `_is_copy`).
+
         See the docstring of `take` for full explanation of the parameters.
         """
         result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
-        if not result._get_axis(axis).equals(self._get_axis(axis)):
+        if self.ndim == 2 and not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
         return result
 
