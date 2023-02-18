@@ -460,12 +460,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
-        pa_type = self._data.type
+        pa_type = self._pa_array.type
         if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
             operator.add,
             roperator.radd,
         ]:
-            length = self._data.length()
+            length = self._pa_array.length()
 
             seps: list[str] | list[bytes]
             if pa.types.is_string(pa_type):
@@ -476,11 +476,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             if is_scalar(other):
                 other = [other] * length
             elif isinstance(other, type(self)):
-                other = other._data
+                other = other._pa_array
             if op is operator.add:
-                result = pc.binary_join_element_wise(self._data, other, seps)
+                result = pc.binary_join_element_wise(self._pa_array, other, seps)
             else:
-                result = pc.binary_join_element_wise(other, self._data, seps)
+                result = pc.binary_join_element_wise(other, self._pa_array, seps)
             return type(self)(result)
 
         pc_func = arrow_funcs[op.__name__]
