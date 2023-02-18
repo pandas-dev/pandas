@@ -219,6 +219,7 @@ class ArrowDtype(StorageExtensionDtype):
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
         return cls(pa_dtype)
 
+    # TODO(arrow#33642): This can be removed once supported by pyarrow
     @classmethod
     def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
         """
@@ -234,15 +235,12 @@ class ArrowDtype(StorageExtensionDtype):
         tail = tail[:-1]
 
         if head == "timestamp":
-            if "," not in tail:
-                tz = None
-                unit = tail
-            else:
-                unit, tz = tail.split(",", 1)
-                unit = unit.strip()
-                tz = tz.strip()
-                if tz.startswith("tz="):
-                    tz = tz[3:]
+            assert "," in tail  # otherwise type_for_alias should work
+            unit, tz = tail.split(",", 1)
+            unit = unit.strip()
+            tz = tz.strip()
+            if tz.startswith("tz="):
+                tz = tz[3:]
 
             pa_type = pa.timestamp(unit, tz=tz)
             dtype = cls(pa_type)
