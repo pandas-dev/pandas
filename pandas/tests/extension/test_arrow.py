@@ -1013,6 +1013,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
+        elif opname in ["__add__", "__radd__"] and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            exc = None
         elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             exc = pa.ArrowNotImplementedError
         else:
@@ -1187,9 +1191,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return
 
         if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_binary(pa_dtype)
-            or pa.types.is_string(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
+            pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1339,35 +1341,28 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
-    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
-        pa.types.is_boolean(pa_dtype)
-        and "multi_mode" in request.node.nodeid
-        and pa_version_under9p0
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="https://issues.apache.org/jira/browse/ARROW-17096",
-            )
-        )
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    result = ser.mode(dropna=dropna)
+    result = ser.mode(dropna=True)
     expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_dropna_false_mode_na(data):
+    # GH 50982
+    more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
+    result = more_nans.mode(dropna=False)
+    expected = pd.Series([None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
 
