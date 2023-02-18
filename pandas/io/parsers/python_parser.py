@@ -29,7 +29,6 @@ from pandas.errors import (
     ParserError,
 )
 
-from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.common import (
@@ -1342,12 +1341,10 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     ------
     ValueError : 'skipfooter' was not a non-negative integer.
     """
-    if not is_integer(skipfooter):
+    if not isinstance(skipfooter, int):
         raise ValueError("skipfooter must be an integer")
 
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    # error: Incompatible return value type (got "Union[int, integer[Any]]",
-    # expected "int")
-    return skipfooter  # type: ignore[return-value]
+    return skipfooter

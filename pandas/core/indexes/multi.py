@@ -2699,6 +2699,7 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
+            loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
@@ -2710,10 +2711,7 @@ class MultiIndex(Index):
                     # non-comparable level, e.g. test_groupby_example
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
-                    # error: Incompatible types in assignment (expression has type
-                    # "Union[int, Any]", variable has type "Union[ndarray[Any,
-                    # dtype[signedinteger[Any]]], signedinteger[Any]]")
-                    loc -= 1  # type: ignore[assignment]
+                    loc -= 1
                 return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
@@ -2933,8 +2931,8 @@ class MultiIndex(Index):
         loc, mi = self._get_loc_level(key, level=level)
         if not drop_level:
             if lib.is_integer(loc):
-                # error: Slice index must be an integer or None
-                mi = self[loc : loc + 1]  # type: ignore[misc]
+                loc = cast(int, loc)
+                mi = self[loc : loc + 1]
             else:
                 mi = self[loc]
         return loc, mi

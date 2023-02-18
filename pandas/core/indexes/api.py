@@ -73,7 +73,7 @@ def get_objs_combined_axis(
     objs,
     intersect: bool = False,
     axis: Axis = 0,
-    sort: bool | np.bool_ = True,
+    sort: bool = True,
     copy: bool = False,
 ) -> Index:
     """
@@ -120,7 +120,7 @@ def _get_distinct_objs(objs: list[Index]) -> list[Index]:
 def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
-    sort: bool | np.bool_ = False,
+    sort: bool = False,
     copy: bool = False,
 ) -> Index:
     """

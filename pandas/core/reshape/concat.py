@@ -555,7 +555,7 @@ class _Concatenator:
             raise ValueError(
                 f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
-        self.sort = sort
+        self.sort = cast(bool, sort)
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity

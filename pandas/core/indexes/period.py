@@ -298,12 +298,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             raise raise_on_incompatible(self, other)
         elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
-            # error: Incompatible return value type (got "Union[int, integer[Any]]",
-            # expected "Union[int, ndarray[Any, dtype[signedinteger[_64Bit]]]]")
-            return other  # type: ignore[return-value]
+            assert isinstance(other, int)
+            return other
 
         # raise when input doesn't have freq
         raise raise_on_incompatible(self, None)
