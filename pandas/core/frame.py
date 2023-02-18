@@ -6981,9 +6981,10 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         The returned Series will have a MultiIndex with one level per input
-        column. By default, rows that contain any NA values are omitted from
-        the result. By default, the resulting Series will be in descending
-        order so that the first element is the most frequently-occurring row.
+        column but an Index (non-multi) for a single label. By default, rows
+        that contain any NA values are omitted from the result. By default,
+        the resulting Series will be in descending order so that the first
+        element is the most frequently-occurring row.
 
         Examples
         --------

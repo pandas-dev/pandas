@@ -1088,6 +1088,7 @@ Removal of prior version deprecations/changes
 - Arguments after ``expr`` in :meth:`DataFrame.eval` and :meth:`DataFrame.query` are keyword-only (:issue:`47587`)
 - Removed :meth:`Index._get_attributes_dict` (:issue:`50648`)
 - Removed :meth:`Series.__array_wrap__` (:issue:`50648`)
+- Changed behavior of :meth:`.DataFrame.value_counts` to return a :class:`Series` with :class:`MultiIndex` for any list-like(one element or not) but an :class:`Index` for a single label (:issue:`50829`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
