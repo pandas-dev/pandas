@@ -60,7 +60,6 @@ cdef extern from "src/datetime/np_datetime.h":
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
 
-
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) nogil
 
@@ -76,7 +75,7 @@ cdef extern from "src/datetime/pd_datetime.h":
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
 
-PandasDateTime_IMPORT    
+PandasDateTime_IMPORT
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 

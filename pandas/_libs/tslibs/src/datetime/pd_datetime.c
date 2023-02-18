@@ -194,8 +194,7 @@ static npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 }
 
 static void
-pandas_datetime_destructor(PyObject *op)
-{
+pandas_datetime_destructor(PyObject *op) {
   void *ptr = PyCapsule_GetPointer(op, PandasDateTime_CAPSULE_NAME);
   PyMem_Free(ptr);
 }
@@ -207,15 +206,14 @@ static PyMethodDef module_methods[] = {
 static struct PyModuleDef pandas_datetimemodule = {
   PyModuleDef_HEAD_INIT,
   .m_name = "_pandas_datetime",
-  
+
   .m_doc = "Internal module with datetime support for other extensions",
   .m_size = 01,
   .m_methods = module_methods
 };
 
 PyMODINIT_FUNC
-PyInit_pandas_datetime(void)
-{
+PyInit_pandas_datetime(void) {
   PyObject *module = PyModule_Create(&pandas_datetimemodule);
   if (module == NULL)
     return NULL;
@@ -228,8 +226,10 @@ PyInit_pandas_datetime(void)
     return NULL;
   }
   capi->npy_datetimestruct_to_datetime = npy_datetimestruct_to_datetime;
-  
-  PyObject *capsule = PyCapsule_New(capi, PandasDateTime_CAPSULE_NAME, pandas_datetime_destructor);
+
+  PyObject *capsule = PyCapsule_New(capi,
+                                    PandasDateTime_CAPSULE_NAME,
+                                    pandas_datetime_destructor);
   if (capsule == NULL) {
     PyMem_Free(capi);
     return NULL;
@@ -240,6 +240,6 @@ PyInit_pandas_datetime(void)
     // cpython doesn't PyMem_Free(capi) here - mistake or intentional?
     return NULL;
   }
-    
+
   return module;
 }
