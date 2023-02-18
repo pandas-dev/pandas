@@ -722,6 +722,18 @@ cdef datetime dateutil_parse(
                     f'Parsed string "{timestr}" gives an invalid tzoffset, '
                     "which must be between -timedelta(hours=24) and timedelta(hours=24)"
                 )
+        elif res.tzname is not None:
+            # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
+            # GH#18702
+            warnings.warn(
+                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
+                "in a future version this will raise. Instead pass the string "
+                "without the timezone, then use .tz_localize to convert to a "
+                "recognized timezone.",
+                FutureWarning,
+                stacklevel=find_stack_level()
+            )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
     return ret
