@@ -1398,10 +1398,11 @@ cdef class Seen:
             ret_val[0] = <curr_seen_t>self.curr_seen_val.int_t
         elif self.curr_seen is CurrSeen.float_t:
             ret_val[0] = <curr_seen_t>self.curr_seen_val.float_t
-        # Handle complex128_t separately cause we'd get a compile error
-        # since it can't safely cast to some of the specializations
-        if curr_seen_t is complex128_t:
-            ret_val[0] = <curr_seen_t>self.curr_seen_val.complex_t
+        elif self.curr_seen is CurrSeen.complex_t:
+            if curr_seen_t is complex128_t:
+                # Need to gate behind specialization since complex can't safely
+                # cast to other types throwing a compile error
+                ret_val[0] = <curr_seen_t>self.curr_seen_val.complex_t
 
     cdef void set_curr_val(self, curr_seen_t val):
         """

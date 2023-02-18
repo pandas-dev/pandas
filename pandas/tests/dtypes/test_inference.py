@@ -608,6 +608,20 @@ class TestInference:
         result, _ = lib.maybe_convert_numeric(arr, set(), False)
         assert result.dtype == np.float64
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.array([1 + 2j, 2 + 3j, 3 + 4j, 4 + 5j], dtype="O"),
+            np.array([1 + 2j, 2 + 3j, None, 4 + 5j], dtype="O"),
+            np.array([1 + 2j, 2, 3.14, np.complex128(np.nan)], dtype="O"),
+            np.array([2, 1 + 2j, 3.14, np.complex128(np.nan)], dtype="O"),
+        ],
+    )
+    def test_convert_complexes(self, arr):
+        result, _ = lib.maybe_convert_numeric(arr, set())
+        expected = arr.astype(np.complex128)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_scientific_no_exponent(self):
         # See PR 12215
         arr = np.array(["42E", "2E", "99e", "6e"], dtype="O")
