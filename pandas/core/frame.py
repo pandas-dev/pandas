@@ -231,6 +231,7 @@ if TYPE_CHECKING:
         ReadBuffer,
         Renamer,
         Scalar,
+        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -5008,7 +5009,7 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[DataFrame, NDFrameT]:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
