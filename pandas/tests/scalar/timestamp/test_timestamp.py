@@ -156,7 +156,7 @@ class TestTimestampProperties:
 
     def test_is_leap_year(self, tz_naive_fixture, request):
         tz = tz_naive_fixture
-        if not IS64 and tz is tzlocal():
+        if not IS64 and tz == tzlocal():
             request.node.add_marker(pytest.mark.filterwarnings("ignore::OverflowError"))
             request.node.add_marker(
                 pytest.mark.filterwarnings(
