@@ -20,18 +20,15 @@ from .pandas_vb_common import tm
 class Clip:
     params = [
         ["float64", "Float64", "float64[pyarrow]"],
-        [True, False],
     ]
-    param_names = ["dtype", "hasna"]
+    param_names = ["dtype"]
 
-    def setup(self, dtype, hasna):
+    def setup(self, dtype):
         data = np.random.randn(100_000, 10)
         df = DataFrame(data, dtype=dtype)
-        if hasna:
-            df.iloc[2, :] = None
         self.df = df
 
-    def time_clip(self, dtype, hasna):
+    def time_clip(self, dtype):
         self.df.clip(-1.0, 1.0)
 
 
