@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections import abc
 import csv
-from enum import Enum
 import sys
 from textwrap import fill
 from types import TracebackType
@@ -20,6 +19,7 @@ from typing import (
     Mapping,
     NamedTuple,
     Sequence,
+    TypedDict,
     overload,
 )
 import warnings
@@ -436,20 +436,30 @@ Examples
 )
 
 
-class _c_parser_defaults(Enum):
-    delim_whitespace = False
-    na_filter = True
-    low_memory = True
-    memory_map = False
-    float_precision = None
+class _C_Parser_Defaults(TypedDict):
+    delim_whitespace: Literal[False]
+    na_filter: Literal[True]
+    low_memory: Literal[True]
+    memory_map: Literal[False]
+    float_precision: None
 
 
-class _fwf_defaults(Enum):
-    colspecs = "infer"
-    infer_nrows = 100
-    widths = None
+_c_parser_defaults: _C_Parser_Defaults = {
+    "delim_whitespace": False,
+    "na_filter": True,
+    "low_memory": True,
+    "memory_map": False,
+    "float_precision": None,
+}
 
 
+class _Fwf_Defaults(TypedDict):
+    colspecs: Literal["infer"]
+    infer_nrows: Literal[100]
+    widths: None
+
+
+_fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 _pyarrow_unsupported = {
@@ -887,7 +897,7 @@ def read_csv(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory: bool = _c_parser_defaults["low_memory"].value,
+    low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
@@ -1216,7 +1226,7 @@ def read_table(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory: bool = _c_parser_defaults["low_memory"].value,
+    low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
@@ -1456,9 +1466,7 @@ class TextFileReader(abc.Iterator):
                 )
             options[argname] = value
 
-        for c_enum in _c_parser_defaults:
-            argname = c_enum.name
-            default = c_enum.value
+        for argname, default in _c_parser_defaults.items():
             if argname in kwds:
                 value = kwds[argname]
 
@@ -1475,8 +1483,8 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            for fwf_enum in _fwf_defaults:
-                options[argname] = kwds.get(fwf_enum.name, fwf_enum.value)
+            for argname, default in _fwf_defaults.items():
+                options[argname] = kwds.get(argname, default)
 
         return options
 
@@ -1568,7 +1576,7 @@ class TextFileReader(abc.Iterator):
 
         if "python" in engine:
             for arg in _python_unsupported:
-                if fallback_reason and result[arg] != _c_parser_defaults[arg].value:
+                if fallback_reason and result[arg] != _c_parser_defaults[arg]:
                     raise ValueError(
                         "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "
