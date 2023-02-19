@@ -663,7 +663,7 @@ extensions.append(ujson_ext)
 # ----------------------------------------------------------------------
 # pd_datetime
 pd_dt_ext = Extension(
-    "pandas._libs.tslibs.src.datetime.pd_datetime",
+    "pandas._libs.pandas_datetime",
     depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
     sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
     include_dirs=[

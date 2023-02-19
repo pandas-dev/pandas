@@ -449,5 +449,8 @@ PyMODINIT_FUNC PyInit_json(void) {
     */
 
     PandasDateTime_IMPORT;
+    if (PandasDateTimeAPI == NULL && PyErr_Occurred())
+      return NULL;
+    
     return module;
 }

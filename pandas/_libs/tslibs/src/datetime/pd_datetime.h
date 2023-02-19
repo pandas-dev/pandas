@@ -10,7 +10,6 @@ Distributed under the terms of the BSD Simplified License.
 #ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H
 #define PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H
 
-
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
@@ -25,7 +24,10 @@ extern "C" {
     npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT, const npy_datetimestruct *);
   } PandasDateTime_CAPI;
 
-  #define PandasDateTime_CAPSULE_NAME "pandas._libs.tslibs.src.datetime.pd_datetime_CAPI"
+  // Todo: the capsule name has to match an importable location? So can't
+  // provide full file path in current location given it is not a package
+  // see also setup.py
+  #define PandasDateTime_CAPSULE_NAME "pandas._libs.pandas_datetime"
 
   /* block used as part of public API */
 #ifndef _PANDAS_DATETIME_IMPL
