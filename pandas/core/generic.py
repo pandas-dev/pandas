@@ -4661,7 +4661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add prefix on
 
-             .. versionadded:: 2.0.0
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -4735,7 +4735,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add suffix on
 
-             .. versionadded:: 2.0.0
+            .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -7118,7 +7118,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. deprecated:: 2.0
 
-            {klass}.backfill is deprecated. Use {klass}.backfill instead.
+            {klass}.backfill is deprecated. Use {klass}.bfill instead.
 
         Returns
         -------
