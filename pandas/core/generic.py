@@ -3897,19 +3897,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         nv.validate_take((), kwargs)
 
-        return self._take(indices, axis)
-
-    def _take(
-        self,
-        indices,
-        axis: Axis = 0,
-        convert_indices: bool_t = True,
-    ) -> Self:
-        """
-        Internal version of the `take` allowing specification of additional args.
-
-        See the docstring of `take` for full explanation of the parameters.
-        """
         if not isinstance(indices, slice):
             indices = np.asarray(indices, dtype=np.intp)
             if (
