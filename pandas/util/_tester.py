@@ -15,7 +15,7 @@ def test(extra_args: list[str] | None = None) -> None:
     """
     Run the pandas test suite using pytest.
 
-    By default, runs with the marks "-m not slow and not network and not db"
+    By default, runs with the marks -m "not slow and not network and not db"
 
     Parameters
     ----------
