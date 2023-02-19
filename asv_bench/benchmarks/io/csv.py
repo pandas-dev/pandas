@@ -109,11 +109,15 @@ class ToCSVPeriod(BaseIO):
         rng = period_range(start="2000-01-01", periods=obs, freq=fq)
         self.data = DataFrame(rng)
 
-    def time_frame_period_formatting(self, obs, fq):
-        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
-
     def time_frame_period_no_format(self, obs, fq):
         self.data.to_csv(self.fname)
+
+    def time_frame_period_formatting(self, obs, fq):
+        """IMPORTANT: date_format is not actually taken into account here today
+        So the behaviour and perf is identical to `time_frame_period_no_format` above.
+        Not sure if this is a bug or a desired feature. Keeping the ASV for reference
+        for now"""
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
 
 class ToCSVPeriodIndex(BaseIO):
