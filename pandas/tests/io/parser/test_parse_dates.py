@@ -2179,7 +2179,6 @@ def test_parse_dates_dict_format(all_parsers):
 
 
 @skip_pyarrow
-@pytest.mark.filterwarnings("ignore:Parsing dates in:UserWarning")
 @pytest.mark.parametrize(
     "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
 )
