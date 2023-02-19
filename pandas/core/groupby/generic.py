@@ -2283,7 +2283,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Propagate non-null values forward or backward within each group along rows.
 
-        >>> df.T.groupby([0, 0, 1, 1]).fillna(method="ffill").T
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="ffill").T
            key    A    B    C
         0  0.0  0.0  2.0  2.0
         1  0.0  2.0  3.0  3.0
@@ -2291,7 +2291,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  1.0  3.0  NaN  NaN
         4  1.0  1.0  NaN  NaN
 
-        >>> df.T.groupby([0, 0, 1, 1]).fillna(method="bfill").T
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="bfill").T
            key    A    B    C
         0  0.0  NaN  2.0  NaN
         1  0.0  2.0  3.0  NaN
