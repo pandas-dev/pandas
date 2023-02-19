@@ -1576,7 +1576,7 @@ class TextFileReader(abc.Iterator):
 
         if "python" in engine:
             for arg in _python_unsupported:
-                if fallback_reason and result[arg] != _c_parser_defaults[arg]:
+                if fallback_reason and result[arg] != _c_parser_defaults.get(arg):
                     raise ValueError(
                         "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "
