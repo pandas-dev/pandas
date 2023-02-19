@@ -1244,7 +1244,11 @@ def _process_date_conversion(
                 raise ValueError(f"Date column {new_name} already in dict")
 
             _, col, old_names = _try_convert_dates(
-                converter, colspec, data_dict, orig_names
+                converter,
+                colspec,
+                data_dict,
+                orig_names,
+                target_name=new_name,
             )
 
             new_data[new_name] = col
@@ -1268,7 +1272,9 @@ def _process_date_conversion(
     return data_dict, new_cols
 
 
-def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
+def _try_convert_dates(
+    parser: Callable, colspec, data_dict, columns, target_name: str | None = None
+):
     colset = set(columns)
     colnames = []
 
@@ -1287,7 +1293,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
-    new_col = parser(*to_parse, col=new_name)
+    new_col = parser(*to_parse, col=new_name if target_name is None else target_name)
     return new_name, new_col, colnames
 
 
