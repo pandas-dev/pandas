@@ -885,11 +885,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if isinstance(output[asheetname], DataFrame):
-                    if header_names:
-                        output[asheetname].columns = output[
-                            asheetname
-                        ].columns.set_names(header_names)
+                if header_names:
+                    output[asheetname].columns = output[asheetname].columns.set_names(
+                        header_names
+                    )
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
