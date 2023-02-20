@@ -17,7 +17,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -86,6 +85,7 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
+        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -94,8 +94,6 @@ if TYPE_CHECKING:
     )
 
 _extension_array_shared_docs: dict[str, str] = {}
-
-ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
 
 class ExtensionArray:
@@ -312,12 +310,10 @@ class ExtensionArray:
         ...
 
     @overload
-    def __getitem__(self: ExtensionArrayT, item: SequenceIndexer) -> ExtensionArrayT:
+    def __getitem__(self, item: SequenceIndexer) -> Self:
         ...
 
-    def __getitem__(
-        self: ExtensionArrayT, item: PositionalIndexer
-    ) -> ExtensionArrayT | Any:
+    def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         """
         Select a subset of self.
 
@@ -755,11 +751,11 @@ class ExtensionArray:
         return nargminmax(self, "argmax")
 
     def fillna(
-        self: ExtensionArrayT,
+        self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-    ) -> ExtensionArrayT:
+    ) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -811,7 +807,7 @@ class ExtensionArray:
             new_values = self.copy()
         return new_values
 
-    def dropna(self: ExtensionArrayT) -> ExtensionArrayT:
+    def dropna(self) -> Self:
         """
         Return ExtensionArray without NA values.
 
@@ -872,7 +868,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self: ExtensionArrayT) -> ExtensionArrayT:
+    def unique(self) -> Self:
         """
         Compute the ExtensionArray of unique values.
 
@@ -1107,9 +1103,7 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(
-        self: ExtensionArrayT, repeats: int | Sequence[int], axis: AxisInt | None = None
-    ) -> ExtensionArrayT:
+    def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1119,12 +1113,12 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self: ExtensionArrayT,
+        self,
         indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> ExtensionArrayT:
+    ) -> Self:
         """
         Take elements from an array.
 
@@ -1213,7 +1207,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self: ExtensionArrayT) -> ExtensionArrayT:
+    def copy(self) -> Self:
         """
         Return a copy of the array.
 
@@ -1345,9 +1339,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(
-        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
-    ) -> ExtensionArrayT:
+    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
         Concatenate multiple array of this dtype.
 
@@ -1489,11 +1481,11 @@ class ExtensionArray:
             return [x.tolist() for x in self]
         return list(self)
 
-    def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
+    def delete(self, loc: PositionalIndexer) -> Self:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
-    def insert(self: ExtensionArrayT, loc: int, item) -> ExtensionArrayT:
+    def insert(self, loc: int, item) -> Self:
         """
         Insert an item at the given position.
 
@@ -1548,9 +1540,7 @@ class ExtensionArray:
 
         self[mask] = val
 
-    def _where(
-        self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
-    ) -> ExtensionArrayT:
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
         """
         Analogue to np.where(mask, self, value)
 
@@ -1638,9 +1628,7 @@ class ExtensionArray:
             )
         return result
 
-    def _quantile(
-        self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> ExtensionArrayT:
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str) -> Self:
         """
         Compute the quantiles of self for each quantile in `qs`.
 
@@ -1660,7 +1648,7 @@ class ExtensionArray:
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
         return type(self)._from_sequence(res_values)
 
-    def _mode(self: ExtensionArrayT, dropna: bool = True) -> ExtensionArrayT:
+    def _mode(self, dropna: bool = True) -> Self:
         """
         Returns the mode(s) of the ExtensionArray.
 
@@ -1677,7 +1665,7 @@ class ExtensionArray:
             Sorted, if possible.
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        # ndarray[Any, Any]]", expected "Self")
         return mode(self, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):

@@ -13,7 +13,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     Union,
     cast,
     final,
@@ -63,6 +62,7 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
+    Self,
     SequenceIndexer,
     TimeAmbiguous,
     TimeNonexistent,
@@ -155,7 +155,6 @@ if TYPE_CHECKING:
     )
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
-DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 def _period_dispatch(meth: F) -> F:
@@ -351,14 +350,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @overload
     def __getitem__(
-        self: DatetimeLikeArrayT,
+        self,
         item: SequenceIndexer | PositionalIndexerTuple,
-    ) -> DatetimeLikeArrayT:
+    ) -> Self:
         ...
 
-    def __getitem__(
-        self: DatetimeLikeArrayT, key: PositionalIndexer2D
-    ) -> DatetimeLikeArrayT | DTScalarOrNaT:
+    def __getitem__(self, key: PositionalIndexer2D) -> Self | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -366,14 +363,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast(
-            "Union[DatetimeLikeArrayT, DTScalarOrNaT]", super().__getitem__(key)
-        )
+        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
             # At this point we know the result is an array.
-            result = cast(DatetimeLikeArrayT, result)
+            result = cast(Self, result)
         result._freq = self._get_getitem_freq(key)
         return result
 
@@ -489,7 +484,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.asarray(self, dtype=dtype)
 
     @overload
-    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+    def view(self) -> Self:
         ...
 
     @overload
@@ -515,10 +510,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: type[DatetimeLikeArrayT],
-        to_concat: Sequence[DatetimeLikeArrayT],
+        cls,
+        to_concat: Sequence[Self],
         axis: AxisInt = 0,
-    ) -> DatetimeLikeArrayT:
+    ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
@@ -540,7 +535,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = new_freq
         return new_obj
 
-    def copy(self: DatetimeLikeArrayT, order: str = "C") -> DatetimeLikeArrayT:
+    def copy(self, order: str = "C") -> Self:
         # error: Unexpected keyword argument "order" for "copy"
         new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
@@ -1453,7 +1448,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # We get here with e.g. datetime objects
         return -(self - other)
 
-    def __iadd__(self: DatetimeLikeArrayT, other) -> DatetimeLikeArrayT:
+    def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
 
@@ -1462,7 +1457,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             self._freq = result.freq
         return self
 
-    def __isub__(self: DatetimeLikeArrayT, other) -> DatetimeLikeArrayT:
+    def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
 
@@ -1476,10 +1471,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @_period_dispatch
     def _quantile(
-        self: DatetimeLikeArrayT,
+        self,
         qs: npt.NDArray[np.float64],
         interpolation: str,
-    ) -> DatetimeLikeArrayT:
+    ) -> Self:
         return super()._quantile(qs=qs, interpolation=interpolation)
 
     @_period_dispatch
@@ -1779,9 +1774,6 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
-TimelikeOpsT = TypeVar("TimelikeOpsT", bound="TimelikeOps")
-
-
 class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
@@ -1928,9 +1920,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             ) from err
 
     @classmethod
-    def _generate_range(
-        cls: type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
-    ) -> DatetimeLikeArrayT:
+    def _generate_range(cls, start, end, periods, freq, *args, **kwargs) -> Self:
         raise AbstractMethodError(cls)
 
     # --------------------------------------------------------------
@@ -1946,7 +1936,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
-    def as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+    def as_unit(self, unit: str) -> Self:
         if unit not in ["s", "ms", "us", "ns"]:
             raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
 
