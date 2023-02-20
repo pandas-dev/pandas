@@ -922,6 +922,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``is_copy`` from :meth:`DataFrame.take` and :meth:`Series.take` (:issue:`30615`)
 - Removed argument ``kind`` from :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer` and :meth:`Index.slice_locs` (:issue:`41378`)
 - Removed arguments ``prefix``, ``squeeze``, ``error_bad_lines`` and ``warn_bad_lines`` from :func:`read_csv` (:issue:`40413`, :issue:`43427`)
+- Removed arguments ``squeeze`` from :func:`read_excel` (:issue:`43427`)
 - Removed argument ``datetime_is_numeric`` from :meth:`DataFrame.describe` and :meth:`Series.describe` as datetime data will always be summarized as numeric data (:issue:`34798`)
 - Disallow passing list ``key`` to :meth:`Series.xs` and :meth:`DataFrame.xs`, pass a tuple instead (:issue:`41789`)
 - Disallow subclass-specific keywords (e.g. "freq", "tz", "names", "closed") in the :class:`Index` constructor (:issue:`38597`)
@@ -1088,6 +1089,7 @@ Removal of prior version deprecations/changes
 - Arguments after ``expr`` in :meth:`DataFrame.eval` and :meth:`DataFrame.query` are keyword-only (:issue:`47587`)
 - Removed :meth:`Index._get_attributes_dict` (:issue:`50648`)
 - Removed :meth:`Series.__array_wrap__` (:issue:`50648`)
+- Changed behavior of :meth:`.DataFrame.value_counts` to return a :class:`Series` with :class:`MultiIndex` for any list-like(one element or not) but an :class:`Index` for a single label (:issue:`50829`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
