@@ -377,7 +377,10 @@ class BaseBlockManager(DataManager):
                 values = self.blocks[0].values
                 if values.ndim == 2:
                     values = values[blk_loc]
-                    self._iset_split_block(0, blk_loc, values)
+                    # "T" has no attribute "_iset_split_block"
+                    self._iset_split_block(  # type: ignore[attr-defined]
+                        0, blk_loc, values
+                    )
                     # first block equals values
                     self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
                     return self
