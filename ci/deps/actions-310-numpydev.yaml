@@ -13,6 +13,7 @@ dependencies:
   - pytest-xdist>=2.2.0
   - hypothesis>=6.34.2
   - pytest-asyncio>=0.17
+  - pytest-randomly
 
   # pandas dependencies
   - python-dateutil

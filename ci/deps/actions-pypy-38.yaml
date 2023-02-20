@@ -17,6 +17,7 @@ dependencies:
   - pytest-asyncio
   - pytest-xdist>=2.2.0
   - hypothesis>=6.34.2
+  - pytest-randomly
 
   # required
   - numpy

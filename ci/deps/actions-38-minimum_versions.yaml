@@ -16,6 +16,7 @@ dependencies:
   - pytest-xdist>=2.2.0
   - psutil
   - pytest-asyncio>=0.17
+  - pytest-randomly
   - boto3
 
   # required dependencies
