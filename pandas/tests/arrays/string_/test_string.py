@@ -96,15 +96,7 @@ def test_astype_roundtrip(dtype):
     tm.assert_series_equal(result, ser)
 
 
-def test_add(dtype, request):
-    if dtype.storage == "pyarrow":
-        reason = (
-            "unsupported operand type(s) for +: 'ArrowStringArray' and "
-            "'ArrowStringArray'"
-        )
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
-        request.node.add_marker(mark)
-
+def test_add(dtype):
     a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
     b = pd.Series(["x", "y", None, "z", None], dtype=dtype)
 
@@ -140,12 +132,7 @@ def test_add_2d(dtype, request):
         s + b
 
 
-def test_add_sequence(dtype, request):
-    if dtype.storage == "pyarrow":
-        reason = "unsupported operand type(s) for +: 'ArrowStringArray' and 'list'"
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
-        request.node.add_marker(mark)
-
+def test_add_sequence(dtype):
     a = pd.array(["a", "b", None, None], dtype=dtype)
     other = ["x", None, "y", None]
 
