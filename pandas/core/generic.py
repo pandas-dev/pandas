@@ -7990,14 +7990,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         mgr = self._mgr
-        mask = isna(self)
 
-        if upper is not None:
-            cond = mask | (self <= upper)
-            mgr = mgr.where(other=upper, cond=cond, align=False)
-        if lower is not None:
-            cond = mask | (self >= lower)
-            mgr = mgr.where(other=lower, cond=cond, align=False)
+        if inplace:
+            if upper is not None:
+                cond = self <= upper
+                mgr = mgr.putmask(mask=cond, new=upper, align=False)
+            if lower is not None:
+                cond = self >= lower
+                mgr = mgr.putmask(mask=cond, new=lower, align=False)
+        else:
+            mask = isna(self)
+            if upper is not None:
+                cond = mask | (self <= upper)
+                mgr = mgr.where(other=upper, cond=cond, align=False)
+            if lower is not None:
+                cond = mask | (self >= lower)
+                mgr = mgr.where(other=lower, cond=cond, align=False)
 
         result = self._constructor(mgr).__finalize__(self)
         if inplace:
