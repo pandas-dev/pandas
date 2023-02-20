@@ -3895,6 +3895,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self._take(indices, axis)
 
+    @final
     def _take(
         self: NDFrameT,
         indices,
@@ -3915,6 +3916,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
+        else:
+            # We can get here with a slice via DataFrame.__geittem__
+            indices = np.arange(
+                indices.start, indices.stop, indices.step, dtype=np.intp
+            )
 
         new_data = self._mgr.take(
             indices,
