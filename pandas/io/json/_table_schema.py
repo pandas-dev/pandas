@@ -265,6 +265,7 @@ def build_table_schema(
 
     Examples
     --------
+    >>> from pandas.io.json._table_schema import build_table_schema
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],
