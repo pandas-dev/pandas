@@ -173,8 +173,8 @@ jobs:
           pip install hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
           cd .. # Not a good idea to test within the src tree
           python -c "import pandas; print(pandas.__version__);
-          pandas.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '-n=2']);
-          pandas.test(extra_args=['-m not clipboard and single_cpu', '--skip-slow', '--skip-network', '--skip-db'])"
+          pandas.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']);
+          pandas.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db'])"
       - uses: actions/upload-artifact@v3
         with:
           name: sdist

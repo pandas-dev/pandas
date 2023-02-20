@@ -38,20 +38,13 @@ if os.name == "nt":
 else:
     import pandas as pd
 
+    multi_args = [
+        "-m not clipboard and not single_cpu and not slow and not network and not db",
+        "-n 2",
+    ]
+    pd.test(extra_args=multi_args)
     pd.test(
         extra_args=[
-            "-m not clipboard and not single_cpu",
-            "--skip-slow",
-            "--skip-network",
-            "--skip-db",
-            "-n=2",
-        ]
-    )
-    pd.test(
-        extra_args=[
-            "-m not clipboard and single_cpu",
-            "--skip-slow",
-            "--skip-network",
-            "--skip-db",
+            "-m not clipboard and single_cpu and not slow and not network and not db",
         ]
     )
