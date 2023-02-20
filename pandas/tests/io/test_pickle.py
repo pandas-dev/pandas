@@ -53,7 +53,7 @@ from pandas.tseries.offsets import (
 )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
