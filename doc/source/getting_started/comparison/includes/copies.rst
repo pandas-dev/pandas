@@ -22,6 +22,6 @@ or overwrite the original one:
       df.replace(5, inplace=True)
 
    There is an active discussion about deprecating and removing ``inplace`` and ``copy``
-   except for a very small subset of methods. Both keywords won't be necessary anymore
-   in the context of Copy-on-Write. The proposal can be found
+   except for a very small subset of methods (including ``replace``). Both keywords won't be
+   necessary anymore in the context of Copy-on-Write. The proposal can be found
    [here](https://github.com/pandas-dev/pandas/pull/51466).
