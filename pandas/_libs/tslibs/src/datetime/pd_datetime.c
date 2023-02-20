@@ -205,7 +205,7 @@ static PyMethodDef module_methods[] = {
 
 static struct PyModuleDef pandas_datetimemodule = {
   PyModuleDef_HEAD_INIT,
-  .m_name = "_pandas_datetime",
+  .m_name = "pandas._libs.pandas_datetime",
 
   .m_doc = "Internal module with datetime support for other extensions",
   .m_size = 01,
@@ -235,7 +235,7 @@ PyInit_pandas_datetime(void) {
     return NULL;
   }
 
-  if (PyModule_AddObject(module, "datetime_CAPI", capsule) < 0) {
+  if (PyModule_AddObject(module, "pandas_datetime_CAPI", capsule) < 0) {
     Py_DECREF(capsule);
     // cpython doesn't PyMem_Free(capi) here - mistake or intentional?
     return NULL;

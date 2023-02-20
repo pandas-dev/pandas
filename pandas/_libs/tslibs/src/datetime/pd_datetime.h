@@ -27,7 +27,7 @@ extern "C" {
   // Todo: the capsule name has to match an importable location? So can't
   // provide full file path in current location given it is not a package
   // see also setup.py
-  #define PandasDateTime_CAPSULE_NAME "pandas._libs.pandas_datetime"
+  #define PandasDateTime_CAPSULE_NAME "pandas._libs.pandas_datetime.pandas_datetime_CAPI"
 
   /* block used as part of public API */
 #ifndef _PANDAS_DATETIME_IMPL

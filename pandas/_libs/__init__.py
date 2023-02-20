@@ -7,9 +7,11 @@ __all__ = [
     "Timestamp",
     "iNaT",
     "Interval",
+    "pandas_datetime",
 ]
 
 
+import pandas._libs.pandas_datetime as pandas_datetime
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import (
     NaT,
