@@ -1043,7 +1043,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
+            # TODO: can we re-use e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
                 indexer, _ = result.index.get_indexer_non_unique(target)
                 result = result.take(indexer, axis=self.axis)
@@ -1407,34 +1409,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             is_transform,
         )
 
-    # TODO: I (jbrockmendel) think this should be equivalent to doing grouped_reduce
-    #  on _agg_py_fallback, but trying that here fails a bunch of tests 2023-02-07.
-    @final
-    def _python_agg_general(self, func, *args, **kwargs):
-        func = com.is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
-
-        # iterate through "columns" ex exclusions to populate output dict
-        output: dict[base.OutputKey, ArrayLike] = {}
-
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            result = self.grouper.agg_series(obj, f)
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-
-        if not output:
-            # e.g. test_groupby_crash_on_nunique, test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        res = self._indexed_output_to_ndframe(output)
-        return self._wrap_aggregated_output(res)
-
     @final
     def _agg_general(
         self,
@@ -1460,6 +1434,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         NotImplementedError.
         """
         # We get here with a) EADtypes and b) object dtype
+        assert alt is not None
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
@@ -1775,7 +1750,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 masked = mask & ~isna(bvalues)
 
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -2501,10 +2476,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        # TODO: 2023-02-05 all tests that get here have self.as_index
-        return self._apply_to_column_groupbys(
+        result = self._apply_to_column_groupbys(
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
+        return result
 
     @doc(DataFrame.describe)
     def describe(
