@@ -18,7 +18,7 @@ can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`
 We expect that CoW will be enabled by default in version 3.0.
 
 CoW will lead to more predictable behavior since it is not possible to update more than
-one object with one statement, e.g. methods won't have side-effects. Additionally, through
+one object with one statement, e.g. indexing operations or methods won't have side-effects. Additionally, through
 delaying copies as long as possible, the average performance will improve.
 
 Description
