@@ -250,13 +250,9 @@ class TestBaseCasting(base.BaseCastingTests):
 class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz) or pa.types.is_string(
-            pa_dtype
-        ):
-            if pa.types.is_string(pa_dtype):
-                reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
-            else:
-                reason = f"pyarrow.type_for_alias cannot infer {pa_dtype}"
+
+        if pa.types.is_string(pa_dtype):
+            reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=reason,
@@ -604,65 +600,24 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 class TestBaseDtype(base.BaseDtypeTests):
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
+
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            msg = r"string\[pyarrow\] should be constructed by StringDtype"
+            with pytest.raises(TypeError, match=msg):
+                dtype.construct_from_string(dtype.name)
+
+            return
+
         super().test_construct_from_string_own_name(dtype)
 
     def test_is_dtype_from_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_is_dtype_from_name(dtype)
-
-    def test_construct_from_string(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_construct_from_string(dtype)
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            assert not type(dtype).is_dtype(dtype.name)
+        else:
+            super().test_is_dtype_from_name(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = r"'another_type' must end with '\[pyarrow\]'"
@@ -752,13 +707,6 @@ class TestBaseParsing(base.BaseParsingTests):
         if pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(raises=TypeError, reason="GH 47534")
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
-                )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
             request.node.add_marker(
@@ -1266,7 +1214,12 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+        ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
+
+    # but as of GH#50689, timestamptz is supported
+    dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+    expected = ArrowDtype(pa.timestamp("s", "UTC"))
+    assert dtype == expected
 
 
 @pytest.mark.parametrize(
@@ -1341,35 +1294,28 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
-    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
-        pa.types.is_boolean(pa_dtype)
-        and "multi_mode" in request.node.nodeid
-        and pa_version_under9p0
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="https://issues.apache.org/jira/browse/ARROW-17096",
-            )
-        )
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    result = ser.mode(dropna=dropna)
+    result = ser.mode(dropna=True)
     expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_dropna_false_mode_na(data):
+    # GH 50982
+    more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
+    result = more_nans.mode(dropna=False)
+    expected = pd.Series([None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
 
