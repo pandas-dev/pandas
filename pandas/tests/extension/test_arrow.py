@@ -375,23 +375,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         if do_skip:
             pytest.skip(
-                "These should *not* work, we test in test_accumulate_series_raises "
-                "that these correctly raise."
+                f"{op_name} should *not* work, we test in "
+                "test_accumulate_series_raises that these correctly raise."
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
-            if request.config.option.skip_slow:
-                # equivalent to marking these cases with @pytest.mark.slow,
-                #  these xfails take a long time to run because pytest
-                #  renders the exception messages even when not showing them
-                pytest.skip("pyarrow xfail slow")
+            # xfailing takes a long time to run because pytest
+            # renders the exception messages even when not showing them
+            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
 
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented",
-                    raises=NotImplementedError,
-                )
-            )
         elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
             request.node.add_marker(
                 pytest.mark.xfail(
