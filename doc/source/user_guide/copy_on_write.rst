@@ -200,13 +200,6 @@ be turned on __globally__ through either of the following:
 
     pd.options.mode.copy_on_write = True
 
-Alternatively, CoW can be enabled locally for testing purposes through:
-
-.. ipython:: python
-
-    with pd.option_context("mode.copy_on_write", True):
-        ...
-
 .. ipython:: python
     :suppress:
 
