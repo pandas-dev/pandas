@@ -19,7 +19,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
-    Iterable,
     Iterator,
     List,
     Literal,
@@ -989,12 +988,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # and ensure index is ordered same as the input
             result = self._set_result_index_ordered(result)
         return result
-
-    # -----------------------------------------------------------------
-    # Selection
-
-    def _iterate_slices(self) -> Iterable[Series]:
-        raise AbstractMethodError(self)
 
     # -----------------------------------------------------------------
     # Dispatch/Wrapping
@@ -2459,7 +2452,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Open, high, low and close values within each group.
         """
         if self.obj.ndim == 1:
-            # self._iterate_slices() yields only self._selected_obj
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)

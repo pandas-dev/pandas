@@ -154,9 +154,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         return single
 
-    def _iterate_slices(self) -> Iterable[Series]:
-        yield self._selected_obj
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -408,7 +405,9 @@ class SeriesGroupBy(GroupBy[Series]):
         result = {}
         initialized = False
 
-        for name, group in self:
+        for name, group in self.grouper.get_iterator(
+            self._selected_obj, axis=self.axis
+        ):
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -568,7 +567,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         try:
             indices = [
-                self._get_index(name) for name, group in self if true_and_notna(group)
+                self._get_index(name)
+                for name, group in self.grouper.get_iterator(
+                    self._selected_obj, axis=self.axis
+                )
+                if true_and_notna(group)
             ]
         except (ValueError, TypeError) as err:
             raise TypeError("the filter must return a boolean result") from err
