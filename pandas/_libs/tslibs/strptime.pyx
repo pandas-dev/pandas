@@ -62,7 +62,11 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydate_to_dt64,
     pydatetime_to_dt64,
     string_to_dts,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.util cimport (

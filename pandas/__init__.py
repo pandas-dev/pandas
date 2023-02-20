@@ -183,7 +183,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-
 # module level doc-string
 __doc__ = """
 pandas - a powerful data analysis and manipulation library for Python
@@ -303,6 +302,7 @@ __all__ = [
     "offsets",
     "option_context",
     "options",
+    "pandas_datetime_CAPI",
     "period_range",
     "pivot",
     "pivot_table",

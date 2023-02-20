@@ -24,10 +24,9 @@ extern "C" {
     npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT, const npy_datetimestruct *);
   } PandasDateTime_CAPI;
 
-  // Todo: the capsule name has to match an importable location? So can't
-  // provide full file path in current location given it is not a package
-  // see also setup.py
-  #define PandasDateTime_CAPSULE_NAME "pandas._libs.pandas_datetime.pandas_datetime_CAPI"
+  // The capsule name appears limited to module.attributename; see bpo-32414
+  // cpython has an open PR gh-6898 to fix, but hasn't had traction for years
+  #define PandasDateTime_CAPSULE_NAME "pandas.pandas_datetime_CAPI"
 
   /* block used as part of public API */
 #ifndef _PANDAS_DATETIME_IMPL
@@ -37,7 +36,7 @@ extern "C" {
     PandasDateTimeAPI = (PandasDateTime_CAPI *)PyCapsule_Import(PandasDateTime_CAPSULE_NAME, 0)
 
 #define npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT, npy_datetimestruct) \
-  PandasDateTimeAPI->npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT, npy_datetimestruct)
+  PandasDateTimeAPI->npy_datetimestruct_to_datetime((NPY_DATETIMEUNIT), (npy_datetimestruct))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus

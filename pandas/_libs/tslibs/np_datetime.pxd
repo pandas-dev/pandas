@@ -74,7 +74,6 @@ cdef extern from "src/datetime/pd_datetime.h":
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
-    void PandasDateTime_IMPORT()
 
 # You must call this before using the PandasDateTime CAPI functions
 cdef inline void import_pandas_datetime():

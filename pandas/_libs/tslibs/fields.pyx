@@ -47,8 +47,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
+    import_pandas_datetime,
 )
 
+import_pandas_datetime()
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

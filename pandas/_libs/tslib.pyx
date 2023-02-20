@@ -39,7 +39,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     string_to_dts,
+    import_pandas_datetime,
 )
+
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.strptime cimport parse_today_now
 from pandas._libs.util cimport (
     is_datetime64_object,
