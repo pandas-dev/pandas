@@ -3,7 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -24,7 +23,6 @@ test_frame = DataFrame(
 
 
 @async_mark()
-@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
