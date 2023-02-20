@@ -3909,6 +3909,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"{type(self).__name__}.take requires a sequence of integers, "
                 "not slice."
             )
+        else:
+            # We can get here with a slice via DataFrame.__getitem__
+            indices = np.arange(
+                indices.start, indices.stop, indices.step, dtype=np.intp
+            )
 
         new_data = self._mgr.take(
             indices,
