@@ -140,12 +140,6 @@ usecols : str, list-like, or callable, default None
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-squeeze : bool, default False
-    If the parsed data only contains one column then return a Series.
-
-    .. deprecated:: 1.4.0
-       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
-       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -251,15 +245,15 @@ date_parser : function, optional
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
 
-  .. deprecated:: 2.0.0
-   Use ``date_format`` instead, or read in as ``object`` and then apply
-   :func:`to_datetime` as-needed.
+    .. deprecated:: 2.0.0
+       Use ``date_format`` instead, or read in as ``object`` and then apply
+       :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
-    .. versionadded:: 2.0.0
+   .. versionadded:: 2.0.0
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -383,7 +377,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = ...,
-    squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
@@ -423,7 +416,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = ...,
-    squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
@@ -463,7 +455,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = None,
-    squeeze: bool | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
@@ -508,7 +499,6 @@ def read_excel(
             names=names,
             index_col=index_col,
             usecols=usecols,
-            squeeze=squeeze,
             dtype=dtype,
             converters=converters,
             true_values=true_values,
@@ -716,7 +706,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
-        squeeze: bool | None = None,
         dtype: DtypeArg | None = None,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
@@ -875,7 +864,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     header=header,
                     index_col=index_col,
                     has_index_names=has_index_names,
-                    squeeze=squeeze,
                     dtype=dtype,
                     true_values=true_values,
                     false_values=false_values,
@@ -897,11 +885,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
-                    if header_names:
-                        output[asheetname].columns = output[
-                            asheetname
-                        ].columns.set_names(header_names)
+                if header_names:
+                    output[asheetname].columns = output[asheetname].columns.set_names(
+                        header_names
+                    )
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
@@ -1545,7 +1532,6 @@ class ExcelFile:
         names=None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
-        squeeze: bool | None = None,
         converters=None,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
@@ -1578,7 +1564,6 @@ class ExcelFile:
             names=names,
             index_col=index_col,
             usecols=usecols,
-            squeeze=squeeze,
             converters=converters,
             true_values=true_values,
             false_values=false_values,
