@@ -143,6 +143,8 @@ def clean_version_list(yaml_versions, toml_version):
 def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
     data = yaml_file_data
     for yaml_package, yaml_versions in yaml_map.items():
+        if yaml_package in EXCLUSION_LIST:
+            continue
         old_dep = yaml_package
         if yaml_versions is not None:
             for yaml_version in yaml_versions:
