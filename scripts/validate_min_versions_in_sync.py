@@ -34,6 +34,10 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
+EXCLUSION_LIST = {
+    "python=3.8[build=*_pypy]": None,
+    "tzdata": None,
+}
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -48,87 +52,125 @@ import _optional
 
 def pin_min_versions_to_ci_deps():
     all_yaml_files = list(YAML_PATH.iterdir())
+    all_yaml_files = list()
     all_yaml_files.append(ENV_PATH)
+    toml_dependencies = {}
     with open(SETUP_PATH, "rb") as toml_f:
-        toml_dic = tomllib.load(toml_f)
+        toml_dependencies = tomllib.load(toml_f)
     for curr_file in all_yaml_files:
         with open(curr_file) as yaml_f:
-            data = update_yaml_file_version(yaml_f, toml_dic)
+            yaml_file_data = yaml_f.read()
+            yaml_file = yaml.safe_load(yaml_file_data)
+            yaml_dependencies = yaml_file["dependencies"]
+            res = []
+            [res.append(x) for x in yaml_dependencies if x not in res]
+            yaml_dependencies = res
+            yaml_map = get_yaml_map_from(yaml_dependencies)
+            toml_map = get_toml_map_from(toml_dependencies)
+            yaml_file_data = pin_min_versions_to_yaml_file(
+                yaml_map, toml_map, yaml_file_data
+            )
             os.remove(curr_file)
             with open(curr_file, "w") as f:
-                f.write(data)
+                f.write(yaml_file_data)
 
 
-def update_yaml_file_version(yaml_file, toml_dic):
-    exclusion_list = {
-        "python=3.8[build=*_pypy]": None,
-    }
+def get_toml_map_from(toml_dic) -> dict[str, str]:
     toml_deps = {}
     toml_dependencies = set(toml_dic["project"]["optional-dependencies"]["all"])
     for dependency in toml_dependencies:
         toml_package, toml_version = dependency.strip().split(">=")
         toml_deps[toml_package] = toml_version
-    data = yaml_file.read()
-    yaml_f = yaml.safe_load(data)
-    yaml_deps = yaml_f["dependencies"]
-    res = []
-    [res.append(x) for x in yaml_deps if x not in res]
-    yaml_deps = res
-    for dep_line in yaml_deps:
-        replace_text = operator = yaml_left = ""
-        search_text = str(dep_line)
-        if str(dep_line) in exclusion_list:
+    return toml_deps
+
+
+def get_operator_from(dependency) -> str:
+    if "<=" in dependency:
+        operator = "<="
+    elif ">=" in dependency:
+        operator = ">="
+    elif "=" in dependency:
+        operator = "="
+    elif ">" in dependency:
+        operator = ">"
+    elif "<" in dependency:
+        operator = "<"
+    else:
+        operator = None
+    return operator
+
+
+def get_yaml_map_from(yaml_dic) -> dict[str, str]:
+    yaml_map = {}
+    for dependency in yaml_dic:
+        if type(dependency) == dict:
             continue
-        if ">=" in dep_line:
-            operator = ">="
-        elif "==" in dep_line:
-            operator = "=="
-        elif "=" in dep_line:
-            operator = "="
-        elif "<" in dep_line:
-            operator = "<"
-        elif ">" in dep_line:
-            operator = ">"
+        search_text = str(dependency)
+        operator = get_operator_from(search_text)
+        if dependency in EXCLUSION_LIST:
+            continue
+        if "," in dependency:
+            yaml_dependency, yaml_version1 = search_text.split(",")
+            operator = get_operator_from(yaml_dependency)
+            yaml_package, yaml_version2 = yaml_dependency.split(operator)
+            yaml_version2 = operator + yaml_version2
+            yaml_map[yaml_package] = [yaml_version1, yaml_version2]
+        elif (
+            operator == ">="
+            or operator == "<="
+            or operator == ">"
+            or operator == "<"
+            or operator == "="
+        ):
+            yaml_package, yaml_version = search_text.split(operator)
+            yaml_version = operator + yaml_version
+            yaml_map[yaml_package] = [yaml_version]
         else:
-            operator = ""
-        if operator == "":
-            yaml_package, yaml_version = str(dep_line).strip(), None
-            yaml_left = yaml_package
-        else:
-            yaml_package, yaml_version = str(dep_line).strip().split(operator)
-            if "<" in operator or ">" in operator:
-                if yaml_package in toml_deps:
-                    if version.parse(yaml_version) <= version.parse(
-                        toml_deps[yaml_package]
-                    ):
-                        if "tzdata" in yaml_package:
-                            yaml_left = yaml_package + operator
-                        else:
-                            yaml_left = yaml_package
-                    else:
-                        yaml_left = str(dep_line) + ", "
-            else:
-                yaml_left = yaml_package + operator
-        if yaml_package in toml_deps:
-            if ">" in yaml_left or "<" in yaml_left:
-                if "," in yaml_left:
-                    # ex: "numpy<1.24.0," + ">=" + "1.2"
-                    replace_text = yaml_left + ">=" + toml_deps[yaml_package]
-                else:
-                    replace_text = yaml_left + toml_deps[yaml_package]
-            # update yaml package version to TOML min version
-            elif yaml_version is not None:
-                if version.parse(toml_deps[yaml_package]) > version.parse(yaml_version):
-                    # ex: "hypothesis>=" + "6.34.2"
-                    replace_text = yaml_left + toml_deps[yaml_package]
-                elif version.parse(toml_deps[yaml_package]) == version.parse(
-                    yaml_version
-                ):
-                    replace_text = dep_line
-            else:
-                # ex: "hypothesis + ">=" + 6.34.2"
-                replace_text = yaml_package + ">=" + toml_deps[yaml_package]
-            data = data.replace(search_text, replace_text)
+            yaml_package, yaml_version = search_text.strip(), None
+            yaml_map[yaml_package] = yaml_version
+    return yaml_map
+
+
+def clean_version_list(yaml_versions, toml_version):
+    for i in range(len(yaml_versions)):
+        yaml_version = yaml_versions[i]
+        operator = get_operator_from(yaml_version)
+        if "<=" in operator or ">=" in operator:
+            yaml_version = yaml_version[2:]
+        elif "<" in operator or ">" in operator or "=" in operator:
+            yaml_version = yaml_version[1:]
+        yaml_version = version.parse(yaml_version)
+        if yaml_version < toml_version:
+            yaml_versions[i] = "-" + str(yaml_version)
+        elif yaml_version >= toml_version:
+            if ">" in operator or "=" in operator:
+                yaml_versions[i] = "-" + str(yaml_version)
+    return yaml_versions
+
+
+def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
+    data = yaml_file_data
+    for yaml_pkg, yaml_versions in yaml_map.items():
+        old_dep = yaml_pkg
+        if yaml_versions is not None:
+            for yaml_version in yaml_versions:
+                old_dep += yaml_version + ", "
+            old_dep = old_dep[:-2]
+        if yaml_pkg in toml_map:
+            min_dep = toml_map[yaml_pkg]
+            if yaml_versions is None:
+                new_dep = old_dep + ">=" + min_dep
+                data = data.replace(old_dep, new_dep, 1)
+                continue
+            toml_version = version.parse(min_dep)
+            yaml_versions = clean_version_list(yaml_versions, toml_version)
+            cleaned_yaml_versions = []
+            [cleaned_yaml_versions.append(x) for x in yaml_versions if "-" not in x]
+            new_dep = yaml_pkg
+            for yaml_version in cleaned_yaml_versions:
+                new_dep += yaml_version + ", "
+            new_dep += ">=" + min_dep
+            data = data.replace(old_dep, new_dep)
     return data
 
 

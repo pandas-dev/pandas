@@ -2,13 +2,18 @@ import pathlib
 import sys
 
 import pytest
+import yaml
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
 
-from scripts.validate_min_versions_in_sync import update_yaml_file_version
+from scripts.validate_min_versions_in_sync import (
+    get_toml_map_from,
+    get_yaml_map_from,
+    pin_min_versions_to_yaml_file,
+)
 
 
 @pytest.mark.parametrize(
@@ -50,7 +55,7 @@ from scripts.validate_min_versions_in_sync import update_yaml_file_version
                 "scripts/tests/dummy_test_files/dummy_yaml_expected_file_4.yaml"
             ),
         ),
-        (  # range version
+        (  # range
             pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
             pathlib.Path(
                 "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_5.yaml"
@@ -61,11 +66,27 @@ from scripts.validate_min_versions_in_sync import update_yaml_file_version
         ),
     ],
 )
-def test_update_yaml_file_version(src_toml, src_yaml, expected_yaml):
+def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml):
     with open(src_toml, "rb") as toml_f:
-        toml_dic = tomllib.load(toml_f)
+        toml_map = tomllib.load(toml_f)
     with open(src_yaml) as yaml_f:
-        result_yaml_file = update_yaml_file_version(yaml_f, toml_dic)
+        yaml_file_data = yaml_f.read()
+        yaml_file = yaml.safe_load(yaml_file_data)
+        yaml_dependencies = yaml_file["dependencies"]
+        yaml_map = get_yaml_map_from(yaml_dependencies)
+        toml_map = get_toml_map_from(toml_map)
+        print("SOURCE", yaml_file_data)
+        result_yaml_file = pin_min_versions_to_yaml_file(
+            yaml_map, toml_map, yaml_file_data
+        )
+        print("RESULT", result_yaml_file)
     with open(expected_yaml) as yaml_f:
         dummy_yaml_expected_file_1 = yaml_f.read()
     assert result_yaml_file == dummy_yaml_expected_file_1
+
+
+test_pin_min_versions_to_yaml_file(
+    pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
+    pathlib.Path("scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_1.yaml"),
+    pathlib.Path("scripts/tests/dummy_test_files/dummy_yaml_expected_file_1.yaml"),
+)
