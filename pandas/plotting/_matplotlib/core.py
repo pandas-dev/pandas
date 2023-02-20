@@ -54,6 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
@@ -784,8 +785,11 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.LegendHandles because it misses marker info
-                handles = leg.legendHandles
+                # Replace leg.legend_handles because it misses marker info
+                if Version(mpl.__version__) < Version("3.7"):
+                    handles = leg.legendHandles
+                else:
+                    handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
