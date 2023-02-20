@@ -122,8 +122,11 @@ consistently never work and raise a ``ChainedAssignmentError`` with CoW enabled:
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     df["foo"][df["bar"] > 5] = 100
 
-With copy on write this can either be done by using ``loc`` or doing this
-in multiple steps.
+With copy on write this can be done by using ``loc``.
+
+.. ipython:: python
+
+    df.loc[df["bar"] > 5, "foo"] = 100
 
 .. _copy_on_write.optimizations:
 
