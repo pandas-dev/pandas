@@ -48,6 +48,9 @@ class ODSWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
+        self._book = OpenDocumentSpreadsheet(**engine_kwargs)
+
         super().__init__(
             path,
             mode=mode,
@@ -56,9 +59,6 @@ class ODSWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
-
-        self._book = OpenDocumentSpreadsheet(**engine_kwargs)
         self._style_dict: dict[str, str] = {}
 
     @property

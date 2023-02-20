@@ -25,13 +25,8 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
-import gc
 import locale
-from typing import (
-    Callable,
-    Generator,
-)
+from typing import Callable
 
 import numpy as np
 import pytest
@@ -231,43 +226,6 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         return fixture
 
     return documented_fixture
-
-
-def check_file_leaks(func) -> Callable:
-    """
-    Decorate a test function to check that we are not leaking file descriptors.
-    """
-    with file_leak_context():
-        return func
-
-
-@contextmanager
-def file_leak_context() -> Generator[None, None, None]:
-    """
-    ContextManager analogue to check_file_leaks.
-    """
-    psutil = safe_import("psutil")
-    if not psutil or is_platform_windows():
-        # Checking for file leaks can hang on Windows CI
-        yield
-    else:
-        proc = psutil.Process()
-        flist = proc.open_files()
-        conns = proc.connections()
-
-        try:
-            yield
-        finally:
-            gc.collect()
-            flist2 = proc.open_files()
-            # on some builds open_files includes file position, which we _dont_
-            #  expect to remain unchanged, so we need to compare excluding that
-            flist_ex = [(x.path, x.fd) for x in flist]
-            flist2_ex = [(x.path, x.fd) for x in flist2]
-            assert set(flist2_ex) <= set(flist_ex), (flist2, flist)
-
-            conns2 = proc.connections()
-            assert conns2 == conns, (conns2, conns)
 
 
 def async_mark():

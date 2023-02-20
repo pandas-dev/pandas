@@ -17,7 +17,6 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
-import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -204,7 +203,6 @@ def test_null_byte_char(request, all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@td.check_file_leaks
 def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers

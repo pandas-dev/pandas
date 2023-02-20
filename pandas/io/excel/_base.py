@@ -1210,6 +1210,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
+            raise ValueError(
+                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
+            )
+        if if_sheet_exists and "r+" not in mode:
+            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
+        if if_sheet_exists is None:
+            if_sheet_exists = "error"
+        self._if_sheet_exists = if_sheet_exists
+
         # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
@@ -1230,17 +1241,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self._datetime_format = datetime_format
 
         self._mode = mode
-
-        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
-            raise ValueError(
-                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new', 'replace' and 'overlay'."
-            )
-        if if_sheet_exists and "r+" not in mode:
-            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
-        if if_sheet_exists is None:
-            if_sheet_exists = "error"
-        self._if_sheet_exists = if_sheet_exists
 
     @property
     def date_format(self) -> str:
@@ -1602,11 +1602,3 @@ class ExcelFile:
         traceback: TracebackType | None,
     ) -> None:
         self.close()
-
-    def __del__(self) -> None:
-        # Ensure we don't leak file descriptors, but put in try/except in case
-        # attributes are already deleted
-        try:
-            self.close()
-        except AttributeError:
-            pass
