@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -458,6 +460,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        pa_type = self._data.type
+        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
+            operator.add,
+            roperator.radd,
+        ]:
+            length = self._data.length()
+
+            seps: list[str] | list[bytes]
+            if pa.types.is_string(pa_type):
+                seps = [""] * length
+            else:
+                seps = [b""] * length
+
+            if is_scalar(other):
+                other = [other] * length
+            elif isinstance(other, type(self)):
+                other = other._data
+            if op is operator.add:
+                result = pc.binary_join_element_wise(self._data, other, seps)
+            else:
+                result = pc.binary_join_element_wise(other, self._data, seps)
+            return type(self)(result)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
@@ -509,6 +534,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         length : int
         """
         return len(self._data)
+
+    def __contains__(self, key) -> bool:
+        # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
+        if isna(key) and key is not self.dtype.na_value:
+            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+                return pc.any(pc.is_nan(self._data)).as_py()
+
+            # e.g. date or timestamp types we do not allow None here to match pd.NA
+            return False
+            # TODO: maybe complex? object?
+
+        return bool(super().__contains__(key))
 
     @property
     def _hasna(self) -> bool:
@@ -868,15 +905,22 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             na_value = self.dtype.na_value
 
         pa_type = self._data.type
-        if (
-            is_object_dtype(dtype)
-            or pa.types.is_timestamp(pa_type)
-            or pa.types.is_duration(pa_type)
-        ):
+        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
+            # temporal types with units and/or timezones currently
+            #  require pandas/python scalars to pass all tests
+            # TODO: improve performance (this is slow)
             result = np.array(list(self), dtype=dtype)
+        elif is_object_dtype(dtype) and self._hasna:
+            result = np.empty(len(self), dtype=object)
+            mask = ~self.isna()
+            result[mask] = np.asarray(self[mask]._data)
+        elif self._hasna:
+            data = self.copy()
+            data[self.isna()] = na_value
+            return np.asarray(data._data, dtype=dtype)
         else:
             result = np.asarray(self._data, dtype=dtype)
-            if copy or self._hasna:
+            if copy:
                 result = result.copy()
         if self._hasna:
             result[self.isna()] = na_value
@@ -1326,7 +1370,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ----------
         dropna : bool, default True
             Don't consider counts of NA values.
-            Not implemented by pyarrow.
 
         Returns
         -------
@@ -1345,12 +1388,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         else:
             data = self._data
 
-        modes = pc.mode(data, pc.count_distinct(data).as_py())
-        values = modes.field(0)
-        counts = modes.field(1)
-        # counts sorted descending i.e counts[0] = max
-        mask = pc.equal(counts, counts[0])
-        most_common = values.filter(mask)
+        if dropna:
+            data = data.drop_null()
+
+        res = pc.value_counts(data)
+        most_common = res.field("values").filter(
+            pc.equal(res.field("counts"), pc.max(res.field("counts")))
+        )
 
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)

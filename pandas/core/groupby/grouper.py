@@ -944,12 +944,17 @@ def get_grouper(
         if not hasattr(gpr, "name"):
             return False
         if using_copy_on_write():
-            # For the CoW case, we need an equality check as the identity check
-            # no longer works (each Series from column access is a new object)
+            # For the CoW case, we check the references to determine if the
+            # series is part of the object
             try:
-                return gpr.equals(obj[gpr.name])
-            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                obj_gpr_column = obj[gpr.name]
+            except (KeyError, IndexError, InvalidIndexError):
                 return False
+            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
+                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                )
+            return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
