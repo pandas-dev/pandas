@@ -741,7 +741,7 @@ class MemoryUsage:
 
 class Round:
     def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 100))
+        self.df = DataFrame(np.random.randn(10000, 10))
         self.df_t = self.df.transpose(copy=True)
 
     def time_round(self):
