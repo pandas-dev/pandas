@@ -9915,7 +9915,6 @@ Parrot 2  Parrot       24.0
                     yield _series_round(vals, decimals[col])
                 except KeyError:
                     yield vals
-            df._clear_item_cache()
 
         def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
@@ -9923,9 +9922,6 @@ Parrot 2  Parrot       24.0
             return ser
 
         nv.validate_round(args, kwargs)
-
-        new_cols = None
-        new_mgr = None
 
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series) and not decimals.index.is_unique:
@@ -9937,17 +9933,17 @@ Parrot 2  Parrot       24.0
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
             # Dispatch to Block.round
-            new_mgr = self._mgr.apply("round", decimals=decimals)
+            return self._constructor(
+                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+                index=self.index,
+                columns=self.columns,
+            ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
         if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
-            ).__finalize__(self, method="round")
-        elif new_mgr is not None:
-            return self._constructor(
-                new_mgr, index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
             return self.copy(deep=False)

@@ -1397,20 +1397,21 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
-    def round(self, decimals) -> Block:
+    def round(self, decimals, using_cow=False) -> Block:
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens
 
         Parameters
         ----------
-        decimals: Number of decimal places to round to.
+        decimals: int,
+            Number of decimal places to round to.
             Caller is responsible for validating this
+        using_cow: bool,
+            Whether Copy on Write is enabled right now
         """
-        # TODO: EAs?
-        # Maybe fallback to numpy
         if not self.is_numeric or self.is_bool:
-            return self.copy(deep=None)
+            return self.copy(deep=None if using_cow else True)
         return new_block_2d(self.values.round(decimals), placement=self._mgr_locs)
 
     # ---------------------------------------------------------------------
