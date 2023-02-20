@@ -19,7 +19,7 @@ We expect that CoW will be enabled by default in version 3.0.
 
 CoW will lead to more predictable behavior since it is not possible to update more than
 one object with one statement, e.g. indexing operations or methods won't have side-effects. Additionally, through
-delaying copies as long as possible, the average performance will improve.
+delaying copies as long as possible, the average performance and memory usage will improve.
 
 Description
 -----------
