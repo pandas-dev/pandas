@@ -199,6 +199,8 @@ update-check = false
 target-version = "py38"
 
 select = [
+  # implicit string concatenation
+  "ISC"
   # pyflakes
   "F",
   # pycodestyle
