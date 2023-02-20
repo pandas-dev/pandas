@@ -1341,6 +1341,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
+- Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
 
 Period
 ^^^^^^
