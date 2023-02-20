@@ -1,0 +1,48 @@
+>>> from itertools import product
+>>> import numpy as np
+>>> import pandas as pd
+>>> from pandas.core.reshape.concat import _Concatenator
+>>>
+>>> def manual_concat(df_list: list[pd.DataFrame]) -> pd.DataFrame:
+...     columns = [col for df in df_list for col in df.columns]
+...     columns = list(dict.fromkeys(columns))
+...     index = np.hstack([df.index.values for df in df_list])
+...     df_list = [df.reindex(columns=columns) for df in df_list]
+...     values = np.vstack([df.values for df in df_list])
+...     return pd.DataFrame(values, index=index, columns=columns, dtype=df_list[0].dtypes[0])
+>>>
+>>> def compare_frames(df_list: list[pd.DataFrame]) -> None:
+...     concat_df = pd.concat(df_list)
+...     manual_df = manual_concat(df_list)
+...     if not concat_df.equals(manual_df):
+...         raise ValueError("different concatenations!")
+>>>
+>>> def make_dataframes(num_dfs, num_idx, num_cols, dtype=np.int32, drop_column=False) -> list[pd.DataFrame]:
+...     values = np.random.randint(-100, 100, size=[num_idx, num_cols])
+...     index = [f"i{i}" for i in range(num_idx)]
+...     columns = np.random.choice([f"c{i}" for i in range(num_cols)], num_cols, replace=False)
+...     df = pd.DataFrame(values, index=index, columns=columns, dtype=dtype)
+...
+...     df_list = []
+...     for i in range(num_dfs):
+...         new_df = df.copy()
+...         if drop_column:
+...             label = new_df.columns[i]
+...             new_df = new_df.drop(label, axis=1)
+...         df_list.append(new_df)
+...     return df_list
+>>>
+>>> test_data = [  # num_idx, num_cols, num_dfs
+...     [100, 1_000, 3],
+...     ]
+>>> for i, (num_idx, num_cols, num_dfs) in enumerate(test_data):
+...     print(f"\n{i}: {num_dfs=}, {num_idx=}, {num_cols=}")
+...     df_list = make_dataframes(num_dfs, num_idx, num_cols, drop_column=False)
+...     df_list_dropped = make_dataframes(num_dfs, num_idx, num_cols, drop_column=True)
+...     print("manual:")
+...     %timeit manual_concat(df_list)
+...     compare_frames(df_list)
+...     for use_dropped in [False, True]:
+...         print(f"pd.concat: {use_dropped=}")
+...         this_df_list = df_list if not use_dropped else df_list_dropped
+...         %timeit pd.concat(this_df_list)
