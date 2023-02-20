@@ -21,14 +21,6 @@ from pandas.core.arrays import DatetimeArray
 use_bn = nanops._USE_BOTTLENECK
 
 
-@pytest.fixture(params=[True, False])
-def skipna(request):
-    """
-    Fixture to pass skipna to nanops functions.
-    """
-    return request.param
-
-
 @pytest.fixture
 def disable_bottleneck(monkeypatch):
     with monkeypatch.context() as m:

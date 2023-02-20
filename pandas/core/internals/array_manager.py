@@ -169,6 +169,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
+    def add_references(self, mgr: BaseArrayManager) -> None:
+        """
+        Only implemented on the BlockManager level
+        """
+        return
+
     def __getstate__(self):
         return self.arrays, self._axes
 
@@ -978,14 +984,10 @@ class ArrayManager(BaseArrayManager):
             # TODO NaT doesn't preserve dtype, so we need to ensure to create
             # a timedelta result array if original was timedelta
             # what if datetime results in timedelta? (eg std)
-            if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
-                result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
-            else:
-                # error: Argument 1 to "append" of "list" has incompatible type
-                # "ExtensionArray"; expected "ndarray"
-                result_arrays.append(
-                    sanitize_array([res], None)  # type: ignore[arg-type]
-                )
+            dtype = arr.dtype if res is NaT else None
+            result_arrays.append(
+                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+            )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items
