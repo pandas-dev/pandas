@@ -352,11 +352,13 @@ class TestSeriesArithmetic:
     def test_add_list_to_masked_array_boolean(self):
         # GH#22962
         ser = Series([True, None, False], dtype="boolean")
-        result = ser + [True, None, True]
+        with tm.assert_produces_warning(UserWarning):
+            result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        result = [True, None, True] + ser
+        with tm.assert_produces_warning(UserWarning):
+            result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 
