@@ -3,6 +3,8 @@ import pytest
 
 from pandas.errors import SettingWithCopyWarning
 
+from pandas.core.dtypes.common import is_float_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -11,13 +13,47 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
+
+@pytest.fixture(params=["numpy", "nullable"])
+def backend(request):
+    if request.param == "numpy":
+
+        def make_dataframe(*args, **kwargs):
+            return DataFrame(*args, **kwargs)
+
+        def make_series(*args, **kwargs):
+            return Series(*args, **kwargs)
+
+    elif request.param == "nullable":
+
+        def make_dataframe(*args, **kwargs):
+            df = DataFrame(*args, **kwargs)
+            df_nullable = df.convert_dtypes()
+            # convert_dtypes will try to cast float to int if there is no loss in
+            # precision -> undo that change
+            for col in df.columns:
+                if is_float_dtype(df[col].dtype) and not is_float_dtype(
+                    df_nullable[col].dtype
+                ):
+                    df_nullable[col] = df_nullable[col].astype("Float64")
+            # copy final result to ensure we start with a fully self-owning DataFrame
+            return df_nullable.copy()
+
+        def make_series(*args, **kwargs):
+            ser = Series(*args, **kwargs)
+            return ser.convert_dtypes().copy()
+
+    return request.param, make_dataframe, make_series
+
+
 # -----------------------------------------------------------------------------
 # Indexing operations taking subset + modifying the subset/parent
 
 
-def test_subset_column_selection(using_copy_on_write):
+def test_subset_column_selection(backend, using_copy_on_write):
     # Case: taking a subset of the columns of a DataFrame
     # + afterwards modifying the subset
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -42,12 +78,14 @@ def test_subset_column_selection(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_column_selection_modify_parent(using_copy_on_write):
+def test_subset_column_selection_modify_parent(backend, using_copy_on_write):
     # Case: taking a subset of the columns of a DataFrame
     # + afterwards modifying the parent
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
 
     subset = df[["a", "c"]]
+
     if using_copy_on_write:
         # the subset shares memory ...
         assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
@@ -63,9 +101,10 @@ def test_subset_column_selection_modify_parent(using_copy_on_write):
     tm.assert_frame_equal(subset, expected)
 
 
-def test_subset_row_slice(using_copy_on_write):
+def test_subset_row_slice(backend, using_copy_on_write):
     # Case: taking a subset of the rows of a DataFrame using a slice
     # + afterwards modifying the subset
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -100,10 +139,13 @@ def test_subset_row_slice(using_copy_on_write):
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
+def test_subset_column_slice(backend, using_copy_on_write, using_array_manager, dtype):
     # Case: taking a subset of the columns of a DataFrame using a slice
     # + afterwards modifying the subset
-    single_block = (dtype == "int64") and not using_array_manager
+    dtype_backend, DataFrame, _ = backend
+    single_block = (
+        dtype == "int64" and dtype_backend == "numpy"
+    ) and not using_array_manager
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -150,7 +192,12 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     ids=["slice", "mask", "array"],
 )
 def test_subset_loc_rows_columns(
-    dtype, row_indexer, column_indexer, using_array_manager, using_copy_on_write
+    backend,
+    dtype,
+    row_indexer,
+    column_indexer,
+    using_array_manager,
+    using_copy_on_write,
 ):
     # Case: taking a subset of the rows+columns of a DataFrame using .loc
     # + afterwards modifying the subset
@@ -158,6 +205,7 @@ def test_subset_loc_rows_columns(
     # of those could actually return a view / need CoW (so this test is not
     # checking memory sharing, only ensuring subsequent mutation doesn't
     # affect the parent dataframe)
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -177,7 +225,14 @@ def test_subset_loc_rows_columns(
     if (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (using_array_manager or (dtype == "int64" and not using_copy_on_write))
+        and (
+            using_array_manager
+            or (
+                dtype == "int64"
+                and dtype_backend == "numpy"
+                and not using_copy_on_write
+            )
+        )
     ):
         df_orig.iloc[1, 1] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -197,7 +252,12 @@ def test_subset_loc_rows_columns(
     ids=["slice", "mask", "array"],
 )
 def test_subset_iloc_rows_columns(
-    dtype, row_indexer, column_indexer, using_array_manager, using_copy_on_write
+    backend,
+    dtype,
+    row_indexer,
+    column_indexer,
+    using_array_manager,
+    using_copy_on_write,
 ):
     # Case: taking a subset of the rows+columns of a DataFrame using .iloc
     # + afterwards modifying the subset
@@ -205,6 +265,7 @@ def test_subset_iloc_rows_columns(
     # of those could actually return a view / need CoW (so this test is not
     # checking memory sharing, only ensuring subsequent mutation doesn't
     # affect the parent dataframe)
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -224,7 +285,14 @@ def test_subset_iloc_rows_columns(
     if (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (using_array_manager or (dtype == "int64" and not using_copy_on_write))
+        and (
+            using_array_manager
+            or (
+                dtype == "int64"
+                and dtype_backend == "numpy"
+                and not using_copy_on_write
+            )
+        )
     ):
         df_orig.iloc[1, 1] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -235,9 +303,10 @@ def test_subset_iloc_rows_columns(
     [slice(0, 2), np.array([True, True, False]), np.array([0, 1])],
     ids=["slice", "mask", "array"],
 )
-def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
+def test_subset_set_with_row_indexer(backend, indexer_si, indexer, using_copy_on_write):
     # Case: setting values with a row indexer on a viewing subset
     # subset[indexer] = value and subset.iloc[indexer] = value
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
     df_orig = df.copy()
     subset = df[1:4]
@@ -271,8 +340,9 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_with_mask(using_copy_on_write):
+def test_subset_set_with_mask(backend, using_copy_on_write):
     # Case: setting values with a mask on a viewing subset: subset[mask] = value
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
     df_orig = df.copy()
     subset = df[1:4]
@@ -300,18 +370,24 @@ def test_subset_set_with_mask(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column(using_copy_on_write):
+def test_subset_set_column(backend, using_copy_on_write):
     # Case: setting a single column on a viewing subset -> subset[col] = value
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     subset = df[1:3]
 
+    if dtype_backend == "numpy":
+        arr = np.array([10, 11], dtype="int64")
+    else:
+        arr = pd.array([10, 11], dtype="Int64")
+
     if using_copy_on_write:
-        subset["a"] = np.array([10, 11], dtype="int64")
+        subset["a"] = arr
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset["a"] = np.array([10, 11], dtype="int64")
+                subset["a"] = arr
 
     subset._mgr._verify_integrity()
     expected = DataFrame(
@@ -324,9 +400,12 @@ def test_subset_set_column(using_copy_on_write):
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dtype):
+def test_subset_set_column_with_loc(
+    backend, using_copy_on_write, using_array_manager, dtype
+):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
+    _, DataFrame, _ = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -358,11 +437,12 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
+def test_subset_set_column_with_loc2(backend, using_copy_on_write, using_array_manager):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
     # separate test for case of DataFrame of a single column -> takes a separate
     # code path
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     subset = df[1:3]
@@ -392,9 +472,10 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_set_columns(using_copy_on_write, dtype):
+def test_subset_set_columns(backend, using_copy_on_write, dtype):
     # Case: setting multiple columns on a viewing subset
     # -> subset[[col1, col2]] = value
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -413,6 +494,12 @@ def test_subset_set_columns(using_copy_on_write, dtype):
         # first and third column should certainly have no references anymore
         assert all(subset._mgr._has_no_reference(i) for i in [0, 2])
     expected = DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
+    if dtype_backend == "nullable":
+        # there is not yet a global option, so overriding a column by setting a scalar
+        # defaults to numpy dtype even if original column was nullable
+        expected["a"] = expected["a"].astype("int64")
+        expected["c"] = expected["c"].astype("int64")
+
     tm.assert_frame_equal(subset, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -422,11 +509,10 @@ def test_subset_set_columns(using_copy_on_write, dtype):
     [slice("a", "b"), np.array([True, True, False]), ["a", "b"]],
     ids=["slice", "mask", "array"],
 )
-def test_subset_set_with_column_indexer(
-    indexer, using_copy_on_write, using_array_manager
-):
+def test_subset_set_with_column_indexer(backend, indexer, using_copy_on_write):
     # Case: setting multiple columns with a column indexer on a viewing subset
     # -> subset.loc[:, [col1, col2]] = value
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": [4, 5, 6]})
     df_orig = df.copy()
     subset = df[1:3]
@@ -475,10 +561,11 @@ def test_subset_set_with_column_indexer(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
 def test_subset_chained_getitem(
-    request, method, dtype, using_copy_on_write, using_array_manager
+    request, backend, method, dtype, using_copy_on_write, using_array_manager
 ):
     # Case: creating a subset using multiple, chained getitem calls using views
     # still needs to guarantee proper CoW behaviour
+    _, DataFrame, _ = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -486,14 +573,18 @@ def test_subset_chained_getitem(
 
     # when not using CoW, it depends on whether we have a single block or not
     # and whether we are slicing the columns -> in that case we have a view
-    subset_is_view = request.node.callspec.id in (
-        "single-block-column-iloc-slice",
-        "single-block-column-loc-slice",
-    ) or (
-        request.node.callspec.id
-        in ("mixed-block-column-iloc-slice", "mixed-block-column-loc-slice")
-        and using_array_manager
-    )
+    test_callspec = request.node.callspec.id
+    if not using_array_manager:
+        subset_is_view = test_callspec in (
+            "numpy-single-block-column-iloc-slice",
+            "numpy-single-block-column-loc-slice",
+        )
+    else:
+        # with ArrayManager, it doesn't matter whether we have
+        # single vs mixed block or numpy vs nullable dtypes
+        subset_is_view = test_callspec.endswith(
+            "column-iloc-slice"
+        ) or test_callspec.endswith("column-loc-slice")
 
     # modify subset -> don't modify parent
     subset = method(df)
@@ -516,9 +607,10 @@ def test_subset_chained_getitem(
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_chained_getitem_column(dtype, using_copy_on_write):
+def test_subset_chained_getitem_column(backend, dtype, using_copy_on_write):
     # Case: creating a subset using multiple, chained getitem calls using views
     # still needs to guarantee proper CoW behaviour
+    _, DataFrame, Series = backend
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -558,9 +650,10 @@ def test_subset_chained_getitem_column(dtype, using_copy_on_write):
     ],
     ids=["getitem", "iloc", "loc", "long-chain"],
 )
-def test_subset_chained_getitem_series(method, using_copy_on_write):
+def test_subset_chained_getitem_series(backend, method, using_copy_on_write):
     # Case: creating a subset using multiple, chained getitem calls using views
     # still needs to guarantee proper CoW behaviour
+    _, _, Series = backend
     s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
 
@@ -583,6 +676,7 @@ def test_subset_chained_getitem_series(method, using_copy_on_write):
 
 
 def test_subset_chained_single_block_row(using_copy_on_write, using_array_manager):
+    # not parametrizing this for dtype backend, since this explicitly tests single block
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
 
@@ -615,9 +709,10 @@ def test_subset_chained_single_block_row(using_copy_on_write, using_array_manage
     ],
     ids=["getitem", "loc", "loc-rows", "iloc", "iloc-rows"],
 )
-def test_null_slice(request, method, using_copy_on_write):
+def test_null_slice(backend, method, using_copy_on_write):
     # Case: also all variants of indexing with a null slice (:) should return
     # new objects to ensure we correctly use CoW for the results
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
 
@@ -643,7 +738,8 @@ def test_null_slice(request, method, using_copy_on_write):
     ],
     ids=["getitem", "loc", "iloc"],
 )
-def test_null_slice_series(request, method, using_copy_on_write):
+def test_null_slice_series(backend, method, using_copy_on_write):
+    _, _, Series = backend
     s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
 
@@ -667,18 +763,19 @@ def test_null_slice_series(request, method, using_copy_on_write):
 # Series -- Indexing operations taking subset + modifying the subset/parent
 
 
-def test_series_getitem_slice(using_copy_on_write):
+def test_series_getitem_slice(backend, using_copy_on_write):
     # Case: taking a slice of a Series + afterwards modifying the subset
+    _, _, Series = backend
     s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
 
     subset = s[:]
-    assert np.shares_memory(subset.values, s.values)
+    assert np.shares_memory(get_array(subset), get_array(s))
 
     subset.iloc[0] = 0
 
     if using_copy_on_write:
-        assert not np.shares_memory(subset.values, s.values)
+        assert not np.shares_memory(get_array(subset), get_array(s))
 
     expected = Series([0, 2, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
@@ -696,8 +793,11 @@ def test_series_getitem_slice(using_copy_on_write):
     [slice(0, 2), np.array([True, True, False]), np.array([0, 1])],
     ids=["slice", "mask", "array"],
 )
-def test_series_subset_set_with_indexer(indexer_si, indexer, using_copy_on_write):
+def test_series_subset_set_with_indexer(
+    backend, indexer_si, indexer, using_copy_on_write
+):
     # Case: setting values in a viewing Series with an indexer
+    _, _, Series = backend
     s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
     subset = s[:]
@@ -716,9 +816,10 @@ def test_series_subset_set_with_indexer(indexer_si, indexer, using_copy_on_write
 # del operator
 
 
-def test_del_frame(using_copy_on_write):
+def test_del_frame(backend, using_copy_on_write):
     # Case: deleting a column with `del` on a viewing child dataframe should
     # not modify parent + update the references
+    _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df[:]
@@ -743,16 +844,17 @@ def test_del_frame(using_copy_on_write):
         assert df.loc[0, "a"] == 100
 
 
-def test_del_series():
+def test_del_series(backend):
+    _, _, Series = backend
     s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
     s2 = s[:]
 
-    assert np.shares_memory(s.values, s2.values)
+    assert np.shares_memory(get_array(s), get_array(s2))
 
     del s2["a"]
 
-    assert not np.shares_memory(s.values, s2.values)
+    assert not np.shares_memory(get_array(s), get_array(s2))
     tm.assert_series_equal(s, s_orig)
     tm.assert_series_equal(s2, s_orig[["b", "c"]])
 
@@ -766,20 +868,22 @@ def test_del_series():
 # Accessing column as Series
 
 
-def test_column_as_series(using_copy_on_write, using_array_manager):
+def test_column_as_series(backend, using_copy_on_write, using_array_manager):
     # Case: selecting a single column now also uses Copy-on-Write
+    dtype_backend, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     s = df["a"]
 
-    assert np.shares_memory(s.values, get_array(df, "a"))
+    assert np.shares_memory(get_array(s, "a"), get_array(df, "a"))
 
     if using_copy_on_write or using_array_manager:
         s[0] = 0
     else:
+        warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
+            with tm.assert_produces_warning(warn):
                 s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
@@ -794,22 +898,30 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manager):
+def test_column_as_series_set_with_upcast(
+    backend, using_copy_on_write, using_array_manager
+):
     # Case: selecting a single column now also uses Copy-on-Write -> when
     # setting a value causes an upcast, we don't need to update the parent
     # DataFrame through the cache mechanism
+    dtype_backend, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     s = df["a"]
-    if using_copy_on_write or using_array_manager:
+    if dtype_backend == "nullable":
+        with pytest.raises(TypeError, match="Invalid value"):
+            s[0] = "foo"
+        expected = Series([1, 2, 3], name="a")
+    elif using_copy_on_write or using_array_manager:
         s[0] = "foo"
+        expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = "foo"
+        expected = Series(["foo", 2, 3], dtype=object, name="a")
 
-    expected = Series(["foo", 2, 3], dtype=object, name="a")
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
@@ -830,17 +942,18 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
     ids=["getitem", "loc", "iloc"],
 )
 def test_column_as_series_no_item_cache(
-    request, method, using_copy_on_write, using_array_manager
+    request, backend, method, using_copy_on_write, using_array_manager
 ):
     # Case: selecting a single column (which now also uses Copy-on-Write to protect
     # the view) should always give a new object (i.e. not make use of a cache)
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     s1 = method(df)
     s2 = method(df)
 
-    is_iloc = request.node.callspec.id == "iloc"
+    is_iloc = "iloc" in request.node.name
     if using_copy_on_write or is_iloc:
         assert s1 is not s2
     else:
@@ -849,8 +962,9 @@ def test_column_as_series_no_item_cache(
     if using_copy_on_write or using_array_manager:
         s1.iloc[0] = 0
     else:
+        warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
+            with tm.assert_produces_warning(warn):
                 s1.iloc[0] = 0
 
     if using_copy_on_write:
@@ -863,11 +977,12 @@ def test_column_as_series_no_item_cache(
 # TODO add tests for other indexing methods on the Series
 
 
-def test_dataframe_add_column_from_series():
+def test_dataframe_add_column_from_series(backend):
     # Case: adding a new column to a DataFrame from an existing column/series
     # -> always already takes a copy on assignment
     # (no change in behaviour here)
     # TODO can we achieve the same behaviour with Copy-on-Write?
+    _, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
 
     s = Series([10, 11, 12])

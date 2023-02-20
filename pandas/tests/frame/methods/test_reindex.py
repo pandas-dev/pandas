@@ -133,7 +133,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
-    def test_reindex_copies_ea(self):
+    def test_reindex_copies_ea(self, using_copy_on_write):
         # https://github.com/pandas-dev/pandas/pull/51197
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
@@ -142,7 +142,10 @@ class TestDataFrameSelectReindex:
         np.random.shuffle(cols)
 
         result = df.reindex(columns=cols, copy=True)
-        assert not np.shares_memory(result[0].array._data, df[0].array._data)
+        if using_copy_on_write:
+            assert np.shares_memory(result[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result[0].array._data, df[0].array._data)
 
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
