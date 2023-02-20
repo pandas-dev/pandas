@@ -55,7 +55,7 @@ cdef extern from "numpy/ndarraytypes.h":
     int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
 
 
-cdef extern from "src/datetime/np_datetime.h":
+cdef extern from "src/datetime/pd_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
@@ -68,12 +68,16 @@ cdef extern from "src/datetime/np_datetime.h":
                                              pandas_timedeltastruct *result
                                              ) nogil
 
-cdef extern from "src/datetime/pd_datetime.h":
     void PandasDateTime_IMPORT()
 
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
+
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
 
 # You must call this before using the PandasDateTime CAPI functions
 cdef inline void import_pandas_datetime():
@@ -133,8 +137,3 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1
 
-cdef extern from "src/datetime/np_datetime_strings.h":
-    ctypedef enum FormatRequirement:
-        PARTIAL_MATCH
-        EXACT_MATCH
-        INFER_FORMAT

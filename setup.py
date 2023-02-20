@@ -122,8 +122,6 @@ class CleanCommand(Command):
         ujson_python = pjoin(base, "ujson", "python")
         ujson_lib = pjoin(base, "ujson", "lib")
         self._clean_exclude = [
-            pjoin(dt, "np_datetime.c"),
-            pjoin(dt, "np_datetime_strings.c"),
             pjoin(parser, "tokenizer.c"),
             pjoin(parser, "io.c"),
             pjoin(ujson_python, "ujson.c"),
@@ -338,7 +336,7 @@ else:
     if os.environ.get("PANDAS_CI", "0") == "1":
         extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
-        extra_compile_args.append("-g")
+        extra_compile_args.append("-g3")
         extra_compile_args.append("-UNDEBUG")
         extra_compile_args.append("-O0")
 
@@ -436,8 +434,7 @@ lib_depends = ["pandas/_libs/src/parse_helper.h"]
 klib_include = ["pandas/_libs/src/klib"]
 
 tseries_depends = [
-    "pandas/_libs/tslibs/src/datetime/np_datetime.h",
-    "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
+    "pandas/_libs/tslibs/src/datetime/pd_datetime.h",
 ]
 
 ext_data = {
@@ -498,7 +495,6 @@ ext_data = {
     "_libs.tslib": {
         "pyxfile": "_libs/tslib",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
@@ -506,26 +502,19 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
         "depends": tseries_depends,
-        "sources": [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-        ],
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
@@ -536,33 +525,27 @@ ext_data = {
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.vectorized": {
         "pyxfile": "_libs/tslibs/vectorized",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
@@ -628,26 +611,21 @@ ujson_ext = Extension(
     "pandas._libs.json",
     depends=[
         "pandas/_libs/src/ujson/lib/ultrajson.h",
-        "pandas/_libs/src/ujson/python/date_conversions.h",
+        "pandas/_libs/tslibs/src/datetime/pd_datetime.h",
     ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
             "pandas/_libs/src/ujson/python/objToJSON.c",
-            "pandas/_libs/src/ujson/python/date_conversions.c",
             "pandas/_libs/src/ujson/python/JSONtoObj.c",
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
-        ]
-        + [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
         ]
     ),
     include_dirs=[
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
-        "pandas/_libs/src/datetime",
+        "pandas/_libs/tslibs/src/datetime",
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),
