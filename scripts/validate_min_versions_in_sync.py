@@ -52,7 +52,6 @@ import _optional
 
 def pin_min_versions_to_ci_deps():
     all_yaml_files = list(YAML_PATH.iterdir())
-    all_yaml_files = list()
     all_yaml_files.append(ENV_PATH)
     toml_dependencies = {}
     with open(SETUP_PATH, "rb") as toml_f:
@@ -103,25 +102,17 @@ def get_operator_from(dependency) -> str:
 def get_yaml_map_from(yaml_dic) -> dict[str, str]:
     yaml_map = {}
     for dependency in yaml_dic:
-        if type(dependency) == dict:
+        if type(dependency) == dict or dependency in EXCLUSION_LIST:
             continue
         search_text = str(dependency)
         operator = get_operator_from(search_text)
-        if dependency in EXCLUSION_LIST:
-            continue
         if "," in dependency:
             yaml_dependency, yaml_version1 = search_text.split(",")
             operator = get_operator_from(yaml_dependency)
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
-        elif (
-            operator == ">="
-            or operator == "<="
-            or operator == ">"
-            or operator == "<"
-            or operator == "="
-        ):
+        elif operator is not None:
             yaml_package, yaml_version = search_text.split(operator)
             yaml_version = operator + yaml_version
             yaml_map[yaml_package] = [yaml_version]
@@ -137,39 +128,43 @@ def clean_version_list(yaml_versions, toml_version):
         operator = get_operator_from(yaml_version)
         if "<=" in operator or ">=" in operator:
             yaml_version = yaml_version[2:]
-        elif "<" in operator or ">" in operator or "=" in operator:
+        else:
             yaml_version = yaml_version[1:]
         yaml_version = version.parse(yaml_version)
         if yaml_version < toml_version:
             yaml_versions[i] = "-" + str(yaml_version)
         elif yaml_version >= toml_version:
-            if ">" in operator or "=" in operator:
+            if ">" in operator:
                 yaml_versions[i] = "-" + str(yaml_version)
     return yaml_versions
 
 
 def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
     data = yaml_file_data
-    for yaml_pkg, yaml_versions in yaml_map.items():
-        old_dep = yaml_pkg
+    for yaml_package, yaml_versions in yaml_map.items():
+        old_dep = yaml_package
         if yaml_versions is not None:
             for yaml_version in yaml_versions:
                 old_dep += yaml_version + ", "
             old_dep = old_dep[:-2]
-        if yaml_pkg in toml_map:
-            min_dep = toml_map[yaml_pkg]
+        if yaml_package in toml_map:
+            cleaned_yaml_versions = []
+            min_dep = toml_map[yaml_package]
             if yaml_versions is None:
                 new_dep = old_dep + ">=" + min_dep
                 data = data.replace(old_dep, new_dep, 1)
                 continue
             toml_version = version.parse(min_dep)
             yaml_versions = clean_version_list(yaml_versions, toml_version)
-            cleaned_yaml_versions = []
             [cleaned_yaml_versions.append(x) for x in yaml_versions if "-" not in x]
-            new_dep = yaml_pkg
+            new_dep = yaml_package
             for yaml_version in cleaned_yaml_versions:
                 new_dep += yaml_version + ", "
-            new_dep += ">=" + min_dep
+            operator = get_operator_from(new_dep)
+            if operator != "=":
+                new_dep += ">=" + min_dep
+            else:
+                new_dep = new_dep[:-2]
             data = data.replace(old_dep, new_dep)
     return data
 

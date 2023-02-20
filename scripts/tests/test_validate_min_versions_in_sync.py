@@ -75,18 +75,9 @@ def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml):
         yaml_dependencies = yaml_file["dependencies"]
         yaml_map = get_yaml_map_from(yaml_dependencies)
         toml_map = get_toml_map_from(toml_map)
-        print("SOURCE", yaml_file_data)
         result_yaml_file = pin_min_versions_to_yaml_file(
             yaml_map, toml_map, yaml_file_data
         )
-        print("RESULT", result_yaml_file)
     with open(expected_yaml) as yaml_f:
         dummy_yaml_expected_file_1 = yaml_f.read()
     assert result_yaml_file == dummy_yaml_expected_file_1
-
-
-test_pin_min_versions_to_yaml_file(
-    pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-    pathlib.Path("scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_1.yaml"),
-    pathlib.Path("scripts/tests/dummy_test_files/dummy_yaml_expected_file_1.yaml"),
-)
