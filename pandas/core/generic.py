@@ -5866,9 +5866,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the {klass}.
-        args : iterable, optional
+        *args : iterable, optional
             Positional arguments passed into ``func``.
-        kwargs : mapping, optional
+        **kwargs : mapping, optional
             A dictionary of keyword arguments passed into ``func``.
 
         Returns
@@ -5893,6 +5893,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
         >>> income = pd.DataFrame(data, columns=['Salary', 'Others'])
+        >>> income
            Salary  Others
         0    8000  1000.0
         1    9500     NaN
@@ -5911,16 +5912,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Instead of writing
 
         >>> (national_insurance(state_tax(federal_tax(income), rate=0.12),
-        ...                    rate=0.05,
-        ...                    rate_increase=0.02)
-        ... )# doctest: +SKIP
+        ...                     rate=0.05,
+        ...                     rate_increase=0.02))  # doctest: +SKIP
 
         You can write
 
         >>> (income.pipe(federal_tax)
-        ...    .pipe(state_tax, rate=0.12)
-        ...    .pipe(national_insurance, rate=0.05, rate_increase=0.02)
-        ... )  # doctest: +SKIP
+        ...        .pipe(state_tax, rate=0.12)
+        ...        .pipe(national_insurance, rate=0.05, rate_increase=0.02))
             Salary   Others
         0  5892.48   736.56
         1  6997.32      NaN
@@ -5935,9 +5934,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     new_rate = rate + rate_increase
         ...     return income * (1 - new_rate)
         >>> (income.pipe(federal_tax)
-        ...    .pipe(state_tax, rate=0.12)
-        ...    .pipe((national_insurance, 'income'), rate=0.05, rate_increase=0.02)
-        ...  )  # doctest: +SKIP
+        ...        .pipe(state_tax, rate=0.12)
+        ...        .pipe((national_insurance, 'income'), rate=0.05, rate_increase=0.02))
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
         """
         if using_copy_on_write():
             return common.pipe(self.copy(deep=None), func, *args, **kwargs)
