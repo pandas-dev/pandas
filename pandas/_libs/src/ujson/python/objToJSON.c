@@ -1980,7 +1980,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     PandasDateTime_IMPORT;
     if (PandasDateTimeAPI == NULL) {
         return NULL;
-    }    
+    }
 
     static char *kwlist[] = {"obj",
                              "ensure_ascii",

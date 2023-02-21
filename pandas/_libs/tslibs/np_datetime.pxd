@@ -60,6 +60,10 @@ cdef extern from "src/datetime/pd_datetime.h":
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
 
+    void pandas_datetime_to_datetimestruct(npy_datetime val,
+                                           NPY_DATETIMEUNIT fr,
+                                           npy_datetimestruct *result) nogil
+
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) nogil
 
@@ -69,10 +73,6 @@ cdef extern from "src/datetime/pd_datetime.h":
                                              ) nogil
 
     void PandasDateTime_IMPORT()
-
-    void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           NPY_DATETIMEUNIT fr,
-                                           npy_datetimestruct *result) nogil
 
     ctypedef enum FormatRequirement:
         PARTIAL_MATCH
@@ -136,4 +136,3 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
-
