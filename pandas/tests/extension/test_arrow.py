@@ -636,16 +636,6 @@ class TestBaseDtype(base.BaseDtypeTests):
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                 )
             )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
 
         if pa.types.is_string(pa_dtype):
             # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
@@ -659,43 +649,26 @@ class TestBaseDtype(base.BaseDtypeTests):
 
     def test_is_dtype_from_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            assert not type(dtype).is_dtype(dtype.name)
+        else:
+            if pa.types.is_decimal(pa_dtype):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=NotImplementedError,
+                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                    )
+                )
+            super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_is_dtype_from_name(dtype)
-
-    def test_construct_from_string(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
-        ) or pa.types.is_decimal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
                 )
             )
         super().test_construct_from_string(dtype)
