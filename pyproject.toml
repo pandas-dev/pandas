@@ -399,7 +399,7 @@ filterwarnings = [
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:unclosed <ssl.SSLSocket:ResourceWarning",
+  "ignore:.*ssl.SSLSocket:ResourceWarning",
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
