@@ -301,6 +301,20 @@ class IndexOpsMixin(OpsMixin):
         transpose,
         doc="""
         Return the transpose, which is by definition self.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.T
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
         """,
     )
 
@@ -325,6 +339,17 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.ndim
+        1
         """
         return 1
 
@@ -351,6 +376,17 @@ class IndexOpsMixin(OpsMixin):
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.nbytes
+        24
         """
         return self._values.nbytes
 
@@ -358,6 +394,17 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.size
+        3
         """
         return len(self._values)
 
