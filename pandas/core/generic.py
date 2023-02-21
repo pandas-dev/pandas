@@ -11815,7 +11815,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how=how, is_valid=~isna(self._values))
+        idxpos = find_valid_index(how=how, is_valid=~isna(self).values)
         if idxpos is None:
             return None
         return self.index[idxpos]
