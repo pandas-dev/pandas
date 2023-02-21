@@ -14,7 +14,6 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
-import os
 import pathlib
 import sys
 
@@ -52,6 +51,11 @@ import _optional
 
 
 def pin_min_versions_to_ci_deps():
+    """
+    Pin minimum versions to CI dependencies.
+
+    Pip dependencies are not pinned.
+    """
     all_yaml_files = list(YAML_PATH.iterdir())
     all_yaml_files.append(ENV_PATH)
     toml_dependencies = {}
@@ -62,17 +66,12 @@ def pin_min_versions_to_ci_deps():
             yaml_file_data = yaml_f.read()
             yaml_file = yaml.safe_load(yaml_file_data)
             yaml_dependencies = yaml_file["dependencies"]
-            res = []
-            [res.append(x) for x in yaml_dependencies if x not in res]
-            yaml_dependencies = res
             yaml_map = get_yaml_map_from(yaml_dependencies)
             toml_map = get_toml_map_from(toml_dependencies)
-            yaml_file_data = pin_min_versions_to_yaml_file(
-                yaml_map, toml_map, yaml_file_data
-            )
-            os.remove(curr_file)
             with open(curr_file, "w") as f:
-                f.write(yaml_file_data)
+                f.write(
+                    pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data)
+                )
 
 
 def get_toml_map_from(toml_dic) -> dict[str, str]:
@@ -103,7 +102,11 @@ def get_operator_from(dependency) -> str:
 def get_yaml_map_from(yaml_dic) -> dict[str, str]:
     yaml_map = {}
     for dependency in yaml_dic:
-        if type(dependency) == dict or dependency in EXCLUSION_LIST:
+        if (
+            isinstance(dependency, dict)
+            or dependency in EXCLUSION_LIST
+            or dependency in yaml_map
+        ):
             continue
         search_text = str(dependency)
         operator = get_operator_from(search_text)
@@ -124,7 +127,7 @@ def get_yaml_map_from(yaml_dic) -> dict[str, str]:
 
 
 def clean_version_list(yaml_versions, toml_version):
-    for i in range(len(yaml_versions)):
+    for i, _ in enumerate(yaml_versions):
         yaml_version = yaml_versions[i]
         operator = get_operator_from(yaml_version)
         if "<=" in operator or ">=" in operator:
@@ -151,7 +154,6 @@ def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
                 old_dep += yaml_version + ", "
             old_dep = old_dep[:-2]
         if yaml_package in toml_map:
-            cleaned_yaml_versions = []
             min_dep = toml_map[yaml_package]
             if yaml_versions is None:
                 new_dep = old_dep + ">=" + min_dep
@@ -159,7 +161,7 @@ def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
                 continue
             toml_version = version.parse(min_dep)
             yaml_versions = clean_version_list(yaml_versions, toml_version)
-            [cleaned_yaml_versions.append(x) for x in yaml_versions if "-" not in x]
+            cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
             new_dep = yaml_package
             for yaml_version in cleaned_yaml_versions:
                 new_dep += yaml_version + ", "
