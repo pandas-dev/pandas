@@ -116,7 +116,6 @@ class CleanCommand(Command):
 
         base = pjoin("pandas", "_libs", "src")
         tsbase = pjoin("pandas", "_libs", "tslibs", "src")
-        dt = pjoin(tsbase, "datetime")
         util = pjoin("pandas", "util")
         parser = pjoin(base, "parser")
         ujson_python = pjoin(base, "ujson", "python")
@@ -633,7 +632,8 @@ ujson_ext = Extension(
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
         numpy.get_include(),
-    ] + tseries_includes,
+    ]
+    + tseries_includes,
     extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
@@ -650,7 +650,8 @@ pd_dt_ext = Extension(
     "pandas._libs.pandas_datetime",
     depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
     sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
-    include_dirs=tseries_includes + [
+    include_dirs=tseries_includes
+    + [
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),

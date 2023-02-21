@@ -29,9 +29,9 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
-    import_pandas_datetime,
 )
 
 import_pandas_datetime()
