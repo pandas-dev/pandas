@@ -7999,10 +7999,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if inplace:
             if upper is not None:
-                cond = self <= upper
+                cond = self > upper
                 mgr = mgr.putmask(mask=cond, new=upper, align=False)
             if lower is not None:
-                cond = self >= lower
+                cond = self < lower
                 mgr = mgr.putmask(mask=cond, new=lower, align=False)
         else:
             mask = isna(self)
