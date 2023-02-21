@@ -19,7 +19,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
-    Iterable,
     Iterator,
     List,
     Literal,
@@ -991,12 +990,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     # -----------------------------------------------------------------
-    # Selection
-
-    def _iterate_slices(self) -> Iterable[Series]:
-        raise AbstractMethodError(self)
-
-    # -----------------------------------------------------------------
     # Dispatch/Wrapping
 
     @final
@@ -1398,7 +1391,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self.grouper.apply(f, data, self.axis)
+        values, mutated = self.grouper.apply_groupwise(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
@@ -2462,7 +2455,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Open, high, low and close values within each group.
         """
         if self.obj.ndim == 1:
-            # self._iterate_slices() yields only self._selected_obj
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -2479,12 +2471,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        result = self._apply_to_column_groupbys(
-            lambda x: x.ohlc(), self._obj_with_exclusions
-        )
-        if not self.as_index:
-            result = self._insert_inaxis_grouper(result)
-            result.index = default_index(len(result))
+        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
         return result
 
     @doc(DataFrame.describe)
