@@ -279,7 +279,7 @@ def assert_index_equal(
         right = safe_sort_index(right)
 
     # MultiIndex special comparison for little-friendly error messages
-    if left.nlevels > 1:
+    if isinstance(left, MultiIndex):
         left = cast(MultiIndex, left)
         right = cast(MultiIndex, right)
 
@@ -303,7 +303,7 @@ def assert_index_equal(
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
     # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    elif check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
 
