@@ -3911,6 +3911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         else:
             warnings.warn(
+                # GH#51539
                 "Passing a slice to {type(self).__name__}.take is deprecated "
                 "and will raise in a future version. Use `obj[slicer]` or pass "
                 "a sequence of integers instead.",

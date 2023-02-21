@@ -5,6 +5,7 @@ import pandas._testing as tm
 
 class TestDataFrameTake:
     def test_take_slices_deprecated(self, float_frame):
+        # GH#51539
         df = float_frame
 
         slc = slice(0, 4, 1)
