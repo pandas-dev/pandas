@@ -10,7 +10,10 @@ import locale
 import time
 import unicodedata
 
-from dateutil.tz import tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import numpy as np
 import pytest
 import pytz
@@ -23,6 +26,7 @@ from pandas._libs.tslibs.timezones import (
     maybe_get_tz,
     tz_compare,
 )
+from pandas.compat import IS64
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -152,6 +156,11 @@ class TestTimestampProperties:
 
     def test_is_leap_year(self, tz_naive_fixture):
         tz = tz_naive_fixture
+        if not IS64 and tz == tzlocal():
+            # https://github.com/dateutil/dateutil/issues/197
+            pytest.skip(
+                "tzlocal() on a 32 bit platform causes internal overflow errors"
+            )
         # GH 13727
         dt = Timestamp("2000-01-01 00:00:00", tz=tz)
         assert dt.is_leap_year
