@@ -280,7 +280,6 @@ def assert_index_equal(
 
     # MultiIndex special comparison for little-friendly error messages
     if isinstance(left, MultiIndex):
-        left = cast(MultiIndex, left)
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
