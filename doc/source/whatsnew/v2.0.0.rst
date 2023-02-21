@@ -818,6 +818,14 @@ Other API changes
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 -
 
+.. note::
+
+    A current PDEP proposes the deprecation and removal of the keywords ``inplace`` and ``copy``
+    for all but a small subset of methods from the pandas API. The current discussion takes place
+    at [here](https://github.com/pandas-dev/pandas/pull/51466). The keywords won't be necessary
+    anymore in the context of Copy-on-Write. If this proposal is accepted, both
+    keywords would be deprecated in the next release of pandas and removed in pandas 3.0.
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.deprecations:
 
@@ -1333,6 +1341,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
+- Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
 
 Period
 ^^^^^^
@@ -1424,6 +1433,7 @@ Metadata
 
 Other
 ^^^^^
+
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 -
