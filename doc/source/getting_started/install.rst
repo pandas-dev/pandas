@@ -230,7 +230,7 @@ installed), make sure you have `pytest
 ::
 
     >>> pd.test()
-    running: pytest --skip-slow --skip-network --skip-db /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
