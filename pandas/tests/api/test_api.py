@@ -181,6 +181,7 @@ class TestPDApi(Base):
         "_config",
         "_libs",
         "_is_numpy_dev",
+        "_pandas_datetime_CAPI",
         "_testing",
         "_typing",
         "_version",

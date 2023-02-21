@@ -2330,7 +2330,7 @@ static int pandas_datetime_exec(PyObject *module) {
     return -1;
   }
 
-  if (PyModule_AddObject(pandas, "pandas_datetime_CAPI", capsule) < 0) {
+  if (PyModule_AddObject(pandas, "_pandas_datetime_CAPI", capsule) < 0) {
     Py_DECREF(capsule);
     // cpython doesn't PyMem_Free(capi) here - mistake or intentional?
     return -1;

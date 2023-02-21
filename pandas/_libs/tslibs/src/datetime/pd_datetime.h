@@ -96,7 +96,7 @@ typedef struct {
 
 // The capsule name appears limited to module.attributename; see bpo-32414
 // cpython has an open PR gh-6898 to fix, but hasn't had traction for years
-#define PandasDateTime_CAPSULE_NAME "pandas.pandas_datetime_CAPI"
+#define PandasDateTime_CAPSULE_NAME "pandas._pandas_datetime_CAPI"
 
 /* block used as part of public API */
 #ifndef _PANDAS_DATETIME_IMPL
