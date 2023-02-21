@@ -8007,11 +8007,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond = mask | (self >= lower)
                 mgr = mgr.where(other=lower, cond=cond, align=False)
 
-        result = self._constructor(mgr).__finalize__(self)
+        result = self._constructor(mgr)
         if inplace:
             return self._update_inplace(result)
         else:
-            return result
+            return result.__finalize__(self)
 
     @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
