@@ -200,7 +200,7 @@ target-version = "py38"
 
 select = [
   # implicit string concatenation
-  "ISC"
+  "ISC",
   # pyflakes
   "F",
   # pycodestyle
