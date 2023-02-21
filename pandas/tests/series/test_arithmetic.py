@@ -32,6 +32,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.computation import expressions as expr
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -352,7 +353,11 @@ class TestSeriesArithmetic:
 
     def test_add_list_to_masked_array_boolean(self, request):
         # GH#22962
-        warning = UserWarning if request.node.callspec.id == "numexpr" else None
+        warning = (
+            UserWarning
+            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            else None
+        )
         ser = Series([True, None, False], dtype="boolean")
         with tm.assert_produces_warning(warning):
             result = ser + [True, None, True]
