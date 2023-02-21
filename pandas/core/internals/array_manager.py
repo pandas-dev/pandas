@@ -169,6 +169,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
+    def add_references(self, mgr: BaseArrayManager) -> None:
+        """
+        Only implemented on the BlockManager level
+        """
+        return
+
     def __getstate__(self):
         return self.arrays, self._axes
 
@@ -624,7 +630,7 @@ class BaseArrayManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
@@ -632,13 +638,10 @@ class BaseArrayManager(DataManager):
         """
         Take items along any axis.
         """
-        axis = self._normalize_axis(axis)
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
-        )
+        axis = self._normalize_axis(axis)
 
         if not indexer.ndim == 1:
             raise ValueError("indexer should be 1-dimensional")
@@ -978,14 +981,10 @@ class ArrayManager(BaseArrayManager):
             # TODO NaT doesn't preserve dtype, so we need to ensure to create
             # a timedelta result array if original was timedelta
             # what if datetime results in timedelta? (eg std)
-            if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
-                result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
-            else:
-                # error: Argument 1 to "append" of "list" has incompatible type
-                # "ExtensionArray"; expected "ndarray"
-                result_arrays.append(
-                    sanitize_array([res], None)  # type: ignore[arg-type]
-                )
+            dtype = arr.dtype if res is NaT else None
+            result_arrays.append(
+                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+            )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items

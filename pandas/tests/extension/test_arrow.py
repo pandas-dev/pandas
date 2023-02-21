@@ -21,6 +21,7 @@ from io import (
     StringIO,
 )
 import pickle
+import re
 
 import numpy as np
 import pytest
@@ -249,13 +250,9 @@ class TestBaseCasting(base.BaseCastingTests):
 class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz) or pa.types.is_string(
-            pa_dtype
-        ):
-            if pa.types.is_string(pa_dtype):
-                reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
-            else:
-                reason = f"pyarrow.type_for_alias cannot infer {pa_dtype}"
+
+        if pa.types.is_string(pa_dtype):
+            reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=reason,
@@ -323,39 +320,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestGetitemTests(base.BaseGetitemTests):
-    def test_getitem_scalar(self, data):
-        # In the base class we expect data.dtype.type; but this (intentionally)
-        #  returns Python scalars or pd.NA
-        pa_type = data._data.type
-        if pa.types.is_integer(pa_type):
-            exp_type = int
-        elif pa.types.is_floating(pa_type):
-            exp_type = float
-        elif pa.types.is_string(pa_type):
-            exp_type = str
-        elif pa.types.is_binary(pa_type):
-            exp_type = bytes
-        elif pa.types.is_boolean(pa_type):
-            exp_type = bool
-        elif pa.types.is_duration(pa_type):
-            exp_type = timedelta
-        elif pa.types.is_timestamp(pa_type):
-            if pa_type.unit == "ns":
-                exp_type = pd.Timestamp
-            else:
-                exp_type = datetime
-        elif pa.types.is_date(pa_type):
-            exp_type = date
-        elif pa.types.is_time(pa_type):
-            exp_type = time
-        else:
-            raise NotImplementedError(data.dtype)
-
-        result = data[0]
-        assert isinstance(result, exp_type), type(result)
-
-        result = pd.Series(data)[0]
-        assert isinstance(result, exp_type), type(result)
+    pass
 
 
 class TestBaseAccumulateTests(base.BaseAccumulateTests):
@@ -410,23 +375,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         if do_skip:
             pytest.skip(
-                "These should *not* work, we test in test_accumulate_series_raises "
-                "that these correctly raise."
+                f"{op_name} should *not* work, we test in "
+                "test_accumulate_series_raises that these correctly raise."
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
-            if request.config.option.skip_slow:
-                # equivalent to marking these cases with @pytest.mark.slow,
-                #  these xfails take a long time to run because pytest
-                #  renders the exception messages even when not showing them
-                pytest.skip("pyarrow xfail slow")
+            # xfailing takes a long time to run because pytest
+            # renders the exception messages even when not showing them
+            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
 
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented",
-                    raises=NotImplementedError,
-                )
-            )
         elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -635,65 +592,24 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 class TestBaseDtype(base.BaseDtypeTests):
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
+
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            msg = r"string\[pyarrow\] should be constructed by StringDtype"
+            with pytest.raises(TypeError, match=msg):
+                dtype.construct_from_string(dtype.name)
+
+            return
+
         super().test_construct_from_string_own_name(dtype)
 
     def test_is_dtype_from_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_is_dtype_from_name(dtype)
-
-    def test_construct_from_string(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_construct_from_string(dtype)
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            assert not type(dtype).is_dtype(dtype.name)
+        else:
+            super().test_is_dtype_from_name(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = r"'another_type' must end with '\[pyarrow\]'"
@@ -783,13 +699,6 @@ class TestBaseParsing(base.BaseParsingTests):
         if pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(raises=TypeError, reason="GH 47534")
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
-                )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
             request.node.add_marker(
@@ -1044,6 +953,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
+        elif opname in ["__add__", "__radd__"] and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            exc = None
         elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             exc = pa.ArrowNotImplementedError
         else:
@@ -1218,9 +1131,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return
 
         if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_binary(pa_dtype)
-            or pa.types.is_string(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
+            pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1295,7 +1206,12 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+        ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
+
+    # but as of GH#50689, timestamptz is supported
+    dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+    expected = ArrowDtype(pa.timestamp("s", "UTC"))
+    assert dtype == expected
 
 
 @pytest.mark.parametrize(
@@ -1370,35 +1286,28 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
-    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
-        pa.types.is_boolean(pa_dtype)
-        and "multi_mode" in request.node.nodeid
-        and pa_version_under9p0
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="https://issues.apache.org/jira/browse/ARROW-17096",
-            )
-        )
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    result = ser.mode(dropna=dropna)
+    result = ser.mode(dropna=True)
     expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_dropna_false_mode_na(data):
+    # GH 50982
+    more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
+    result = more_nans.mode(dropna=False)
+    expected = pd.Series([None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
 
@@ -1518,6 +1427,16 @@ def test_to_numpy_with_defaults(data):
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_int_with_na():
+    # GH51227: ensure to_numpy does not convert int to float
+    data = [1, None]
+    arr = pd.array(data, dtype="int64[pyarrow]")
+    result = arr.to_numpy()
+    expected = np.array([1, pd.NA], dtype=object)
+    assert isinstance(result[0], int)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_setitem_null_slice(data):
     # GH50248
     orig = data.copy()
@@ -1592,6 +1511,342 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+@pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
+def test_str_count(pat):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.count(pat)
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_count_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="count not"):
+        ser.str.count("abc", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, str_func", [["left", "rjust"], ["right", "ljust"], ["both", "center"]]
+)
+def test_str_pad(side, str_func):
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.pad(width=3, side=side, fillchar="x")
+    expected = pd.Series(
+        [getattr("a", str_func)(3, "x"), None], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_pad_invalid_side():
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(ValueError, match="Invalid side: foo"):
+        ser.str.pad(3, "foo", "x")
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, regex, exp",
+    [
+        ["ab", False, None, False, [True, None]],
+        ["Ab", True, None, False, [False, None]],
+        ["ab", False, True, False, [True, True]],
+        ["a[a-z]{1}", False, None, True, [True, None]],
+        ["A[a-z]{1}", True, None, True, [False, None]],
+    ],
+)
+def test_str_contains(pat, case, na, regex, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(pat, case=case, na=na, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_contains_flags_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="contains not"):
+        ser.str.contains("a", flags=1)
+
+
+@pytest.mark.parametrize(
+    "side, pat, na, exp",
+    [
+        ["startswith", "ab", None, [True, None]],
+        ["startswith", "b", False, [False, False]],
+        ["endswith", "b", True, [False, True]],
+        ["endswith", "bc", None, [True, None]],
+    ],
+)
+def test_str_start_ends_with(side, pat, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(pat, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg_name, arg",
+    [["pat", re.compile("b")], ["repl", str], ["case", False], ["flags", 1]],
+)
+def test_str_replace_unsupported(arg_name, arg):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    kwargs = {"pat": "b", "repl": "x", "regex": True}
+    kwargs[arg_name] = arg
+    with pytest.raises(NotImplementedError, match="replace is not supported"):
+        ser.str.replace(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "pat, repl, n, regex, exp",
+    [
+        ["a", "x", -1, False, ["xbxc", None]],
+        ["a", "x", 1, False, ["xbac", None]],
+        ["[a-b]", "x", -1, True, ["xxxc", None]],
+    ],
+)
+def test_str_replace(pat, repl, n, regex, exp):
+    ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(pat, repl, n=n, regex=regex)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_repeat_unsupported():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="repeat is not"):
+        ser.str.repeat([1, 2])
+
+
+@pytest.mark.xfail(
+    pa_version_under7p0,
+    reason="Unsupported for pyarrow < 7",
+    raises=NotImplementedError,
+)
+def test_str_repeat():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.repeat(2)
+    expected = pd.Series(["abcabc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["ab", False, None, [True, None]],
+        ["Ab", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{1}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_match(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    [
+        ["abc", False, None, [True, None]],
+        ["Abc", True, None, [False, None]],
+        ["bc", True, None, [False, None]],
+        ["ab", False, True, [True, True]],
+        ["a[a-z]{2}", False, None, [True, None]],
+        ["A[a-z]{1}", True, None, [False, None]],
+    ],
+)
+def test_str_fullmatch(pat, case, na, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.match(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "sub, start, end, exp, exp_typ",
+    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [2, None], pa.int64()]],
+)
+def test_str_find(sub, start, end, exp, exp_typ):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub, start=start, end=end)
+    expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_notimplemented():
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(NotImplementedError, match="find not implemented"):
+        ser.str.find("ab", start=1)
+
+
+@pytest.mark.parametrize(
+    "i, exp",
+    [
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_get(i, exp):
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.get(i)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    reason="TODO: StringMethods._validate should support Arrow list types",
+    raises=NotImplementedError,
+)
+def test_str_join():
+    ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
+    result = ser.str.join("=")
+    expected = pd.Series(["a=b=c", "1=2=3", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, exp",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [1, 3, 1, ["bc", None]],
+    ],
+)
+def test_str_slice(start, stop, step, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice(start, stop, step)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, repl, exp",
+    [
+        [1, 2, "x", ["axcd", None]],
+        [None, 2, "x", ["xcd", None]],
+        [None, 2, None, ["cd", None]],
+    ],
+)
+def test_str_slice_replace(start, stop, repl, exp):
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.slice_replace(start, stop, repl)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, method, exp",
+    [
+        ["a1c", "isalnum", True],
+        ["!|,", "isalnum", False],
+        ["aaa", "isalpha", True],
+        ["!!!", "isalpha", False],
+        ["٠", "isdecimal", True],
+        ["~!", "isdecimal", False],
+        ["2", "isdigit", True],
+        ["~", "isdigit", False],
+        ["aaa", "islower", True],
+        ["aaA", "islower", False],
+        ["123", "isnumeric", True],
+        ["11I", "isnumeric", False],
+        [" ", "isspace", True],
+        ["", "isspace", False],
+        ["The That", "istitle", True],
+        ["the That", "istitle", False],
+        ["AAA", "isupper", True],
+        ["AAc", "isupper", False],
+    ],
+)
+def test_str_is_functions(value, method, exp):
+    ser = pd.Series([value, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["capitalize", "Abc def"],
+        ["title", "Abc Def"],
+        ["swapcase", "AbC Def"],
+        ["lower", "abc def"],
+        ["upper", "ABC DEF"],
+    ],
+)
+def test_str_transform_functions(method, exp):
+    ser = pd.Series(["aBc dEF", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_len():
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.len()
+    expected = pd.Series([4, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, to_strip, val",
+    [
+        ["strip", None, " abc "],
+        ["strip", "x", "xabcx"],
+        ["lstrip", None, " abc"],
+        ["lstrip", "x", "xabc"],
+        ["rstrip", None, "abc "],
+        ["rstrip", "x", "abcx"],
+    ],
+)
+def test_str_strip(method, to_strip, val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)(to_strip=to_strip)
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", ["abc123", "abc"])
+def test_str_removesuffix(val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.removesuffix("123")
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ["partition", ("abc", False)],
+        ["rpartition", ("abc", False)],
+        ["removeprefix", ("abc",)],
+        ["casefold", ()],
+        ["encode", ("abc",)],
+        ["extract", (r"[ab](\d)",)],
+        ["findall", ("abc",)],
+        ["get_dummies", ()],
+        ["index", ("abc",)],
+        ["rindex", ("abc",)],
+        ["normalize", ("abc",)],
+        ["rfind", ("abc",)],
+        ["split", ()],
+        ["rsplit", ()],
+        ["translate", ("abc",)],
+        ["wrap", ("abc",)],
+    ],
+)
+def test_str_unsupported_methods(method, args):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(
+        NotImplementedError, match=f"str.{method} not supported with pd.ArrowDtype"
+    ):
+        getattr(ser.str, method)(*args)
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
