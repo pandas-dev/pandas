@@ -502,9 +502,7 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
-        # TODO: xstrtod symbol visibility is really murky here
         "include": klib_include,
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
