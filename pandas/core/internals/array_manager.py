@@ -630,7 +630,7 @@ class BaseArrayManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
@@ -638,13 +638,10 @@ class BaseArrayManager(DataManager):
         """
         Take items along any axis.
         """
-        axis = self._normalize_axis(axis)
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
-        )
+        axis = self._normalize_axis(axis)
 
         if not indexer.ndim == 1:
             raise ValueError("indexer should be 1-dimensional")
