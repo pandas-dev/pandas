@@ -22,6 +22,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import config
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -40,7 +42,6 @@ from pandas import (
     option_context,
     read_csv,
     reset_option,
-    set_option,
 )
 import pandas._testing as tm
 
@@ -55,6 +56,17 @@ def get_local_am_pm():
     am_local = time(1).strftime("%p")
     pm_local = time(13).strftime("%p")
     return am_local, pm_local
+
+
+@pytest.fixture(autouse=True)
+def clean_config():
+    curr_deprecated_options = config._deprecated_options.copy()
+    curr_registered_options = config._registered_options.copy()
+    curr_global_config = config._global_config.copy()
+    yield
+    config._deprecated_options = curr_deprecated_options
+    config._registered_options = curr_registered_options
+    config._global_config = curr_global_config
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -234,12 +246,11 @@ class TestDataFrameFormatting:
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
-        width = get_option("display.max_colwidth")
         with pytest.raises(
             ValueError, match="Value must be a nonnegative integer or None"
         ):
-            set_option("display.max_colwidth", -1)
-        set_option("display.max_colwidth", width)
+            with option_context("display.max_colwidth", -1):
+                pass
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
@@ -1113,11 +1124,10 @@ class TestDataFrameFormatting:
 
     def test_frame_info_encoding(self):
         index = ["'Til There Was You (1997)", "ldum klaka (Cold Fever) (1994)"]
-        fmt.set_option("display.max_rows", 1)
-        df = DataFrame(columns=["a", "b", "c"], index=index)
-        repr(df)
-        repr(df.T)
-        fmt.set_option("display.max_rows", 200)
+        with option_context("display.max_rows", 1):
+            df = DataFrame(columns=["a", "b", "c"], index=index)
+            repr(df)
+            repr(df.T)
 
     def test_wide_repr(self):
         with option_context(
@@ -1421,40 +1431,39 @@ class TestDataFrameFormatting:
 
     def test_to_string_float_formatting(self):
         tm.reset_display_options()
-        fmt.set_option(
+        with option_context(
             "display.precision",
             5,
             "display.notebook_repr_html",
             False,
-        )
-
-        df = DataFrame(
-            {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
-        )
-
-        df_s = df.to_string()
-
-        if _three_digit_exp():
-            expected = (
-                "              x\n0  0.00000e+000\n1  2.50000e-001\n"
-                "2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n"
-                "5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n"
-                "8 -1.00000e+006"
+        ):
+            df = DataFrame(
+                {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
             )
-        else:
-            expected = (
-                "             x\n0  0.00000e+00\n1  2.50000e-01\n"
-                "2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n"
-                "5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n"
-                "8 -1.00000e+06"
-            )
-        assert df_s == expected
 
-        df = DataFrame({"x": [3234, 0.253]})
-        df_s = df.to_string()
+            df_s = df.to_string()
 
-        expected = "          x\n0  3234.000\n1     0.253"
-        assert df_s == expected
+            if _three_digit_exp():
+                expected = (
+                    "              x\n0  0.00000e+000\n1  2.50000e-001\n"
+                    "2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n"
+                    "5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n"
+                    "8 -1.00000e+006"
+                )
+            else:
+                expected = (
+                    "             x\n0  0.00000e+00\n1  2.50000e-01\n"
+                    "2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n"
+                    "5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n"
+                    "8 -1.00000e+06"
+                )
+            assert df_s == expected
+
+            df = DataFrame({"x": [3234, 0.253]})
+            df_s = df.to_string()
+
+            expected = "          x\n0  3234.000\n1     0.253"
+            assert df_s == expected
 
         tm.reset_display_options()
         assert get_option("display.precision") == 6
@@ -1746,19 +1755,19 @@ c  10  11  12  13  14\
         df = float_frame
         df._repr_html_()
 
-        fmt.set_option("display.max_rows", 1, "display.max_columns", 1)
-        df._repr_html_()
+        with option_context("display.max_rows", 1, "display.max_columns", 1):
+            df._repr_html_()
 
-        fmt.set_option("display.notebook_repr_html", False)
-        df._repr_html_()
+        with option_context("display.notebook_repr_html", False):
+            df._repr_html_()
 
         tm.reset_display_options()
 
         df = DataFrame([[1, 2], [3, 4]])
-        fmt.set_option("display.show_dimensions", True)
-        assert "2 rows" in df._repr_html_()
-        fmt.set_option("display.show_dimensions", False)
-        assert "2 rows" not in df._repr_html_()
+        with option_context("display.show_dimensions", True):
+            assert "2 rows" in df._repr_html_()
+        with option_context("display.show_dimensions", False):
+            assert "2 rows" not in df._repr_html_()
 
         tm.reset_display_options()
 
@@ -1922,7 +1931,7 @@ c  10  11  12  13  14\
             assert not has_non_verbose_info_repr(df)
 
         # test verbose overrides
-        # fmt.set_option('display.max_info_columns', 4)  # exceeded
+        # set_option('display.max_info_columns', 4)  # exceeded
 
     def test_info_repr_html(self):
         max_rows = 60
@@ -1952,8 +1961,8 @@ c  10  11  12  13  14\
         repstr = df._repr_html_()
         assert repstr is not None
 
-        fmt.set_option("display.max_rows", 5, "display.max_columns", 2)
-        repstr = df._repr_html_()
+        with option_context("display.max_rows", 5, "display.max_columns", 2):
+            repstr = df._repr_html_()
 
         assert "class" in repstr  # info fallback
         tm.reset_display_options()
