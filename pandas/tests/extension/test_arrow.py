@@ -35,7 +35,6 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
-from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
 
@@ -57,10 +56,6 @@ pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:.* may decrease performance. Upgrade to pyarrow >=7 to possibly"
-)
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -293,14 +288,7 @@ class TestConstructors(base.BaseConstructorsTests):
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            if pa_version_under7p0:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=pa.ArrowNotImplementedError,
-                        reason=f"pyarrow doesn't support string cast from {pa_dtype}",
-                    )
-                )
-            elif is_platform_windows() and is_ci_environment():
+            if is_platform_windows() and is_ci_environment():
                 request.node.add_marker(
                     pytest.mark.xfail(
                         raises=pa.ArrowInvalid,
@@ -535,23 +523,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_transform(data_for_grouping)
-
-    def test_groupby_extension_apply(
-        self, data_for_grouping, groupby_apply_op, request
-    ):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        super().test_groupby_extension_transform(data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
@@ -563,12 +535,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_agg(as_index, data_for_grouping)
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
     def test_in_numeric_groupby(self, data_for_grouping):
         if is_string_dtype(data_for_grouping.dtype):
@@ -659,17 +626,7 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    def test_fillna_no_op_returns_copy(self, data):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_fillna_no_op_returns_copy(data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_fillna_series_method(data_missing, fillna_method)
+    pass
 
 
 class TestBasePrinting(base.BasePrintingTests):
@@ -738,12 +695,6 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
-    def test_argsort_missing_array(self, data_missing_for_sorting):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_argsort_missing_array(data_missing_for_sorting)
-
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -758,19 +709,9 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
-    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         super().test_value_counts(all_data, dropna)
-
-    def test_value_counts_with_normalize(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
@@ -803,47 +744,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
-
-    @pytest.mark.parametrize(
-        "na_position, expected",
-        [
-            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
-            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
-        ],
-    )
-    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_nargsort(data_missing_for_sorting, na_position, expected)
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(
-        self, data_missing_for_sorting, ascending, sort_by_key
-    ):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_sort_values_missing(
-                data_missing_for_sorting, ascending, sort_by_key
-            )
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
 
     def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
