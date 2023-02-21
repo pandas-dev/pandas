@@ -3816,6 +3816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def take(self: NDFrameT, indices, axis: Axis = 0, **kwargs) -> NDFrameT:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3893,20 +3894,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         nv.validate_take((), kwargs)
 
-        return self._take(indices, axis)
-
-    @final
-    def _take(
-        self: NDFrameT,
-        indices,
-        axis: Axis = 0,
-        convert_indices: bool_t = True,
-    ) -> NDFrameT:
-        """
-        Internal version of the `take` allowing specification of additional args.
-
-        See the docstring of `take` for full explanation of the parameters.
-        """
         if not isinstance(indices, slice):
             indices = np.asarray(indices, dtype=np.intp)
             if (
@@ -3916,8 +3903,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
+        elif self.ndim == 1:
+            # TODO: be consistent here for DataFrame vs Series
+            raise TypeError(
+                f"{type(self).__name__}.take requires a sequence of integers, "
+                "not slice."
+            )
         else:
-            # We can get here with a slice via DataFrame.__geittem__
+            # We can get here with a slice via DataFrame.__getitem__
             indices = np.arange(
                 indices.start, indices.stop, indices.step, dtype=np.intp
             )
@@ -3926,21 +3919,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indices,
             axis=self._get_block_manager_axis(axis),
             verify=True,
-            convert_indices=convert_indices,
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
+    @final
     def _take_with_is_copy(self: NDFrameT, indices, axis: Axis = 0) -> NDFrameT:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
         for the SettingWithCopyWarning).
 
+        For Series this does the same as the public take (it never sets `_is_copy`).
+
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self._take(indices=indices, axis=axis)
+        result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
-        if not result._get_axis(axis).equals(self._get_axis(axis)):
+        if self.ndim == 2 and not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
         return result
 

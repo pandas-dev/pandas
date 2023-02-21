@@ -1572,7 +1572,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
-            output = result._take(ids, axis=axis, convert_indices=False)
+            new_ax = result.axes[axis].take(ids)
+            output = result._reindex_with_indexers(
+                {axis: (new_ax, ids)}, allow_dups=True, copy=False
+            )
             output = output.set_axis(obj._get_axis(self.axis), axis=axis)
         return output
 
