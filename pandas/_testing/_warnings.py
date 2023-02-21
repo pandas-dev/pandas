@@ -163,6 +163,12 @@ def _assert_caught_no_extra_warnings(
 
     for actual_warning in caught_warnings:
         if _is_unexpected_warning(actual_warning, expected_warning):
+            # GH#38630 pytest.filterwarnings does not suppress these.
+            if actual_warning.category == ResourceWarning:
+                # GH 44732: Don't make the CI flaky by filtering SSL-related
+                # ResourceWarning from dependencies
+                if "unclosed <ssl.SSLSocket" in str(actual_warning.message):
+                    continue
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,
