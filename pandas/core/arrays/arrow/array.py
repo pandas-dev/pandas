@@ -1371,7 +1371,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ----------
         dropna : bool, default True
             Don't consider counts of NA values.
-            Not implemented by pyarrow.
 
         Returns
         -------
@@ -1390,12 +1389,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         else:
             data = self._data
 
-        modes = pc.mode(data, pc.count_distinct(data).as_py())
-        values = modes.field(0)
-        counts = modes.field(1)
-        # counts sorted descending i.e counts[0] = max
-        mask = pc.equal(counts, counts[0])
-        most_common = values.filter(mask)
+        if dropna:
+            data = data.drop_null()
+
+        res = pc.value_counts(data)
+        most_common = res.field("values").filter(
+            pc.equal(res.field("counts"), pc.max(res.field("counts")))
+        )
 
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
