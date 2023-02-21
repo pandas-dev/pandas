@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -26,6 +25,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
@@ -36,7 +36,6 @@ from pandas.core.arrays import (
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -1349,9 +1348,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
