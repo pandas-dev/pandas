@@ -302,7 +302,6 @@ __all__ = [
     "offsets",
     "option_context",
     "options",
-    "pandas_datetime_CAPI",
     "period_range",
     "pivot",
     "pivot_table",
