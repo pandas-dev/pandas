@@ -17,10 +17,10 @@ from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     datetime,
+    import_datetime,
     time,
     timedelta,
     tzinfo,
-    import_datetime,
 )
 
 import_datetime()
@@ -40,6 +40,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
+    import_pandas_datetime,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -47,7 +48,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     pydatetime_to_dtstruct,
     string_to_dts,
-    import_pandas_datetime,
 )
 
 import_pandas_datetime()
