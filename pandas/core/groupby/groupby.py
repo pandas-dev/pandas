@@ -1409,34 +1409,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             is_transform,
         )
 
-    # TODO: I (jbrockmendel) think this should be equivalent to doing grouped_reduce
-    #  on _agg_py_fallback, but trying that here fails a bunch of tests 2023-02-07.
-    @final
-    def _python_agg_general(self, func, *args, **kwargs):
-        func = com.is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
-
-        # iterate through "columns" ex exclusions to populate output dict
-        output: dict[base.OutputKey, ArrayLike] = {}
-
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            result = self.grouper.agg_series(obj, f)
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-
-        if not output:
-            # e.g. test_groupby_crash_on_nunique, test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        res = self._indexed_output_to_ndframe(output)
-        return self._wrap_aggregated_output(res)
-
     @final
     def _agg_general(
         self,
@@ -1600,7 +1572,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
-            output = result._take(ids, axis=axis, convert_indices=False)
+            new_ax = result.axes[axis].take(ids)
+            output = result._reindex_with_indexers(
+                {axis: (new_ax, ids)}, allow_dups=True, copy=False
+            )
             output = output.set_axis(obj._get_axis(self.axis), axis=axis)
         return output
 

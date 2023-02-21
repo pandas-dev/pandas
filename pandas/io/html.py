@@ -53,33 +53,6 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from pandas import DataFrame
 
-_IMPORTS = False
-_HAS_BS4 = False
-_HAS_LXML = False
-_HAS_HTML5LIB = False
-
-
-def _importers() -> None:
-    # import things we need
-    # but make this done on a first use basis
-
-    global _IMPORTS
-    if _IMPORTS:
-        return
-
-    global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", errors="ignore")
-    _HAS_BS4 = bs4 is not None
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    _HAS_LXML = lxml is not None
-
-    html5lib = import_optional_dependency("html5lib", errors="ignore")
-    _HAS_HTML5LIB = html5lib is not None
-
-    _IMPORTS = True
-
-
 #############
 # READ HTML #
 #############
@@ -922,16 +895,10 @@ def _parser_dispatch(flavor: str | None) -> type[_HtmlFrameParser]:
         )
 
     if flavor in ("bs4", "html5lib"):
-        if not _HAS_HTML5LIB:
-            raise ImportError("html5lib not found, please install it")
-        if not _HAS_BS4:
-            raise ImportError("BeautifulSoup4 (bs4) not found, please install it")
-        # Although we call this above, we want to raise here right before use.
-        bs4 = import_optional_dependency("bs4")  # noqa:F841
-
+        import_optional_dependency("html5lib")
+        import_optional_dependency("bs4")
     else:
-        if not _HAS_LXML:
-            raise ImportError("lxml not found, please install it")
+        import_optional_dependency("lxml.etree")
     return _valid_parsers[flavor]
 
 
@@ -1194,8 +1161,6 @@ def read_html(
     See the :ref:`read_html documentation in the IO section of the docs
     <io.read_html>` for some examples of reading in HTML tables.
     """
-    _importers()
-
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
