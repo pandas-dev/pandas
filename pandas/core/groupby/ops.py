@@ -748,7 +748,7 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(
+    def apply_groupwise(
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
         mutated = False
