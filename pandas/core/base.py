@@ -301,6 +301,20 @@ class IndexOpsMixin(OpsMixin):
         transpose,
         doc="""
         Return the transpose, which is by definition self.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.T
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
         """,
     )
 
@@ -325,6 +339,17 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.ndim
+        1
         """
         return 1
 
@@ -351,6 +376,17 @@ class IndexOpsMixin(OpsMixin):
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.nbytes
+        24
         """
         return self._values.nbytes
 
@@ -358,6 +394,17 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.size
+        3
         """
         return len(self._values)
 
@@ -1340,6 +1387,8 @@ class IndexOpsMixin(OpsMixin):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
         rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)
+        if isinstance(rvalues, range):
+            rvalues = np.arange(rvalues.start, rvalues.stop, rvalues.step)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)

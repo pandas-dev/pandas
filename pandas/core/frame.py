@@ -3870,23 +3870,27 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position 'loc'.
+        Set the given value in the column with position `loc`.
 
-        This is a positional analogue to __setitem__.
+        This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
         loc : int or sequence of ints
+            Index position for the column.
         value : scalar or arraylike
+            Value(s) for the column.
 
         Notes
         -----
-        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
-        _never_ try to set the values in place, but will always insert a new
-        array.
+        ``frame.isetitem(loc, value)`` is an in-place method as it will
+        modify the DataFrame in place (not returning a new object). In contrast to
+        ``frame.iloc[:, i] = value`` which will try to update the existing values in
+        place, ``frame.isetitem(loc, value)`` will not update the values of the column
+        itself in place, it will instead insert a new array.
 
-        In cases where `frame.columns` is unique, this is equivalent to
-        `frame[frame.columns[i]] = value`.
+        In cases where ``frame.columns`` is unique, this is equivalent to
+        ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
             if is_scalar(loc):
@@ -6957,7 +6961,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : list-like, optional
+        subset : label or list of labels, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -6981,9 +6985,10 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         The returned Series will have a MultiIndex with one level per input
-        column. By default, rows that contain any NA values are omitted from
-        the result. By default, the resulting Series will be in descending
-        order so that the first element is the most frequently-occurring row.
+        column but an Index (non-multi) for a single label. By default, rows
+        that contain any NA values are omitted from the result. By default,
+        the resulting Series will be in descending order so that the first
+        element is the most frequently-occurring row.
 
         Examples
         --------
@@ -7049,6 +7054,13 @@ class DataFrame(NDFrame, OpsMixin):
         John        Smith          1
                     NaN            1
         Name: count, dtype: int64
+
+        >>> df.value_counts("first_name")
+        first_name
+        John    2
+        Anne    1
+        Beth    1
+        Name: count, dtype: int64
         """
         if subset is None:
             subset = self.columns.tolist()
@@ -7063,7 +7075,7 @@ class DataFrame(NDFrame, OpsMixin):
             counts /= counts.sum()
 
         # Force MultiIndex for single column
-        if len(subset) == 1:
+        if is_list_like(subset) and len(subset) == 1:
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
