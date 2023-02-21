@@ -4,6 +4,8 @@ import warnings
 cimport cython
 from cpython.object cimport (
     Py_EQ,
+    Py_LE,
+    Py_LT,
     Py_NE,
     PyObject,
     PyObject_RichCompare,
@@ -1149,8 +1151,21 @@ cdef class _Timedelta(timedelta):
         if isinstance(other, _Timedelta):
             ots = other
         elif is_any_td_scalar(other):
-            ots = Timedelta(other)
-            # TODO: watch out for overflows
+            try:
+                ots = Timedelta(other)
+            except OutOfBoundsTimedelta as err:
+                # GH#49021 pytimedelta.max overflows
+                if not PyDelta_Check(other):
+                    # TODO: handle this case
+                    raise
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
+                elif op == Py_LE or op == Py_LT:
+                    return self.days <= other.days
+                else:
+                    return self.days >= other.days
 
         elif other is NaT:
             return op == Py_NE
