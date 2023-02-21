@@ -1065,6 +1065,11 @@ cdef class _Timedelta(timedelta):
 
         Timedelta.seconds = hours * 3600 + minutes * 60 + seconds.
 
+        Whenever a negative timedelta is calculate, the `seconds` method is represented
+        as the difference of 86400 seconds (24 hours) minus the absolute value
+        of the calculated timedelta. To retrieve the expected output, the
+        `total_seconds()` method should be called instead
+
         Returns
         -------
         int
