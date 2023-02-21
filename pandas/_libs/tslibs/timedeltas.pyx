@@ -1080,6 +1080,7 @@ cdef class _Timedelta(timedelta):
         Timedelta.components : Return all attributes with assigned values
             (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
             nanoseconds).
+        Timedelta.total_seconds : Express the TimeDelta as total number of seconds.
 
         Examples
         --------
