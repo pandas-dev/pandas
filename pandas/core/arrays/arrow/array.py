@@ -990,7 +990,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        counts = type(self)(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 

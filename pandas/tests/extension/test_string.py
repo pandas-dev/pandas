@@ -256,9 +256,26 @@ class TestMethods(base.BaseMethodsTests):
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
+        data = data[:10].unique()
+        values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
+
+        result = ser.value_counts(normalize=True).sort_index()
+
+        if not isinstance(data, pd.Categorical):
+            expected = pd.Series(
+                [1 / len(values)] * len(values), index=result.index, name="proportion"
+            )
+        else:
+            expected = pd.Series(0.0, index=result.index, name="proportion")
+            expected[result > 0] = 1 / len(values)
+        if getattr(data.dtype, "storage", "") == "pyarrow":
+            expected = expected.astype("double[pyarrow]")
+        else:
+            expected = expected.astype("Float64")
+
+        self.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         with tm.maybe_produces_warning(
