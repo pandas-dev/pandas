@@ -25,4 +25,4 @@ or overwrite the original one:
    most methods (e.g. ``dropna``) except for a very small subset of methods
    (including ``replace``). Both keywords won't be
    necessary anymore in the context of Copy-on-Write. The proposal can be found
-   [here](https://github.com/pandas-dev/pandas/pull/51466).
+   `here <https://github.com/pandas-dev/pandas/pull/51466>`_.

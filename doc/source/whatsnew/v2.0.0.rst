@@ -820,7 +820,7 @@ Other API changes
 
     A current PDEP proposes the deprecation and removal of the keywords ``inplace`` and ``copy``
     for all but a small subset of methods from the pandas API. The current discussion takes place
-    at [here](https://github.com/pandas-dev/pandas/pull/51466). The keywords won't be necessary
+    at `here <https://github.com/pandas-dev/pandas/pull/51466>`_. The keywords won't be necessary
     anymore in the context of Copy-on-Write. If this proposal is accepted, both
     keywords would be deprecated in the next release of pandas and removed in pandas 3.0.
 
