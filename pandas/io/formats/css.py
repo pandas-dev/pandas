@@ -211,7 +211,7 @@ class CSSResolver:
         "margin": _side_expander("margin-{:s}"),
         "padding": _side_expander("padding-{:s}"),
     }
-    
+
     def __call__(
         self,
         declarations: str | Iterable[tuple[str, str]],
