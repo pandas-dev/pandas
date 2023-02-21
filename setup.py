@@ -433,6 +433,7 @@ lib_depends = ["pandas/_libs/src/parse_helper.h"]
 
 klib_include = ["pandas/_libs/src/klib"]
 
+tseries_includes = ["pandas/_libs/tslibs/src/datetime"]
 tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/pd_datetime.h",
 ]
@@ -502,6 +503,9 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
+        # TODO: xstrtod symbol visibility is really murky here
+        "include": klib_include,
+        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
@@ -511,14 +515,16 @@ ext_data = {
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
         "depends": tseries_depends,
+        "includes": tseries_includes,
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
+        "includes": tseries_includes,
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
-        "include": klib_include,
+        "include": tseries_includes + klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
@@ -536,6 +542,7 @@ ext_data = {
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
+        "include": tseries_includes,
         "depends": tseries_depends,
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
@@ -625,9 +632,8 @@ ujson_ext = Extension(
     include_dirs=[
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
-        "pandas/_libs/tslibs/src/datetime",
         numpy.get_include(),
-    ],
+    ] + tseries_includes,
     extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
@@ -644,7 +650,7 @@ pd_dt_ext = Extension(
     "pandas._libs.pandas_datetime",
     depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
     sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
-    include_dirs=[
+    include_dirs=tseries_includes + [
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),

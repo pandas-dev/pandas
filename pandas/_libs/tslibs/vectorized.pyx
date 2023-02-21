@@ -31,7 +31,11 @@ from .np_datetime cimport (
     NPY_FR_ns,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc

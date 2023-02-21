@@ -20,6 +20,7 @@ from cpython.object cimport (
 )
 
 import_datetime()
+PandasDateTime_IMPORT
 
 import numpy as np
 
