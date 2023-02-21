@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         Shape,
     )
 
+
 class DataManager(PandasObject):
     # TODO share more methods/attributes
 

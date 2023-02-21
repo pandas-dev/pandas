@@ -86,7 +86,6 @@ if TYPE_CHECKING:
         Self,
         Shape,
         npt,
-        type_t,
     )
 
 
@@ -929,7 +928,6 @@ class BaseBlockManager(DataManager):
         indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> Self:
         """
         Take items along any axis.
