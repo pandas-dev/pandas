@@ -539,7 +539,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-                if not(len(data) and isinstance(data[0], tuple)):
+                if not (isinstance(data[0], tuple)):
+                    # GH#21470 we update data to a np array with the correct
+                    # dtype.
                     data = astype_array(data, dtype=dtype, copy=copy)
                     return Index(data, dtype=dtype, copy=copy, name=name)
 
