@@ -91,4 +91,4 @@ def test_AbstractMethodError_deprecation():
         + " Consider using `NotImplementedError`"
     )
     with pd._testing.assert_produces_warning(FutureWarning, match=msg):
-        AbstractMethodError(None)
+        AbstractMethodError(None)  # pylint: disable=pointless-exception-statement
