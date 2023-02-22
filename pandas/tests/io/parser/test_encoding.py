@@ -13,8 +13,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under8p0
-
 from pandas import (
     DataFrame,
     read_csv,
@@ -94,7 +92,6 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     assert got == expected
 
 
-# @xfail_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -126,13 +123,12 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
 
     if (
         parser.engine == "pyarrow"
-        and pa_version_under8p0
         and data == "\n1"
-        and kwargs.get("skip_blank_lines", False)
+        and kwargs.get("skip_blank_lines", True)
     ):
         # Manually xfail, since we don't have mechanism to xfail specific version
         request.node.add_marker(
-            pytest.mark.xfail(reason="This test fails on pyarrow < 8")
+            pytest.mark.xfail(reason="Pyarrow can't read blank lines")
         )
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
@@ -151,7 +147,6 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize(
     "file_path,encoding",
     [
