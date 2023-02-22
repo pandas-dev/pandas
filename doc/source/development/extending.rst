@@ -497,17 +497,38 @@ Arithmetic with 3rd party types
 In order to control how arithmetic works between a custom type and a pandas type,
 implement ``__pandas_priority__``.  Similar to numpy's ``__array_priority__``
 semantics, arithmetic methods on :class:`DataFrame`, :class:`Series`, and :class:`Index`
-objects will return ``NotImplemented`` if the ``other`` has a higher ``__array_priority__``.
+objects will delegate to ``other``, if it has an attribute ``__array_priority__`` with a higher value.
+
+By default, pandas objects try to operate with other objects, even if they are not types known to pandas:
 
 .. code-block:: python
 
-    class MyClass:
+    >>> pandas.Series([1, 2]) + [10, 20]
+    0    11
+    1    22
+    dtype: int64
+
+In the example above, if `[10, 20]` was a custom type that can be understood as a list, pandas objects will still operate with it in the same way.
+
+In some cases, it is useful to delegate to the other type the operation. For example, consider I implement a
+custom list object, and I want the result of adding my custom list with a pandas `Series` to be an instance of my list
+and not a `Series` as seen in the previous example. This is now possible by defining the `__pandas_priority__` attribute
+of my custom list, and setting it to a higher value, than the priority of the pandas objects I want to operate with.
+
+.. code-block:: python
+
+    class CustomList(list):
         __pandas_priority__ = 5000
 
-        def __add__(self, other):
+        def __radd__(self, other):
+            # return `self` and not the addition for simplicity
             return self
 
-    left = MyClass()
-    right = pd.Series([1, 2, 3])
-    assert right.__add__(left) is NotImplemented
-    assert right + left is left
+    custom = CustomList()
+    series = pd.Series([1, 2, 3])
+
+    # Series refuses to add custom, since it's an unknown type with higher priority
+    assert series.__add__(custom) is NotImplemented
+
+    # This will cause the custom class `__radd__` being used instead
+    assert series + custom is custom
