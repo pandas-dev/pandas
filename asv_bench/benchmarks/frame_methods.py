@@ -17,6 +17,21 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class Clip:
+    params = [
+        ["float64", "Float64", "float64[pyarrow]"],
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(100_000, 10)
+        df = DataFrame(data, dtype=dtype)
+        self.df = df
+
+    def time_clip(self, dtype):
+        self.df.clip(-1.0, 1.0)
+
+
 class GetNumericData:
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
