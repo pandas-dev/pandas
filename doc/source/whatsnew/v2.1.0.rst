@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, see _extending.pandas_priority
+- Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, see _extending.pandas_priority (:issue:`48347`)
 -
 
 .. ---------------------------------------------------------------------------
