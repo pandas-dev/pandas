@@ -754,4 +754,19 @@ class MemoryUsage:
         self.df2.memory_usage(deep=True)
 
 
+class Where:
+    params = (
+        [True, False],
+        ["float64", "Float64", "float64[pyarrow]"],
+    )
+    param_names = ["dtype"]
+
+    def setup(self, inplace, dtype):
+        self.df = DataFrame(np.random.randn(100_000, 10), dtype=dtype)
+        self.mask = self.df < 0
+
+    def time_where(self, inplace, dtype):
+        self.df.where(self.mask, other=0.0, inplace=inplace)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
