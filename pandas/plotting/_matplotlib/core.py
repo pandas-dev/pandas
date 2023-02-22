@@ -1253,7 +1253,7 @@ class ScatterPlot(PlanePlot):
             label = self.label
         else:
             label = None
-        scatter = ax.scatter(
+        scatter = self._scatter(
             data[x].values,
             data[y].values,
             c=c_values,
@@ -1280,6 +1280,10 @@ class ScatterPlot(PlanePlot):
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+
+    @classmethod
+    def _scatter(cls, ax, x, y, **kwds):
+        return ax.scatter(x, y, **kwds)
 
     def _args_adjust(self) -> None:
         pass
