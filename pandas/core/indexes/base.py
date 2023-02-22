@@ -517,7 +517,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             if tupleize_cols:
-                # GH21470: convert iterable to list before determining if empty
+                # GH50127: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
 
@@ -540,7 +540,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
                 if not (isinstance(data[0], tuple)):
-                    # GH#21470 we update data to a np array with the correct
+                    # GH#50127 we update data to a np array with the correct
                     # dtype.
                     data = astype_array(data, dtype=dtype, copy=copy)
                     return Index(data, dtype=dtype, copy=copy, name=name)
