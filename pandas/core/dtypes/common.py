@@ -363,6 +363,7 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_timedelta64_dtype
     >>> is_timedelta64_dtype(object)
     False
     >>> is_timedelta64_dtype(np.timedelta64)
@@ -972,6 +973,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_timedelta64_ns_dtype
     >>> is_timedelta64_ns_dtype(np.dtype('m8[ns]'))
     True
     >>> is_timedelta64_ns_dtype(np.dtype('m8[ps]'))  # Wrong frequency
