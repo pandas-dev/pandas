@@ -7872,14 +7872,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Everything else gets mapped to False values. Characters such as empty
         strings ``''`` or :attr:`numpy.inf` are not considered NA values
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
-        Note: For :class:`FloatingArray` and float-type
-        :class:`ArrowExtensionArray` the behavior is different, as they
-        use a mask (represented as pd.NA values) to designate missing
-        data but can also hold NaN which will **not** get mapped to True
-        (these values can be detected by :func:`numpy.isnan`).
-        Users may find this behavior unintuitive and want to
-        avoid these dtypes if they prefer to have only one
-        type of missing/NA value.
+
+        Note: For nullable float extension dtypes, i.e.
+        ``Float<...>`` and ``float<...>[pyarrow]``, the behavior is different -
+        missing data is designated by ``pandas.NA`` values while NaN may also be
+        stored but will **not** get mapped to True (these values can be detected
+        by :func:`numpy.isnan`).
 
         Returns
         -------
