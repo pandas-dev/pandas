@@ -1332,7 +1332,6 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#50261
         df = DataFrame({"a": Series([1, 2], dtype=dtype)})
         ref = {2}  # noqa:F841
-        result = df.query("a in @ref")
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
         with tm.assert_produces_warning(warning):
             result = df.query("a in @ref")
