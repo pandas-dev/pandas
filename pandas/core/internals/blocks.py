@@ -1413,8 +1413,15 @@ class Block(PandasObject):
             Whether Copy on Write is enabled right now
         """
         if not self.is_numeric or self.is_bool:
-            return self.copy(deep=None if using_cow else True)
-        return new_block_2d(self.values.round(decimals), placement=self._mgr_locs)
+            return self.copy(deep=using_cow)
+        # TODO: round only defined on BaseMaskedArray
+        # Series also does this, so would need to fix both places
+        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
+        # has no attribute "round"
+        return new_block_2d(
+            self.values.round(decimals),  # type: ignore[union-attr]
+            placement=self._mgr_locs,
+        )
 
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
