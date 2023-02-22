@@ -2330,8 +2330,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent : int, optional
            Length of whitespace used to indent each record.
 
-           .. versionadded:: 1.0.0
-
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -3184,9 +3182,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         into a main LaTeX document or read from an external file
         with ``\input{{table.tex}}``.
 
-        .. versionchanged:: 1.0.0
-           Added caption and label arguments.
-
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
@@ -3281,8 +3276,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             which results in ``\caption[short_caption]{{full_caption}}``;
             if a single string is passed, no short caption will be set.
 
-            .. versionadded:: 1.0.0
-
             .. versionchanged:: 1.2.0
                Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
@@ -3290,7 +3283,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
             This is used with ``\ref{{}}`` in the main ``.tex`` file.
 
-            .. versionadded:: 1.0.0
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
@@ -3816,6 +3808,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def take(self: NDFrameT, indices, axis: Axis = 0, **kwargs) -> NDFrameT:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3893,20 +3886,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         nv.validate_take((), kwargs)
 
-        return self._take(indices, axis)
-
-    @final
-    def _take(
-        self: NDFrameT,
-        indices,
-        axis: Axis = 0,
-        convert_indices: bool_t = True,
-    ) -> NDFrameT:
-        """
-        Internal version of the `take` allowing specification of additional args.
-
-        See the docstring of `take` for full explanation of the parameters.
-        """
         if not isinstance(indices, slice):
             indices = np.asarray(indices, dtype=np.intp)
             if (
@@ -3916,8 +3895,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and is_range_indexer(indices, len(self))
             ):
                 return self.copy(deep=None)
+        elif self.ndim == 1:
+            # TODO: be consistent here for DataFrame vs Series
+            raise TypeError(
+                f"{type(self).__name__}.take requires a sequence of integers, "
+                "not slice."
+            )
         else:
-            # We can get here with a slice via DataFrame.__geittem__
+            warnings.warn(
+                # GH#51539
+                f"Passing a slice to {type(self).__name__}.take is deprecated "
+                "and will raise in a future version. Use `obj[slicer]` or pass "
+                "a sequence of integers instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            # We can get here with a slice via DataFrame.__getitem__
             indices = np.arange(
                 indices.start, indices.stop, indices.step, dtype=np.intp
             )
@@ -3926,21 +3919,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indices,
             axis=self._get_block_manager_axis(axis),
             verify=True,
-            convert_indices=convert_indices,
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
+    @final
     def _take_with_is_copy(self: NDFrameT, indices, axis: Axis = 0) -> NDFrameT:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
         for the SettingWithCopyWarning).
 
+        For Series this does the same as the public take (it never sets `_is_copy`).
+
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self._take(indices=indices, axis=axis)
+        result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
-        if not result._get_axis(axis).equals(self._get_axis(axis)):
+        if self.ndim == 2 and not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
         return result
 
@@ -4875,9 +4870,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
              end.
         ignore_index : bool, default False
              If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-             .. versionadded:: 1.0.0
-
         key : callable, optional
             Apply the key function to the values
             before sorting. This is similar to the `key` argument in the
@@ -6512,9 +6504,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_floating: bool_t = True,
     ) -> NDFrameT:
         """
-        Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
-
-        .. versionadded:: 1.0.0
+        Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
 
         Parameters
         ----------

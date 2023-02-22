@@ -3634,11 +3634,6 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. versionchanged:: 1.0.0
-
-Passing in an integer for ``usecols`` will no longer work. Please pass in a list
-of ints from 0 to ``usecols`` inclusive instead.
-
 You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
@@ -3880,8 +3875,6 @@ Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadshee
 
 Binary Excel (.xlsb) files
 --------------------------
-
-.. versionadded:: 1.0.0
 
 The :func:`~pandas.read_excel` method can also read binary Excel files
 using the ``pyxlsb`` module. The semantics and features for reading
@@ -5418,8 +5411,6 @@ The above example creates a partitioned dataset that may look like:
 
 ORC
 ---
-
-.. versionadded:: 1.0.0
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. pandas provides both the reader and the writer for the

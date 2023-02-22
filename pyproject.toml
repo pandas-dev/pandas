@@ -212,6 +212,8 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
+  # misc lints
+  "PIE",
   # tidy imports
   "TID",
 ]

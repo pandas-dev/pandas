@@ -86,10 +86,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
-        pandas.Series.nbytes \
-        pandas.Series.ndim \
-        pandas.Series.size \
-        pandas.Series.T \
         pandas.Series.hasnans \
         pandas.Series.to_list \
         pandas.Series.__iter__ \
@@ -578,16 +574,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
         pandas.api.types.is_integer_dtype \
-        pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_period_dtype \
-        pandas.api.types.is_signed_integer_dtype \
         pandas.api.types.is_sparse \
         pandas.api.types.is_string_dtype \
         pandas.api.types.is_unsigned_integer_dtype \
-        pandas.io.formats.style.Styler.concat \
-        pandas.io.formats.style.Styler.export \
-        pandas.io.formats.style.Styler.set_td_classes \
-        pandas.io.formats.style.Styler.use \
         pandas.plotting.andrews_curves \
         pandas.plotting.autocorrelation_plot \
         pandas.plotting.lag_plot \
