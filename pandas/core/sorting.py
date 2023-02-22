@@ -322,8 +322,6 @@ def lexsort_indexer(
     key : Callable, optional
         Callable key function applied to every element in keys before sorting
 
-        .. versionadded:: 1.0.0
-
     Returns
     -------
     np.ndarray[np.intp]

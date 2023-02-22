@@ -496,14 +496,9 @@ class IndexOpsMixin(OpsMixin):
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
-
-            .. versionadded:: 1.0.0
-
         **kwargs
             Additional keywords passed through to the ``to_numpy`` method
             of the underlying array (for extension arrays).
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------

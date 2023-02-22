@@ -456,9 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionchanged:: 1.0.0
-                Changed default of `join` from None to `'left'`.
-
         Returns
         -------
         str, Series or Index

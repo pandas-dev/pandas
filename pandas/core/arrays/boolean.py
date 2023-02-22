@@ -43,8 +43,6 @@ class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
-    .. versionadded:: 1.0.0
-
     .. warning::
 
        BooleanDtype is considered experimental. The implementation and
@@ -245,8 +243,6 @@ class BooleanArray(BaseMaskedArray):
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 

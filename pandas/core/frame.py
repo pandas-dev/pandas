@@ -1223,12 +1223,8 @@ class DataFrame(NDFrame, OpsMixin):
             (when number of rows is above `max_rows`).
         max_colwidth : int, optional
             Max width to truncate each column in characters. By default, no limit.
-
-            .. versionadded:: 1.0.0
         encoding : str, default "utf-8"
             Set character encoding.
-
-            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -2541,10 +2537,6 @@ class DataFrame(NDFrame, OpsMixin):
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function.
 
-            .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
-
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -2580,10 +2572,6 @@ class DataFrame(NDFrame, OpsMixin):
             variables exceeds the capacity of dta format 118. Exporting
             smaller datasets in format 119 may have unintended consequences,
             and, as of November 2020, Stata SE cannot read version 119 files.
-
-            .. versionchanged:: 1.0.0
-
-                Added support for formats 118 and 119.
 
         convert_strl : list, optional
             List of column names to convert to string columns to Stata StrL
@@ -4303,9 +4291,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
-
-            .. versionadded:: 1.0.0
-                Expanding functionality of backtick quoting for more than only spaces.
 
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
@@ -6283,10 +6268,8 @@ class DataFrame(NDFrame, OpsMixin):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. versionchanged:: 1.0.0
-
-               Pass tuple or list to drop on multiple axes.
-               Only a single axis is allowed.
+            Pass tuple or list to drop on multiple axes.
+            Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -6451,8 +6434,6 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -6879,9 +6860,6 @@ class DataFrame(NDFrame, OpsMixin):
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the

@@ -43,8 +43,6 @@ def read_orc(
     """
     Load an ORC object from the file path, returning a DataFrame.
 
-    .. versionadded:: 1.0.0
-
     Parameters
     ----------
     path : str, path object, or file-like object

@@ -9,8 +9,6 @@ Policies
 Version policy
 ~~~~~~~~~~~~~~
 
-.. versionchanged:: 1.0.0
-
 pandas uses a loose variant of semantic versioning (`SemVer`_) to govern
 deprecations, API compatibility, and version numbering.
 

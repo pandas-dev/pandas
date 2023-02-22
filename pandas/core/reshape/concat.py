@@ -199,10 +199,6 @@ def concat(
     sort : bool, default False
         Sort non-concatenation axis if it is not already aligned.
 
-        .. versionchanged:: 1.0.0
-
-           Changed to not sort by default.
-
     copy : bool, default True
         If False, do not copy data unnecessarily.
 

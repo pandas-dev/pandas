@@ -17,9 +17,6 @@ Nullable Boolean data type
    BooleanArray is currently experimental. Its API or implementation may
    change without warning.
 
-.. versionadded:: 1.0.0
-
-
 .. _boolean.indexing:
 
 Indexing with NA values

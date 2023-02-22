@@ -311,13 +311,6 @@ Selection by label
 
      dfl.loc['20130102':'20130104']
 
-.. warning::
-
-   .. versionchanged:: 1.0.0
-
-   pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
-   missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
-
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 Every label asked for must be in the index, or a ``KeyError`` will be raised.
 When slicing, both the start bound **AND** the stop bound are *included*, if present in the index.
@@ -621,12 +614,6 @@ For getting *multiple* indexers, using ``.get_indexer``:
 
 Indexing with list with missing labels is deprecated
 ----------------------------------------------------
-
-.. warning::
-
-   .. versionchanged:: 1.0.0
-
-   Using ``.loc`` or ``[]`` with a list with one or more missing labels will no longer reindex, in favor of ``.reindex``.
 
 In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
 would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.

@@ -3496,8 +3496,6 @@ class StataWriterUTF8(StataWriter117):
     labels and the dataset label. Format 119 is automatically used if the
     file contains more than 32,767 variables.
 
-    .. versionadded:: 1.0.0
-
     Parameters
     ----------
     fname : path (string), buffer or path object

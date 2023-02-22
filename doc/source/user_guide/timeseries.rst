@@ -335,8 +335,6 @@ which can be specified. These are computed from the starting point specified by 
    that was discussed :ref:`above<timeseries.converting.format>`). The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
-.. versionchanged:: 1.0.0
-
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
 with the ``tz`` argument specified will raise a ValueError. If you have
 epochs in wall time in another timezone, you can read the epochs

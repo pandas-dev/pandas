@@ -431,8 +431,6 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     Non-array indexers (integer, slice, Ellipsis, tuples, ..) are passed
     through as is.
 
-    .. versionadded:: 1.0.0
-
     Parameters
     ----------
     array : array-like
