@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_period_dtype,
     is_string_dtype,
+    pandas_dtype
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1117,3 +1118,14 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+def test_numpy_s3_dtype_on_index():
+    # GH #21470
+    index = pd.Index(['abcd', '1234'], dtype='S3')
+    expected = pd.Index(['abc', '123'], dtype='S3')
+    assert index.dtype == pandas_dtype('object')
+    tm.assert_frame_equal(index, expected)
+
+    index = pd.Index(['abcd', '1234'])
+    expected = pd.Index(['abc', '123'], dtype='S3')
+    tm.assert_frame_equal(index.astype('S3'), expected)

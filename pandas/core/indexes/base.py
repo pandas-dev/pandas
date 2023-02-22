@@ -501,6 +501,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+                # GH#21470 we must update the `dtype` to avoid passing e.g. the
+                # numpy type `S3` to `_dtype_to_subclass`, which would raise a
+                # NotImplementedError.
+                dtype = _dtype_obj
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
@@ -532,10 +536,12 @@ class Index(IndexOpsMixin, PandasObject):
             if len(data) == 0:
                 # unlike Series, we default to object dtype:
                 data = np.array(data, dtype=object)
-
-            if len(data) and isinstance(data[0], tuple):
+            else:
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+                if not(len(data) and isinstance(data[0], tuple)):
+                    data = astype_array(data, dtype=dtype, copy=copy)
+                    return Index(data, dtype=dtype, copy=copy, name=name)
 
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=copy)
