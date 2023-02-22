@@ -261,6 +261,8 @@ Copy-on-Write improvements
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
 
+- :meth:`DataFrame.transpose` will now respect the Copy-on-Write mechanism.
+
 - Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
   Copy-on-Write mechanism.
 
@@ -814,6 +816,7 @@ Other API changes
 - :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 - The methods :meth:`Series.round`, :meth:`DataFrame.__invert__`, :meth:`Series.__invert__`, :meth:`DataFrame.swapaxes`, :meth:`DataFrame.first`, :meth:`DataFrame.last`, :meth:`Series.first`, :meth:`Series.last` and :meth:`DataFrame.align` will now always return new objects (:issue:`51032`)
 - :class:`DataFrame` and :class:`DataFrameGroupBy` aggregations (e.g. "sum") with object-dtype columns no longer infer non-object dtypes for their results, explicitly call ``result.infer_objects(copy=False)`` on the result to obtain the old behavior (:issue:`51205`, :issue:`49603`)
+- Division by zero with :class:`ArrowDtype` dtypes returns ``-inf``, ``nan``, or ``inf`` depending on the numerator, instead of raising (:issue:`51541`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 
 .. note::
