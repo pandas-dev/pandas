@@ -7998,6 +7998,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mgr = self._mgr
 
         if inplace:
+            # cond (for putmask) identifies values to be updated.
+            # exclude boundary as values at the boundary should be no-ops.
             if upper is not None:
                 cond = self > upper
                 mgr = mgr.putmask(mask=cond, new=upper, align=False)
@@ -8005,6 +8007,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond = self < lower
                 mgr = mgr.putmask(mask=cond, new=lower, align=False)
         else:
+            # cond (for where) identifies values to be left as-is.
+            # include boundary as values at the boundary should be no-ops.
             mask = isna(self)
             if upper is not None:
                 cond = mask | (self <= upper)
