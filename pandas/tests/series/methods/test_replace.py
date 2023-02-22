@@ -301,6 +301,7 @@ class TestSeriesReplace:
     @pytest.mark.parametrize("inplace", [True, False])
     def test_replace_cascade(self, inplace):
         # Test that replaced values are not replaced again
+        # GH #50778
         ser = pd.Series([1, 2, 3])
         expected = pd.Series([2, 3, 4])
 
