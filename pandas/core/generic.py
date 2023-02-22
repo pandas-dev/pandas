@@ -6885,8 +6885,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "with dict/Series column "
                         "by column"
                     )
-
-                result = self if inplace else self.copy()
+                if using_copy_on_write():
+                    result = self.copy(deep=None)
+                else:
+                    result = self if inplace else self.copy()
                 is_dict = isinstance(downcast, dict)
                 for k, v in value.items():
                     if k not in result:
