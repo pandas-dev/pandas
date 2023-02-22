@@ -62,7 +62,8 @@ class IntegerDtype(NumericDtype):
 class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
-    Uses :attr:`pandas.NA` as the missing value
+
+    Uses :attr:`pandas.NA` as the missing value.
 
     .. warning::
 
