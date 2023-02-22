@@ -6859,7 +6859,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # test_fillna_nonscalar
                         if inplace:
                             return None
-                        return self.copy()
+                        return self.copy(deep=None)
                     from pandas import Series
 
                     value = Series(value)
