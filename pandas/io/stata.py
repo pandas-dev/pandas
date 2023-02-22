@@ -865,23 +865,23 @@ class StataMissingValue:
             MISSING_VALUES[i + b] = "." + chr(96 + i)
 
     float32_base: bytes = b"\x00\x00\x00\x7f"
-    increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
+    increment_32: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<f", float32_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment
+        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment_32
         float32_base = struct.pack("<i", int_value)
 
     float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
-    increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
+    increment_64 = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment
+        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment_64
         float64_base = struct.pack("q", int_value)
 
     BASE_MISSING_VALUES: Final = {
@@ -3495,8 +3495,6 @@ class StataWriterUTF8(StataWriter117):
     and strL) format. Unicode is also supported in value labels, variable
     labels and the dataset label. Format 119 is automatically used if the
     file contains more than 32,767 variables.
-
-    .. versionadded:: 1.0.0
 
     Parameters
     ----------
