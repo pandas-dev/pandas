@@ -1095,8 +1095,17 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 ),
             )
         elif (
-            opname in {"__rfloordiv__"}
-            and pa.types.is_integer(pa_dtype)
+            opname == "__rfloordiv__"
+            and (pa.types.is_integer(pa_dtype) or pa.types.is_decimal(pa_dtype))
+            and not pa_version_under7p0
+        ):
+            mark = pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason="divide by 0",
+            )
+        elif (
+            opname == "__rtruediv__"
+            and pa.types.is_decimal(pa_dtype)
             and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
