@@ -201,7 +201,7 @@ class ArrowDtype(StorageExtensionDtype):
         try:
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
-            has_parameters = re.search(r"\[.*\]", base_type)
+            has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
             if has_parameters:
                 # Fallback to try common temporal types
                 try:
