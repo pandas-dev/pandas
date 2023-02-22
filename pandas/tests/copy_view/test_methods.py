@@ -1593,3 +1593,37 @@ def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
         tm.assert_series_equal(ser_orig, view)
     else:
         assert np.shares_memory(get_array(ser), get_array(view))
+
+
+@pytest.mark.parametrize("copy", [True, False])
+def test_transpose(using_copy_on_write, copy, using_array_manager):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+    result = df.transpose(copy=copy)
+
+    if not copy and not using_array_manager or using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+
+    result.iloc[0, 0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_transpose_different_dtypes(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df_orig = df.copy()
+    result = df.T
+
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+    result.iloc[0, 0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_transpose_ea_single_column(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    result = df.T
+
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
