@@ -7985,24 +7985,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
-        result = self
-        mask = isna(self._values)
+        mgr = self._mgr
 
-        with np.errstate(all="ignore"):
+        if inplace:
+            # cond (for putmask) identifies values to be updated.
+            # exclude boundary as values at the boundary should be no-ops.
             if upper is not None:
-                subset = self <= upper
-                result = result.where(subset, upper, axis=None, inplace=False)
+                cond = self > upper
+                mgr = mgr.putmask(mask=cond, new=upper, align=False)
             if lower is not None:
-                subset = self >= lower
-                result = result.where(subset, lower, axis=None, inplace=False)
+                cond = self < lower
+                mgr = mgr.putmask(mask=cond, new=lower, align=False)
+        else:
+            # cond (for where) identifies values to be left as-is.
+            # include boundary as values at the boundary should be no-ops.
+            mask = isna(self)
+            if upper is not None:
+                cond = mask | (self <= upper)
+                mgr = mgr.where(other=upper, cond=cond, align=False)
+            if lower is not None:
+                cond = mask | (self >= lower)
+                mgr = mgr.where(other=lower, cond=cond, align=False)
 
-        if np.any(mask):
-            result[mask] = np.nan
-
+        result = self._constructor(mgr)
         if inplace:
             return self._update_inplace(result)
         else:
-            return result
+            return result.__finalize__(self)
 
     @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
