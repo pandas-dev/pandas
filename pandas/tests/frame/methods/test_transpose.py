@@ -65,7 +65,7 @@ class TestTranspose:
         df4 = DataFrame({"A": dti, "B": dti2})
         assert (df4.dtypes == [dti.dtype, dti2.dtype]).all()
         assert (df4.T.dtypes == object).all()
-        tm.assert_frame_equal(df4.T.T, df4, check_dtype=False)
+        tm.assert_frame_equal(df4.T.T, df4.astype(object))
 
     @pytest.mark.parametrize("tz", [None, "America/New_York"])
     def test_transpose_preserves_dtindex_equality_with_dst(self, tz):
