@@ -3910,6 +3910,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "not slice."
             )
         else:
+            warnings.warn(
+                # GH#51539
+                f"Passing a slice to {type(self).__name__}.take is deprecated "
+                "and will raise in a future version. Use `obj[slicer]` or pass "
+                "a sequence of integers instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             # We can get here with a slice via DataFrame.__getitem__
             indices = np.arange(
                 indices.start, indices.stop, indices.step, dtype=np.intp

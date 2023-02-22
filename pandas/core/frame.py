@@ -3749,6 +3749,9 @@ class DataFrame(NDFrame, OpsMixin):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=1)
+
         data = self._take_with_is_copy(indexer, axis=1)
 
         if is_single_key:
