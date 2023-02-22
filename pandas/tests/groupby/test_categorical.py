@@ -2007,3 +2007,48 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["add", "sub", "mul", "div"])
+def test_groupyby_rename_categories_operation_with_multiindex(op):
+    # 51500
+    data = DataFrame(
+        [["C", "B", "B"], ["B", "A", "A"], ["B", "A", "B"]], columns=["0", "1", "2"]
+    )
+
+    def astype_rename_categories(data):
+        return data.astype("category").cat.rename_categories({"C": "B", "B": "C"})
+
+    data["0"] = astype_rename_categories(data["0"])
+
+    gb = data.groupby(["0", "1"])
+
+    s1 = gb["2"].value_counts()
+    s2 = gb.size()
+    result = getattr(s1, op)(s2)
+
+    s1_expected_idx = DataFrame(
+        [
+            ("B", "A", "A"),
+            ("B", "A", "B"),
+            ("B", "B", "A"),
+            ("B", "B", "B"),
+            ("C", "A", "A"),
+            ("C", "A", "B"),
+            ("C", "B", "B"),
+            ("C", "B", "A"),
+        ],
+        columns=["0", "1", "2"],
+    )
+    s1_expected_idx["0"] = astype_rename_categories(s1_expected_idx["0"])
+    s1_expected = Series(
+        [1, 1, 0, 0, 0, 0, 1, 0], index=MultiIndex.from_frame(s1_expected_idx)
+    )
+    s2_expected_idx = DataFrame(
+        [("B", "A"), ("B", "B"), ("C", "A"), ("C", "B")], columns=["0", "1"]
+    )
+    s2_expected_idx["0"] = astype_rename_categories(s2_expected_idx["0"])
+    s2_expected = Series([2, 0, 0, 1], index=MultiIndex.from_frame(s2_expected_idx))
+
+    expected = getattr(s1_expected, op)(s2_expected)
+    tm.assert_series_equal(result, expected)
