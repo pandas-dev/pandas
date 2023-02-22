@@ -56,7 +56,6 @@ def test_agg_must_agg(df):
 
 
 def test_agg_ser_multi_key(df):
-
     f = lambda x: x.sum()
     results = df.C.groupby([df.A, df.B]).aggregate(f)
     expected = df.groupby(["A", "B"]).sum()["C"]
@@ -137,7 +136,7 @@ def test_agg_apply_corner(ts, tsframe):
     grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
-    # groupby float64 values results in Float64Index
+    # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
     tm.assert_series_equal(grouped.agg(np.sum), exp)
@@ -258,6 +257,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -586,7 +586,8 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
         {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
         dtype=any_numeric_ea_dtype,
     )
-    result = df.groupby("a").ohlc()
+    gb = df.groupby("a")
+    result = gb.ohlc()
     expected = DataFrame(
         [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
         columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
@@ -594,6 +595,11 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
+
+    gb2 = df.groupby("a", as_index=False)
+    result2 = gb2.ohlc()
+    expected2 = expected.reset_index()
+    tm.assert_frame_equal(result2, expected2)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
@@ -673,7 +679,9 @@ def test_agg_split_object_part_datetime():
             "D": ["b"],
             "E": [pd.Timestamp("2000")],
             "F": [1],
-        }
+        },
+        index=np.array([0]),
+        dtype=object,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -684,7 +692,7 @@ class TestNamedAggregationSeries:
         gr = df.groupby([0, 0, 1, 1])
         result = gr.agg(a="sum", b="min")
         expected = DataFrame(
-            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=[0, 1]
+            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=np.array([0, 1])
         )
         tm.assert_frame_equal(result, expected)
 
@@ -706,13 +714,13 @@ class TestNamedAggregationSeries:
         # GH28426
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         grouped = gr.agg(a="sum", b="sum")
-        expected = DataFrame({"a": [3, 3], "b": [3, 3]})
+        expected = DataFrame({"a": [3, 3], "b": [3, 3]}, index=np.array([0, 1]))
         tm.assert_frame_equal(expected, grouped)
 
     def test_mangled(self):
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
-        expected = DataFrame({"a": [0, 0], "b": [1, 1]})
+        expected = DataFrame({"a": [0, 0], "b": [1, 1]}, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1013,8 +1021,7 @@ def test_multiindex_custom_func(func):
         (1, 4): {0: 4.0, 1: 7.0},
         (2, 3): {0: 2.0, 1: 1.0},
     }
-    expected = DataFrame(expected_dict)
-    expected.columns = df.columns
+    expected = DataFrame(expected_dict, index=np.array([0, 1]), columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1096,7 +1103,8 @@ class TestLambdaMangling:
     def test_mangle_series_groupby(self):
         gr = Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
         result = gr.agg([lambda x: 0, lambda x: 1])
-        expected = DataFrame({"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]})
+        exp_data = {"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]}
+        expected = DataFrame(exp_data, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
@@ -1384,7 +1392,7 @@ def test_groupby_aggregate_directory(reduction_func):
 def test_group_mean_timedelta_nat():
     # GH43132
     data = Series(["1 day", "3 days", "NaT"], dtype="timedelta64[ns]")
-    expected = Series(["2 days"], dtype="timedelta64[ns]")
+    expected = Series(["2 days"], dtype="timedelta64[ns]", index=np.array([0]))
 
     result = data.groupby([0, 0, 0]).mean()
 
@@ -1407,7 +1415,7 @@ def test_group_mean_timedelta_nat():
 def test_group_mean_datetime64_nat(input_data, expected_output):
     # GH43132
     data = to_datetime(Series(input_data))
-    expected = to_datetime(Series(expected_output))
+    expected = to_datetime(Series(expected_output, index=np.array([0])))
 
     result = data.groupby([0, 0, 0]).mean()
     tm.assert_series_equal(result, expected)
@@ -1466,4 +1474,50 @@ def test_agg_of_mode_list(test, constant):
     expected = DataFrame(constant)
     expected = expected.set_index(0)
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test__dataframe_groupy_agg_list_like_func_with_args():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+    gb = df.groupby("y")
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        gb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = gb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        index=Index(["a", "b", "c"], name="y"),
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test__series_groupy_agg_list_like_func_with_args():
+    # GH 50624
+    s = Series([1, 2, 3])
+    sgb = s.groupby(s)
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        sgb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = sgb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
+    )
     tm.assert_frame_equal(result, expected)

@@ -1,5 +1,5 @@
 # cython: language_level=3, initializedcheck=False
-# cython: warn.undeclared=True, warn.maybe_uninitialized=True, warn.unused=True
+# cython: warn.maybe_uninitialized=True, warn.unused=True
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
@@ -375,9 +375,9 @@ cdef class Parser:
     def read(self, int nrows):
         cdef:
             bint done
-            Py_ssize_t i
+            Py_ssize_t _
 
-        for i in range(nrows):
+        for _ in range(nrows):
             done = self.readline()
             if done:
                 break

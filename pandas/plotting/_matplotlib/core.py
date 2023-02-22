@@ -27,6 +27,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_any_real_numeric_dtype,
     is_categorical_dtype,
     is_extension_array_dtype,
     is_float,
@@ -53,6 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
@@ -146,7 +148,6 @@ class MPLPlot(ABC):
         column: IndexLabel | None = None,
         **kwds,
     ) -> None:
-
         import matplotlib.pyplot as plt
 
         self.data = data
@@ -185,7 +186,6 @@ class MPLPlot(ABC):
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
-
             # if by is defined, subplots are used and sharex should be False
             if ax is None and by is None:
                 self.sharex = True
@@ -427,7 +427,6 @@ class MPLPlot(ABC):
 
     @property
     def nseries(self) -> int:
-
         # When `by` is explicitly assigned, grouped data size will be defined, and
         # this will determine number of subplots to have, aka `self.nseries`
         if self.data.ndim == 1:
@@ -455,6 +454,7 @@ class MPLPlot(ABC):
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
+    @abstractmethod
     def _args_adjust(self) -> None:
         pass
 
@@ -602,7 +602,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects()
+        data = data.infer_objects(copy=False)
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -664,6 +664,7 @@ class MPLPlot(ABC):
         else:  # pragma no cover
             raise ValueError
 
+    @abstractmethod
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
 
@@ -715,7 +716,7 @@ class MPLPlot(ABC):
                             f"number of columns = {self.nseries}"
                         )
 
-                    for (ax, title) in zip(self.axes, self.title):
+                    for ax, title in zip(self.axes, self.title):
                         ax.set_title(title)
                 else:
                     self.fig.suptitle(self.title)
@@ -784,8 +785,11 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.LegendHandles because it misses marker info
-                handles = leg.legendHandles
+                # Replace leg.legend_handles because it misses marker info
+                if Version(mpl.__version__) < Version("3.7"):
+                    handles = leg.legendHandles
+                else:
+                    handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -838,7 +842,7 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif index.is_numeric():
+            elif is_any_real_numeric_dtype(index):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime
@@ -1022,7 +1026,6 @@ class MPLPlot(ABC):
 
         # key-matched DataFrame
         if isinstance(err, ABCDataFrame):
-
             err = match_labels(self.data, err)
         # key-matched dict
         elif isinstance(err, dict):
@@ -1135,9 +1138,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not self.data.columns.holds_integer():
+        if is_integer(x) and not self.data.columns._holds_integer():
             x = self.data.columns[x]
-        if is_integer(y) and not self.data.columns.holds_integer():
+        if is_integer(y) and not self.data.columns._holds_integer():
             y = self.data.columns[y]
 
         # Scatter plot allows to plot objects data
@@ -1194,7 +1197,7 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
-        if is_integer(c) and not self.data.columns.holds_integer():
+        if is_integer(c) and not self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1278,6 +1281,9 @@ class ScatterPlot(PlanePlot):
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
 
+    def _args_adjust(self) -> None:
+        pass
+
 
 class HexBinPlot(PlanePlot):
     @property
@@ -1286,7 +1292,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not self.data.columns.holds_integer():
+        if is_integer(C) and not self.data.columns._holds_integer():
             C = self.data.columns[C]
         self.C = C
 
@@ -1308,6 +1314,9 @@ class HexBinPlot(PlanePlot):
             self._plot_colorbar(ax)
 
     def _make_legend(self) -> None:
+        pass
+
+    def _args_adjust(self) -> None:
         pass
 
 
@@ -1383,7 +1392,6 @@ class LinePlot(MPLPlot):
             self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
-
                 # reset of xlim should be used for ts data
                 # TODO: GH28021, should find a way to change view limit on xaxis
                 lines = get_all_lines(ax)
@@ -1469,6 +1477,9 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
+    def _args_adjust(self) -> None:
+        pass
+
     def _post_plot_logic(self, ax: Axes, data) -> None:
         from matplotlib.ticker import FixedLocator
 
@@ -1540,7 +1551,6 @@ class AreaPlot(LinePlot):
         is_errorbar: bool = False,
         **kwds,
     ):
-
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
@@ -1572,6 +1582,9 @@ class AreaPlot(LinePlot):
         # LinePlot expects list of artists
         res = [rect]
         return res
+
+    def _args_adjust(self) -> None:
+        pass
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
@@ -1855,5 +1868,8 @@ class PiePlot(MPLPlot):
 
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
-            for p, l in zip(patches, leglabels):
-                self._append_legend_handles_labels(p, l)
+            for _patch, _leglabel in zip(patches, leglabels):
+                self._append_legend_handles_labels(_patch, _leglabel)
+
+    def _post_plot_logic(self, ax: Axes, data) -> None:
+        pass

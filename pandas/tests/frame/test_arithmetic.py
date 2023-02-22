@@ -446,7 +446,9 @@ class TestFrameFlexComparisons:
         const = 2
 
         result = getattr(df, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
+        tm.assert_series_equal(
+            result, Series([2], index=[np.dtype(bool)], name="count")
+        )
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_df_flex_cmp_constant_return_types_empty(self, opname):
@@ -456,7 +458,9 @@ class TestFrameFlexComparisons:
 
         empty = df.iloc[:0]
         result = getattr(empty, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
+        tm.assert_series_equal(
+            result, Series([2], index=[np.dtype(bool)], name="count")
+        )
 
     def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):
         ii = pd.IntervalIndex.from_breaks([1, 2, 3])
@@ -617,7 +621,6 @@ class TestFrameFlexArithmetic:
             getattr(float_frame, op)(arr)
 
     def test_arith_flex_frame_corner(self, float_frame):
-
         const_add = float_frame.add(1)
         tm.assert_frame_equal(const_add, float_frame + 1)
 
@@ -962,7 +965,6 @@ class TestFrameArithmetic:
         assert (kinds == "i").all()
 
     def test_arith_mixed(self):
-
         left = DataFrame({"A": ["a", "b", "c"], "B": [1, 2, 3]})
 
         result = left + left
@@ -1067,8 +1069,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
-
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
@@ -1099,10 +1100,14 @@ class TestFrameArithmetic:
                 msg = None
             elif dtype == "complex128":
                 msg = "ufunc 'remainder' not supported for the input types"
-                warn = UserWarning  # "evaluating in Python space because ..."
             elif op is operator.sub:
                 msg = "numpy boolean subtract, the `-` operator, is "
-                warn = UserWarning  # "evaluating in Python space because ..."
+                if (
+                    dtype == "bool"
+                    and expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                ):
+                    warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1114,7 +1119,6 @@ class TestFrameArithmetic:
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
-
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
                     # "evaluating in Python space because ..."
@@ -1266,7 +1270,6 @@ class TestFrameArithmeticUnsorted:
 
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "div", "truediv"])
     def test_binary_ops_align(self, op):
-
         # test aligning binary ops
 
         # GH 6681
@@ -1407,7 +1410,6 @@ class TestFrameArithmeticUnsorted:
         _check_mixed_float(added, dtype="float64")
 
     def test_combine_series(self, float_frame, mixed_float_frame, mixed_int_frame):
-
         # Series
         series = float_frame.xs(float_frame.index[0])
 
@@ -1564,7 +1566,6 @@ class TestFrameArithmeticUnsorted:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_boolean_comparison(self):
-
         # GH 4576
         # boolean comparisons with a tuple/list give unexpected results
         df = DataFrame(np.arange(6).reshape((3, 2)))
@@ -1643,7 +1644,6 @@ class TestFrameArithmeticUnsorted:
             df == tup
 
     def test_inplace_ops_alignment(self):
-
         # inplace ops / ops alignment
         # GH 8511
 
@@ -1692,7 +1692,6 @@ class TestFrameArithmeticUnsorted:
         tm.assert_frame_equal(result1, result4)
 
     def test_inplace_ops_identity(self):
-
         # GH 5104
         # make sure that we are actually changing the object
         s_orig = Series([1, 2, 3])
@@ -1766,7 +1765,6 @@ class TestFrameArithmeticUnsorted:
         ],
     )
     def test_inplace_ops_identity2(self, op):
-
         if op == "div":
             return
 
@@ -1932,15 +1930,19 @@ def test_dataframe_blockwise_slicelike():
     # GH#34367
     arr = np.random.randint(0, 1000, (100, 10))
     df1 = DataFrame(arr)
-    df2 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df2 = df1.copy().astype({1: "float", 3: "float", 7: "float"})
     df2.iloc[0, [1, 3, 7]] = np.nan
 
-    df3 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df3 = df1.copy().astype({5: "float"})
     df3.iloc[0, [5]] = np.nan
 
-    df4 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df4 = df1.copy().astype({2: "float", 3: "float", 4: "float"})
     df4.iloc[0, np.arange(2, 5)] = np.nan
-    df5 = df1.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df5 = df1.copy().astype({4: "float", 5: "float", 6: "float"})
     df5.iloc[0, np.arange(4, 7)] = np.nan
 
     for left, right in [(df1, df2), (df2, df3), (df4, df5)]:
@@ -1986,17 +1988,22 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update():
+def test_inplace_arithmetic_series_update(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
+    df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
     series += 1
-    assert series._values is vals
+    if using_copy_on_write:
+        assert series._values is not vals
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert series._values is vals
 
-    expected = DataFrame({"A": [2, 3, 4]})
-    tm.assert_frame_equal(df, expected)
+        expected = DataFrame({"A": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
 
 
 def test_arithemetic_multiindex_align():

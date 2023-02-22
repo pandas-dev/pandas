@@ -12,13 +12,13 @@ dependencies:
   - cython>=0.29.32
 
   # test dependencies
-  - pytest>=6.0
+  - pytest>=7.0.0
   - pytest-cov
   - pytest-asyncio
-  - pytest-xdist>=1.31
-  - hypothesis>=5.5.3
+  - pytest-xdist>=2.2.0
+  - hypothesis>=6.34.2
 
   # required
-  - numpy<1.24
+  - numpy
   - python-dateutil
   - pytz

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under6p0
+from pandas.compat.pyarrow import pa_version_under7p0
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -416,7 +416,7 @@ def test_groupby_drop_nan_with_multi_index():
         pytest.param(
             "string[pyarrow]",
             marks=pytest.mark.skipif(
-                pa_version_under6p0, reason="pyarrow is not installed"
+                pa_version_under7p0, reason="pyarrow is not installed"
             ),
         ),
         "datetime64[ns]",

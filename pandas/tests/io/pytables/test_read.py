@@ -49,7 +49,6 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
     df.to_hdf(path, "k1")
 
     with HDFStore(path, "r") as store:
-
         with pytest.raises(KeyError, match="'No object named k2 in the file'"):
             read_hdf(store, "k2")
 
@@ -59,7 +58,6 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
 
 
 def test_read_column(setup_path):
-
     df = tm.makeTimeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
@@ -214,6 +212,20 @@ def test_read_hdf_open_store(tmp_path, setup_path):
         assert store.is_open
 
 
+def test_read_hdf_index_not_view(tmp_path, setup_path):
+    # GH 37441
+    # Ensure that the index of the DataFrame is not a view
+    # into the original recarray that pytables reads in
+    df = DataFrame(np.random.rand(4, 5), index=[0, 1, 2, 3], columns=list("ABCDE"))
+
+    path = tmp_path / setup_path
+    df.to_hdf(path, "df", mode="w", format="table")
+
+    df2 = read_hdf(path, "df")
+    assert df2.index._data.base is None
+    tm.assert_frame_equal(df, df2)
+
+
 def test_read_hdf_iterator(tmp_path, setup_path):
     df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
     df.index.name = "letters"
@@ -274,7 +286,6 @@ def test_read_nokey_empty(tmp_path, setup_path):
 
 
 def test_read_from_pathlib_path(tmp_path, setup_path):
-
     # GH11773
     expected = DataFrame(
         np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
@@ -290,7 +301,6 @@ def test_read_from_pathlib_path(tmp_path, setup_path):
 
 @td.skip_if_no("py.path")
 def test_read_from_py_localpath(tmp_path, setup_path):
-
     # GH11773
     from py.path import local as LocalPath
 

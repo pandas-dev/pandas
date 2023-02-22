@@ -477,7 +477,7 @@ Scalars type ops work as well. These can potentially return a *different* type o
    # division can result in a Timedelta if the divisor is an integer
    tdi / 2
 
-   # or a Float64Index if the divisor is a Timedelta
+   # or a float64 Index if the divisor is a Timedelta
    tdi / tdi[0]
 
 .. _timedeltas.resampling:

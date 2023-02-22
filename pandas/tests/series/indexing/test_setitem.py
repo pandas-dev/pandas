@@ -793,7 +793,8 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
     def test_index_putmask(self, obj, key, expected, val):
         mask = np.zeros(obj.shape, dtype=bool)
@@ -898,7 +899,7 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         ser = ser.astype(object)
-        ser.values[0] = np.timedelta64(4, "ns")
+        ser.iloc[0] = np.timedelta64(4, "ns")
         return ser
 
     @pytest.fixture
@@ -948,7 +949,7 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, key):
         exp = Series(period_range("2000-01-01", periods=10, freq="D"))
-        exp._values.view("i8")[key] = NaT.value
+        exp._values.view("i8")[key] = NaT._value
         assert exp[key] is NaT or all(x is NaT for x in exp[key])
         return exp
 

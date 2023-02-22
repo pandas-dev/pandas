@@ -1,10 +1,15 @@
 import os
+import subprocess
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_linux,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -409,8 +414,10 @@ class TestClipboard:
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
+        if is_ci_environment() and is_platform_linux():
+            # Clipboard can sometimes keep previous param causing flaky CI failures
+            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_nullable_dtypes(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
@@ -418,9 +425,6 @@ class TestClipboard:
         # GH#50502
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-
-        if dtype_backend == "pyarrow" and engine == "c":
-            pytest.skip(reason="c engine not yet supported")
 
         if string_storage == "python":
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
@@ -465,4 +469,21 @@ y,2,5.0,,,,,False,"""
             )
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_read_clipboard_nullable_dtypes_option(
+        self, request, mock_clipboard, engine
+    ):
+        # GH#50748
+
+        text = """a
+1
+2"""
+        mock_clipboard[request.node.name] = text
+
+        with pd.option_context("mode.nullable_dtypes", True):
+            result = read_clipboard(sep=",", engine=engine)
+
+        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

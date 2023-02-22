@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
   pull_request:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
@@ -92,5 +94,4 @@ jobs:
     - name: Import pandas
       run: |
         cd ..
-        conda list
         python -c "import pandas; pandas.show_versions();"

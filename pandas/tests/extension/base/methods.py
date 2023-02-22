@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -46,9 +48,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
-            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+            expected = pd.Series(
+                [1 / len(values)] * len(values), index=result.index, name="proportion"
+            )
         else:
-            expected = pd.Series(0.0, index=result.index)
+            expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
         if na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
@@ -245,20 +249,26 @@ class BaseMethodsTests(BaseExtensionTests):
 
         assert df.A.values is not result.A.values
 
-    def test_fillna_copy_series(self, data_missing):
+    def test_fillna_copy_series(self, data_missing, no_op_with_cow: bool = False):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        assert ser._values is not result._values
+        if no_op_with_cow:
+            assert ser._values is result._values
+        else:
+            assert ser._values is not result._values
         assert ser._values is arr
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."
         with pytest.raises(ValueError, match=msg):
             data_missing.fillna(data_missing.take([1]))
+
+    # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
+    _combine_le_expected_dtype: Dtype = np.dtype(bool)
 
     def test_combine_le(self, data_repeated):
         # GH 20825
@@ -268,13 +278,17 @@ class BaseMethodsTests(BaseExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+            dtype=self._combine_le_expected_dtype,
         )
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)])
+        expected = pd.Series(
+            [a <= val for a in list(orig_data1)],
+            dtype=self._combine_le_expected_dtype,
+        )
         self.assert_series_equal(result, expected)
 
     def test_combine_add(self, data_repeated):

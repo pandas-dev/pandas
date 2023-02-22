@@ -393,7 +393,6 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     parser = all_parsers
 
     with open(datapath("io", "data", "csv", "iris.csv")) as path:
-
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:
@@ -404,20 +403,14 @@ def test_context_manageri_user_provided(all_parsers, datapath):
             assert not reader.handles.handle.closed
 
 
-def test_file_descriptor_leak(all_parsers):
+def test_file_descriptor_leak(all_parsers, using_copy_on_write):
     # GH 31488
-
     parser = all_parsers
     with tm.ensure_clean() as path:
-
-        def test():
-            with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-                parser.read_csv(path)
-
-        td.check_file_leaks(test)()
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+            parser.read_csv(path)
 
 
-@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers

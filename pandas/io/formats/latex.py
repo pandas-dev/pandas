@@ -54,7 +54,7 @@ def _split_into_full_short_caption(
     return full_caption, short_caption
 
 
-class RowStringConverter(ABC):
+class RowStringConverter:
     r"""Converter for dataframe rows into LaTeX strings.
 
     Parameters
