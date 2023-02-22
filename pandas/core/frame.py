@@ -3545,10 +3545,14 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy:
+            if copy and not using_copy_on_write():
                 new_vals = new_vals.copy()
 
-            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_vals, index=self.columns, columns=self.index, copy=False
+            )
+            if using_copy_on_write() and len(self) > 0:
+                result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
