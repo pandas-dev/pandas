@@ -632,36 +632,9 @@ def read_sql(
     >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
 
     Apply date parsing to columns through the ``parse_dates`` argument
-
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates=["date_column"])
-       int_column date_column
-    0           0  2012-10-11
-    1           1  2010-12-11
-
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
     Custom argument values for applying ``pd.to_datetime`` on a column are specified
     via a dictionary format:
-    1. Ignore errors while parsing the values of "date_column"
-
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates={"date_column": {"errors": "ignore"}})
-       int_column date_column
-    0           0  2012-10-11
-    1           1  2010-12-11
-
-    2. Apply a dayfirst date parsing order on the values of "date_column"
-
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates={"date_column": {"dayfirst": True}})
-       int_column date_column
-    0           0  2012-11-10
-    1           1  2010-11-12
-
-    3. Apply custom formatting when date parsing the values of "date_column"
 
     >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
     ...             conn,

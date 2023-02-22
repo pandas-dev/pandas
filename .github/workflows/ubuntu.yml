@@ -40,7 +40,6 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-            error_on_warnings: "0"
           - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -65,12 +64,10 @@ jobs:
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
-            error_on_warnings: "0"
           - name: "Data Manager"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
-            error_on_warnings: "0"
           - name: "Pypy"
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -79,7 +76,6 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-            error_on_warnings: "0"
         exclude:
           - env_file: actions-38.yaml
             pyarrow_version: "8"
@@ -99,7 +95,6 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      ERROR_ON_WARNINGS: ${{ matrix.error_on_warnings || '1' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
