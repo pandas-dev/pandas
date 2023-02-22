@@ -106,7 +106,7 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide_checked(left, right))
+        result = pc.floor(pc.divide(left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -118,8 +118,8 @@ if not pa_version_under7p0:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,

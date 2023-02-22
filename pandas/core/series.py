@@ -836,8 +836,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
-
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
@@ -1708,8 +1706,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str | None:
         """
         Print {klass} in Markdown-friendly format.
-
-        .. versionadded:: 1.0.0
 
         Parameters
         ----------
@@ -3407,9 +3403,6 @@ Keep all original rows and also all original values
             the end.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the series values
             before sorting. This is similar to the `key` argument in the
@@ -3668,9 +3661,6 @@ Keep all original rows and also all original values
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
