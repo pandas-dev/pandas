@@ -375,24 +375,16 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         if do_skip:
             pytest.skip(
-                "These should *not* work, we test in test_accumulate_series_raises "
-                "that these correctly raise."
+                f"{op_name} should *not* work, we test in "
+                "test_accumulate_series_raises that these correctly raise."
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
-            if request.config.option.skip_slow:
-                # equivalent to marking these cases with @pytest.mark.slow,
-                #  these xfails take a long time to run because pytest
-                #  renders the exception messages even when not showing them
-                pytest.skip("pyarrow xfail slow")
+            # xfailing takes a long time to run because pytest
+            # renders the exception messages even when not showing them
+            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
 
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented",
-                    raises=NotImplementedError,
-                )
-            )
-        elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
+        elif all_numeric_accumulations == "cumsum" and pa.types.is_boolean(pa_type):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -867,17 +859,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            # TODO: this fails on the scalar addition constructing 'expected'
-            #  but not in the actual 'combine' call, so may be salvage-able
-            mark = pytest.mark.xfail(
-                raises=TypeError,
-                reason=f"{pa_dtype} cannot be added to {pa_dtype}",
-            )
-            request.node.add_marker(mark)
-            super().test_combine_add(data_repeated)
-
-        elif pa.types.is_temporal(pa_dtype):
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
             # analogous to datetime64, these cannot be added
             orig_data1, orig_data2 = data_repeated(2)
             s1 = pd.Series(orig_data1)
@@ -906,6 +888,16 @@ class TestBaseMethods(base.BaseMethodsTests):
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
 
+    def get_op_from_name(self, op_name):
+        short_opname = op_name.strip("_")
+        if short_opname == "rtruediv":
+            # use the numpy version that won't raise on division by zero
+            return lambda x, y: np.divide(y, x)
+        elif short_opname == "rfloordiv":
+            return lambda x, y: np.floor_divide(y, x)
+
+        return tm.get_op_from_name(op_name)
+
     def _patch_combine(self, obj, other, op):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
@@ -923,14 +915,24 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         pa_expected = pa.array(expected_data._values)
 
         if pa.types.is_duration(pa_expected.type):
-            # pyarrow sees sequence of datetime/timedelta objects and defaults
-            #  to "us" but the non-pointwise op retains unit
-            unit = original_dtype.pyarrow_dtype.unit
-            if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                # pydatetime/pytimedelta objects have microsecond reso, so we
-                #  take the higher reso of the original and microsecond. Note
-                #  this matches what we would do with DatetimeArray/TimedeltaArray
-                unit = "us"
+            orig_pa_type = original_dtype.pyarrow_dtype
+            if pa.types.is_date(orig_pa_type):
+                if pa.types.is_date64(orig_pa_type):
+                    # TODO: why is this different vs date32?
+                    unit = "ms"
+                else:
+                    unit = "s"
+            else:
+                # pyarrow sees sequence of datetime/timedelta objects and defaults
+                #  to "us" but the non-pointwise op retains unit
+                # timestamp or duration
+                unit = orig_pa_type.unit
+                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
+                    # pydatetime/pytimedelta objects have microsecond reso, so we
+                    #  take the higher reso of the original and microsecond. Note
+                    #  this matches what we would do with DatetimeArray/TimedeltaArray
+                    unit = "us"
+
             pa_expected = pa_expected.cast(f"duration[{unit}]")
         else:
             pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
@@ -987,7 +989,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported:
+        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
@@ -996,8 +998,8 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 ),
             )
         elif (
-            opname in {"__rtruediv__", "__rfloordiv__"}
-            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            opname in {"__rfloordiv__"}
+            and pa.types.is_integer(pa_dtype)
             and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
@@ -1032,6 +1034,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1063,6 +1066,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1111,10 +1115,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             pa.types.is_floating(pa_dtype)
             or (
                 pa.types.is_integer(pa_dtype)
-                and all_arithmetic_operators != "__truediv__"
+                and all_arithmetic_operators not in ["__truediv__", "__rtruediv__"]
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
