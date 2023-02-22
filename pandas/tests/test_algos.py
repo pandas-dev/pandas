@@ -1163,6 +1163,15 @@ class TestIsin:
 
 
 class TestValueCounts:
+    def test_value_counts_datetime64_mismatched_units(self):
+        # GH#50960 np.datetime64 objects with different units that are still equal
+        arr = np.array(
+            [np.datetime64(1, "ms"), np.datetime64(1000, "us")], dtype=object
+        )
+        res = algos.value_counts(arr)
+        expected = Series([2], index=arr[:1], name="count")
+        tm.assert_series_equal(res, expected)
+
     def test_value_counts(self):
         np.random.seed(1234)
         from pandas.core.reshape.tile import cut
@@ -1618,6 +1627,14 @@ class TestDuplicated:
         # GH 17927
         result = pd.unique(array)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_unique_datetime64_mismatched_units(self):
+        # GH#50960 np.datetime64 objects with different units that are still equal
+        arr = np.array(
+            [np.datetime64(1, "ms"), np.datetime64(1000, "us")], dtype=object
+        )
+        res = pd.unique(arr)
+        tm.assert_numpy_array_equal(res, arr[:1])
 
 
 class TestHashTable:
