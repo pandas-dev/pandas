@@ -583,8 +583,8 @@ def test_subset_chained_getitem(
         # with ArrayManager, it doesn't matter whether we have
         # single vs mixed block or numpy vs nullable dtypes
         subset_is_view = test_callspec.endswith(
-            "column-iloc-slice"
-        ) or test_callspec.endswith("column-loc-slice")
+            ("column-iloc-slice", "column-loc-slice")
+        )
 
     # modify subset -> don't modify parent
     subset = method(df)

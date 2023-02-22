@@ -596,7 +596,7 @@ def _is_annual(rule: str) -> bool:
 
 def _is_quarterly(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "Q" or rule.startswith("Q-") or rule.startswith("BQ")
+    return rule == "Q" or rule.startswith(("Q-", "BQ"))
 
 
 def _is_monthly(rule: str) -> bool:

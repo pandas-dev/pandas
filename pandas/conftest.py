@@ -637,9 +637,7 @@ index_flat2 = index_flat
         key
         for key, value in indices_dict.items()
         if not (
-            key.startswith("int")
-            or key.startswith("uint")
-            or key.startswith("float")
+            key.startswith(("int", "uint", "float"))
             or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
