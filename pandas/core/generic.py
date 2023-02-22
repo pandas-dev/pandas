@@ -5901,25 +5901,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Functions that perform tax reductions on an income DataFrame.
 
-        >>> def federal_tax(income):
+        >>> def subtract_federal_tax(income):
         ...     return income * 0.9
-        >>> def state_tax(income, rate):
+        >>> def subtract_state_tax(income, rate):
         ...     return income * (1 - rate)
-        >>> def national_insurance(income, rate, rate_increase):
+        >>> def subtract_national_insurance(income, rate, rate_increase):
         ...     new_rate = rate + rate_increase
         ...     return income * (1 - new_rate)
 
         Instead of writing
 
-        >>> (national_insurance(state_tax(federal_tax(income), rate=0.12),
-        ...                     rate=0.05,
-        ...                     rate_increase=0.02))  # doctest: +SKIP
+        >>> (subtract_national_insurance(
+        ...     subtract_state_tax(subtract_federal_tax(income),rate=0.12),
+        ...     rate=0.05,
+        ...     rate_increase=0.02))  # doctest: +SKIP
 
         You can write
 
-        >>> (income.pipe(federal_tax)
-        ...        .pipe(state_tax, rate=0.12)
-        ...        .pipe(national_insurance, rate=0.05, rate_increase=0.02))
+        >>> (income.pipe(subtract_federal_tax)
+        ...        .pipe(subtract_state_tax, rate=0.12)
+        ...        .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02))
             Salary   Others
         0  5892.48   736.56
         1  6997.32      NaN
@@ -5930,12 +5931,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         data. For example, suppose ``national_insurance`` takes its data as ``income``
         in the second argument:
 
-        >>> def national_insurance(rate, income, rate_increase):
+        >>> def subtract_national_insurance(rate, income, rate_increase):
         ...     new_rate = rate + rate_increase
         ...     return income * (1 - new_rate)
-        >>> (income.pipe(federal_tax)
-        ...        .pipe(state_tax, rate=0.12)
-        ...        .pipe((national_insurance, 'income'), rate=0.05, rate_increase=0.02))
+        >>> (income.pipe(subtract_federal_tax)
+        ...        .pipe(subtract_state_tax, rate=0.12)
+        ...        .pipe((subtract_national_insurance, 'income'),
+        ...              rate=0.05, rate_increase=0.02))
             Salary   Others
         0  5892.48   736.56
         1  6997.32      NaN
