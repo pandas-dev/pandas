@@ -70,11 +70,19 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self._mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            try:
+                self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
             self._handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
-            self._book = Workbook(**engine_kwargs)
+            try:
+                self._book = Workbook(**engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
@@ -495,7 +503,6 @@ class OpenpyxlWriter(ExcelWriter):
                     setattr(xcell, k, v)
 
             if cell.mergestart is not None and cell.mergeend is not None:
-
                 wks.merge_cells(
                     start_row=startrow + cell.row + 1,
                     start_column=startcol + cell.col + 1,
@@ -567,7 +574,6 @@ class OpenpyxlReader(BaseExcelReader):
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell) -> Scalar:
-
         from openpyxl.cell.cell import (
             TYPE_ERROR,
             TYPE_NUMERIC,
@@ -588,7 +594,6 @@ class OpenpyxlReader(BaseExcelReader):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-
         if self.book.read_only:
             sheet.reset_dimensions()
 

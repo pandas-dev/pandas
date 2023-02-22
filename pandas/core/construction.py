@@ -52,6 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
@@ -308,6 +309,8 @@ def array(
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
+    elif isinstance(data, ABCDataFrame):
+        raise TypeError("Cannot pass DataFrame to 'pandas.array'")
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it

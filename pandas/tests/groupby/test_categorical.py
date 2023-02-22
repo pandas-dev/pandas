@@ -82,7 +82,6 @@ def test_apply_use_categorical_name(df):
 
 
 def test_basic():  # TODO: split this test
-
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -103,9 +102,6 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    msg = "category type does not support sum operations"
-    with pytest.raises(TypeError, match=msg):
-        gb.sum()
     result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
@@ -660,7 +656,6 @@ def test_datetime():
 
 
 def test_categorical_index():
-
     s = np.random.RandomState(12345)
     levels = ["foo", "bar", "baz", "qux"]
     codes = s.randint(0, 4, size=20)
@@ -949,7 +944,6 @@ def test_groupby_empty_with_category():
 
 
 def test_sort():
-
     # https://stackoverflow.com/questions/23814368/sorting-pandas-
     #        categorical-labels-after-groupby
     # This should result in a properly sorted Series so that the plot

@@ -41,7 +41,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 fix_now = pd.Timestamp("2021-01-01")
 fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
@@ -406,10 +405,10 @@ def test_array_equivalent(dtype_equal):
         np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
     )
     assert array_equivalent(
-        NumericIndex([0, np.nan]), NumericIndex([0, np.nan]), dtype_equal=dtype_equal
+        Index([0, np.nan]), Index([0, np.nan]), dtype_equal=dtype_equal
     )
     assert not array_equivalent(
-        NumericIndex([0, np.nan]), NumericIndex([1, np.nan]), dtype_equal=dtype_equal
+        Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
     )
     assert array_equivalent(
         DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
@@ -569,6 +568,7 @@ def test_array_equivalent_nested(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize(
     "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
 )
@@ -611,6 +611,7 @@ def test_array_equivalent_nested_list(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.xfail(reason="failing")
 @pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_mixed_list(strict_nan):
@@ -801,8 +802,8 @@ inf_vals = [
 
 int_na_vals = [
     # Values that match iNaT, which we treat as null in specific cases
-    np.int64(NaT.value),
-    int(NaT.value),
+    np.int64(NaT._value),
+    int(NaT._value),
 ]
 
 sometimes_na_vals = [Decimal("NaN")]
@@ -875,7 +876,6 @@ class TestLibMissing:
             assert not libmissing.is_matching_na(left, right)
 
     def test_is_matching_na_nan_matches_none(self):
-
         assert not libmissing.is_matching_na(None, np.nan)
         assert not libmissing.is_matching_na(np.nan, None)
 

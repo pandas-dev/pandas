@@ -187,7 +187,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["first", "last"])
     def test_first_last(self, df, method):
-
         expected_columns = Index(
             [
                 "int",
@@ -206,7 +205,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-
         expected_columns_numeric = Index(["int", "float", "category_int"])
         expected_columns = Index(
             ["int", "float", "string", "category_int", "timedelta"]
@@ -219,7 +217,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
-
         expected_columns = Index(["int", "float", "category_int"])
         expected_columns_numeric = expected_columns
 
@@ -333,7 +330,6 @@ class TestGroupByNonCythonPaths:
 
 
 def test_cython_api2():
-
     # this takes the fast apply path
 
     # cumsum (GH5614)
@@ -356,8 +352,9 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    df = DataFrame(np.random.randn(1000))
-    df.values[::2] = np.nan
+    arr = np.random.randn(1000)
+    arr[::2] = np.nan
+    df = DataFrame(arr)
 
     labels = np.random.randint(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
@@ -927,7 +924,7 @@ def test_cummax(dtypes_for_minmax):
 def test_cummax_i8_at_implementation_bound():
     # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
     #  for int64 dtype GH#46382
-    ser = Series([pd.NaT.value + n for n in range(5)])
+    ser = Series([pd.NaT._value + n for n in range(5)])
     df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
     gb = df.groupby("A")
 
@@ -1150,7 +1147,6 @@ def test_frame_describe_multikey(tsframe):
 
 
 def test_frame_describe_tupleindex():
-
     # GH 14848 - regression from 0.19.0 to 0.19.1
     df1 = DataFrame(
         {
@@ -1253,6 +1249,27 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
 
     result = df.groupby(keys, as_index=as_index).describe()
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_describe_duplicate_columns():
+    # GH#50806
+    df = DataFrame([[0, 1, 2, 3]])
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    result = gb.describe(percentiles=[])
+
+    columns = ["count", "mean", "std", "min", "50%", "max"]
+    frames = [
+        DataFrame([[1.0, val, np.nan, val, val, val]], index=[1], columns=columns)
+        for val in (0.0, 2.0, 3.0)
+    ]
+    expected = pd.concat(frames, axis=1)
+    expected.columns = MultiIndex(
+        levels=[[0, 2], columns],
+        codes=[6 * [0] + 6 * [1] + 6 * [0], 3 * list(range(6))],
+    )
+    expected.index.names = [1]
     tm.assert_frame_equal(result, expected)
 
 
@@ -1448,9 +1465,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "pad"):
-        pytest.skip("method is deprecated")
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
@@ -1488,6 +1503,12 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "sum",
         "diff",
         "pct_change",
+        "var",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "prod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -1534,11 +1555,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     elif dtype is object:
         msg = "|".join(
             [
-                "Cannot use numeric_only=True",
-                "called with numeric_only=True and dtype object",
+                "SeriesGroupBy.sem called with numeric_only=True and dtype object",
                 "Series.skew does not allow numeric_only=True with non-numeric",
-                "got an unexpected keyword argument 'numeric_only'",
-                "is not supported for object dtype",
+                "cum(sum|prod|min|max) is not supported for object dtype",
+                r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1596,3 +1616,22 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     result = method(*args).index
     expected = df.index
     tm.assert_index_equal(result, expected)
+
+
+def test_duplicate_columns(request, groupby_func, as_index):
+    # GH#50806
+    if groupby_func == "corrwith":
+        msg = "GH#50845 - corrwith fails when there are duplicate columns"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
+    args = get_groupby_method_args(groupby_func, df)
+    gb = df.groupby("a", as_index=as_index)
+    result = getattr(gb, groupby_func)(*args)
+
+    expected_df = df.set_axis(["a", "b", "c"], axis=1)
+    expected_args = get_groupby_method_args(groupby_func, expected_df)
+    expected_gb = expected_df.groupby("a", as_index=as_index)
+    expected = getattr(expected_gb, groupby_func)(*expected_args)
+    if groupby_func not in ("size", "ngroup", "cumcount"):
+        expected = expected.rename(columns={"c": "b"})
+    tm.assert_equal(result, expected)

@@ -14,6 +14,7 @@ from typing import (
     ContextManager,
     Counter,
     Iterable,
+    cast,
 )
 
 import numpy as np
@@ -29,7 +30,7 @@ from pandas._typing import (
     Frequency,
     NpDtype,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -121,6 +122,7 @@ if TYPE_CHECKING:
         PeriodIndex,
         TimedeltaIndex,
     )
+    from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
 _K = 4
@@ -133,8 +135,10 @@ ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
 ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
 ALL_INT_DTYPES: list[Dtype] = [*ALL_INT_NUMPY_DTYPES, *ALL_INT_EA_DTYPES]
 
-FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_NUMPY_DTYPES: list[NpDtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
+ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
+
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
 
@@ -146,6 +150,10 @@ BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
 OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
 ALL_REAL_NUMPY_DTYPES = FLOAT_NUMPY_DTYPES + ALL_INT_NUMPY_DTYPES
+ALL_REAL_EXTENSION_DTYPES = FLOAT_EA_DTYPES + ALL_INT_EA_DTYPES
+ALL_REAL_DTYPES: list[Dtype] = [*ALL_REAL_NUMPY_DTYPES, *ALL_REAL_EXTENSION_DTYPES]
+ALL_NUMERIC_DTYPES: list[Dtype] = [*ALL_REAL_DTYPES, *COMPLEX_DTYPES]
+
 ALL_NUMPY_DTYPES = (
     ALL_REAL_NUMPY_DTYPES
     + COMPLEX_DTYPES
@@ -191,7 +199,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under6p0:
+if not pa_version_under7p0:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
@@ -790,7 +798,7 @@ def _create_missing_idx(nrows, ncols, density: float, random_state=None):
 def makeMissingDataframe(density: float = 0.9, random_state=None) -> DataFrame:
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
-    df.values[i, j] = np.nan
+    df.iloc[i, j] = np.nan
     return df
 
 
@@ -1013,11 +1021,11 @@ def shares_memory(left, right) -> bool:
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
+        left = cast("ArrowExtensionArray", left)
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
-            # error: "ExtensionArray" has no attribute "_data"
-            left_pa_data = left._data  # type: ignore[attr-defined]
-            # error: "ExtensionArray" has no attribute "_data"
-            right_pa_data = right._data  # type: ignore[attr-defined]
+            right = cast("ArrowExtensionArray", right)
+            left_pa_data = left._data
+            right_pa_data = right._data
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1
