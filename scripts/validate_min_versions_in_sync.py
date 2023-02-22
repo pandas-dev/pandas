@@ -63,15 +63,17 @@ def pin_min_versions_to_ci_deps():
         toml_dependencies = tomllib.load(toml_f)
     for curr_file in all_yaml_files:
         with open(curr_file) as yaml_f:
-            yaml_file_data = yaml_f.read()
-            yaml_file = yaml.safe_load(yaml_file_data)
+            yaml_start_data = yaml_f.read()
+            yaml_file = yaml.safe_load(yaml_start_data)
             yaml_dependencies = yaml_file["dependencies"]
             yaml_map = get_yaml_map_from(yaml_dependencies)
             toml_map = get_toml_map_from(toml_dependencies)
-            with open(curr_file, "w") as f:
-                f.write(
-                    pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data)
-                )
+            yaml_result_data = pin_min_versions_to_yaml_file(
+                yaml_map, toml_map, yaml_start_data
+            )
+            if yaml_result_data not in yaml_start_data:
+                with open(curr_file, "w") as f:
+                    f.write(yaml_result_data)
 
 
 def get_toml_map_from(toml_dic) -> dict[str, str]:
@@ -127,7 +129,7 @@ def get_yaml_map_from(yaml_dic) -> dict[str, str]:
 
 
 def clean_version_list(yaml_versions, toml_version):
-    for i, _ in enumerate(yaml_versions):
+    for i in range(len(yaml_versions)):
         yaml_version = yaml_versions[i]
         operator = get_operator_from(yaml_version)
         if "<=" in operator or ">=" in operator:
