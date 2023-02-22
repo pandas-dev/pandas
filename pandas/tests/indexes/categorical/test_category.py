@@ -38,13 +38,7 @@ class TestCategoricalIndex(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
-    def test_pickle_compat_construction(self):
-        # Once the deprecation is enforced, we can use the parent class's test
-        with tm.assert_produces_warning(FutureWarning, match="without passing data"):
-            self._index_cls()
-
     def test_insert(self, simple_index):
-
         ci = simple_index
         categories = ci.categories
 
@@ -81,7 +75,6 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_delete(self, simple_index):
-
         ci = simple_index
         categories = ci.categories
 
@@ -190,7 +183,6 @@ class TestCategoricalIndex(Base):
         ],
     )
     def test_drop_duplicates(self, data, categories, expected):
-
         idx = CategoricalIndex(data, categories=categories, name="foo")
         for keep, e in expected.items():
             tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
@@ -215,7 +207,6 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
-
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         str(ci)
         tm.assert_index_equal(eval(repr(ci)), ci, exact=True)
@@ -229,7 +220,6 @@ class TestCategoricalIndex(Base):
         str(ci)
 
     def test_isin(self):
-
         ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
         tm.assert_numpy_array_equal(
             ci.isin(["c"]), np.array([False, False, False, True, False, False])
@@ -251,7 +241,6 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
-
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         ci2 = CategoricalIndex(["a", "b"], categories=["a", "b", "c"], ordered=True)
         assert ci1.identical(ci1)
@@ -359,7 +348,6 @@ class TestCategoricalIndex2:
             func(idx)
 
     def test_method_delegation(self):
-
         ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
         result = ci.set_categories(list("cab"))
         tm.assert_index_equal(

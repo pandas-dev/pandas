@@ -92,18 +92,16 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            frame.groupby("a")["b"].mean(numeric_only=True)
-
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
-        frame.groupby("a")["b"].mean()
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        frame.groupby("a")["b"].mean(numeric_only=True)
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame[["b"]].groupby(frame["a"]).mean()
-    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
+    expected = DataFrame(
+        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -115,9 +113,9 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            frame.groupby("b").dates.mean(numeric_only=True)
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        frame.groupby("b").dates.mean(numeric_only=True)
 
 
 def test_cython_agg_frame_columns():
@@ -211,7 +209,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = DataFrame([11, 12, 13], columns=["a"])
-    grps = range(0, 25, 5)
+    grps = np.arange(0, 25, 5, dtype=np.int_)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "sum", alt=None, numeric_only=True

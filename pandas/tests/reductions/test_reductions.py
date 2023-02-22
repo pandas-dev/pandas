@@ -63,7 +63,7 @@ class TestReductions:
         if getattr(obj, "tz", None) is not None:
             # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
-            assert result.value == expected
+            assert result._value == expected
         else:
             assert result == expected
 
@@ -251,7 +251,6 @@ class TestIndexReductions:
         assert isna(idx.min())
 
     def test_minmax_timedelta64(self):
-
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
         assert idx1.is_monotonic_increasing
@@ -478,7 +477,6 @@ class TestIndexReductions:
             np.argmax(dr, out=0)
 
     def test_minmax_period(self):
-
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         assert not idx1.is_monotonic_increasing
@@ -528,7 +526,6 @@ class TestIndexReductions:
             np.argmax(pr, out=0)
 
     def test_min_max_categorical(self):
-
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         msg = (
             r"Categorical is not ordered for operation min\n"
@@ -672,34 +669,9 @@ class TestSeriesReductions:
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
-    @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
-    def test_empty_multi(self, method, unit):
-        s = Series(
-            [1, np.nan, np.nan, np.nan],
-            index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
-        )
-        # 1 / 0 by default
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0)
-        expected = Series([1, unit], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
-        # min_count=0
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0, min_count=0)
-        expected = Series([1, unit], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
-        # min_count=1
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0, min_count=1)
-        expected = Series([1, np.nan], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
-
         # GH#34814
         # consistency for nullable dtypes on empty or ALL-NA mean
 
@@ -715,7 +687,6 @@ class TestSeriesReductions:
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
-
         # GH#7869
         # consistency on empty
 
@@ -747,7 +718,6 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("dtype", ["int32", "int64"])
     def test_sum_overflow_int(self, use_bottleneck, dtype):
-
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
@@ -890,8 +860,6 @@ class TestSeriesReductions:
         allna = string_series * np.nan
         assert isna(allna.idxmax())
 
-        from pandas import date_range
-
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
         assert result == 5
@@ -900,7 +868,7 @@ class TestSeriesReductions:
         result = s.idxmax()
         assert result == 4
 
-        # Float64Index
+        # Index with float64 dtype
         # GH#5914
         s = Series([1, 2, 3], [1.1, 2.1, 3.1])
         result = s.idxmax()
@@ -932,7 +900,7 @@ class TestSeriesReductions:
         idx = Index([1, 2, 3])
         assert np.all(idx)
 
-    def test_all_any_params(self):
+    def test_all_any_skipna(self):
         # Check skipna, with implicit 'object' dtype.
         s1 = Series([np.nan, True])
         s2 = Series([np.nan, False])
@@ -941,20 +909,8 @@ class TestSeriesReductions:
         assert s2.any(skipna=False)
         assert not s2.any(skipna=True)
 
-        # Check level.
+    def test_all_any_bool_only(self):
         s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
-
-        msg = "Option bool_only is not implemented with option level"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                s.all(bool_only=True, level=0)
 
         # GH#47500 - test bool_only works
         assert s.any(bool_only=True)
@@ -1009,22 +965,6 @@ class TestSeriesReductions:
         result = getattr(ser, bool_agg_func)(skipna=skipna)
         assert (result is pd.NA and expected is pd.NA) or result == expected
 
-    @pytest.mark.parametrize(
-        "bool_agg_func,expected",
-        [("all", [False, True, False]), ("any", [False, True, True])],
-    )
-    def test_any_all_boolean_level(self, bool_agg_func, expected):
-        # GH#33449
-        ser = Series(
-            [False, False, True, True, False, True],
-            index=[0, 0, 1, 1, 2, 2],
-            dtype="boolean",
-        )
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(ser, bool_agg_func)(level=0)
-        expected = Series(expected, dtype="boolean")
-        tm.assert_series_equal(result, expected)
-
     def test_any_axis1_bool_only(self):
         # GH#32432
         df = DataFrame({"A": [True, False], "B": [1, 2]})
@@ -1039,27 +979,32 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        msg = "'(any|all)' with datetime64 dtypes is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)
@@ -1075,7 +1020,6 @@ class TestSeriesReductions:
         assert not df.all().any()
 
     def test_timedelta64_analytics(self):
-
         # index min/max
         dti = date_range("2012-1-1", periods=3, freq="D")
         td = Series(dti) - Timestamp("20120101")

@@ -11,7 +11,6 @@ from typing import (
     Sequence,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -341,14 +340,7 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        with warnings.catch_warnings():
-            # TODO(2.0): unnecessary once deprecation is enforced
-            # GH#45618 don't issue warning user can't do anything about
-            warnings.filterwarnings(
-                "ignore", ".*(SparseArray|SparseDtype).*", category=FutureWarning
-            )
-
-            cat = Categorical(k, ordered=True)
+        cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")

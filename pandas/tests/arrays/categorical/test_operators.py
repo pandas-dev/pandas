@@ -345,7 +345,6 @@ class TestCategoricalOps:
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
-
         df = DataFrame({"value": np.random.randint(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
@@ -373,8 +372,6 @@ class TestCategoricalOps:
             msg = f"does not support reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
-
-        # mad technically works because it takes always the numeric data
 
     def test_numeric_like_ops_series(self):
         # numpy ops

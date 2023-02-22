@@ -174,11 +174,6 @@ class TestPeriodIndex:
         tm.assert_numpy_array_equal(result, indexer_2014)
 
         expected = ser[indexer_2014]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = nidx.get_value(ser, "2014")
-        tm.assert_series_equal(result, expected)
-
         result = ser.loc["2014"]
         tm.assert_series_equal(result, expected)
 
@@ -193,11 +188,6 @@ class TestPeriodIndex:
         tm.assert_numpy_array_equal(result, indexer_may2015)
 
         expected = ser[indexer_may2015]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = nidx.get_value(ser, "May 2015")
-        tm.assert_series_equal(result, expected)
-
         result = ser.loc["May 2015"]
         tm.assert_series_equal(result, expected)
 

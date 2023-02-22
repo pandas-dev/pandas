@@ -1,11 +1,14 @@
+""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
 )
+import gc
 import itertools
 import re
 import string
 import warnings
+import weakref
 
 import numpy as np
 import pytest
@@ -22,6 +25,7 @@ from pandas import (
     Series,
     bdate_range,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -30,17 +34,11 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
-
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
@@ -76,8 +74,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, use_index=True)
         self._check_ticks_props(ax, xrot=0)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
@@ -256,7 +252,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(**{input_param: "sm"})
 
     def test_xcompat(self):
-
         df = tm.makeTimeDataFrame()
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
@@ -370,51 +365,51 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_line_area_stacked(self, kind):
-        with tm.RNGContext(42):
-            df = DataFrame(np.random.rand(6, 4), columns=["w", "x", "y", "z"])
-            neg_df = -df
-            # each column has either positive or negative value
-            sep_df = DataFrame(
-                {
-                    "w": np.random.rand(6),
-                    "x": np.random.rand(6),
-                    "y": -np.random.rand(6),
-                    "z": -np.random.rand(6),
-                }
-            )
-            # each column has positive-negative mixed value
-            mixed_df = DataFrame(
-                np.random.randn(6, 4),
-                index=list(string.ascii_letters[:6]),
-                columns=["w", "x", "y", "z"],
-            )
+        np_random = np.random.RandomState(42)
+        df = DataFrame(np_random.rand(6, 4), columns=["w", "x", "y", "z"])
+        neg_df = -df
+        # each column has either positive or negative value
+        sep_df = DataFrame(
+            {
+                "w": np_random.rand(6),
+                "x": np_random.rand(6),
+                "y": -np_random.rand(6),
+                "z": -np_random.rand(6),
+            }
+        )
+        # each column has positive-negative mixed value
+        mixed_df = DataFrame(
+            np_random.randn(6, 4),
+            index=list(string.ascii_letters[:6]),
+            columns=["w", "x", "y", "z"],
+        )
 
-            ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
-            ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
-            self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+        ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
+        ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
+        self._compare_stacked_y_cood(ax1.lines, ax2.lines)
 
-            ax1 = _check_plot_works(neg_df.plot, kind=kind, stacked=False)
-            ax2 = _check_plot_works(neg_df.plot, kind=kind, stacked=True)
-            self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+        ax1 = _check_plot_works(neg_df.plot, kind=kind, stacked=False)
+        ax2 = _check_plot_works(neg_df.plot, kind=kind, stacked=True)
+        self._compare_stacked_y_cood(ax1.lines, ax2.lines)
 
-            ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
-            ax2 = _check_plot_works(sep_df.plot, kind=kind, stacked=True)
-            self._compare_stacked_y_cood(ax1.lines[:2], ax2.lines[:2])
-            self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
+        ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
+        ax2 = _check_plot_works(sep_df.plot, kind=kind, stacked=True)
+        self._compare_stacked_y_cood(ax1.lines[:2], ax2.lines[:2])
+        self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
-            _check_plot_works(mixed_df.plot, stacked=False)
-            msg = (
-                "When stacked is True, each column must be either all positive or "
-                "all negative. Column 'w' contains both positive and negative "
-                "values"
-            )
-            with pytest.raises(ValueError, match=msg):
-                mixed_df.plot(stacked=True)
+        _check_plot_works(mixed_df.plot, stacked=False)
+        msg = (
+            "When stacked is True, each column must be either all positive or "
+            "all negative. Column 'w' contains both positive and negative "
+            "values"
+        )
+        with pytest.raises(ValueError, match=msg):
+            mixed_df.plot(stacked=True)
 
-            # Use an index with strictly positive values, preventing
-            #  matplotlib from warning about ignoring xlim
-            df2 = df.set_index(df.index + 1)
-            _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
+        # Use an index with strictly positive values, preventing
+        #  matplotlib from warning about ignoring xlim
+        df2 = df.set_index(df.index + 1)
+        _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]
@@ -659,11 +654,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
-        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
-            df.plot.scatter(x="x", y="y", s=2, size=2)
-        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
-            df.plot.scatter(x="a", y="b", c="red", color="green")
-
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -737,8 +727,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
-
         df = DataFrame(
             np.random.randint(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
@@ -750,10 +738,7 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            if mpl_ge_3_4_0():
-                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
-            else:
-                assert ax.collections[0].colorbar._label == "z"
+            assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -1234,7 +1219,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_kind_both_ways(self):
         df = DataFrame({"x": [1, 2, 3]})
         for kind in plotting.PlotAccessor._common_kinds:
-
             df.plot(kind=kind)
             getattr(df.plot, kind)()
         for kind in ["scatter", "hexbin"]:
@@ -1244,26 +1228,23 @@ class TestDataFramePlots(TestPlotBase):
     def test_all_invalid_plot_data(self):
         df = DataFrame(list("abcd"))
         for kind in plotting.PlotAccessor._common_kinds:
-
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
                 df.plot(kind=kind)
 
     def test_partially_invalid_plot_data(self):
-        with tm.RNGContext(42):
-            df = DataFrame(np.random.randn(10, 2), dtype=object)
-            df[np.random.rand(df.shape[0]) > 0.5] = "a"
-            for kind in plotting.PlotAccessor._common_kinds:
-                msg = "no numeric data to plot"
-                with pytest.raises(TypeError, match=msg):
-                    df.plot(kind=kind)
+        df = DataFrame(np.random.RandomState(42).randn(10, 2), dtype=object)
+        df[np.random.rand(df.shape[0]) > 0.5] = "a"
+        for kind in plotting.PlotAccessor._common_kinds:
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
+                df.plot(kind=kind)
 
-        with tm.RNGContext(42):
-            # area plot doesn't support positive/negative mixed data
-            df = DataFrame(np.random.rand(10, 2), dtype=object)
-            df[np.random.rand(df.shape[0]) > 0.5] = "a"
-            with pytest.raises(TypeError, match="no numeric data to plot"):
-                df.plot(kind="area")
+        # area plot doesn't support positive/negative mixed data
+        df = DataFrame(np.random.RandomState(42).rand(10, 2), dtype=object)
+        df[np.random.rand(df.shape[0]) > 0.5] = "a"
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            df.plot(kind="area")
 
     def test_invalid_kind(self):
         df = DataFrame(np.random.randn(10, 2))
@@ -1797,12 +1778,8 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """Check that every plot type gets properly collected."""
-        import gc
-        import weakref
-
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
-
             args = {}
             if kind in ["hexbin", "scatter", "pie"]:
                 df = DataFrame(
@@ -1827,15 +1804,15 @@ class TestDataFramePlots(TestPlotBase):
         # force a garbage collection
         gc.collect()
         msg = "weakly-referenced object no longer exists"
-        for key in results:
+        for result_value in results.values():
             # check that every plot was collected
             with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
-                results[key].lines
+                result_value.lines
 
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
@@ -1957,7 +1934,6 @@ class TestDataFramePlots(TestPlotBase):
         )
 
     def test_plain_axes(self):
-
         # supplied ax itself is a SubplotAxes, but figure contains also
         # a plain Axes object (GH11556)
         fig, ax = self.plt.subplots()
@@ -2231,19 +2207,6 @@ class TestDataFramePlots(TestPlotBase):
                 assert ax.get_ylabel() == "Y"
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
-
-    def test_sort_columns_deprecated(self):
-        # GH 47563
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box("a", sort_columns=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box(sort_columns=False)
-
-        with tm.assert_produces_warning(False):
-            df.plot.box("a")
 
 
 def _generate_4_axes_via_gridspec():

@@ -136,7 +136,6 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
     def _compare_other(self, ser: pd.Series, data, op, other):
-
         if op.__name__ in ["eq", "ne"]:
             # comparison should match point-wise comparisons
             result = op(ser, other)
@@ -179,13 +178,13 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             result = data.__eq__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+            pytest.skip(f"{type(data).__name__} does not implement __eq__")
 
         if hasattr(data, "__ne__"):
             result = data.__ne__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
+            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):

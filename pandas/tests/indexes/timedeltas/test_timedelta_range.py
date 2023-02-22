@@ -15,8 +15,13 @@ from pandas.tseries.offsets import (
 
 
 class TestTimedeltas:
-    def test_timedelta_range(self):
+    def test_timedelta_range_unit(self):
+        # GH#49824
+        tdi = timedelta_range("0 Days", periods=10, freq="100000D", unit="s")
+        exp_arr = (np.arange(10, dtype="i8") * 100_000).view("m8[D]").astype("m8[s]")
+        tm.assert_numpy_array_equal(tdi.to_numpy(), exp_arr)
 
+    def test_timedelta_range(self):
         expected = to_timedelta(np.arange(5), unit="D")
         result = timedelta_range("0 days", periods=5, freq="D")
         tm.assert_index_equal(result, expected)

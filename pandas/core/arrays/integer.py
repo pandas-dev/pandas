@@ -132,8 +132,10 @@ class IntegerArray(NumericArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
     # Fill values used for any/all
-    _truthy_value = 1
-    _falsey_value = 0
+    # Incompatible types in assignment (expression has type "int", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = 1  # type: ignore[assignment]
+    _falsey_value = 0  # type: ignore[assignment]
 
 
 _dtype_docstring = """

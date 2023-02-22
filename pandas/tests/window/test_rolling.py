@@ -9,8 +9,8 @@ import pytest
 from pandas.compat import (
     is_platform_arm,
     is_platform_mac,
+    is_platform_power,
 )
-from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
     DataFrame,
@@ -27,13 +27,11 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.indexers.objects import VariableOffsetWindowIndexer
-from pandas.core.window import Rolling
 
 from pandas.tseries.offsets import BusinessDay
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.rolling(2).sum()
@@ -153,24 +151,6 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     tm.assert_frame_equal(result_roll_generic, expected)
 
 
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    r = Rolling(Series([2, 4, 6]), window=2)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(dtype=np.float64)
-
-
-@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -452,6 +432,8 @@ def test_closed_uneven():
 def test_closed_min_max_minp(func, closed, expected):
     # see gh-21704
     ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
+    # Explicit cast to float to avoid implicit cast when setting nan
+    ser = ser.astype("float")
     ser[ser.index[-3:]] = np.nan
     result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
     expected = Series(expected, index=ser.index)
@@ -533,7 +515,6 @@ def test_missing_minp_zero_variable():
 
 
 def test_multi_index_names():
-
     # GH 16789, 16825
     cols = MultiIndex.from_product([["A", "B"], ["C", "D", "E"]], names=["1", "2"])
     df = DataFrame(np.ones((10, 6)), columns=cols)
@@ -738,8 +719,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame_or_series(values).rolling(3).count()
+    result = frame_or_series(values).rolling(3, min_periods=0).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
 
@@ -816,9 +796,7 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, df.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -864,7 +842,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expected = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for (expected, actual) in zip(expected, df.rolling(window, on="C")):
+    for expected, actual in zip(expected, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -914,9 +892,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, ser.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -966,7 +942,7 @@ def test_iter_rolling_datetime(expected, expected_index, window):
         Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
     ]
 
-    for (expected, actual) in zip(expected, ser.rolling(window)):
+    for expected, actual in zip(expected, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -1191,7 +1167,10 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
+@pytest.mark.xfail(
+    (is_platform_arm() and not is_platform_mac()) or is_platform_power(),
+    reason="GH 38921",
+)
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [

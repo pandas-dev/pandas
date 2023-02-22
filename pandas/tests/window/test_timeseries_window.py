@@ -12,7 +12,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture
@@ -36,12 +36,10 @@ def ragged():
 
 
 class TestRollingTS:
-
     # rolling time-series friendly
     # xref GH13327
 
     def test_doc_string(self):
-
         df = DataFrame(
             {"B": [0, 1, 2, np.nan, 4]},
             index=[
@@ -56,7 +54,6 @@ class TestRollingTS:
         df.rolling("2s").sum()
 
     def test_invalid_window_non_int(self, regular):
-
         # not a valid freq
         msg = "passed window foobar is not compatible with a datetimelike index"
         with pytest.raises(ValueError, match=msg):
@@ -68,7 +65,6 @@ class TestRollingTS:
 
     @pytest.mark.parametrize("freq", ["2MS", offsets.MonthBegin(2)])
     def test_invalid_window_nonfixed(self, freq, regular):
-
         # non-fixed freqs
         msg = "\\<2 \\* MonthBegins\\> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
@@ -89,7 +85,6 @@ class TestRollingTS:
             regular.rolling(window="1D", min_periods=minp)
 
     def test_on(self, regular):
-
         df = regular
 
         # not a valid column
@@ -114,7 +109,6 @@ class TestRollingTS:
         df.rolling(window="2d", on="C").B.sum()
 
     def test_monotonic_on(self):
-
         # on/index must be monotonic
         df = DataFrame(
             {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
@@ -153,7 +147,6 @@ class TestRollingTS:
             df.rolling("2s", on="A").sum()
 
     def test_frame_on(self):
-
         df = DataFrame(
             {"B": range(5), "C": date_range("20130101 09:00:00", periods=5, freq="3s")}
         )
@@ -186,7 +179,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_frame_on2(self):
-
         # using multiple aggregation columns
         df = DataFrame(
             {
@@ -223,7 +215,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_regular(self, regular):
-
         df = regular.copy()
 
         df.index = date_range("20130101", periods=5, freq="D")
@@ -245,7 +236,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_min_periods(self, regular):
-
         # compare for min_periods
         df = regular
 
@@ -259,7 +249,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_closed(self, regular):
-
         # xref GH13965
 
         df = DataFrame(
@@ -303,7 +292,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_sum(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).sum()
         expected = df.copy()
@@ -346,7 +334,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_mean(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).mean()
         expected = df.copy()
@@ -359,7 +346,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_median(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).median()
         expected = df.copy()
@@ -372,7 +358,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_quantile(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).quantile(0.5)
         expected = df.copy()
@@ -385,7 +370,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_std(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).std(ddof=0)
         expected = df.copy()
@@ -408,7 +392,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_var(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).var(ddof=0)
         expected = df.copy()
@@ -431,7 +414,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_skew(self, ragged):
-
         df = ragged
         result = df.rolling(window="3s", min_periods=1).skew()
         expected = df.copy()
@@ -444,7 +426,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_kurt(self, ragged):
-
         df = ragged
         result = df.rolling(window="3s", min_periods=1).kurt()
         expected = df.copy()
@@ -457,7 +438,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_count(self, ragged):
-
         df = ragged
         result = df.rolling(window="1s", min_periods=1).count()
         expected = df.copy()
@@ -479,7 +459,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_regular_min(self):
-
         df = DataFrame(
             {"A": date_range("20130101", periods=5, freq="s"), "B": [0.0, 1, 2, 3, 4]}
         ).set_index("A")
@@ -504,7 +483,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_min(self, ragged):
-
         df = ragged
 
         result = df.rolling(window="1s", min_periods=1).min()
@@ -523,7 +501,6 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
     def test_perf_min(self):
-
         N = 10000
 
         dfp = DataFrame(
@@ -538,7 +515,6 @@ class TestRollingTS:
         assert ((result - expected) < 0.01).all().bool()
 
     def test_ragged_max(self, ragged):
-
         df = ragged
 
         result = df.rolling(window="1s", min_periods=1).max()
@@ -579,7 +555,8 @@ class TestRollingTS:
     def test_freqs_ops(self, freq, op, result_data):
         # GH 21096
         index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
-        s = Series(data=0, index=index)
+        # Explicit cast to float to avoid implicit cast when setting nan
+        s = Series(data=0, index=index, dtype="float")
         s.iloc[1] = np.nan
         s.iloc[-1] = 2
         result = getattr(s.rolling(window=f"10{freq}"), op)()
@@ -592,10 +569,7 @@ class TestRollingTS:
         [
             "sum",
             "mean",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "median",
             "std",
             "var",
@@ -606,7 +580,6 @@ class TestRollingTS:
         ],
     )
     def test_all(self, f, regular):
-
         # simple comparison of integer vs time-based windowing
         df = regular * 2
         er = df.rolling(window=1)

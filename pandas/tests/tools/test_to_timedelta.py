@@ -68,15 +68,16 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5)
+        exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
+        expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_oob_non_nano(self):
-        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[s]")
+        arr = np.array([pd.NaT._value + 1], dtype="timedelta64[m]")
 
         msg = (
-            "Cannot convert -9223372036854775807 seconds to "
-            r"timedelta64\[ns\] without overflow"
+            "Cannot convert -9223372036854775807 minutes to "
+            r"timedelta64\[s\] without overflow"
         )
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             to_timedelta(arr)
@@ -97,7 +98,6 @@ class TestTimedeltas:
             to_timedelta(arg, errors=errors)
 
     def test_to_timedelta_invalid_errors(self):
-
         # bad value for errors parameter
         msg = "errors must be one of"
         with pytest.raises(ValueError, match=msg):
@@ -155,25 +155,29 @@ class TestTimedeltas:
         )
 
     @pytest.mark.parametrize(
-        "val, warning",
+        "val, errors",
         [
-            ("1M", FutureWarning),
-            ("1 M", FutureWarning),
-            ("1Y", FutureWarning),
-            ("1 Y", FutureWarning),
-            ("1y", FutureWarning),
-            ("1 y", FutureWarning),
-            ("1m", None),
-            ("1 m", None),
-            ("1 day", None),
-            ("2day", None),
+            ("1M", True),
+            ("1 M", True),
+            ("1Y", True),
+            ("1 Y", True),
+            ("1y", True),
+            ("1 y", True),
+            ("1m", False),
+            ("1 m", False),
+            ("1 day", False),
+            ("2day", False),
         ],
     )
-    def test_unambiguous_timedelta_values(self, val, warning):
+    def test_unambiguous_timedelta_values(self, val, errors):
         # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
         # in pd.to_timedelta
         msg = "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta"
-        with tm.assert_produces_warning(warning, match=msg, check_stacklevel=False):
+        if errors:
+            with pytest.raises(ValueError, match=msg):
+                to_timedelta(val)
+        else:
+            # check it doesn't raise
             to_timedelta(val)
 
     def test_to_timedelta_via_apply(self):
@@ -206,16 +210,14 @@ class TestTimedeltas:
         )
         tm.assert_series_equal(actual, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
-            ser = Series(["00:00:01", pd.NaT])
-        assert ser.dtype == "m8[ns]"
+        ser = Series(["00:00:01", pd.NaT], dtype="m8[ns]")
         actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
     @pytest.mark.parametrize("val", [np.nan, pd.NaT])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
-        assert actual.value == np.timedelta64("NaT").astype("int64")
+        assert actual._value == np.timedelta64("NaT").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -277,7 +279,7 @@ class TestTimedeltas:
         arg2 = arg.view("m8[ns]")
         result = to_timedelta(arg2)
         assert isinstance(result, pd.Timedelta)
-        assert result.value == dt64.view("i8")
+        assert result._value == dt64.view("i8")
 
     def test_to_timedelta_numeric_ea(self, any_numeric_ea_dtype):
         # GH#48796

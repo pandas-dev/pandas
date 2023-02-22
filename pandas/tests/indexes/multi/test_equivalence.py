@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+
 import pandas as pd
 from pandas import (
     Index,
@@ -191,18 +193,7 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # subclass-specific keywords to pd.Index
-        mi3 = Index(mi.tolist(), names=mi.names)
-
-    msg = r"Unexpected keyword arguments {'names'}"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            # subclass-specific keywords to pd.Index
-            Index(mi.tolist(), names=mi.names, tupleize_cols=False)
-
     mi4 = Index(mi.tolist(), tupleize_cols=False)
-    assert mi.identical(mi3)
     assert not mi.identical(mi4)
     assert mi.equals(mi4)
 
@@ -243,9 +234,6 @@ def test_is_():
     assert mi.is_(mi2)
 
     assert not mi.is_(mi.set_names(["C", "D"]))
-    mi2 = mi.view()
-    mi2.set_names(["E", "F"], inplace=True)
-    assert mi.is_(mi2)
     # levels are inherent properties, they change identity
     mi3 = mi2.set_levels([list(range(10)), list(range(10))])
     assert not mi3.is_(mi2)
@@ -254,12 +242,10 @@ def test_is_():
     mi4 = mi3.view()
 
     # GH 17464 - Remove duplicate MultiIndex levels
-    with tm.assert_produces_warning(FutureWarning):
-        mi4.set_levels([list(range(10)), list(range(10))], inplace=True)
+    mi4 = mi4.set_levels([list(range(10)), list(range(10))])
     assert not mi4.is_(mi3)
     mi5 = mi.view()
-    with tm.assert_produces_warning(FutureWarning):
-        mi5.set_levels(mi5.levels, inplace=True)
+    mi5 = mi5.set_levels(mi5.levels)
     assert not mi5.is_(mi)
 
 
@@ -269,7 +255,7 @@ def test_is_all_dates(idx):
 
 def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not idx.is_numeric()
+    assert not is_any_real_numeric_dtype(idx)
 
 
 def test_multiindex_compare():

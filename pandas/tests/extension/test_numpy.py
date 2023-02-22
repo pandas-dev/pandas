@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_object_dtype
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.internals import blocks
 from pandas.tests.extension import base
@@ -189,10 +190,7 @@ class BaseNumPyTests:
 
 
 class TestCasting(BaseNumPyTests, base.BaseCastingTests):
-    @skip_nested
-    def test_astype_str(self, data):
-        # ValueError: setting an array element with a sequence
-        super().test_astype_str(data)
+    pass
 
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
@@ -218,6 +216,14 @@ class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
             )
         super().test_check_dtype(data)
 
+    def test_is_not_object_type(self, dtype, request):
+        if dtype.numpy_dtype == "object":
+            # Different from BaseDtypeTests.test_is_not_object_type
+            # because PandasDtype(object) is an object type
+            assert is_object_dtype(dtype)
+        else:
+            super().test_is_not_object_type(dtype)
+
 
 class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     @skip_nested
@@ -227,8 +233,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+    pass
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
@@ -393,9 +398,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         super().test_setitem_mask(data, mask, box_in_series)
-
-    def test_setitem_mask_raises(self, data, box_in_series):
-        super().test_setitem_mask_raises(data, box_in_series)
 
     @skip_nested
     @pytest.mark.parametrize(

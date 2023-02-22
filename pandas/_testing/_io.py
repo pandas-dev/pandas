@@ -243,10 +243,7 @@ def network(
 
             if not isinstance(err, error_classes) or raise_on_error:
                 raise
-            else:
-                pytest.skip(
-                    f"Skipping test due to lack of connectivity and error {err}"
-                )
+            pytest.skip(f"Skipping test due to lack of connectivity and error {err}")
 
     return wrapper
 

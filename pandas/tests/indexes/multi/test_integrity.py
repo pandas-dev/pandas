@@ -7,16 +7,15 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
 from pandas import (
+    Index,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_labels_dtypes():
-
     # GH 8456
     i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
     assert i.codes[0].dtype == "int8"
@@ -84,8 +83,8 @@ def test_values_multiindex_periodindex():
     idx = MultiIndex.from_arrays([ints, pidx])
     result = idx.values
 
-    outer = Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Int64Index(ints))
+    outer = Index([x[0] for x in result])
+    tm.assert_index_equal(outer, Index(ints, dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx)
@@ -93,8 +92,8 @@ def test_values_multiindex_periodindex():
     # n_lev > n_lab
     result = idx[:2].values
 
-    outer = Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Int64Index(ints[:2]))
+    outer = Index([x[0] for x in result])
+    tm.assert_index_equal(outer, Index(ints[:2], dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx[:2])
@@ -226,32 +225,31 @@ def test_metadata_immutable(idx):
 def test_level_setting_resets_attributes():
     ind = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert ind.is_monotonic_increasing
-    with tm.assert_produces_warning(FutureWarning):
-        ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
+    ind = ind.set_levels([["A", "B"], [1, 3, 2]])
     # if this fails, probably didn't reset the cache correctly.
     assert not ind.is_monotonic_increasing
 
 
 def test_rangeindex_fallback_coercion_bug():
     # GH 12893
-    foo = pd.DataFrame(np.arange(100).reshape((10, 10)))
-    bar = pd.DataFrame(np.arange(100).reshape((10, 10)))
-    df = pd.concat({"foo": foo.stack(), "bar": bar.stack()}, axis=1)
+    df1 = pd.DataFrame(np.arange(100).reshape((10, 10)))
+    df2 = pd.DataFrame(np.arange(100).reshape((10, 10)))
+    df = pd.concat({"df1": df1.stack(), "df2": df2.stack()}, axis=1)
     df.index.names = ["fizz", "buzz"]
 
     str(df)
     expected = pd.DataFrame(
-        {"bar": np.arange(100), "foo": np.arange(100)},
+        {"df2": np.arange(100), "df1": np.arange(100)},
         index=MultiIndex.from_product([range(10), range(10)], names=["fizz", "buzz"]),
     )
     tm.assert_frame_equal(df, expected, check_like=True)
 
     result = df.index.get_level_values("fizz")
-    expected = Int64Index(np.arange(10), name="fizz").repeat(10)
+    expected = Index(np.arange(10, dtype=np.int64), name="fizz").repeat(10)
     tm.assert_index_equal(result, expected)
 
     result = df.index.get_level_values("buzz")
-    expected = Int64Index(np.tile(np.arange(10), 10), name="buzz")
+    expected = Index(np.tile(np.arange(10, dtype=np.int64), 10), name="buzz")
     tm.assert_index_equal(result, expected)
 
 
@@ -271,7 +269,6 @@ def test_memory_usage(idx):
             assert result3 > result2
 
     else:
-
         # we report 0 for no-length
         assert result == 0
 

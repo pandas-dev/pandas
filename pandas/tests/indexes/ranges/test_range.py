@@ -4,20 +4,15 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.indexes.api import (
-    Float64Index,
+from pandas import (
     Index,
-    Int64Index,
     RangeIndex,
 )
+import pandas._testing as tm
 from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
-I64 = Int64Index
-F64 = Float64Index
-OI = Index
 
 
 class TestRangeIndex(NumericBase):
@@ -34,7 +29,7 @@ class TestRangeIndex(NumericBase):
         return request.param
 
     @pytest.fixture
-    def simple_index(self) -> Index:
+    def simple_index(self):
         return self._index_cls(start=0, stop=20, step=2)
 
     @pytest.fixture(
@@ -77,13 +72,6 @@ class TestRangeIndex(NumericBase):
         assert index.stop == stop
         assert index.step == step
 
-    @pytest.mark.parametrize("attr_name", ["_start", "_stop", "_step"])
-    def test_deprecated_start_stop_step_attrs(self, attr_name, simple_index):
-        # GH 26581
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            getattr(idx, attr_name)
-
     def test_copy(self):
         i = RangeIndex(5, name="Foo")
         i_copy = i.copy()
@@ -110,7 +98,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, i, exact=True)
 
     def test_insert(self):
-
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
 
@@ -118,7 +105,7 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(idx[0:4], result.insert(0, idx[0]), exact="equiv")
 
         # GH 18295 (test missing)
-        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        expected = Index([0, np.nan, 1, 2, 3, 4], dtype=np.float64)
         for na in [np.nan, None, pd.NA]:
             result = RangeIndex(5).insert(1, na)
             tm.assert_index_equal(result, expected)
@@ -151,7 +138,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete(self):
-
         idx = RangeIndex(5, name="Foo")
         expected = idx[1:]
         result = idx.delete(0)
@@ -225,7 +211,7 @@ class TestRangeIndex(NumericBase):
 
         loc = [0, 3, 5]
         result = idx.delete(loc)
-        expected = Int64Index([1, 2, 4])
+        expected = Index([1, 2, 4])
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx.delete(loc[::-1])
@@ -383,10 +369,9 @@ class TestRangeIndex(NumericBase):
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
     def test_nbytes(self):
-
         # memory savings vs int index
         idx = RangeIndex(0, 1000)
-        assert idx.nbytes < Int64Index(idx._values).nbytes / 10
+        assert idx.nbytes < Index(idx._values).nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -480,17 +465,17 @@ class TestRangeIndex(NumericBase):
 
         # positive slice values
         index_slice = index[7:10:2]
-        expected = Index(np.array([14, 18]), name="foo")
+        expected = Index([14, 18], name="foo")
         tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # negative slice values
         index_slice = index[-1:-5:-2]
-        expected = Index(np.array([18, 14]), name="foo")
+        expected = Index([18, 14], name="foo")
         tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # stop overshoot
         index_slice = index[2:100:4]
-        expected = Index(np.array([4, 12]), name="foo")
+        expected = Index([4, 12], name="foo")
         tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # reverse
@@ -499,7 +484,7 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[-8::-1]
-        expected = Index(np.array([4, 2, 0]), name="foo")
+        expected = Index([4, 2, 0], name="foo")
         tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[-40::-1]
@@ -537,16 +522,16 @@ class TestRangeIndex(NumericBase):
             ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
             ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
             ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
-            ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
+            ([RI(-4, -2), RI(3, 5)], Index([-4, -3, 3, 4])),
             ([RI(-2), RI(3, 5)], RI(3, 5)),
-            ([RI(2), RI(2)], I64([0, 1, 0, 1])),
+            ([RI(2), RI(2)], Index([0, 1, 0, 1])),
             ([RI(2), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
-            ([RI(2), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
+            ([RI(2), RI(3, 5), RI(5, 8, 4)], Index([0, 1, 3, 4, 5])),
             ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
-            ([RI(3), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
-            ([RI(3), F64([-1, 3.1, 15.0])], F64([0, 1, 2, -1, 3.1, 15.0])),
-            ([RI(3), OI(["a", None, 14])], OI([0, 1, 2, "a", None, 14])),
-            ([RI(3, 1), OI(["a", None, 14])], OI(["a", None, 14])),
+            ([RI(3), Index([-1, 3, 15])], Index([0, 1, 2, -1, 3, 15])),
+            ([RI(3), Index([-1, 3.1, 15.0])], Index([0, 1, 2, -1, 3.1, 15.0])),
+            ([RI(3), Index(["a", None, 14])], Index([0, 1, 2, "a", None, 14])),
+            ([RI(3, 1), Index(["a", None, 14])], Index(["a", None, 14])),
         ]
     )
     def appends(self, request):
@@ -624,3 +609,6 @@ class TestRangeIndex(NumericBase):
         result = values.sort_values(key=lambda x: x.map(sort_order))
         expected = Index([4, 8, 6, 0, 2], dtype="int64")
         tm.assert_index_equal(result, expected, check_exact=True)
+
+    def test_cast_string(self, dtype):
+        pytest.skip("casting of strings not relevant for RangeIndex")

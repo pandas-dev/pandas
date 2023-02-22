@@ -1,6 +1,7 @@
+from datetime import timezone
+
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -27,24 +28,27 @@ class TestDataFrameAlign:
         # frame with frame
         df1_central = df1.tz_convert("US/Central")
         new1, new2 = df1.align(df1_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
         # frame with Series
         new1, new2 = df1.align(df1_central[0], axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
         df1[0].align(df1_central, axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
-    def test_align_float(self, float_frame):
+    def test_align_float(self, float_frame, using_copy_on_write):
         af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
 
         af, bf = float_frame.align(float_frame, copy=False)
-        assert af._mgr is float_frame._mgr
+        if not using_copy_on_write:
+            assert af._mgr is float_frame._mgr
+        else:
+            assert af._mgr is not float_frame._mgr
 
         # axis = 0
         other = float_frame.iloc[:-5, :3]
@@ -132,7 +136,6 @@ class TestDataFrameAlign:
         tm.assert_index_equal(bf.columns, other.columns)
 
     def test_align_mixed_type(self, float_string_frame):
-
         af, bf = float_string_frame.align(
             float_string_frame, join="inner", axis=1, method="pad"
         )
@@ -401,3 +404,32 @@ class TestDataFrameAlign:
         self._check_align(
             empty, empty, axis=ax, fill_axis=fax, how=kind, method=meth, limit=1
         )
+
+    def test_align_series_check_copy(self):
+        # GH#
+        df = DataFrame({0: [1, 2]})
+        ser = Series([1], name=0)
+        expected = ser.copy()
+        result, other = df.align(ser, axis=1)
+        ser.iloc[0] = 100
+        tm.assert_series_equal(other, expected)
+
+    def test_align_identical_different_object(self):
+        # GH#51032
+        df = DataFrame({"a": [1, 2]})
+        ser = Series([3, 4])
+        result, result2 = df.align(ser, axis=0)
+        tm.assert_frame_equal(result, df)
+        tm.assert_series_equal(result2, ser)
+        assert df is not result
+        assert ser is not result2
+
+    def test_align_identical_different_object_columns(self):
+        # GH#51032
+        df = DataFrame({"a": [1, 2]})
+        ser = Series([1], index=["a"])
+        result, result2 = df.align(ser, axis=1)
+        tm.assert_frame_equal(result, df)
+        tm.assert_series_equal(result2, ser)
+        assert df is not result
+        assert ser is not result2

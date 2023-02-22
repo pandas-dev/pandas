@@ -12,13 +12,13 @@ from typing import (
     List,
     Tuple,
 )
-import warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
     NaT,
+    Timedelta,
     Timestamp,
     conversion,
     timezones,
@@ -37,12 +37,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import (
-    Base,
-    WeekDay,
-)
+from pandas.tests.tseries.offsets.common import WeekDay
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,
@@ -79,11 +76,49 @@ _ARITHMETIC_DATE_OFFSET = [
 ]
 
 
-class TestCommon(Base):
-    # executed value created by Base._get_offset
+def _create_offset(klass, value=1, normalize=False):
+    # create instance from offset class
+    if klass is FY5253:
+        klass = klass(
+            n=value,
+            startingMonth=1,
+            weekday=1,
+            variation="last",
+            normalize=normalize,
+        )
+    elif klass is FY5253Quarter:
+        klass = klass(
+            n=value,
+            startingMonth=1,
+            weekday=1,
+            qtr_with_extra_week=1,
+            variation="last",
+            normalize=normalize,
+        )
+    elif klass is LastWeekOfMonth:
+        klass = klass(n=value, weekday=5, normalize=normalize)
+    elif klass is WeekOfMonth:
+        klass = klass(n=value, week=1, weekday=5, normalize=normalize)
+    elif klass is Week:
+        klass = klass(n=value, weekday=5, normalize=normalize)
+    elif klass is DateOffset:
+        klass = klass(days=value, normalize=normalize)
+    else:
+        klass = klass(value, normalize=normalize)
+    return klass
+
+
+@pytest.fixture
+def dt():
+    return Timestamp(datetime(2008, 1, 2))
+
+
+@pytest.fixture
+def expecteds():
+    # executed value created by _create_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
-    expecteds = {
+    return {
         "Day": Timestamp("2011-01-02 09:00:00"),
         "DateOffset": Timestamp("2011-01-02 09:00:00"),
         "BusinessDay": Timestamp("2011-01-03 09:00:00"),
@@ -120,9 +155,11 @@ class TestCommon(Base):
         "Nano": Timestamp("2011-01-01T09:00:00.000000001"),
     }
 
+
+class TestCommon:
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
-        offset = self._get_offset(offset_types)
+        offset = _create_offset(offset_types)
         msg = "objects is not writable|DateOffset objects are immutable"
         with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
@@ -130,7 +167,7 @@ class TestCommon(Base):
             offset.n = 91
 
     def test_return_type(self, offset_types):
-        offset = self._get_offset(offset_types)
+        offset = _create_offset(offset_types)
 
         # make sure that we are returning a Timestamp
         result = Timestamp("20080101") + offset
@@ -144,7 +181,7 @@ class TestCommon(Base):
         assert (-offset)._apply(NaT) is NaT
 
     def test_offset_n(self, offset_types):
-        offset = self._get_offset(offset_types)
+        offset = _create_offset(offset_types)
         assert offset.n == 1
 
         neg_offset = offset * -1
@@ -156,14 +193,14 @@ class TestCommon(Base):
     def test_offset_timedelta64_arg(self, offset_types):
         # check that offset._validate_n raises TypeError on a timedelt64
         #  object
-        off = self._get_offset(offset_types)
+        off = _create_offset(offset_types)
 
         td64 = np.timedelta64(4567, "s")
         with pytest.raises(TypeError, match="argument must be an integer"):
             type(off)(n=td64, **off.kwds)
 
     def test_offset_mul_ndarray(self, offset_types):
-        off = self._get_offset(offset_types)
+        off = _create_offset(offset_types)
 
         expected = np.array([[off, off * 2], [off * 3, off * 4]])
 
@@ -174,7 +211,7 @@ class TestCommon(Base):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_offset_freqstr(self, offset_types):
-        offset = self._get_offset(offset_types)
+        offset = _create_offset(offset_types)
 
         freqstr = offset.freqstr
         if freqstr not in ("<Easter>", "<DateOffset: days=1>", "LWOM-SAT"):
@@ -182,12 +219,11 @@ class TestCommon(Base):
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
-
         if normalize and issubclass(offset, Tick):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
 
-        offset_s = self._get_offset(offset, normalize=normalize)
+        offset_s = _create_offset(offset, normalize=normalize)
         func = getattr(offset_s, funcname)
 
         result = func(dt)
@@ -213,16 +249,6 @@ class TestCommon(Base):
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
 
-        if exp_warning is None and funcname == "_apply":
-            # GH#44522
-            # Check in this particular case to avoid headaches with
-            #  testing for multiple warnings produced by the same call.
-            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
-                res2 = offset_s.apply(ts)
-
-            assert type(res2) is type(result)
-            assert res2 == result
-
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -233,7 +259,14 @@ class TestCommon(Base):
             # test tz when input is datetime or Timestamp
             return
 
-        for tz in self.timezones:
+        for tz in [
+            None,
+            "UTC",
+            "Asia/Tokyo",
+            "US/Eastern",
+            "dateutil/Asia/Tokyo",
+            "dateutil/US/Pacific",
+        ]:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
             dt_tz = conversion.localize_pydatetime(dt, tz_obj)
@@ -266,11 +299,11 @@ class TestCommon(Base):
             else:
                 assert result == expected_localize
 
-    def test_apply(self, offset_types):
+    def test_apply(self, offset_types, expecteds):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np.datetime64("2011-01-01 09:00")
 
-        expected = self.expecteds[offset_types.__name__]
+        expected = expecteds[offset_types.__name__]
         expected_norm = Timestamp(expected.date())
 
         for dt in [sdt, ndt]:
@@ -280,8 +313,8 @@ class TestCommon(Base):
                 offset_types, "_apply", dt, expected_norm, normalize=True
             )
 
-    def test_rollforward(self, offset_types):
-        expecteds = self.expecteds.copy()
+    def test_rollforward(self, offset_types, expecteds):
+        expecteds = expecteds.copy()
 
         # result will not be changed if the target is on the offset
         no_changes = [
@@ -410,16 +443,16 @@ class TestCommon(Base):
                 offset_types, "rollback", dt, expected, normalize=True
             )
 
-    def test_is_on_offset(self, offset_types):
-        dt = self.expecteds[offset_types.__name__]
-        offset_s = self._get_offset(offset_types)
+    def test_is_on_offset(self, offset_types, expecteds):
+        dt = expecteds[offset_types.__name__]
+        offset_s = _create_offset(offset_types)
         assert offset_s.is_on_offset(dt)
 
         # when normalize=True, is_on_offset checks time is 00:00:00
         if issubclass(offset_types, Tick):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
-        offset_n = self._get_offset(offset_types, normalize=True)
+        offset_n = _create_offset(offset_types, normalize=True)
         assert not offset_n.is_on_offset(dt)
 
         if offset_types in (BusinessHour, CustomBusinessHour):
@@ -429,12 +462,12 @@ class TestCommon(Base):
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.is_on_offset(date)
 
-    def test_add(self, offset_types, tz_naive_fixture):
+    def test_add(self, offset_types, tz_naive_fixture, expecteds):
         tz = tz_naive_fixture
         dt = datetime(2011, 1, 1, 9, 0)
 
-        offset_s = self._get_offset(offset_types)
-        expected = self.expecteds[offset_types.__name__]
+        offset_s = _create_offset(offset_types)
+        expected = expecteds[offset_types.__name__]
 
         result_dt = dt + offset_s
         result_ts = Timestamp(dt) + offset_s
@@ -450,7 +483,7 @@ class TestCommon(Base):
         # normalize=True, disallowed for Tick subclasses GH#21427
         if issubclass(offset_types, Tick):
             return
-        offset_s = self._get_offset(offset_types, normalize=True)
+        offset_s = _create_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
 
         result_dt = dt + offset_s
@@ -466,7 +499,7 @@ class TestCommon(Base):
 
     def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
         # GH#12724, GH#30336
-        offset_s = self._get_offset(offset_types)
+        offset_s = _create_offset(offset_types)
 
         dti = DatetimeIndex([], tz=tz_naive_fixture)
 
@@ -505,7 +538,7 @@ class TestCommon(Base):
         tm.assert_equal(result, dta)
 
     def test_pickle_roundtrip(self, offset_types):
-        off = self._get_offset(offset_types)
+        off = _create_offset(offset_types)
         res = tm.round_trip_pickle(off)
         assert off == res
         if type(off) is not DateOffset:
@@ -526,64 +559,38 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
-        # GH#30340 use idiomatic naming
-        off = self._get_offset(offset_types)
-
-        ts = fixed_now_ts
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.onOffset(ts)
-
-        expected = off.is_on_offset(ts)
-        assert result == expected
-
-    def test_isAnchored_deprecated(self, offset_types):
-        # GH#30340 use idiomatic naming
-        off = self._get_offset(offset_types)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.isAnchored()
-
-        expected = off.is_anchored()
-        assert result == expected
-
     def test_offsets_hashable(self, offset_types):
         # GH: 37267
-        off = self._get_offset(offset_types)
+        off = _create_offset(offset_types)
         assert hash(off) is not None
 
+    @pytest.mark.filterwarnings(
+        "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
+    )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_add_dt64_ndarray_non_nano(self, offset_types, unit, request):
         # check that the result with non-nano matches nano
-        off = self._get_offset(offset_types)
+        off = _create_offset(offset_types)
 
         dti = date_range("2016-01-01", periods=35, freq="D")
 
         arr = dti._data._ndarray.astype(f"M8[{unit}]")
         dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
 
-        with warnings.catch_warnings(record=True) as w:
-            expected = dti._data + off
-            result = dta + off
+        expected = dti._data + off
+        result = dta + off
 
-        if len(w):
-            # PerformanceWarning was issued bc _apply_array raised, so we
-            #  fell back to object dtype, for which the code path does
-            #  not yet cast back to the original resolution
-            mark = pytest.mark.xfail(
-                reason="Goes through object dtype in DatetimeArray._add_offset, "
-                "doesn't restore reso in result"
-            )
-            request.node.add_marker(mark)
+        exp_unit = unit
+        if isinstance(off, Tick) and off._creso > dta._creso:
+            # cast to higher reso like we would with Timedelta scalar
+            exp_unit = Timedelta(off).unit
+        expected = expected.as_unit(exp_unit)
 
-        tm.assert_numpy_array_equal(
-            result._ndarray, expected._ndarray.astype(arr.dtype)
-        )
+        tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
 
-class TestDateOffset(Base):
+class TestDateOffset:
     def setup_method(self):
-        self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
     def test_repr(self):
@@ -610,8 +617,8 @@ class TestDateOffset(Base):
         assert offset.kwds == {kwd: 2}
         assert getattr(offset, kwd) == 2
 
-    def test_default_constructor(self):
-        assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
+    def test_default_constructor(self, dt):
+        assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
 
     def test_is_anchored(self):
         assert not DateOffset(2).is_anchored()
@@ -638,9 +645,9 @@ class TestDateOffset(Base):
             ],
         ),
     )
-    def test_add(self, arithmatic_offset_type, expected):
-        assert DateOffset(**{arithmatic_offset_type: 1}) + self.d == Timestamp(expected)
-        assert self.d + DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_add(self, arithmatic_offset_type, expected, dt):
+        assert DateOffset(**{arithmatic_offset_type: 1}) + dt == Timestamp(expected)
+        assert dt + DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
@@ -659,10 +666,10 @@ class TestDateOffset(Base):
             ],
         ),
     )
-    def test_sub(self, arithmatic_offset_type, expected):
-        assert self.d - DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_sub(self, arithmatic_offset_type, expected, dt):
+        assert dt - DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
         with pytest.raises(TypeError, match="Cannot subtract datetime from offset"):
-            DateOffset(**{arithmatic_offset_type: 1}) - self.d
+            DateOffset(**{arithmatic_offset_type: 1}) - dt
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
@@ -682,19 +689,11 @@ class TestDateOffset(Base):
             ],
         ),
     )
-    def test_mul_add(self, arithmatic_offset_type, n, expected):
-        assert DateOffset(**{arithmatic_offset_type: 1}) * n + self.d == Timestamp(
-            expected
-        )
-        assert n * DateOffset(**{arithmatic_offset_type: 1}) + self.d == Timestamp(
-            expected
-        )
-        assert self.d + DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(
-            expected
-        )
-        assert self.d + n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(
-            expected
-        )
+    def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
+        assert DateOffset(**{arithmatic_offset_type: 1}) * n + dt == Timestamp(expected)
+        assert n * DateOffset(**{arithmatic_offset_type: 1}) + dt == Timestamp(expected)
+        assert dt + DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
+        assert dt + n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
@@ -714,13 +713,9 @@ class TestDateOffset(Base):
             ],
         ),
     )
-    def test_mul_sub(self, arithmatic_offset_type, n, expected):
-        assert self.d - DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(
-            expected
-        )
-        assert self.d - n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(
-            expected
-        )
+    def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):
+        assert dt - DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
+        assert dt - n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     def test_leap_year(self):
         d = datetime(2008, 1, 31)
@@ -733,6 +728,33 @@ class TestDateOffset(Base):
         assert offset1 != offset2
 
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
+
+    @pytest.mark.parametrize(
+        "offset_kwargs, expected_arg",
+        [
+            ({"microseconds": 1, "milliseconds": 1}, "2022-01-01 00:00:00.001001"),
+            ({"seconds": 1, "milliseconds": 1}, "2022-01-01 00:00:01.001"),
+            ({"minutes": 1, "milliseconds": 1}, "2022-01-01 00:01:00.001"),
+            ({"hours": 1, "milliseconds": 1}, "2022-01-01 01:00:00.001"),
+            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:00:00.001"),
+            ({"weeks": 1, "milliseconds": 1}, "2022-01-08 00:00:00.001"),
+            ({"months": 1, "milliseconds": 1}, "2022-02-01 00:00:00.001"),
+            ({"years": 1, "milliseconds": 1}, "2023-01-01 00:00:00.001"),
+        ],
+    )
+    def test_milliseconds_combination(self, offset_kwargs, expected_arg):
+        # GH 49897
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01")
+        result = ts + offset
+        expected = Timestamp(expected_arg)
+
+        assert result == expected
+
+    def test_offset_invalid_arguments(self):
+        msg = "^Invalid argument/s or bad combination of arguments"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(picoseconds=1)
 
 
 class TestOffsetNames:
@@ -866,12 +888,6 @@ class TestReprNames:
         for name in names:
             offset = _get_offset(name)
             assert offset.freqstr == name
-
-
-def get_utc_offset_hours(ts):
-    # take a Timestamp and compute total hours of utc offset
-    o = ts.utcoffset()
-    return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
 # ---------------------------------------------------------------------

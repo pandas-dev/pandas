@@ -69,14 +69,14 @@ def s3_base(worker_id):
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
         if is_ci_environment():
             if is_platform_arm() or is_platform_mac() or is_platform_windows():
-                # NOT RUN on Windows/MacOS/ARM, only Ubuntu
+                # NOT RUN on Windows/macOS/ARM, only Ubuntu
                 # - subprocess in CI can cause timeouts
-                # - Github Actions do not support
+                # - GitHub Actions do not support
                 #   container services for the above OSs
                 # - CircleCI will probably hit the Docker rate pull limit
                 pytest.skip(
                     "S3 tests do not have a corresponding service in "
-                    "Windows, MacOS or ARM platforms"
+                    "Windows, macOS or ARM platforms"
                 )
             else:
                 yield "http://localhost:5000"
@@ -98,7 +98,6 @@ def s3_base(worker_id):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             ) as proc:
-
                 timeout = 5
                 while timeout > 0:
                     try:

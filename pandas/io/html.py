@@ -18,7 +18,11 @@ from typing import (
     cast,
 )
 
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas._typing import (
+    BaseBuffer,
     FilePath,
     ReadBuffer,
 )
@@ -27,14 +31,13 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import isna
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
+from pandas.core.series import Series
 
 from pandas.io.common import (
     file_exists,
@@ -49,33 +52,6 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-
-_IMPORTS = False
-_HAS_BS4 = False
-_HAS_LXML = False
-_HAS_HTML5LIB = False
-
-
-def _importers() -> None:
-    # import things we need
-    # but make this done on a first use basis
-
-    global _IMPORTS
-    if _IMPORTS:
-        return
-
-    global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", errors="ignore")
-    _HAS_BS4 = bs4 is not None
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    _HAS_LXML = lxml is not None
-
-    html5lib = import_optional_dependency("html5lib", errors="ignore")
-    _HAS_HTML5LIB = html5lib is not None
-
-    _IMPORTS = True
-
 
 #############
 # READ HTML #
@@ -131,9 +107,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(
-    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes], encoding: str | None
-) -> str | bytes:
+def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -151,13 +125,7 @@ def _read(
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        # error: Argument 1 to "get_handle" has incompatible type "Union[str, bytes,
-        # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]";
-        # expected "Union[PathLike[str], Union[str, Union[IO[Any], RawIOBase,
-        # BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]]"
-        with get_handle(
-            obj, "r", encoding=encoding  # type: ignore[arg-type]
-        ) as handles:
+        with get_handle(obj, "r", encoding=encoding) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
@@ -527,7 +495,7 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                if self.extract_links == "all" or self.extract_links == section:
+                if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
@@ -745,8 +713,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
+        # GH 49929
+        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -858,7 +826,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    lens = Series(data)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
@@ -927,16 +895,10 @@ def _parser_dispatch(flavor: str | None) -> type[_HtmlFrameParser]:
         )
 
     if flavor in ("bs4", "html5lib"):
-        if not _HAS_HTML5LIB:
-            raise ImportError("html5lib not found, please install it")
-        if not _HAS_BS4:
-            raise ImportError("BeautifulSoup4 (bs4) not found, please install it")
-        # Although we call this above, we want to raise here right before use.
-        bs4 = import_optional_dependency("bs4")  # noqa:F841
-
+        import_optional_dependency("html5lib")
+        import_optional_dependency("bs4")
     else:
-        if not _HAS_LXML:
-            raise ImportError("lxml not found, please install it")
+        import_optional_dependency("lxml.etree")
     return _valid_parsers[flavor]
 
 
@@ -1026,9 +988,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,
@@ -1044,6 +1006,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1144,6 +1107,21 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     dfs
@@ -1183,8 +1161,6 @@ def read_html(
     See the :ref:`read_html documentation in the IO section of the docs
     <io.read_html>` for some examples of reading in HTML tables.
     """
-    _importers()
-
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
@@ -1199,6 +1175,12 @@ def read_html(
             f'"{extract_links}"'
         )
     validate_header_arg(header)
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     io = stringify_path(io)
 
@@ -1219,4 +1201,5 @@ def read_html(
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
         extract_links=extract_links,
+        use_nullable_dtypes=use_nullable_dtypes,
     )

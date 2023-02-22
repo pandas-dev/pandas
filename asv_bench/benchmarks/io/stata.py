@@ -13,7 +13,6 @@ from ..pandas_vb_common import (
 
 
 class Stata(BaseIO):
-
     params = ["tc", "td", "tm", "tw", "th", "tq", "ty"]
     param_names = ["convert_dates"]
 
@@ -38,13 +37,13 @@ class Stata(BaseIO):
         )
         self.df["float32_"] = np.array(np.random.randn(N), dtype=np.float32)
         self.convert_dates = {"index": convert_dates}
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
     def time_read_stata(self, convert_dates):
         read_stata(self.fname)
 
     def time_write_stata(self, convert_dates):
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 class StataMissing(Stata):
@@ -54,7 +53,7 @@ class StataMissing(Stata):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan
             self.df[f"missing_{i}"] = missing_data
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

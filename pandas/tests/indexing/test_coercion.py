@@ -16,10 +16,6 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -47,7 +43,6 @@ def check_comprehensiveness(request):
         yield
 
     else:
-
         for combo in combos:
             if not has_test(combo):
                 raise AssertionError(
@@ -58,7 +53,6 @@ def check_comprehensiveness(request):
 
 
 class CoercionBase:
-
     klasses = ["index", "series"]
     dtypes = [
         "object",
@@ -78,7 +72,6 @@ class CoercionBase:
 
 
 class TestSetitemCoercion(CoercionBase):
-
     method = "setitem"
 
     # disable comprehensiveness tests, as most of these have been moved to
@@ -99,12 +92,9 @@ class TestSetitemCoercion(CoercionBase):
     ):
         """test index's coercion triggered by assign key"""
         temp = original_series.copy()
-        warn = None
-        if isinstance(loc_key, int) and temp.index.dtype == np.float64:
-            # GH#33469
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn):
-            temp[loc_key] = 5
+        # GH#33469 pre-2.0 with int loc_key and temp.index.dtype == np.float64
+        #  `temp[loc_key] = 5` treated loc_key as positional
+        temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
@@ -144,23 +134,12 @@ class TestSetitemCoercion(CoercionBase):
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(5, IndexError), (5.1, np.float64), ("x", object)]
+        "val,exp_dtype", [(5, np.float64), (5.1, np.float64), ("x", object)]
     )
     def test_setitem_index_float64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
         assert obj.index.dtype == np.float64
 
-        if exp_dtype is IndexError:
-            # float + int -> int
-            temp = obj.copy()
-            msg = "index 5 is out of bounds for axis 0 with size 4"
-            with pytest.raises(exp_dtype, match=msg):
-                # GH#33469
-                depr_msg = "Treating integers as positional"
-                with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                    temp[5] = 5
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
-            request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
@@ -194,7 +173,6 @@ class TestSetitemCoercion(CoercionBase):
 
 
 class TestInsertIndexCoercion(CoercionBase):
-
     klasses = ["index"]
     method = "insert"
 
@@ -224,33 +202,39 @@ class TestInsertIndexCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1, np.int64),
+            (1, 1, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = Int64Index([1, 2, 3, 4])
-        assert obj.dtype == np.int64
+    def test_insert_int_index(
+        self, any_int_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = any_int_numpy_dtype
+        obj = pd.Index([1, 2, 3, 4], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1, coerced_val, 2, 3, 4])
+        exp = pd.Index([1, coerced_val, 2, 3, 4], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1.0, np.float64),
+            (1, 1.0, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = Float64Index([1.0, 2.0, 3.0, 4.0])
-        assert obj.dtype == np.float64
+    def test_insert_float_index(
+        self, float_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = float_numpy_dtype
+        obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])
+        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(
@@ -266,7 +250,6 @@ class TestInsertIndexCoercion(CoercionBase):
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
     def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
-
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
         )
@@ -279,7 +262,6 @@ class TestInsertIndexCoercion(CoercionBase):
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
         if fill_val.tz:
-
             # mismatched tzawareness
             ts = pd.Timestamp("2012-01-01")
             result = obj.insert(1, ts)
@@ -287,14 +269,11 @@ class TestInsertIndexCoercion(CoercionBase):
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
-            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-                result = obj.insert(1, ts)
+            result = obj.insert(1, ts)
             # once deprecation is enforced:
-            # expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
-            # assert expected.dtype == obj.dtype
-            expected = obj.astype(object).insert(1, ts)
+            expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
+            assert expected.dtype == obj.dtype
             tm.assert_index_equal(result, expected)
 
         else:
@@ -368,12 +347,6 @@ class TestInsertIndexCoercion(CoercionBase):
                 expected = obj.astype(object).insert(0, str(insert))
                 tm.assert_index_equal(result, expected)
 
-            msg = r"Unexpected keyword arguments {'freq'}"
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning):
-                    # passing keywords to pd.Index
-                    pd.Index(data, freq="M")
-
     @pytest.mark.xfail(reason="Test not implemented")
     def test_insert_index_complex128(self):
         raise NotImplementedError
@@ -384,7 +357,6 @@ class TestInsertIndexCoercion(CoercionBase):
 
 
 class TestWhereCoercion(CoercionBase):
-
     method = "where"
     _cond = np.array([True, False, True, False])
 
@@ -564,7 +536,6 @@ class TestWhereCoercion(CoercionBase):
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
-
     # not indexing, but place here for consistency
 
     method = "fillna"
@@ -658,7 +629,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
         [
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
             (pd.Timestamp("2012-01-01"), object),
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), object),
+            # pre-2.0 with a mismatched tz we would get object result
+            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[ns, US/Eastern]"),
             (1, object),
             ("x", object),
         ],
@@ -677,22 +649,19 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         assert obj.dtype == "datetime64[ns, US/Eastern]"
 
+        if getattr(fill_val, "tz", None) is None:
+            fv = fill_val
+        else:
+            fv = fill_val.tz_convert(tz)
         exp = klass(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
-                fill_val,
-                # Once deprecation is enforced, this becomes:
-                # fill_val.tz_convert(tz) if getattr(fill_val, "tz", None)
-                #  is not None else fill_val,
+                fv,
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        warn = None
-        if getattr(fill_val, "tz", None) is not None and fill_val.tz != obj[0].tz:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="mismatched timezone"):
-            self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
         "fill_val",
@@ -753,7 +722,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         ],
     )
     def test_fillna_series_period(self, index_or_series, fill_val):
-
         pi = pd.period_range("2016-01-01", periods=4, freq="D").insert(1, pd.NaT)
         assert isinstance(pi.dtype, pd.PeriodDtype)
         obj = index_or_series(pi)
@@ -773,7 +741,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
-
     klasses = ["series"]
     method = "replace"
 
@@ -872,7 +839,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         if (from_key == "float64" and to_key in ("int64")) or (
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
-
             if not IS64 or is_platform_windows():
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
@@ -920,23 +886,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
-        warn = None
-        rep_ser = pd.Series(replacer)
-        if (
-            isinstance(obj.dtype, pd.DatetimeTZDtype)
-            and isinstance(rep_ser.dtype, pd.DatetimeTZDtype)
-            and obj.dtype != rep_ser.dtype
-        ):
-            # mismatched tz DatetimeArray behavior will change to cast
-            #  for setitem-like methods with mismatched tzs GH#44940
-            warn = FutureWarning
-
-        msg = "explicitly cast to object"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
+        result = obj.replace(replacer)
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-        assert exp.dtype == to_key
+        if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
+            exp.dtype, pd.DatetimeTZDtype
+        ):
+            # with mismatched tzs, we retain the original dtype as of 2.0
+            exp = exp.astype(obj.dtype)
+        else:
+            assert exp.dtype == to_key
 
         tm.assert_series_equal(result, exp)
 

@@ -41,7 +41,6 @@ class TestDropna:
             Series([1, 2, 3], name="x"),
             Series([False, True, False], name="x"),
         ]:
-
             result = ser.dropna()
             tm.assert_series_equal(result, ser)
             assert result is not ser
@@ -102,14 +101,13 @@ class TestDropna:
         assert result.dtype == "datetime64[ns, Asia/Tokyo]"
         tm.assert_series_equal(result, expected)
 
-    def test_dropna_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series\.dropna "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dropna(0)
-        expected = Series([1, 2, 3])
+    @pytest.mark.parametrize("val", [1, 1.5])
+    def test_dropna_ignore_index(self, val):
+        # GH#31725
+        ser = Series([1, 2, val], index=[3, 2, 1])
+        result = ser.dropna(ignore_index=True)
+        expected = Series([1, 2, val])
         tm.assert_series_equal(result, expected)
+
+        ser.dropna(ignore_index=True, inplace=True)
+        tm.assert_series_equal(ser, expected)

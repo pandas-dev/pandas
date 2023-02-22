@@ -1,3 +1,7 @@
+import re
+
+import pytest
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,22 +16,19 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_get_loc_naive_dti_aware_str_deprecated(self):
         # GH#46903
-        ts = Timestamp("20130101").value
+        ts = Timestamp("20130101")._value
         dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(range(100), index=dti)
 
         key = "2013-01-01 00:00:00.000000050+0000"
-        msg = "Indexing a timezone-naive DatetimeIndex with a timezone-aware datetime"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser[key]
-        assert res == 0
+        msg = re.escape(repr(key))
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            loc = dti.get_loc(key)
-        assert loc == 0
+        with pytest.raises(KeyError, match=msg):
+            dti.get_loc(key)
 
     def test_indexing_with_datetime_tz(self):
-
         # GH#8260
         # support datetime64 with tz
 
@@ -98,7 +99,6 @@ class TestDatetimeIndex:
         assert result == expected
 
     def test_indexing_with_datetimeindex_tz(self, indexer_sl):
-
         # GH 12050
         # indexing on a series with a datetimeindex with tz
         index = date_range("2015-01-01", periods=2, tz="utc")

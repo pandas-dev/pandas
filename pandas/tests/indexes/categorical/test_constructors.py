@@ -11,20 +11,14 @@ import pandas._testing as tm
 
 
 class TestCategoricalIndexConstructors:
-    def test_construction_without_data_deprecated(self):
-        # Once the deprecation is enforced, we can add this case to
-        # test_construction_disallows_scalar
-        msg = "without passing data"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            CategoricalIndex(categories=list("abcd"), ordered=False)
-
     def test_construction_disallows_scalar(self):
         msg = "must be called with a collection of some kind"
         with pytest.raises(TypeError, match=msg):
             CategoricalIndex(data=1, categories=list("abcd"), ordered=False)
+        with pytest.raises(TypeError, match=msg):
+            CategoricalIndex(categories=list("abcd"), ordered=False)
 
     def test_construction(self):
-
         ci = CategoricalIndex(list("aabbca"), categories=list("abcd"), ordered=False)
         categories = ci.categories
 
@@ -98,7 +92,6 @@ class TestCategoricalIndexConstructors:
         assert not isinstance(result, CategoricalIndex)
 
     def test_construction_with_dtype(self):
-
         # specify dtype
         ci = CategoricalIndex(list("aabbca"), categories=list("abc"), ordered=False)
 
@@ -146,14 +139,4 @@ class TestCategoricalIndexConstructors:
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # passing subclass-specific kwargs to pd.Index
-                Index(data, categories=cats, dtype=dtype)
-
-        with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, ordered=ordered, dtype=dtype)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # passing subclass-specific kwargs to pd.Index
-                Index(data, ordered=ordered, dtype=dtype)

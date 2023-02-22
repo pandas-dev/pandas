@@ -97,9 +97,9 @@ def to_timedelta(
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
 
-        .. deprecated:: 1.2
+        .. versionchanged:: 2.0
             Strings with units 'M', 'Y' and 'y' do not represent
-            unambiguous timedelta values and will be removed in a future version
+            unambiguous timedelta values and will raise an exception.
 
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
@@ -222,7 +222,7 @@ def _coerce_scalar_to_timedelta_type(
     except ValueError:
         if errors == "raise":
             raise
-        elif errors == "ignore":
+        if errors == "ignore":
             return r
 
         # coerce
@@ -240,7 +240,9 @@ def _convert_listlike(
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+        if not hasattr(arg, "__array__"):
+            arg = list(arg)
+        arg = np.array(arg, dtype=object)
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

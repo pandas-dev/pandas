@@ -1,0 +1,46 @@
+.. _whatsnew_152:
+
+What's new in 1.5.2 (November 21, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.5.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`MultiIndex.join` for extension array dtypes (:issue:`49277`)
+- Fixed regression in :meth:`Series.replace` raising ``RecursionError`` with numeric dtype and when specifying ``value=None`` (:issue:`45725`)
+- Fixed regression in arithmetic operations for :class:`DataFrame` with :class:`MultiIndex` columns with different dtypes (:issue:`49769`)
+- Fixed regression in :meth:`DataFrame.plot` preventing :class:`~matplotlib.colors.Colormap` instance
+  from being passed using the ``colormap`` argument if Matplotlib 3.6+ is used (:issue:`49374`)
+- Fixed regression in :func:`date_range` returning an invalid set of periods for ``CustomBusinessDay`` frequency and ``start`` date with timezone (:issue:`49441`)
+- Fixed performance regression in groupby operations (:issue:`49676`)
+- Fixed regression in :class:`Timedelta` constructor returning object of wrong type when subclassing ``Timedelta`` (:issue:`49579`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
+- Fixed memory leak in :meth:`.Styler.to_excel` (:issue:`49751`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.other:
+
+Other
+~~~~~
+- Reverted ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.1..v1.5.2

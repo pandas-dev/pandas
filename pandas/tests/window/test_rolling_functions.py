@@ -15,7 +15,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.mark.parametrize(
@@ -23,12 +23,11 @@ import pandas.tseries.offsets as offsets
     [
         [np.mean, "mean", {}],
         [np.nansum, "sum", {}],
-        pytest.param(
+        [
             lambda x: np.isfinite(x).astype(float).sum(),
             "count",
             {},
-            marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-        ),
+        ],
         [np.median, "median", {}],
         [np.min, "min", {}],
         [np.max, "max", {}],
@@ -50,12 +49,11 @@ def test_series(series, compare_func, roll_func, kwargs, step):
     [
         [np.mean, "mean", {}],
         [np.nansum, "sum", {}],
-        pytest.param(
+        [
             lambda x: np.isfinite(x).astype(float).sum(),
             "count",
             {},
-            marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-        ),
+        ],
         [np.median, "median", {}],
         [np.min, "min", {}],
         [np.max, "max", {}],
@@ -386,7 +384,6 @@ def test_rolling_max_gh6297(step):
 
 
 def test_rolling_max_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -424,7 +421,6 @@ def test_rolling_max_resample(step):
 
 
 def test_rolling_min_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -445,7 +441,6 @@ def test_rolling_min_resample(step):
 
 
 def test_rolling_median_resample():
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))

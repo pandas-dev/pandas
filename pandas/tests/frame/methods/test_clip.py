@@ -164,15 +164,3 @@ class TestDataFrameClip:
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)
-
-    def test_clip_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.clip except "
-            r"for the arguments 'lower' and 'upper' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(0, 1, 0)
-        expected = DataFrame({"a": [1, 1, 1]})
-        tm.assert_frame_equal(result, expected)

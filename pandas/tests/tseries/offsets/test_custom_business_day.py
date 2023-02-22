@@ -16,20 +16,27 @@ from pandas import (
     read_pickle,
 )
 from pandas.tests.tseries.offsets.common import assert_offset_equal
-from pandas.tests.tseries.offsets.test_business_day import TestBusinessDay
 
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-class TestCustomBusinessDay(TestBusinessDay):
-    _offset = CDay
+@pytest.fixture
+def offset():
+    return CDay()
 
-    def test_repr(self):
-        assert repr(self.offset) == "<CustomBusinessDay>"
-        assert repr(self.offset2) == "<2 * CustomBusinessDays>"
+
+@pytest.fixture
+def offset2():
+    return CDay(2)
+
+
+class TestCustomBusinessDay:
+    def test_repr(self, offset, offset2):
+        assert repr(offset) == "<CustomBusinessDay>"
+        assert repr(offset2) == "<2 * CustomBusinessDays>"
 
         expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
-        assert repr(self.offset + timedelta(1)) == expected
+        assert repr(offset + timedelta(1)) == expected
 
     def test_holidays(self):
         # Define a TradingDay offset
@@ -74,14 +81,14 @@ class TestCustomBusinessDay(TestBusinessDay):
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
-    def test_roundtrip_pickle(self):
+    def test_roundtrip_pickle(self, offset, offset2):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)
             assert unpickled == obj
 
-        _check_roundtrip(self.offset)
-        _check_roundtrip(self.offset2)
-        _check_roundtrip(self.offset * 2)
+        _check_roundtrip(offset)
+        _check_roundtrip(offset2)
+        _check_roundtrip(offset * 2)
 
     def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]

@@ -10,7 +10,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_max_min_non_numeric():
@@ -48,15 +47,13 @@ def test_max_min_object_multiple_columns(using_array_manager):
 
     gb = df.groupby("A")
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-        result = gb.max(numeric_only=False)
+    result = gb[["C"]].max()
     # "max" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-        result = gb.min(numeric_only=False)
+    result = gb[["C"]].min()
     # "min" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["a", "c", "e"]}, index=ei)
@@ -84,7 +81,8 @@ def test_min_date_with_nans():
 def test_max_inat():
     # GH#40767 dont interpret iNaT as NaN
     ser = Series([1, iNaT])
-    gb = ser.groupby([1, 1])
+    key = np.array([1, 1], dtype=np.int64)
+    gb = ser.groupby(key)
 
     result = gb.max(min_count=2)
     expected = Series({1: 1}, dtype=np.int64)
@@ -110,6 +108,7 @@ def test_max_inat_not_all_na():
 
     # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
     expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
+    expected.index = expected.index.astype(np.int_)
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
@@ -121,7 +120,7 @@ def test_groupby_aggregate_period_column(func):
     df = DataFrame({"a": groups, "b": periods})
 
     result = getattr(df.groupby("a")["b"], func)()
-    idx = Int64Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = Series(periods, index=idx, name="b")
 
     tm.assert_series_equal(result, expected)
@@ -135,7 +134,7 @@ def test_groupby_aggregate_period_frame(func):
     df = DataFrame({"a": groups, "b": periods})
 
     result = getattr(df.groupby("a"), func)()
-    idx = Int64Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = DataFrame({"b": periods}, index=idx)
 
     tm.assert_frame_equal(result, expected)
@@ -149,9 +148,13 @@ def test_aggregate_numeric_object_dtype():
         {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
     ).astype(object)
     result = df.groupby("key").min()
-    expected = DataFrame(
-        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]}
-    ).set_index("key")
+    expected = (
+        DataFrame(
+            {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]},
+        )
+        .set_index("key")
+        .astype(object)
+    )
     tm.assert_frame_equal(result, expected)
 
     # same but with numbers
@@ -159,9 +162,11 @@ def test_aggregate_numeric_object_dtype():
         {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": range(4)},
     ).astype(object)
     result = df.groupby("key").min()
-    expected = DataFrame(
-        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]}
-    ).set_index("key")
+    expected = (
+        DataFrame({"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]})
+        .set_index("key")
+        .astype(object)
+    )
     tm.assert_frame_equal(result, expected)
 
 

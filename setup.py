@@ -23,14 +23,13 @@ from setuptools import (
     setup,
 )
 from setuptools.command.build_ext import build_ext as _build_ext
-
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
 
 
 def is_platform_windows():
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ("win32", "cygwin")
 
 
 def is_platform_mac():
@@ -226,6 +225,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
+        "pandas/io/sas/byteswap.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -354,8 +354,9 @@ if is_platform_mac():
         target_macos_version = "10.9"
         parsed_macos_version = parse_version(target_macos_version)
         if (
-            parse_version(str(python_target)) < parsed_macos_version
-            and parse_version(current_system) >= parsed_macos_version
+            parse_version(str(python_target))
+            < parsed_macos_version
+            <= parse_version(current_system)
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = target_macos_version
 
@@ -391,6 +392,7 @@ macros.append(("NPY_NO_DEPRECATED_API", "0"))
 
 # ----------------------------------------------------------------------
 # Specification of Dependencies
+
 
 # TODO(cython#4518): Need to check to see if e.g. `linetrace` has changed and
 #  possibly re-compile.
@@ -571,6 +573,7 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
+    "io.sas._byteswap": {"pyxfile": "io/sas/byteswap"},
 }
 
 extensions = []
@@ -646,7 +649,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/datetime",
         numpy.get_include(),
     ],
-    extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
+    extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
 )

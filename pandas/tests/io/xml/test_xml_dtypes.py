@@ -128,14 +128,14 @@ def test_dtypes_with_names(parser):
     df_result = read_xml(
         xml_dates,
         names=["Col1", "Col2", "Col3", "Col4"],
-        dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64"},
+        dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64[ns]"},
         parser=parser,
     )
     df_iter = read_xml_iterparse(
         xml_dates,
         parser=parser,
         names=["Col1", "Col2", "Col3", "Col4"],
-        dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64"},
+        dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64[ns]"},
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
 
@@ -457,7 +457,7 @@ def test_day_first_parse_dates(parser):
     )
 
     with tm.assert_produces_warning(
-        UserWarning, match="Parsing dates in DD/MM/YYYY format"
+        UserWarning, match="Parsing dates in %d/%m/%Y format"
     ):
         df_result = read_xml(xml, parse_dates=["date"], parser=parser)
         df_iter = read_xml_iterparse(

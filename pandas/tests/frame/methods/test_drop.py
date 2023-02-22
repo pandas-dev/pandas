@@ -245,7 +245,6 @@ class TestDataFrameDrop:
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
-
         # GH#19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
@@ -405,11 +404,11 @@ class TestDataFrameDrop:
         idx = Index([2, 3, 4, 4, 5], name="id")
         idxdt = pd.to_datetime(
             [
-                "201603231400",
-                "201603231500",
-                "201603231600",
-                "201603231600",
-                "201603231700",
+                "2016-03-23 14:00",
+                "2016-03-23 15:00",
+                "2016-03-23 16:00",
+                "2016-03-23 16:00",
+                "2016-03-23 17:00",
             ]
         )
         df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)
@@ -422,17 +421,16 @@ class TestDataFrameDrop:
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [Series, DataFrame])
-    def test_drop_tz_aware_timestamp_across_dst(self, box):
+    def test_drop_tz_aware_timestamp_across_dst(self, frame_or_series):
         # GH#21761
         start = Timestamp("2017-10-29", tz="Europe/Berlin")
         end = Timestamp("2017-10-29 04:00:00", tz="Europe/Berlin")
         index = pd.date_range(start, end, freq="15min")
-        data = box(data=[1] * len(index), index=index)
+        data = frame_or_series(data=[1] * len(index), index=index)
         result = data.drop(start)
         expected_start = Timestamp("2017-10-29 00:15:00", tz="Europe/Berlin")
         expected_idx = pd.date_range(expected_start, end, freq="15min")
-        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        expected = frame_or_series(data=[1] * len(expected_idx), index=expected_idx)
         tm.assert_equal(result, expected)
 
     def test_drop_preserve_names(self):
@@ -509,18 +507,6 @@ class TestDataFrameDrop:
         expected = df.take([0, 1, 1], axis=1)
         df2 = df.take([2, 0, 1, 2, 1], axis=1)
         result = df2.drop("C", axis=1)
-        tm.assert_frame_equal(result, expected)
-
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.drop "
-            r"except for the argument 'labels' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.drop("a", 1)
-        expected = DataFrame(index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
     def test_drop_inplace_no_leftover_column_reference(self):

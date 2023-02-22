@@ -42,7 +42,6 @@ class TestPeriodArrayLikeComparisons:
 
     @pytest.mark.parametrize("other", ["2017", Period("2017", freq="D")])
     def test_eq_scalar(self, other, box_with_array):
-
         idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
         idx = tm.box_expected(idx, box_with_array)
         xbox = get_upcast_box(idx, other, True)
@@ -745,7 +744,7 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             rng - tdarr
-        msg = r"cannot subtract period\[Q-DEC\]-dtype from TimedeltaArray"
+        msg = r"cannot subtract PeriodArray from TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
@@ -839,7 +838,7 @@ class TestPeriodIndexArithmetic:
                 pd.offsets.QuarterEnd(n=-2, startingMonth=12),
             ]
         )
-        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")])
+        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")]).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi + offs
@@ -872,6 +871,7 @@ class TestPeriodIndexArithmetic:
         )
 
         expected = PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
+        expected = expected.astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi - other
@@ -1301,13 +1301,13 @@ class TestPeriodIndexArithmetic:
 
         expected = PeriodIndex(
             ["2001-01-01", "2001-01-03", "2001-01-05"], freq="D"
-        ).array
+        )._data.astype(object)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = parr - other
 
-        expected = PeriodIndex(["2000-12-30"] * 3, freq="D").array
+        expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1462,7 +1462,6 @@ class TestPeriodIndexSeriesMethods:
         self._check(idx + 3, lambda x: np.subtract(x, 3), idx)
 
     def test_pi_ops_array_int(self):
-
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
@@ -1573,7 +1572,7 @@ class TestPeriodIndexSeriesMethods:
         assert result.freq == exp.freq
 
     def test_pi_sub_pdnat(self):
-        # GH#13071
+        # GH#13071, GH#19389
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )

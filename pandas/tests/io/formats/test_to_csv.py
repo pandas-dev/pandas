@@ -1,9 +1,9 @@
 import io
 import os
-from pathlib import Path
 import sys
 from zipfile import ZipFile
 
+from _csv import Error
 import numpy as np
 import pytest
 
@@ -94,8 +94,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path) as f:
                 assert f.read() == expected
-
-        from _csv import Error
 
         with tm.ensure_clean("test.csv") as path:
             with pytest.raises(Error, match="escapechar"):
@@ -385,14 +383,11 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
-    def test_to_csv_single_level_multi_index(self, ind, expected, klass):
+    def test_to_csv_single_level_multi_index(self, ind, expected, frame_or_series):
         # see gh-19589
-        obj = klass(pd.Series([1], ind, name="data"))
+        obj = frame_or_series(pd.Series([1], ind, name="data"))
 
-        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
-            # GH#9568 standardize on lineterminator matching stdlib
-            result = obj.to_csv(line_terminator="\n", header=True)
+        result = obj.to_csv(lineterminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):
@@ -615,16 +610,15 @@ z
             ("archive.zip", "archive"),
         ],
     )
-    def test_to_csv_zip_infer_name(self, filename, expected_arcname):
+    def test_to_csv_zip_infer_name(self, tmp_path, filename, expected_arcname):
         # GH 39465
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean_dir() as dir:
-            path = Path(dir, filename)
-            df.to_csv(path, compression="zip")
-            with ZipFile(path) as zp:
-                assert len(zp.filelist) == 1
-                archived_file = zp.filelist[0].filename
-                assert archived_file == expected_arcname
+        path = tmp_path / filename
+        df.to_csv(path, compression="zip")
+        with ZipFile(path) as zp:
+            assert len(zp.filelist) == 1
+            archived_file = zp.filelist[0].filename
+            assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):

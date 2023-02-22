@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under1p01
+from pandas.compat.pyarrow import pa_version_under7p0
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.groupby import get_groupby_method_args
 
 
 @pytest.mark.parametrize(
@@ -415,7 +416,7 @@ def test_groupby_drop_nan_with_multi_index():
         pytest.param(
             "string[pyarrow]",
             marks=pytest.mark.skipif(
-                pa_version_under1p01, reason="pyarrow is not installed"
+                pa_version_under7p0, reason="pyarrow is not installed"
             ),
         ),
         "datetime64[ns]",
@@ -424,7 +425,7 @@ def test_groupby_drop_nan_with_multi_index():
     ],
 )
 @pytest.mark.parametrize("test_series", [True, False])
-def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
+def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # GH#46584, GH#48794
 
     # Convert sequence_index into a string sequence, e.g. 5 becomes "xxyz"
@@ -432,11 +433,6 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     sequence = "".join(
         [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
     )
-
-    if dtype == "category" and "z" in sequence:
-        # Only xfail when nulls are present
-        msg = "dropna=False not correct for categorical, GH#48645"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
@@ -452,7 +448,7 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
             "a": [0, 1, 2, 3],
         }
     )
-    gb = df.groupby("key", dropna=False, sort=False)
+    gb = df.groupby("key", dropna=False, sort=False, as_index=as_index)
     if test_series:
         gb = gb["a"]
     result = gb.sum()
@@ -465,7 +461,7 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     if dtype == "category":
         index = pd.CategoricalIndex(
             [uniques[e] for e in summed],
-            list({uniques[k]: 0 for k in sequence if not pd.isnull(uniques[k])}),
+            df["key"].cat.categories,
             name="key",
         )
     elif isinstance(dtype, str) and dtype.startswith("Sparse"):
@@ -477,6 +473,10 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     expected = pd.Series(summed.values(), index=index, name="a", dtype=None)
     if not test_series:
         expected = expected.to_frame()
+    if not as_index:
+        expected = expected.reset_index()
+        if dtype is not None and dtype.startswith("Sparse"):
+            expected["key"] = expected["key"].astype(dtype)
 
     tm.assert_equal(result, expected)
 
@@ -498,3 +498,187 @@ def test_null_is_null_for_dtype(
         tm.assert_series_equal(result, expected["a"])
     else:
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
+def test_categorical_reducers(
+    request, reduction_func, observed, sort, as_index, index_kind
+):
+    # GH#36327
+    if (
+        reduction_func in ("idxmin", "idxmax")
+        and not observed
+        and index_kind != "multi"
+    ):
+        msg = "GH#10694 - idxmin/max broken for categorical with observed=False"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    # Ensure there is at least one null value by appending to the end
+    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
+    )
+
+    # Strategy: Compare to dropna=True by filling null values with a new code
+    df_filled = df.copy()
+    df_filled["x"] = pd.Categorical(values, categories=[1, 2, 3, 4]).fillna(4)
+
+    if index_kind == "range":
+        keys = ["x"]
+    elif index_kind == "single":
+        keys = ["x"]
+        df = df.set_index("x")
+        df_filled = df_filled.set_index("x")
+    else:
+        keys = ["x", "x2"]
+        df["x2"] = df["x"]
+        df = df.set_index(["x", "x2"])
+        df_filled["x2"] = df_filled["x"]
+        df_filled = df_filled.set_index(["x", "x2"])
+    args = get_groupby_method_args(reduction_func, df)
+    args_filled = get_groupby_method_args(reduction_func, df_filled)
+    if reduction_func == "corrwith" and index_kind == "range":
+        # Don't include the grouping columns so we can call reset_index
+        args = (args[0].drop(columns=keys),)
+        args_filled = (args_filled[0].drop(columns=keys),)
+
+    gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
+    expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
+    expected["x"] = expected["x"].replace(4, None)
+    if index_kind == "multi":
+        expected["x2"] = expected["x2"].replace(4, None)
+    if as_index:
+        if index_kind == "multi":
+            expected = expected.set_index(["x", "x2"])
+        else:
+            expected = expected.set_index("x")
+    else:
+        if index_kind != "range" and reduction_func != "size":
+            # size, unlike other methods, has the desired behavior in GH#49519
+            expected = expected.drop(columns="x")
+            if index_kind == "multi":
+                expected = expected.drop(columns="x2")
+    if reduction_func in ("idxmax", "idxmin") and index_kind != "range":
+        # expected was computed with a RangeIndex; need to translate to index values
+        values = expected["y"].values.tolist()
+        if index_kind == "single":
+            values = [np.nan if e == 4 else e for e in values]
+        else:
+            values = [(np.nan, np.nan) if e == (4, 4) else e for e in values]
+        expected["y"] = values
+    if reduction_func == "size":
+        # size, unlike other methods, has the desired behavior in GH#49519
+        expected = expected.rename(columns={0: "size"})
+        if as_index:
+            expected = expected["size"].rename(None)
+
+    gb_keepna = df.groupby(
+        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
+    )
+    result = getattr(gb_keepna, reduction_func)(*args)
+
+    # size will return a Series, others are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_categorical_transformers(
+    request, transformation_func, observed, sort, as_index
+):
+    # GH#36327
+    if transformation_func == "fillna":
+        msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
+        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+
+    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
+    )
+    args = get_groupby_method_args(transformation_func, df)
+
+    # Compute result for null group
+    null_group_values = df[df["x"].isnull()]["y"]
+    if transformation_func == "cumcount":
+        null_group_data = list(range(len(null_group_values)))
+    elif transformation_func == "ngroup":
+        if sort:
+            if observed:
+                na_group = df["x"].nunique(dropna=False) - 1
+            else:
+                # TODO: Should this be 3?
+                na_group = df["x"].nunique(dropna=False) - 1
+        else:
+            na_group = df.iloc[: null_group_values.index[0]]["x"].nunique()
+        null_group_data = len(null_group_values) * [na_group]
+    else:
+        null_group_data = getattr(null_group_values, transformation_func)(*args)
+    null_group_result = pd.DataFrame({"y": null_group_data})
+
+    gb_keepna = df.groupby(
+        "x", dropna=False, observed=observed, sort=sort, as_index=as_index
+    )
+    gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
+    result = getattr(gb_keepna, transformation_func)(*args)
+    expected = getattr(gb_dropna, transformation_func)(*args)
+    for iloc, value in zip(
+        df[df["x"].isnull()].index.tolist(), null_group_result.values
+    ):
+        if expected.ndim == 1:
+            expected.iloc[iloc] = value
+        else:
+            expected.iloc[iloc, 0] = value
+    if transformation_func == "ngroup":
+        expected[df["x"].notnull() & expected.ge(na_group)] += 1
+    if transformation_func not in ("rank", "diff", "pct_change", "shift"):
+        expected = expected.astype("int64")
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["head", "tail"])
+def test_categorical_head_tail(method, observed, sort, as_index):
+    # GH#36327
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False, observed=observed, sort=sort, as_index=as_index)
+    result = getattr(gb, method)()
+
+    if method == "tail":
+        values = values[::-1]
+    # Take the top 5 values from each group
+    mask = (
+        ((values == 1) & ((values == 1).cumsum() <= 5))
+        | ((values == 2) & ((values == 2).cumsum() <= 5))
+        # flake8 doesn't like the vectorized check for None, thinks we should use `is`
+        | ((values == None) & ((values == None).cumsum() <= 5))  # noqa: E711
+    )
+    if method == "tail":
+        mask = mask[::-1]
+    expected = df[mask]
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_agg():
+    # GH#36327
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False)
+    result = gb.agg(lambda x: x.sum())
+    expected = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_transform():
+    # GH#36327
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False)
+    result = gb.transform(lambda x: x.sum())
+    expected = gb.transform("sum")
+    tm.assert_frame_equal(result, expected)

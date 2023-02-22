@@ -54,7 +54,6 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
-import inspect
 import re
 from typing import (
     Any,
@@ -173,7 +172,6 @@ def _set_option(*args, **kwargs) -> None:
 
 
 def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
-
     keys = _select_options(pat)
     if len(keys) == 0:
         raise OptionError("No such keys(s)")
@@ -187,7 +185,6 @@ def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 
 
 def _reset_option(pat: str, silent: bool = False) -> None:
-
     keys = _select_options(pat)
 
     if len(keys) == 0:
@@ -427,6 +424,7 @@ class option_context(ContextDecorator):
 
     Examples
     --------
+    >>> from pandas import option_context
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     pass
     """
@@ -662,7 +660,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 d.msg,
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -673,9 +671,7 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         return True
     return False
 
@@ -770,7 +766,7 @@ def config_prefix(prefix) -> Generator[None, None, None]:
     # Note: reset_option relies on set_option, and on key directly
     # it does not fit in to this monkey-patching scheme
 
-    global register_option, get_option, set_option, reset_option
+    global register_option, get_option, set_option
 
     def wrap(func: F) -> F:
         def inner(key: str, *args, **kwds):
@@ -845,13 +841,11 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
 
 
 def is_one_of_factory(legal_values) -> Callable[[Any], None]:
-
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
     def inner(x) -> None:
         if x not in legal_values:
-
             if not any(c(x) for c in callables):
                 uvals = [str(lval) for lval in legal_values]
                 pp_values = "|".join(uvals)

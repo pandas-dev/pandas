@@ -28,26 +28,6 @@ class GetNumericData:
         self.df._get_numeric_data()
 
 
-class Lookup:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list("abcdefgh"))
-        self.df["foo"] = "bar"
-        self.row_labels = list(self.df.index[::10])[:900]
-        self.col_labels = list(self.df.columns) * 100
-        self.row_labels_all = np.array(
-            list(self.df.index) * len(self.df.columns), dtype="object"
-        )
-        self.col_labels_all = np.array(
-            list(self.df.columns) * len(self.df.index), dtype="object"
-        )
-
-    def time_frame_fancy_lookup(self):
-        self.df.lookup(self.row_labels, self.col_labels)
-
-    def time_frame_fancy_lookup_all(self):
-        self.df.lookup(self.row_labels_all, self.col_labels_all)
-
-
 class Reindex:
     def setup(self):
         N = 10**3
@@ -391,7 +371,6 @@ class Isnull:
 
 
 class Fillna:
-
     params = (
         [True, False],
         ["pad", "bfill"],
@@ -432,7 +411,6 @@ class Fillna:
 
 
 class Dropna:
-
     params = (["all", "any"], [0, 1])
     param_names = ["how", "axis"]
 
@@ -452,7 +430,6 @@ class Dropna:
 
 
 class Count:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -474,10 +451,10 @@ class Count:
         )
 
     def time_count_level_multi(self, axis):
-        self.df.count(axis=axis, level=1)
+        self.df.count(axis=axis)
 
     def time_count_level_mixed_dtypes_multi(self, axis):
-        self.df_mixed.count(axis=axis, level=1)
+        self.df_mixed.count(axis=axis)
 
 
 class Apply:
@@ -551,7 +528,6 @@ class Equals:
 
 
 class Interpolate:
-
     params = [None, "infer"]
     param_names = ["downcast"]
 
@@ -636,7 +612,6 @@ class Duplicated:
 
 
 class XS:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -649,7 +624,6 @@ class XS:
 
 
 class SortValues:
-
     params = [True, False]
     param_names = ["ascending"]
 
@@ -677,7 +651,6 @@ class SortIndexByColumns:
 
 
 class Quantile:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -717,7 +690,6 @@ class GetDtypeCounts:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 

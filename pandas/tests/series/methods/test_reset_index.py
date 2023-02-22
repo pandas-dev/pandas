@@ -148,18 +148,6 @@ class TestResetIndex:
         assert isinstance(deleveled, Series)
         assert deleveled.index.name == ser.index.name
 
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3], index=Index([1, 2, 3], name="a"))
-        msg = (
-            r"In a future version of pandas all arguments of Series\.reset_index "
-            r"except for the argument 'level' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.reset_index("a", False)
-        expected = DataFrame({"a": [1, 2, 3], 0: [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
-
     def test_reset_index_inplace_and_drop_ignore_name(self):
         # GH#44575
         ser = Series(range(2), name="old")

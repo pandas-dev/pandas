@@ -66,7 +66,7 @@ def scalar_compare(object[:] values, object val, object op) -> ndarray:
     elif op is operator.ne:
         flag = Py_NE
     else:
-        raise ValueError('Unrecognized operator')
+        raise ValueError("Unrecognized operator")
 
     result = np.empty(n, dtype=bool).view(np.uint8)
     isnull_val = checknull(val)
@@ -134,7 +134,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         int flag
 
     if n != <Py_ssize_t>len(right):
-        raise ValueError(f'Arrays were different lengths: {n} vs {len(right)}')
+        raise ValueError(f"Arrays were different lengths: {n} vs {len(right)}")
 
     if op is operator.lt:
         flag = Py_LT
@@ -149,7 +149,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
     elif op is operator.ne:
         flag = Py_NE
     else:
-        raise ValueError('Unrecognized operator')
+        raise ValueError("Unrecognized operator")
 
     result = np.empty(n, dtype=bool).view(np.uint8)
 
@@ -234,7 +234,7 @@ def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
         object[::1] result
 
     if n != <Py_ssize_t>len(right):
-        raise ValueError(f'Arrays were different lengths: {n} vs {len(right)}')
+        raise ValueError(f"Arrays were different lengths: {n} vs {len(right)}")
 
     result = np.empty(n, dtype=object)
 
@@ -271,8 +271,8 @@ def maybe_convert_bool(ndarray[object] arr,
     result = np.empty(n, dtype=np.uint8)
     mask = np.zeros(n, dtype=np.uint8)
     # the defaults
-    true_vals = {'True', 'TRUE', 'true'}
-    false_vals = {'False', 'FALSE', 'false'}
+    true_vals = {"True", "TRUE", "true"}
+    false_vals = {"False", "FALSE", "false"}
 
     if true_values is not None:
         true_vals = true_vals | set(true_values)
@@ -292,7 +292,7 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
-        elif is_nan(val):
+        elif is_nan(val) or val is None:
             mask[i] = 1
             result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
             has_na = True

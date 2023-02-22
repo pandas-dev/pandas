@@ -36,7 +36,8 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(self, float_frame, datetime_frame):
+    def test_xs(self, float_frame, datetime_frame, using_copy_on_write):
+        float_frame_orig = float_frame.copy()
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
         for item, value in xs.items():
@@ -54,7 +55,7 @@ class TestXS:
         assert xs["B"] == "1"
 
         with pytest.raises(
-            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00', freq='B')")
+            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00')")
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
@@ -66,7 +67,12 @@ class TestXS:
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
         series[:] = 5
-        assert (expected == 5).all()
+        if using_copy_on_write:
+            # but with CoW the view shouldn't propagate mutations
+            tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
+            assert not (expected == 5).all()
+        else:
+            assert (expected == 5).all()
 
     def test_xs_corner(self):
         # pathological mixed-type reordering case
@@ -84,7 +90,7 @@ class TestXS:
         # no columns but Index(dtype=object)
         df = DataFrame(index=["a", "b", "c"])
         result = df.xs("a")
-        expected = Series([], name="a", index=Index([]), dtype=np.float64)
+        expected = Series([], name="a", dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
@@ -107,8 +113,7 @@ class TestXS:
         expected = df[:1]
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
+        result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_view(self, using_array_manager, using_copy_on_write):
@@ -119,7 +124,8 @@ class TestXS:
         df_orig = dm.copy()
 
         if using_copy_on_write:
-            dm.xs(2)[:] = 20
+            with tm.raises_chained_assignment_error():
+                dm.xs(2)[:] = 20
             tm.assert_frame_equal(dm, df_orig)
         elif using_array_manager:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is
@@ -225,8 +231,7 @@ class TestXSWithMultiIndex:
         expected = concat([frame.xs("one", level="second")] * 2)
 
         if isinstance(key, list):
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.xs(key, level=level)
+            result = df.xs(tuple(key), level=level)
         else:
             result = df.xs(key, level=level)
         tm.assert_frame_equal(result, expected)
@@ -324,8 +329,7 @@ class TestXSWithMultiIndex:
         expected = df.loc[("bar", "two")]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
-    def test_xs_IndexSlice_argument_not_implemented(self, klass):
+    def test_xs_IndexSlice_argument_not_implemented(self, frame_or_series):
         # GH#35301
 
         index = MultiIndex(
@@ -334,7 +338,7 @@ class TestXSWithMultiIndex:
         )
 
         obj = DataFrame(np.random.randn(6, 4), index=index)
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj[0]
 
         expected = obj.iloc[-2:].droplevel(0)
@@ -345,10 +349,9 @@ class TestXSWithMultiIndex:
         result = obj.loc[IndexSlice[("foo", "qux", 0), :]]
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
-    def test_xs_levels_raises(self, klass):
+    def test_xs_levels_raises(self, frame_or_series):
         obj = DataFrame({"A": [1, 2, 3]})
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj["A"]
 
         msg = "Index must be a MultiIndex"
@@ -414,6 +417,5 @@ class TestXSWithMultiIndex:
         # GH#41760
         mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
-        with tm.assert_produces_warning(FutureWarning):
-            with pytest.raises(KeyError, match="y"):
-                df.xs(["x", "y"], drop_level=False, axis=1)
+        with pytest.raises(KeyError, match="y"):
+            df.xs(("x", "y"), drop_level=False, axis=1)

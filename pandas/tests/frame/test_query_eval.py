@@ -3,7 +3,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import UndefinedVariableError
+from pandas.errors import (
+    NumExprClobberingError,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,45 +39,44 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def setup_method(self):
-        self.df = DataFrame({"A": [1, 2, 3]})
-        self.expected1 = self.df[self.df.A > 0]
-        self.expected2 = self.df.A + 1
+    @pytest.fixture
+    def df(self):
+        return DataFrame({"A": [1, 2, 3]})
 
-    def test_query_default(self):
+    @pytest.fixture
+    def expected1(self, df):
+        return df[df.A > 0]
 
+    @pytest.fixture
+    def expected2(self, df):
+        return df.A + 1
+
+    def test_query_default(self, df, expected1, expected2):
         # GH 12749
         # this should always work, whether NUMEXPR_INSTALLED or not
-        df = self.df
         result = df.query("A>0")
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_None(self):
-
-        df = self.df
+    def test_query_None(self, df, expected1, expected2):
         result = df.query("A>0", engine=None)
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_python(self):
-
-        df = self.df
+    def test_query_python(self, df, expected1, expected2):
         result = df.query("A>0", engine="python")
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_numexpr(self):
-
-        df = self.df
+    def test_query_numexpr(self, df, expected1, expected2):
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
-            tm.assert_frame_equal(result, self.expected1)
+            tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, self.expected2, check_names=False)
+            tm.assert_series_equal(result, expected2, check_names=False)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -88,7 +90,6 @@ class TestCompat:
 
 
 class TestDataFrameEval:
-
     # smaller hits python, larger hits numexpr
     @pytest.mark.parametrize("n", [4, 4000])
     @pytest.mark.parametrize(
@@ -101,7 +102,6 @@ class TestDataFrameEval:
         ],
     )
     def test_ops(self, op_str, op, rop, n):
-
         # tst ops and reversed ops in evaluation
         # GH7198
 
@@ -445,7 +445,8 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(np.random.randn(n, 3))
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
+        df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -530,8 +531,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.errors import NumExprClobberingError
-
         engine, parser = self.engine, self.parser
 
         n = m = 10
@@ -805,7 +804,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(np.random.randn(n, 3))
+        # Cast to object to avoid implicit cast when setting entry to pd.NaT below
+        df = DataFrame(np.random.randn(n, 3)).astype({0: object})
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -858,6 +858,22 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             "df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]", engine=engine, parser=parser
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_query_numexpr_with_min_and_max_columns(self):
+        df = DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
+        regex_to_match = (
+            r"Variables in expression \"\(min\) == \(1\)\" "
+            r"overlap with builtins: \('min'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("min == 1")
+
+        regex_to_match = (
+            r"Variables in expression \"\(max\) == \(1\)\" "
+            r"overlap with builtins: \('max'\)"
+        )
+        with pytest.raises(NumExprClobberingError, match=regex_to_match):
+            df.query("max == 1")
 
 
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
@@ -1053,7 +1069,6 @@ class TestDataFrameQueryStrings:
         ],
     )
     def test_query_lex_compare_strings(self, parser, engine, op, func):
-
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
@@ -1109,7 +1124,7 @@ class TestDataFrameEvalWithFrame:
 
 
 class TestDataFrameQueryBacktickQuoting:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def df(self):
         """
         Yields a dataframe with strings that may or may not need escaping
@@ -1268,3 +1283,77 @@ class TestDataFrameQueryBacktickQuoting:
 
         with pytest.raises(TypeError, match="Only named functions are supported"):
             df.eval("@funcs[0].__call__()")
+
+    def test_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
+        # GH#29618
+        df = DataFrame(
+            [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
+        )
+        warning = RuntimeWarning if NUMEXPR_INSTALLED else None
+        with tm.assert_produces_warning(warning):
+            result = df.eval("c = b - a")
+        expected = DataFrame(
+            [[1, 2, 1], [3, 4, 1]],
+            columns=["a", "b", "c"],
+            dtype=any_numeric_ea_and_arrow_dtype,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_ea_dtypes_and_scalar(self):
+        # GH#29618
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        warning = RuntimeWarning if NUMEXPR_INSTALLED else None
+        with tm.assert_produces_warning(warning):
+            result = df.eval("c = b - 1")
+        expected = DataFrame(
+            [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_ea_dtypes_and_scalar_operation(self, any_numeric_ea_and_arrow_dtype):
+        # GH#29618
+        df = DataFrame(
+            [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
+        )
+        result = df.eval("c = 2 - 1")
+        expected = DataFrame(
+            {
+                "a": Series([1, 3], dtype=any_numeric_ea_and_arrow_dtype),
+                "b": Series([2, 4], dtype=any_numeric_ea_and_arrow_dtype),
+                "c": Series([1, 1], dtype=result["c"].dtype),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
+    def test_query_ea_dtypes(self, dtype):
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
+        # GH#50261
+        df = DataFrame({"a": Series([1, 2], dtype=dtype)})
+        ref = {2}  # noqa:F841
+        result = df.query("a in @ref")
+        expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("engine", ["python", "numexpr"])
+    @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
+    def test_query_ea_equality_comparison(self, dtype, engine):
+        # GH#50261
+        warning = RuntimeWarning if engine == "numexpr" else None
+        if engine == "numexpr" and not NUMEXPR_INSTALLED:
+            pytest.skip("numexpr not installed")
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
+        )
+        with tm.assert_produces_warning(warning):
+            result = df.query("A == B", engine=engine)
+        expected = DataFrame(
+            {
+                "A": Series([1, 2], dtype="Int64", index=[0, 2]),
+                "B": Series([1, 2], dtype=dtype, index=[0, 2]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)

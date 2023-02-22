@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from collections import abc
 import datetime
-import inspect
 from io import BytesIO
 import os
 import struct
@@ -51,7 +50,6 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -169,9 +167,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
-...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
+...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -179,6 +177,7 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file in 10,000 line chunks:
+
 >>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
@@ -353,10 +352,9 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         ms = dates
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
-
         warnings.warn(
             "Encountered %tC format. Leaving in Stata Internal Format.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         conv_dates = Series(dates, dtype=object)
         if has_bad_values:
@@ -420,7 +418,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - stata_epoch
+                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -475,7 +473,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     elif fmt in ["%tC", "tC"]:
         warnings.warn(
             "Stata Internal Format tC not supported.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         conv_dates = dates
     elif fmt in ["%td", "td"]:
@@ -659,7 +657,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         warnings.warn(
             ws,
             PossiblePrecisionLoss,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     return data
@@ -680,7 +678,6 @@ class StataValueLabel:
     def __init__(
         self, catarray: Series, encoding: Literal["latin-1", "utf-8"] = "latin-1"
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
         self.labname = catarray.name
@@ -715,7 +712,7 @@ class StataValueLabel:
                 warnings.warn(
                     value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             category = category.encode(self._encoding)
             offsets.append(self.text_len)
@@ -810,7 +807,6 @@ class StataNonCatValueLabel(StataValueLabel):
         value_labels: dict[float, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
 
@@ -869,23 +865,23 @@ class StataMissingValue:
             MISSING_VALUES[i + b] = "." + chr(96 + i)
 
     float32_base: bytes = b"\x00\x00\x00\x7f"
-    increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
+    increment_32: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<f", float32_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment
+        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment_32
         float32_base = struct.pack("<i", int_value)
 
     float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
-    increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
+    increment_64 = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment
+        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment_64
         float64_base = struct.pack("q", int_value)
 
     BASE_MISSING_VALUES: Final = {
@@ -958,7 +954,6 @@ class StataMissingValue:
 
 class StataParser:
     def __init__(self) -> None:
-
         # type          code.
         # --------------------
         # str1        1 = 0x01
@@ -1223,7 +1218,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
-        self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
+        self.byteorder = ">" if self.path_or_buf.read(3) == b"MSF" else "<"
         self.path_or_buf.read(15)  # </byteorder><K>
         nvar_type = "H" if self.format_version <= 118 else "I"
         nvar_size = 2 if self.format_version <= 118 else 4
@@ -1295,7 +1290,6 @@ class StataReader(StataParser, abc.Iterator):
     def _get_dtypes(
         self, seek_vartypes: int
     ) -> tuple[list[int | str], list[str | np.dtype]]:
-
         self.path_or_buf.seek(seek_vartypes)
         raw_typlist = [
             struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
@@ -1415,7 +1409,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.byteorder = (
-            struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 and ">" or "<"
+            ">" if struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 else "<"
         )
         self.filetype = struct.unpack("b", self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused
@@ -1533,7 +1527,7 @@ the string values returned are correct."""
             warnings.warn(
                 msg,
                 UnicodeWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return s.decode("latin-1")
 
@@ -1727,7 +1721,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
@@ -1854,8 +1848,8 @@ the string values returned are correct."""
             replacements[colname] = replacement
 
         if replacements:
-            for col in replacements:
-                data[col] = replacements[col]
+            for col, value in replacements.items():
+                data[col] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -1869,7 +1863,6 @@ the string values returned are correct."""
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
-
         if not self._column_selector_set:
             column_set = set(columns)
             if len(column_set) != len(columns):
@@ -1932,7 +1925,7 @@ the string values returned are correct."""
                         warnings.warn(
                             categorical_conversion_warning,
                             CategoricalConversionWarning,
-                            stacklevel=find_stack_level(inspect.currentframe()),
+                            stacklevel=find_stack_level(),
                         )
                     initial_categories = None
                 cat_data = Categorical(
@@ -2010,9 +2003,9 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2025,7 +2018,6 @@ def read_stata(
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame | StataReader:
-
     reader = StataReader(
         filepath_or_buffer,
         convert_dates=convert_dates,
@@ -2179,7 +2171,7 @@ def _dtype_to_default_stata_fmt(
         return "%9.0g"
     elif dtype == np.int32:
         return "%12.0g"
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype in (np.int8, np.int16):
         return "%8.0g"
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
@@ -2419,7 +2411,6 @@ class StataWriter(StataParser):
 
     def _update_strl_names(self) -> None:
         """No-op, forward compatibility"""
-        pass
 
     def _validate_variable_name(self, name: str) -> str:
         """
@@ -2516,7 +2507,7 @@ class StataWriter(StataParser):
             warnings.warn(
                 ws,
                 InvalidColumnName,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self._converted_names = converted_names
@@ -2645,7 +2636,6 @@ supported types."""
             is_text=False,
             storage_options=self.storage_options,
         ) as self.handles:
-
             if self.handles.compression["method"] is not None:
                 # ZipFile creates a file (with the same name) for each write call.
                 # Write it first into a buffer and then write the buffer to the ZipFile.
@@ -2684,7 +2674,7 @@ supported types."""
                             f"This save was not successful but {self._fname} could not "
                             "be deleted. This file is not valid.",
                             ResourceWarning,
-                            stacklevel=find_stack_level(inspect.currentframe()),
+                            stacklevel=find_stack_level(),
                         )
                 raise exc
 
@@ -2703,19 +2693,15 @@ supported types."""
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_file_close_tag(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_characteristics(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_strls(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_expansion_fields(self) -> None:
         """Write 5 zeros for expansion fields"""
@@ -3440,7 +3426,6 @@ class StataWriter117(StataWriter):
 
     def _write_expansion_fields(self) -> None:
         """No-op in dta 117+"""
-        pass
 
     def _write_value_labels(self) -> None:
         self._update_map("value_labels")

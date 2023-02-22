@@ -5,18 +5,17 @@ from io import StringIO
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     DatetimeIndex,
     Series,
@@ -24,20 +23,20 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
-    if orient == "records" or orient == "values":
+    if orient in ("records", "values"):
         expected = expected.reset_index(drop=True)
     if orient == "values":
         expected.columns = range(len(expected.columns))
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:an integer is required (got type float)*:DeprecationWarning"
-)
-@pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
@@ -121,6 +120,7 @@ class TestPandasContainer:
                 expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
+            expected.columns = ["x", "x.1"]
 
         tm.assert_frame_equal(result, expected)
 
@@ -137,12 +137,9 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_simple(self, orient, convert_axes, numpy, dtype, float_frame):
+    def test_roundtrip_simple(self, orient, convert_axes, dtype, float_frame):
         data = float_frame.to_json(orient=orient)
-        result = read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
-        )
+        result = read_json(data, orient=orient, convert_axes=convert_axes, dtype=dtype)
 
         expected = float_frame
 
@@ -150,28 +147,15 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_intframe(self, orient, convert_axes, numpy, dtype, int_frame):
+    def test_roundtrip_intframe(self, orient, convert_axes, dtype, int_frame):
         data = int_frame.to_json(orient=orient)
-        result = read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
-        )
+        result = read_json(data, orient=orient, convert_axes=convert_axes, dtype=dtype)
         expected = int_frame
-        if (
-            numpy
-            and (not IS64 or is_platform_windows())
-            and not dtype
-            and orient != "split"
-        ):
-            # TODO: see what is causing roundtrip dtype loss
-            expected = expected.astype(np.int32)
-
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, request, orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, orient, convert_axes, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
@@ -179,16 +163,8 @@ class TestPandasContainer:
             dtype=dtype,
         )
 
-        # TODO: do we even need to support U3 dtypes?
-        if numpy and dtype == "U3" and orient != "split":
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Can't decode directly to array")
-            )
-
         data = df.to_json(orient=orient)
-        result = read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
-        )
+        result = read_json(data, orient=orient, convert_axes=convert_axes, dtype=dtype)
 
         expected = df.copy()
         if not dtype:
@@ -210,9 +186,8 @@ class TestPandasContainer:
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_categorical(
-        self, request, orient, categorical_frame, convert_axes, numpy
+        self, request, orient, categorical_frame, convert_axes
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
@@ -223,45 +198,36 @@ class TestPandasContainer:
             )
 
         data = categorical_frame.to_json(orient=orient)
-        if numpy and orient in ("records", "values"):
-            request.node.add_marker(
-                pytest.mark.xfail(reason=f"Orient {orient} is broken with numpy=True")
-            )
 
-        result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
+        result = read_json(data, orient=orient, convert_axes=convert_axes)
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
-
-        if not numpy and orient == "index":
-            expected = expected.sort_index()
-
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+    def test_roundtrip_empty(self, orient, convert_axes):
         empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
-        result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
-        expected = empty_frame.copy()
-
-        # TODO: both conditions below are probably bugs
-        if convert_axes:
-            expected.index = expected.index.astype(float)
-            expected.columns = expected.columns.astype(float)
-        if numpy and orient == "values":
-            expected = expected.reindex([0], axis=1).reset_index(drop=True)
+        result = read_json(data, orient=orient, convert_axes=convert_axes)
+        if orient == "split":
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(index=idx, columns=idx)
+        elif orient in ["index", "columns"]:
+            # TODO: this condition is probably a bug
+            idx = pd.Index([], dtype=(float if convert_axes else object))
+            expected = DataFrame(columns=idx)
+        else:
+            expected = empty_frame.copy()
 
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_timestamp(self, orient, convert_axes, numpy, datetime_frame):
+    def test_roundtrip_timestamp(self, orient, convert_axes, datetime_frame):
         # TODO: improve coverage with date_format parameter
         data = datetime_frame.to_json(orient=orient)
-        result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
+        result = read_json(data, orient=orient, convert_axes=convert_axes)
         expected = datetime_frame.copy()
 
         if not convert_axes:  # one off for ts handling
@@ -275,13 +241,7 @@ class TestPandasContainer:
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, request, orient, convert_axes, numpy):
-        if numpy and orient != "split":
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Can't decode directly to array")
-            )
-
+    def test_roundtrip_mixed(self, orient, convert_axes):
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
@@ -293,15 +253,34 @@ class TestPandasContainer:
         df = DataFrame(data=values, index=index)
 
         data = df.to_json(orient=orient)
-        result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
+        result = read_json(data, orient=orient, convert_axes=convert_axes)
 
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
-        if not numpy and orient == "index":
-            expected = expected.sort_index()
-
         assert_json_roundtrip_equal(result, expected, orient)
+
+    @pytest.mark.xfail(
+        reason="#50456 Column multiindex is stored and loaded differently",
+        raises=AssertionError,
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["2022", "2022"], ["JAN", "FEB"]],
+            [["2022", "2023"], ["JAN", "JAN"]],
+            [["2022", "2022"], ["JAN", "JAN"]],
+        ],
+    )
+    def test_roundtrip_multiindex(self, columns):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays(columns),
+        )
+
+        result = read_json(df.to_json(orient="split"), orient="split")
+
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
@@ -343,8 +322,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_frame_from_json_missing_data(self, orient, convert_axes, numpy, dtype):
+    def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
         num_df = DataFrame([[1, 2], [4, 5, 6]])
         result = read_json(
             num_df.to_json(orient=orient),
@@ -445,12 +423,12 @@ class TestPandasContainer:
             left = read_json(inp, orient=orient, convert_axes=False)
             tm.assert_frame_equal(left, right)
 
-        right.index = np.arange(len(df))
+        right.index = pd.RangeIndex(len(df))
         inp = df.to_json(orient="records")
         left = read_json(inp, orient="records", convert_axes=False)
         tm.assert_frame_equal(left, right)
 
-        right.columns = np.arange(df.shape[1])
+        right.columns = pd.RangeIndex(df.shape[1])
         inp = df.to_json(orient="values")
         left = read_json(inp, orient="values", convert_axes=False)
         tm.assert_frame_equal(left, right)
@@ -643,10 +621,9 @@ class TestPandasContainer:
     def test_series_default_orient(self, string_series):
         assert string_series.to_json() == string_series.to_json(orient="index")
 
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_simple(self, orient, numpy, string_series):
+    def test_series_roundtrip_simple(self, orient, string_series):
         data = string_series.to_json(orient=orient)
-        result = read_json(data, typ="series", orient=orient, numpy=numpy)
+        result = read_json(data, typ="series", orient=orient)
 
         expected = string_series
         if orient in ("values", "records"):
@@ -657,10 +634,9 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [False, None])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_object(self, orient, numpy, dtype, object_series):
+    def test_series_roundtrip_object(self, orient, dtype, object_series):
         data = object_series.to_json(orient=orient)
-        result = read_json(data, typ="series", orient=orient, numpy=numpy, dtype=dtype)
+        result = read_json(data, typ="series", orient=orient, dtype=dtype)
 
         expected = object_series
         if orient in ("values", "records"):
@@ -670,11 +646,10 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy):
+    def test_series_roundtrip_empty(self, orient):
         empty_series = Series([], index=[], dtype=np.float64)
         data = empty_series.to_json(orient=orient)
-        result = read_json(data, typ="series", orient=orient, numpy=numpy)
+        result = read_json(data, typ="series", orient=orient)
 
         expected = empty_series
         if orient in ("values", "records"):
@@ -684,10 +659,9 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_timeseries(self, orient, numpy, datetime_series):
+    def test_series_roundtrip_timeseries(self, orient, datetime_series):
         data = datetime_series.to_json(orient=orient)
-        result = read_json(data, typ="series", orient=orient, numpy=numpy)
+        result = read_json(data, typ="series", orient=orient)
 
         expected = datetime_series
         if orient in ("values", "records"):
@@ -698,11 +672,10 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [np.float64, int])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_numeric(self, orient, numpy, dtype):
+    def test_series_roundtrip_numeric(self, orient, dtype):
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])
         data = s.to_json(orient=orient)
-        result = read_json(data, typ="series", orient=orient, numpy=numpy)
+        result = read_json(data, typ="series", orient=orient)
 
         expected = s.copy()
         if orient in ("values", "records"):
@@ -747,13 +720,11 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, df)
 
     def test_typ(self):
-
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
         result = read_json(s.to_json(), typ=None)
         tm.assert_series_equal(result, s)
 
     def test_reconstruction_index(self):
-
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = read_json(df.to_json())
 
@@ -770,7 +741,6 @@ class TestPandasContainer:
                 read_json(path)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
-
         # frame
         json = datetime_frame.to_json()
         result = read_json(json)
@@ -783,7 +753,6 @@ class TestPandasContainer:
         assert result.name is None
 
     def test_convert_dates(self, datetime_series, datetime_frame):
-
         # frame
         df = datetime_frame
         df["date"] = Timestamp("20130101")
@@ -963,24 +932,6 @@ class TestPandasContainer:
         result = read_json(json, dtype={"ints": np.int64, "bools": np.bool_})
         tm.assert_frame_equal(result, result)
 
-    def test_misc_example(self):
-
-        # parsing unordered input fails
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]', numpy=True)
-        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-
-        error_msg = """DataFrame\\.index are different
-
-DataFrame\\.index values are different \\(100\\.0 %\\)
-\\[left\\]:  Index\\(\\['a', 'b'\\], dtype='object'\\)
-\\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
-        with pytest.raises(AssertionError, match=error_msg):
-            tm.assert_frame_equal(result, expected, check_index_type=False)
-
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
-        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-        tm.assert_frame_equal(result, expected)
-
     def test_round_trip_exception_(self, datapath):
         # GH 3867
         path = datapath("io", "json", "data", "teams.csv")
@@ -1010,21 +961,22 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        s = Series([timedelta(23), timedelta(seconds=5)])
-        assert s.dtype == "timedelta64[ns]"
+        ser = Series([timedelta(23), timedelta(seconds=5)])
+        assert ser.dtype == "timedelta64[ns]"
 
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
-        s = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
-        assert s.dtype == "timedelta64[ns]"
-        result = read_json(s.to_json(), typ="series").apply(converter)
-        tm.assert_series_equal(result, s)
+        ser = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
+        assert ser.dtype == "timedelta64[ns]"
+        result = read_json(ser.to_json(), typ="series").apply(converter)
+        tm.assert_series_equal(result, ser)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         assert frame[0].dtype == "timedelta64[ns]"
         tm.assert_frame_equal(frame, read_json(frame.to_json()).apply(converter))
 
+    def test_timedelta2(self):
         frame = DataFrame(
             {
                 "a": [timedelta(days=23), timedelta(seconds=5)],
@@ -1039,10 +991,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(frame, result)
 
     def test_mixed_timedelta_datetime(self):
-        frame = DataFrame({"a": [timedelta(23), Timestamp("20130101")]}, dtype=object)
+        td = timedelta(23)
+        ts = Timestamp("20130101")
+        frame = DataFrame({"a": [td, ts]}, dtype=object)
 
         expected = DataFrame(
-            {"a": [pd.Timedelta(frame.a[0]).value, Timestamp(frame.a[1]).value]}
+            {"a": [pd.Timedelta(td).as_unit("ns")._value, ts.as_unit("ns")._value]}
         )
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
@@ -1774,13 +1728,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_deprecate_numpy_argument_read_json(self):
-        # GH 28512
-        expected = DataFrame([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            result = read_json(expected.to_json(), numpy=True)
-            tm.assert_frame_equal(result, expected)
-
     def test_frame_int_overflow(self):
         # GH 30320
         encoded_json = json.dumps([{"col": "31900441201190696999"}, {"col": "Text"}])
@@ -1805,8 +1752,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
-        import time
-
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
@@ -1918,3 +1863,106 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame(data={"col1": [13342205958987758245, 12388075603347835679]})
         result = df.to_json(orient="split")
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "values", "index", "columns"]
+    )
+    @pytest.mark.parametrize("option", [True, False])
+    def test_read_json_nullable(self, string_storage, dtype_backend, orient, option):
+        # GH#50750
+        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+        if string_storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_json(orient=orient)
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if option:
+                    with pd.option_context("mode.nullable_dtypes", option):
+                        result = read_json(out, orient=orient)
+                else:
+                    result = read_json(out, use_nullable_dtypes=True, orient=orient)
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        if orient == "values":
+            expected.columns = list(range(0, 8))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("orient", ["split", "records", "index"])
+    def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
+        # GH#50750
+        pa = pytest.importorskip("pyarrow")
+        ser = Series([1, np.nan, 3], dtype="Int64")
+
+        out = ser.to_json(orient=orient)
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = read_json(
+                    out, use_nullable_dtypes=True, orient=orient, typ="series"
+                )
+
+        expected = Series([1, np.nan, 3], dtype="Int64")
+
+        if dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
+
+        tm.assert_series_equal(result, expected)
+
+
+def test_invalid_engine():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="The engine type foo"):
+        read_json(out, engine="foo")
+
+
+def test_pyarrow_engine_lines_false():
+    # GH 48893
+    ser = Series(range(1))
+    out = ser.to_json()
+    with pytest.raises(ValueError, match="currently pyarrow engine only supports"):
+        read_json(out, engine="pyarrow", lines=False)

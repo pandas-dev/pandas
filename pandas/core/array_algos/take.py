@@ -62,7 +62,6 @@ def take_nd(
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ) -> ArrayLike:
-
     """
     Specialized Cython take which sets NaN values in one pass
 
@@ -125,7 +124,6 @@ def _take_nd_ndarray(
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
-
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()
@@ -360,7 +358,14 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if out_dtype is not None:
             out = out.view(out_dtype)
         if fill_wrap is not None:
+            # FIXME: if we get here with dt64/td64 we need to be sure we have
+            #  matching resos
+            if fill_value.dtype.kind == "m":
+                fill_value = fill_value.astype("m8[ns]")
+            else:
+                fill_value = fill_value.astype("M8[ns]")
             fill_value = fill_wrap(fill_value)
+
         f(arr, indexer, out, fill_value=fill_value)
 
     return wrapper
@@ -549,13 +554,9 @@ def _take_2d_multi_object(
             out[row_mask, :] = fill_value
         if col_needs:
             out[:, col_mask] = fill_value
-    for i in range(len(row_idx)):
-        u_ = row_idx[i]
-
+    for i, u_ in enumerate(row_idx):
         if u_ != -1:
-            for j in range(len(col_idx)):
-                v = col_idx[j]
-
+            for j, v in enumerate(col_idx):
                 if v != -1:
                     out[i, j] = arr[u_, v]
 

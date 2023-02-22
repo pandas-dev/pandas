@@ -38,7 +38,6 @@ def data_test_ix(request, dirpath):
 
 
 # https://github.com/cython/cython/issues/1720
-@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestSAS7BDAT:
     @pytest.mark.slow
     def test_from_file(self, dirpath, data_test_ix):

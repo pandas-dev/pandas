@@ -3,9 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
-from shutil import rmtree
 import tempfile
-from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -13,7 +11,13 @@ from typing import (
 )
 import uuid
 
-import numpy as np
+from pandas._typing import (
+    BaseBuffer,
+    CompressionOptions,
+    FilePath,
+)
+from pandas.compat import PYPY
+from pandas.errors import ChainedAssignmentError
 
 from pandas import set_option
 
@@ -21,7 +25,9 @@ from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(path, compression) -> Generator[IO[bytes], None, None]:
+def decompress_file(
+    path: FilePath | BaseBuffer, compression: CompressionOptions
+) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -63,7 +69,6 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     ...
     'EST'
     """
-    import os
     import time
 
     def setTZ(tz) -> None:
@@ -127,25 +132,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_clean_dir() -> Generator[str, None, None]:
-    """
-    Get a temporary directory path and agrees to remove on close.
-
-    Yields
-    ------
-    Temporary directory path
-    """
-    directory_name = tempfile.mkdtemp(suffix="")
-    try:
-        yield directory_name
-    finally:
-        try:
-            rmtree(directory_name)
-        except OSError:
-            pass
 
 
 @contextmanager
@@ -216,35 +202,18 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-class RNGContext:
-    """
-    Context manager to set the numpy random number generator speed. Returns
-    to the original value upon exiting the context manager.
+def raises_chained_assignment_error():
+    if PYPY:
+        from contextlib import nullcontext
 
-    Parameters
-    ----------
-    seed : int
-        Seed for numpy.random.seed
+        return nullcontext()
+    else:
+        import pytest
 
-    Examples
-    --------
-    with RNGContext(42):
-        np.random.randn()
-    """
-
-    def __init__(self, seed) -> None:
-        self.seed = seed
-
-    def __enter__(self) -> None:
-
-        self.start_state = np.random.get_state()
-        np.random.seed(self.seed)
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-
-        np.random.set_state(self.start_state)
+        return pytest.raises(
+            ChainedAssignmentError,
+            match=(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            ),
+        )

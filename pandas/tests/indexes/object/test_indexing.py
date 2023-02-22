@@ -10,20 +10,6 @@ from pandas import Index
 import pandas._testing as tm
 
 
-class TestGetLoc:
-    def test_get_loc_raises_object_nearest(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc("a", method="nearest")
-
-    def test_get_loc_raises_object_tolerance(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc("a", method="pad", tolerance="invalid")
-
-
 class TestGetIndexer:
     @pytest.mark.parametrize(
         "method,expected",
@@ -128,6 +114,13 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(missing, expected_missing)
         # dt64nat vs td64nat
         else:
+            try:
+                np_nat_fixture == np_nat_fixture2
+            except (TypeError, OverflowError):
+                # Numpy will raise on uncomparable types, like
+                # np.datetime64('NaT', 'Y') and np.datetime64('NaT', 'ps')
+                # https://github.com/numpy/numpy/issues/22762
+                return
             index = Index(
                 np.array(
                     [

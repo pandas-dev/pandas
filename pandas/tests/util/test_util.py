@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-import pandas.compat as compat
-
+from pandas import compat
 import pandas._testing as tm
 
 
@@ -44,13 +43,6 @@ def test_convert_rows_list_to_csv_str():
     assert ret == expected
 
 
-def test_create_temp_directory():
-    with tm.ensure_clean_dir() as path:
-        assert os.path.exists(path)
-        assert os.path.isdir(path)
-    assert not os.path.exists(path)
-
-
 @pytest.mark.parametrize("strict_data_files", [True, False])
 def test_datapath_missing(datapath):
     with pytest.raises(ValueError, match="Could not find file"):
@@ -64,18 +56,6 @@ def test_datapath(datapath):
     expected = os.path.join(os.path.dirname(os.path.dirname(__file__)), *args)
 
     assert result == expected
-
-
-def test_rng_context():
-    import numpy as np
-
-    expected0 = 1.764052345967664
-    expected1 = 1.6243453636632417
-
-    with tm.RNGContext(0):
-        with tm.RNGContext(1):
-            assert np.random.randn() == expected1
-        assert np.random.randn() == expected0
 
 
 def test_external_error_raised():

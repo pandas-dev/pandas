@@ -10,10 +10,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 
 class TestMultiIndexPartial:
@@ -71,8 +67,7 @@ class TestMultiIndexPartial:
         )
         df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.xs(["foo", "one"])
+        result = df.xs(("foo", "one"))
         expected = df.loc["foo", "one"]
         tm.assert_frame_equal(result, expected)
 
@@ -133,9 +128,13 @@ class TestMultiIndexPartial:
         exp.iloc[65:85] = 0
         tm.assert_frame_equal(df, exp)
 
-        df["A"].loc[2000, 4] = 1
-        if not using_copy_on_write:
-            exp["A"].loc[2000, 4].values[:] = 1
+        if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df["A"].loc[2000, 4] = 1
+            df.loc[(2000, 4), "A"] = 1
+        else:
+            df["A"].loc[2000, 4] = 1
+        exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
 
         df.loc[2000] = 5
@@ -143,10 +142,12 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
-        df["A"].iloc[14] = 5
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df["A"].iloc[14] = 5
             df["A"].iloc[14] == exp["A"].iloc[14]
         else:
+            df["A"].iloc[14] = 5
             assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
@@ -161,9 +162,9 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert isinstance(mi.levels[0], Int64Index)
+            assert mi.levels[0].dtype == np.int_
         else:
-            assert isinstance(mi.levels[0], Float64Index)
+            assert mi.levels[0].dtype == np.float64
 
         assert 14 not in mi.levels[0]
         assert not mi.levels[0]._should_fallback_to_positional
@@ -171,9 +172,6 @@ class TestMultiIndexPartial:
 
         with pytest.raises(KeyError, match="14"):
             ser[14]
-        with pytest.raises(KeyError, match="14"):
-            with tm.assert_produces_warning(FutureWarning):
-                mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
 

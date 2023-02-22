@@ -11,7 +11,7 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - if: github.event.comment.body == 'take'
       run: |

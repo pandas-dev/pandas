@@ -4,7 +4,7 @@ as a CParser-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
-
+from decimal import Decimal
 from io import (
     BytesIO,
     StringIO,
@@ -21,6 +21,7 @@ from pandas.compat import (
     IS64,
     is_ci_environment,
 )
+from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -114,14 +115,16 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
+    warning = RuntimeWarning if np_version_gte1p24 else None
     with pytest.raises(ValueError, match="cannot safely convert"):
-        parser.read_csv(
-            StringIO(data),
-            sep=r"\s+",
-            header=None,
-            names=["a", "b"],
-            dtype={"a": np.int32},
-        )
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            parser.read_csv(
+                StringIO(data),
+                sep=r"\s+",
+                header=None,
+                names=["a", "b"],
+                dtype={"a": np.int32},
+            )
 
 
 @pytest.mark.parametrize(
@@ -169,12 +172,13 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 @td.skip_if_32bit
 @pytest.mark.slow
 def test_precise_conversion(c_parser_only):
-    from decimal import Decimal
-
     parser = c_parser_only
 
     normal_errors = []
     precise_errors = []
+
+    def error(val: float, actual_val: Decimal) -> Decimal:
+        return abs(Decimal(f"{val:.100}") - actual_val)
 
     # test numbers between 1 and 2
     for num in np.linspace(1.0, 2.0, num=500):
@@ -192,11 +196,8 @@ def test_precise_conversion(c_parser_only):
         )
         actual_val = Decimal(text[2:])
 
-        def error(val):
-            return abs(Decimal(f"{val:.100}") - actual_val)
-
-        normal_errors.append(error(normal_val))
-        precise_errors.append(error(precise_val))
+        normal_errors.append(error(normal_val, actual_val))
+        precise_errors.append(error(precise_val, actual_val))
 
         # round-trip should match float()
         assert roundtrip_val == float(text[2:])

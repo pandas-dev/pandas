@@ -22,7 +22,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 from pandas.util import _test_decorators as td
@@ -57,7 +56,6 @@ def test_conv_read_write():
 
 
 def test_long_strings(setup_path):
-
     # GH6166
     df = DataFrame(
         {"a": tm.rands_array(100, size=10)}, index=tm.rands_array(100, size=10)
@@ -70,51 +68,53 @@ def test_long_strings(setup_path):
         tm.assert_frame_equal(df, result)
 
 
-def test_api(setup_path):
-
+def test_api(tmp_path, setup_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args
-    with ensure_clean_path(setup_path) as path:
+    path = tmp_path / setup_path
 
-        df = tm.makeDataFrame()
-        df.iloc[:10].to_hdf(path, "df", append=True, format="table")
-        df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df = tm.makeDataFrame()
+    df.iloc[:10].to_hdf(path, "df", append=True, format="table")
+    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-        # append to False
-        df.iloc[:10].to_hdf(path, "df", append=False, format="table")
-        df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+    # append to False
+    df.iloc[:10].to_hdf(path, "df", append=False, format="table")
+    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    with ensure_clean_path(setup_path) as path:
 
-        df = tm.makeDataFrame()
-        df.iloc[:10].to_hdf(path, "df", append=True)
-        df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+def test_api_append(tmp_path, setup_path):
+    path = tmp_path / setup_path
 
-        # append to False
-        df.iloc[:10].to_hdf(path, "df", append=False, format="table")
-        df.iloc[10:].to_hdf(path, "df", append=True)
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df = tm.makeDataFrame()
+    df.iloc[:10].to_hdf(path, "df", append=True)
+    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    with ensure_clean_path(setup_path) as path:
+    # append to False
+    df.iloc[:10].to_hdf(path, "df", append=False, format="table")
+    df.iloc[10:].to_hdf(path, "df", append=True)
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-        df = tm.makeDataFrame()
-        df.to_hdf(path, "df", append=False, format="fixed")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-        df.to_hdf(path, "df", append=False, format="f")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+def test_api_2(tmp_path, setup_path):
+    path = tmp_path / setup_path
 
-        df.to_hdf(path, "df", append=False)
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df = tm.makeDataFrame()
+    df.to_hdf(path, "df", append=False, format="fixed")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-        df.to_hdf(path, "df")
-        tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(path, "df", append=False, format="f")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
+
+    df.to_hdf(path, "df", append=False)
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
+
+    df.to_hdf(path, "df")
+    tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     with ensure_clean_store(setup_path) as store:
-
         df = tm.makeDataFrame()
 
         _maybe_remove(store, "df")
@@ -139,25 +139,27 @@ def test_api(setup_path):
         store.append("df", df.iloc[10:], append=True, format=None)
         tm.assert_frame_equal(store.select("df"), df)
 
-    with ensure_clean_path(setup_path) as path:
-        # Invalid.
-        df = tm.makeDataFrame()
 
-        msg = "Can only append to Tables"
+def test_api_invalid(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    # Invalid.
+    df = tm.makeDataFrame()
 
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, "df", append=True, format="f")
+    msg = "Can only append to Tables"
 
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, "df", append=True, format="fixed")
+    with pytest.raises(ValueError, match=msg):
+        df.to_hdf(path, "df", append=True, format="f")
 
-        msg = r"invalid HDFStore format specified \[foo\]"
+    with pytest.raises(ValueError, match=msg):
+        df.to_hdf(path, "df", append=True, format="fixed")
 
-        with pytest.raises(TypeError, match=msg):
-            df.to_hdf(path, "df", append=True, format="foo")
+    msg = r"invalid HDFStore format specified \[foo\]"
 
-        with pytest.raises(TypeError, match=msg):
-            df.to_hdf(path, "df", append=False, format="foo")
+    with pytest.raises(TypeError, match=msg):
+        df.to_hdf(path, "df", append=True, format="foo")
+
+    with pytest.raises(TypeError, match=msg):
+        df.to_hdf(path, "df", append=False, format="foo")
 
     # File path doesn't exist
     path = ""
@@ -168,7 +170,6 @@ def test_api(setup_path):
 
 
 def test_get(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
         left = store.get("a")
@@ -190,7 +191,6 @@ def test_put_integer(setup_path):
 
 
 def test_table_values_dtypes_roundtrip(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
         store.append("df_f8", df1)
@@ -247,15 +247,16 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int64": 1,
                 "object": 1,
                 "datetime64[ns]": 2,
-            }
+            },
+            name="count",
         )
         result = result.sort_index()
         expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
-
     s = tm.makeStringSeries()
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
@@ -272,7 +273,6 @@ def test_series(setup_path):
 
 
 def test_float_index(setup_path):
-
     # GH #454
     index = np.random.randn(10)
     s = Series(np.random.randn(10), index=index)
@@ -280,7 +280,6 @@ def test_float_index(setup_path):
 
 
 def test_tuple_index(setup_path):
-
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
@@ -297,7 +296,7 @@ def test_index_types(setup_path):
     with catch_warnings(record=True):
         values = np.random.randn(2)
 
-        func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
+        func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
     with catch_warnings(record=True):
         ser = Series(values, [0, "y"])
@@ -343,29 +342,28 @@ def test_index_types(setup_path):
         _check_roundtrip(ser, func, path=setup_path)
 
 
-def test_timeseries_preepoch(setup_path):
-
+def test_timeseries_preepoch(setup_path, request):
     dr = bdate_range("1/1/1940", "1/1/1960")
     ts = Series(np.random.randn(len(dr)), index=dr)
     try:
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
         if is_platform_windows():
-            pytest.xfail("known failure on some windows platforms")
-        else:
-            raise
+            request.node.add_marker(
+                pytest.mark.xfail("known failure on some windows platforms")
+            )
+        raise
 
 
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_frame(compression, setup_path):
-
     df = tm.makeDataFrame()
 
     # put in some random NAs
-    df.values[0, 0] = np.nan
-    df.values[5, 3] = np.nan
+    df.iloc[0, 0] = np.nan
+    df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
         df, tm.assert_frame_equal, path=setup_path, compression=compression
@@ -411,7 +409,6 @@ def test_empty_series(dtype, setup_path):
 
 
 def test_can_serialize_dates(setup_path):
-
     rng = [x.date() for x in bdate_range("1/1/2000", "1/30/2000")]
     frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
 
@@ -480,7 +477,6 @@ def test_store_mixed(compression, setup_path):
 
 
 def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
-
     options = {}
     if compression:
         options["complib"] = _default_compressor
@@ -504,7 +500,6 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
 
 
 def test_unicode_index(setup_path):
-
     unicode_values = ["\u03c3", "\u03c3\u03c3"]
 
     # PerformanceWarning
@@ -531,20 +526,19 @@ def test_unicode_longer_encoded(setup_path):
 
 
 def test_store_datetime_mixed(setup_path):
-
     df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
     ts = tm.makeTimeSeries()
     df["d"] = ts.index[:3]
     _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
 
 
-def test_round_trip_equals(setup_path):
+def test_round_trip_equals(tmp_path, setup_path):
     # GH 9330
     df = DataFrame({"B": [1, 2], "A": ["x", "y"]})
 
-    with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "df", format="table")
-        other = read_hdf(path, "df")
-        tm.assert_frame_equal(df, other)
-        assert df.equals(other)
-        assert other.equals(df)
+    path = tmp_path / setup_path
+    df.to_hdf(path, "df", format="table")
+    other = read_hdf(path, "df")
+    tm.assert_frame_equal(df, other)
+    assert df.equals(other)
+    assert other.equals(df)

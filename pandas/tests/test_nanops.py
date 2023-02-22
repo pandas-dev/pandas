@@ -15,18 +15,179 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core import nanops
 from pandas.core.arrays import DatetimeArray
-import pandas.core.nanops as nanops
 
 use_bn = nanops._USE_BOTTLENECK
 
 
-@pytest.fixture(params=[True, False])
-def skipna(request):
-    """
-    Fixture to pass skipna to nanops functions.
-    """
-    return request.param
+@pytest.fixture
+def disable_bottleneck(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(nanops, "_USE_BOTTLENECK", False)
+        yield
+
+
+@pytest.fixture
+def arr_shape():
+    return 11, 7
+
+
+@pytest.fixture
+def arr_float(arr_shape):
+    np.random.seed(11235)
+    return np.random.randn(*arr_shape)
+
+
+@pytest.fixture
+def arr_complex(arr_float):
+    return arr_float + arr_float * 1j
+
+
+@pytest.fixture
+def arr_int(arr_shape):
+    np.random.seed(11235)
+    return np.random.randint(-10, 10, arr_shape)
+
+
+@pytest.fixture
+def arr_bool(arr_shape):
+    np.random.seed(11235)
+    return np.random.randint(0, 2, arr_shape) == 0
+
+
+@pytest.fixture
+def arr_str(arr_float):
+    return np.abs(arr_float).astype("S")
+
+
+@pytest.fixture
+def arr_utf(arr_float):
+    return np.abs(arr_float).astype("U")
+
+
+@pytest.fixture
+def arr_date(arr_shape):
+    np.random.seed(11235)
+    return np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
+
+
+@pytest.fixture
+def arr_tdelta(arr_shape):
+    np.random.seed(11235)
+    return np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
+
+
+@pytest.fixture
+def arr_nan(arr_shape):
+    return np.tile(np.nan, arr_shape)
+
+
+@pytest.fixture
+def arr_float_nan(arr_float, arr_nan):
+    return np.vstack([arr_float, arr_nan])
+
+
+@pytest.fixture
+def arr_nan_float1(arr_nan, arr_float):
+    return np.vstack([arr_nan, arr_float])
+
+
+@pytest.fixture
+def arr_nan_nan(arr_nan):
+    return np.vstack([arr_nan, arr_nan])
+
+
+@pytest.fixture
+def arr_inf(arr_float):
+    return arr_float * np.inf
+
+
+@pytest.fixture
+def arr_float_inf(arr_float, arr_inf):
+    return np.vstack([arr_float, arr_inf])
+
+
+@pytest.fixture
+def arr_nan_inf(arr_nan, arr_inf):
+    return np.vstack([arr_nan, arr_inf])
+
+
+@pytest.fixture
+def arr_float_nan_inf(arr_float, arr_nan, arr_inf):
+    return np.vstack([arr_float, arr_nan, arr_inf])
+
+
+@pytest.fixture
+def arr_nan_nan_inf(arr_nan, arr_inf):
+    return np.vstack([arr_nan, arr_nan, arr_inf])
+
+
+@pytest.fixture
+def arr_obj(
+    arr_float, arr_int, arr_bool, arr_complex, arr_str, arr_utf, arr_date, arr_tdelta
+):
+    return np.vstack(
+        [
+            arr_float.astype("O"),
+            arr_int.astype("O"),
+            arr_bool.astype("O"),
+            arr_complex.astype("O"),
+            arr_str.astype("O"),
+            arr_utf.astype("O"),
+            arr_date.astype("O"),
+            arr_tdelta.astype("O"),
+        ]
+    )
+
+
+@pytest.fixture
+def arr_nan_nanj(arr_nan):
+    with np.errstate(invalid="ignore"):
+        return arr_nan + arr_nan * 1j
+
+
+@pytest.fixture
+def arr_complex_nan(arr_complex, arr_nan_nanj):
+    with np.errstate(invalid="ignore"):
+        return np.vstack([arr_complex, arr_nan_nanj])
+
+
+@pytest.fixture
+def arr_nan_infj(arr_inf):
+    with np.errstate(invalid="ignore"):
+        return arr_inf * 1j
+
+
+@pytest.fixture
+def arr_complex_nan_infj(arr_complex, arr_nan_infj):
+    with np.errstate(invalid="ignore"):
+        return np.vstack([arr_complex, arr_nan_infj])
+
+
+@pytest.fixture
+def arr_float_1d(arr_float):
+    return arr_float[:, 0]
+
+
+@pytest.fixture
+def arr_nan_1d(arr_nan):
+    return arr_nan[:, 0]
+
+
+@pytest.fixture
+def arr_float_nan_1d(arr_float_nan):
+    return arr_float_nan[:, 0]
+
+
+@pytest.fixture
+def arr_float1_nan_1d(arr_float1_nan):
+    return arr_float1_nan[:, 0]
+
+
+@pytest.fixture
+def arr_nan_float1_1d(arr_nan_float1):
+    return arr_nan_float1[:, 0]
 
 
 class TestnanopsDataFrame:
@@ -111,7 +272,6 @@ class TestnanopsDataFrame:
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
         except AssertionError:
-
             # handle timedelta dtypes
             if hasattr(targ, "dtype") and targ.dtype == "m8[ns]":
                 raise
@@ -196,7 +356,6 @@ class TestnanopsDataFrame:
     def check_fun(
         self, testfunc, targfunc, testar, skipna, empty_targfunc=None, **kwargs
     ):
-
         targar = testar
         if testar.endswith("_nan") and hasattr(self, testar[:-4]):
             targar = testar[:-4]
@@ -298,45 +457,6 @@ class TestnanopsDataFrame:
         self.check_funs(
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
-
-    def test_nanmean_overflow(self):
-        # GH 10155
-        # In the previous implementation mean can overflow for int dtypes, it
-        # is now consistent with numpy
-
-        for a in [2**55, -(2**55), 20150515061816532]:
-            s = Series(a, index=range(500), dtype=np.int64)
-            result = s.mean()
-            np_result = s.values.mean()
-            assert result == a
-            assert result == np_result
-            assert result.dtype == np.float64
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            np.int16,
-            np.int32,
-            np.int64,
-            np.float32,
-            np.float64,
-            getattr(np, "float128", None),
-        ],
-    )
-    def test_returned_dtype(self, dtype):
-        if dtype is None:
-            # no float128 available
-            return
-
-        s = Series(range(10), dtype=dtype)
-        group_a = ["mean", "std", "var", "skew", "kurt"]
-        group_b = ["min", "max"]
-        for method in group_a + group_b:
-            result = getattr(s, method)()
-            if is_integer_dtype(dtype) and method in group_a:
-                assert result.dtype == np.float64
-            else:
-                assert result.dtype == dtype
 
     def test_nanmedian(self, skipna):
         with warnings.catch_warnings(record=True):
@@ -623,114 +743,137 @@ class TestnanopsDataFrame:
         targ1 = np.cov(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancov, targ0, targ1)
 
-    def check_nancomp(self, checkfun, targ0):
-        arr_float = self.arr_float
-        arr_float1 = self.arr_float1
-        arr_nan = self.arr_nan
-        arr_nan_nan = self.arr_nan_nan
-        arr_float_nan = self.arr_float_nan
-        arr_float1_nan = self.arr_float1_nan
-        arr_nan_float1 = self.arr_nan_float1
 
-        while targ0.ndim:
-            res0 = checkfun(arr_float, arr_float1)
-            tm.assert_almost_equal(targ0, res0)
+@pytest.mark.parametrize(
+    "op,nanop",
+    [
+        (operator.eq, nanops.naneq),
+        (operator.ne, nanops.nanne),
+        (operator.gt, nanops.nangt),
+        (operator.ge, nanops.nange),
+        (operator.lt, nanops.nanlt),
+        (operator.le, nanops.nanle),
+    ],
+)
+def test_nan_comparison(request, op, nanop, disable_bottleneck):
+    arr_float = request.getfixturevalue("arr_float")
+    arr_float1 = request.getfixturevalue("arr_float")
+    targ0 = op(arr_float, arr_float1)
+    arr_nan = request.getfixturevalue("arr_nan")
+    arr_nan_nan = request.getfixturevalue("arr_nan_nan")
+    arr_float_nan = request.getfixturevalue("arr_float_nan")
+    arr_float1_nan = request.getfixturevalue("arr_float_nan")
+    arr_nan_float1 = request.getfixturevalue("arr_nan_float1")
 
-            if targ0.ndim > 1:
-                targ1 = np.vstack([targ0, arr_nan])
-            else:
-                targ1 = np.hstack([targ0, arr_nan])
-            res1 = checkfun(arr_float_nan, arr_float1_nan)
-            tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
+    while targ0.ndim:
+        res0 = nanop(arr_float, arr_float1)
+        tm.assert_almost_equal(targ0, res0)
 
-            targ2 = arr_nan_nan
-            res2 = checkfun(arr_float_nan, arr_nan_float1)
-            tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
+        if targ0.ndim > 1:
+            targ1 = np.vstack([targ0, arr_nan])
+        else:
+            targ1 = np.hstack([targ0, arr_nan])
+        res1 = nanop(arr_float_nan, arr_float1_nan)
+        tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
 
-            # Lower dimension for next step in the loop
-            arr_float = np.take(arr_float, 0, axis=-1)
-            arr_float1 = np.take(arr_float1, 0, axis=-1)
-            arr_nan = np.take(arr_nan, 0, axis=-1)
-            arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
-            arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
-            arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
-            arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
-            targ0 = np.take(targ0, 0, axis=-1)
+        targ2 = arr_nan_nan
+        res2 = nanop(arr_float_nan, arr_nan_float1)
+        tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
 
-    @pytest.mark.parametrize(
-        "op,nanop",
-        [
-            (operator.eq, nanops.naneq),
-            (operator.ne, nanops.nanne),
-            (operator.gt, nanops.nangt),
-            (operator.ge, nanops.nange),
-            (operator.lt, nanops.nanlt),
-            (operator.le, nanops.nanle),
-        ],
-    )
-    def test_nan_comparison(self, op, nanop):
-        targ0 = op(self.arr_float, self.arr_float1)
-        self.check_nancomp(nanop, targ0)
+        # Lower dimension for next step in the loop
+        arr_float = np.take(arr_float, 0, axis=-1)
+        arr_float1 = np.take(arr_float1, 0, axis=-1)
+        arr_nan = np.take(arr_nan, 0, axis=-1)
+        arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
+        arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
+        arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
+        arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
+        targ0 = np.take(targ0, 0, axis=-1)
 
-    def check_bool(self, func, value, correct):
-        while getattr(value, "ndim", True):
-            res0 = func(value)
-            if correct:
-                assert res0
-            else:
-                assert not res0
 
-            if not hasattr(value, "ndim"):
-                break
+@pytest.mark.parametrize(
+    "arr, correct",
+    [
+        ("arr_complex", False),
+        ("arr_int", False),
+        ("arr_bool", False),
+        ("arr_str", False),
+        ("arr_utf", False),
+        ("arr_complex", False),
+        ("arr_complex_nan", False),
+        ("arr_nan_nanj", False),
+        ("arr_nan_infj", True),
+        ("arr_complex_nan_infj", True),
+    ],
+)
+def test_has_infs_non_float(request, arr, correct, disable_bottleneck):
+    val = request.getfixturevalue(arr)
+    while getattr(val, "ndim", True):
+        res0 = nanops._has_infs(val)
+        if correct:
+            assert res0
+        else:
+            assert not res0
 
-            # Reduce dimension for next step in the loop
-            value = np.take(value, 0, axis=-1)
+        if not hasattr(val, "ndim"):
+            break
 
-    def test__has_infs(self):
-        pairs = [
-            ("arr_complex", False),
-            ("arr_int", False),
-            ("arr_bool", False),
-            ("arr_str", False),
-            ("arr_utf", False),
-            ("arr_complex", False),
-            ("arr_complex_nan", False),
-            ("arr_nan_nanj", False),
-            ("arr_nan_infj", True),
-            ("arr_complex_nan_infj", True),
-        ]
-        pairs_float = [
-            ("arr_float", False),
-            ("arr_nan", False),
-            ("arr_float_nan", False),
-            ("arr_nan_nan", False),
-            ("arr_float_inf", True),
-            ("arr_inf", True),
-            ("arr_nan_inf", True),
-            ("arr_float_nan_inf", True),
-            ("arr_nan_nan_inf", True),
-        ]
+        # Reduce dimension for next step in the loop
+        val = np.take(val, 0, axis=-1)
 
-        for arr, correct in pairs:
-            val = getattr(self, arr)
-            self.check_bool(nanops._has_infs, val, correct)
 
-        for arr, correct in pairs_float:
-            val = getattr(self, arr)
-            self.check_bool(nanops._has_infs, val, correct)
-            self.check_bool(nanops._has_infs, val.astype("f4"), correct)
-            self.check_bool(nanops._has_infs, val.astype("f2"), correct)
+@pytest.mark.parametrize(
+    "arr, correct",
+    [
+        ("arr_float", False),
+        ("arr_nan", False),
+        ("arr_float_nan", False),
+        ("arr_nan_nan", False),
+        ("arr_float_inf", True),
+        ("arr_inf", True),
+        ("arr_nan_inf", True),
+        ("arr_float_nan_inf", True),
+        ("arr_nan_nan_inf", True),
+    ],
+)
+@pytest.mark.parametrize("astype", [None, "f4", "f2"])
+def test_has_infs_floats(request, arr, correct, astype, disable_bottleneck):
+    val = request.getfixturevalue(arr)
+    if astype is not None:
+        val = val.astype(astype)
+    while getattr(val, "ndim", True):
+        res0 = nanops._has_infs(val)
+        if correct:
+            assert res0
+        else:
+            assert not res0
 
-    def test__bn_ok_dtype(self):
-        assert nanops._bn_ok_dtype(self.arr_float.dtype, "test")
-        assert nanops._bn_ok_dtype(self.arr_complex.dtype, "test")
-        assert nanops._bn_ok_dtype(self.arr_int.dtype, "test")
-        assert nanops._bn_ok_dtype(self.arr_bool.dtype, "test")
-        assert nanops._bn_ok_dtype(self.arr_str.dtype, "test")
-        assert nanops._bn_ok_dtype(self.arr_utf.dtype, "test")
-        assert not nanops._bn_ok_dtype(self.arr_date.dtype, "test")
-        assert not nanops._bn_ok_dtype(self.arr_tdelta.dtype, "test")
-        assert not nanops._bn_ok_dtype(self.arr_obj.dtype, "test")
+        if not hasattr(val, "ndim"):
+            break
+
+        # Reduce dimension for next step in the loop
+        val = np.take(val, 0, axis=-1)
+
+
+@pytest.mark.parametrize(
+    "fixture", ["arr_float", "arr_complex", "arr_int", "arr_bool", "arr_str", "arr_utf"]
+)
+def test_bn_ok_dtype(fixture, request, disable_bottleneck):
+    obj = request.getfixturevalue(fixture)
+    assert nanops._bn_ok_dtype(obj.dtype, "test")
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "arr_date",
+        "arr_tdelta",
+        "arr_obj",
+    ],
+)
+def test_bn_not_ok_dtype(fixture, request, disable_bottleneck):
+    obj = request.getfixturevalue(fixture)
+    assert not nanops._bn_ok_dtype(obj.dtype, "test")
 
 
 class TestEnsureNumeric:
@@ -782,48 +925,48 @@ class TestEnsureNumeric:
 
 
 class TestNanvarFixedValues:
-
     # xref GH10242
+    # Samples from a normal distribution.
+    @pytest.fixture
+    def variance(self):
+        return 3.0
 
-    def setup_method(self):
-        # Samples from a normal distribution.
-        self.variance = variance = 3.0
-        self.samples = self.prng.normal(scale=variance**0.5, size=100000)
+    @pytest.fixture
+    def samples(self, variance):
+        return self.prng.normal(scale=variance**0.5, size=100000)
 
-    def test_nanvar_all_finite(self):
-        samples = self.samples
+    def test_nanvar_all_finite(self, samples, variance):
         actual_variance = nanops.nanvar(samples)
-        tm.assert_almost_equal(actual_variance, self.variance, rtol=1e-2)
+        tm.assert_almost_equal(actual_variance, variance, rtol=1e-2)
 
-    def test_nanvar_nans(self):
-        samples = np.nan * np.ones(2 * self.samples.shape[0])
-        samples[::2] = self.samples
+    def test_nanvar_nans(self, samples, variance):
+        samples_test = np.nan * np.ones(2 * samples.shape[0])
+        samples_test[::2] = samples
 
-        actual_variance = nanops.nanvar(samples, skipna=True)
-        tm.assert_almost_equal(actual_variance, self.variance, rtol=1e-2)
+        actual_variance = nanops.nanvar(samples_test, skipna=True)
+        tm.assert_almost_equal(actual_variance, variance, rtol=1e-2)
 
-        actual_variance = nanops.nanvar(samples, skipna=False)
+        actual_variance = nanops.nanvar(samples_test, skipna=False)
         tm.assert_almost_equal(actual_variance, np.nan, rtol=1e-2)
 
-    def test_nanstd_nans(self):
-        samples = np.nan * np.ones(2 * self.samples.shape[0])
-        samples[::2] = self.samples
+    def test_nanstd_nans(self, samples, variance):
+        samples_test = np.nan * np.ones(2 * samples.shape[0])
+        samples_test[::2] = samples
 
-        actual_std = nanops.nanstd(samples, skipna=True)
-        tm.assert_almost_equal(actual_std, self.variance**0.5, rtol=1e-2)
+        actual_std = nanops.nanstd(samples_test, skipna=True)
+        tm.assert_almost_equal(actual_std, variance**0.5, rtol=1e-2)
 
-        actual_std = nanops.nanvar(samples, skipna=False)
+        actual_std = nanops.nanvar(samples_test, skipna=False)
         tm.assert_almost_equal(actual_std, np.nan, rtol=1e-2)
 
-    def test_nanvar_axis(self):
+    def test_nanvar_axis(self, samples, variance):
         # Generate some sample data.
-        samples_norm = self.samples
-        samples_unif = self.prng.uniform(size=samples_norm.shape[0])
-        samples = np.vstack([samples_norm, samples_unif])
+        samples_unif = self.prng.uniform(size=samples.shape[0])
+        samples = np.vstack([samples, samples_unif])
 
         actual_variance = nanops.nanvar(samples, axis=1)
         tm.assert_almost_equal(
-            actual_variance, np.array([self.variance, 1.0 / 12]), rtol=1e-2
+            actual_variance, np.array([variance, 1.0 / 12]), rtol=1e-2
         )
 
     def test_nanvar_ddof(self):
@@ -899,20 +1042,22 @@ class TestNanvarFixedValues:
 
 
 class TestNanskewFixedValues:
-
     # xref GH 11974
+    # Test data + skewness value (computed with scipy.stats.skew)
+    @pytest.fixture
+    def samples(self):
+        return np.sin(np.linspace(0, 1, 200))
 
-    def setup_method(self):
-        # Test data + skewness value (computed with scipy.stats.skew)
-        self.samples = np.sin(np.linspace(0, 1, 200))
-        self.actual_skew = -0.1875895205961754
+    @pytest.fixture
+    def actual_skew(self):
+        return -0.1875895205961754
 
-    def test_constant_series(self):
+    @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
+    def test_constant_series(self, val):
         # xref GH 11974
-        for val in [3075.2, 3075.3, 3075.5]:
-            data = val * np.ones(300)
-            skew = nanops.nanskew(data)
-            assert skew == 0.0
+        data = val * np.ones(300)
+        skew = nanops.nanskew(data)
+        assert skew == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -923,24 +1068,24 @@ class TestNanskewFixedValues:
         right_tailed = self.prng.beta(alpha, beta, size=100)
         assert nanops.nanskew(right_tailed) > 0
 
-    def test_ground_truth(self):
-        skew = nanops.nanskew(self.samples)
-        tm.assert_almost_equal(skew, self.actual_skew)
+    def test_ground_truth(self, samples, actual_skew):
+        skew = nanops.nanskew(samples)
+        tm.assert_almost_equal(skew, actual_skew)
 
-    def test_axis(self):
-        samples = np.vstack([self.samples, np.nan * np.ones(len(self.samples))])
+    def test_axis(self, samples, actual_skew):
+        samples = np.vstack([samples, np.nan * np.ones(len(samples))])
         skew = nanops.nanskew(samples, axis=1)
-        tm.assert_almost_equal(skew, np.array([self.actual_skew, np.nan]))
+        tm.assert_almost_equal(skew, np.array([actual_skew, np.nan]))
 
-    def test_nans(self):
-        samples = np.hstack([self.samples, np.nan])
+    def test_nans(self, samples):
+        samples = np.hstack([samples, np.nan])
         skew = nanops.nanskew(samples, skipna=False)
         assert np.isnan(skew)
 
-    def test_nans_skipna(self):
-        samples = np.hstack([self.samples, np.nan])
+    def test_nans_skipna(self, samples, actual_skew):
+        samples = np.hstack([samples, np.nan])
         skew = nanops.nanskew(samples, skipna=True)
-        tm.assert_almost_equal(skew, self.actual_skew)
+        tm.assert_almost_equal(skew, actual_skew)
 
     @property
     def prng(self):
@@ -948,13 +1093,15 @@ class TestNanskewFixedValues:
 
 
 class TestNankurtFixedValues:
-
     # xref GH 11974
+    # Test data + kurtosis value (computed with scipy.stats.kurtosis)
+    @pytest.fixture
+    def samples(self):
+        return np.sin(np.linspace(0, 1, 200))
 
-    def setup_method(self):
-        # Test data + kurtosis value (computed with scipy.stats.kurtosis)
-        self.samples = np.sin(np.linspace(0, 1, 200))
-        self.actual_kurt = -1.2058303433799713
+    @pytest.fixture
+    def actual_kurt(self):
+        return -1.2058303433799713
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
@@ -972,24 +1119,24 @@ class TestNankurtFixedValues:
         right_tailed = self.prng.beta(alpha, beta, size=100)
         assert nanops.nankurt(right_tailed) > 0
 
-    def test_ground_truth(self):
-        kurt = nanops.nankurt(self.samples)
-        tm.assert_almost_equal(kurt, self.actual_kurt)
+    def test_ground_truth(self, samples, actual_kurt):
+        kurt = nanops.nankurt(samples)
+        tm.assert_almost_equal(kurt, actual_kurt)
 
-    def test_axis(self):
-        samples = np.vstack([self.samples, np.nan * np.ones(len(self.samples))])
+    def test_axis(self, samples, actual_kurt):
+        samples = np.vstack([samples, np.nan * np.ones(len(samples))])
         kurt = nanops.nankurt(samples, axis=1)
-        tm.assert_almost_equal(kurt, np.array([self.actual_kurt, np.nan]))
+        tm.assert_almost_equal(kurt, np.array([actual_kurt, np.nan]))
 
-    def test_nans(self):
-        samples = np.hstack([self.samples, np.nan])
+    def test_nans(self, samples):
+        samples = np.hstack([samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=False)
         assert np.isnan(kurt)
 
-    def test_nans_skipna(self):
-        samples = np.hstack([self.samples, np.nan])
+    def test_nans_skipna(self, samples, actual_kurt):
+        samples = np.hstack([samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=True)
-        tm.assert_almost_equal(kurt, self.actual_kurt)
+        tm.assert_almost_equal(kurt, actual_kurt)
 
     @property
     def prng(self):
@@ -997,10 +1144,14 @@ class TestNankurtFixedValues:
 
 
 class TestDatetime64NaNOps:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
-    def test_nanmean(self):
-        dti = pd.date_range("2016-01-01", periods=3)
+    def test_nanmean(self, unit):
+        dti = pd.date_range("2016-01-01", periods=3).as_unit(unit)
         expected = dti[1]
 
         for obj in [dti, DatetimeArray(dti), Series(dti)]:
@@ -1013,8 +1164,9 @@ class TestDatetime64NaNOps:
             result = nanops.nanmean(obj)
             assert result == expected
 
-    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-    def test_nanmean_skipna_false(self, dtype):
+    @pytest.mark.parametrize("constructor", ["M8", "m8"])
+    def test_nanmean_skipna_false(self, constructor, unit):
+        dtype = f"{constructor}[{unit}]"
         arr = np.arange(12).astype(np.int64).view(dtype).reshape(4, 3)
 
         arr[-1, -1] = "NaT"
@@ -1033,9 +1185,7 @@ class TestDatetime64NaNOps:
 
 
 def test_use_bottleneck():
-
     if nanops._BOTTLENECK_INSTALLED:
-
         with pd.option_context("use_bottleneck", True):
             assert pd.get_option("use_bottleneck")
 
@@ -1086,15 +1236,15 @@ def test_numpy_ops(numpy_op, expected):
 )
 def test_nanops_independent_of_mask_param(operation):
     # GH22764
-    s = Series([1, 2, np.nan, 3, np.nan, 4])
-    mask = s.isna()
-    median_expected = operation(s)
-    median_result = operation(s, mask=mask)
+    ser = Series([1, 2, np.nan, 3, np.nan, 4])
+    mask = ser.isna()
+    median_expected = operation(ser)
+    median_result = operation(ser, mask=mask)
     assert median_expected == median_result
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
-def test_check_below_min_count__negative_or_zero_min_count(min_count):
+def test_check_below_min_count_negative_or_zero_min_count(min_count):
     # GH35227
     result = nanops.check_below_min_count((21, 37), None, min_count)
     expected_result = False
@@ -1105,7 +1255,7 @@ def test_check_below_min_count__negative_or_zero_min_count(min_count):
     "mask", [None, np.array([False, False, True]), np.array([True] + 9 * [False])]
 )
 @pytest.mark.parametrize("min_count, expected_result", [(1, False), (101, True)])
-def test_check_below_min_count__positive_min_count(mask, min_count, expected_result):
+def test_check_below_min_count_positive_min_count(mask, min_count, expected_result):
     # GH35227
     shape = (10, 10)
     result = nanops.check_below_min_count(shape, mask, min_count)
@@ -1115,7 +1265,7 @@ def test_check_below_min_count__positive_min_count(mask, min_count, expected_res
 @td.skip_if_windows
 @td.skip_if_32bit
 @pytest.mark.parametrize("min_count, expected_result", [(1, False), (2812191852, True)])
-def test_check_below_min_count__large_shape(min_count, expected_result):
+def test_check_below_min_count_large_shape(min_count, expected_result):
     # GH35227 large shape used to show that the issue is fixed
     shape = (2244367, 1253)
     result = nanops.check_below_min_count(shape, mask=None, min_count=min_count)
@@ -1123,22 +1273,44 @@ def test_check_below_min_count__large_shape(min_count, expected_result):
 
 
 @pytest.mark.parametrize("func", ["nanmean", "nansum"])
+def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
+    # GH 42878 bottleneck sometimes produces unreliable results for mean and sum
+    assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
+
+
+@pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
+def test_nanmean_overflow(disable_bottleneck, val):
+    # GH 10155
+    # In the previous implementation mean can overflow for int dtypes, it
+    # is now consistent with numpy
+
+    ser = Series(val, index=range(500), dtype=np.int64)
+    result = ser.mean()
+    np_result = ser.values.mean()
+    assert result == val
+    assert result == np_result
+    assert result.dtype == np.float64
+
+
 @pytest.mark.parametrize(
     "dtype",
     [
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.uint64,
-        np.int8,
         np.int16,
         np.int32,
         np.int64,
-        np.float16,
         np.float32,
         np.float64,
+        getattr(np, "float128", None),
     ],
 )
-def test_check_bottleneck_disallow(dtype, func):
-    # GH 42878 bottleneck sometimes produces unreliable results for mean and sum
-    assert not nanops._bn_ok_dtype(dtype, func)
+@pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
+def test_returned_dtype(disable_bottleneck, dtype, method):
+    if dtype is None:
+        pytest.skip("np.float128 not available")
+
+    ser = Series(range(10), dtype=dtype)
+    result = getattr(ser, method)()
+    if is_integer_dtype(dtype) and method not in ["min", "max"]:
+        assert result.dtype == np.float64
+    else:
+        assert result.dtype == dtype

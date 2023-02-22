@@ -3,7 +3,6 @@ from io import StringIO
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 
 pytest.importorskip("tabulate")
 
@@ -67,35 +66,25 @@ def test_no_buf():
     )
 
 
-@pytest.mark.parametrize("index", [True, False, None])
-@pytest.mark.parametrize("showindex", [True, False, None])
-def test_index(index, showindex):
+@pytest.mark.parametrize("index", [True, False])
+def test_index(index):
     # GH 32667
-    kwargs = {}
-    if index is not None:
-        kwargs["index"] = index
-    if showindex is not None:
-        kwargs["showindex"] = showindex
 
     df = pd.DataFrame([1, 2, 3])
-    yes_index_result = (
-        "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
-    )
-    no_index_result = "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
 
-    warning = FutureWarning if "showindex" in kwargs else None
-    with tm.assert_produces_warning(warning):
-        result = df.to_markdown(**kwargs)
+    result = df.to_markdown(index=index)
 
-    if "showindex" in kwargs:
-        # give showindex higher priority if specified
-        if showindex:
-            expected = yes_index_result
-        else:
-            expected = no_index_result
+    if index:
+        expected = (
+            "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
+        )
     else:
-        if index in [True, None]:
-            expected = yes_index_result
-        else:
-            expected = no_index_result
+        expected = "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
     assert result == expected
+
+
+def test_showindex_disallowed_in_kwargs():
+    # GH 32667; disallowing showindex in kwargs enforced in 2.0
+    df = pd.DataFrame([1, 2, 3])
+    with pytest.raises(ValueError, match="Pass 'index' instead of 'showindex"):
+        df.to_markdown(index=True, showindex=True)

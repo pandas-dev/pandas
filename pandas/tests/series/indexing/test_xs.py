@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     MultiIndex,
@@ -10,7 +11,7 @@ import pandas._testing as tm
 
 def test_xs_datetimelike_wrapping():
     # GH#31630 a case where we shouldn't wrap datetime64 in Timestamp
-    arr = date_range("2016-01-01", periods=3)._data._data
+    arr = date_range("2016-01-01", periods=3)._data._ndarray
 
     ser = Series(arr, dtype=object)
     for i in range(len(ser)):
@@ -74,8 +75,8 @@ class TestXSWithMultiIndex:
         # GH#41760
         mi = MultiIndex.from_tuples([("a", "x")], names=["level1", "level2"])
         ser = Series([1], index=mi)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="list keys are not supported"):
             ser.xs(["a", "x"], axis=0, drop_level=False)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="list keys are not supported"):
             ser.xs(["a"], axis=0, drop_level=False)

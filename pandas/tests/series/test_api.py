@@ -118,7 +118,6 @@ class TestSeriesMisc:
         assert pydoc.getdoc(Series.index)
 
     def test_ndarray_compat(self):
-
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
             np.random.randn(1000, 3),
@@ -171,16 +170,14 @@ class TestSeriesMisc:
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)
-        # TODO(2.0): Change to None once is_monotonic deprecation
-        # is enforced
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(None, check_stacklevel=False):
             inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
         # GH#9680
         tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
         ser = Series(np.random.normal(size=10), index=tdi)
-        assert "foo" not in ser.__dict__.keys()
+        assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
             ser.foo
@@ -204,11 +201,6 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'weekday'"
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
-
-    def test_series_iteritems_deprecated(self):
-        ser = Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            next(ser.iteritems())
 
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",
@@ -282,18 +274,9 @@ class TestSeriesMisc:
             with pytest.raises(TypeError, match=msg):
                 method(*args, numeric_only=True)
         elif dtype is object:
-            if kernel == "rank":
-                msg = "Calling Series.rank with numeric_only=True and dtype object"
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    method(*args, numeric_only=True)
-            else:
-                warn_msg = (
-                    f"Calling Series.{kernel} with numeric_only=True and dtype object"
-                )
-                err_msg = f"Series.{kernel} does not implement numeric_only"
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    with pytest.raises(NotImplementedError, match=err_msg):
-                        method(*args, numeric_only=True)
+            msg = f"Series.{kernel} does not allow numeric_only=True with non-numeric"
+            with pytest.raises(TypeError, match=msg):
+                method(*args, numeric_only=True)
         else:
             result = method(*args, numeric_only=True)
             expected = method(*args, numeric_only=False)
@@ -303,3 +286,10 @@ class TestSeriesMisc:
             else:
                 # reducer
                 assert result == expected
+
+
+@pytest.mark.parametrize("converter", [int, float, complex])
+def test_float_int_deprecated(converter):
+    # GH 51101
+    with tm.assert_produces_warning(FutureWarning):
+        assert converter(Series([1])) == converter(1)

@@ -7,7 +7,6 @@ from datetime import tzinfo
 import numpy as np
 
 from pandas._libs.tslibs.dtypes import Resolution
-from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import npt
 
 def dt64arr_to_periodarr(
@@ -34,8 +33,6 @@ def get_resolution(
 def ints_to_pydatetime(
     arr: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,
-    freq: BaseOffset | None = ...,
-    fold: bool = ...,
     box: str = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...

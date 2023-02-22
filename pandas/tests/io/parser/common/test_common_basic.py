@@ -21,7 +21,6 @@ from pandas.errors import (
 from pandas import (
     DataFrame,
     Index,
-    Series,
     Timestamp,
     compat,
 )
@@ -58,8 +57,8 @@ def test_override_set_noconvert_columns():
             return CParserWrapper._set_noconvert_columns(self)
 
     data = """a,b,c,d,e
-0,1,20140101,0900,4
-0,1,20140102,1000,4"""
+0,1,2014-01-01,09:00,4
+0,1,2014-01-02,10:00,4"""
 
     parse_dates = [[1, 2]]
     cols = {
@@ -126,39 +125,6 @@ def test_1000_sep(all_parsers):
 
     result = parser.read_csv(StringIO(data), sep="|", thousands=",")
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("squeeze", [True, False])
-def test_squeeze(all_parsers, squeeze):
-    data = """\
-a,1
-b,2
-c,3
-"""
-    parser = all_parsers
-    index = Index(["a", "b", "c"], name=0)
-    expected = Series([1, 2, 3], name=1, index=index)
-
-    result = parser.read_csv_check_warnings(
-        FutureWarning,
-        "The squeeze argument has been deprecated "
-        "and will be removed in a future version. "
-        'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
-        StringIO(data),
-        index_col=0,
-        header=None,
-        squeeze=squeeze,
-    )
-    if not squeeze:
-        expected = DataFrame(expected)
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_series_equal(result, expected)
-
-        # see gh-8217
-        #
-        # Series should not be a view.
-        assert not result._is_view
 
 
 @xfail_pyarrow
@@ -661,8 +627,8 @@ def test_read_table_same_signature_as_read_csv(all_parsers):
             assert table_param.annotation == csv_param.annotation
             assert table_param.kind == csv_param.kind
             continue
-        else:
-            assert table_param == csv_param
+
+        assert table_param == csv_param
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):
@@ -805,17 +771,6 @@ def test_read_csv_line_break_as_separator(kwargs, all_parsers):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-def test_read_csv_posargs_deprecation(all_parsers):
-    # GH 41485
-    f = StringIO("a,b\n1,2")
-    parser = all_parsers
-    msg = (
-        "In a future version of pandas all arguments of read_csv "
-        "except for the argument 'filepath_or_buffer' will be keyword-only"
-    )
-    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
-
-
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
@@ -830,36 +785,6 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
-
-
-@pytest.mark.parametrize("func", ["read_csv", "read_table"])
-def test_names_and_prefix_not_None_raises(all_parsers, func):
-    # GH#39123
-    f = StringIO("a,b\n1,2")
-    parser = all_parsers
-    msg = "Specified named and prefix; you can only specify one."
-    with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            getattr(parser, func)(f, names=["a", "b"], prefix="x")
-
-
-@pytest.mark.parametrize("func", ["read_csv", "read_table"])
-@pytest.mark.parametrize("prefix, names", [(None, ["x0", "x1"]), ("x", None)])
-def test_names_and_prefix_explicit_None(all_parsers, names, prefix, func):
-    # GH42387
-    f = StringIO("a,b\n1,2")
-    expected = DataFrame({"x0": ["a", "1"], "x1": ["b", "2"]})
-    parser = all_parsers
-    if prefix is not None:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = getattr(parser, func)(
-                f, names=names, sep=",", prefix=prefix, header=None
-            )
-    else:
-        result = getattr(parser, func)(
-            f, names=names, sep=",", prefix=prefix, header=None
-        )
-    tm.assert_frame_equal(result, expected)
 
 
 @xfail_pyarrow
@@ -894,22 +819,6 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
-@xfail_pyarrow
-@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
-def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
-    # GH 15122
-    parser = all_parsers
-    kwds = {f"{on_bad_lines}_bad_lines": False}
-    parser.read_csv_check_warnings(
-        FutureWarning,
-        f"The {on_bad_lines}_bad_lines argument has been deprecated "
-        "and will be removed in a future version. "
-        "Use on_bad_lines in the future.\n\n",
-        csv1,
-        **kwds,
-    )
-
-
 def test_malformed_second_line(all_parsers):
     # see GH14782
     parser = all_parsers
@@ -919,15 +828,26 @@ def test_malformed_second_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_table_posargs_deprecation(all_parsers):
-    # https://github.com/pandas-dev/pandas/issues/41485
-    data = StringIO("a\tb\n1\t2")
+@xfail_pyarrow
+def test_short_single_line(all_parsers):
+    # GH 47566
     parser = all_parsers
-    msg = (
-        "In a future version of pandas all arguments of read_table "
-        "except for the argument 'filepath_or_buffer' will be keyword-only"
-    )
-    parser.read_table_check_warnings(FutureWarning, msg, data, " ")
+    columns = ["a", "b", "c"]
+    data = "1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1], "b": [2], "c": [np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_short_multi_line(all_parsers):
+    # GH 47566
+    parser = all_parsers
+    columns = ["a", "b", "c"]
+    data = "1,2\n1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_read_seek(all_parsers):

@@ -165,26 +165,6 @@ _all_methods = [
         (
             pd.DataFrame,
             frame_data,
-            operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=pytest.mark.filterwarnings(
-            "ignore:.*append method is deprecated.*:FutureWarning"
-        ),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("append", pd.DataFrame({"B": [1]})),
-        ),
-        marks=pytest.mark.filterwarnings(
-            "ignore:.*append method is deprecated.*:FutureWarning"
-        ),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
         ),
         marks=not_implemented_mark,
@@ -209,12 +189,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("count")),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=[
-            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
-        ],
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
@@ -395,22 +369,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    pytest.param(
-        (
-            pd.Series,
-            (1, pd.date_range("2000", periods=4)),
-            operator.methodcaller("tshift"),
-        ),
-        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-            operator.methodcaller("tshift"),
-        ),
-        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
-    ),
     (pd.Series, ([1, 2],), operator.methodcaller("truncate", before=0)),
     (pd.DataFrame, frame_data, operator.methodcaller("truncate", before=0)),
     (
@@ -542,6 +500,20 @@ def test_binops(request, args, annotate, all_binary_operators):
         left.attrs = {"a": 1}
     if annotate in {"left", "both"} and not isinstance(right, int):
         right.attrs = {"a": 1}
+
+    is_cmp = all_binary_operators in [
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+    if is_cmp and isinstance(left, pd.DataFrame) and isinstance(right, pd.Series):
+        # in 2.0 silent alignment on comparisons was removed xref GH#28759
+        left, right = left.align(right, axis=1, copy=False)
+    elif is_cmp and isinstance(left, pd.Series) and isinstance(right, pd.DataFrame):
+        right, left = right.align(left, axis=1, copy=False)
 
     result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}

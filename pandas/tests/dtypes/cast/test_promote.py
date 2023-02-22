@@ -25,44 +25,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
-import pandas._testing as tm
-
-
-@pytest.fixture(
-    params=[
-        bool,
-        "uint8",
-        "int32",
-        "uint64",
-        "float32",
-        "float64",
-        "complex64",
-        "complex128",
-        "M8[ns]",
-        "m8[ns]",
-        str,
-        bytes,
-        object,
-    ]
-)
-def any_numpy_dtype_reduced(request):
-    """
-    Parameterized fixture for numpy dtypes, reduced from any_numpy_dtype.
-
-    * bool
-    * 'int32'
-    * 'uint64'
-    * 'float32'
-    * 'float64'
-    * 'complex64'
-    * 'complex128'
-    * 'M8[ns]'
-    * 'M8[ns]'
-    * str
-    * bytes
-    * object
-    """
-    return request.param
 
 
 def _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar=None):
@@ -256,7 +218,6 @@ def test_maybe_promote_int_with_float(any_int_numpy_dtype, float_numpy_dtype):
 
 
 def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
-
     dtype = np.dtype(float_numpy_dtype)
     fill_dtype = np.dtype(any_int_numpy_dtype)
 
@@ -298,7 +259,6 @@ def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
     ],
 )
 def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype):
-
     dtype = np.dtype(dtype)
     expected_dtype = np.dtype(expected_dtype)
 
@@ -308,9 +268,9 @@ def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_bool_with_any(any_numpy_dtype_reduced):
+def test_maybe_promote_bool_with_any(any_numpy_dtype):
     dtype = np.dtype(bool)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -322,8 +282,8 @@ def test_maybe_promote_bool_with_any(any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_bool(any_numpy_dtype):
+    dtype = np.dtype(any_numpy_dtype)
     fill_value = True
 
     # filling anything but bool with bool casts to object
@@ -334,9 +294,9 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced):
+def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype):
     dtype = np.dtype(bytes_dtype)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -348,8 +308,8 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_bytes(any_numpy_dtype):
+    dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype
     fill_value = b"abc"
@@ -362,9 +322,9 @@ def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype_reduced):
+def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype):
     dtype = np.dtype(datetime64_dtype)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -391,8 +351,8 @@ def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype_red
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
-def test_maybe_promote_any_with_datetime64(any_numpy_dtype_reduced, fill_value):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
+    dtype = np.dtype(any_numpy_dtype)
 
     # filling datetime with anything but datetime casts to object
     if is_datetime64_dtype(dtype):
@@ -403,15 +363,12 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype_reduced, fill_value):
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
 
-    warn = None
-    msg = "Using a `date` object for fill_value"
     if type(fill_value) is datetime.date and dtype.kind == "M":
-        # Casting date to dt64 is deprecated
-        warn = FutureWarning
+        # Casting date to dt64 is deprecated, in 2.0 enforced to cast to object
+        expected_dtype = np.dtype(object)
+        exp_val_for_scalar = fill_value
 
-    with tm.assert_produces_warning(warn, match=msg):
-        # stacklevel is chosen to make sense when called from higher-level functions
-        _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 @pytest.mark.parametrize(
@@ -425,9 +382,9 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype_reduced, fill_value):
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
 def test_maybe_promote_any_numpy_dtype_with_datetimetz(
-    any_numpy_dtype_reduced, tz_aware_fixture, fill_value
+    any_numpy_dtype, tz_aware_fixture, fill_value
 ):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+    dtype = np.dtype(any_numpy_dtype)
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture)
 
     fill_value = pd.Series([fill_value], dtype=fill_dtype)[0]
@@ -439,9 +396,9 @@ def test_maybe_promote_any_numpy_dtype_with_datetimetz(
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype_reduced):
+def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
     dtype = np.dtype(timedelta64_dtype)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -463,8 +420,8 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype_r
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(any_numpy_dtype_reduced, fill_value):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value, request):
+    dtype = np.dtype(any_numpy_dtype)
 
     # filling anything but timedelta with timedelta casts to object
     if is_timedelta64_dtype(dtype):
@@ -478,9 +435,9 @@ def test_maybe_promote_any_with_timedelta64(any_numpy_dtype_reduced, fill_value)
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced):
+def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype):
     dtype = np.dtype(string_dtype)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -492,8 +449,8 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_string(any_numpy_dtype_reduced):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_string(any_numpy_dtype):
+    dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype
     fill_value = "abc"
@@ -505,9 +462,9 @@ def test_maybe_promote_any_with_string(any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype_reduced):
+def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype):
     dtype = np.dtype(object_dtype)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(any_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -519,8 +476,8 @@ def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_object(any_numpy_dtype_reduced):
-    dtype = np.dtype(any_numpy_dtype_reduced)
+def test_maybe_promote_any_with_object(any_numpy_dtype):
+    dtype = np.dtype(any_numpy_dtype)
 
     # create array of object dtype from a scalar value (i.e. passing
     # dtypes.common.is_scalar), which can however not be cast to int/float etc.
@@ -533,9 +490,9 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fixture):
+def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, nulls_fixture):
     fill_value = nulls_fixture
-    dtype = np.dtype(any_numpy_dtype_reduced)
+    dtype = np.dtype(any_numpy_dtype)
 
     if isinstance(fill_value, Decimal):
         # Subject to change, but ATM (When Decimal(NAN) is being added to nulls_fixture)

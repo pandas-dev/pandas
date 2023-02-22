@@ -4,16 +4,11 @@ from datetime import (
     datetime,
     timedelta,
 )
-import inspect
 from typing import Hashable
-import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    index as libindex,
-    lib,
-)
+from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -30,13 +25,8 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
-    is_integer,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -55,7 +45,6 @@ from pandas.core.indexes.datetimes import (
     Index,
 )
 from pandas.core.indexes.extension import inherit_names
-from pandas.core.indexes.numeric import Int64Index
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
@@ -167,8 +156,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return libindex.PeriodEngine
 
     @cache_readonly
-    # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"
-    def _resolution_obj(self) -> Resolution:  # type: ignore[override]
+    def _resolution_obj(self) -> Resolution:
         # for compat with DatetimeIndex
         return self.dtype._resolution_obj
 
@@ -193,18 +181,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @property
     @doc(PeriodArray.hour.fget)
-    def hour(self) -> Int64Index:
-        return Int64Index(self._data.hour, name=self.name)
+    def hour(self) -> Index:
+        return Index(self._data.hour, name=self.name)
 
     @property
     @doc(PeriodArray.minute.fget)
-    def minute(self) -> Int64Index:
-        return Int64Index(self._data.minute, name=self.name)
+    def minute(self) -> Index:
+        return Index(self._data.minute, name=self.name)
 
     @property
     @doc(PeriodArray.second.fget)
-    def second(self) -> Int64Index:
-        return Int64Index(self._data.second, name=self.name)
+    def second(self) -> Index:
+        return Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -219,7 +207,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name: Hashable = None,
         **fields,
     ) -> PeriodIndex:
-
         valid_field_set = {
             "year",
             "month",
@@ -240,7 +227,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # range-based.
             if not fields:
                 # test_pickle_compat_construction
-                raise cls._scalar_data_error(None)
+                cls._raise_scalar_data_error(None)
 
             data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)
             # PeriodArray._generate range does validation that fields is
@@ -350,32 +337,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return super().asof_locs(where, mask)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True, how=lib.no_default):
-        dtype = pandas_dtype(dtype)
-
-        if how is not lib.no_default:
-            # GH#37982
-            warnings.warn(
-                "The 'how' keyword in PeriodIndex.astype is deprecated and "
-                "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            how = "start"
-
-        if is_datetime64_any_dtype(dtype):
-            # 'how' is index-specific, isn't part of the EA interface.
-            # GH#45038 implement this for PeriodArray (but without "how")
-            #  once the "how" deprecation is enforced we can just dispatch
-            #  directly to PeriodArray.
-            tz = getattr(dtype, "tz", None)
-            return self.to_timestamp(how=how).tz_localize(tz)
-
-        return super().astype(dtype, copy=copy)
-
     @property
     def is_full(self) -> bool:
         """
@@ -387,7 +348,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
-        return ((values[1:] - values[:-1]) < 2).all()
+        return bool(((values[1:] - values[:-1]) < 2).all())
 
     @property
     def inferred_type(self) -> str:
@@ -411,7 +372,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return tolerance
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label.
 
@@ -439,7 +400,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             key = NaT
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:
@@ -450,24 +410,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 try:
                     return self._partial_date_slice(reso, parsed)
                 except KeyError as err:
-                    # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
             if reso == self._resolution_obj:
                 # the reso < self._resolution_obj case goes
                 #  through _get_string_slice
-                key = self._cast_partial_indexing_scalar(key)
-                loc = self.get_loc(key, method=method, tolerance=tolerance)
-                # Recursing instead of falling through matters for the exception
-                #  message in test_get_loc3 (though not clear if that really matters)
-                return loc
-            elif method is None:
-                raise KeyError(key)
-            else:
                 key = self._cast_partial_indexing_scalar(parsed)
+            else:
+                raise KeyError(key)
 
         elif isinstance(key, Period):
-            key = self._maybe_cast_for_get_loc(key)
+            self._disallow_mismatched_indexing(key)
 
         elif isinstance(key, datetime):
             key = self._cast_partial_indexing_scalar(key)
@@ -477,12 +430,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise KeyError(key)
 
         try:
-            return Index.get_loc(self, key, method, tolerance)
+            return Index.get_loc(self, key)
         except KeyError as err:
             raise KeyError(orig_key) from err
 
-    def _maybe_cast_for_get_loc(self, key: Period) -> Period:
-        # name is a misnomer, chosen for compat with DatetimeIndex
+    def _disallow_mismatched_indexing(self, key: Period) -> None:
         sfreq = self.freq
         kfreq = key.freq
         if not (
@@ -496,26 +448,33 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             #  checking these two attributes is sufficient to check equality,
             #  and much more performant than `self.freq == key.freq`
             raise KeyError(key)
-        return key
 
-    def _cast_partial_indexing_scalar(self, label):
+    def _cast_partial_indexing_scalar(self, label: datetime) -> Period:
         try:
-            key = Period(label, freq=self.freq)
+            period = Period(label, freq=self.freq)
         except ValueError as err:
             # we cannot construct the Period
             raise KeyError(label) from err
-        return key
+        return period
 
     @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         if isinstance(label, datetime):
             label = self._cast_partial_indexing_scalar(label)
 
-        return super()._maybe_cast_slice_bound(label, side, kind=kind)
+        return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         iv = Period(parsed, freq=reso.attr_abbrev)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
+
+    @doc(DatetimeIndexOpsMixin.shift)
+    def shift(self, periods: int = 1, freq=None):
+        if freq is not None:
+            raise TypeError(
+                f"`freq` argument is not supported for {type(self).__name__}.shift"
+            )
+        return self + periods
 
 
 def period_range(

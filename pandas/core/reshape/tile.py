@@ -43,8 +43,8 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import nanops
 import pandas.core.algorithms as algos
-import pandas.core.nanops as nanops
 
 
 def cut(
@@ -263,7 +263,7 @@ def cut(
             raise ValueError(
                 "cannot specify integer `bins` when input data contains infinity"
             )
-        elif mn == mx:  # adjust end points before binning
+        if mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
             mx += 0.001 * abs(mx) if mx != 0 else 0.001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -421,8 +421,7 @@ def _bins_to_cuts(
                 f"Bin edges must be unique: {repr(bins)}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
-        else:
-            bins = unique_bins
+        bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
@@ -440,7 +439,7 @@ def _bins_to_cuts(
                 "list-like argument"
             )
 
-        elif labels is None:
+        if labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
@@ -484,7 +483,7 @@ def _coerce_to_type(x):
     if is_datetime64tz_dtype(x.dtype):
         dtype = x.dtype
     elif is_datetime64_dtype(x.dtype):
-        x = to_datetime(x)
+        x = to_datetime(x).astype("datetime64[ns]", copy=False)
         dtype = np.dtype("datetime64[ns]")
     elif is_timedelta64_dtype(x.dtype):
         x = to_timedelta(x)
@@ -528,7 +527,12 @@ def _convert_bin_to_numeric_type(bins, dtype):
             raise ValueError("bins must be of timedelta64 dtype")
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if bins_dtype in ["datetime", "datetime64"]:
-            bins = to_datetime(bins).view(np.int64)
+            bins = to_datetime(bins)
+            if is_datetime64_dtype(bins):
+                # As of 2.0, to_datetime may give non-nano, so we need to convert
+                #  here until the rest of this file recognizes non-nano
+                bins = bins.astype("datetime64[ns]", copy=False)
+            bins = bins.view(np.int64)
         else:
             raise ValueError("bins must be of datetime64 dtype")
 

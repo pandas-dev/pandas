@@ -890,8 +890,6 @@ Note to subdivide over multiple columns we can pass in a list to the
 Exploding a list-like column
 ----------------------------
 
-.. versionadded:: 0.25.0
-
 Sometimes the values in a column are list-like.
 
 .. ipython:: python

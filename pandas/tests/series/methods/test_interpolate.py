@@ -78,6 +78,18 @@ def interp_methods_ind(request):
 
 
 class TestSeriesInterpolateData:
+    @pytest.mark.xfail(reason="EA.fillna does not handle 'linear' method")
+    def test_interpolate_period_values(self):
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = pd.NaT
+
+        # period cast
+        ser_per = ser.dt.to_period("D")
+        res_per = ser_per.interpolate()
+        expected_per = orig.dt.to_period("D")
+        tm.assert_series_equal(res_per, expected_per)
+
     def test_interpolate(self, datetime_series):
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
@@ -107,7 +119,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_cubicspline(self):
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series(
@@ -123,7 +134,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-
         ser = Series(np.sort(np.random.uniform(size=100)))
 
         # interpolate at new_index
@@ -136,7 +146,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-
         ser = Series([10, 11, 12, 13])
 
         # interpolate at new_index where `der` is zero
@@ -703,7 +712,8 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_spline_interpolation(self):
-        s = Series(np.arange(10) ** 2)
+        # Explicit cast to float to avoid implicit cast when setting np.nan
+        s = Series(np.arange(10) ** 2, dtype="float")
         s[np.random.randint(0, 9, 3)] = np.nan
         result1 = s.interpolate(method="spline", order=1)
         expected1 = s.interpolate(method="spline", order=1)
@@ -810,16 +820,4 @@ class TestSeriesInterpolateData:
         ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
-        tm.assert_series_equal(result, expected)
-
-    def test_interpolate_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.interpolate except "
-            r"for the argument 'method' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.interpolate("pad", 0)
-        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

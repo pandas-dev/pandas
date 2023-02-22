@@ -45,8 +45,13 @@ assigned issues, since people may not be working in them anymore. If you want to
 that is assigned, feel free to kindly ask the current assignee if you can take it
 (please allow at least a week of inactivity before considering work in the issue discontinued).
 
-Feel free to ask questions on the `mailing list
-<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
+We have several :ref:`contributor community <community>` communication channels, which you are
+welcome to join, and ask questions as you figure things out. Among them are regular meetings for
+new contributors, dev meetings, a dev mailing list, and a slack for the contributor community.
+All pandas contributors are welcome to these spaces, where they can connect with each other. Even
+maintainers who have been with us for a long time felt just like you when they started out, and
+are happy to welcome you and support you as you get to know how we work, and where things are.
+Take a look at the next sections to learn more.
 
 .. _contributing.bug_reports:
 
@@ -109,6 +114,7 @@ version control to allow many people to work together on the project.
 
 Some great resources for learning Git:
 
+* the `Git documentation <https://git-scm.com/doc>`_.
 * the `GitHub help pages <https://help.github.com/>`_.
 * the `NumPy documentation <https://numpy.org/doc/stable/dev/index.html>`_.
 * Matthew Brett's `Pydagogue <https://matthew-brett.github.io/pydagogue/>`_.
@@ -132,6 +138,7 @@ want to clone your fork to your machine::
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream https://github.com/pandas-dev/pandas.git
+    git fetch upstream
 
 This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.
@@ -324,30 +331,25 @@ To automatically fix formatting errors on each commit you make, you can
 set up pre-commit yourself. First, create a Python :ref:`environment
 <contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
 
-Delete your merged branch (optional)
+.. _contributing.update-dev:
+
+Updating the development environment
 ------------------------------------
 
-Once your feature branch is accepted into upstream, you'll probably want to get rid of
-the branch. First, merge upstream main into your branch so git knows it is safe to
-delete your branch::
+After updating your branch to merge in main from upstream, you may need to update
+your development environment to reflect any changes to the various packages that
+are used during development.
 
-    git fetch upstream
-    git checkout main
-    git merge upstream/main
+If using :ref:`mamba <contributing.mamba>`, do::
 
-Then you can do::
+    mamba deactivate
+    mamba env update -f environment.yml
+    mamba activate pandas-dev
 
-    git branch -d shiny-new-feature
+If using :ref:`pip <contributing.pip>` , do::
 
-Make sure you use a lower-case ``-d``, or else git won't warn you if your feature
-branch has not actually been merged.
-
-The branch will still exist on GitHub, so to delete it there do::
-
-    git push origin --delete shiny-new-feature
-
-.. _Gitter: https://gitter.im/pydata/pandas
-
+    # activate the virtual environment based on your platform
+    pythom -m pip install --upgrade -r requirements-dev.txt
 
 Tips for a successful pull request
 ==================================

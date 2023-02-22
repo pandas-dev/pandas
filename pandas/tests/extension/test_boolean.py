@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_bool_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -174,39 +176,16 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel):
+    _combine_le_expected_dtype = "boolean"
+
+    def test_factorize(self, data_for_grouping):
         # override because we only have 2 unique values
-        if na_sentinel == -1:
-            msg = "Specifying `na_sentinel=-1` is deprecated"
-        else:
-            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_labels = np.array(
-            [0, 0, na_sentinel, na_sentinel, 1, 1, 0], dtype=np.intp
-        )
+        labels, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        expected_labels = np.array([0, 0, -1, -1, 1, 1, 0], dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4])
 
         tm.assert_numpy_array_equal(labels, expected_labels)
         self.assert_extension_array_equal(uniques, expected_uniques)
-
-    def test_combine_le(self, data_repeated):
-        # override because expected needs to be boolean instead of bool dtype
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-            dtype="boolean",
-        )
-        self.assert_series_equal(result, expected)
-
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)], dtype="boolean")
-        self.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         # override because we only have 2 unique values
@@ -375,8 +354,12 @@ class TestGroupby(base.BaseGroupbyTests):
 
 class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
-        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        if op_name == "count":
+            result = getattr(s, op_name)()
+            expected = getattr(s.astype("float64"), op_name)()
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
         if np.isnan(expected):
             expected = pd.NA
@@ -395,6 +378,19 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
+
+
+class TestAccumulation(base.BaseAccumulateTests):
+    def check_accumulate(self, s, op_name, skipna):
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
+        tm.assert_series_equal(result, expected, check_dtype=False)
+        if op_name in ("cummin", "cummax"):
+            assert is_bool_dtype(result)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass
 
 
 class TestParsing(base.BaseParsingTests):

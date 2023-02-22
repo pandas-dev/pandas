@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import itertools
 
 import numpy as np
 import pytest
@@ -15,44 +16,50 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexing.common import Base
 
 
-class TestScalar(Base):
+def generate_indices(f, values=False):
+    """
+    generate the indices
+    if values is True , use the axis values
+    is False, use the range
+    """
+    axes = f.axes
+    if values:
+        axes = (list(range(len(ax))) for ax in axes)
+
+    return itertools.product(*axes)
+
+
+class TestScalar:
     @pytest.mark.parametrize("kind", ["series", "frame"])
     @pytest.mark.parametrize("col", ["ints", "uints"])
-    def test_iat_set_ints(self, kind, col):
-        f = getattr(self, kind)[col]
-        if f is not None:
-            indices = self.generate_indices(f, True)
-            for i in indices:
-                f.iat[i] = 1
-                expected = self.get_value("iat", f, i, True)
-                tm.assert_almost_equal(expected, 1)
+    def test_iat_set_ints(self, kind, col, request):
+        f = request.getfixturevalue(f"{kind}_{col}")
+        indices = generate_indices(f, True)
+        for i in indices:
+            f.iat[i] = 1
+            expected = f.values[i]
+            tm.assert_almost_equal(expected, 1)
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
     @pytest.mark.parametrize("col", ["labels", "ts", "floats"])
-    def test_iat_set_other(self, kind, col):
-        f = getattr(self, kind)[col]
-        if f is not None:
-            msg = "iAt based indexing can only have integer indexers"
-            with pytest.raises(ValueError, match=msg):
-                indices = self.generate_indices(f, False)
-                for i in indices:
-                    f.iat[i] = 1
-                    expected = self.get_value("iat", f, i, False)
-                    tm.assert_almost_equal(expected, 1)
+    def test_iat_set_other(self, kind, col, request):
+        f = request.getfixturevalue(f"{kind}_{col}")
+        msg = "iAt based indexing can only have integer indexers"
+        with pytest.raises(ValueError, match=msg):
+            idx = next(generate_indices(f, False))
+            f.iat[idx] = 1
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
     @pytest.mark.parametrize("col", ["ints", "uints", "labels", "ts", "floats"])
-    def test_at_set_ints_other(self, kind, col):
-        f = getattr(self, kind)[col]
-        if f is not None:
-            indices = self.generate_indices(f, False)
-            for i in indices:
-                f.at[i] = 1
-                expected = self.get_value("at", f, i, False)
-                tm.assert_almost_equal(expected, 1)
+    def test_at_set_ints_other(self, kind, col, request):
+        f = request.getfixturevalue(f"{kind}_{col}")
+        indices = generate_indices(f, False)
+        for i in indices:
+            f.at[i] = 1
+            expected = f.loc[i]
+            tm.assert_almost_equal(expected, 1)
 
 
 class TestAtAndiAT:
@@ -66,7 +73,6 @@ class TestAtAndiAT:
             assert ser.iat[i] == i + 1
 
     def test_at_iat_coercion(self):
-
         # as timestamp is not a tuple!
         dates = date_range("1/1/2000", periods=8)
         df = DataFrame(np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"])
@@ -96,7 +102,6 @@ class TestAtAndiAT:
         assert result == expected
 
     def test_imethods_with_dups(self):
-
         # GH6493
         # iat/iloc with dups
 

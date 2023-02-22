@@ -112,7 +112,7 @@ class TestCrosstab:
         # GH 17005
         a = Series([0, 1, 1], index=["a", "b", "c"])
         b = Series([3, 4, 3, 4, 3], index=["a", "b", "c", "d", "f"])
-        c = np.array([3, 4, 3])
+        c = np.array([3, 4, 3], dtype=np.int64)
 
         expected = DataFrame(
             [[1, 0], [1, 1]],
@@ -264,7 +264,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna2(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -275,7 +274,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna3(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
         )
@@ -793,6 +791,32 @@ class TestCrosstab:
             names=["A", "B"],
         )
         expected.index.name = "C"
+        tm.assert_frame_equal(result, expected)
+
+    def test_margin_support_Float(self):
+        # GH 50313
+        # use Float64 formats and function aggfunc with margins
+        df = DataFrame(
+            {"A": [1, 2, 2, 1], "B": [3, 3, 4, 5], "C": [-1.0, 10.0, 1.0, 10.0]},
+            dtype="Float64",
+        )
+        result = crosstab(
+            df["A"],
+            df["B"],
+            values=df["C"],
+            aggfunc="sum",
+            margins=True,
+        )
+        expected = DataFrame(
+            [
+                [-1.0, pd.NA, 10.0, 9.0],
+                [10.0, 1.0, pd.NA, 11.0],
+                [9.0, 1.0, 10.0, 20.0],
+            ],
+            index=Index([1.0, 2.0, "All"], dtype="object", name="A"),
+            columns=Index([3.0, 4.0, 5.0, "All"], dtype="object", name="B"),
+            dtype="Float64",
+        )
         tm.assert_frame_equal(result, expected)
 
 

@@ -30,7 +30,7 @@ class XlrdReader(BaseExcelReader):
             Object to be parsed.
         {storage_options}
         """
-        err_msg = "Install xlrd >= 1.0.0 for Excel support"
+        err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
@@ -62,7 +62,7 @@ class XlrdReader(BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
@@ -79,7 +79,6 @@ class XlrdReader(BaseExcelReader):
             converts the contents of the cell into a pandas appropriate object
             """
             if cell_typ == XL_CELL_DATE:
-
                 # Use the newer xlrd datetime handling.
                 try:
                     cell_contents = xldate.xldate_as_datetime(cell_contents, epoch1904)
@@ -104,7 +103,7 @@ class XlrdReader(BaseExcelReader):
                 cell_contents = np.nan
             elif cell_typ == XL_CELL_BOOLEAN:
                 cell_contents = bool(cell_contents)
-            elif convert_float and cell_typ == XL_CELL_NUMBER:
+            elif cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
                 # it's a minimal perf hit and less surprising
                 val = int(cell_contents)

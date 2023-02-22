@@ -22,8 +22,6 @@ import pandas._testing as tm
 
 class TestDatetimeConcat:
     def test_concat_datetime64_block(self):
-        from pandas.core.indexes.datetimes import date_range
-
         rng = date_range("1/1/2000", periods=10)
 
         df = DataFrame({"time": rng})
@@ -403,7 +401,6 @@ class TestTimezoneConcat:
         expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_concat_multiindex_with_tz(self):
         # GH 6606
         df = DataFrame(

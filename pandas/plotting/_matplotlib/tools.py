@@ -1,7 +1,6 @@
 # being a bit too dynamic
 from __future__ import annotations
 
-import inspect
 from math import ceil
 from typing import (
     TYPE_CHECKING,
@@ -10,8 +9,8 @@ from typing import (
 )
 import warnings
 
+from matplotlib import ticker
 import matplotlib.table
-import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.util._exceptions import find_stack_level
@@ -22,8 +21,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-
-from pandas.plotting._matplotlib import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -78,10 +75,9 @@ def table(
 
     cellText = data.values
 
-    table = matplotlib.table.table(
+    return matplotlib.table.table(
         ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
     )
-    return table
 
 
 def _get_layout(
@@ -234,14 +230,14 @@ def create_subplots(
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
                     "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             if ax.size == naxes:
                 fig = ax.flat[0].get_figure()
@@ -264,7 +260,7 @@ def create_subplots(
                 "To output multiple subplots, the figure containing "
                 "the passed axes is being cleared.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             fig.clear()
 
@@ -397,10 +393,7 @@ def handle_shared_axes(
         row_num = lambda x: x.get_subplotspec().rowspan.start
         col_num = lambda x: x.get_subplotspec().colspan.start
 
-        if compat.mpl_ge_3_4_0():
-            is_first_col = lambda x: x.get_subplotspec().is_first_col()
-        else:
-            is_first_col = lambda x: x.is_first_col()
+        is_first_col = lambda x: x.get_subplotspec().is_first_col()
 
         if nrows > 1:
             try:
@@ -422,10 +415,7 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
-                if compat.mpl_ge_3_4_0():
-                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
-                else:
-                    is_last_row = lambda x: x.is_last_row()
+                is_last_row = lambda x: x.get_subplotspec().is_last_row()
                 for ax in axarr:
                     if is_last_row(ax):
                         continue

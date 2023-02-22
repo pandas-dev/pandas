@@ -44,14 +44,12 @@ class TestDataFrameSortIndex:
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
-    # FIXME: the FutureWarning is issued on a setitem-with-expansion
-    #  which will *not* change behavior, so should not get a warning.
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
-        df.loc["b", "2"] = 1
-        df.loc["a", "3"] = 1
+        with tm.assert_produces_warning(None):
+            df.loc["b", "2"] = 1
+            df.loc["a", "3"] = 1
         result = df.sort_index().index.is_monotonic_increasing
         assert result is True
 
@@ -305,7 +303,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
-
         df = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -531,7 +528,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_and_reconstruction(self):
-
         # GH#15622
         # lexsortedness should be identical
         # across MultiIndex construction methods
@@ -612,7 +608,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
-
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
@@ -682,7 +677,6 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-
         np.random.seed(0)
         data = np.random.randn(3, 4)
 
@@ -912,16 +906,4 @@ class TestDataFrameSortIndexKey:
 
         result = expected.sort_index(level=0)
 
-        tm.assert_frame_equal(result, expected)
-
-    def test_sort_index_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.sort_index "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.sort_index(1)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

@@ -87,19 +87,6 @@ def test_write_cells_merge_styled(ext):
 
 
 @pytest.mark.parametrize("iso_dates", [True, False])
-def test_kwargs(ext, iso_dates):
-    # GH 42286 GH 43445
-    kwargs = {"iso_dates": iso_dates}
-    with tm.ensure_clean(ext) as f:
-        msg = re.escape("Use of **kwargs is deprecated")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
-                assert writer.book.iso_dates == iso_dates
-                # ExcelWriter won't allow us to close without writing something
-                DataFrame().to_excel(writer)
-
-
-@pytest.mark.parametrize("iso_dates", [True, False])
 def test_engine_kwargs_write(ext, iso_dates):
     # GH 42286 GH 43445
     engine_kwargs = {"iso_dates": iso_dates}
@@ -264,12 +251,11 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
 def test_to_excel_with_openpyxl_engine(ext):
     # GH 29854
     with tm.ensure_clean(ext) as filename:
-
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})
         df = pd.concat([df1, df2], axis=1)
         styled = df.style.applymap(
-            lambda val: "color: %s" % ("red" if val < 0 else "black")
+            lambda val: f"color: {'red' if val < 0 else 'black'}"
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")

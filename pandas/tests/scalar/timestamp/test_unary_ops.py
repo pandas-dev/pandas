@@ -13,6 +13,7 @@ from pytz import utc
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
     conversion,
@@ -27,8 +28,14 @@ import pandas._testing as tm
 
 
 class TestTimestampUnaryOps:
-
     # --------------------------------------------------------------
+    def test_round_divison_by_zero_raises(self):
+        ts = Timestamp("2016-01-01")
+
+        msg = "Division by zero in rounding"
+        with pytest.raises(ValueError, match=msg):
+            ts.round("0ns")
+
     # Timestamp.round
     @pytest.mark.parametrize(
         "timestamp, freq, expected",
@@ -150,19 +157,19 @@ class TestTimestampUnaryOps:
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_ceil(self, unit):
-        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
+        dt = Timestamp("20130101 09:10:11").as_unit(unit)
         result = dt.ceil("D")
         expected = Timestamp("20130102")
         assert result == expected
-        assert result._reso == dt._reso
+        assert result._creso == dt._creso
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_floor(self, unit):
-        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
+        dt = Timestamp("20130101 09:10:11").as_unit(unit)
         result = dt.floor("D")
         expected = Timestamp("20130101")
         assert result == expected
-        assert result._reso == dt._reso
+        assert result._creso == dt._creso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     @pytest.mark.parametrize(
@@ -172,18 +179,18 @@ class TestTimestampUnaryOps:
     def test_round_dst_border_ambiguous(self, method, unit):
         # GH 18946 round near "fall back" DST
         ts = Timestamp("2017-10-29 00:00:00", tz="UTC").tz_convert("Europe/Madrid")
-        ts = ts._as_unit(unit)
+        ts = ts.as_unit(unit)
         #
         result = getattr(ts, method)("H", ambiguous=True)
         assert result == ts
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous=False)
         expected = Timestamp("2017-10-29 01:00:00", tz="UTC").tz_convert(
             "Europe/Madrid"
         )
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous="NaT")
         assert result is NaT
@@ -206,11 +213,11 @@ class TestTimestampUnaryOps:
     )
     def test_round_dst_border_nonexistent(self, method, ts_str, freq, unit):
         # GH 23324 round near "spring forward" DST
-        ts = Timestamp(ts_str, tz="America/Chicago")._as_unit(unit)
+        ts = Timestamp(ts_str, tz="America/Chicago").as_unit(unit)
         result = getattr(ts, method)(freq, nonexistent="shift_forward")
         expected = Timestamp("2018-03-11 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
@@ -256,26 +263,26 @@ class TestTimestampUnaryOps:
     def test_round_int64(self, timestamp, freq):
         # check that all rounding modes are accurate to int64 precision
         # see GH#22591
-        dt = Timestamp(timestamp)
+        dt = Timestamp(timestamp).as_unit("ns")
         unit = to_offset(freq).nanos
 
         # test floor
         result = dt.floor(freq)
-        assert result.value % unit == 0, f"floor not a {freq} multiple"
-        assert 0 <= dt.value - result.value < unit, "floor error"
+        assert result._value % unit == 0, f"floor not a {freq} multiple"
+        assert 0 <= dt._value - result._value < unit, "floor error"
 
         # test ceil
         result = dt.ceil(freq)
-        assert result.value % unit == 0, f"ceil not a {freq} multiple"
-        assert 0 <= result.value - dt.value < unit, "ceil error"
+        assert result._value % unit == 0, f"ceil not a {freq} multiple"
+        assert 0 <= result._value - dt._value < unit, "ceil error"
 
         # test round
         result = dt.round(freq)
-        assert result.value % unit == 0, f"round not a {freq} multiple"
-        assert abs(result.value - dt.value) <= unit // 2, "round error"
-        if unit % 2 == 0 and abs(result.value - dt.value) == unit // 2:
+        assert result._value % unit == 0, f"round not a {freq} multiple"
+        assert abs(result._value - dt._value) <= unit // 2, "round error"
+        if unit % 2 == 0 and abs(result._value - dt._value) == unit // 2:
             # round half to even
-            assert result.value // unit % 2 == 0, "round half to even error"
+            assert result._value // unit % 2 == 0, "round half to even error"
 
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timedelta
@@ -308,7 +315,7 @@ class TestTimestampUnaryOps:
 
         def checker(res, ts, nanos):
             if method is Timestamp.round:
-                diff = np.abs((res - ts).value)
+                diff = np.abs((res - ts)._value)
                 assert diff <= nanos / 2
             elif method is Timestamp.floor:
                 assert res <= ts
@@ -319,42 +326,55 @@ class TestTimestampUnaryOps:
 
         res = method(ts, "us")
         nanos = 1000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "ms")
         nanos = 1_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "s")
         nanos = 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "min")
         nanos = 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "h")
         nanos = 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
         res = method(ts, "D")
         nanos = 24 * 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
+        assert np.abs((res - ts)._value) < nanos
+        assert res._value % nanos == 0
         checker(res, ts, nanos)
 
     # --------------------------------------------------------------
     # Timestamp.replace
+
+    def test_replace_out_of_pydatetime_bounds(self):
+        # GH#50348
+        ts = Timestamp("2016-01-01").as_unit("ns")
+
+        msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(year=99_999)
+
+        ts = ts.as_unit("ms")
+        result = ts.replace(year=99_999)
+        assert result.year == 99_999
+        assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(
@@ -363,7 +383,7 @@ class TestTimestampUnaryOps:
         assert ts.to_pydatetime() == datetime(4869, 12, 28)
 
         result = ts.replace(year=4900)
-        assert result._reso == ts._reso
+        assert result._creso == ts._creso
         assert result.to_pydatetime() == datetime(4900, 12, 28)
 
     def test_replace_naive(self):
@@ -486,11 +506,11 @@ class TestTimestampUnaryOps:
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_replace_dst_border(self, unit):
         # Gh 7825
-        t = Timestamp("2013-11-3", tz="America/Chicago")._as_unit(unit)
+        t = Timestamp("2013-11-3", tz="America/Chicago").as_unit(unit)
         result = t.replace(hour=3)
         expected = Timestamp("2013-11-3 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
@@ -498,13 +518,13 @@ class TestTimestampUnaryOps:
     def test_replace_dst_fold(self, fold, tz, unit):
         # GH 25017
         d = datetime(2019, 10, 27, 2, 30)
-        ts = Timestamp(d, tz=tz)._as_unit(unit)
+        ts = Timestamp(d, tz=tz).as_unit(unit)
         result = ts.replace(hour=1, fold=fold)
         expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
             tz, ambiguous=not fold
         )
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     # --------------------------------------------------------------
     # Timestamp.normalize
@@ -513,11 +533,11 @@ class TestTimestampUnaryOps:
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_normalize(self, tz_naive_fixture, arg, unit):
         tz = tz_naive_fixture
-        ts = Timestamp(arg, tz=tz)._as_unit(unit)
+        ts = Timestamp(arg, tz=tz).as_unit(unit)
         result = ts.normalize()
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_normalize_pre_epoch_dates(self):
         # GH: 36294

@@ -7,7 +7,6 @@ from functools import (
     partial,
     wraps,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -39,7 +38,6 @@ if TYPE_CHECKING:
 def _align_core_single_unary_op(
     term,
 ) -> tuple[partial | type[NDFrame], dict[str, Index] | None]:
-
     typ: partial | type[NDFrame]
     axes: dict[str, Index] | None = None
 
@@ -132,9 +130,7 @@ def _align_core(terms):
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(
-                        w,
-                        category=PerformanceWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        w, category=PerformanceWarning, stacklevel=find_stack_level()
                     )
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)

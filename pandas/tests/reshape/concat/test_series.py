@@ -15,7 +15,6 @@ import pandas._testing as tm
 
 class TestSeriesConcat:
     def test_concat_series(self):
-
         ts = tm.makeTimeSeries()
         ts.name = "foo"
 
@@ -120,24 +119,30 @@ class TestSeriesConcat:
 
     def test_concat_series_partial_columns_names(self):
         # GH10698
-        foo = Series([1, 2], name="foo")
-        bar = Series([1, 2])
-        baz = Series([4, 5])
+        named_series = Series([1, 2], name="foo")
+        unnamed_series1 = Series([1, 2])
+        unnamed_series2 = Series([4, 5])
 
-        result = concat([foo, bar, baz], axis=1)
+        result = concat([named_series, unnamed_series1, unnamed_series2], axis=1)
         expected = DataFrame(
             {"foo": [1, 2], 0: [1, 2], 1: [4, 5]}, columns=["foo", 0, 1]
         )
         tm.assert_frame_equal(result, expected)
 
-        result = concat([foo, bar, baz], axis=1, keys=["red", "blue", "yellow"])
+        result = concat(
+            [named_series, unnamed_series1, unnamed_series2],
+            axis=1,
+            keys=["red", "blue", "yellow"],
+        )
         expected = DataFrame(
             {"red": [1, 2], "blue": [1, 2], "yellow": [4, 5]},
             columns=["red", "blue", "yellow"],
         )
         tm.assert_frame_equal(result, expected)
 
-        result = concat([foo, bar, baz], axis=1, ignore_index=True)
+        result = concat(
+            [named_series, unnamed_series1, unnamed_series2], axis=1, ignore_index=True
+        )
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 

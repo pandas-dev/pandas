@@ -25,11 +25,11 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     op_desc_op = op_desc["op"]
     assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc_op + " " + typ
+        equiv = f"other {op_desc_op} {typ}"
     elif op_name == "divmod":
         equiv = f"{op_name}({typ}, other)"
     else:
-        equiv = typ + " " + op_desc_op + " other"
+        equiv = f"{typ} {op_desc_op} other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
@@ -156,8 +156,8 @@ _floordiv_example_SERIES = (
     + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
-b    NaN
-c    NaN
+b    inf
+c    inf
 d    0.0
 e    NaN
 dtype: float64
@@ -559,16 +559,16 @@ rectangle       3      359
 Multiply a dictionary by axis.
 
 >>> df.mul({{'angles': 0, 'degrees': 2}})
-            angles	degrees
-circle	         0	    720
-triangle	     0	    360
-rectangle	     0	    720
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
 
 >>> df.mul({{'circle': 0, 'triangle': 2, 'rectangle': 3}}, axis='index')
-            angles	degrees
-circle		     0	      0
-triangle	     6	    360
-rectangle	    12	   1080
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
 
 Multiply a DataFrame of different shape with operator version.
 

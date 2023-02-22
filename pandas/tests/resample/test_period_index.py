@@ -27,7 +27,7 @@ from pandas.core.indexes.period import (
 )
 from pandas.core.resample import _get_period_range_edges
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture()
@@ -233,7 +233,6 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_same_freq(self, resample_method):
-
         # GH12770
         series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
         expected = series
@@ -605,9 +604,11 @@ class TestPeriodIndex:
 
     def test_resample_bms_2752(self):
         # GH2753
-        foo = Series(index=pd.bdate_range("20000101", "20000201"), dtype=np.float64)
-        res1 = foo.resample("BMS").mean()
-        res2 = foo.resample("BMS").mean().resample("B").mean()
+        timeseries = Series(
+            index=pd.bdate_range("20000101", "20000201"), dtype=np.float64
+        )
+        res1 = timeseries.resample("BMS").mean()
+        res2 = timeseries.resample("BMS").mean().resample("B").mean()
         assert res1.index[0] == Timestamp("20000103")
         assert res1.index[0] == res2.index[0]
 

@@ -3,10 +3,7 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -15,9 +12,7 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under2p0,
-    pa_version_under5p0,
-    pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
 )
 import pandas.util._test_decorators as td
@@ -42,25 +37,15 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    with catch_warnings():
-        # `np.bool` is a deprecated alias...
-        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
-        # accessing pd.Int64Index in pd namespace
-        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
-
-        import fastparquet
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
-
-
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
+
 
 # setup engines & skips
 @pytest.fixture(
@@ -237,7 +222,7 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under5p0:
+    if pa_version_under7p0:
         import pyarrow.parquet as pq
 
         dataset = pq.ParquetDataset(path, validate_schema=False)
@@ -440,7 +425,6 @@ class TestBasic(Base):
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
-
         if compression == "snappy":
             pytest.importorskip("snappy")
 
@@ -607,6 +591,7 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
     def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
@@ -656,6 +641,29 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
+    def test_use_nullable_dtypes_option(self, engine, request):
+        # GH#50748
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
+
+        table = pyarrow.table({"a": pyarrow.array([1, 2, 3, None], "int64")})
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            with pd.option_context("mode.nullable_dtypes", True):
+                result2 = read_parquet(path, engine=engine)
+
+        expected = pd.DataFrame({"a": pd.array([1, 2, 3, None], dtype="Int64")})
+        tm.assert_frame_equal(result2, expected)
+
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -690,10 +698,8 @@ class TestBasic(Base):
         )
 
 
-@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
-
         df = df_full
 
         # additional supported types for pyarrow
@@ -777,7 +783,6 @@ class TestParquetPyArrow(Base):
             assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
-
         # supported in >= 0.7.0
         df = pd.DataFrame()
         df["a"] = pd.Categorical(list("abcdef"))
@@ -836,13 +841,9 @@ class TestParquetPyArrow(Base):
         expected_df = df_compat.copy()
 
         # GH #35791
-        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
-        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
-        # These are added to back of dataframe on read. In new API category dtype is
-        # only used if partition field is string, but this changed again to use
-        # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = "int32" if pa_version_under2p0 else "category"
+            expected_df = expected_df.astype(dict.fromkeys(partition_col, np.int32))
+            partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -879,41 +880,40 @@ class TestParquetPyArrow(Base):
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             df_compat.to_parquet("~/file.parquet")
 
-    def test_partition_cols_supported(self, pa, df_full):
+    def test_partition_cols_supported(self, tmp_path, pa, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            check_partition_names(path, partition_cols)
-            assert read_parquet(path).shape == df.shape
+        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        check_partition_names(tmp_path, partition_cols)
+        assert read_parquet(tmp_path).shape == df.shape
 
-    def test_partition_cols_string(self, pa, df_full):
+    def test_partition_cols_string(self, tmp_path, pa, df_full):
         # GH #27117
         partition_cols = "bool"
         partition_cols_list = [partition_cols]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            check_partition_names(path, partition_cols_list)
-            assert read_parquet(path).shape == df.shape
+        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        check_partition_names(tmp_path, partition_cols_list)
+        assert read_parquet(tmp_path).shape == df.shape
 
-    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
-    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
+    @pytest.mark.parametrize(
+        "path_type", [str, lambda x: x], ids=["string", "pathlib.Path"]
+    )
+    def test_partition_cols_pathlib(self, tmp_path, pa, df_compat, path_type):
         # GH 35902
 
         partition_cols = "B"
         partition_cols_list = [partition_cols]
         df = df_compat
 
-        with tm.ensure_clean_dir() as path_str:
-            path = path_type(path_str)
-            df.to_parquet(path, partition_cols=partition_cols_list)
-            assert read_parquet(path).shape == df.shape
+        path = path_type(tmp_path)
+        df.to_parquet(path, partition_cols=partition_cols_list)
+        assert read_parquet(path).shape == df.shape
 
     def test_empty_dataframe(self, pa):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         check_round_trip(df, pa)
 
     def test_write_with_schema(self, pa):
@@ -940,14 +940,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow", min_version="2.0.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -966,8 +966,8 @@ class TestParquetPyArrow(Base):
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
-        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
-        if not pa_version_under6p0:
+        # Note in previous pyarrows(<7.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under7p0:
             ver = "2.6"
         else:
             ver = "2.0"
@@ -976,7 +976,7 @@ class TestParquetPyArrow(Base):
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
-            not pa_version_under2p0
+            not pa_version_under7p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
@@ -999,7 +999,7 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         df = pd.DataFrame({"a": list(range(0, 3))})
@@ -1022,6 +1022,43 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
+    def test_read_use_nullable_types_pyarrow_config(self, pa, df_full):
+        import pyarrow
+
+        df = df_full
+
+        # additional supported types for pyarrow
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesn't round-trip
+        df["datetime_tz"] = dti
+        df["bool_with_none"] = [True, None, True]
+
+        pa_table = pyarrow.Table.from_pandas(df)
+        expected = pd.DataFrame(
+            {
+                col_name: pd.arrays.ArrowExtensionArray(pa_column)
+                for col_name, pa_column in zip(
+                    pa_table.column_names, pa_table.itercolumns()
+                )
+            }
+        )
+        # pyarrow infers datetimes as us instead of ns
+        expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+            "timestamp[us][pyarrow]"
+        )
+        expected["datetime_tz"] = expected["datetime_tz"].astype(
+            pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
+        )
+
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
+            check_round_trip(
+                df,
+                engine=pa,
+                read_kwargs={"use_nullable_dtypes": True},
+                expected=expected,
+            )
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
@@ -1034,7 +1071,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_duplicate_columns(self, fp):
-
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         msg = "Cannot create parquet dataset with duplicate column names"
@@ -1048,7 +1084,6 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp, expected=expected, check_dtype=False)
 
     def test_unsupported(self, fp):
-
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # error from fastparquet -> don't check exact error message
@@ -1082,58 +1117,57 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
-    def test_partition_cols_supported(self, fp, df_full):
+    def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                partition_cols=partition_cols,
-                compression=None,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            partition_cols=partition_cols,
+            compression=None,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 2
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 2
 
-    def test_partition_cols_string(self, fp, df_full):
+    def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
         partition_cols = "bool"
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                partition_cols=partition_cols,
-                compression=None,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            partition_cols=partition_cols,
+            compression=None,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 1
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 1
 
-    def test_partition_on_supported(self, fp, df_full):
+    def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                compression=None,
-                partition_on=partition_cols,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            compression=None,
+            partition_on=partition_cols,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 2
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 2
 
-    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+    def test_error_on_using_partition_cols_and_partition_on(
+        self, tmp_path, fp, df_full
+    ):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
@@ -1142,18 +1176,17 @@ class TestParquetFastParquet(Base):
             "partitioning data"
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean_dir() as path:
-                df.to_parquet(
-                    path,
-                    engine="fastparquet",
-                    compression=None,
-                    partition_on=partition_cols,
-                    partition_cols=partition_cols,
-                )
+            df.to_parquet(
+                tmp_path,
+                engine="fastparquet",
+                compression=None,
+                partition_on=partition_cols,
+                partition_cols=partition_cols,
+            )
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
@@ -1182,3 +1215,13 @@ class TestParquetFastParquet(Base):
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
+
+    def test_bytes_file_name(self, engine):
+        # GH#48944
+        df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
+        with tm.ensure_clean("test.parquet") as path:
+            with open(path.encode(), "wb") as f:
+                df.to_parquet(f)
+
+            result = read_parquet(path, engine=engine)
+        tm.assert_frame_equal(result, df)

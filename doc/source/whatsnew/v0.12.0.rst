@@ -433,17 +433,46 @@ Bug fixes
     a ``Series`` with either a single character at each index of the original
     ``Series`` or ``NaN``. For example,
 
-    .. ipython:: python
-        :okwarning:
+    .. code-block:: ipython
 
-        strs = "go", "bow", "joe", "slow"
-        ds = pd.Series(strs)
+        In [38]: strs = "go", "bow", "joe", "slow"
 
-        for s in ds.str:
-            print(s)
+        In [32]: ds = pd.Series(strs)
 
-        s
-        s.dropna().values.item() == "w"
+        In [33]: for s in ds.str:
+            ...:     print(s)
+
+        0    g
+        1    b
+        2    j
+        3    s
+        dtype: object
+        0    o
+        1    o
+        2    o
+        3    l
+        dtype: object
+        0    NaN
+        1      w
+        2      e
+        3      o
+        dtype: object
+        0    NaN
+        1    NaN
+        2    NaN
+        3      w
+        dtype: object
+
+        In [41]: s
+        Out[41]:
+        0    NaN
+        1    NaN
+        2    NaN
+        3      w
+        dtype: object
+
+        In [42]: s.dropna().values.item() == "w"
+        Out[42]: True
 
     The last element yielded by the iterator will be a ``Series`` containing
     the last element of the longest string in the ``Series`` with all other

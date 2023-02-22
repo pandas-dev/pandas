@@ -14,6 +14,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    to_timedelta,
 )
 
 from .pandas_vb_common import tm
@@ -35,7 +36,6 @@ method_blocklist = {
         "pct_change",
         "min",
         "var",
-        "mad",
         "describe",
         "std",
         "quantile",
@@ -52,7 +52,6 @@ method_blocklist = {
         "cummax",
         "pct_change",
         "var",
-        "mad",
         "describe",
         "std",
     },
@@ -71,7 +70,6 @@ class ApplyDictReturn:
 
 
 class Apply:
-
     param_names = ["factor"]
     params = [4, 5]
 
@@ -126,7 +124,6 @@ class ApplyNonUniqueUnsortedIndex:
 
 
 class Groups:
-
     param_names = ["key"]
     params = ["int64_small", "int64_large", "object_small", "object_large"]
 
@@ -155,7 +152,6 @@ class Groups:
 
 
 class GroupManyLabels:
-
     params = [1, 1000]
     param_names = ["ncols"]
 
@@ -170,7 +166,6 @@ class GroupManyLabels:
 
 
 class Nth:
-
     param_names = ["dtype"]
     params = ["float32", "float64", "datetime", "object"]
 
@@ -311,7 +306,7 @@ class AggFunctions:
         df.groupby(["key1", "key2"]).agg([sum, min, max])
 
     def time_different_python_functions_singlecol(self, df):
-        df.groupby("key1").agg([sum, min, max])
+        df.groupby("key1")[["value1", "value2", "value3"]].agg([sum, min, max])
 
 
 class GroupStrings:
@@ -417,7 +412,6 @@ class FillNA:
 
 
 class GroupByMethods:
-
     param_names = ["dtype", "method", "application", "ncols"]
     params = [
         ["int", "int16", "float", "object", "datetime", "uint"],
@@ -437,7 +431,6 @@ class GroupByMethods:
             "first",
             "head",
             "last",
-            "mad",
             "max",
             "min",
             "median",
@@ -483,7 +476,7 @@ class GroupByMethods:
 
         if method == "describe":
             ngroups = 20
-        elif method in ["mad", "skew"]:
+        elif method == "skew":
             ngroups = 100
         else:
             ngroups = 1000
@@ -602,31 +595,35 @@ class GroupByCythonAggEaDtypes:
 
 
 class Cumulative:
-    param_names = ["dtype", "method"]
+    param_names = ["dtype", "method", "with_nans"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
         ["cummin", "cummax", "cumsum"],
+        [True, False],
     ]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype, method, with_nans):
+        if with_nans and dtype == "int64":
+            raise NotImplementedError("Construction of df would raise")
+
         N = 500_000
-        vals = np.random.randint(-10, 10, (N, 5))
-        null_vals = vals.astype(float, copy=True)
-        null_vals[::2, :] = np.nan
-        null_vals[::3, :] = np.nan
-        df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
-        null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
         keys = np.random.randint(0, 100, size=N)
-        df["key"] = keys
-        null_df["key"] = keys
-        self.df = df
-        self.null_df = null_df
+        vals = np.random.randint(-10, 10, (N, 5))
 
-    def time_frame_transform(self, dtype, method):
+        if with_nans:
+            null_vals = vals.astype(float, copy=True)
+            null_vals[::2, :] = np.nan
+            null_vals[::3, :] = np.nan
+            df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+            df["key"] = keys
+            self.df = df
+        else:
+            df = DataFrame(vals, columns=list("abcde")).astype(dtype, copy=False)
+            df["key"] = keys
+            self.df = df
+
+    def time_frame_transform(self, dtype, method, with_nans):
         self.df.groupby("key").transform(method)
-
-    def time_frame_transform_many_nulls(self, dtype, method):
-        self.null_df.groupby("key").transform(method)
 
 
 class RankWithTies:
@@ -669,12 +666,8 @@ class String:
         ["str", "string[python]"],
         [
             "sum",
-            "prod",
             "min",
             "max",
-            "mean",
-            "median",
-            "var",
             "first",
             "last",
             "any",
@@ -685,7 +678,7 @@ class String:
     def setup(self, dtype, method):
         cols = list("abcdefghjkl")
         self.df = DataFrame(
-            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            np.random.randint(0, 100, size=(10_000, len(cols))),
             columns=cols,
             dtype=dtype,
         )
@@ -867,7 +860,6 @@ class TransformNaN:
 
 
 class TransformEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 
@@ -910,7 +902,6 @@ class TransformEngine:
 
 
 class AggEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 
@@ -988,6 +979,33 @@ class Sample:
 
     def time_sample_weights(self):
         self.df.groupby(self.groups).sample(n=1, weights=self.weights)
+
+
+class Resample:
+    # GH 28635
+    def setup(self):
+        num_timedeltas = 20_000
+        num_groups = 3
+
+        index = MultiIndex.from_product(
+            [
+                np.arange(num_groups),
+                to_timedelta(np.arange(num_timedeltas), unit="s"),
+            ],
+            names=["groups", "timedeltas"],
+        )
+        data = np.random.randint(0, 1000, size=(len(index)))
+
+        self.df = DataFrame(data, index=index).reset_index("timedeltas")
+        self.df_multiindex = DataFrame(data, index=index)
+
+    def time_resample(self):
+        self.df.groupby(level="groups").resample("10s", on="timedeltas").mean()
+
+    def time_resample_multiindex(self):
+        self.df_multiindex.groupby(level="groups").resample(
+            "10s", level="timedeltas"
+        ).mean()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

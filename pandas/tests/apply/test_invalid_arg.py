@@ -90,12 +90,11 @@ def test_map_datetimetz_na_action():
         s.map(lambda x: x, na_action="ignore")
 
 
-@pytest.mark.parametrize("box", [DataFrame, Series])
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
-def test_nested_renamer(box, method, func):
+def test_nested_renamer(frame_or_series, method, func):
     # GH 35964
-    obj = box({"A": [1]})
+    obj = frame_or_series({"A": [1]})
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
         getattr(obj, method)(func)
@@ -113,7 +112,6 @@ def test_series_nested_renamer(renamer):
 
 
 def test_apply_dict_depr():
-
     tsdf = DataFrame(
         np.random.randn(10, 3),
         columns=["A", "B", "C"],
@@ -126,7 +124,6 @@ def test_apply_dict_depr():
 
 @pytest.mark.parametrize("method", ["agg", "transform"])
 def test_dict_nested_renaming_depr(method):
-
     df = DataFrame({"A": range(5), "B": 5})
 
     # nested renaming
@@ -278,15 +275,15 @@ def test_agg_none_to_type():
     df = DataFrame({"a": [None]})
     msg = re.escape("int() argument must be a string")
     with pytest.raises(TypeError, match=msg):
-        df.agg({"a": int})
+        df.agg({"a": lambda x: int(x.iloc[0])})
 
 
 def test_transform_none_to_type():
     # GH#34377
     df = DataFrame({"a": [None]})
-    msg = "Transform function failed"
+    msg = "argument must be a"
     with pytest.raises(TypeError, match=msg):
-        df.transform({"a": int})
+        df.transform({"a": lambda x: int(x.iloc[0])})
 
 
 @pytest.mark.parametrize(
@@ -349,14 +346,13 @@ def test_transform_wont_agg_series(string_series, func):
     warn = RuntimeWarning if func[0] == "sqrt" else None
     warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
+        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
             string_series.transform(func)
 
 
 @pytest.mark.parametrize(
     "op_wrapper", [lambda x: x, lambda x: [x], lambda x: {"A": x}, lambda x: {"A": [x]}]
 )
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     # GH 35964
     op = op_wrapper(all_reductions)

@@ -9,7 +9,6 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -167,7 +166,6 @@ class TestCategoricalDtype(Base):
         assert not CategoricalDtype.is_dtype(np.float64)
 
     def test_basic(self, dtype):
-
         assert is_categorical_dtype(dtype)
 
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -178,13 +176,6 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s.dtype)
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
-
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#33385 deprecated
-            assert is_categorical(s.dtype)
-            assert is_categorical(s)
-            assert not is_categorical(np.dtype("float64"))
-            assert not is_categorical(1.0)
 
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
@@ -268,7 +259,7 @@ class TestDatetimeTZDtype(Base):
     def test_construction_non_nanosecond(self):
         res = DatetimeTZDtype("ms", "US/Eastern")
         assert res.unit == "ms"
-        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
 
@@ -344,7 +335,6 @@ class TestDatetimeTZDtype(Base):
         assert dtype == "M8[ns, US/Eastern]"
 
     def test_basic(self, dtype):
-
         assert is_datetime64tz_dtype(dtype)
 
         dr = date_range("20130101", periods=3, tz="US/Eastern")
@@ -357,7 +347,6 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(1.0)
 
     def test_dst(self):
-
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
         assert is_datetime64tz_dtype(s1)

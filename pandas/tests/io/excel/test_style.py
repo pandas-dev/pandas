@@ -46,7 +46,6 @@ def test_styler_to_excel_unstyled(engine):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
                 assert len(col1) == len(col2)
                 for cell1, cell2 in zip(col1, col2):
@@ -115,6 +114,12 @@ shared_style_params = [
         ["border", "left", "color", "rgb"],
         {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
+    # Border styles
+    (
+        "border-left-style: hair; border-left-color: black",
+        ["border", "left", "style"],
+        "hair",
+    ),
 ]
 
 
@@ -135,7 +140,6 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             # test unstyled data cell does not have expected styles
             # test styled cell has expected styles
             u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
@@ -175,7 +179,6 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-
             # test null styled index cells does not have expected styles
             # test styled cell has expected styles
             ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
@@ -194,6 +197,61 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
             assert si_cell == expected
             assert uc_cell is None or uc_cell != expected
             assert sc_cell == expected
+
+
+# From https://openpyxl.readthedocs.io/en/stable/api/openpyxl.styles.borders.html
+# Note: Leaving behavior of "width"-type styles undefined; user should use border-width
+# instead
+excel_border_styles = [
+    # "thin",
+    "dashed",
+    "mediumDashDot",
+    "dashDotDot",
+    "hair",
+    "dotted",
+    "mediumDashDotDot",
+    # "medium",
+    "double",
+    "dashDot",
+    "slantDashDot",
+    # "thick",
+    "mediumDashed",
+]
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["xlsxwriter", "openpyxl"],
+)
+@pytest.mark.parametrize("border_style", excel_border_styles)
+def test_styler_to_excel_border_style(engine, border_style):
+    css = f"border-left: {border_style} black thin"
+    attrs = ["border", "left", "style"]
+    expected = border_style
+
+    pytest.importorskip(engine)
+    df = DataFrame(np.random.randn(1, 1))
+    styler = df.style.applymap(lambda x: css)
+
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine=engine) as writer:
+            df.to_excel(writer, sheet_name="dataframe")
+            styler.to_excel(writer, sheet_name="styled")
+
+        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            # test unstyled data cell does not have expected styles
+            # test styled cell has expected styles
+            u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
+        for attr in attrs:
+            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
+
+        if isinstance(expected, dict):
+            assert u_cell is None or u_cell != expected[engine]
+            assert s_cell == expected[engine]
+        else:
+            assert u_cell is None or u_cell != expected
+            assert s_cell == expected
 
 
 def test_styler_custom_converter():

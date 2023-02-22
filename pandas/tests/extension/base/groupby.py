@@ -1,6 +1,11 @@
 import pytest
 
-from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+    is_string_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -27,7 +32,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
@@ -50,12 +55,36 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("A").first()
         self.assert_frame_equal(result, expected)
 
+    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
+        # GH#41720
+        expected = pd.DataFrame(
+            {
+                "td": {
+                    0: pd.Timedelta("0 days 01:00:00"),
+                    1: pd.Timedelta("0 days 01:15:00"),
+                    2: pd.Timedelta("0 days 01:15:00"),
+                }
+            }
+        )
+        df = pd.DataFrame(
+            {
+                "td": pd.Series(
+                    ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
+                    dtype="timedelta64[ns]",
+                ),
+                "grps": ["a", "a", "b"],
+            }
+        )
+        gb = df.groupby("grps")
+        result = gb.agg(td=("td", "cumsum"))
+        self.assert_frame_equal(result, expected)
+
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
 
-        index = pd.Index._with_infer(index, name="B")
+        index = pd.Index(index, name="B")
         expected = pd.Series([1.0, 3.0, 4.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
@@ -100,17 +129,19 @@ class BaseGroupbyTests(BaseExtensionTests):
         )
 
         dtype = data_for_grouping.dtype
-        if is_numeric_dtype(dtype) or dtype.name == "decimal":
-            warn = None
-        else:
-            warn = FutureWarning
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.groupby("A").sum().columns
-
-        if data_for_grouping.dtype._is_numeric:
+        if (
+            is_numeric_dtype(dtype)
+            or is_bool_dtype(dtype)
+            or dtype.name == "decimal"
+            or is_string_dtype(dtype)
+            or is_object_dtype(dtype)
+            or dtype.kind == "m"  # in particular duration[*][pyarrow]
+        ):
             expected = pd.Index(["B", "C"])
+            result = df.groupby("A").sum().columns
         else:
             expected = pd.Index(["C"])
-
+            with pytest.raises(TypeError, match="does not support"):
+                df.groupby("A").sum().columns
+            result = df.groupby("A").sum(numeric_only=True).columns
         tm.assert_index_equal(result, expected)

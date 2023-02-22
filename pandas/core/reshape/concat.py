@@ -4,7 +4,6 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -15,20 +14,17 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._typing import (
     Axis,
     AxisInt,
     HashableT,
 )
-from pandas.util._decorators import (
-    cache_readonly,
-    deprecate_nonkeyword_arguments,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -68,6 +64,7 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -76,7 +73,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -84,6 +81,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[Series] | Mapping[HashableT, Series],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -92,7 +90,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> Series:
     ...
 
@@ -100,6 +98,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -108,7 +107,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -116,6 +115,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -124,7 +124,7 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame:
     ...
 
@@ -132,6 +132,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -140,14 +141,14 @@ def concat(
     names=...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool = ...,
+    copy: bool | None = ...,
 ) -> DataFrame | Series:
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -156,7 +157,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort: bool = False,
-    copy: bool = True,
+    copy: bool | None = None,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -196,10 +197,7 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'.
-        This has no effect when ``join='inner'``, which already preserves
-        the order of the non-concatenation axis.
+        Sort non-concatenation axis if it is not already aligned.
 
         .. versionchanged:: 1.0.0
 
@@ -367,6 +365,12 @@ def concat(
     0   1   2
     1   3   4
     """
+    if copy is None:
+        if using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
     op = _Concatenator(
         objs,
         axis=axis,
@@ -515,7 +519,6 @@ class _Concatenator:
             max_ndim = sample.ndim
             self.objs, objs = [], self.objs
             for obj in objs:
-
                 ndim = obj.ndim
                 if ndim == max_ndim:
                     pass
@@ -538,7 +541,7 @@ class _Concatenator:
                         name = 0
                     # mypy needs to know sample is not an NDFrame
                     sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor({name: obj})
+                    obj = sample._constructor({name: obj}, copy=False)
 
                 self.objs.append(obj)
 
@@ -550,11 +553,8 @@ class _Concatenator:
         self.levels = levels
 
         if not is_bool(sort):
-            warnings.warn(
-                "Passing non boolean values for sort is deprecated and "
-                "will error in a future version!",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
         self.sort = sort
 
@@ -618,7 +618,7 @@ class _Concatenator:
             new_data = concatenate_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
-            if not self.copy:
+            if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
             cons = sample._constructor
@@ -712,7 +712,6 @@ def _concat_indexes(indexes) -> Index:
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
-
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):

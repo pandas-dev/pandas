@@ -299,7 +299,6 @@ class BaseXMLFormatter:
         raise AbstractMethodError(self)
 
     def _build_elems(self, sub_element_cls, d: dict[str, Any], elem_row: Any) -> None:
-
         if not self.elem_cols:
             return
 
@@ -419,13 +418,11 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         """
         decl = f'<?xml version="1.0" encoding="{self.encoding}"?>\n'
 
-        doc = (
+        return (
             self.out_xml
             if self.out_xml.startswith(b"<?xml")
             else decl.encode(self.encoding) + self.out_xml
         )
-
-        return doc
 
     def remove_declaration(self) -> bytes:
         """

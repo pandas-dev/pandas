@@ -46,7 +46,6 @@ class TestDataFrame:
         assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
-
         # allow single item via bool method
         df = DataFrame([[True]])
         assert df.bool()
@@ -71,9 +70,7 @@ class TestDataFrame:
                 "D": np.random.randn(8),
             }
         )
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby("A").sum()
+        result = df.groupby("A").sum()
         tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):
@@ -90,7 +87,6 @@ class TestDataFrame:
         # GH 6923
 
         def finalize(self, other, method=None, **kwargs):
-
             for name in self._metadata:
                 if method == "merge":
                     left, right = other.left, other.right
@@ -157,27 +153,25 @@ class TestDataFrame2:
 
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).rename_axis(
-                mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-            )
+            df.copy().rename_axis(mapper={"a": "x", "b": "y"}, axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).drop("a", axis=1, inplace=value)
+            df.copy().drop("a", axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).fillna(value=0, inplace=value)
+            df.copy().fillna(value=0, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
+            df.copy().replace(to_replace=1, value=7, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).interpolate(inplace=value)
+            df.copy().interpolate(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
+            df.copy()._where(cond=df.a > 2, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+            df.copy().mask(cond=df.a > 2, inplace=value)
 
     def test_unexpected_keyword(self):
         # GH8597

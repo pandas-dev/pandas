@@ -14,7 +14,6 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
-    Series,
     Timedelta,
     Timestamp,
     array,
@@ -29,7 +28,6 @@ import pandas._testing as tm
 class TestGetLoc:
     @pytest.mark.parametrize("side", ["right", "left", "both", "neither"])
     def test_get_loc_interval(self, closed, side):
-
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
 
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
@@ -50,7 +48,6 @@ class TestGetLoc:
 
     @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
     def test_get_loc_scalar(self, closed, scalar):
-
         # correct = {side: {query: answer}}.
         # If query is not in the dict, that query should raise a KeyError
         correct = {
@@ -211,7 +208,6 @@ class TestGetIndexer:
         ],
     )
     def test_get_indexer_with_interval(self, query, expected):
-
         tuples = [(0, 2), (2, 4), (5, 7)]
         index = IntervalIndex.from_tuples(tuples, closed="right")
 
@@ -240,7 +236,6 @@ class TestGetIndexer:
         ],
     )
     def test_get_indexer_with_int_and_float(self, query, expected):
-
         tuples = [(0, 1), (1, 2), (3, 4)]
         index = IntervalIndex.from_tuples(tuples, closed="right")
 
@@ -358,7 +353,6 @@ class TestGetIndexer:
         ],
     )
     def test_get_indexer_non_unique_with_int_and_float(self, query, expected):
-
         tuples = [(0, 2.5), (1, 3), (2, 4)]
         index = IntervalIndex.from_tuples(tuples, closed="left")
 
@@ -433,7 +427,6 @@ class TestGetIndexer:
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
-
         # increasing monotonically
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
@@ -512,7 +505,6 @@ class TestSliceLocs:
         assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     def test_slice_locs_with_ints_and_floats_succeeds(self):
-
         # increasing non-overlapping
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
 
@@ -582,24 +574,10 @@ class TestPutmask:
         tm.assert_index_equal(result, expected)
 
 
-class TestGetValue:
-    @pytest.mark.parametrize("key", [[5], (2, 3)])
-    def test_get_value_non_scalar_errors(self, key):
-        # GH#31117
-        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
-        ser = Series(range(len(idx)), index=idx)
-
-        msg = str(key)
-        with pytest.raises(InvalidIndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                idx.get_value(ser, key)
-
-
 class TestContains:
     # .__contains__, not .contains
 
     def test_contains_dunder(self):
-
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
 
         # __contains__ requires perfect matches to intervals.

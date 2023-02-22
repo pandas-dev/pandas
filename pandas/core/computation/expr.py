@@ -44,7 +44,7 @@ from pandas.core.computation.parsing import (
 )
 from pandas.core.computation.scope import Scope
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -382,7 +382,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -410,7 +410,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + type(node).__name__
+        method = f"visit_{type(node).__name__}"
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
@@ -430,7 +430,6 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         # must be two terms and the comparison operator must be ==/!=/in/not in
         if is_term(left) and is_term(right) and op_type in self.rewrite_map:
-
             left_list, right_list = map(_is_list, (left, right))
             left_str, right_str = map(_is_str, (left, right))
 
@@ -656,7 +655,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
-
         if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
@@ -681,7 +679,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             res = res.value
 
         if isinstance(res, FuncNode):
-
             new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
@@ -692,7 +689,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             return res(*new_args)
 
         else:
-
             new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:

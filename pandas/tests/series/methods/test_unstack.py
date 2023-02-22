@@ -133,7 +133,6 @@ def test_unstack_mixed_type_name_in_multiindex(
 
 
 def test_unstack_multi_index_categorical_values():
-
     mi = tm.makeTimeDataFrame().stack().index.rename(["major", "minor"])
     ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
@@ -145,5 +144,19 @@ def test_unstack_multi_index_categorical_values():
         {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
         columns=pd.Index(list("ABCD"), name="minor"),
         index=dti.rename("major"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_mixed_level_names():
+    # GH#48763
+    arrays = [["a", "a"], [1, 2], ["red", "blue"]]
+    idx = MultiIndex.from_arrays(arrays, names=("x", 0, "y"))
+    ser = Series([1, 2], index=idx)
+    result = ser.unstack("x")
+    expected = DataFrame(
+        [[1], [2]],
+        columns=pd.Index(["a"], name="x"),
+        index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
     )
     tm.assert_frame_equal(result, expected)

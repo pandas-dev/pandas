@@ -51,7 +51,6 @@ def to_time(
     """
 
     def _convert_listlike(arg, format):
-
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype="O")
 
@@ -77,7 +76,7 @@ def to_time(
                             f"format {format}"
                         )
                         raise ValueError(msg) from err
-                    elif errors == "ignore":
+                    if errors == "ignore":
                         return arg
                     else:
                         times.append(None)

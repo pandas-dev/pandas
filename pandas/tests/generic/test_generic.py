@@ -50,7 +50,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
     return box(arr, dtype=dtype, **kwargs)
 
 
-class Generic:
+class TestGeneric:
     @pytest.mark.parametrize(
         "func",
         [
@@ -60,13 +60,12 @@ class Generic:
         ],
     )
     def test_rename(self, frame_or_series, func):
-
         # single axis
         idx = list("ABCD")
 
         for axis in frame_or_series._AXIS_ORDERS:
             kwargs = {axis: idx}
-            obj = construct(4, **kwargs)
+            obj = construct(frame_or_series, 4, **kwargs)
 
             # rename a single axis
             result = obj.rename(**{axis: func})
@@ -75,7 +74,6 @@ class Generic:
             tm.assert_equal(result, expected)
 
     def test_get_numeric_data(self, frame_or_series):
-
         n = 4
         kwargs = {
             frame_or_series._get_axis_name(i): list(range(n))
@@ -83,26 +81,26 @@ class Generic:
         }
 
         # get the numeric data
-        o = construct(n, **kwargs)
+        o = construct(frame_or_series, n, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
         # non-inclusion
         result = o._get_bool_data()
-        expected = construct(n, value="empty", **kwargs)
+        expected = construct(frame_or_series, n, value="empty", **kwargs)
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        tm.assert_equal(result, expected)
+        # https://github.com/pandas-dev/pandas/issues/50862
+        tm.assert_equal(result.reset_index(drop=True), expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
-        o = construct(n, value=arr, **kwargs)
+        o = construct(frame_or_series, n, value=arr, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
     def test_nonzero(self, frame_or_series):
-
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = construct(frame_or_series, shape=4)
@@ -160,7 +158,7 @@ class Generic:
 
         msg = (
             "compound dtypes are not implemented "
-            f"in the {frame_or_series.__name__} frame_or_series"
+            f"in the {frame_or_series.__name__} constructor"
         )
 
         with pytest.raises(NotImplementedError, match=msg):
@@ -214,7 +212,6 @@ class Generic:
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
-
             # this is a name matching op
             v1 = getattr(o, op)(o)
             v2 = getattr(o, op)(o2)
@@ -253,11 +250,10 @@ class Generic:
 
     @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
     def test_api_compat(self, func, frame_or_series):
-
         # GH 12021
         # compat for __name__, __qualname__
 
-        obj = (frame_or_series, 5)
+        obj = construct(frame_or_series, 5)
         f = getattr(obj, func)
         assert f.__name__ == func
         assert f.__qualname__.endswith(func)
@@ -372,7 +368,6 @@ class TestNDFrame:
         tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
-
         obj = tm.makeTimeDataFrame()
         obj = tm.get_obj(obj, frame_or_series)
 
@@ -429,21 +424,6 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             obj.take(indices, mode="clip")
 
-    @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
-        # GH 27357
-        obj = DataFrame({"A": [1, 2, 3]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        msg = (
-            "is_copy is deprecated and will be removed in a future version. "
-            "'take' always returns a copy, so there is no need to specify this."
-        )
-        with tm.assert_produces_warning(FutureWarning) as w:
-            obj.take([0, 1], is_copy=is_copy)
-
-        assert w[0].message.args[0] == msg
-
     def test_axis_classmethods(self, frame_or_series):
         box = frame_or_series
         obj = box(dtype=object)
@@ -453,22 +433,6 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
-
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
         if frame_or_series is DataFrame:
@@ -477,11 +441,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()

@@ -52,9 +52,7 @@ class TestGetitem:
         # GH#16115
         cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])
 
-        expected = DataFrame(
-            [[1, 0], [0, 1]], dtype="uint8", index=[0, 1], columns=cats
-        )
+        expected = DataFrame([[1, 0], [0, 1]], dtype="bool", index=[0, 1], columns=cats)
         dummies = get_dummies(cats)
         result = dummies[list(dummies.columns)]
         tm.assert_frame_equal(result, expected)
@@ -117,8 +115,8 @@ class TestGetitemListLike:
             iter,
             Index,
             set,
-            lambda l: dict(zip(l, range(len(l)))),
-            lambda l: dict(zip(l, range(len(l)))).keys(),
+            lambda keys: dict(zip(keys, range(len(keys)))),
+            lambda keys: dict(zip(keys, range(len(keys)))).keys(),
         ],
         ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
     )
@@ -144,8 +142,10 @@ class TestGetitemListLike:
         idx_check = list(idx_type(keys))
 
         if isinstance(idx, (set, dict)):
-            with tm.assert_produces_warning(FutureWarning):
-                result = frame[idx]
+            with pytest.raises(TypeError, match="as an indexer is not supported"):
+                frame[idx]
+
+            return
         else:
             result = frame[idx]
 
@@ -156,8 +156,7 @@ class TestGetitemListLike:
 
         idx = idx_type(keys + [missing])
         with pytest.raises(KeyError, match="not in index"):
-            with tm.assert_produces_warning(FutureWarning):
-                frame[idx]
+            frame[idx]
 
     def test_getitem_iloc_generator(self):
         # GH#39614
@@ -246,7 +245,6 @@ class TestGetitemCallable:
 
 class TestGetitemBooleanMask:
     def test_getitem_bool_mask_categorical_index(self):
-
         df3 = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -357,8 +355,7 @@ class TestGetitemBooleanMask:
         df = df_dup_cols
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df[df.A > 6]
+            df[df.A > 6]
 
     def test_getitem_boolean_series_with_duplicate_columns(self, df_dup_cols):
         # boolean indexing
@@ -377,7 +374,6 @@ class TestGetitemBooleanMask:
         str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
-
         # where
         df = DataFrame(
             np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"
@@ -455,23 +451,18 @@ class TestGetitemSlice:
                 ]
             ),
         )
-        with tm.assert_produces_warning(FutureWarning):
-            result = df["2011-01-01":"2011-11-01"]
-        expected = DataFrame(
-            {"a": 0},
-            index=DatetimeIndex(
-                ["11.01.2011 22:00", "11.01.2011 23:00", "2011-01-13 00:00"]
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
+            df["2011-01-01":"2011-11-01"]
 
 
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{"a", "b"}, {"a": "a"}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]], columns=MultiIndex.from_tuples([("a", 1), ("b", 2)])
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df[key]

@@ -267,14 +267,16 @@ i.e., from the end of the string to the beginning of the string:
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
 
-.. warning::
 
-    Some caution must be taken when dealing with regular expressions! The current behavior
-    is to treat single character patterns as literal strings, even when ``regex`` is set
-    to ``True``. This behavior is deprecated and will be removed in a future version so
-    that the ``regex`` keyword is always respected.
+.. versionchanged:: 2.0
 
-.. versionchanged:: 1.2.0
+Single character pattern with ``regex=True`` will also be treated as regular expressions:
+
+.. ipython:: python
+
+   s4 = pd.Series(["a.b", ".", "b", np.nan, ""], dtype="string")
+   s4
+   s4.str.replace(".", "a", regex=True)
 
 If you want literal replacement of a string (equivalent to :meth:`str.replace`), you
 can set the optional ``regex`` parameter to ``False``, rather than escaping each

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -96,7 +95,6 @@ class _Unstacker:
     """
 
     def __init__(self, index: MultiIndex, level=-1, constructor=None) -> None:
-
         if constructor is None:
             constructor = DataFrame
         self.constructor = constructor
@@ -132,7 +130,7 @@ class _Unstacker:
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self._make_selectors()
@@ -206,7 +204,6 @@ class _Unstacker:
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
     def get_result(self, values, value_columns, fill_value) -> DataFrame:
-
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
@@ -222,7 +219,6 @@ class _Unstacker:
         )
 
     def get_new_values(self, values, fill_value=None):
-
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
@@ -425,8 +421,8 @@ def _unstack_multiple(data, clocs, fill_value=None):
     else:
         if isinstance(data.columns, MultiIndex):
             result = data
-            for i in range(len(clocs)):
-                val = clocs[i]
+            while clocs:
+                val = clocs.pop(0)
                 result = result.unstack(val, fill_value=fill_value)
                 clocs = [v if v < val else v - 1 for v in clocs]
 
@@ -462,7 +458,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj: Series | DataFrame, level, fill_value=None):
-
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -471,9 +466,9 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
         else:
             level = level[0]
 
-    # Prioritize integer interpretation (GH #21677):
     if not is_integer(level) and not level == "__placeholder__":
-        level = obj.index._get_level_number(level)
+        # check if level is valid in case of regular index
+        obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
@@ -635,20 +630,12 @@ def stack_multiple(frame, level, dropna: bool = True):
         # negative numbers to positive
         level = [frame.columns._get_level_number(lev) for lev in level]
 
-        # Can't iterate directly through level as we might need to change
-        # values as we go
-        for index in range(len(level)):
-            lev = level[index]
+        while level:
+            lev = level.pop(0)
             result = stack(result, lev, dropna=dropna)
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
-            updated_level = []
-            for other in level:
-                if other > lev:
-                    updated_level.append(other - 1)
-                else:
-                    updated_level.append(other)
-            level = updated_level
+            level = [v if v <= lev else v - 1 for v in level]
 
     else:
         raise ValueError(

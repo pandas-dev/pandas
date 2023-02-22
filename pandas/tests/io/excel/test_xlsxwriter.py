@@ -1,6 +1,4 @@
 import contextlib
-import re
-import warnings
 
 import pytest
 
@@ -17,10 +15,7 @@ pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 def test_column_format(ext):
     # Test that column formats are applied to cells. Test for issue #9167.
     # Applicable to xlsxwriter only.
-    with warnings.catch_warnings():
-        # Ignore the openpyxl lxml warning.
-        warnings.simplefilter("ignore")
-        openpyxl = pytest.importorskip("openpyxl")
+    openpyxl = pytest.importorskip("openpyxl")
 
     with tm.ensure_clean(ext) as path:
         frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
@@ -63,17 +58,6 @@ def test_write_append_mode_raises(ext):
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
-
-
-@pytest.mark.parametrize("nan_inf_to_errors", [True, False])
-def test_kwargs(ext, nan_inf_to_errors):
-    # GH 42286
-    kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
-    with tm.ensure_clean(ext) as f:
-        msg = re.escape("Use of **kwargs is deprecated")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with ExcelWriter(f, engine="xlsxwriter", **kwargs) as writer:
-                assert writer.book.nan_inf_to_errors == nan_inf_to_errors
 
 
 @pytest.mark.parametrize("nan_inf_to_errors", [True, False])

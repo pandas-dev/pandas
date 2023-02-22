@@ -14,7 +14,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @td.skip_if_no_scipy
@@ -177,7 +177,6 @@ def test_center_reindex_frame(frame, roll_func):
 
 
 def test_rolling_skew_edge_cases(step):
-
     expected = Series([np.NaN] * 4 + [0.0])[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
@@ -199,7 +198,6 @@ def test_rolling_skew_edge_cases(step):
 
 
 def test_rolling_kurt_edge_cases(step):
-
     expected = Series([np.NaN] * 4 + [-3.0])[::step]
 
     # yields all NaN (0 variance)

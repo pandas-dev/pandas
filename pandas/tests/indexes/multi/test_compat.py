@@ -59,17 +59,11 @@ def test_inplace_mutation_resets_values():
     new_vals = mi1.set_levels(levels2).values
     tm.assert_almost_equal(vals2, new_vals)
 
-    # Non-inplace doesn't drop _values from _cache [implementation detail]
+    #  Doesn't drop _values from _cache [implementation detail]
     tm.assert_almost_equal(mi1._cache["_values"], vals)
 
     # ...and values is still same too
     tm.assert_almost_equal(mi1.values, vals)
-
-    # Inplace should drop _values from _cache
-    with tm.assert_produces_warning(FutureWarning):
-        mi1.set_levels(levels2, inplace=True)
-    assert "_values" not in mi1._cache
-    tm.assert_almost_equal(mi1.values, vals2)
 
     # Make sure label setting works too
     codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
@@ -84,15 +78,8 @@ def test_inplace_mutation_resets_values():
     new_values = new_mi.values
     assert "_values" in new_mi._cache
 
-    # Not inplace shouldn't change
+    # Shouldn't change cache
     tm.assert_almost_equal(mi2._cache["_values"], vals2)
 
     # Should have correct values
     tm.assert_almost_equal(exp_values, new_values)
-
-    # ...and again setting inplace should drop _values from _cache, etc
-    with tm.assert_produces_warning(FutureWarning):
-        mi2.set_codes(codes2, inplace=True)
-    assert "_values" not in mi2._cache
-    tm.assert_almost_equal(mi2.values, new_values)
-    assert "_values" in mi2._cache

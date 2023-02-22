@@ -20,7 +20,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -85,7 +84,6 @@ def test_append_with_timezones(setup_path, gettz):
     )
 
     with ensure_clean_store(setup_path) as store:
-
         _maybe_remove(store, "df_tz")
         store.append("df_tz", df_est, data_columns=["A"])
         result = store["df_tz"]
@@ -139,7 +137,6 @@ def test_append_with_timezones_as_index(setup_path, gettz):
     df = DataFrame({"A": Series(range(3), index=dti)})
 
     with ensure_clean_store(setup_path) as store:
-
         _maybe_remove(store, "df")
         store.put("df", df)
         result = store.select("df")
@@ -160,7 +157,7 @@ def test_roundtrip_tz_aware_index(setup_path):
         store.put("frame", df, format="fixed")
         recons = store["frame"]
         tm.assert_frame_equal(recons, df)
-        assert recons.index[0].value == 946706400000000000
+        assert recons.index[0]._value == 946706400000000000
 
 
 def test_store_index_name_with_tz(setup_path):
@@ -211,7 +208,6 @@ def test_tseries_select_index_column(setup_path):
 
 def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
-
         # index
         rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
         rng = rng._with_freq(None)  # freq doesn't round-trip
@@ -283,7 +279,6 @@ def test_store_timezone(setup_path):
 
     # original method
     with ensure_clean_store(setup_path) as store:
-
         today = date(2013, 9, 10)
         df = DataFrame([1, 2, 3], index=[today, today, today])
         store["obj1"] = df
@@ -292,7 +287,6 @@ def test_store_timezone(setup_path):
 
     # with tz setting
     with ensure_clean_store(setup_path) as store:
-
         with tm.set_timezone("EST5EDT"):
             today = date(2013, 9, 10)
             df = DataFrame([1, 2, 3], index=[today, today, today])
@@ -341,7 +335,7 @@ def test_dst_transitions(setup_path):
             tm.assert_frame_equal(result, df)
 
 
-def test_read_with_where_tz_aware_index(setup_path):
+def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10
     dts = date_range("20151201", periods=periods, freq="D", tz="UTC")
@@ -349,11 +343,11 @@ def test_read_with_where_tz_aware_index(setup_path):
     expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
-    with ensure_clean_path(setup_path) as path:
-        with pd.HDFStore(path) as store:
-            store.append(key, expected, format="table", append=True)
-        result = pd.read_hdf(path, key, where="DATE > 20151130")
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    with pd.HDFStore(path) as store:
+        store.append(key, expected, format="table", append=True)
+    result = pd.read_hdf(path, key, where="DATE > 20151130")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_py2_created_with_datetimez(datapath):

@@ -19,7 +19,7 @@ development to remain focused around it's original requirements.
 This is an inexhaustive list of projects that build on pandas in order to provide
 tools in the PyData space. For a list of projects that depend on pandas,
 see the
-`Github network dependents for pandas <https://github.com/pandas-dev/pandas/network/dependents>`_
+`GitHub network dependents for pandas <https://github.com/pandas-dev/pandas/network/dependents>`_
 or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 
 We'd like to make it easier for users to find these projects, if you know of other
@@ -599,4 +599,4 @@ Install pandas-stubs to enable basic type coverage of pandas API.
 
 Learn more by reading through :issue:`14468`, :issue:`26766`, :issue:`28142`.
 
-See installation and usage instructions on the `github page <https://github.com/pandas-dev/pandas-stubs>`__.
+See installation and usage instructions on the `GitHub page <https://github.com/pandas-dev/pandas-stubs>`__.

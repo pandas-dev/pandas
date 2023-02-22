@@ -24,7 +24,6 @@ from .pandas_vb_common import (
 
 
 class ToNumeric:
-
     params = ["ignore", "coerce"]
     param_names = ["errors"]
 
@@ -45,7 +44,6 @@ class ToNumeric:
 
 
 class ToNumericDowncast:
-
     param_names = ["dtype", "downcast"]
     params = [
         [
@@ -153,7 +151,6 @@ class ToDatetimeYYYYMMDD:
 
 
 class ToDatetimeCacheSmallCount:
-
     params = ([True, False], [50, 500, 5000, 100000])
     param_names = ["cache", "count"]
 
@@ -223,7 +220,7 @@ class ToDatetimeFormat:
     def setup(self):
         N = 100000
         self.s = Series(["19MAY11", "19MAY11:00:00:00"] * N)
-        self.s2 = self.s.str.replace(":\\S+$", "")
+        self.s2 = self.s.str.replace(":\\S+$", "", regex=True)
 
         self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
         self.diff_offset = [
@@ -250,7 +247,6 @@ class ToDatetimeFormat:
 
 
 class ToDatetimeCache:
-
     params = [True, False]
     param_names = ["cache"]
 
@@ -307,7 +303,6 @@ class ToTimedelta:
 
 
 class ToTimedeltaErrors:
-
     params = ["coerce", "ignore"]
     param_names = ["errors"]
 

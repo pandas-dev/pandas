@@ -19,7 +19,7 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 _compression_to_extension = {
-    value: key for key, value in icom._extension_to_compression.items()
+    value: key for key, value in icom.extension_to_compression.items()
 }
 
 
@@ -282,38 +282,36 @@ def test_bzip_compression_level(obj, method):
 )
 def test_empty_archive_zip(suffix, archive):
     with tm.ensure_clean(filename=suffix) as path:
-        file = archive(path, "w")
-        file.close()
+        with archive(path, "w"):
+            pass
         with pytest.raises(ValueError, match="Zero files found"):
             pd.read_csv(path)
 
 
 def test_ambiguous_archive_zip():
     with tm.ensure_clean(filename=".zip") as path:
-        file = zipfile.ZipFile(path, "w")
-        file.writestr("a.csv", "foo,bar")
-        file.writestr("b.csv", "foo,bar")
-        file.close()
+        with zipfile.ZipFile(path, "w") as file:
+            file.writestr("a.csv", "foo,bar")
+            file.writestr("b.csv", "foo,bar")
         with pytest.raises(ValueError, match="Multiple files found in ZIP file"):
             pd.read_csv(path)
 
 
-def test_ambiguous_archive_tar():
-    with tm.ensure_clean_dir() as dir:
-        csvAPath = os.path.join(dir, "a.csv")
-        with open(csvAPath, "w") as a:
-            a.write("foo,bar\n")
-        csvBPath = os.path.join(dir, "b.csv")
-        with open(csvBPath, "w") as b:
-            b.write("foo,bar\n")
+def test_ambiguous_archive_tar(tmp_path):
+    csvAPath = tmp_path / "a.csv"
+    with open(csvAPath, "w") as a:
+        a.write("foo,bar\n")
+    csvBPath = tmp_path / "b.csv"
+    with open(csvBPath, "w") as b:
+        b.write("foo,bar\n")
 
-        tarpath = os.path.join(dir, "archive.tar")
-        with tarfile.TarFile(tarpath, "w") as tar:
-            tar.add(csvAPath, "a.csv")
-            tar.add(csvBPath, "b.csv")
+    tarpath = tmp_path / "archive.tar"
+    with tarfile.TarFile(tarpath, "w") as tar:
+        tar.add(csvAPath, "a.csv")
+        tar.add(csvBPath, "b.csv")
 
-        with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
-            pd.read_csv(tarpath)
+    with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
+        pd.read_csv(tarpath)
 
 
 def test_tar_gz_to_different_filename():

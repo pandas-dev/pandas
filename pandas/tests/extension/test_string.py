@@ -18,15 +18,12 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under2p0,
-    pa_version_under6p0,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -107,12 +104,16 @@ class TestDtype(base.BaseDtypeTests):
         assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
 
+    def test_is_not_string_type(self, dtype):
+        # Different from BaseDtypeTests.test_is_not_string_type
+        # because StringDtype is a string type
+        assert is_string_dtype(dtype)
+
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
 
@@ -121,12 +122,18 @@ class TestConstructors(base.BaseConstructorsTests):
         # base test uses string representation of dtype
         pass
 
+    def test_constructor_from_list(self):
+        # GH 27673
+        pytest.importorskip("pyarrow", minversion="1.0.0")
+        result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+        assert isinstance(result.dtype, StringDtype)
+        assert result.dtype.storage == "pyarrow"
+
 
 class TestReshaping(base.BaseReshapingTests):
     def test_transpose(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
 
@@ -137,8 +144,7 @@ class TestGetitem(base.BaseGetitemTests):
 class TestSetitem(base.BaseSetitemTests):
     def test_setitem_preserves_views(self, data, request):
         if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
 
@@ -148,13 +154,25 @@ class TestIndex(base.BaseIndexTests):
 
 class TestMissing(base.BaseMissingTests):
     def test_dropna_array(self, data_missing):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under6p0 and data_missing.dtype.storage == "pyarrow",
-        ):
-            result = data_missing.dropna()
+        result = data_missing.dropna()
         expected = data_missing[[1]]
         self.assert_extension_array_equal(result, expected)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data_missing.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestNoReduce(base.BaseNoReduceTests):
@@ -192,13 +210,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
-        if pa_version_under6p0 and data_missing_for_sorting.dtype.storage == "pyarrow":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
     @pytest.mark.parametrize(
@@ -217,17 +228,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
-        if (
-            pa_version_under6p0
-            and data_missing_for_sorting.dtype.storage == "pyarrow"
-            and skipna
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="min_max not supported in pyarrow",
-                )
-            )
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
@@ -320,26 +320,6 @@ class TestMethods(base.BaseMethodsTests):
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0 and getattr(data.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_unique(data, box, method)
-
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0
-            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_factorize_equivalence(data_for_grouping, na_sentinel)
-
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -383,7 +363,7 @@ class TestGroupBy(base.BaseGroupbyTests):
             _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
@@ -408,7 +388,21 @@ class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
     def arrow_not_supported(self, data, request):
         if isinstance(data, ArrowStringArray):
-            mark = pytest.mark.xfail(
-                reason="2D support not implemented for ArrowStringArray"
-            )
-            request.node.add_marker(mark)
+            pytest.skip(reason="2D support not implemented for ArrowStringArray")
+
+
+def test_searchsorted_with_na_raises(data_for_sorting, as_series):
+    # GH50447
+    b, c, a = data_for_sorting
+    arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
+    arr[-1] = pd.NA
+
+    if as_series:
+        arr = pd.Series(arr)
+
+    msg = (
+        "searchsorted requires array to be sorted, "
+        "which is impossible with NAs present."
+    )
+    with pytest.raises(ValueError, match=msg):
+        arr.searchsorted(b)

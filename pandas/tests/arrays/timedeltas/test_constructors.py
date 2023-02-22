@@ -51,11 +51,11 @@ class TestTimedeltaArrayConstructor:
     def test_copy(self):
         data = np.array([1, 2, 3], dtype="m8[ns]")
         arr = TimedeltaArray(data, copy=False)
-        assert arr._data is data
+        assert arr._ndarray is data
 
         arr = TimedeltaArray(data, copy=True)
-        assert arr._data is not data
-        assert arr._data.base is not data
+        assert arr._ndarray is not data
+        assert arr._ndarray.base is not data
 
     def test_from_sequence_dtype(self):
         msg = "dtype .*object.* cannot be converted to timedelta64"

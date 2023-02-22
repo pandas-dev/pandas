@@ -44,7 +44,7 @@ tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
 
 def test_apply_ticks():
-    result = offsets.Hour(3)._apply(offsets.Hour(4))
+    result = offsets.Hour(3) + offsets.Hour(4)
     exp = offsets.Hour(7)
     assert result == exp
 
@@ -74,7 +74,6 @@ def test_tick_add_sub(cls, n, m):
     expected = cls(n + m)
 
     assert left + right == expected
-    assert left._apply(right) == expected
 
     expected = cls(n - m)
     assert left - right == expected
@@ -90,11 +89,10 @@ def test_tick_equality(cls, n, m):
     left = cls(n)
     right = cls(m)
     assert left != right
-    assert not (left == right)
 
     right = cls(n)
     assert left == right
-    assert not (left != right)
+    assert not left != right
 
     if n != 0:
         assert cls(n) != cls(-n)
@@ -259,7 +257,7 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result.delta == off.delta / 1000
 
-    if cls._nanos_inc < Timedelta(seconds=1).value:
+    if cls._nanos_inc < Timedelta(seconds=1)._value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)

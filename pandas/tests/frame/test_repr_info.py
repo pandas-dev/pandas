@@ -3,7 +3,6 @@ from datetime import (
     timedelta,
 )
 from io import StringIO
-import warnings
 
 import numpy as np
 import pytest
@@ -206,9 +205,6 @@ NaT   4"""
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
 
-        warn_filters = warnings.filters
-        warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
-
         unsortable = DataFrame(
             {
                 "foo": [1] * 50,
@@ -230,8 +226,6 @@ NaT   4"""
         repr(float_frame)
 
         tm.reset_display_options()
-
-        warnings.filters = warn_filters
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
@@ -286,20 +280,23 @@ NaT   4"""
         with option_context("display.max_columns", 20):
             assert "StringCol" in repr(df)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
-        result = r"""\begin{tabular}{llll}
+        pytest.importorskip("jinja2")
+        expected = r"""\begin{tabular}{llll}
 \toprule
-{} &         0 &  1 &  2 \\
+ & 0 & 1 & 2 \\
 \midrule
-0 &  $\alpha$ &  b &  c \\
-1 &         1 &  2 &  3 \\
+0 & $\alpha$ & b & c \\
+1 & 1 & 2 & 3 \\
 \bottomrule
 \end{tabular}
 """
-        with option_context("display.latex.escape", False, "display.latex.repr", True):
+        with option_context(
+            "styler.format.escape", None, "styler.render.repr", "latex"
+        ):
             df = DataFrame([[r"$\alpha$", "b", "c"], [1, 2, 3]])
-            assert result == df._repr_latex_()
+            result = df._repr_latex_()
+            assert result == expected
 
         # GH 12182
         assert df._repr_latex_() is None
@@ -362,4 +359,18 @@ NaT   4"""
         expected = repr(df)
         df = df.iloc[:, :5]
         result = repr(df)
+        assert result == expected
+
+    def test_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = """      a     b
+0  0.12  1.00
+1  1.12  2.00"""
         assert result == expected

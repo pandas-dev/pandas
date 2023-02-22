@@ -26,7 +26,6 @@ class TestSeriesClip:
         assert isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
-
         sers = [
             Series([np.nan, 1.0, 2.0, 3.0]),
             Series([None, "a", "b", "c"]),
@@ -136,16 +135,4 @@ class TestSeriesClip:
         result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
         expected = Series([Timestamp.min, Timestamp.max], dtype="object")
 
-        tm.assert_series_equal(result, expected)
-
-    def test_clip_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.clip except "
-            r"for the arguments 'lower' and 'upper' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.clip(0, 1, 0)
-        expected = Series([1, 1, 1])
         tm.assert_series_equal(result, expected)

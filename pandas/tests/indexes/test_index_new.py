@@ -10,8 +10,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -31,14 +29,45 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
 
 
 class TestIndexConstructorInference:
+    def test_object_all_bools(self):
+        # GH#49594 match Series behavior on ndarray[object] of all bools
+        arr = np.array([True, False], dtype=object)
+        res = Index(arr)
+        assert res.dtype == object
+
+        # since the point is matching Series behavior, let's double check
+        assert Series(arr).dtype == object
+
+    def test_object_all_complex(self):
+        # GH#49594 match Series behavior on ndarray[object] of all complex
+        arr = np.array([complex(1), complex(2)], dtype=object)
+        res = Index(arr)
+        assert res.dtype == object
+
+        # since the point is matching Series behavior, let's double check
+        assert Series(arr).dtype == object
+
+    @pytest.mark.parametrize("val", [NaT, None, np.nan, float("nan")])
+    def test_infer_nat(self, val):
+        # GH#49340 all NaT/None/nan and at least 1 NaT -> datetime64[ns],
+        #  matching Series behavior
+        values = [NaT, val]
+
+        idx = Index(values)
+        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+
+        idx = Index(values[::-1])
+        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+
+        idx = Index(np.array(values, dtype=object))
+        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+
+        idx = Index(np.array(values, dtype=object)[::-1])
+        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+
     @pytest.mark.parametrize("na_value", [None, np.nan])
     @pytest.mark.parametrize("vtype", [list, tuple, iter])
     def test_construction_list_tuples_nan(self, na_value, vtype):
@@ -54,12 +83,7 @@ class TestIndexConstructorInference:
     )
     def test_constructor_int_dtype_float(self, dtype):
         # GH#18400
-        if is_unsigned_integer_dtype(dtype):
-            index_type = UInt64Index
-        else:
-            index_type = Int64Index
-
-        expected = index_type([0, 1, 2, 3])
+        expected = Index([0, 1, 2, 3], dtype=dtype)
         result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
         tm.assert_index_equal(result, expected)
 
@@ -256,9 +280,10 @@ class TestDtypeEnforced:
             np.array([1.0, 2.0, 3.0], dtype=float),
         ],
     )
-    def test_constructor_dtypes_to_int64(self, vals):
-        index = Index(vals, dtype=int)
-        assert isinstance(index, Int64Index)
+    def test_constructor_dtypes_to_int(self, vals, any_int_numpy_dtype):
+        dtype = any_int_numpy_dtype
+        index = Index(vals, dtype=dtype)
+        assert index.dtype == dtype
 
     @pytest.mark.parametrize(
         "vals",
@@ -270,9 +295,10 @@ class TestDtypeEnforced:
             np.array([1.0, 2.0, 3.0], dtype=float),
         ],
     )
-    def test_constructor_dtypes_to_float64(self, vals):
-        index = Index(vals, dtype=float)
-        assert isinstance(index, Float64Index)
+    def test_constructor_dtypes_to_float(self, vals, float_numpy_dtype):
+        dtype = float_numpy_dtype
+        index = Index(vals, dtype=dtype)
+        assert index.dtype == dtype
 
     @pytest.mark.parametrize(
         "vals",

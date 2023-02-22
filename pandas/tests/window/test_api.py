@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    DataError,
     SpecificationError,
-    UnsupportedFunctionCall,
 )
 
 from pandas import (
@@ -48,7 +48,6 @@ def test_select_bad_cols():
 
 
 def test_attribute_access():
-
     df = DataFrame([[1, 2]], columns=["A", "B"])
     r = df.rolling(window=5)
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
@@ -58,7 +57,6 @@ def test_attribute_access():
 
 
 def tests_skip_nuisance(step):
-
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
     result = r[["A", "B"]].sum()
@@ -69,18 +67,12 @@ def tests_skip_nuisance(step):
     tm.assert_frame_equal(result, expected)
 
 
-def test_skip_sum_object_raises(step):
+def test_sum_object_str_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
-    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#42738
-        result = r.sum()
-    expected = DataFrame(
-        {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
-        columns=list("AB"),
-    )[::step]
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(DataError, match="Cannot aggregate non-numeric type: object"):
+        # GH#42738, enforced in 2.0
+        r.sum()
 
 
 def test_agg(step):
@@ -143,7 +135,6 @@ def test_multi_axis_1_raises(func):
 
 
 def test_agg_apply(raw):
-
     # passed lambda
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
 
@@ -157,7 +148,6 @@ def test_agg_apply(raw):
 
 
 def test_agg_consistency(step):
-
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3, step=step)
 
@@ -175,7 +165,6 @@ def test_agg_consistency(step):
 
 
 def test_agg_nested_dicts():
-
     # API change for disallowing these types of nested dicts
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3)
@@ -340,19 +329,6 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     tm.assert_frame_equal(result, expected)
 
 
-def test_is_datetimelike_deprecated():
-    s = Series(range(1)).rolling(1)
-    with tm.assert_produces_warning(FutureWarning):
-        assert not s.is_datetimelike
-
-
-def test_validate_deprecated():
-    s = Series(range(1)).rolling(1)
-    with tm.assert_produces_warning(FutureWarning):
-        assert s.validate() is None
-
-
-@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
     arithmetic_win_operators, closed, center, min_periods, step
 ):
@@ -367,7 +343,6 @@ def test_dont_modify_attributes_after_methods(
 
 
 def test_centered_axis_validation(step):
-
     # ok
     Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
@@ -412,78 +387,3 @@ def test_rolling_max_min_periods(step):
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
         Series([1, 2, 3]).rolling(window=3, min_periods=5, step=step).max()
-
-
-@pytest.mark.parametrize(
-    "roll_type, class_name",
-    [
-        ("rolling", "Rolling"),
-        ("expanding", "Expanding"),
-        ("ewm", "ExponentialMovingWindow"),
-    ],
-)
-@pytest.mark.parametrize(
-    "kernel, has_args, raises",
-    [
-        ("sum", True, True),
-        ("max", True, True),
-        ("min", True, True),
-        ("mean", True, True),
-        ("median", False, False),
-        ("std", True, True),
-        ("var", True, True),
-        ("skew", False, False),
-        ("sem", True, True),
-        ("kurt", False, False),
-        ("quantile", False, False),
-        ("rank", False, False),
-        ("cov", False, False),
-        ("corr", False, False),
-    ],
-)
-def test_args_kwargs_depr(roll_type, class_name, kernel, has_args, raises):
-    # GH#47836
-    r = getattr(Series([2, 4, 6]), roll_type)(2)
-    error_msg = "numpy operations are not valid with window objects"
-    if kernel == "quantile":
-        required_args = (0.5,)
-    else:
-        required_args = ()
-
-    if roll_type == "ewm" and kernel not in (
-        "sum",
-        "mean",
-        "std",
-        "var",
-        "cov",
-        "corr",
-    ):
-        # kernels not implemented for ewm
-        with pytest.raises(AttributeError, match=f"has no attribute '{kernel}'"):
-            getattr(r, kernel)
-    else:
-        warn_msg = f"Passing additional kwargs to {class_name}.{kernel}"
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            if raises:
-                with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                    getattr(r, kernel)(*required_args, dtype=np.float64)
-            else:
-                getattr(r, kernel)(*required_args, dtype=np.float64)
-
-        if has_args:
-            warn_msg = f"Passing additional args to {class_name}.{kernel}"
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                # sem raises for rolling but not expanding
-                if raises and (roll_type != "expanding" or kernel != "sem"):
-                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                        getattr(r, kernel)(*required_args, 1, 2, 3, 4)
-                else:
-                    getattr(r, kernel)(*required_args, 1, 2, 3, 4)
-
-            warn_msg = f"Passing additional args and kwargs to {class_name}.{kernel}"
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                if raises:
-                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                        getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
-                else:
-                    getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)

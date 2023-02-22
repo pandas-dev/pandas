@@ -3,6 +3,10 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     AxisInt,
     Dtype,
@@ -12,7 +16,12 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
@@ -180,6 +189,17 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
+
+    def astype(self, dtype, copy: bool = True):
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        result = astype_array(self._ndarray, dtype=dtype, copy=copy)
+        return result
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
@@ -385,13 +405,17 @@ class PandasArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        result = np.asarray(self._ndarray, dtype=dtype)
+        mask = self.isna()
+        if na_value is not lib.no_default and mask.any():
+            result = self._ndarray.copy()
+            result[mask] = na_value
+        else:
+            result = self._ndarray
 
-        if (copy or na_value is not lib.no_default) and result is self._ndarray:
+        result = np.asarray(result, dtype=dtype)
+
+        if copy and result is self._ndarray:
             result = result.copy()
-
-        if na_value is not lib.no_default:
-            result[self.isna()] = na_value
 
         return result
 
@@ -439,10 +463,12 @@ class PandasArray(
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
         #  of a PandasArray
-        if result.dtype == "timedelta64[ns]":
+        if result.dtype.kind == "m" and is_supported_unit(
+            get_unit_from_dtype(result.dtype)
+        ):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(result)
+            return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
 
     # ------------------------------------------------------------------------

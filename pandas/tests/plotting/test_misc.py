@@ -11,14 +11,13 @@ from pandas import (
     Series,
     Timestamp,
     interval_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
 
 
 @td.skip_if_mpl
@@ -103,14 +102,12 @@ class TestDataFramePlots(TestPlotBase):
         if pass_axis:
             _, ax = self.plt.subplots(3, 3)
 
-        with tm.RNGContext(42):
-            df = DataFrame(np.random.randn(100, 3))
+        df = DataFrame(np.random.RandomState(42).randn(100, 3))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 scatter_matrix,
-                filterwarnings="always",
                 frame=df,
                 range_padding=0.1,
                 ax=ax,
@@ -128,7 +125,6 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 scatter_matrix,
-                filterwarnings="always",
                 frame=df,
                 range_padding=0.1,
                 ax=ax,

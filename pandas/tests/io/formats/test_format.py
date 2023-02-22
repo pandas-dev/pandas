@@ -5,12 +5,12 @@ from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 import itertools
 import locale
 from operator import methodcaller
-import os
 from pathlib import Path
 import re
 from shutil import get_terminal_size
@@ -22,11 +22,12 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import config
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -41,12 +42,11 @@ from pandas import (
     option_context,
     read_csv,
     reset_option,
-    set_option,
 )
 import pandas._testing as tm
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
 
@@ -56,6 +56,17 @@ def get_local_am_pm():
     am_local = time(1).strftime("%p")
     pm_local = time(13).strftime("%p")
     return am_local, pm_local
+
+
+@pytest.fixture(autouse=True)
+def clean_config():
+    curr_deprecated_options = config._deprecated_options.copy()
+    curr_registered_options = config._registered_options.copy()
+    curr_global_config = config._global_config.copy()
+    yield
+    config._deprecated_options = curr_deprecated_options
+    config._registered_options = curr_registered_options
+    config._global_config = curr_global_config
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -105,11 +116,6 @@ def assert_filepath_or_buffer_equals(
     return _assert_filepath_or_buffer_equals
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 def has_info_repr(df):
     r = repr(df)
     c1 = r.split("\n")[0].startswith("<class")
@@ -139,7 +145,7 @@ def has_horizontally_truncated_repr(df):
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
-    for ix, l in enumerate(r.splitlines()):
+    for ix, _ in enumerate(r.splitlines()):
         if not r.split()[cand_col] == "...":
             return False
     return True
@@ -170,7 +176,6 @@ def has_expanded_repr(df):
     return False
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
     def test_eng_float_formatter(self, float_frame):
         df = float_frame
@@ -198,8 +203,8 @@ class TestDataFrameFormatting:
         ],
     )
     def test_show_counts(self, row, columns, show_counts, result):
-
-        df = DataFrame(1, columns=range(10), index=range(10))
+        # Explicit cast to float to avoid implicit cast when setting nan
+        df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
         df.iloc[1, 1] = np.nan
 
         with option_context(
@@ -208,20 +213,6 @@ class TestDataFrameFormatting:
             with StringIO() as buf:
                 df.info(buf=buf, show_counts=show_counts)
                 assert ("non-null" in buf.getvalue()) is result
-
-    def test_show_null_counts_deprecation(self):
-        # GH37999
-        df = DataFrame(1, columns=range(10), index=range(10))
-        with tm.assert_produces_warning(
-            FutureWarning, match="null_counts is deprecated.+"
-        ):
-            buf = StringIO()
-            df.info(buf=buf, null_counts=True)
-            assert "non-null" in buf.getvalue()
-
-        # GH37999
-        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
-            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -252,14 +243,14 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
-    def test_repr_deprecation_negative_int(self):
-        # TODO(2.0): remove in future version after deprecation cycle
-        # Non-regression test for:
+    def test_max_colwidth_negative_int_raises(self):
+        # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
-        width = get_option("display.max_colwidth")
-        with tm.assert_produces_warning(FutureWarning):
-            set_option("display.max_colwidth", -1)
-        set_option("display.max_colwidth", width)
+        with pytest.raises(
+            ValueError, match="Value must be a nonnegative integer or None"
+        ):
+            with option_context("display.max_colwidth", -1):
+                pass
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
@@ -749,7 +740,6 @@ class TestDataFrameFormatting:
     def test_east_asian_unicode_true(self):
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
-
             # mid col
             df = DataFrame(
                 {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
@@ -865,7 +855,6 @@ class TestDataFrameFormatting:
 
             # truncate
             with option_context("display.max_rows", 3, "display.max_columns", 3):
-
                 df = DataFrame(
                     {
                         "a": ["あああああ", "い", "う", "えええ"],
@@ -985,7 +974,7 @@ class TestDataFrameFormatting:
                 if w == 20:
                     assert has_horizontally_truncated_repr(df)
                 else:
-                    assert not (has_horizontally_truncated_repr(df))
+                    assert not has_horizontally_truncated_repr(df)
             with option_context("display.max_rows", 15, "display.max_columns", 15):
                 if h == 20 and w == 20:
                     assert has_doubly_truncated_repr(df)
@@ -1002,17 +991,14 @@ class TestDataFrameFormatting:
             assert has_doubly_truncated_repr(df)
 
     def test_truncate_with_different_dtypes(self):
-
         # 11594, 12045
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1037,7 +1023,6 @@ class TestDataFrameFormatting:
         assert result.startswith(result2)
 
     def test_datetimelike_frame(self):
-
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
 
@@ -1139,11 +1124,10 @@ class TestDataFrameFormatting:
 
     def test_frame_info_encoding(self):
         index = ["'Til There Was You (1997)", "ldum klaka (Cold Fever) (1994)"]
-        fmt.set_option("display.max_rows", 1)
-        df = DataFrame(columns=["a", "b", "c"], index=index)
-        repr(df)
-        repr(df.T)
-        fmt.set_option("display.max_rows", 200)
+        with option_context("display.max_rows", 1):
+            df = DataFrame(columns=["a", "b", "c"], index=index)
+            repr(df)
+            repr(df.T)
 
     def test_wide_repr(self):
         with option_context(
@@ -1263,8 +1247,6 @@ class TestDataFrameFormatting:
             dtype="int64",
         )
 
-        import re
-
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
         assert nmatches == 1
@@ -1347,11 +1329,9 @@ class TestDataFrameFormatting:
         assert result == expected
 
     def test_to_string(self):
-
         # big mixed
         biggie = DataFrame(
             {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
-            index=np.arange(200),
         )
 
         biggie.loc[:20, "A"] = np.nan
@@ -1427,64 +1407,63 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
-        # GH 13998, GH 22505
+        # GH 13998, GH 22505, # GH 49230
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n 1  \\\n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n11  \\\n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x   \n 11  \\\n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
     def test_to_string_float_formatting(self):
         tm.reset_display_options()
-        fmt.set_option(
+        with option_context(
             "display.precision",
             5,
             "display.notebook_repr_html",
             False,
-        )
-
-        df = DataFrame(
-            {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
-        )
-
-        df_s = df.to_string()
-
-        if _three_digit_exp():
-            expected = (
-                "              x\n0  0.00000e+000\n1  2.50000e-001\n"
-                "2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n"
-                "5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n"
-                "8 -1.00000e+006"
+        ):
+            df = DataFrame(
+                {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
             )
-        else:
-            expected = (
-                "             x\n0  0.00000e+00\n1  2.50000e-01\n"
-                "2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n"
-                "5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n"
-                "8 -1.00000e+06"
-            )
-        assert df_s == expected
 
-        df = DataFrame({"x": [3234, 0.253]})
-        df_s = df.to_string()
+            df_s = df.to_string()
 
-        expected = "          x\n0  3234.000\n1     0.253"
-        assert df_s == expected
+            if _three_digit_exp():
+                expected = (
+                    "              x\n0  0.00000e+000\n1  2.50000e-001\n"
+                    "2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n"
+                    "5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n"
+                    "8 -1.00000e+006"
+                )
+            else:
+                expected = (
+                    "             x\n0  0.00000e+00\n1  2.50000e-01\n"
+                    "2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n"
+                    "5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n"
+                    "8 -1.00000e+06"
+                )
+            assert df_s == expected
+
+            df = DataFrame({"x": [3234, 0.253]})
+            df_s = df.to_string()
+
+            expected = "          x\n0  3234.000\n1     0.253"
+            assert df_s == expected
 
         tm.reset_display_options()
         assert get_option("display.precision") == 6
@@ -1499,7 +1478,6 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_float_format_no_fixed_width(self):
-
         # GH 21625
         df = DataFrame({"x": [0.19999]})
         expected = "      x\n0 0.200"
@@ -1699,6 +1677,20 @@ c  10  11  12  13  14\
         s = df.to_string(line_width=80)
         assert max(len(line) for line in s.split("\n")) == 80
 
+    def test_to_string_header_false(self):
+        # GH 49230
+        df = DataFrame([1, 2])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a   \n0  1\n1  2"
+        assert s == expected
+
+        df = DataFrame([[1, 2], [3, 4]])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a      \n0  1  2\n1  3  4"
+        assert s == expected
+
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
 
@@ -1763,19 +1755,19 @@ c  10  11  12  13  14\
         df = float_frame
         df._repr_html_()
 
-        fmt.set_option("display.max_rows", 1, "display.max_columns", 1)
-        df._repr_html_()
+        with option_context("display.max_rows", 1, "display.max_columns", 1):
+            df._repr_html_()
 
-        fmt.set_option("display.notebook_repr_html", False)
-        df._repr_html_()
+        with option_context("display.notebook_repr_html", False):
+            df._repr_html_()
 
         tm.reset_display_options()
 
         df = DataFrame([[1, 2], [3, 4]])
-        fmt.set_option("display.show_dimensions", True)
-        assert "2 rows" in df._repr_html_()
-        fmt.set_option("display.show_dimensions", False)
-        assert "2 rows" not in df._repr_html_()
+        with option_context("display.show_dimensions", True):
+            assert "2 rows" in df._repr_html_()
+        with option_context("display.show_dimensions", False):
+            assert "2 rows" not in df._repr_html_()
 
         tm.reset_display_options()
 
@@ -1832,7 +1824,6 @@ c  10  11  12  13  14\
 
     def test_repr_html_float(self):
         with option_context("display.max_rows", 60):
-
             max_rows = get_option("display.max_rows")
             h = max_rows - 1
             df = DataFrame(
@@ -1940,7 +1931,7 @@ c  10  11  12  13  14\
             assert not has_non_verbose_info_repr(df)
 
         # test verbose overrides
-        # fmt.set_option('display.max_info_columns', 4)  # exceeded
+        # set_option('display.max_info_columns', 4)  # exceeded
 
     def test_info_repr_html(self):
         max_rows = 60
@@ -1970,8 +1961,8 @@ c  10  11  12  13  14\
         repstr = df._repr_html_()
         assert repstr is not None
 
-        fmt.set_option("display.max_rows", 5, "display.max_columns", 2)
-        repstr = df._repr_html_()
+        with option_context("display.max_rows", 5, "display.max_columns", 2):
+            repstr = df._repr_html_()
 
         assert "class" in repstr  # info fallback
         tm.reset_display_options()
@@ -2292,7 +2283,6 @@ class TestSeriesFormatting:
 
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
-
             # unicode index
             s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
             expected = (
@@ -2417,7 +2407,6 @@ class TestSeriesFormatting:
                 assert "+10" in line
 
     def test_datetimeindex(self):
-
         index = date_range("20130102", periods=6)
         s = Series(1, index=index)
         result = s.to_string()
@@ -2458,12 +2447,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
@@ -2884,7 +2867,6 @@ class TestFloatArrayFormatter:
         # Precision was incorrectly shown
 
         with option_context("display.precision", 0):
-
             df_value = DataFrame(value)
             assert str(df_value) == expected
 
@@ -3103,7 +3085,6 @@ class TestDatetime64Formatter:
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
     def test_dates_display(self):
-
         # 10170
         # make sure that we are consistently display date formatting
         x = Series(date_range("20130101 09:00:00", periods=5, freq="D"))
@@ -3152,7 +3133,6 @@ class TestDatetime64Formatter:
         assert result == ["2016-01", "2016-02"]
 
     def test_datetime64formatter_hoursecond(self):
-
         x = Series(
             pd.to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")
         )
@@ -3428,7 +3408,6 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
-@td.check_file_leaks
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\
@@ -3445,7 +3424,6 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
-@pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",
@@ -3460,6 +3438,8 @@ def test_filepath_or_buffer_arg(
     filepath_or_buffer_id,
 ):
     df = DataFrame([data])
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
 
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
@@ -3467,25 +3447,18 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        expected_warning = FutureWarning if method == "to_latex" else None
-        with tm.assert_produces_warning(expected_warning):
-            with pytest.raises(LookupError, match="unknown encoding"):
-                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        with pytest.raises(LookupError, match="unknown encoding"):
+            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
         assert_filepath_or_buffer_equals(expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
-
-
-def test_col_space_deprecated():
-    # GH 7576
-    with tm.assert_produces_warning(FutureWarning, match="column_space is"):
-        set_option("display.column_space", 11)

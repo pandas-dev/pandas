@@ -140,37 +140,35 @@ def test_getitem_setitem_datetimeindex():
     msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
     naive = datetime(1990, 1, 1, 4)
     for key in [naive, Timestamp(naive), np.datetime64(naive, "ns")]:
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#36148 will require tzawareness compat
-            result = ts[key]
-        expected = ts[4]
-        assert result == expected
+        with pytest.raises(KeyError, match=re.escape(repr(key))):
+            # GH#36148 as of 2.0 we require tzawareness-compat
+            ts[key]
 
     result = ts.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result[datetime(1990, 1, 1, 4)] = 0
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result[datetime(1990, 1, 1, 4)] = ts[4]
-    tm.assert_series_equal(result, ts)
+    # GH#36148 as of 2.0 we do not ignore tzawareness mismatch in indexing,
+    #  so setting it as a new key casts to object rather than matching
+    #  rng[4]
+    result[naive] = ts[4]
+    assert result.index.dtype == object
+    tm.assert_index_equal(result.index[:-1], rng.astype(object))
+    assert result.index[-1] == naive
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
-    expected = ts[4:8]
-    tm.assert_series_equal(result, expected)
+    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    with pytest.raises(TypeError, match=msg):
+        # GH#36148 require tzawareness compat as of 2.0
+        ts[naive : datetime(1990, 1, 1, 7)]
 
     result = ts.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
+    with pytest.raises(TypeError, match=msg):
+        # GH#36148 require tzawareness compat as of 2.0
+        result[naive : datetime(1990, 1, 1, 7)] = 0
+    with pytest.raises(TypeError, match=msg):
+        # GH#36148 require tzawareness compat as of 2.0
+        result[naive : datetime(1990, 1, 1, 7)] = 99
+    # the __setitems__ here failed, so result should still match ts
     tm.assert_series_equal(result, ts)
 
-    lb = datetime(1990, 1, 1, 4)
+    lb = naive
     rb = datetime(1990, 1, 1, 7)
     msg = r"Invalid comparison between dtype=datetime64\[ns, US/Eastern\] and datetime"
     with pytest.raises(TypeError, match=msg):
@@ -178,7 +176,7 @@ def test_getitem_setitem_datetimeindex():
         # see GH#18376, GH#18162
         ts[(ts.index >= lb) & (ts.index <= rb)]
 
-    lb = Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+    lb = Timestamp(naive).tz_localize(rng.tzinfo)
     rb = Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
     result = ts[(ts.index >= lb) & (ts.index <= rb)]
     expected = ts[4:8]
@@ -209,7 +207,6 @@ def test_getitem_setitem_datetimeindex():
 
 
 def test_getitem_setitem_periodindex():
-
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
     ts = Series(np.random.randn(N), index=rng)
@@ -254,7 +251,6 @@ def test_getitem_setitem_periodindex():
 
 
 def test_datetime_indexing():
-
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
 
@@ -276,9 +272,7 @@ def test_datetime_indexing():
     assert s[stamp] == 0
 
 
-"""
-test duplicates in time series
-"""
+# test duplicates in time series
 
 
 def test_indexing_with_duplicate_datetimeindex(
@@ -373,7 +367,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-
         expected = ts[t]
         result = ts2[t]
         assert expected == result
@@ -387,7 +380,7 @@ def test_indexing_unordered():
         tm.assert_series_equal(result, expected)
 
     compare(slice("2011-01-01", "2011-01-15"))
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(KeyError, match="Value based partial slicing on non-monotonic"):
         compare(slice("2010-12-30", "2011-01-15"))
     compare(slice("2011-01-01", "2011-01-16"))
 
@@ -404,7 +397,6 @@ def test_indexing_unordered():
 
 
 def test_indexing_unordered2():
-
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
     ts = Series(np.arange(len(rng)), index=rng)
@@ -426,10 +418,11 @@ def test_indexing():
     expected.name = "A"
 
     df = DataFrame({"A": ts})
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36179 string indexing on rows for DataFrame deprecated
-        result = df["2001"]["A"]
-    tm.assert_series_equal(expected, result)
+
+    # GH#36179 pre-2.0 df["2001"] operated as slicing on rows. in 2.0 it behaves
+    #  like any other key, so raises
+    with pytest.raises(KeyError, match="2001"):
+        df["2001"]
 
     # setting
     ts["2001"] = 1
@@ -438,10 +431,8 @@ def test_indexing():
 
     df.loc["2001", "A"] = 1
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36179 string indexing on rows for DataFrame deprecated
-        result = df["2001"]["A"]
-    tm.assert_series_equal(expected, result)
+    with pytest.raises(KeyError, match="2001"):
+        df["2001"]
 
 
 def test_getitem_str_month_with_datetimeindex():
@@ -479,6 +470,6 @@ def test_getitem_str_second_with_datetimeindex():
     with pytest.raises(KeyError, match=r"^'2012-01-02 18:01:02'$"):
         df["2012-01-02 18:01:02"]
 
-    msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
+    msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]

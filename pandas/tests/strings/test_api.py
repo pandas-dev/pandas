@@ -6,16 +6,14 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
-    get_option,
 )
-from pandas.core import strings as strings
+from pandas.core.strings.accessor import StringMethods
 
 
 def test_api(any_string_dtype):
-
     # GH 6106, GH 9322
-    assert Series.str is strings.StringMethods
-    assert isinstance(Series([""], dtype=any_string_dtype).str, strings.StringMethods)
+    assert Series.str is StringMethods
+    assert isinstance(Series([""], dtype=any_string_dtype).str, StringMethods)
 
 
 def test_api_mi_raises():
@@ -45,7 +43,7 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
     ]
     if inferred_dtype in types_passing_constructor:
         # GH 6106
-        assert isinstance(t.str, strings.StringMethods)
+        assert isinstance(t.str, StringMethods)
     else:
         # GH 9184, GH 23011, GH 23163
         msg = "Can only use .str accessor with string values.*"
@@ -125,20 +123,12 @@ def test_api_per_method(
             method(*args, **kwargs)
 
 
-def test_api_for_categorical(any_string_method, any_string_dtype, request):
+def test_api_for_categorical(any_string_method, any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/10661
-
-    if any_string_dtype == "string[pyarrow]" or (
-        any_string_dtype == "string" and get_option("string_storage") == "pyarrow"
-    ):
-        # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason="Not Implemented")
-        request.node.add_marker(mark)
-
     s = Series(list("aabb"), dtype=any_string_dtype)
     s = s + " " + s
     c = s.astype("category")
-    assert isinstance(c.str, strings.StringMethods)
+    assert isinstance(c.str, StringMethods)
 
     method_name, args, kwargs = any_string_method
 

@@ -39,11 +39,6 @@ from pandas.core.indexes.period import (
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
 
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
-
 from pandas.tseries.offsets import WeekOfMonth
 
 
@@ -133,7 +128,6 @@ class TestTSPlot(TestPlotBase):
         assert color == ax.get_lines()[0].get_color()
 
     def test_both_style_and_color(self):
-
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
@@ -265,7 +259,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_uhf(self):
         import pandas.plotting._matplotlib.converter as conv
 
@@ -653,7 +647,6 @@ class TestTSPlot(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_secondary_kde(self):
-
         ser = Series(np.random.randn(10))
         fig, ax = self.plt.subplots()
         ax = ser.plot(secondary_y=True, kind="density", ax=ax)
@@ -774,7 +767,6 @@ class TestTSPlot(TestPlotBase):
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
     def test_mixed_freq_lf_first(self):
-
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="M")
         high = Series(np.random.randn(len(idxh)), idxh)
@@ -808,7 +800,6 @@ class TestTSPlot(TestPlotBase):
         ps.plot(ax=ax)
 
     def test_mixed_freq_shared_ax(self):
-
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="M")
         idx2 = idx1[:1].union(idx1[2:])
@@ -841,7 +832,6 @@ class TestTSPlot(TestPlotBase):
         #         ax2.lines[0].get_xydata()[0, 0])
 
     def test_nat_handling(self):
-
         _, ax = self.plt.subplots()
 
         dti = DatetimeIndex(["2015-01-01", NaT, "2015-01-03"])
@@ -1026,10 +1016,10 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1050,10 +1040,10 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1067,10 +1057,10 @@ class TestTSPlot(TestPlotBase):
         # check tick labels again
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if s != 0:
                     xp = time(h, m, s).strftime("%H:%M:%S")
@@ -1091,13 +1081,13 @@ class TestTSPlot(TestPlotBase):
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for t, l in zip(ticks, labels):
-            m, s = divmod(int(t), 60)
+        for _tick, _label in zip(ticks, labels):
+            m, s = divmod(int(_tick), 60)
 
-            us = round((t - int(t)) * 1e6)
+            us = round((_tick - int(_tick)) * 1e6)
 
             h, m = divmod(m, 60)
-            rs = l.get_text()
+            rs = _label.get_text()
             if len(rs) > 0:
                 if (us % 1000) != 0:
                     xp = time(h, m, s, us).strftime("%H:%M:%S.%f")
@@ -1215,7 +1205,7 @@ class TestTSPlot(TestPlotBase):
         # TODO: color cycle problems
         assert len(colors) == 4
 
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_format_date_axis(self):
         rng = date_range("1/1/2012", periods=12, freq="M")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
@@ -1343,7 +1333,6 @@ class TestTSPlot(TestPlotBase):
         ax.plot(values)
 
     def test_format_timedelta_ticks_narrow(self):
-
         expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")

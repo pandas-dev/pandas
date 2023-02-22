@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import (
     Any,
     TypeVar,
+    cast,
     overload,
 )
 
@@ -159,8 +160,8 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    # error: Incompatible return value type (got "int", expected "bool")
-    return ascending  # type: ignore[return-value]
+    ascending = cast(bool, ascending)
+    return ascending
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}
@@ -335,51 +336,6 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_window_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .{name}() directly instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_rolling_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .rolling(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_expanding_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .expanding(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
 def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed kwargs because all
@@ -412,8 +368,7 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
                 "numpy operations are not valid with resample. "
                 f"Use .resample(...).{method}() instead"
             )
-        else:
-            raise TypeError("too many arguments passed in")
+        raise TypeError("too many arguments passed in")
 
 
 def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:

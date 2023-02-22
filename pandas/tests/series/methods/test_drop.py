@@ -5,6 +5,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import is_bool_dtype
 
 
 @pytest.mark.parametrize(
@@ -23,7 +24,6 @@ import pandas._testing as tm
 def test_drop_unique_and_non_unique_index(
     data, index, axis, drop_labels, expected_data, expected_index
 ):
-
     ser = Series(data=data, index=index)
     result = ser.drop(drop_labels, axis=axis)
     expected = Series(data=expected_data, index=expected_index)
@@ -57,7 +57,7 @@ def test_drop_with_ignore_errors():
 
     # GH 8522
     ser = Series([2, 3], index=[True, False])
-    assert not ser.index.is_object()
+    assert is_bool_dtype(ser.index)
     assert ser.index.dtype == bool
     result = ser.drop(True)
     expected = Series([3], index=[False])
@@ -88,19 +88,6 @@ def test_drop_non_empty_list(data, index, drop_labels):
     ser = Series(data=data, index=index, dtype=dtype)
     with pytest.raises(KeyError, match="not found in axis"):
         ser.drop(drop_labels)
-
-
-def test_drop_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    ser = Series([1, 2, 3])
-    msg = (
-        r"In a future version of pandas all arguments of Series\.drop "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = ser.drop(1, 0)
-    expected = Series([1, 3], index=[0, 2])
-    tm.assert_series_equal(result, expected)
 
 
 def test_drop_index_ea_dtype(any_numeric_ea_dtype):

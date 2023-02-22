@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import datetime
-import inspect
 import struct
 import warnings
 
@@ -261,7 +260,6 @@ class XportReader(ReaderBase, abc.Iterator):
         chunksize=None,
         compression: CompressionOptions = "infer",
     ) -> None:
-
         self._encoding = encoding
         self._lines_read = 0
         self._index = index
@@ -416,7 +414,7 @@ class XportReader(ReaderBase, abc.Iterator):
         if total_records_length % 80 != 0:
             warnings.warn(
                 "xport file may be corrupted.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if self.record_length > 80:
@@ -469,7 +467,6 @@ class XportReader(ReaderBase, abc.Iterator):
 
     @Appender(_read_method_doc)
     def read(self, nrows: int | None = None) -> pd.DataFrame:
-
         if nrows is None:
             nrows = self.nobs
 
