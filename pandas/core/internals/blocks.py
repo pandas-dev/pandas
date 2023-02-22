@@ -1397,10 +1397,12 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
-    def round(self, decimals, using_cow=False) -> Block:
+    def round(self, decimals: int, using_cow: bool = False) -> Block:
         """
         Rounds the values.
-        If the block is not of an integer or float dtype, nothing happens
+        If the block is not of an integer or float dtype, nothing happens.
+        This is consistent with DataFrame.round behavivor.
+        (Note: Series.round would raise)
 
         Parameters
         ----------
