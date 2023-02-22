@@ -19,50 +19,30 @@ from scripts.validate_min_versions_in_sync import (
 @pytest.mark.parametrize(
     "src_toml, src_yaml, expected_yaml",
     [
-        (  # random
-            pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_1.yaml"
-            ),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_expected_file_1.yaml"
-            ),
+        (
+            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
+            pathlib.Path("scripts/tests/data/deps_unmodified_random.yaml"),
+            pathlib.Path("scripts/tests/data/deps_expected_random.yaml"),
         ),
-        (  # same version
-            pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_2.yaml"
-            ),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_expected_file_2.yaml"
-            ),
+        (
+            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
+            pathlib.Path("scripts/tests/data/deps_unmodified_same_version.yaml"),
+            pathlib.Path("scripts/tests/data/deps_expected_same_version.yaml"),
         ),
-        (  # duplicate package
-            pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_3.yaml"
-            ),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_expected_file_3.yaml"
-            ),
+        (
+            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
+            pathlib.Path("scripts/tests/data/deps_unmodified_duplicate_package.yaml"),
+            pathlib.Path("scripts/tests/data/deps_expected_duplicate_package.yaml"),
         ),
-        (  # empty version
-            pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_4.yaml"
-            ),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_expected_file_4.yaml"
-            ),
+        (
+            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
+            pathlib.Path("scripts/tests/data/deps_unmodified_no_version.yaml"),
+            pathlib.Path("scripts/tests/data/deps_expected_no_version.yaml"),
         ),
-        (  # range
-            pathlib.Path("scripts/tests/dummy_test_files/dummy_toml_file.toml"),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_unmodified_file_5.yaml"
-            ),
-            pathlib.Path(
-                "scripts/tests/dummy_test_files/dummy_yaml_expected_file_5.yaml"
-            ),
+        (
+            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
+            pathlib.Path("scripts/tests/data/deps_unmodified_range.yaml"),
+            pathlib.Path("scripts/tests/data/deps_expected_range.yaml"),
         ),
     ],
 )
