@@ -386,10 +386,12 @@ class TestCommon:
             # imaginary components discarded
             warn = np.ComplexWarning
 
+        is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
                 warn,
+                raise_on_extra_warnings=is_pyarrow_str,
                 check_stacklevel=False,
             ):
                 result = index.astype(dtype)

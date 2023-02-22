@@ -570,10 +570,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
         if null_placement is None:
-            fallback_performancewarning()
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
