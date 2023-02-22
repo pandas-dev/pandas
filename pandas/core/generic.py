@@ -6963,6 +6963,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
+    def downcast(self: NDFrameT, dtype: Literal["infer"] | DtypeArg) -> NDFrameT:
+        if self.ndim == 1:
+            new_data = self._mgr.downcast(dtype)
+            return self._constructor(new_data).__finalize__(self, method="downcast")
+        if isinstance(dtype, dict):
+            # Don't make an actual copy since setitem does not write into array
+            result = self.copy(deep=False)
+            for key, val in dtype.items():
+                if key in result.columns:
+                    result[key] = result[key].downcast(dtype=val)
+        else:
+            new_data = self._mgr.downcast(dtype)
+            result = self._constructor(new_data)
+        return result.__finalize__(self, method="downcast")
+
     @overload
     def ffill(
         self: NDFrameT,

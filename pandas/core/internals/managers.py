@@ -429,6 +429,9 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
+    def downcast(self: T, dtype) -> T:
+        return self.apply("downcast", dtype=dtype, using_cow=using_copy_on_write())
+
     def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
         if copy is None:
             if using_copy_on_write():

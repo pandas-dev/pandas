@@ -5069,6 +5069,10 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
+    @doc(NDFrame.downcast, **_shared_doc_kwargs)
+    def downcast(self, dtype: Literal["infer"] | Dtype) -> Series:
+        return super().downcast(dtype)
+
     def pop(self, item: Hashable) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.

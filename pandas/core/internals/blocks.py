@@ -422,6 +422,10 @@ class Block(PandasObject):
         return self.astype(new_dtype, copy=False)
 
     @final
+    def downcast(self, dtype: DtypeObj, using_cow: bool = False) -> list[Block]:
+        return self._maybe_downcast([self], downcast=dtype, using_cow=using_cow)
+
+    @final
     def _maybe_downcast(
         self, blocks: list[Block], downcast=None, using_cow: bool = False
     ) -> list[Block]:

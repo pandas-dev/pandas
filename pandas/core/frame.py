@@ -66,6 +66,7 @@ from pandas._typing import (
     CorrelationMethod,
     DropKeep,
     Dtype,
+    DtypeArg,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -5474,6 +5475,9 @@ class DataFrame(NDFrame, OpsMixin):
             limit=limit,
             downcast=downcast,
         )
+
+    def downcast(self, dtype: Literal["infer"] | DtypeArg) -> DataFrame:
+        return super().downcast(dtype)
 
     def pop(self, item: Hashable) -> Series:
         """
