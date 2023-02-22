@@ -98,7 +98,6 @@ def s3_base(worker_id):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             ) as proc:
-
                 timeout = 5
                 while timeout > 0:
                     try:

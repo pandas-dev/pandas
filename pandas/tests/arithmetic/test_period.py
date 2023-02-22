@@ -42,7 +42,6 @@ class TestPeriodArrayLikeComparisons:
 
     @pytest.mark.parametrize("other", ["2017", Period("2017", freq="D")])
     def test_eq_scalar(self, other, box_with_array):
-
         idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
         idx = tm.box_expected(idx, box_with_array)
         xbox = get_upcast_box(idx, other, True)
@@ -1463,7 +1462,6 @@ class TestPeriodIndexSeriesMethods:
         self._check(idx + 3, lambda x: np.subtract(x, 3), idx)
 
     def test_pi_ops_array_int(self):
-
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
@@ -1574,7 +1572,7 @@ class TestPeriodIndexSeriesMethods:
         assert result.freq == exp.freq
 
     def test_pi_sub_pdnat(self):
-        # GH#13071
+        # GH#13071, GH#19389
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )

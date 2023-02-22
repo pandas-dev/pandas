@@ -899,7 +899,7 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         ser = ser.astype(object)
-        ser.values[0] = np.timedelta64(4, "ns")
+        ser.iloc[0] = np.timedelta64(4, "ns")
         return ser
 
     @pytest.fixture

@@ -86,16 +86,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
-        pandas.Series.dtype \
-        pandas.Series.shape \
-        pandas.Series.nbytes \
-        pandas.Series.ndim \
-        pandas.Series.size \
-        pandas.Series.T \
         pandas.Series.hasnans \
-        pandas.Series.dtypes \
-        pandas.Series.to_period \
-        pandas.Series.to_timestamp \
         pandas.Series.to_list \
         pandas.Series.__iter__ \
         pandas.Series.keys \
@@ -222,7 +213,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
-        pandas.Period.to_timestamp \
         pandas.arrays.PeriodArray \
         pandas.Interval.closed \
         pandas.Interval.left \
@@ -566,7 +556,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.first_valid_index \
         pandas.DataFrame.last_valid_index \
-        pandas.DataFrame.to_timestamp \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.sparse.density \
@@ -579,41 +568,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
         pandas.DataFrame.plot.line \
-        pandas.Period.strftime \
-        pandas.Series.floordiv \
         pandas.Series.plot.line \
-        pandas.Series.rfloordiv \
-        pandas.Series.sparse.density \
-        pandas.Series.sparse.npoints \
-        pandas.Series.sparse.sp_values \
-        pandas.Timestamp.fromtimestamp \
         pandas.api.types.infer_dtype \
         pandas.api.types.is_datetime64_any_dtype \
-        pandas.api.types.is_datetime64_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
-        pandas.api.types.is_float_dtype \
-        pandas.api.types.is_int64_dtype \
         pandas.api.types.is_integer_dtype \
-        pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_numeric_dtype \
-        pandas.api.types.is_object_dtype \
-        pandas.api.types.is_period_dtype \
-        pandas.api.types.is_signed_integer_dtype \
         pandas.api.types.is_sparse \
         pandas.api.types.is_string_dtype \
-        pandas.api.types.is_timedelta64_dtype \
-        pandas.api.types.is_timedelta64_ns_dtype \
         pandas.api.types.is_unsigned_integer_dtype \
-        pandas.core.groupby.DataFrameGroupBy.take \
-        pandas.core.groupby.SeriesGroupBy.take \
-        pandas.io.formats.style.Styler.concat \
-        pandas.io.formats.style.Styler.export \
-        pandas.io.formats.style.Styler.set_td_classes \
-        pandas.io.formats.style.Styler.use \
-        pandas.io.json.build_table_schema \
-        pandas.merge_ordered \
-        pandas.option_context \
         pandas.plotting.andrews_curves \
         pandas.plotting.autocorrelation_plot \
         pandas.plotting.lag_plot \

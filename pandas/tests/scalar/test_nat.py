@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -43,7 +44,6 @@ from pandas.core.ops import roperator
     ],
 )
 def test_nat_fields(nat, idx):
-
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
@@ -57,7 +57,6 @@ def test_nat_fields(nat, idx):
         assert np.isnan(result)
 
     for field in idx._bool_ops:
-
         result = getattr(NaT, field)
         assert result is False
 
@@ -97,20 +96,11 @@ def test_nat_vector_field_access():
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
+@pytest.mark.parametrize(
+    "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
+)
 def test_identity(klass, value):
     assert klass(value) is NaT
-
-
-@pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value, request):
-    if klass is Period and value == "":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Period cannot parse empty string")
-        )
-
-    assert klass(value)._value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])
@@ -535,27 +525,24 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        pytest.param(
-            Timedelta(0).to_timedelta64(),
-            marks=pytest.mark.xfail(
-                reason="td64 doesn't return NotImplemented, see numpy#17017"
-            ),
-        ),
+        Timedelta(0).to_timedelta64(),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        pytest.param(
-            Timestamp(0).to_datetime64(),
-            marks=pytest.mark.xfail(
-                reason="dt64 doesn't return NotImplemented, see numpy#17017"
-            ),
-        ),
+        Timestamp(0).to_datetime64(),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
 )
-def test_nat_comparisons(compare_operators_no_eq_ne, other):
+def test_nat_comparisons(compare_operators_no_eq_ne, other, request):
     # GH 26039
     opname = compare_operators_no_eq_ne
+    if isinstance(other, (np.datetime64, np.timedelta64)) and (
+        opname in ["__eq__", "__ne__"] or not is_numpy_dev
+    ):
+        mark = pytest.mark.xfail(
+            reason="dt64/td64 don't return NotImplemented, see numpy#17017",
+        )
+        request.node.add_marker(mark)
 
     assert getattr(NaT, opname)(other) is False
 

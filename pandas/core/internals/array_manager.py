@@ -169,6 +169,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
+    def add_references(self, mgr: BaseArrayManager) -> None:
+        """
+        Only implemented on the BlockManager level
+        """
+        return
+
     def __getstate__(self):
         return self.arrays, self._axes
 
@@ -219,9 +225,7 @@ class BaseArrayManager(DataManager):
             f = kwargs.pop("func")
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -263,7 +267,6 @@ class BaseArrayManager(DataManager):
         result_arrays = []
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -357,7 +360,6 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -628,28 +630,23 @@ class BaseArrayManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> T:
         """
         Take items along any axis.
         """
-        axis = self._normalize_axis(axis)
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
-        )
+        axis = self._normalize_axis(axis)
 
         if not indexer.ndim == 1:
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -815,7 +812,6 @@ class ArrayManager(BaseArrayManager):
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
@@ -983,14 +979,10 @@ class ArrayManager(BaseArrayManager):
             # TODO NaT doesn't preserve dtype, so we need to ensure to create
             # a timedelta result array if original was timedelta
             # what if datetime results in timedelta? (eg std)
-            if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
-                result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
-            else:
-                # error: Argument 1 to "append" of "list" has incompatible type
-                # "ExtensionArray"; expected "ndarray"
-                result_arrays.append(
-                    sanitize_array([res], None)  # type: ignore[arg-type]
-                )
+            dtype = arr.dtype if res is NaT else None
+            result_arrays.append(
+                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+            )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items
@@ -1020,7 +1012,6 @@ class ArrayManager(BaseArrayManager):
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
-
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [
@@ -1146,7 +1137,6 @@ class ArrayManager(BaseArrayManager):
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
-
     __slots__ = [
         "_axes",  # private attribute, because 'axes' has different order, see below
         "arrays",
