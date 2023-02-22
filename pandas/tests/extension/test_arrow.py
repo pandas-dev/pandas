@@ -301,9 +301,9 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif (
-            pa_version_under11p0 and pa.types.is_duration(pa_dtype)
-        ) or pa.types.is_decimal(pa_dtype):
+        elif pa_version_under11p0 and (
+            pa.types.is_duration(pa_dtype) or pa.types.is_decimal(pa_dtype)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
