@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -437,12 +436,7 @@ class TestCommon:
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            index_with_missing.sort_values(na_position=na_position)
+        index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
