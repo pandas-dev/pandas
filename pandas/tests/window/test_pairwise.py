@@ -168,7 +168,6 @@ def test_rolling_corr_diff_length():
     ],
 )
 def test_rolling_functions_window_non_shrinkage_binary(f):
-
     # corr/cov return a MI DataFrame
     df = DataFrame(
         [[1, 5], [3, 2], [3, 9], [-1, 0]],
@@ -192,7 +191,6 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-
     df1 = DataFrame()
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")
@@ -212,11 +210,9 @@ def test_moment_functions_zero_length_pairwise(f):
 
 
 class TestPairwise:
-
     # GH 7738
     @pytest.mark.parametrize("f", [lambda x: x.cov(), lambda x: x.corr()])
     def test_no_flex(self, pairwise_frames, pairwise_target_frame, f):
-
         # DataFrame methods (which do not call flex_binary_moment())
 
         result = f(pairwise_frames)
@@ -242,7 +238,6 @@ class TestPairwise:
         ],
     )
     def test_pairwise_with_self(self, pairwise_frames, pairwise_target_frame, f):
-
         # DataFrame with itself, pairwise=True
         # note that we may construct the 1st level of the MI
         # in a non-monotonic way, so compare accordingly
@@ -275,7 +270,6 @@ class TestPairwise:
         ],
     )
     def test_no_pairwise_with_self(self, pairwise_frames, pairwise_target_frame, f):
-
         # DataFrame with itself, pairwise=False
         result = f(pairwise_frames)
         tm.assert_index_equal(result.index, pairwise_frames.index)
@@ -302,7 +296,6 @@ class TestPairwise:
     def test_pairwise_with_other(
         self, pairwise_frames, pairwise_target_frame, pairwise_other_frame, f
     ):
-
         # DataFrame with another DataFrame, pairwise=True
         result = f(pairwise_frames, pairwise_other_frame)
         tm.assert_index_equal(
@@ -332,7 +325,6 @@ class TestPairwise:
         ],
     )
     def test_no_pairwise_with_other(self, pairwise_frames, pairwise_other_frame, f):
-
         # DataFrame with another DataFrame, pairwise=False
         result = (
             f(pairwise_frames, pairwise_other_frame)
@@ -367,7 +359,6 @@ class TestPairwise:
         ],
     )
     def test_pairwise_with_series(self, pairwise_frames, pairwise_target_frame, f):
-
         # DataFrame with a Series
         result = f(pairwise_frames, Series([1, 1, 3, 8]))
         tm.assert_index_equal(result.index, pairwise_frames.index)

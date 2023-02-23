@@ -14,6 +14,7 @@ from typing import (
     ContextManager,
     Counter,
     Iterable,
+    cast,
 )
 
 import numpy as np
@@ -121,6 +122,7 @@ if TYPE_CHECKING:
         PeriodIndex,
         TimedeltaIndex,
     )
+    from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
 _K = 4
@@ -213,6 +215,7 @@ if not pa_version_under7p0:
     FLOAT_PYARROW_DTYPES_STR_REPR = [
         str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
     ]
+    DECIMAL_PYARROW_DTYPES = [pa.decimal128(7, 3)]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -237,6 +240,7 @@ if not pa_version_under7p0:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + DECIMAL_PYARROW_DTYPES
         + STRING_PYARROW_DTYPES
         + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
@@ -1019,11 +1023,11 @@ def shares_memory(left, right) -> bool:
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
+        left = cast("ArrowExtensionArray", left)
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
-            # error: "ExtensionArray" has no attribute "_data"
-            left_pa_data = left._data  # type: ignore[attr-defined]
-            # error: "ExtensionArray" has no attribute "_data"
-            right_pa_data = right._data  # type: ignore[attr-defined]
+            right = cast("ArrowExtensionArray", right)
+            left_pa_data = left._data
+            right_pa_data = right._data
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1

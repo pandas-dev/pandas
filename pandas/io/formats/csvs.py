@@ -245,7 +245,6 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
-
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
                 handles.handle,

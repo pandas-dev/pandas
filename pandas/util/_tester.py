@@ -15,7 +15,7 @@ def test(extra_args: list[str] | None = None) -> None:
     """
     Run the pandas test suite using pytest.
 
-    By default, runs with the marks --skip-slow, --skip-network, --skip-db
+    By default, runs with the marks -m "not slow and not network and not db"
 
     Parameters
     ----------
@@ -24,7 +24,7 @@ def test(extra_args: list[str] | None = None) -> None:
     """
     pytest = import_optional_dependency("pytest")
     import_optional_dependency("hypothesis")
-    cmd = ["--skip-slow", "--skip-network", "--skip-db"]
+    cmd = ['-m "not slow and not network and not db"']
     if extra_args:
         if not isinstance(extra_args, list):
             extra_args = [extra_args]

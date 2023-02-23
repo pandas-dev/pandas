@@ -37,6 +37,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     check_dts_bounds,
     convert_reso,
+    get_conversion_factor,
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
@@ -83,9 +84,9 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # Unit Conversion Helpers
 
 cdef int64_t cast_from_unit(
-        object ts,
-        str unit,
-        NPY_DATETIMEUNIT out_reso=NPY_FR_ns
+    object ts,
+    str unit,
+    NPY_DATETIMEUNIT out_reso=NPY_FR_ns
 ) except? -1:
     """
     Return a casting of the unit represented to nanoseconds
@@ -105,10 +106,6 @@ cdef int64_t cast_from_unit(
         int p
 
     m, p = precision_from_unit(unit, out_reso)
-
-    # just give me the unit back
-    if ts is None:
-        return m
 
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
@@ -148,8 +145,8 @@ cdef int64_t cast_from_unit(
 
 
 cpdef inline (int64_t, int) precision_from_unit(
-        str unit,
-        NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns,
+    str unit,
+    NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ):
     """
     Return a casting of the unit represented to nanoseconds + the precision
@@ -162,38 +159,14 @@ cpdef inline (int64_t, int) precision_from_unit(
     """
     cdef:
         int64_t m
-        int64_t multiplier
         int p
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
-    multiplier = periods_per_second(out_reso)
+    if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        reso = NPY_FR_ns
 
-    if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
-        # each 400 years we have 97 leap years, for an average of 97/400=.2425
-        #  extra days each year. We get 31556952 by writing
-        #  3600*24*365.2425=31556952
-        m = multiplier * 31556952
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
-        # 2629746 comes from dividing the "Y" case by 12.
-        m = multiplier * 2629746
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
-        m = multiplier * 3600 * 24 * 7
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
-        m = multiplier * 3600 * 24
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
-        m = multiplier * 3600
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
-        m = multiplier * 60
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        m = multiplier
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        m = multiplier // 1_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        m = multiplier // 1_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        m = multiplier // 1_000_000_000
-    else:
-        raise ValueError(f"cannot cast unit {unit}")
+    m = get_conversion_factor(reso, out_reso)
+
     p = <int>log10(m)  # number of digits in 'm' minus 1
     return m, p
 

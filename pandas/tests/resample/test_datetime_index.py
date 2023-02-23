@@ -56,7 +56,6 @@ def unit(request):
 
 
 def test_custom_grouper(index, unit):
-
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
 
@@ -394,7 +393,6 @@ def test_resample_basic_from_daily(unit):
 
 
 def test_resample_upsampling_picked_but_not_correct(unit):
-
     # Test for issue #3020
     dates = date_range("01-Jan-2014", "05-Jan-2014", freq="D").as_unit(unit)
     series = Series(1, index=dates)
@@ -556,7 +554,6 @@ def test_resample_ohlc(series, unit):
 
 
 def test_resample_ohlc_result(unit):
-
     # GH 12332
     index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
     index = index.union(date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit))
@@ -636,7 +633,6 @@ def test_resample_ohlc_dataframe(unit):
 
 
 def test_resample_dup_index():
-
     # GH 4812
     # dup columns with resample raising
     df = DataFrame(
@@ -1010,7 +1006,6 @@ def test_resample_to_period_monthly_buglet(unit):
 
 
 def test_period_with_agg():
-
     # aggregate a period resampler with a lambda
     s2 = Series(
         np.random.randint(0, 5, 50),
@@ -1043,7 +1038,6 @@ def test_resample_segfault(unit):
 
 
 def test_resample_dtype_preservation(unit):
-
     # GH 12202
     # validation tests for dtype preservation
 
@@ -1063,7 +1057,6 @@ def test_resample_dtype_preservation(unit):
 
 
 def test_resample_dtype_coercion(unit):
-
     pytest.importorskip("scipy.interpolate")
 
     # GH 16361
@@ -1274,7 +1267,6 @@ def test_resample_median_bug_1688(dtype):
 
 
 def test_how_lambda_functions(simple_date_range_series, unit):
-
     ts = simple_date_range_series("1/1/2000", "4/1/2000")
     ts.index = ts.index.as_unit(unit)
 
@@ -1314,7 +1306,6 @@ def test_resample_unequal_times(unit):
 
 
 def test_resample_consistency(unit):
-
     # GH 6418
     # resample with bfill / limit / reindex consistency
 
@@ -1386,7 +1377,6 @@ def test_resample_timegrouper(dates):
 
 
 def test_resample_nunique(unit):
-
     # GH 12352
     df = DataFrame(
         {
@@ -1838,7 +1828,7 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last, unit)
     exp_last = Timestamp(exp_last)
 
     freq = pd.tseries.frequencies.to_offset(freq)
-    result = _get_timestamp_range_edges(first, last, freq)
+    result = _get_timestamp_range_edges(first, last, freq, unit="ns")
     expected = (exp_first, exp_last)
     assert result == expected
 
@@ -1949,3 +1939,28 @@ def test_resample_unsigned_int(any_unsigned_int_numpy_dtype, unit):
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_long_rule_non_nano():
+    # https://github.com/pandas-dev/pandas/issues/51024
+    idx = date_range("0300-01-01", "2000-01-01", unit="s", freq="100Y")
+    ser = Series([1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5], index=idx)
+    result = ser.resample("200Y").mean()
+    expected_idx = DatetimeIndex(
+        np.array(
+            [
+                "0300-12-31",
+                "0500-12-31",
+                "0700-12-31",
+                "0900-12-31",
+                "1100-12-31",
+                "1300-12-31",
+                "1500-12-31",
+                "1700-12-31",
+                "1900-12-31",
+            ]
+        ).astype("datetime64[s]"),
+        freq="200A-DEC",
+    )
+    expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
+    tm.assert_series_equal(result, expected)

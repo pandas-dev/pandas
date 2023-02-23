@@ -352,7 +352,6 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         ms = dates
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
-
         warnings.warn(
             "Encountered %tC format. Leaving in Stata Internal Format.",
             stacklevel=find_stack_level(),
@@ -679,7 +678,6 @@ class StataValueLabel:
     def __init__(
         self, catarray: Series, encoding: Literal["latin-1", "utf-8"] = "latin-1"
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
         self.labname = catarray.name
@@ -809,7 +807,6 @@ class StataNonCatValueLabel(StataValueLabel):
         value_labels: dict[float, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ) -> None:
-
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
 
@@ -868,23 +865,23 @@ class StataMissingValue:
             MISSING_VALUES[i + b] = "." + chr(96 + i)
 
     float32_base: bytes = b"\x00\x00\x00\x7f"
-    increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
+    increment_32: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<f", float32_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment
+        int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment_32
         float32_base = struct.pack("<i", int_value)
 
     float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
-    increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
+    increment_64 = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
         MISSING_VALUES[key] = "."
         if i > 0:
             MISSING_VALUES[key] += chr(96 + i)
-        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment
+        int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment_64
         float64_base = struct.pack("q", int_value)
 
     BASE_MISSING_VALUES: Final = {
@@ -957,7 +954,6 @@ class StataMissingValue:
 
 class StataParser:
     def __init__(self) -> None:
-
         # type          code.
         # --------------------
         # str1        1 = 0x01
@@ -1294,7 +1290,6 @@ class StataReader(StataParser, abc.Iterator):
     def _get_dtypes(
         self, seek_vartypes: int
     ) -> tuple[list[int | str], list[str | np.dtype]]:
-
         self.path_or_buf.seek(seek_vartypes)
         raw_typlist = [
             struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
@@ -1868,7 +1863,6 @@ the string values returned are correct."""
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
-
         if not self._column_selector_set:
             column_set = set(columns)
             if len(column_set) != len(columns):
@@ -2024,7 +2018,6 @@ def read_stata(
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame | StataReader:
-
     reader = StataReader(
         filepath_or_buffer,
         convert_dates=convert_dates,
@@ -2643,7 +2636,6 @@ supported types."""
             is_text=False,
             storage_options=self.storage_options,
         ) as self.handles:
-
             if self.handles.compression["method"] is not None:
                 # ZipFile creates a file (with the same name) for each write call.
                 # Write it first into a buffer and then write the buffer to the ZipFile.
@@ -3503,8 +3495,6 @@ class StataWriterUTF8(StataWriter117):
     and strL) format. Unicode is also supported in value labels, variable
     labels and the dataset label. Format 119 is automatically used if the
     file contains more than 32,767 variables.
-
-    .. versionadded:: 1.0.0
 
     Parameters
     ----------

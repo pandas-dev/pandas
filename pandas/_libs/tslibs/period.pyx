@@ -1841,6 +1841,13 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> timestamp = period.to_timestamp()
+        >>> timestamp
+        Timestamp('2023-01-01 00:00:00')
         """
         how = validate_end_alias(how)
 
@@ -2580,7 +2587,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
-                                           value in nat_strings):
+                                           (value in nat_strings or len(value) == 0)):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT

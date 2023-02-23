@@ -17,6 +17,21 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class Clip:
+    params = [
+        ["float64", "Float64", "float64[pyarrow]"],
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(100_000, 10)
+        df = DataFrame(data, dtype=dtype)
+        self.df = df
+
+    def time_clip(self, dtype):
+        self.df.clip(-1.0, 1.0)
+
+
 class GetNumericData:
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
@@ -371,7 +386,6 @@ class Isnull:
 
 
 class Fillna:
-
     params = (
         [True, False],
         ["pad", "bfill"],
@@ -412,7 +426,6 @@ class Fillna:
 
 
 class Dropna:
-
     params = (["all", "any"], [0, 1])
     param_names = ["how", "axis"]
 
@@ -432,7 +445,6 @@ class Dropna:
 
 
 class Count:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -531,7 +543,6 @@ class Equals:
 
 
 class Interpolate:
-
     params = [None, "infer"]
     param_names = ["downcast"]
 
@@ -616,7 +627,6 @@ class Duplicated:
 
 
 class XS:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -629,7 +639,6 @@ class XS:
 
 
 class SortValues:
-
     params = [True, False]
     param_names = ["ascending"]
 
@@ -657,7 +666,6 @@ class SortIndexByColumns:
 
 
 class Quantile:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -697,7 +705,6 @@ class GetDtypeCounts:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
