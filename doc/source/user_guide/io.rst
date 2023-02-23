@@ -1006,7 +1006,7 @@ first read it in as an object dtype and then apply :func:`to_datetime` to each e
 
 .. ipython:: python
 
-   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   data = StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
    df['date'] = df['date'].apply(pd.to_datetime)
    df
@@ -1373,8 +1373,7 @@ Files with fixed width columns
 
 While :func:`read_csv` reads delimited data, the :func:`read_fwf` function works
 with data files that have known and fixed column widths. The function parameters
-to ``read_fwf`` are largely the same as ``read_csv`` with two extra parameters, and
-a different usage of the ``delimiter`` parameter:
+to ``read_fwf`` are largely the same as ``read_csv`` with five extra parameters:
 
 * ``colspecs``: A list of pairs (tuples) giving the extents of the
   fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -1383,11 +1382,45 @@ a different usage of the ``delimiter`` parameter:
   behavior, if not specified, is to infer.
 * ``widths``: A list of field widths which can be used instead of 'colspecs'
   if the intervals are contiguous.
-* ``delimiter``: Characters to consider as filler characters in the fixed-width file.
-  Can be used to specify the filler character of the fields
-  if it is not spaces (e.g., '~').
+* ``keep_whitespace``: A boolean or a tuple(bool,bool) indicating how whitespace
+  at the (start,end) of each field / column should be handled.
+* ``whitespace_chars``: A string of characters to strip from the start and/or end
+  of fields / columns when 'keep_whitespace' contains a False value.
+* ``delimiter``: Character(s) separating columns when inferring 'colspecs'.
 
 Consider a typical fixed-width data file:
+
+.. ipython:: python
+
+   data = (
+      "name1     VANBCCAN 107.51  46  B  8  E  \n"
+      "name2     BBYBCCAN* 20.00  5 1  5 7  F E\n"
+      "fullname 3VICBCCAN  22.50  3    1  C   5\n"
+   )
+   df = pd.read_fwf(StringIO(data),
+      header=None,
+      widths=[10,3,2,3,1,6,3,12],
+      keep_whitespace=(True,False),
+      names=["Name", "City", "Prov", "Country", "Deleted",
+          "TransAvg", "TransCount", "CreditScores"],
+      # Do not convert field data to Nan:
+      na_filter=False,
+   )
+   df
+   df.values
+
+Note that the name field had trailing whitespace removed, as
+did the other text fields. However, the *leading* whitespace in CreditScores was
+preserved.
+
+This is due to ``keep_whitespace`` setting of (True,False) representing (start/end) and
+``whitespace_chars`` default of ``' '`` and ``'\t'`` ([space] and [tab]).
+
+The TransAvg and TransCount fields had automatic dtype conversion to
+float64 and int64 respectively.
+
+
+Parsing a table is possible (see also ``read_table``):
 
 .. ipython:: python
 
@@ -1398,41 +1431,40 @@ Consider a typical fixed-width data file:
        "id1230    413.836124   184.375703   11916.8\n"
        "id1948    502.953953   173.237159   12468.3"
    )
-   with open("bar.csv", "w") as f:
-       f.write(data1)
 
-In order to parse this file into a ``DataFrame``, we simply need to supply the
-column specifications to the ``read_fwf`` function along with the file name:
+In order to parse this data set into a ``DataFrame``, we simply need to supply the
+column specifications to the ``read_fwf`` function:
 
 .. ipython:: python
 
    # Column specifications are a list of half-intervals
    colspecs = [(0, 6), (8, 20), (21, 33), (34, 43)]
-   df = pd.read_fwf("bar.csv", colspecs=colspecs, header=None, index_col=0)
+   df = pd.read_fwf(StringIO(data1),
+      colspecs=colspecs,
+      header=None,
+      index_col=0
+   )
    df
 
 Note how the parser automatically picks column names X.<column number> when
-``header=None`` argument is specified. Alternatively, you can supply just the
-column widths for contiguous columns:
+``header=None`` argument is specified.
 
-.. ipython:: python
-
-   # Widths are a list of integers
-   widths = [6, 14, 13, 10]
-   df = pd.read_fwf("bar.csv", widths=widths, header=None)
-   df
-
-The parser will take care of extra white spaces around the columns
-so it's ok to have extra separation between the columns in the file.
+The parser will take care of extra white spaces around the numeric data columns, and
+trailing spaces on string data, so it's ok to have extra separation between the columns
+in the file.
 
 By default, ``read_fwf`` will try to infer the file's ``colspecs`` by using the
 first 100 rows of the file. It can do it only in cases when the columns are
 aligned and correctly separated by the provided ``delimiter`` (default delimiter
 is whitespace).
 
+
 .. ipython:: python
 
-   df = pd.read_fwf("bar.csv", header=None, index_col=0)
+   df = pd.read_fwf(StringIO(data1),
+      header=None,
+      index_col=0
+   )
    df
 
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
@@ -1440,10 +1472,16 @@ parsed columns to be different from the inferred type.
 
 .. ipython:: python
 
-   pd.read_fwf("bar.csv", header=None, index_col=0).dtypes
-   pd.read_fwf("bar.csv", header=None, dtype={2: "object"}).dtypes
+   pd.read_fwf(StringIO(data1),
+      header=None,
+      index_col=0).dtypes
+
+   pd.read_fwf(StringIO(data1),
+      header=None,
+      dtype={2: "object"}).dtypes
 
 .. ipython:: python
+   :okexcept:
    :suppress:
 
    os.remove("bar.csv")
