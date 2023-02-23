@@ -24,6 +24,10 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
+from typing import Any
+
+from scripts.generate_pip_deps_from_conda import RENAME
+
 DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(
     pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
@@ -50,7 +54,7 @@ sys.modules["pandas.util._exceptions"] = _exceptions
 import _optional
 
 
-def pin_min_versions_to_ci_deps():
+def pin_min_versions_to_ci_deps() -> int:
     """
     Pin minimum versions to CI dependencies.
 
@@ -61,22 +65,25 @@ def pin_min_versions_to_ci_deps():
     toml_dependencies = {}
     with open(SETUP_PATH, "rb") as toml_f:
         toml_dependencies = tomllib.load(toml_f)
+    ret = 0
     for curr_file in all_yaml_files:
         with open(curr_file) as yaml_f:
             yaml_start_data = yaml_f.read()
-            yaml_file = yaml.safe_load(yaml_start_data)
-            yaml_dependencies = yaml_file["dependencies"]
-            yaml_map = get_yaml_map_from(yaml_dependencies)
-            toml_map = get_toml_map_from(toml_dependencies)
-            yaml_result_data = pin_min_versions_to_yaml_file(
-                yaml_map, toml_map, yaml_start_data
-            )
-            if yaml_result_data not in yaml_start_data:
-                with open(curr_file, "w") as f:
-                    f.write(yaml_result_data)
+        yaml_file = yaml.safe_load(yaml_start_data)
+        yaml_dependencies = yaml_file["dependencies"]
+        yaml_map = get_yaml_map_from(yaml_dependencies)
+        toml_map = get_toml_map_from(toml_dependencies)
+        yaml_result_data = pin_min_versions_to_yaml_file(
+            yaml_map, toml_map, yaml_start_data
+        )
+        if yaml_result_data != yaml_start_data:
+            with open(curr_file, "w") as f:
+                f.write(yaml_result_data)
+            ret |= 1
+    return ret
 
 
-def get_toml_map_from(toml_dic) -> dict[str, str]:
+def get_toml_map_from(toml_dic: dict[str, Any]) -> dict[str, str]:
     toml_deps = {}
     toml_dependencies = set(toml_dic["project"]["optional-dependencies"]["all"])
     for dependency in toml_dependencies:
@@ -85,7 +92,7 @@ def get_toml_map_from(toml_dic) -> dict[str, str]:
     return toml_deps
 
 
-def get_operator_from(dependency) -> str:
+def get_operator_from(dependency: str) -> str | None:
     if "<=" in dependency:
         operator = "<="
     elif ">=" in dependency:
@@ -101,8 +108,8 @@ def get_operator_from(dependency) -> str:
     return operator
 
 
-def get_yaml_map_from(yaml_dic) -> dict[str, str]:
-    yaml_map = {}
+def get_yaml_map_from(yaml_dic: list[str]) -> dict[str, list[str] | None]:
+    yaml_map: dict[str, list[str] | None] = {}
     for dependency in yaml_dic:
         if (
             isinstance(dependency, dict)
@@ -115,6 +122,7 @@ def get_yaml_map_from(yaml_dic) -> dict[str, str]:
         if "," in dependency:
             yaml_dependency, yaml_version1 = search_text.split(",")
             operator = get_operator_from(yaml_dependency)
+            assert operator is not None
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
@@ -128,10 +136,13 @@ def get_yaml_map_from(yaml_dic) -> dict[str, str]:
     return yaml_map
 
 
-def clean_version_list(yaml_versions, toml_version):
+def clean_version_list(
+    yaml_versions: list[str], toml_version: version.Version
+) -> list[str]:
     for i in range(len(yaml_versions)):
         yaml_version = yaml_versions[i]
         operator = get_operator_from(yaml_version)
+        assert operator is not None
         if "<=" in operator or ">=" in operator:
             yaml_version = yaml_version[2:]
         else:
@@ -145,7 +156,9 @@ def clean_version_list(yaml_versions, toml_version):
     return yaml_versions
 
 
-def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
+def pin_min_versions_to_yaml_file(
+    yaml_map: dict[str, list[str] | None], toml_map: dict[str, str], yaml_file_data: str
+) -> str:
     data = yaml_file_data
     for yaml_package, yaml_versions in yaml_map.items():
         if yaml_package in EXCLUSION_LIST:
@@ -155,24 +168,28 @@ def pin_min_versions_to_yaml_file(yaml_map, toml_map, yaml_file_data):
             for yaml_version in yaml_versions:
                 old_dep += yaml_version + ", "
             old_dep = old_dep[:-2]
-        if yaml_package in toml_map:
+        if RENAME.get(yaml_package, yaml_package) in toml_map:
+            min_dep = toml_map[RENAME.get(yaml_package, yaml_package)]
+        elif yaml_package in toml_map:
             min_dep = toml_map[yaml_package]
-            if yaml_versions is None:
-                new_dep = old_dep + ">=" + min_dep
-                data = data.replace(old_dep, new_dep, 1)
-                continue
-            toml_version = version.parse(min_dep)
-            yaml_versions = clean_version_list(yaml_versions, toml_version)
-            cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
-            new_dep = yaml_package
-            for yaml_version in cleaned_yaml_versions:
-                new_dep += yaml_version + ", "
-            operator = get_operator_from(new_dep)
-            if operator != "=":
-                new_dep += ">=" + min_dep
-            else:
-                new_dep = new_dep[:-2]
-            data = data.replace(old_dep, new_dep)
+        else:
+            continue
+        if yaml_versions is None:
+            new_dep = old_dep + ">=" + min_dep
+            data = data.replace(old_dep, new_dep, 1)
+            continue
+        toml_version = version.parse(min_dep)
+        yaml_versions = clean_version_list(yaml_versions, toml_version)
+        cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
+        new_dep = yaml_package
+        for yaml_version in cleaned_yaml_versions:
+            new_dep += yaml_version + ", "
+        operator = get_operator_from(new_dep)
+        if operator != "=":
+            new_dep += ">=" + min_dep
+        else:
+            new_dep = new_dep[:-2]
+        data = data.replace(old_dep, new_dep)
     return data
 
 
@@ -245,8 +262,9 @@ def get_versions_from_toml() -> dict[str, str]:
     return optional_dependencies
 
 
-def main():
-    pin_min_versions_to_ci_deps()
+def main() -> int:
+    ret = 0
+    ret |= pin_min_versions_to_ci_deps()
     with open(CI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
@@ -272,9 +290,9 @@ def main():
                 f"{CODE_PATH}: {code_optional.get(package, 'Not specified')}\n"
                 f"{SETUP_PATH}: {setup_optional.get(package, 'Not specified')}\n\n"
             )
-        sys.exit(1)
-    sys.exit(0)
+        ret |= 1
+    return ret
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -40,7 +40,7 @@ python-snappy>=0.6.0
 pyxlsb>=1.0.8
 s3fs>=2021.08.0
 scipy>=1.7.1
-sqlalchemy>=1.4.16
+SQLAlchemy>=1.4.16
 tabulate>=0.8.9
 tzdata>=2022.1
 xarray>=0.21.0
@@ -72,6 +72,7 @@ sphinx-copybutton
 types-python-dateutil
 types-PyMySQL
 types-pytz
+types-PyYAML
 types-setuptools
 nbconvert>=6.4.5
 nbsphinx

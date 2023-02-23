@@ -97,6 +97,7 @@ dependencies:
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
+  - types-PyYAML
   - types-setuptools
 
   # documentation (jupyter notebooks)
