@@ -100,6 +100,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)
 - Performance improvement in :meth:`DataFrame.clip` and :meth:`Series.clip` (:issue:`51472`)
 -
 

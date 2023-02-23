@@ -360,6 +360,7 @@ class BaseBlockManager(DataManager):
             other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame) and cond._mgr.any_extension_types:
+            # GH51574: avoid object ndarray conversion later on
             cond = cond._constructor(
                 cond.to_numpy(dtype=bool, na_value=False),
                 index=cond.index,
@@ -398,6 +399,7 @@ class BaseBlockManager(DataManager):
             new = extract_array(new, extract_numpy=True)
 
         if isinstance(mask, ABCDataFrame) and mask._mgr.any_extension_types:
+            # GH51574: avoid object ndarray conversion later on
             mask = mask._constructor(
                 mask.to_numpy(dtype=bool, na_value=False),
                 index=mask.index,
