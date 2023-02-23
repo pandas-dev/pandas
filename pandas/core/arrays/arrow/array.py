@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -104,7 +106,7 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide_checked(left, right))
+        result = pc.floor(pc.divide(left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -116,8 +118,8 @@ if not pa_version_under7p0:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -458,6 +460,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        pa_type = self._data.type
+        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
+            operator.add,
+            roperator.radd,
+        ]:
+            length = self._data.length()
+
+            seps: list[str] | list[bytes]
+            if pa.types.is_string(pa_type):
+                seps = [""] * length
+            else:
+                seps = [b""] * length
+
+            if is_scalar(other):
+                other = [other] * length
+            elif isinstance(other, type(self)):
+                other = other._data
+            if op is operator.add:
+                result = pc.binary_join_element_wise(self._data, other, seps)
+            else:
+                result = pc.binary_join_element_wise(other, self._data, seps)
+            return type(self)(result)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
@@ -544,14 +569,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under7p0:
-            # Although pc.array_sort_indices exists in version 6
-            # there's a bug that affects the pa.ChunkedArray backing
-            # https://issues.apache.org/jira/browse/ARROW-12042
-            fallback_performancewarning("7")
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+        if null_placement is None:
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
@@ -615,9 +634,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
-        if method is not None and pa_version_under7p0:
-            # fill_null_{forward|backward} added in pyarrow 7.0
-            fallback_performancewarning(version="7")
+        if method is not None:
+            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if is_array_like(value):
@@ -889,9 +907,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._data)
+        elif self._hasna:
+            data = self.copy()
+            data[self.isna()] = na_value
+            return np.asarray(data._data, dtype=dtype)
         else:
             result = np.asarray(self._data, dtype=dtype)
-            if copy or self._hasna:
+            if copy:
                 result = result.copy()
         if self._hasna:
             result[self.isna()] = na_value
@@ -1069,6 +1091,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
+            or pa.types.is_decimal(pa_type)
         ):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
@@ -1341,7 +1364,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ----------
         dropna : bool, default True
             Don't consider counts of NA values.
-            Not implemented by pyarrow.
 
         Returns
         -------
@@ -1360,12 +1382,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         else:
             data = self._data
 
-        modes = pc.mode(data, pc.count_distinct(data).as_py())
-        values = modes.field(0)
-        counts = modes.field(1)
-        # counts sorted descending i.e counts[0] = max
-        mask = pc.equal(counts, counts[0])
-        most_common = values.filter(mask)
+        if dropna:
+            data = data.drop_null()
+
+        res = pc.value_counts(data)
+        most_common = res.field("values").filter(
+            pc.equal(res.field("counts"), pc.max(res.field("counts")))
+        )
 
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)

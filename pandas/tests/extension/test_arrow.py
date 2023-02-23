@@ -16,6 +16,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 from io import (
     BytesIO,
     StringIO,
@@ -58,10 +59,6 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:.* may decrease performance. Upgrade to pyarrow >=7 to possibly"
-)
-
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
@@ -79,6 +76,14 @@ def data(dtype):
         data = [1, 0] * 4 + [None] + [-2, -1] * 44 + [None] + [1, 99]
     elif pa.types.is_unsigned_integer(pa_dtype):
         data = [1, 0] * 4 + [None] + [2, 1] * 44 + [None] + [1, 99]
+    elif pa.types.is_decimal(pa_dtype):
+        data = (
+            [Decimal("1"), Decimal("0.0")] * 4
+            + [None]
+            + [Decimal("-2.0"), Decimal("-1.0")] * 44
+            + [None]
+            + [Decimal("0.5"), Decimal("33.123")]
+        )
     elif pa.types.is_date(pa_dtype):
         data = (
             [date(2022, 1, 1), date(1999, 12, 31)] * 4
@@ -188,6 +193,10 @@ def data_for_grouping(dtype):
         A = b"a"
         B = b"b"
         C = b"c"
+    elif pa.types.is_decimal(pa_dtype):
+        A = Decimal("-1.1")
+        B = Decimal("0.0")
+        C = Decimal("1.1")
     else:
         raise NotImplementedError
     return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
@@ -250,13 +259,12 @@ class TestBaseCasting(base.BaseCastingTests):
 class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz) or pa.types.is_string(
-            pa_dtype
-        ):
+        if pa.types.is_string(pa_dtype) or pa.types.is_decimal(pa_dtype):
             if pa.types.is_string(pa_dtype):
                 reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
             else:
                 reason = f"pyarrow.type_for_alias cannot infer {pa_dtype}"
+
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=reason,
@@ -264,7 +272,7 @@ class TestConstructors(base.BaseConstructorsTests):
             )
         super().test_from_dtype(data)
 
-    def test_from_sequence_pa_array(self, data, request):
+    def test_from_sequence_pa_array(self, data):
         # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
         # data._data = pa.ChunkedArray
         result = type(data)._from_sequence(data._data)
@@ -289,7 +297,9 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif pa_version_under11p0 and pa.types.is_duration(pa_dtype):
+        elif pa_version_under11p0 and (
+            pa.types.is_duration(pa_dtype) or pa.types.is_decimal(pa_dtype)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -297,14 +307,7 @@ class TestConstructors(base.BaseConstructorsTests):
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            if pa_version_under7p0:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=pa.ArrowNotImplementedError,
-                        reason=f"pyarrow doesn't support string cast from {pa_dtype}",
-                    )
-                )
-            elif is_platform_windows() and is_ci_environment():
+            if is_platform_windows() and is_ci_environment():
                 request.node.add_marker(
                     pytest.mark.xfail(
                         raises=pa.ArrowInvalid,
@@ -379,24 +382,18 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         if do_skip:
             pytest.skip(
-                "These should *not* work, we test in test_accumulate_series_raises "
-                "that these correctly raise."
+                f"{op_name} should *not* work, we test in "
+                "test_accumulate_series_raises that these correctly raise."
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
-            if request.config.option.skip_slow:
-                # equivalent to marking these cases with @pytest.mark.slow,
-                #  these xfails take a long time to run because pytest
-                #  renders the exception messages even when not showing them
-                pytest.skip("pyarrow xfail slow")
+            # xfailing takes a long time to run because pytest
+            # renders the exception messages even when not showing them
+            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
 
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{all_numeric_accumulations} not implemented",
-                    raises=NotImplementedError,
-                )
-            )
-        elif all_numeric_accumulations == "cumsum" and (pa.types.is_boolean(pa_type)):
+        elif all_numeric_accumulations == "cumsum" and (
+            pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -480,6 +477,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         )
         if all_numeric_reductions in {"skew", "kurt"}:
             request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"var", "std", "median"}
+            and pa_version_under7p0
+            and pa.types.is_decimal(pa_dtype)
+        ):
+            request.node.add_marker(xfail_mark)
         elif all_numeric_reductions == "sem" and pa_version_under8p0:
             request.node.add_marker(xfail_mark)
 
@@ -547,23 +550,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_transform(data_for_grouping)
-
-    def test_groupby_extension_apply(
-        self, data_for_grouping, groupby_apply_op, request
-    ):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        super().test_groupby_extension_transform(data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
@@ -575,12 +562,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_groupby_extension_agg(as_index, data_for_grouping)
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
     def test_in_numeric_groupby(self, data_for_grouping):
         if is_string_dtype(data_for_grouping.dtype):
@@ -602,67 +584,51 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
+    def test_check_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_decimal(pa_dtype) and pa_version_under8p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=ValueError,
+                    reason="decimal string repr affects numpy comparison",
+                )
+            )
+        super().test_check_dtype(data)
+
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        if pa.types.is_decimal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                 )
             )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
+
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            msg = r"string\[pyarrow\] should be constructed by StringDtype"
+            with pytest.raises(TypeError, match=msg):
+                dtype.construct_from_string(dtype.name)
+
+            return
+
         super().test_construct_from_string_own_name(dtype)
 
     def test_is_dtype_from_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+        if pa.types.is_string(pa_dtype):
+            # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
+            assert not type(dtype).is_dtype(dtype.name)
+        else:
+            if pa.types.is_decimal(pa_dtype):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=NotImplementedError,
+                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                    )
                 )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_is_dtype_from_name(dtype)
-
-    def test_construct_from_string(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-        elif pa.types.is_string(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        "Still support StringDtype('pyarrow') "
-                        "over ArrowDtype(pa.string())"
-                    ),
-                )
-            )
-        super().test_construct_from_string(dtype)
+            super().test_is_dtype_from_name(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = r"'another_type' must end with '\[pyarrow\]'"
@@ -680,6 +646,7 @@ class TestBaseDtype(base.BaseDtypeTests):
             )
             or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
             or pa.types.is_binary(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -713,14 +680,20 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 class TestBaseMissing(base.BaseMissingTests):
     def test_fillna_no_op_returns_copy(self, data):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_fillna_no_op_returns_copy(data)
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = data.fillna(method="backfill")
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning, fillna_method is not None, check_stacklevel=False
         ):
             super().test_fillna_series_method(data_missing, fillna_method)
 
@@ -753,11 +726,11 @@ class TestBaseParsing(base.BaseParsingTests):
             request.node.add_marker(
                 pytest.mark.xfail(raises=TypeError, reason="GH 47534")
             )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        elif pa.types.is_decimal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
-                    reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
+                    reason=f"Parameterized types {pa_dtype} not supported.",
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
@@ -798,12 +771,6 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
-    def test_argsort_missing_array(self, data_missing_for_sorting):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_argsort_missing_array(data_missing_for_sorting)
-
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -818,19 +785,9 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
-    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         super().test_value_counts(all_data, dropna)
-
-    def test_value_counts_with_normalize(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
@@ -840,6 +797,13 @@ class TestBaseMethods(base.BaseMethodsTests):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"No pyarrow kernel for {pa_dtype}",
+                    raises=pa.ArrowNotImplementedError,
                 )
             )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
@@ -860,50 +824,17 @@ class TestBaseMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
+        pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_decimal(pa_dtype) and pa_version_under7p0 and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"No pyarrow kernel for {pa_dtype}",
+                    raises=pa.ArrowNotImplementedError,
+                )
+            )
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
-
-    @pytest.mark.parametrize(
-        "na_position, expected",
-        [
-            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
-            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
-        ],
-    )
-    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_nargsort(data_missing_for_sorting, na_position, expected)
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(
-        self, data_missing_for_sorting, ascending, sort_by_key
-    ):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
-        ):
-            super().test_sort_values_missing(
-                data_missing_for_sorting, ascending, sort_by_key
-            )
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and not pa.types.is_duration(pa_dtype),
-            check_stacklevel=False,
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
 
     def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -919,17 +850,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            # TODO: this fails on the scalar addition constructing 'expected'
-            #  but not in the actual 'combine' call, so may be salvage-able
-            mark = pytest.mark.xfail(
-                raises=TypeError,
-                reason=f"{pa_dtype} cannot be added to {pa_dtype}",
-            )
-            request.node.add_marker(mark)
-            super().test_combine_add(data_repeated)
-
-        elif pa.types.is_temporal(pa_dtype):
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
             # analogous to datetime64, these cannot be added
             orig_data1, orig_data2 = data_repeated(2)
             s1 = pd.Series(orig_data1)
@@ -958,6 +879,31 @@ class TestBaseMethods(base.BaseMethodsTests):
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
 
+    @classmethod
+    def assert_equal(cls, left, right, **kwargs):
+        if isinstance(left, pd.DataFrame):
+            left_pa_type = left.iloc[:, 0].dtype.pyarrow_dtype
+            right_pa_type = right.iloc[:, 0].dtype.pyarrow_dtype
+        else:
+            left_pa_type = left.dtype.pyarrow_dtype
+            right_pa_type = right.dtype.pyarrow_dtype
+        if pa.types.is_decimal(left_pa_type) or pa.types.is_decimal(right_pa_type):
+            # decimal precision can resize in the result type depending on data
+            # just compare the float values
+            left = left.astype("float[pyarrow]")
+            right = right.astype("float[pyarrow]")
+        tm.assert_equal(left, right, **kwargs)
+
+    def get_op_from_name(self, op_name):
+        short_opname = op_name.strip("_")
+        if short_opname == "rtruediv":
+            # use the numpy version that won't raise on division by zero
+            return lambda x, y: np.divide(y, x)
+        elif short_opname == "rfloordiv":
+            return lambda x, y: np.floor_divide(y, x)
+
+        return tm.get_op_from_name(op_name)
+
     def _patch_combine(self, obj, other, op):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
@@ -975,14 +921,24 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         pa_expected = pa.array(expected_data._values)
 
         if pa.types.is_duration(pa_expected.type):
-            # pyarrow sees sequence of datetime/timedelta objects and defaults
-            #  to "us" but the non-pointwise op retains unit
-            unit = original_dtype.pyarrow_dtype.unit
-            if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                # pydatetime/pytimedelta objects have microsecond reso, so we
-                #  take the higher reso of the original and microsecond. Note
-                #  this matches what we would do with DatetimeArray/TimedeltaArray
-                unit = "us"
+            orig_pa_type = original_dtype.pyarrow_dtype
+            if pa.types.is_date(orig_pa_type):
+                if pa.types.is_date64(orig_pa_type):
+                    # TODO: why is this different vs date32?
+                    unit = "ms"
+                else:
+                    unit = "s"
+            else:
+                # pyarrow sees sequence of datetime/timedelta objects and defaults
+                #  to "us" but the non-pointwise op retains unit
+                # timestamp or duration
+                unit = orig_pa_type.unit
+                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
+                    # pydatetime/pytimedelta objects have microsecond reso, so we
+                    #  take the higher reso of the original and microsecond. Note
+                    #  this matches what we would do with DatetimeArray/TimedeltaArray
+                    unit = "us"
+
             pa_expected = pa_expected.cast(f"duration[{unit}]")
         else:
             pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
@@ -1013,7 +969,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
-        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+        elif opname in ["__add__", "__radd__"] and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            exc = None
+        elif not (
+            pa.types.is_floating(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
+        ):
             exc = pa.ArrowNotImplementedError
         else:
             exc = None
@@ -1026,7 +990,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
         if (
             opname == "__rpow__"
-            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and (
+                pa.types.is_floating(pa_dtype)
+                or pa.types.is_integer(pa_dtype)
+                or pa.types.is_decimal(pa_dtype)
+            )
             and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
@@ -1035,7 +1003,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported:
+        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
@@ -1044,13 +1012,31 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 ),
             )
         elif (
-            opname in {"__rtruediv__", "__rfloordiv__"}
-            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            opname == "__rfloordiv__"
+            and (pa.types.is_integer(pa_dtype) or pa.types.is_decimal(pa_dtype))
             and not pa_version_under7p0
         ):
             mark = pytest.mark.xfail(
                 raises=pa.ArrowInvalid,
                 reason="divide by 0",
+            )
+        elif (
+            opname == "__rtruediv__"
+            and pa.types.is_decimal(pa_dtype)
+            and not pa_version_under7p0
+        ):
+            mark = pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason="divide by 0",
+            )
+        elif (
+            opname == "__pow__"
+            and pa.types.is_decimal(pa_dtype)
+            and pa_version_under7p0
+        ):
+            mark = pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason="Invalid decimal function: power_checked",
             )
 
         return mark
@@ -1080,6 +1066,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1111,6 +1098,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1159,10 +1147,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             pa.types.is_floating(pa_dtype)
             or (
                 pa.types.is_integer(pa_dtype)
-                and all_arithmetic_operators != "__truediv__"
+                and all_arithmetic_operators not in ["__truediv__", "__rtruediv__"]
             )
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
+            or pa.types.is_date(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
@@ -1187,9 +1176,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return
 
         if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_binary(pa_dtype)
-            or pa.types.is_string(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
+            pa.types.is_boolean(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1264,7 +1251,15 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+        ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
+
+    # but as of GH#50689, timestamptz is supported
+    dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+    expected = ArrowDtype(pa.timestamp("s", "UTC"))
+    assert dtype == expected
+
+    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
 
 
 @pytest.mark.parametrize(
@@ -1292,7 +1287,11 @@ def test_quantile(data, interpolation, quantile, request):
             ser.quantile(q=quantile, interpolation=interpolation)
         return
 
-    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+    if (
+        pa.types.is_integer(pa_dtype)
+        or pa.types.is_floating(pa_dtype)
+        or (pa.types.is_decimal(pa_dtype) and not pa_version_under7p0)
+    ):
         pass
     elif pa.types.is_temporal(data._data.type):
         pass
@@ -1333,41 +1332,38 @@ def test_quantile(data, interpolation, quantile, request):
     else:
         # Just check the values
         expected = pd.Series(data.take([0, 0]), index=[0.5, 0.5])
-        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+        if (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
+        ):
             expected = expected.astype("float64[pyarrow]")
             result = result.astype("float64[pyarrow]")
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
-def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
-    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowNotImplementedError,
-                reason=f"mode not supported by pyarrow for {pa_dtype}",
-            )
-        )
-    elif (
-        pa.types.is_boolean(pa_dtype)
-        and "multi_mode" in request.node.nodeid
-        and pa_version_under9p0
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="https://issues.apache.org/jira/browse/ARROW-17096",
-            )
-        )
+def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    result = ser.mode(dropna=dropna)
+    result = ser.mode(dropna=True)
     expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_dropna_false_mode_na(data):
+    # GH 50982
+    more_nans = pd.Series([None, None, data[0]], dtype=data.dtype)
+    result = more_nans.mode(dropna=False)
+    expected = pd.Series([None], dtype=data.dtype)
+    tm.assert_series_equal(result, expected)
+
+    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
 
