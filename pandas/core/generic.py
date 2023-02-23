@@ -6859,7 +6859,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # test_fillna_nonscalar
                         if inplace:
                             return None
-                        return self.copy()
+                        return self.copy(deep=None)
                     from pandas import Series
 
                     value = Series(value)
@@ -11861,7 +11861,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how=how, is_valid=~isna(self._values))
+        is_valid = self.notna().values
+        idxpos = find_valid_index(how=how, is_valid=is_valid)
         if idxpos is None:
             return None
         return self.index[idxpos]
