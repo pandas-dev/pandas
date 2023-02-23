@@ -1,5 +1,5 @@
 set test_command=import pandas as pd; print(pd.__version__); ^
-pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db'', '--no-strict-data-files', '-n=2']); ^
+pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--no-strict-data-files', '-n=2']); ^
 pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files'])
 
 python --version
