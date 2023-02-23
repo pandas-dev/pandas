@@ -1420,7 +1420,7 @@ Metadata
 
 Other
 ^^^^^
-
+- Bug in incorrectly accepting dtype strings containing "[pyarrow]" more than once (:issue:`51548`)
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 

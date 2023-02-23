@@ -197,7 +197,8 @@ class ArrowDtype(StorageExtensionDtype):
         if string == "string[pyarrow]":
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        base_type = string.split("[pyarrow]")[0]
+
+        base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
