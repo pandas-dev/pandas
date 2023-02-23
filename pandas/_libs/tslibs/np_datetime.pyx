@@ -571,8 +571,6 @@ cdef int64_t get_conversion_factor(
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
-    else:
-        raise ValueError("Converting from M or Y units is not supported.")
 
 
 cdef int64_t convert_reso(
