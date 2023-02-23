@@ -8,9 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
@@ -33,18 +30,8 @@ from pandas.api.types import (
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = index.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = index.sort_values()
+    idx1 = index.sort_values()
+    idx2 = index.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
@@ -103,18 +90,8 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx1.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = idx1.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx2.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = idx2.sort_values()
+    idx1 = idx1.sort_values()
+    idx2 = idx2.sort_values()
 
     with tm.assert_produces_warning(warn, match="'<' not supported between"):
         res1 = idx1.union(idx2)
@@ -381,18 +358,8 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            union = first.union(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index.set_names(expected_name).sort_values()
+        union = first.union(second).sort_values()
+        expected = index.set_names(expected_name).sort_values()
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
@@ -458,18 +425,8 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            intersect = first.intersection(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index[1:].set_names(expected_name).sort_values()
+        intersect = first.intersection(second).sort_values()
+        expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
     def test_intersection_name_retention_with_nameless(self, index):

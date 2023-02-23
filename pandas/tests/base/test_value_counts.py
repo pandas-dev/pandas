@@ -4,9 +4,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -48,16 +45,8 @@ def test_value_counts(index_or_series_obj):
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
     if obj.duplicated().any():
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            result = result.sort_index()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            expected = expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -97,16 +86,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            expected = expected.sort_index()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            result = result.sort_index()
+        expected = expected.sort_index()
+        result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype
@@ -119,16 +100,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            expected = expected.sort_index()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            result = result.sort_index()
+        expected = expected.sort_index()
+        result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
 
