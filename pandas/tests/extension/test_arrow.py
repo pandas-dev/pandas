@@ -36,6 +36,7 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
 
@@ -678,7 +679,23 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    pass
+    def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = data.fillna(method="backfill")
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, fillna_method is not None, check_stacklevel=False
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestBasePrinting(base.BasePrintingTests):

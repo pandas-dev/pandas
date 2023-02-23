@@ -159,17 +159,24 @@ class TestMissing(base.BaseMissingTests):
         self.assert_extension_array_equal(result, expected)
 
     def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+
         with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and data.dtype.storage == "pyarrow",
-            check_stacklevel=False,
+            PerformanceWarning, data.dtype.storage == "pyarrow"
         ):
-            super().test_fillna_no_op_returns_copy(data)
+            result = data.fillna(method="backfill")
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_missing.dtype.storage == "pyarrow",
+            fillna_method is not None and data_missing.dtype.storage == "pyarrow",
             check_stacklevel=False,
         ):
             super().test_fillna_series_method(data_missing, fillna_method)
