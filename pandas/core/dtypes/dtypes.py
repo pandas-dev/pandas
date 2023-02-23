@@ -897,7 +897,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     @classmethod
     def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
         if isinstance(freq, str):  # note: freq is already of type str!
-            if freq.startswith("period[") or freq.startswith("Period["):
+            if freq.startswith(("Period[", "period[")):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
@@ -916,7 +916,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if (
             isinstance(string, str)
-            and (string.startswith("period[") or string.startswith("Period["))
+            and (string.startswith(("period[", "Period[")))
             or isinstance(string, BaseOffset)
         ):
             # do not parse string like U as period[U]
@@ -980,7 +980,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(dtype, str):
             # PeriodDtype can be instantiated from freq string like "U",
             # but doesn't regard freq str like "U" as dtype.
-            if dtype.startswith("period[") or dtype.startswith("Period["):
+            if dtype.startswith(("period[", "Period[")):
                 try:
                     return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:

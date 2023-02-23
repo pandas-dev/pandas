@@ -2330,8 +2330,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent : int, optional
            Length of whitespace used to indent each record.
 
-           .. versionadded:: 1.0.0
-
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -3184,9 +3182,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         into a main LaTeX document or read from an external file
         with ``\input{{table.tex}}``.
 
-        .. versionchanged:: 1.0.0
-           Added caption and label arguments.
-
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
@@ -3281,8 +3276,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             which results in ``\caption[short_caption]{{full_caption}}``;
             if a single string is passed, no short caption will be set.
 
-            .. versionadded:: 1.0.0
-
             .. versionchanged:: 1.2.0
                Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
@@ -3290,7 +3283,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
             This is used with ``\ref{{}}`` in the main ``.tex`` file.
 
-            .. versionadded:: 1.0.0
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
@@ -4023,10 +4015,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get values at several indexes
 
-        >>> df.xs(('mammal', 'dog'))
-                    num_legs  num_wings
-        locomotion
-        walks              4          0
+        >>> df.xs(('mammal', 'dog', 'walks'))
+        num_legs     4
+        num_wings    0
+        Name: (mammal, dog, walks), dtype: int64
 
         Get values at specified index and level
 
@@ -4878,9 +4870,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
              end.
         ignore_index : bool, default False
              If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-             .. versionadded:: 1.0.0
-
         key : callable, optional
             Apply the key function to the values
             before sorting. This is similar to the `key` argument in the
@@ -6515,9 +6504,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_floating: bool_t = True,
     ) -> NDFrameT:
         """
-        Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
-
-        .. versionadded:: 1.0.0
+        Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
 
         Parameters
         ----------
@@ -7998,24 +7985,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
-        result = self
-        mask = isna(self._values)
+        mgr = self._mgr
 
-        with np.errstate(all="ignore"):
+        if inplace:
+            # cond (for putmask) identifies values to be updated.
+            # exclude boundary as values at the boundary should be no-ops.
             if upper is not None:
-                subset = self <= upper
-                result = result.where(subset, upper, axis=None, inplace=False)
+                cond = self > upper
+                mgr = mgr.putmask(mask=cond, new=upper, align=False)
             if lower is not None:
-                subset = self >= lower
-                result = result.where(subset, lower, axis=None, inplace=False)
+                cond = self < lower
+                mgr = mgr.putmask(mask=cond, new=lower, align=False)
+        else:
+            # cond (for where) identifies values to be left as-is.
+            # include boundary as values at the boundary should be no-ops.
+            mask = isna(self)
+            if upper is not None:
+                cond = mask | (self <= upper)
+                mgr = mgr.where(other=upper, cond=cond, align=False)
+            if lower is not None:
+                cond = mask | (self >= lower)
+                mgr = mgr.where(other=lower, cond=cond, align=False)
 
-        if np.any(mask):
-            result[mask] = np.nan
-
+        result = self._constructor(mgr)
         if inplace:
             return self._update_inplace(result)
         else:
-            return result
+            return result.__finalize__(self)
 
     @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
