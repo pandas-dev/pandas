@@ -96,7 +96,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
 )
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
@@ -158,6 +157,7 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
+from pandas.core.methods import selectn
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -836,8 +836,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
-
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
@@ -906,36 +904,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # Indexing Methods
-
-    @Appender(NDFrame.take.__doc__)
-    def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
-        nv.validate_take((), kwargs)
-
-        indices = ensure_platform_int(indices)
-
-        if (
-            indices.ndim == 1
-            and using_copy_on_write()
-            and is_range_indexer(indices, len(self))
-        ):
-            return self.copy(deep=None)
-
-        new_index = self.index.take(indices)
-        new_values = self._values.take(indices)
-
-        result = self._constructor(new_values, index=new_index, fastpath=True)
-        return result.__finalize__(self, method="take")
-
-    def _take_with_is_copy(self, indices, axis: Axis = 0) -> Series:
-        """
-        Internal version of the `take` method that sets the `_is_copy`
-        attribute to keep track of the parent dataframe (using in indexing
-        for the SettingWithCopyWarning). For Series this does the same
-        as the public take (it never sets `_is_copy`).
-
-        See the docstring of `take` for full explanation of the parameters.
-        """
-        return self.take(indices=indices, axis=axis)
 
     def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
         """
@@ -1738,8 +1706,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str | None:
         """
         Print {klass} in Markdown-friendly format.
-
-        .. versionadded:: 1.0.0
 
         Parameters
         ----------
@@ -3437,9 +3403,6 @@ Keep all original rows and also all original values
             the end.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the series values
             before sorting. This is similar to the `key` argument in the
@@ -3698,9 +3661,6 @@ Keep all original rows and also all original values
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -3948,7 +3908,7 @@ Keep all original rows and also all original values
         Brunei        434000
         dtype: int64
         """
-        return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
+        return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
         """
@@ -4045,7 +4005,7 @@ Keep all original rows and also all original values
         Anguilla    11300
         dtype: int64
         """
-        return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
+        return selectn.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
@@ -5710,6 +5670,35 @@ Keep all original rows and also all original values
         Returns
         -------
         Series with DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2023', '2024', '2025'], freq='Y')
+        >>> s1 = pd.Series([1, 2, 3], index=idx)
+        >>> s1
+        2023    1
+        2024    2
+        2025    3
+        Freq: A-DEC, dtype: int64
+
+        The resulting frequency of the Timestamps is `YearBegin`
+
+        >>> s1 = s1.to_timestamp()
+        >>> s1
+        2023-01-01    1
+        2024-01-01    2
+        2025-01-01    3
+        Freq: AS-JAN, dtype: int64
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> s2 = pd.Series([1, 2, 3], index=idx)
+        >>> s2 = s2.to_timestamp(freq='M')
+        >>> s2
+        2023-01-31    1
+        2024-01-31    2
+        2025-01-31    3
+        Freq: A-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
