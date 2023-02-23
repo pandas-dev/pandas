@@ -207,6 +207,7 @@ def is_sparse(arr) -> bool:
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
 
+    >>> from pandas.api.types import is_sparse
     >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
     True
     >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
@@ -785,6 +786,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_unsigned_integer_dtype
     >>> is_unsigned_integer_dtype(str)
     False
     >>> is_unsigned_integer_dtype(int)  # signed

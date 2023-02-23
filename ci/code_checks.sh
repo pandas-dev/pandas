@@ -565,14 +565,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
         pandas.DataFrame.plot.line \
         pandas.Series.plot.line \
-        pandas.api.types.infer_dtype \
         pandas.api.types.is_datetime64_any_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
         pandas.api.types.is_integer_dtype \
-        pandas.api.types.is_sparse \
         pandas.api.types.is_string_dtype \
-        pandas.api.types.is_unsigned_integer_dtype \
         pandas.plotting.andrews_curves \
         pandas.plotting.autocorrelation_plot \
         pandas.plotting.lag_plot \
