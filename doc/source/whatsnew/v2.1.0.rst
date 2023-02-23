@@ -121,7 +121,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`??`)
 -
 
 Timezones
