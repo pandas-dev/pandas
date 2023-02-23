@@ -92,8 +92,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.keys \
         pandas.Series.item \
         pandas.Series.pipe \
-        pandas.Series.mean \
-        pandas.Series.median \
         pandas.Series.mode \
         pandas.Series.sem \
         pandas.Series.skew \
@@ -543,8 +541,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
-        pandas.DataFrame.mean \
-        pandas.DataFrame.median \
         pandas.DataFrame.sem \
         pandas.DataFrame.skew \
         pandas.DataFrame.backfill \
