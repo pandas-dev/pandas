@@ -46,7 +46,6 @@ def test_resample_as_freq_with_subperiod():
 
 
 def test_resample_with_timedeltas():
-
     expected = DataFrame({"A": np.arange(1480)})
     expected = expected.groupby(expected.index // 30).sum()
     expected.index = timedelta_range("0 days", freq="30T", periods=50)
@@ -64,7 +63,6 @@ def test_resample_with_timedeltas():
 
 
 def test_resample_single_period_timedelta():
-
     s = Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
     result = s.resample("2s").sum()
     expected = Series([1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3))
@@ -72,7 +70,6 @@ def test_resample_single_period_timedelta():
 
 
 def test_resample_timedelta_idempotency():
-
     # GH 12072
     index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)

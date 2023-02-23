@@ -371,7 +371,6 @@ class PandasAutoDateLocator(mdates.AutoDateLocator):
 
 
 class MilliSecondLocator(mdates.DateLocator):
-
     UNIT = 1.0 / (24 * 3600 * 1000)
 
     def __init__(self, tz) -> None:
@@ -1071,7 +1070,6 @@ class TimeSeries_DateFormatter(Formatter):
         self._set_default_format(vmin, vmax)
 
     def __call__(self, x, pos: int = 0) -> str:
-
         if self.formatdict is None:
             return ""
         else:

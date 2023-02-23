@@ -21,6 +21,7 @@ from pandas.compat import (
     IS64,
     is_ci_environment,
 )
+from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -114,14 +115,16 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
+    warning = RuntimeWarning if np_version_gte1p24 else None
     with pytest.raises(ValueError, match="cannot safely convert"):
-        parser.read_csv(
-            StringIO(data),
-            sep=r"\s+",
-            header=None,
-            names=["a", "b"],
-            dtype={"a": np.int32},
-        )
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            parser.read_csv(
+                StringIO(data),
+                sep=r"\s+",
+                header=None,
+                names=["a", "b"],
+                dtype={"a": np.int32},
+            )
 
 
 @pytest.mark.parametrize(

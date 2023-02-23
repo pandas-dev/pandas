@@ -31,7 +31,7 @@ VERSIONS = {
     "pandas_gbq": "0.15.0",
     "psycopg2": "2.8.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "6.0.0",
+    "pyarrow": "7.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "7.0.0",
     "pyxlsb": "1.0.8",

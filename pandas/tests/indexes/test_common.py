@@ -18,7 +18,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_numeric_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -28,7 +31,6 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -316,7 +318,7 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        dtype = index.dtype if is_numeric_dtype(index) else None
         unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
@@ -345,7 +347,7 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            dtype = index.dtype if is_numeric_dtype(index) else None
             unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
@@ -428,7 +430,7 @@ class TestCommon:
 
         if len(index) == 0:
             return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+        elif is_integer_dtype(index.dtype):
             return
         elif index.dtype == bool:
             # values[1] = np.nan below casts to True!
@@ -446,12 +448,14 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
+    dtype = index_with_missing.dtype
+    warning = (
+        PerformanceWarning
+        if dtype.name == "string" and dtype.storage == "pyarrow"
+        else None
+    )
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
+        with tm.assert_produces_warning(warning):
             index_with_missing.sort_values(na_position=na_position)
 
 

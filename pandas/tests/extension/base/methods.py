@@ -48,9 +48,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
-            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+            expected = pd.Series(
+                [1 / len(values)] * len(values), index=result.index, name="proportion"
+            )
         else:
-            expected = pd.Series(0.0, index=result.index)
+            expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
         if na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
@@ -247,14 +249,17 @@ class BaseMethodsTests(BaseExtensionTests):
 
         assert df.A.values is not result.A.values
 
-    def test_fillna_copy_series(self, data_missing):
+    def test_fillna_copy_series(self, data_missing, no_op_with_cow: bool = False):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        assert ser._values is not result._values
+        if no_op_with_cow:
+            assert ser._values is result._values
+        else:
+            assert ser._values is not result._values
         assert ser._values is arr
 
     def test_fillna_length_mismatch(self, data_missing):

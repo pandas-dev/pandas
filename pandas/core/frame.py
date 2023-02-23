@@ -141,7 +141,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -213,6 +212,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.methods import selectn
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -235,7 +235,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
@@ -646,12 +645,15 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
-
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            if not copy:
+                # if not copying data, ensure to still return a shallow copy
+                # to avoid the result sharing the same Manager
+                data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
@@ -1221,12 +1223,8 @@ class DataFrame(NDFrame, OpsMixin):
             (when number of rows is above `max_rows`).
         max_colwidth : int, optional
             Max width to truncate each column in characters. By default, no limit.
-
-            .. versionadded:: 1.0.0
         encoding : str, default "utf-8"
             Set character encoding.
-
-            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -1390,8 +1388,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
+        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
+            if using_cow and self._mgr.is_single_block:
+                s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             yield k, s
 
     def itertuples(
@@ -2536,10 +2537,6 @@ class DataFrame(NDFrame, OpsMixin):
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function.
 
-            .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
-
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -2575,10 +2572,6 @@ class DataFrame(NDFrame, OpsMixin):
             variables exceeds the capacity of dta format 118. Exporting
             smaller datasets in format 119 may have unintended consequences,
             and, as of November 2020, Stata SE cannot read version 119 files.
-
-            .. versionchanged:: 1.0.0
-
-                Added support for formats 118 and 119.
 
         convert_strl : list, optional
             List of column names to convert to string columns to Stata StrL
@@ -2633,13 +2626,15 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriter117 as statawriter,
             )
         else:  # versions 118 and 119
-            # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore[no-redef]
+            # Incompatible import of "statawriter" (imported name has type
+            # "Type[StataWriter117]", local name has type "Type[StataWriter]")
+            from pandas.io.stata import (  # type: ignore[assignment]
                 StataWriterUTF8 as statawriter,
             )
 
@@ -3550,10 +3545,14 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy:
+            if copy and not using_copy_on_write():
                 new_vals = new_vals.copy()
 
-            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_vals, index=self.columns, columns=self.index, copy=False
+            )
+            if using_copy_on_write() and len(self) > 0:
+                result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
@@ -3663,6 +3662,25 @@ class DataFrame(NDFrame, OpsMixin):
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
 
+    def _getitem_nocopy(self, key: list):
+        """
+        Behaves like __getitem__, but returns a view in cases where __getitem__
+        would make a copy.
+        """
+        # TODO(CoW): can be removed if/when we are always Copy-on-Write
+        indexer = self.columns._get_indexer_strict(key, "columns")[1]
+        new_axis = self.columns[indexer]
+
+        new_mgr = self._mgr.reindex_indexer(
+            new_axis,
+            indexer,
+            axis=0,
+            allow_dups=True,
+            copy=False,
+            only_slice=True,
+        )
+        return self._constructor(new_mgr)
+
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
@@ -3722,6 +3740,9 @@ class DataFrame(NDFrame, OpsMixin):
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
+
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=1)
 
         data = self._take_with_is_copy(indexer, axis=1)
 
@@ -3786,6 +3807,8 @@ class DataFrame(NDFrame, OpsMixin):
             # string in the key. If the result is a Series, exclude the
             # implied empty string from its name.
             if len(result.columns) == 1:
+                # e.g. test_frame_getitem_multicolumn_empty_level,
+                #  test_frame_mixed_depth_get, test_loc_setitem_single_column_slice
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
@@ -3842,23 +3865,27 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position 'loc'.
+        Set the given value in the column with position `loc`.
 
-        This is a positional analogue to __setitem__.
+        This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
         loc : int or sequence of ints
+            Index position for the column.
         value : scalar or arraylike
+            Value(s) for the column.
 
         Notes
         -----
-        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
-        _never_ try to set the values in place, but will always insert a new
-        array.
+        ``frame.isetitem(loc, value)`` is an in-place method as it will
+        modify the DataFrame in place (not returning a new object). In contrast to
+        ``frame.iloc[:, i] = value`` which will try to update the existing values in
+        place, ``frame.isetitem(loc, value)`` will not update the values of the column
+        itself in place, it will instead insert a new array.
 
-        In cases where `frame.columns` is unique, this is equivalent to
-        `frame[frame.columns[i]] = value`.
+        In cases where ``frame.columns`` is unique, this is equivalent to
+        ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
             if is_scalar(loc):
@@ -3971,7 +3998,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self[col] = igetitem(value, i)
 
         else:
-
             ilocs = self.columns.get_indexer_non_unique(key)[0]
             if (ilocs < 0).any():
                 # key entries not in self.columns
@@ -4270,9 +4296,6 @@ class DataFrame(NDFrame, OpsMixin):
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
 
-            .. versionadded:: 1.0.0
-                Expanding functionality of backtick quoting for more than only spaces.
-
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
         **kwargs
@@ -4492,17 +4515,6 @@ class DataFrame(NDFrame, OpsMixin):
         2  3   6
         3  4   4
         4  5   2
-
-        Use ``inplace=True`` to modify the original DataFrame.
-
-        >>> df.eval('C = A + B', inplace=True)
-        >>> df
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
 
         Multiple columns can be assigned to using multi-line expressions:
 
@@ -4976,14 +4988,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
-        0  1   4
-        1  2   5
-        2  3   6
-
-        Now, update the labels without copying the underlying data.
-
-        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
-           i  ii
         0  1   4
         1  2   5
         2  3   6
@@ -5514,8 +5518,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def replace(
         self,
         to_replace=...,
@@ -6269,10 +6272,8 @@ class DataFrame(NDFrame, OpsMixin):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. versionchanged:: 1.0.0
-
-               Pass tuple or list to drop on multiple axes.
-               Only a single axis is allowed.
+            Pass tuple or list to drop on multiple axes.
+            Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -6353,13 +6354,6 @@ class DataFrame(NDFrame, OpsMixin):
                name        toy       born
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
-
-        Keep the DataFrame with valid entries in the same variable.
-
-        >>> df.dropna(inplace=True)
-        >>> df
-             name        toy       born
-        1  Batman  Batmobile 1940-04-25
         """
         if (how is not no_default) and (thresh is not no_default):
             raise TypeError(
@@ -6444,8 +6438,6 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -6721,7 +6713,6 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
             # need to rewrap columns in Series to apply key function
@@ -6873,9 +6864,6 @@ class DataFrame(NDFrame, OpsMixin):
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -6958,7 +6946,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : list-like, optional
+        subset : label or list of labels, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -6982,9 +6970,10 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         The returned Series will have a MultiIndex with one level per input
-        column. By default, rows that contain any NA values are omitted from
-        the result. By default, the resulting Series will be in descending
-        order so that the first element is the most frequently-occurring row.
+        column but an Index (non-multi) for a single label. By default, rows
+        that contain any NA values are omitted from the result. By default,
+        the resulting Series will be in descending order so that the first
+        element is the most frequently-occurring row.
 
         Examples
         --------
@@ -7003,28 +6992,28 @@ class DataFrame(NDFrame, OpsMixin):
         4         0            2
         2         2            1
         6         0            1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(sort=False)
         num_legs  num_wings
         2         2            1
         4         0            2
         6         0            1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(ascending=True)
         num_legs  num_wings
         2         2            1
         6         0            1
         4         0            2
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
         2         2            0.25
         6         0            0.25
-        dtype: float64
+        Name: proportion, dtype: float64
 
         With `dropna` set to `False` we can also count rows with NA values.
 
@@ -7041,7 +7030,7 @@ class DataFrame(NDFrame, OpsMixin):
         first_name  middle_name
         Beth        Louise         1
         John        Smith          1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.value_counts(dropna=False)
         first_name  middle_name
@@ -7049,12 +7038,21 @@ class DataFrame(NDFrame, OpsMixin):
         Beth        Louise         1
         John        Smith          1
                     NaN            1
-        dtype: int64
+        Name: count, dtype: int64
+
+        >>> df.value_counts("first_name")
+        first_name
+        John    2
+        Anne    1
+        Beth    1
+        Name: count, dtype: int64
         """
         if subset is None:
             subset = self.columns.tolist()
 
+        name = "proportion" if normalize else "count"
         counts = self.groupby(subset, dropna=dropna).grouper.size()
+        counts.name = name
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
@@ -7062,7 +7060,7 @@ class DataFrame(NDFrame, OpsMixin):
             counts /= counts.sum()
 
         # Force MultiIndex for single column
-        if len(subset) == 1:
+        if is_list_like(subset) and len(subset) == 1:
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
@@ -7174,7 +7172,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
         """
-        return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
     def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
@@ -7272,9 +7270,7 @@ class DataFrame(NDFrame, OpsMixin):
         Anguilla       11300  311      AI
         Nauru         337000  182      NR
         """
-        return algorithms.SelectNFrame(
-            self, n=n, keep=keep, columns=columns
-        ).nsmallest()
+        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
     @doc(
         Series.swaplevel,
@@ -7816,19 +7812,19 @@ Keep all original rows and columns and also all original values
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
+        # sorts if possible; otherwise align above ensures that these are set-equal
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
             series = this[col]
-            otherSeries = other[col]
+            other_series = other[col]
 
             this_dtype = series.dtype
-            other_dtype = otherSeries.dtype
+            other_dtype = other_series.dtype
 
             this_mask = isna(series)
-            other_mask = isna(otherSeries)
+            other_mask = isna(other_series)
 
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
@@ -7838,9 +7834,9 @@ Keep all original rows and columns and also all original values
 
             if do_fill:
                 series = series.copy()
-                otherSeries = otherSeries.copy()
+                other_series = other_series.copy()
                 series[this_mask] = fill_value
-                otherSeries[other_mask] = fill_value
+                other_series[other_mask] = fill_value
 
             if col not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
@@ -7855,9 +7851,9 @@ Keep all original rows and columns and also all original values
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 series = series.astype(new_dtype, copy=False)
-                otherSeries = otherSeries.astype(new_dtype, copy=False)
+                other_series = other_series.astype(new_dtype, copy=False)
 
-            arr = func(series, otherSeries)
+            arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
                 # if new_dtype is an EA Dtype, then `func` is expected to return
                 # the correct dtype without any additional casting
@@ -8250,18 +8246,18 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------%s
+        columns : str or object or a list of str
+            Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
 
             .. versionchanged:: 1.1.0
                Also accept list of index names.
-
-        columns : str or object or a list of str
-            Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
 
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
@@ -8385,9 +8381,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(
-        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
-    ) -> DataFrame:
+    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -8951,7 +8945,6 @@ Parrot 2  Parrot       24.0
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
-
         return melt(
             self,
             id_vars=id_vars,
@@ -9540,7 +9533,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
         lsuffix: str = "",
@@ -9809,7 +9802,7 @@ Parrot 2  Parrot       24.0
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
+        copy: bool | None = None,
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
@@ -9919,7 +9912,7 @@ Parrot 2  Parrot       24.0
                 except KeyError:
                     yield vals
 
-        def _series_round(ser: Series, decimals: int):
+        def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
             return ser
@@ -9945,7 +9938,7 @@ Parrot 2  Parrot       24.0
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
-            return self
+            return self.copy(deep=False)
 
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
@@ -10461,54 +10454,44 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only or axis == 0:
-            # For numeric_only non-None and axis non-None, we know
-            #  which blocks to use and no try/except is needed.
-            #  For numeric_only=None only the case with axis==0 and no object
-            #  dtypes are unambiguous can be handled with BlockManager.reduce
-            # Case with EAs see GH#35881
-            df = self
-            if numeric_only:
-                df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
-
-            # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager.reduce
-            res = df._mgr.reduce(blk_func)
-            out = df._constructor(res).iloc[0]
-            if out_dtype is not None:
-                out = out.astype(out_dtype)
-            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
-                # Even if we are object dtype, follow numpy and return
-                #  float64, see test_apply_funcs_over_empty
-                out = out.astype(np.float64)
-
-            return out
-
-        assert not numeric_only and axis in (1, None)
-
-        data = self
-        values = data.values
-        result = func(values)
-
-        if hasattr(result, "dtype"):
-            if filter_type == "bool" and notna(result).all():
-                result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
-
+        # Case with EAs see GH#35881
+        df = self
+        if numeric_only:
+            df = _get_data()
         if axis is None:
-            return result
+            return func(df.values)
+        elif axis == 1:
+            if len(df.index) == 0:
+                # Taking a transpose would result in no columns, losing the dtype.
+                # In the empty case, reducing along axis 0 or 1 gives the same
+                # result dtype, so reduce with axis=0 and ignore values
+                result = df._reduce(
+                    op,
+                    name,
+                    axis=0,
+                    skipna=skipna,
+                    numeric_only=False,
+                    filter_type=filter_type,
+                    **kwds,
+                ).iloc[:0]
+                result.index = df.index
+                return result
+            df = df.T
 
-        labels = self._get_agg_axis(axis)
-        result = self._constructor_sliced(result, index=labels)
-        return result
+        # After possibly _get_data and transposing, we are now in the
+        #  simple case where we can use BlockManager.reduce
+        res = df._mgr.reduce(blk_func)
+        out = df._constructor(res).iloc[0]
+        if out_dtype is not None:
+            out = out.astype(out_dtype)
+        elif (df._mgr.get_dtypes() == object).any():
+            out = out.astype(object)
+        elif len(self) == 0 and name in ("sum", "prod"):
+            # Even if we are object dtype, follow numpy and return
+            #  float64, see test_apply_funcs_over_empty
+            out = out.astype(np.float64)
+
+        return out
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
@@ -10607,7 +10590,6 @@ Parrot 2  Parrot       24.0
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
-
         axis = self._get_axis_number(axis)
         if numeric_only:
             data = self._get_numeric_data()
@@ -11013,6 +10995,37 @@ Parrot 2  Parrot       24.0
         -------
         DataFrame
             The DataFrame has a DatetimeIndex.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2023', '2024'], freq='Y')
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d, index=idx)
+        >>> df1
+              col1   col2
+        2023     1      3
+        2024	 2      4
+
+        The resulting timestamps will be at the beginning of the year in this case
+
+        >>> df1 = df1.to_timestamp()
+        >>> df1
+                    col1   col2
+        2023-01-01     1      3
+        2024-01-01     2      4
+        >>> df1.index
+        DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[ns]', freq=None)
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> df2 = pd.DataFrame(data=d, index=idx)
+        >>> df2 = df2.to_timestamp(freq='M')
+        >>> df2
+                    col1   col2
+        2023-01-31     1      3
+        2024-01-31     2      4
+        >>> df2.index
+        DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
         new_obj = self.copy(deep=copy)
 

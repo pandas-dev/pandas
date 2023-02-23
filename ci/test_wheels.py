@@ -38,24 +38,15 @@ if os.name == "nt":
 else:
     import pandas as pd
 
-    for data_manager in ["block", "array"]:
-        os.environ["PANDAS_DATA_MANAGER"] = data_manager
-        pd.test(
-            extra_args=[
-                "-m not clipboard and not single_cpu",
-                "--skip-slow",
-                "--skip-network",
-                "--skip-db",
-                "--no-strict-data-files",
-                "-n=2",
-            ]
-        )
-        pd.test(
-            extra_args=[
-                "-m not clipboard and single_cpu",
-                "--skip-slow",
-                "--skip-network",
-                "--skip-db",
-                "--no-strict-data-files",
-            ]
-        )
+    multi_args = [
+        "-m not clipboard and not single_cpu and not slow and not network and not db",
+        "-n 2",
+        "--no-strict-data-files",
+    ]
+    pd.test(extra_args=multi_args)
+    pd.test(
+        extra_args=[
+            "-m not clipboard and single_cpu and not slow and not network and not db",
+            "--no-strict-data-files",
+        ]
+    )

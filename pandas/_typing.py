@@ -324,6 +324,9 @@ WindowingRankType = Literal["average", "min", "max"]
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
+# read_json engines
+JSONEngine = Literal["ujson", "pyarrow"]
+
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
