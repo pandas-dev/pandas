@@ -104,6 +104,9 @@ class PythonParser(ParserBase):
         self.decimal = kwds["decimal"]
 
         self.comment = kwds["comment"]
+        ## GH51569
+        self.keep_whitespace = kwds.get("keep_whitespace")
+        self.whitespace_chars = kwds.get("whitespace_chars")
 
         # Set self.data to something that can read lines.
         if isinstance(f, list):
@@ -1180,11 +1183,20 @@ class FixedWidthReader(abc.Iterator):
         comment: str | None,
         skiprows: set[int] | None = None,
         infer_nrows: int = 100,
+        ## GH51569
+        keep_whitespace: bool | tuple[bool, bool] = (False, False),
+        whitespace_chars: str = " \t",
     ) -> None:
         self.f = f
         self.buffer: Iterator | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
+        self.keep_whitespace = keep_whitespace
+        ## Backwards compatibility means supporting delimiter:
+        if delimiter:
+            whitespace_chars = whitespace_chars + delimiter
+        self.whitespace_chars = whitespace_chars
+
         if colspecs == "infer":
             self.colspecs = self.detect_colspecs(
                 infer_nrows=infer_nrows, skiprows=skiprows
@@ -1209,6 +1221,33 @@ class FixedWidthReader(abc.Iterator):
                     "Each column specification must be "
                     "2 element tuple or list of integers"
                 )
+
+        ## GH51569
+        ## Accept boolean, but convert to tuple(bool,bool) for (left,right) of fields:
+        if isinstance(self.keep_whitespace, bool):
+            self.keep_whitespace = (keep_whitespace, keep_whitespace)
+        ## Ensure tuple is (bool,bool):
+        if (
+            isinstance(self.keep_whitespace, tuple)
+            and len(self.keep_whitespace) == 2
+            and isinstance(self.keep_whitespace[0], bool)
+            and isinstance(self.keep_whitespace[1], bool)
+        ):
+            # Define custom lstrip & rstrip *once*, at __init__:
+            if self.keep_whitespace[0] is True:
+                self.ltrim = lambda x: x
+            else:
+                self.ltrim = lambda x: x.lstrip(self.whitespace_chars)
+            if self.keep_whitespace[1] is True:
+                self.rtrim = lambda x: x
+            else:
+                self.rtrim = lambda x: x.rstrip(self.whitespace_chars)
+        else:
+            raise ValueError(
+                "'keep_whitespace' must be a bool or tuple(bool,bool)."
+                f"\nReceived '{type(self.keep_whitespace).__name__}': "
+                f"'{self.keep_whitespace}'."
+            )
 
     def get_rows(self, infer_nrows: int, skiprows: set[int] | None = None) -> list[str]:
         """
@@ -1281,8 +1320,14 @@ class FixedWidthReader(abc.Iterator):
                 line = next(self.f)  # type: ignore[arg-type]
         else:
             line = next(self.f)  # type: ignore[arg-type]
+
+        line = line.rstrip("\r\n")
+
         # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
+        return [self.ltrim(self.rtrim(line[from_:to])) for (from_, to) in self.colspecs]
+
+
+#        return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
 
 
 class FixedWidthFieldParser(PythonParser):
@@ -1305,6 +1350,9 @@ class FixedWidthFieldParser(PythonParser):
             self.comment,
             self.skiprows,
             self.infer_nrows,
+            ## GH51569
+            self.keep_whitespace,
+            self.whitespace_chars,
         )
 
     def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:

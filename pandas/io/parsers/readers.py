@@ -435,7 +435,13 @@ _c_parser_defaults = {
     "float_precision": None,
 }
 
-_fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
+_fwf_defaults = {
+    "colspecs": "infer",
+    "infer_nrows": 100,
+    "widths": None,
+    "keep_whitespace": (False, False),
+    "whitespace_chars": " \t",
+}
 
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
@@ -1235,10 +1241,13 @@ def read_fwf(
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    ## GH51569
+    keep_whitespace: bool | tuple[bool, bool] = (False, False),
+    whitespace_chars: str = " \t",
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
-    Read a table of fixed-width formatted lines into DataFrame.
+    Read a file of fixed-width lines into DataFrame.
 
     Also supports optionally iterating or breaking of the file
     into chunks.
@@ -1266,6 +1275,8 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    delimiter : str, default ``' '`` and ``'\t'`` characters
+        When inferring colspecs, sets the column / field separator.
     use_nullable_dtypes : bool = False
         Whether or not to use nullable dtypes as default when reading data. If
         set to True, nullable dtypes are used for all dtypes that have a nullable
@@ -1283,6 +1294,14 @@ def read_fwf(
 
         .. versionadded:: 2.0
 
+    keep_whitespace : bool, or tuple (bool,bool), default (False,False)
+        How to handle whitespace at start,end of each field / column.
+    whitespace_chars : str, default = ``' '`` and ``'\t'`` characters
+        If ``keep_whitespace`` is to remove whitespace, these characters are
+        stripped from each field / column.
+
+        .. versionadded:: 2.0
+
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1294,6 +1313,7 @@ def read_fwf(
 
     See Also
     --------
+    read_table : Read data from table (i.e. columns with delimiting spaces).
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
@@ -1346,6 +1366,9 @@ def read_fwf(
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
     kwds["use_nullable_dtypes"] = use_nullable_dtypes
+    ## GH51569
+    kwds["keep_whitespace"] = keep_whitespace
+    kwds["whitespace_chars"] = whitespace_chars
     return _read(filepath_or_buffer, kwds)
 
 
