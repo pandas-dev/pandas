@@ -312,6 +312,7 @@ Other enhancements
 - Added new argument ``dtype`` to :func:`read_sql` to be consistent with :func:`read_sql_query` (:issue:`50797`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
+- Added new arguments ``keep_whitespace`` and ``whitespace_chars`` to :func:`read_fwf` giving more control and more intuitive control over whitespace handling (:issue:`51569`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -829,8 +830,8 @@ Deprecations
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
+- Deprecated using ``delimiter`` option to ``read_fwf`` to preserve whitespace in favour of ``keep_whitespace`` and ``whitespace_chars`` (:issue:`51569`)
 -
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
 
