@@ -394,7 +394,6 @@ class TestBlockManager:
         mgr.iget(1)
 
     def test_pickle(self, mgr):
-
         mgr2 = tm.round_trip_pickle(mgr)
         tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
@@ -471,7 +470,6 @@ class TestBlockManager:
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
@@ -485,7 +483,6 @@ class TestBlockManager:
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             bvals = blk.values
             cpvals = cp_blk.values
 
@@ -1006,13 +1003,15 @@ class TestIndexing:
 
         for ax in range(mgr.ndim):
             # take/fancy indexer
-            assert_take_ok(mgr, ax, indexer=[])
-            assert_take_ok(mgr, ax, indexer=[0, 0, 0])
-            assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
+            assert_take_ok(mgr, ax, indexer=np.array([], dtype=np.intp))
+            assert_take_ok(mgr, ax, indexer=np.array([0, 0, 0], dtype=np.intp))
+            assert_take_ok(
+                mgr, ax, indexer=np.array(list(range(mgr.shape[ax])), dtype=np.intp)
+            )
 
             if mgr.shape[ax] >= 3:
-                assert_take_ok(mgr, ax, indexer=[0, 1, 2])
-                assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
+                assert_take_ok(mgr, ax, indexer=np.array([0, 1, 2], dtype=np.intp))
+                assert_take_ok(mgr, ax, indexer=np.array([-1, -2, -3], dtype=np.intp))
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])

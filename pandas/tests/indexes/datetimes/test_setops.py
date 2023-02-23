@@ -78,7 +78,6 @@ class TestDatetimeIndexSetOps:
             (rng2, other2, expected2, expected2_notsorted),
             (rng3, other3, expected3, expected3_notsorted),
         ]:
-
             result_union = rng.union(other, sort=sort)
             tm.assert_index_equal(result_union, exp)
 
@@ -226,7 +225,7 @@ class TestDatetimeIndexSetOps:
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
         expected4 = DatetimeIndex([], freq="D", name="idx")
 
-        for (rng, expected) in [
+        for rng, expected in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),
@@ -257,7 +256,7 @@ class TestDatetimeIndexSetOps:
         expected4 = DatetimeIndex([], tz=tz, name="idx")
         assert expected4.freq is None
 
-        for (rng, expected) in [
+        for rng, expected in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),

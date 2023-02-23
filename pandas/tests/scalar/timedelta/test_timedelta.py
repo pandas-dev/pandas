@@ -167,7 +167,6 @@ class TestNonNano:
 
     def test_to_timedelta64(self, td, unit):
         for res in [td.to_timedelta64(), td.to_numpy(), td.asm8]:
-
             assert isinstance(res, np.timedelta64)
             assert res.view("i8") == td._value
             if unit == NpyDatetimeUnit.NPY_FR_s.value:
@@ -376,7 +375,6 @@ class TestTimedeltas:
         assert np.isnan(rng.total_seconds())
 
     def test_conversion(self):
-
         for td in [Timedelta(10, unit="d"), Timedelta("1 days, 10:11:12.012345")]:
             pydt = td.to_pytimedelta()
             assert td == Timedelta(pydt)
@@ -670,7 +668,6 @@ class TestTimedeltas:
         ],
     )
     def test_round(self, freq, s1, s2):
-
         t1 = Timedelta("1 days 02:34:56.789123456")
         t2 = Timedelta("-1 days 02:34:56.789123456")
 
@@ -769,7 +766,6 @@ class TestTimedeltas:
         assert res._creso == td._creso
 
     def test_identity(self):
-
         td = Timedelta(10, unit="d")
         assert isinstance(td, Timedelta)
         assert isinstance(td, timedelta)
@@ -855,7 +851,6 @@ class TestTimedeltas:
             Timedelta("- 1days, 00")
 
     def test_pickle(self):
-
         v = Timedelta("1 days 10:11:12.0123456")
         v_p = tm.round_trip_pickle(v)
         assert v == v_p

@@ -1223,7 +1223,6 @@ class _TestSQLApi(PandasSQLTest):
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_timedelta(self):
-
         # see #6921
         df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
         with tm.assert_produces_warning(UserWarning):
@@ -1680,7 +1679,6 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         # between the writing and reading (as in many real situations).
 
         with tm.ensure_clean() as name:
-
             with closing(self.connect(name)) as conn:
                 assert (
                     sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False)
@@ -1732,14 +1730,12 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         assert "CREATE" in create_sql
 
     def _get_sqlite_column_type(self, schema, column):
-
         for col in schema.split("\n"):
             if col.split()[0].strip('"') == column:
                 return col.split()[1]
         raise ValueError(f"Column {column} not found")
 
     def test_sqlite_type_mapping(self):
-
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
             {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
@@ -1888,7 +1884,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # check that a column is either datetime64[ns]
             # or datetime64[ns, UTC]
             if is_datetime64_dtype(col.dtype):
-
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
                 assert col[0] == Timestamp("2000-01-01 08:00:00")
@@ -2521,7 +2516,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
 
     def nullable_expected(self, storage, dtype_backend) -> DataFrame:
-
         string_array: StringArray | ArrowStringArray
         string_array_na: StringArray | ArrowStringArray
         if storage == "python":
