@@ -15,7 +15,10 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
@@ -743,7 +746,16 @@ def _stack_multi_columns(
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
-            value_slice = chunk.reindex(columns=level_vals_used).values
+            # Override fill value to prevent upcasting to float64
+            # if we have lower precision floats
+            common_type = find_common_type(chunk.dtypes.tolist())
+            if common_type.kind == "f" and not is_extension_array_dtype(common_type):
+                fill_value = common_type.type(np.nan)
+            else:
+                fill_value = np.nan
+            value_slice = chunk.reindex(
+                columns=level_vals_used, fill_value=fill_value
+            ).values
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(
                 frame.dtypes.iloc[0]
