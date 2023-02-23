@@ -177,7 +177,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Added :meth:`ScatterPlot._scatter()`, which is called by :meth:`ScatterPlot._make_plot()` (:issue:`51560`)
 -
 
 Groupby/resample/rolling
