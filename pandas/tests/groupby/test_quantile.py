@@ -314,7 +314,6 @@ def test_groupby_quantile_NA_int(any_int_ea_dtype):
 def test_groupby_quantile_all_na_group_masked(
     interpolation, val1, val2, any_numeric_ea_dtype
 ):
-    # TODO: Stateful & can raise RuntimeWarning
     # GH#37493
     df = DataFrame(
         {"a": [1, 1, 1, 2], "b": [1, 2, 3, pd.NA]}, dtype=any_numeric_ea_dtype
