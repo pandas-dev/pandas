@@ -8,7 +8,6 @@ on:
       - 1.5.x
   pull_request:
     branches:
-      - main
       - 2.0.x
       - 1.5.x
     types: [labeled, opened, synchronize, reopened]

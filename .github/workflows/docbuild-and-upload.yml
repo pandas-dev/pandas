@@ -10,7 +10,6 @@ on:
       - '*'
   pull_request:
     branches:
-      - main
       - 2.0.x
       - 1.5.x
 

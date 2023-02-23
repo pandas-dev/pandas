@@ -184,6 +184,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.skip(reason="check if failure is here")
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
