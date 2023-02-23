@@ -468,7 +468,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
                 if freq.n == 0:
-                    # Better to have no freq than an incorrect one
+                    # GH#51575 Better to have no freq than an incorrect one
                     freq = None
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 

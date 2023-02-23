@@ -159,7 +159,7 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_equal(result, expected)
 
     def test_arithmetic_zero_freq(self):
-        # don't get a .freq with freq.n = 0
+        # GH#51575 don't get a .freq with freq.n = 0
         tdi = timedelta_range(0, periods=100, freq="ns")
         result = tdi / 2
         assert result.freq is None
