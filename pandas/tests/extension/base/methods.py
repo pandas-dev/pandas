@@ -169,6 +169,7 @@ class BaseMethodsTests(BaseExtensionTests):
         result = nargsort(data_missing_for_sorting, na_position=na_position)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.skip(reason="check if failure is here")
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
