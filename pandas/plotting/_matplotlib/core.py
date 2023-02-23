@@ -1254,6 +1254,7 @@ class ScatterPlot(PlanePlot):
         else:
             label = None
         scatter = self._scatter(
+            ax,
             data[x].values,
             data[y].values,
             c=c_values,
