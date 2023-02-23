@@ -6033,6 +6033,14 @@ values will have ``object`` data type.
    ``int64`` for all integer types and ``float64`` for floating point data.  By default,
    the Stata data types are preserved when importing.
 
+.. note::
+
+   All :class:`~pandas.io.stata.StataReader` objects, whether created by :func:`~pandas.read_stata`
+   (when using ``iterator=True`` or ``chunksize``) or instantiated by hand, must be used as context
+   managers (e.g. the ``with`` statement).
+   While the :meth:`~pandas.io.stata.StataReader.close` method is available, its use is unsupported.
+   It is not part of the public API and will be removed in with future without warning.
+
 .. ipython:: python
    :suppress:
 
