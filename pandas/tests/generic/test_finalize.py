@@ -490,8 +490,9 @@ def test_finalize_called_eval_numexpr():
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
 )
-def test_binops(request, args, annotate, all_binary_operators):
+def test_binops(args, annotate, all_binary_operators):
     # This generates 624 tests... Is that needed?
+    # TODO: This test is stateful, .attrs should be reset
     left, right = args
     if annotate == "both" and isinstance(left, int) or isinstance(right, int):
         return
