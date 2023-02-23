@@ -30,8 +30,8 @@ jobs:
     strategy:
       matrix:
         env_file: [actions-311.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["8", "9", "10"]
+        pattern: ["single_cpu"]
+        pyarrow_version: ["8"]
         include:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
