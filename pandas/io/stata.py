@@ -1233,7 +1233,7 @@ class StataReader(StataParser, abc.Iterator):
             "will be removed in a future version without notice. "
             "Using StataReader as a context manager is the only supported method.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if self._close_file:
             self._close_file()
