@@ -633,8 +633,15 @@ def test_whitespace_preservation():
     fwf_data = """
  a bbb
  ccdd """
+    ## This test is a mess:
+    ## It's trying to keep whitespace via passing in a non-space delimiter:
     result = read_fwf(
-        StringIO(fwf_data), widths=[3, 3], header=header, skiprows=[0], delimiter="\n\t"
+        StringIO(fwf_data),
+        widths=[3, 3],
+        header=header,
+        skiprows=[0],
+        # delimiter="\n\t",
+        keep_whitespace=True,
     )
     expected = read_csv(StringIO(csv_data), header=header)
     tm.assert_frame_equal(result, expected)
@@ -1003,4 +1010,47 @@ def test_use_nullable_dtypes_option():
         result = read_fwf(StringIO(data))
 
     expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keep_whitespace, data, expected",
+    [
+        (
+            # Preserve all whitespace:
+            True,
+            # 10-byte wide fields:
+            ["left      ", "  centre  ", "    right "],
+            DataFrame(["left      ", "  centre  ", "    right "]),
+        ),
+        (
+            # Preserve no whitespace:
+            False,
+            # 10-byte wide fields:
+            ["left      ", "  centre  ", "    right "],
+            DataFrame(["left", "centre", "right"]),
+        ),
+        # Preserve leading whitespace only:
+        (
+            (True, False),
+            ["left      ", "  centre  ", "    right"],
+            DataFrame(["left", "  centre", "    right"]),
+        ),
+        # Preserve trailing whitespace only:
+        (
+            (False, True),
+            ["left      ", "  centre  ", "    right"],
+            DataFrame(["left      ", "centre  ", "right"]),
+        ),
+    ],
+)
+def test_fwf_keep_whitespace_true(keep_whitespace, data, expected):
+    # see GH#####
+
+    result = read_fwf(
+        StringIO("\n".join(data)),
+        header=None,
+        widths=[10],
+        keep_whitespace=keep_whitespace,
+    )
     tm.assert_frame_equal(result, expected)
