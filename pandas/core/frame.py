@@ -141,7 +141,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -1224,12 +1223,8 @@ class DataFrame(NDFrame, OpsMixin):
             (when number of rows is above `max_rows`).
         max_colwidth : int, optional
             Max width to truncate each column in characters. By default, no limit.
-
-            .. versionadded:: 1.0.0
         encoding : str, default "utf-8"
             Set character encoding.
-
-            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -2542,10 +2537,6 @@ class DataFrame(NDFrame, OpsMixin):
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function.
 
-            .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
-
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -2581,10 +2572,6 @@ class DataFrame(NDFrame, OpsMixin):
             variables exceeds the capacity of dta format 118. Exporting
             smaller datasets in format 119 may have unintended consequences,
             and, as of November 2020, Stata SE cannot read version 119 files.
-
-            .. versionchanged:: 1.0.0
-
-                Added support for formats 118 and 119.
 
         convert_strl : list, optional
             List of column names to convert to string columns to Stata StrL
@@ -3558,10 +3545,14 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy:
+            if copy and not using_copy_on_write():
                 new_vals = new_vals.copy()
 
-            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_vals, index=self.columns, columns=self.index, copy=False
+            )
+            if using_copy_on_write() and len(self) > 0:
+                result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
@@ -3750,6 +3741,9 @@ class DataFrame(NDFrame, OpsMixin):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=1)
+
         data = self._take_with_is_copy(indexer, axis=1)
 
         if is_single_key:
@@ -3871,23 +3865,27 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position 'loc'.
+        Set the given value in the column with position `loc`.
 
-        This is a positional analogue to __setitem__.
+        This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
         loc : int or sequence of ints
+            Index position for the column.
         value : scalar or arraylike
+            Value(s) for the column.
 
         Notes
         -----
-        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
-        _never_ try to set the values in place, but will always insert a new
-        array.
+        ``frame.isetitem(loc, value)`` is an in-place method as it will
+        modify the DataFrame in place (not returning a new object). In contrast to
+        ``frame.iloc[:, i] = value`` which will try to update the existing values in
+        place, ``frame.isetitem(loc, value)`` will not update the values of the column
+        itself in place, it will instead insert a new array.
 
-        In cases where `frame.columns` is unique, this is equivalent to
-        `frame[frame.columns[i]] = value`.
+        In cases where ``frame.columns`` is unique, this is equivalent to
+        ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
             if is_scalar(loc):
@@ -4297,9 +4295,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
-
-            .. versionadded:: 1.0.0
-                Expanding functionality of backtick quoting for more than only spaces.
 
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
@@ -6277,10 +6272,8 @@ class DataFrame(NDFrame, OpsMixin):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. versionchanged:: 1.0.0
-
-               Pass tuple or list to drop on multiple axes.
-               Only a single axis is allowed.
+            Pass tuple or list to drop on multiple axes.
+            Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -6445,8 +6438,6 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -6873,9 +6864,6 @@ class DataFrame(NDFrame, OpsMixin):
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -6958,7 +6946,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : list-like, optional
+        subset : label or list of labels, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -6982,9 +6970,10 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         The returned Series will have a MultiIndex with one level per input
-        column. By default, rows that contain any NA values are omitted from
-        the result. By default, the resulting Series will be in descending
-        order so that the first element is the most frequently-occurring row.
+        column but an Index (non-multi) for a single label. By default, rows
+        that contain any NA values are omitted from the result. By default,
+        the resulting Series will be in descending order so that the first
+        element is the most frequently-occurring row.
 
         Examples
         --------
@@ -7050,6 +7039,13 @@ class DataFrame(NDFrame, OpsMixin):
         John        Smith          1
                     NaN            1
         Name: count, dtype: int64
+
+        >>> df.value_counts("first_name")
+        first_name
+        John    2
+        Anne    1
+        Beth    1
+        Name: count, dtype: int64
         """
         if subset is None:
             subset = self.columns.tolist()
@@ -7064,7 +7060,7 @@ class DataFrame(NDFrame, OpsMixin):
             counts /= counts.sum()
 
         # Force MultiIndex for single column
-        if len(subset) == 1:
+        if is_list_like(subset) and len(subset) == 1:
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
@@ -10458,54 +10454,44 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only or axis == 0:
-            # For numeric_only non-None and axis non-None, we know
-            #  which blocks to use and no try/except is needed.
-            #  For numeric_only=None only the case with axis==0 and no object
-            #  dtypes are unambiguous can be handled with BlockManager.reduce
-            # Case with EAs see GH#35881
-            df = self
-            if numeric_only:
-                df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
-
-            # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager.reduce
-            res = df._mgr.reduce(blk_func)
-            out = df._constructor(res).iloc[0]
-            if out_dtype is not None:
-                out = out.astype(out_dtype)
-            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
-                # Even if we are object dtype, follow numpy and return
-                #  float64, see test_apply_funcs_over_empty
-                out = out.astype(np.float64)
-
-            return out
-
-        assert not numeric_only and axis in (1, None)
-
-        data = self
-        values = data.values
-        result = func(values)
-
-        if hasattr(result, "dtype"):
-            if filter_type == "bool" and notna(result).all():
-                result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
-
+        # Case with EAs see GH#35881
+        df = self
+        if numeric_only:
+            df = _get_data()
         if axis is None:
-            return result
+            return func(df.values)
+        elif axis == 1:
+            if len(df.index) == 0:
+                # Taking a transpose would result in no columns, losing the dtype.
+                # In the empty case, reducing along axis 0 or 1 gives the same
+                # result dtype, so reduce with axis=0 and ignore values
+                result = df._reduce(
+                    op,
+                    name,
+                    axis=0,
+                    skipna=skipna,
+                    numeric_only=False,
+                    filter_type=filter_type,
+                    **kwds,
+                ).iloc[:0]
+                result.index = df.index
+                return result
+            df = df.T
 
-        labels = self._get_agg_axis(axis)
-        result = self._constructor_sliced(result, index=labels)
-        return result
+        # After possibly _get_data and transposing, we are now in the
+        #  simple case where we can use BlockManager.reduce
+        res = df._mgr.reduce(blk_func)
+        out = df._constructor(res).iloc[0]
+        if out_dtype is not None:
+            out = out.astype(out_dtype)
+        elif (df._mgr.get_dtypes() == object).any():
+            out = out.astype(object)
+        elif len(self) == 0 and name in ("sum", "prod"):
+            # Even if we are object dtype, follow numpy and return
+            #  float64, see test_apply_funcs_over_empty
+            out = out.astype(np.float64)
+
+        return out
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """

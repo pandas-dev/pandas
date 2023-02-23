@@ -810,7 +810,11 @@ class Index(IndexOpsMixin, PandasObject):
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
             if isinstance(target_values, (BaseMaskedArray, ArrowExtensionArray)):
-                return _masked_engines[target_values.dtype.name](target_values)
+                try:
+                    return _masked_engines[target_values.dtype.name](target_values)
+                except KeyError:
+                    # Not supported yet e.g. decimal
+                    pass
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
 
@@ -4948,6 +4952,8 @@ class Index(IndexOpsMixin, PandasObject):
             and not (
                 isinstance(self._values, ArrowExtensionArray)
                 and is_numeric_dtype(self.dtype)
+                # Exclude decimal
+                and self.dtype.kind != "O"
             )
         ):
             # TODO(ExtensionIndex): remove special-case, just use self._values

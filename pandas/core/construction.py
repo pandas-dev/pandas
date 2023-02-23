@@ -128,12 +128,6 @@ def array(
 
         For all other cases, NumPy's usual inference rules will be used.
 
-        .. versionchanged:: 1.0.0
-
-           Pandas infers nullable-integer dtype for integer data,
-           string dtype for string data, and nullable-boolean dtype
-           for boolean data.
-
         .. versionchanged:: 1.2.0
 
             Pandas now also infers nullable-floating dtype for float-like
