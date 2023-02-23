@@ -105,7 +105,6 @@ class ConstructorTests:
 
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(None):
-
                 result = constructor(dtype=dtype, closed="left", **result_kwargs)
             assert result.dtype.closed == "left"
 

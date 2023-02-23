@@ -252,7 +252,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(**{input_param: "sm"})
 
     def test_xcompat(self):
-
         df = tm.makeTimeDataFrame()
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
@@ -728,7 +727,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-
         df = DataFrame(
             np.random.randint(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
@@ -1221,7 +1219,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_kind_both_ways(self):
         df = DataFrame({"x": [1, 2, 3]})
         for kind in plotting.PlotAccessor._common_kinds:
-
             df.plot(kind=kind)
             getattr(df.plot, kind)()
         for kind in ["scatter", "hexbin"]:
@@ -1231,7 +1228,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_all_invalid_plot_data(self):
         df = DataFrame(list("abcd"))
         for kind in plotting.PlotAccessor._common_kinds:
-
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
                 df.plot(kind=kind)
@@ -1784,7 +1780,6 @@ class TestDataFramePlots(TestPlotBase):
         """Check that every plot type gets properly collected."""
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
-
             args = {}
             if kind in ["hexbin", "scatter", "pie"]:
                 df = DataFrame(
@@ -1939,7 +1934,6 @@ class TestDataFramePlots(TestPlotBase):
         )
 
     def test_plain_axes(self):
-
         # supplied ax itself is a SubplotAxes, but figure contains also
         # a plain Axes object (GH11556)
         fig, ax = self.plt.subplots()

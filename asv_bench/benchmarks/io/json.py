@@ -18,7 +18,6 @@ from ..pandas_vb_common import (
 
 
 class ReadJSON(BaseIO):
-
     fname = "__test__.json"
     params = (["split", "index", "records"], ["int", "datetime"])
     param_names = ["orient", "index"]
@@ -41,7 +40,6 @@ class ReadJSON(BaseIO):
 
 
 class ReadJSONLines(BaseIO):
-
     fname = "__test_lines__.json"
     params = ["int", "datetime"]
     param_names = ["index"]
@@ -100,7 +98,6 @@ class NormalizeJSON(BaseIO):
 
 
 class ToJSON(BaseIO):
-
     fname = "__test__.json"
     params = [
         ["split", "columns", "index", "values", "records"],
@@ -212,7 +209,6 @@ class ToJSONISO(BaseIO):
 
 
 class ToJSONLines(BaseIO):
-
     fname = "__test__.json"
 
     def setup(self):

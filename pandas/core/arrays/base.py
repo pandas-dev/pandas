@@ -93,7 +93,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -466,8 +465,6 @@ class ExtensionArray:
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
-
-        .. versionadded:: 1.0.0
 
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.

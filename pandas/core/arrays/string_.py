@@ -70,8 +70,6 @@ class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
-    .. versionadded:: 1.0.0
-
     .. warning::
 
        StringDtype is considered experimental. The implementation and
@@ -197,7 +195,6 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
-
             import pyarrow
 
             if isinstance(array, pyarrow.Array):
@@ -233,8 +230,6 @@ class BaseStringArray(ExtensionArray):
 class StringArray(BaseStringArray, PandasArray):
     """
     Extension array for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 

@@ -848,6 +848,9 @@ cdef class TextReader:
         with nogil:
             status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
+        self._check_tokenize_status(status)
+
+    cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
             print(PyUnicode_DecodeUTF8(
                 self.parser.warn_msg, strlen(self.parser.warn_msg),
@@ -879,15 +882,7 @@ cdef class TextReader:
             with nogil:
                 status = tokenize_all_rows(self.parser, self.encoding_errors)
 
-            if self.parser.warn_msg != NULL:
-                print(PyUnicode_DecodeUTF8(
-                    self.parser.warn_msg, strlen(self.parser.warn_msg),
-                    self.encoding_errors), file=sys.stderr)
-                free(self.parser.warn_msg)
-                self.parser.warn_msg = NULL
-
-            if status < 0:
-                raise_parser_error("Error tokenizing data", self.parser)
+            self._check_tokenize_status(status)
 
         if self.parser_start >= self.parser.lines:
             raise StopIteration
