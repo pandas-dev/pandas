@@ -1,0 +1,5 @@
+# Test: empty version
+dependencies:
+  - jinja2>=3.0.0
+  - scipy>=1.7.1
+  - SQLAlchemy>=1.4.16

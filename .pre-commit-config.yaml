@@ -313,7 +313,7 @@ repos:
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
-        additional_dependencies: [pyyaml, toml]
+        additional_dependencies: [tomli, pyyaml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -391,10 +391,11 @@ repos:
         types: [yaml]
     -   id: validate-min-versions-in-sync
         name: Check minimum version of dependencies are aligned
-        entry: python scripts/validate_min_versions_in_sync.py
+        entry: python -m scripts.validate_min_versions_in_sync
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-        additional_dependencies: [tomli]
+        additional_dependencies: [tomli, pyyaml]
+        pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.

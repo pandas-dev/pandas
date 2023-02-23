@@ -78,7 +78,7 @@ plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.0.0', 'tabulate>=0.8.9']
 clipboard = ['PyQt5>=5.15.1', 'qtpy>=2.2.0']
 compression = ['brotlipy>=0.7.0', 'python-snappy>=0.6.0', 'zstandard>=0.15.2']
-all = ['beautifulsoup4>=4.9.3',
+all = ['beautifulsoup4>=5.9.3',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',
        'bottleneck>=1.3.2',
@@ -143,7 +143,6 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
-environment = { LDFLAGS="-Wl,--strip-debug" }
 test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python {project}/ci/test_wheels.py"
 
@@ -162,19 +161,11 @@ select = "*-win*"
 test-command = ""
 
 [[tool.cibuildwheel.overrides]]
-# Don't strip wheels on macOS.
-# macOS doesn't support stripping wheels with linker
-# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
-select = "*-macosx*"
-environment = ""
-
-[[tool.cibuildwheel.overrides]]
 select = "*-win32"
 environment = { IS_32_BIT="true" }
 
 [tool.black]
 target-version = ['py38', 'py39']
-required-version = '23.1.0'
 exclude = '''
 (
     asv_bench/env
@@ -212,10 +203,6 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
-  # misc lints
-  "PIE",
-  # tidy imports
-  "TID",
 ]
 
 ignore = [
@@ -251,20 +238,10 @@ ignore = [
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
-  # Too many arguments to function call
-  "PLR0913",
-  # Too many returns
-  "PLR0911",
-  # Too many branches
-  "PLR0912",
-  # Too many statements
-  "PLR0915",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
-  # Magic number
-  "PLR2004",
 ]
 
 exclude = [
@@ -277,19 +254,13 @@ exclude = [
   "env",
 ]
 
-[tool.ruff.per-file-ignores]
-# relative imports allowed for asv_bench
-"asv_bench/*" = ["TID"]
-
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
  # intentionally turned off
-  "bad-mcs-classmethod-argument",
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
-  "consider-using-enumerate",
   "import-error",
   "import-outside-toplevel",
   "invalid-name",
@@ -322,7 +293,6 @@ disable = [
   "unsupported-assignment-operation",
   "unsupported-membership-test",
   "unused-import",
-  "use-dict-literal",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
@@ -333,13 +303,11 @@ disable = [
   "no-value-for-parameter",
   "undefined-variable",
   "unpacking-non-sequence",
-  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "missing-class-docstring",
   "missing-function-docstring",
   "missing-module-docstring",
-  "superfluous-parens",
   "too-many-lines",
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
@@ -359,7 +327,6 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
-  "broad-exception-raised",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -398,14 +365,6 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
-  "error:::pandas",
-  "error::ResourceWarning",
-  "error::pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:ResourceWarning",
-  "ignore::ResourceWarning:asyncio",
-  # From plotting doctests
-  "ignore:More than 20 figures have been opened:RuntimeWarning",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
