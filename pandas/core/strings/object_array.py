@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: PDF001
 import functools
 import re
 import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 import unicodedata

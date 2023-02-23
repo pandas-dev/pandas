@@ -398,11 +398,7 @@ class TestDataFrameCombineFirst:
             pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
         ):
             df2.set_index(["a", "b"], inplace=True)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            result = df.combine_first(df2)
+        result = df.combine_first(df2)
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",

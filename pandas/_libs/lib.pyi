@@ -217,7 +217,6 @@ def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
     labels: np.ndarray,  # const intp_t[:]
     max_bin: int,
-    axis: int,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=2]
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]
@@ -240,3 +239,6 @@ def get_reverse_indexer(
 ) -> npt.NDArray[np.intp]: ...
 def is_bool_list(obj: list) -> bool: ...
 def dtypes_all_equal(types: list[DtypeObj]) -> bool: ...
+def is_range_indexer(
+    left: np.ndarray, n: int  # np.ndarray[np.int64, ndim=1]
+) -> bool: ...

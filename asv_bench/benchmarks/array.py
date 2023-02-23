@@ -44,6 +44,15 @@ class IntegerArray:
         pd.array(self.values_integer, dtype="Int64")
 
 
+class IntervalArray:
+    def setup(self):
+        N = 10_000
+        self.tuples = [(i, i + 1) for i in range(N)]
+
+    def time_from_tuples(self):
+        pd.arrays.IntervalArray.from_tuples(self.tuples)
+
+
 class StringArray:
     def setup(self):
         N = 100_000
@@ -63,7 +72,6 @@ class StringArray:
 
 
 class ArrowStringArray:
-
     params = [False, True]
     param_names = ["multiple_chunks"]
 
@@ -84,7 +92,7 @@ class ArrowStringArray:
             self.array[i] = "foo"
 
     def time_setitem_list(self, multiple_chunks):
-        indexer = list(range(0, 50)) + list(range(-50, 0))
+        indexer = list(range(0, 50)) + list(range(-1000, 0, 50))
         self.array[indexer] = ["foo"] * len(indexer)
 
     def time_setitem_slice(self, multiple_chunks):
@@ -98,7 +106,6 @@ class ArrowStringArray:
 
 
 class ArrowExtensionArray:
-
     params = [
         [
             "boolean[pyarrow]",

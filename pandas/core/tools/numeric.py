@@ -4,6 +4,11 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._config import (
+    get_option,
+    using_nullable_dtypes,
+)
+
 from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
@@ -13,11 +18,13 @@ from pandas._typing import (
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_datetime_or_timedelta_dtype,
     is_decimal,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
 )
@@ -27,13 +34,14 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas as pd
-from pandas.core.arrays.numeric import NumericArray
+from pandas.core.arrays import BaseMaskedArray
 
 
 def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ):
     """
     Convert argument to a numeric type.
@@ -47,7 +55,7 @@ def to_numeric(
     numbers smaller than `-9223372036854775808` (np.iinfo(np.int64).min)
     or larger than `18446744073709551615` (np.iinfo(np.uint64).max) are
     passed in, it is very likely they will be converted to float so that
-    they can stored in an `ndarray`. These warnings apply similarly to
+    they can be stored in an `ndarray`. These warnings apply similarly to
     `Series` since it internally leverages `ndarray`.
 
     Parameters
@@ -78,6 +86,20 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when converting data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -148,6 +170,12 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
+    _use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     is_series = False
     is_index = False
     is_scalars = False
@@ -178,11 +206,15 @@ def to_numeric(
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
-    if isinstance(values, NumericArray):
+    if isinstance(values, BaseMaskedArray):
         mask = values._mask
         values = values._data[~mask]
 
     values_dtype = getattr(values, "dtype", None)
+    if isinstance(values_dtype, pd.ArrowDtype):
+        mask = values.isna()
+        values = values.dropna().to_numpy()
+    new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
@@ -191,12 +223,22 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, _ = lib.maybe_convert_numeric(
-                values, set(), coerce_numeric=coerce_numeric
+            values, new_mask = lib.maybe_convert_numeric(
+                values,
+                set(),
+                coerce_numeric=coerce_numeric,
+                convert_to_masked_nullable=_use_nullable_dtypes,
             )
         except (ValueError, TypeError):
             if errors == "raise":
                 raise
+
+    if new_mask is not None:
+        # Remove unnecessary values, is expected later anyway and enables
+        # downcasting
+        values = values[~new_mask]
+    elif _use_nullable_dtypes and new_mask is None:
+        new_mask = np.zeros(values.shape, dtype=np.bool_)
 
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
@@ -228,18 +270,37 @@ def to_numeric(
                     if values.dtype == dtype:
                         break
 
-    # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
-    if mask is not None:
+    # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
+    # masked array
+    if (mask is not None or new_mask is not None) and not is_object_dtype(values.dtype):
+        if mask is None:
+            mask = new_mask
+        else:
+            mask = mask.copy()
+        assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
         from pandas.core.arrays import (
+            ArrowExtensionArray,
+            BooleanArray,
             FloatingArray,
             IntegerArray,
         )
 
-        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
-        values = klass(data, mask.copy())
+        klass: type[IntegerArray] | type[BooleanArray] | type[FloatingArray]
+        if is_integer_dtype(data.dtype):
+            klass = IntegerArray
+        elif is_bool_dtype(data.dtype):
+            klass = BooleanArray
+        else:
+            klass = FloatingArray
+        values = klass(data, mask)
+
+        if get_option("mode.dtype_backend") == "pyarrow" or isinstance(
+            values_dtype, pd.ArrowDtype
+        ):
+            values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)

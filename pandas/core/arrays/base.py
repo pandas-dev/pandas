@@ -55,9 +55,11 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
     is_dtype_equal,
     is_list_like,
     is_scalar,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -87,7 +89,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -461,8 +462,6 @@ class ExtensionArray:
         """
         Convert to a NumPy ndarray.
 
-        .. versionadded:: 1.0.0
-
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.
 
@@ -564,7 +563,7 @@ class ExtensionArray:
 
         Returns
         -------
-        array : np.ndarray or ExtensionArray
+        np.ndarray or pandas.api.extensions.ExtensionArray
             An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
@@ -580,6 +579,16 @@ class ExtensionArray:
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
+        elif is_datetime64_dtype(dtype):
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
+
+        elif is_timedelta64_dtype(dtype):
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
+
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
@@ -588,7 +597,7 @@ class ExtensionArray:
 
         Returns
         -------
-        na_values : Union[np.ndarray, ExtensionArray]
+        numpy.ndarray or pandas.api.extensions.ExtensionArray
             In most cases, this should return a NumPy ndarray. For
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
@@ -807,7 +816,7 @@ class ExtensionArray:
 
         Returns
         -------
-        valid : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
@@ -868,7 +877,7 @@ class ExtensionArray:
 
         Returns
         -------
-        uniques : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
@@ -1076,7 +1085,7 @@ class ExtensionArray:
 
         Returns
         -------
-        repeated_array : %(klass)s
+        %(klass)s
             Newly created %(klass)s with repeated elements.
 
         See Also

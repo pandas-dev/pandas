@@ -20,6 +20,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import (
+    NA,
+    NAType,
+)
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -35,6 +39,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    NumpyIndexT,
     Scalar,
     npt,
 )
@@ -65,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
@@ -93,7 +99,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import Index
     from pandas.core.arrays import (
         Categorical,
@@ -174,7 +179,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     return value
 
 
-def maybe_box_native(value: Scalar) -> Scalar:
+def maybe_box_native(value: Scalar | None | NAType) -> Scalar | None | NAType:
     """
     If passed a scalar cast the scalar to a python native type.
 
@@ -200,6 +205,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = bool(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
+    elif value is NA:
+        value = None
     return value
 
 
@@ -355,7 +362,6 @@ def maybe_downcast_numeric(
             return result
 
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
-
         if not result.size:
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
@@ -390,7 +396,11 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        new_result = result.astype(dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "overflow encountered in cast", RuntimeWarning
+            )
+            new_result = result.astype(dtype)
 
         # Adjust tolerances based on floating point size
         size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
@@ -410,6 +420,29 @@ def maybe_downcast_numeric(
             return new_result
 
     return result
+
+
+def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
+    """
+    If array is a int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
+
+    Parameters
+    ----------
+    arr : ndarray or ExtensionArray
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    dtype = arr.dtype
+    if is_signed_integer_dtype(dtype) and dtype != np.int64:
+        return arr.astype(np.int64)
+    elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
+        return arr.astype(np.uint64)
+    elif is_float_dtype(dtype) and dtype != np.float64:
+        return arr.astype(np.float64)
+    else:
+        return arr
 
 
 def maybe_cast_pointwise_result(
@@ -744,7 +777,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         val = lib.item_from_zerodim(val)
 
     elif isinstance(val, str):
-
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
         # so this is kind of bad. Alternately we could use np.repeat
@@ -756,20 +788,14 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
-            # error: Non-overlapping identity check (left operand type:
-            # "Timestamp", right operand type: "NaTType")
-            if val is not NaT:  # type: ignore[comparison-overlap]
+            if val is not NaT:
                 val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
-            # TODO(2.0): this should be dtype = val.dtype
-            #  to get the correct M8 resolution
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
             if pandas_dtype:
@@ -998,7 +1024,6 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-
         if is_object_dtype(input_array.dtype):
             inferred_dtype = lib.infer_dtype(input_array)
         else:
@@ -1320,7 +1345,6 @@ def common_dtype_categorical_compat(
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
     if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
-
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1412,7 +1436,6 @@ def find_common_type(types):
 def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
-
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
@@ -1469,7 +1492,6 @@ def construct_1d_arraylike_from_scalar(
         subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
-
         if length and is_integer_dtype(dtype) and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
@@ -1567,9 +1589,19 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     try:
         if not isinstance(arr, np.ndarray):
-            casted = np.array(arr, dtype=dtype, copy=False)
+            with warnings.catch_warnings():
+                # We already disallow dtype=uint w/ negative numbers
+                # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
+                warnings.filterwarnings(
+                    "ignore",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
+                    DeprecationWarning,
+                )
+                casted = np.array(arr, dtype=dtype, copy=False)
         else:
-            casted = arr.astype(dtype, copy=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
@@ -1581,7 +1613,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
         return casted
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         if np.array_equal(arr, casted):
             return casted
 
@@ -1652,8 +1684,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO(2.0): stop catching ValueError for tzaware, see
-                #  _catch_deprecated_value_error
+                # TODO: re-use _catch_deprecated_value_error to ensure we are
+                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of
@@ -1784,7 +1816,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # see test_where_complex GH#6345
                 return dtype.type(element)
 
-            casted = dtype.type(element)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                casted = dtype.type(element)
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize

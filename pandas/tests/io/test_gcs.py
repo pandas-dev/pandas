@@ -22,17 +22,12 @@ from pandas.util import _test_decorators as td
 @pytest.fixture
 def gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
-    from fsspec import (
-        AbstractFileSystem,
-        registry,
-    )
-
-    registry.target.clear()  # remove state
+    import fsspec
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
 
-    class MockGCSFileSystem(AbstractFileSystem):
+    class MockGCSFileSystem(fsspec.AbstractFileSystem):
         @staticmethod
         def open(*args, **kwargs):
             gcs_buffer.seek(0)
@@ -42,7 +37,8 @@ def gcs_buffer(monkeypatch):
             # needed for pyarrow
             return [{"name": path, "type": "file"}]
 
-    monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
+    # Overwrites the default implementation from gcsfs to our mock class
+    fsspec.register_implementation("gs", MockGCSFileSystem, clobber=True)
 
     return gcs_buffer
 
@@ -55,9 +51,6 @@ def test_to_read_gcs(gcs_buffer, format):
 
     GH 33987
     """
-    from fsspec import registry
-
-    registry.target.clear()  # remove state
 
     df1 = DataFrame(
         {
@@ -132,9 +125,6 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
-    from fsspec import registry
-
-    registry.target.clear()  # remove state
     df = tm.makeDataFrame()
 
     # reference of compressed and encoded file
@@ -174,12 +164,8 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    from fsspec import (
-        AbstractFileSystem,
-        registry,
-    )
+    from fsspec import AbstractFileSystem
 
-    registry.target.clear()  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],

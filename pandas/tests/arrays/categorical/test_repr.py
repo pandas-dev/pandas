@@ -83,7 +83,6 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
         # unicode option should not affect to Categorical, as it doesn't care
         # the repr width
         with option_context("display.unicode.east_asian_width", True):
-
             c = Categorical(["ああああ", "いいいいい", "ううううううう"] * 20)
             expected = """['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
@@ -111,7 +110,7 @@ Categories (5, int64): [1, 2, 3, 4, 5]"""
 
         assert repr(c) == exp
 
-        c = Categorical(np.arange(20))
+        c = Categorical(np.arange(20, dtype=np.int64))
         exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
 Length: 20
 Categories (20, int64): [0, 1, 2, 3, ..., 16, 17, 18, 19]"""
@@ -138,7 +137,7 @@ Categories (5, int64): [1 < 2 < 3 < 4 < 5]"""
 
         assert repr(c) == exp
 
-        c = Categorical(np.arange(20), ordered=True)
+        c = Categorical(np.arange(20, dtype=np.int64), ordered=True)
         exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
 Length: 20
 Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
@@ -380,7 +379,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         exp = """CategoricalIndex([1, 2, 3], categories=[1, 2, 3], ordered=False, dtype='category')"""  # noqa:E501
         assert repr(idx) == exp
 
-        i = CategoricalIndex(Categorical(np.arange(10)))
+        i = CategoricalIndex(Categorical(np.arange(10, dtype=np.int64)))
         exp = """CategoricalIndex([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], categories=[0, 1, 2, 3, ..., 6, 7, 8, 9], ordered=False, dtype='category')"""  # noqa:E501
         assert repr(i) == exp
 
@@ -389,7 +388,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         exp = """CategoricalIndex([1, 2, 3], categories=[1, 2, 3], ordered=True, dtype='category')"""  # noqa:E501
         assert repr(i) == exp
 
-        i = CategoricalIndex(Categorical(np.arange(10), ordered=True))
+        i = CategoricalIndex(Categorical(np.arange(10, dtype=np.int64), ordered=True))
         exp = """CategoricalIndex([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], categories=[0, 1, 2, 3, ..., 6, 7, 8, 9], ordered=True, dtype='category')"""  # noqa:E501
         assert repr(i) == exp
 

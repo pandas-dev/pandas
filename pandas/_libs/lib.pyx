@@ -50,6 +50,7 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int32_t,
     int64_t,
     intp_t,
     ndarray,
@@ -275,6 +276,7 @@ def is_iterator(obj: object) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_iterator
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
@@ -491,7 +493,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# Can add const once https://github.com/cython/cython/issues/1772 resolved
+# TODO(cython3): Can add const once cython#1772 is resolved
 def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -642,6 +644,32 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
     return True
 
 
+ctypedef fused int6432_t:
+    int64_t
+    int32_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, int n) -> bool:
+    """
+    Perform an element by element comparison on 1-d integer arrays, meant for indexer
+    comparisons
+    """
+    cdef:
+        Py_ssize_t i
+
+    if left.size != n:
+        return False
+
+    for i in range(n):
+
+        if left[i] != i:
+            return False
+
+    return True
+
+
 ctypedef fused ndarr_object:
     ndarray[object, ndim=1]
     ndarray[object, ndim=2]
@@ -712,6 +740,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        bint already_copied = True
 
     if hasattr(arr, "to_numpy"):
 
@@ -730,6 +759,8 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+    elif not copy and result is arr:
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -741,8 +772,15 @@ cpdef ndarray[object] ensure_string_array(
         if isinstance(val, str):
             continue
 
+        elif not already_copied:
+            result = result.copy()
+            already_copied = True
+
         if not checknull(val):
-            if not util.is_float_object(val):
+            if isinstance(val, bytes):
+                # GH#49658 discussion of desired behavior here
+                result[i] = val.decode()
+            elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:
@@ -886,29 +924,19 @@ def get_level_sorter(
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                    const intp_t[:] labels,
                    Py_ssize_t max_bin,
-                   int axis):
+                   ):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int64_t, ndim=2] counts
 
-    assert (axis == 0 or axis == 1)
     n, k = (<object>mask).shape
 
-    if axis == 0:
-        counts = np.zeros((max_bin, k), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[labels[i], j] += 1
-
-    else:  # axis == 1
-        counts = np.zeros((n, max_bin), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[i, labels[j]] += 1
+    counts = np.zeros((n, max_bin), dtype="i8")
+    with nogil:
+        for i in range(n):
+            for j in range(k):
+                if mask[i, j]:
+                    counts[i, labels[j]] += 1
 
     return counts
 
@@ -1092,6 +1120,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from pandas.api.types import is_list_like
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
@@ -1331,7 +1360,7 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base", "type"]:
+    for attr in ["kind", "name", "base", "type"]:
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
@@ -1391,7 +1420,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
-    >>> import datetime
+    >>> from pandas.api.types import infer_dtype
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
@@ -1416,6 +1445,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype(['a', 1])
     'mixed-integer'
 
+    >>> from decimal import Decimal
     >>> infer_dtype([Decimal(1), Decimal(2.0)])
     'decimal'
 
@@ -1428,6 +1458,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
+    >>> import datetime
     >>> infer_dtype([datetime.date(2013, 1, 1)])
     'date'
 
@@ -1450,23 +1481,17 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(value, "inferred_type") and skipna is False:
+    elif hasattr(type(value), "inferred_type") and skipna is False:
         # Index, use the cached attribute if possible, populate the cache otherwise
         return value.inferred_type
     elif hasattr(value, "dtype"):
-        # this will handle ndarray-like
-        # e.g. categoricals
-        dtype = value.dtype
-        if not cnp.PyArray_DescrCheck(dtype):
-            # i.e. not isinstance(dtype, np.dtype)
-            inferred = _try_infer_map(value.dtype)
-            if inferred is not None:
-                return inferred
+        inferred = _try_infer_map(value.dtype)
+        if inferred is not None:
+            return inferred
+        elif not cnp.PyArray_DescrCheck(value.dtype):
             return "unknown-array"
-
         # Unwrap Series/Index
         values = np.asarray(value)
-
     else:
         if not isinstance(value, list):
             value = list(value)
@@ -1476,13 +1501,13 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
-    val = _try_infer_map(values.dtype)
-    if val is not None:
+    inferred = _try_infer_map(values.dtype)
+    if inferred is not None:
         # Anything other than object-dtype should return here.
-        return val
+        return inferred
 
     if values.descr.type_num != NPY_OBJECT:
-        # i.e. values.dtype != np.object
+        # i.e. values.dtype != np.object_
         # This should not be reached
         values = values.astype(object)
 
@@ -1680,6 +1705,7 @@ cdef class Validator:
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or value is C_NA or util.is_nan(value)
+        # TODO: include decimal NA?
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -2243,6 +2269,7 @@ def maybe_convert_numeric(
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
+                mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
@@ -2299,6 +2326,7 @@ def maybe_convert_numeric(
 
                 seen.saw_null()
                 floats[i] = NaN
+                mask[i] = 1
 
     if seen.check_uint64_conflict():
         return (values, None)

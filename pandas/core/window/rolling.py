@@ -18,7 +18,6 @@ from typing import (
     Sized,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -37,7 +36,6 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -305,6 +303,8 @@ class BaseWindow(SelectionMixin):
             (is_scalar(key) and key in subset) or is_list_like(key)
         ):
             selection = key
+        elif subset.ndim == 1 and is_scalar(key) and key == subset.name:
+            selection = key
 
         new_win = type(self)(subset, selection=selection, **kwargs)
         return new_win
@@ -473,10 +473,6 @@ class BaseWindow(SelectionMixin):
             obj = notna(obj).astype(int)
             obj._mgr = obj._mgr.consolidate()
 
-        def hfunc(values: ArrayLike) -> ArrayLike:
-            values = self._prep_values(values)
-            return homogeneous_func(values)
-
         if self.axis == 1:
             obj = obj.T
 
@@ -484,13 +480,16 @@ class BaseWindow(SelectionMixin):
         res_values = []
         for i, arr in enumerate(obj._iter_column_arrays()):
             # GH#42736 operate column-wise instead of block-wise
+            # As of 2.0, hfunc will raise for nuisance columns
             try:
-                res = hfunc(arr)
-            except (TypeError, NotImplementedError):
-                pass
-            else:
-                res_values.append(res)
-                taker.append(i)
+                arr = self._prep_values(arr)
+            except (TypeError, NotImplementedError) as err:
+                raise DataError(
+                    f"Cannot aggregate non-numeric type: {arr.dtype}"
+                ) from err
+            res = homogeneous_func(arr)
+            res_values.append(res)
+            taker.append(i)
 
         index = self._slice_axis_for_step(
             obj.index, res_values[0] if len(res_values) > 0 else None
@@ -504,18 +503,6 @@ class BaseWindow(SelectionMixin):
 
         if self.axis == 1:
             df = df.T
-
-        if 0 != len(res_values) != len(obj.columns):
-            # GH#42738 ignore_failures dropped nuisance columns
-            dropped = obj.columns.difference(obj.columns.take(taker))
-            warnings.warn(
-                "Dropping of nuisance columns in rolling operations "
-                "is deprecated; in a future version this will raise TypeError. "
-                "Select only valid columns before calling the operation. "
-                f"Dropped columns were {dropped}",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         return self._resolve_output(df, obj)
 
@@ -1264,7 +1251,6 @@ class Window(BaseWindow):
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
-
             # these must apply directly
             result = func(self)
 
@@ -1324,7 +1310,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1343,7 +1328,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1751,7 +1735,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
-
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -1772,7 +1755,6 @@ class Rolling(RollingAndExpandingMixin):
             self.obj.empty
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
-
             self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs

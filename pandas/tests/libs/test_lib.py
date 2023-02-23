@@ -13,7 +13,6 @@ import pandas._testing as tm
 
 class TestMisc:
     def test_max_len_string_array(self):
-
         arr = a = np.array(["foo", "b", np.nan], dtype="object")
         assert libwriters.max_len_string_array(arr) == 3
 
@@ -242,6 +241,24 @@ class TestIndexing:
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_is_range_indexer(self, dtype):
+        # GH#50592
+        left = np.arange(0, 100, dtype=dtype)
+        assert lib.is_range_indexer(left, 100)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_is_range_indexer_not_equal(self, dtype):
+        # GH#50592
+        left = np.array([1, 2], dtype=dtype)
+        assert not lib.is_range_indexer(left, 2)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_is_range_indexer_not_equal_shape(self, dtype):
+        # GH#50592
+        left = np.array([0, 1, 2], dtype=dtype)
+        assert not lib.is_range_indexer(left, 2)
 
 
 def test_cache_readonly_preserve_docstrings():

@@ -29,6 +29,15 @@ class TestNonNano:
         assert tda.dtype == arr.dtype
         assert tda[0].unit == unit
 
+    def test_as_unit_raises(self, tda):
+        # GH#50616
+        with pytest.raises(ValueError, match="Supported units"):
+            tda.as_unit("D")
+
+        tdi = pd.Index(tda)
+        with pytest.raises(ValueError, match="Supported units"):
+            tdi.as_unit("D")
+
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
     def test_fields(self, tda, field):
         as_nano = tda._ndarray.astype("m8[ns]")
@@ -181,20 +190,13 @@ class TestTimedeltaArray:
     def test_astype_int(self, dtype):
         arr = TimedeltaArray._from_sequence([Timedelta("1H"), Timedelta("2H")])
 
-        if np.dtype(dtype).kind == "u":
-            expected_dtype = np.dtype("uint64")
-        else:
-            expected_dtype = np.dtype("int64")
-        expected = arr.astype(expected_dtype)
+        if np.dtype(dtype) != np.int64:
+            with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+                arr.astype(dtype)
+            return
 
-        warn = None
-        if dtype != expected_dtype:
-            warn = FutureWarning
-        msg = " will return exactly the specified dtype"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = arr.astype(dtype)
-
-        assert result.dtype == expected_dtype
+        result = arr.astype(dtype)
+        expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_setitem_clears_freq(self):

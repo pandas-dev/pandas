@@ -28,7 +28,9 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
+    get_unit_from_dtype,
     iNaT,
+    is_supported_unit,
     nat_strings,
     parsing,
     timezones as libtimezones,
@@ -50,7 +52,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_float,
     is_integer,
@@ -68,6 +69,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
+    PandasArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
@@ -384,6 +386,8 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
+    elif isinstance(arg, PandasArray):
+        arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
@@ -395,7 +399,17 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
-    elif is_datetime64_ns_dtype(arg_dtype):
+    elif is_datetime64_dtype(arg_dtype):
+        arg_dtype = cast(np.dtype, arg_dtype)
+        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+            # We go to closest supported reso, i.e. "s"
+            arg = astype_overflowsafe(
+                # TODO: looks like we incorrectly raise with errors=="ignore"
+                np.asarray(arg),
+                np.dtype("M8[s]"),
+                is_coerce=errors == "coerce",
+            )
+
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         elif utc:
@@ -431,7 +445,8 @@ def _convert_listlike_datetimes(
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    if format is not None:
+    # `format` could be inferred, or user didn't ask for mixed-format parsing.
+    if format is not None and format != "mixed":
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
     result, tz_parsed = objects_to_datetime64ns(
@@ -500,25 +515,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         elif arg.dtype.kind == "f":
             mult, _ = precision_from_unit(unit)
 
-            iresult = arg.astype("i8")
             mask = np.isnan(arg) | (arg == iNaT)
-            iresult[mask] = 0
+            fvalues = (arg * mult).astype("f8", copy=False)
+            fvalues[mask] = 0
 
-            fvalues = iresult.astype("f8") * mult
-
-            if (fvalues < Timestamp.min.value).any() or (
-                fvalues > Timestamp.max.value
+            if (fvalues < Timestamp.min._value).any() or (
+                fvalues > Timestamp.max._value
             ).any():
                 if errors != "raise":
                     arg = arg.astype(object)
                     return _to_datetime_with_unit(arg, unit, name, utc, errors)
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            # TODO: is fresult meaningfully different from fvalues?
-            fresult = (arg * mult).astype("f8")
-            fresult[mask] = 0
-
-            arr = fresult.astype("M8[ns]", copy=False)
+            arr = fvalues.astype("M8[ns]", copy=False)
             arr[mask] = np.datetime64("NaT", "ns")
 
             tz_parsed = None
@@ -598,7 +607,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = Timestamp(origin)
+            offset = Timestamp(origin, unit=unit)
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:
@@ -679,7 +688,7 @@ def to_datetime(
     yearfirst: bool = False,
     utc: bool = False,
     format: str | None = None,
-    exact: bool = True,
+    exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
     infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
@@ -709,9 +718,7 @@ def to_datetime(
         .. warning::
 
             ``dayfirst=True`` is not strict, but will prefer to parse
-            with day first. If a delimited date string cannot be parsed in
-            accordance with the given `dayfirst` option, e.g.
-            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
+            with day first.
 
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or is list-like.
@@ -751,6 +758,12 @@ def to_datetime(
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices, though
         note that :const:`"%f"` will parse all the way up to nanoseconds.
+        You can also pass:
+
+        - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+          time string (not necessarily in exactly the same format);
+        - "mixed", to infer the format for each element individually. This is risky,
+          and you should probably use it along with `dayfirst`.
     exact : bool, default True
         Control how `format` is used:
 
@@ -758,6 +771,7 @@ def to_datetime(
         - If :const:`False`, allow the `format` to match anywhere in the target
           string.
 
+        Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
@@ -989,6 +1003,8 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
+    if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
+        raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "

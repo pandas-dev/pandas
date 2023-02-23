@@ -15,10 +15,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Int64Index,
-    UInt64Index,
-)
 
 
 class TestDatetimeIndex:
@@ -33,7 +29,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index(
+        expected = Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
             name="idx",
@@ -47,19 +43,13 @@ class TestDatetimeIndex:
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = UInt64Index(
-            np.array([946684800000000000, 946771200000000000], dtype="uint64"),
-            name="idx",
-        )
-        tm.assert_index_equal(arr.astype("uint64"), expected)
 
-        msg = "will return exactly the specified dtype instead of uint64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = arr.astype("uint32")
-        tm.assert_index_equal(res, expected)
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint64")
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint32")
 
     def test_astype_with_tz(self):
-
         # with tz
         rng = date_range("1/1/2000", periods=10, tz="US/Eastern")
         msg = "Cannot use .astype to convert from timezone-aware"
@@ -276,7 +266,7 @@ class TestDatetimeIndex:
     )
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
-        val = [Timestamp("2018-01-01", tz=tz).as_unit("ns").value]
+        val = [Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
         result = Index(val, name="idx").astype(dtype)
         expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
         tm.assert_index_equal(result, expected)

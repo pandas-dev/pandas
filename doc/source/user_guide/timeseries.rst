@@ -292,7 +292,7 @@ The default behavior, ``errors='raise'``, is to raise when unparsable:
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
-    ValueError: Unknown string format
+    ValueError: Unknown datetime string format
 
 Pass ``errors='ignore'`` to return the original input when unparsable:
 
@@ -334,8 +334,6 @@ which can be specified. These are computed from the starting point specified by 
    The ``unit`` parameter does not use the same strings as the ``format`` parameter
    that was discussed :ref:`above<timeseries.converting.format>`). The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
-
-.. versionchanged:: 1.0.0
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
 with the ``tz`` argument specified will raise a ValueError. If you have

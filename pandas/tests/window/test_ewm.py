@@ -11,14 +11,12 @@ import pandas._testing as tm
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.ewm(com=0.5).mean()
 
 
 def test_constructor(frame_or_series):
-
     c = frame_or_series(range(5)).ewm
 
     # valid
@@ -98,11 +96,9 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
-    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    with tm.assert_produces_warning(FutureWarning, match="nuisance columns"):
-        # GH#42738
-        result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-        expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    df = DataFrame({"A": data})
+    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
+    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
     tm.assert_frame_equal(result, expected)
 
 

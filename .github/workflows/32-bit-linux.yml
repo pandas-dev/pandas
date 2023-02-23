@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
   pull_request:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
     paths-ignore:
       - "doc/**"
@@ -39,7 +41,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate && \
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
           python -m pip install versioneer[toml] && \
-          python -m pip install cython numpy python-dateutil pytz pytest pytest-xdist pytest-asyncio>=0.17 hypothesis && \
+          python -m pip install cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.34.2 && \
           python setup.py build_ext -q -j1 && \
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
           python -m pip list && \
@@ -52,3 +54,7 @@ jobs:
           name: Test results
           path: test-data.xml
         if: failure()
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
+      cancel-in-progress: true

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
@@ -240,8 +242,6 @@ class TestMultiIndexConcat:
 
     def test_concat_multiindex_dfs_with_deepcopy(self):
         # GH 9967
-        from copy import deepcopy
-
         example_multiindex1 = MultiIndex.from_product([["a"], ["b"]])
         example_dataframe1 = DataFrame([0], index=example_multiindex1)
 

@@ -59,7 +59,7 @@ def test_td64_summation_overflow():
 
     # the computation is converted to float so
     # might be some loss of precision
-    assert np.allclose(result.value / 1000, expected.value / 1000)
+    assert np.allclose(result._value / 1000, expected._value / 1000)
 
     # sum
     msg = "overflow in timedelta operation"

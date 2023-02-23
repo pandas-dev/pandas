@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import common  # noqa: PDF018
+from pandas.core import common
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -117,7 +117,7 @@ def _calculate_deltas(
     """
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
     # TODO: generalize to non-nano?
-    _halflife = float(Timedelta(halflife).as_unit("ns").value)
+    _halflife = float(Timedelta(halflife).as_unit("ns")._value)
     return np.diff(_times) / _halflife
 
 

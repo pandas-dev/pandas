@@ -62,7 +62,6 @@ def take_nd(
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ) -> ArrayLike:
-
     """
     Specialized Cython take which sets NaN values in one pass
 
@@ -125,7 +124,6 @@ def _take_nd_ndarray(
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
-
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()

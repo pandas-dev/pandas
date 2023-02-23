@@ -36,7 +36,8 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(self, float_frame, datetime_frame):
+    def test_xs(self, float_frame, datetime_frame, using_copy_on_write):
+        float_frame_orig = float_frame.copy()
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
         for item, value in xs.items():
@@ -66,7 +67,12 @@ class TestXS:
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
         series[:] = 5
-        assert (expected == 5).all()
+        if using_copy_on_write:
+            # but with CoW the view shouldn't propagate mutations
+            tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
+            assert not (expected == 5).all()
+        else:
+            assert (expected == 5).all()
 
     def test_xs_corner(self):
         # pathological mixed-type reordering case
@@ -118,7 +124,8 @@ class TestXS:
         df_orig = dm.copy()
 
         if using_copy_on_write:
-            dm.xs(2)[:] = 20
+            with tm.raises_chained_assignment_error():
+                dm.xs(2)[:] = 20
             tm.assert_frame_equal(dm, df_orig)
         elif using_array_manager:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is

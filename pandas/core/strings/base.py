@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable  # noqa: PDF001
 import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 
@@ -246,7 +246,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(self, pat=None, n=-1, expand: bool = False):
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
         pass
 
     @abc.abstractmethod
