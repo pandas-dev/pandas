@@ -321,8 +321,8 @@ def test_wrap_agg_out(three_group):
 
     with pytest.raises(TypeError, match="Test error message"):
         grouped.aggregate(func)
-    result = grouped[[c for c in three_group if c != "C"]].aggregate(func)
-    exp_grouped = three_group.loc[:, three_group.columns != "C"]
+    result = grouped[["D", "E", "F"]].aggregate(func)
+    exp_grouped = three_group.loc[:, ["A", "B", "D", "E", "F"]]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
 
@@ -1520,4 +1520,17 @@ def test__series_groupy_agg_list_like_func_with_args():
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_groupings_selection():
+    # GH#51186 - a selected grouping should be in the output of agg
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 3, 4], "c": [5, 6, 7]})
+    gb = df.groupby(["a", "b"])
+    selected_gb = gb[["b", "c"]]
+    result = selected_gb.agg(lambda x: x.sum())
+    index = MultiIndex(
+        levels=[[1, 2], [3, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
+    )
+    expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=index)
     tm.assert_frame_equal(result, expected)
