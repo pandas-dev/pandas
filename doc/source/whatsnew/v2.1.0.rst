@@ -132,7 +132,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
 -
 
 Conversion

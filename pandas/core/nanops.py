@@ -1610,6 +1610,9 @@ def nancorr(
     if len(a) < min_periods:
         return np.nan
 
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
+
     f = get_corr_func(method)
     return f(a, b)
 
@@ -1667,6 +1670,9 @@ def nancov(
 
     if len(a) < min_periods:
         return np.nan
+
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
 
     return np.cov(a, b, ddof=ddof)[0, 1]
 
