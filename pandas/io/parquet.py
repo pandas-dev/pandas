@@ -86,15 +86,18 @@ def _get_path_or_handle(
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
-        pa = import_optional_dependency("pyarrow")
-        pa_fs = import_optional_dependency("pyarrow.fs")
         fsspec = import_optional_dependency("fsspec")
+        if storage_options is None:
+            pa = import_optional_dependency("pyarrow")
+            pa_fs = import_optional_dependency("pyarrow.fs")
 
-        try:
-            fs_arrow = import_optional_dependency("fsspec.implementations.arrow")
-            fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-            fs = fs_arrow.ArrowFSWrapper(fs)
-        except (TypeError, pa.ArrowInvalid):
+            try:
+                fs_arrow = import_optional_dependency("fsspec.implementations.arrow")
+                fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
+                fs = fs_arrow.ArrowFSWrapper(fs)
+            except (TypeError, pa.ArrowInvalid):
+                pass
+        if fs is None:
             fs, path_or_handle = fsspec.core.url_to_fs(
                 path_or_handle, **(storage_options or {})
             )
@@ -426,6 +429,12 @@ def to_parquet(
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
+
+        When using the ``'pyarrow'`` engine and no storage options are provided
+        and a filesystem is implemented by both ``pyarrow.fs`` and ``fsspec``
+        (e.g. "s3://"), then the ``pyarrow.fs`` filesystem is attempted first.
+        Use the filesystem keyword with an instantiated fsspec filesystem
+        if you wish to use its implementation.
     compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
         default 'snappy'. Name of the compression to use. Use ``None``
         for no compression. The supported compression methods actually

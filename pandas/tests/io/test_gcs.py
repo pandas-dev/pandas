@@ -20,7 +20,7 @@ from pandas.util import _test_decorators as td
 
 
 @pytest.fixture
-def gcs_buffer(monkeypatch):
+def gcs_buffer():
     """Emulate GCS using a binary buffer."""
     import fsspec
 
