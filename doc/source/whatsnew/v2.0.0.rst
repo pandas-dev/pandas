@@ -857,6 +857,7 @@ Deprecations
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
+- Deprecated :meth:`~pandas.io.stata.StataReader.close`. Use :class:`~pandas.io.stata.StataReader` as a context manager instead (:issue:`49228`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -1163,6 +1164,8 @@ Performance improvements
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+- Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -1211,6 +1214,7 @@ Datetimelike
 - Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
 - Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
 - Bug in :func:`to_datetime` with both ``unit`` and ``origin`` specified returning incorrect results (:issue:`42624`)
+- Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` when converting an object-dtype object containing timezone-aware datetimes or strings to ``datetime64[ns]`` incorrectly localizing as UTC instead of raising ``TypeError`` (:issue:`50140`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` with datetime or timedelta dtypes giving incorrect results for groups containing ``NaT`` (:issue:`51373`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` incorrectly raising with :class:`PeriodDtype` or :class:`DatetimeTZDtype` (:issue:`51373`)
 
@@ -1273,6 +1277,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_values` where ``None`` was not returned when ``by`` is empty list and ``inplace=True`` (:issue:`50643`)
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
+- Bug in :meth:`DataFrame.loc` raising ``ValueError`` with all ``False`` ``bool`` indexer and empty object (:issue:`51450`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
 - Bug in :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__`, :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__`
@@ -1374,6 +1379,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
 - Bug in :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, and :meth:`.Resampler.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
 - Bug in :meth:`.DataFrameGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`51413`)
+- Bug in :meth:`DataFrameGroupBy.agg` after subsetting columns (e.g. ``.groupby(...)[["a", "b"]]``) would not include groupings in the result (:issue:`51186`)
 
 Reshaping
 ^^^^^^^^^
@@ -1417,7 +1423,7 @@ Metadata
 
 Other
 ^^^^^
-
+- Bug in incorrectly accepting dtype strings containing "[pyarrow]" more than once (:issue:`51548`)
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 
