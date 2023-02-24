@@ -339,28 +339,28 @@ def test_groupby_raises_category(how, by, groupby_series, groupby_func):
         "cumcount": (None, ""),
         "cummax": (
             (NotImplementedError, TypeError),
-            "(category type does not support cummax operations|category dtype not supported|cummax is not supported for category dtype)",
+            "(category dtype not supported cummax is not supported for category dtype)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
-            "(category type does not support cummin operations|category dtype not supported|cummin is not supported for category dtype)",
+            "(categorytypedoesnotsupportcumminoperationscategorydtypenotsupportedcumminisnotsupportedforcategorydtype)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
-            "(category type does not support cumprod operations|category dtype not supported|cumprod is not supported for category dtype)",
+            "(categorytypedoesnotsupportcumprodoperationscategorydtypenotsupportedcumprodisnotsupportedforcategorydtype)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
-            "(category type does not support cumsum operations|category dtype not supported|cumsum is not supported for category dtype)",
+            "(categorytypedoesnotsupportcumsumoperationscategorydtypenotsupportedcumsumisnotsupportedforcategorydtype)",
         ),
         "diff": (
             TypeError,
-            r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
+            r"unsupportedoperandtype\(s\)for-:'Categorical'and'Categorical'",
         ),
         "ffill": (None, ""),
         "fillna": (
             TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\),set the categories first",
+            r"CannotsetitemonaCategoricalwithanewcategory\(0\)setthecategoriesfirst",
         ),
         "first": (None, ""),
         "idxmax": (None, ""),
@@ -525,25 +525,25 @@ def test_groupby_raises_category_on_category(
         "cumcount": (None, ""),
         "cummax": (
             (NotImplementedError, TypeError),
-            "(cummax is not supported for category dtype|category dtype not supported|category type does not support cummax operations)",
+            "(cummaxisnotsupportedforcategorydtypecategorydtypenotsupportedcategorytypedoesnotsupportcummaxoperations)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
-            "(cummin is not supported for category dtype|category dtype not supported|category type does not support cummin operations)",
+            "(cumminisnotsupportedforcategorydtypecategorydtypenotsupportedcategorytypedoesnotsupportcumminoperations)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
-            "(cumprod is not supported for category dtype|category dtype not supported|category type does not support cumprod operations)",
+            "(cumprodisnotsupportedforcategorydtypecategorydtypenotsupportedcategorytypedoesnotsupportcumprodoperations)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
-            "(cumsum is not supported for category dtype|category dtype not supported|category type does not support cumsum operations)",
+            "(cumsumisnotsupportedforcategorydtypecategorydtypenotsupportedcategorytypedoesnotsupportcumsumoperations)",
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "fillna": (
             TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), set the categories first",
+            r"CannotsetitemonaCategoricalwithanewcategory\(0\),setthecategoriesfirst",
         ),
         "first": (None, ""),
         "idxmax": (ValueError, "attempt to get argmax of an empty sequence")

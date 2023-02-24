@@ -289,14 +289,14 @@ class TestCategoricalRepr:
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
         exp = (
-            "0    1\n1    2\n2    3\n3    4\n dtype: category\nCategories (4, int64): [1, 2, 3, 4]"
+            "0 1\n1 2\n2 3\n3 4\n dtype: category\n Categories (4, int64):[1, 2, 3, 4]"
         )
 
         assert exp == a.__str__()
 
         a = Series(Categorical(["a", "b"] * 25))
         exp = (
-            "0     a\n1     b\n     ..\n 48    a\n49    b\n Length: 50, dtype: category\n Categories (2, object): ['a', 'b']"
+            "0a\n1b\n\n48a\n49b\nLength:50,dtype:category\nCategories(2,object):['a','b']"
         )
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
