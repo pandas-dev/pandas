@@ -7990,11 +7990,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if lower is not None:
             cond = mask | (self >= lower)
-            result = result.where(cond, lower, inplace=inplace)
+            result = result.where(
+                cond, lower, inplace=inplace
+            )  # type: ignore[assignment]
         if upper is not None:
             cond = mask | (self <= upper)
             result = self if inplace else result
-            result = result.where(cond, upper, inplace=inplace)
+            result = result.where(
+                cond, upper, inplace=inplace
+            )  # type: ignore[assignment]
 
         return result
 
