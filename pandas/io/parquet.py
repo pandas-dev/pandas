@@ -396,6 +396,7 @@ def to_parquet(
     index: bool | None = None,
     storage_options: StorageOptions = None,
     partition_cols: list[str] | None = None,
+    filepath: Any = None,
     **kwargs,
 ) -> bytes | None:
     """
@@ -439,6 +440,12 @@ def to_parquet(
     {storage_options}
 
         .. versionadded:: 1.2.0
+
+    filesystem: fsspec or pyarrow filesystem, default None
+        Filesystem object to use when reading the parquet file. Only implemented
+        for ``engine-"pyarrow"``.
+
+        .. versionadded:: 2.1.0
 
     kwargs
         Additional keyword arguments passed to the engine
@@ -537,6 +544,9 @@ def read_parquet(
     filesystem: fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine-"pyarrow"``.
+
+        .. versionadded:: 2.1.0
+
     **kwargs
         Any additional kwargs are passed to the engine.
 
