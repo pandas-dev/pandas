@@ -356,7 +356,7 @@ class TestDataFrameCorrWith:
         else:
             with pytest.raises(
                 TypeError,
-                match=r"unsupported operand type\(s\) for /: 'str' and 'int'",
+                match=r"Could not convert \['a' 'b' 'c' 'd'\] to numeric",
             ):
                 df.corrwith(s, numeric_only=numeric_only)
 
