@@ -197,12 +197,20 @@ class ArrowDtype(StorageExtensionDtype):
         if string == "string[pyarrow]":
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        base_type = string.split("[pyarrow]")[0]
+
+        base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
-            has_parameters = re.search(r"\[.*\]", base_type)
+            has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
             if has_parameters:
+                # Fallback to try common temporal types
+                try:
+                    return cls._parse_temporal_dtype_string(base_type)
+                except (NotImplementedError, ValueError):
+                    # Fall through to raise with nice exception message below
+                    pass
+
                 raise NotImplementedError(
                     "Passing pyarrow type specific parameters "
                     f"({has_parameters.group()}) in the string is not supported. "
@@ -211,6 +219,35 @@ class ArrowDtype(StorageExtensionDtype):
                 ) from err
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
         return cls(pa_dtype)
+
+    # TODO(arrow#33642): This can be removed once supported by pyarrow
+    @classmethod
+    def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
+        """
+        Construct a temporal ArrowDtype from string.
+        """
+        # we assume
+        #  1) "[pyarrow]" has already been stripped from the end of our string.
+        #  2) we know "[" is present
+        head, tail = string.split("[", 1)
+
+        if not tail.endswith("]"):
+            raise ValueError
+        tail = tail[:-1]
+
+        if head == "timestamp":
+            assert "," in tail  # otherwise type_for_alias should work
+            unit, tz = tail.split(",", 1)
+            unit = unit.strip()
+            tz = tz.strip()
+            if tz.startswith("tz="):
+                tz = tz[3:]
+
+            pa_type = pa.timestamp(unit, tz=tz)
+            dtype = cls(pa_type)
+            return dtype
+
+        raise NotImplementedError(string)
 
     @property
     def _is_numeric(self) -> bool:

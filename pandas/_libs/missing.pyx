@@ -338,6 +338,14 @@ def _create_binary_propagating_op(name, is_divmod=False):
         elif is_cmp and isinstance(other, (date, time, timedelta)):
             return NA
 
+        elif isinstance(other, date):
+            if name in ["__sub__", "__rsub__"]:
+                return NA
+
+        elif isinstance(other, timedelta):
+            if name in ["__sub__", "__rsub__", "__add__", "__radd__"]:
+                return NA
+
         return NotImplemented
 
     method.__name__ = name
@@ -363,8 +371,6 @@ class NAType(C_NAType):
     .. warning::
 
        Experimental: the behaviour of NA can still change without warning.
-
-    .. versionadded:: 1.0.0
 
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
