@@ -17,7 +17,7 @@ blosc
 brotlipy>=0.7.0
 bottleneck>=1.3.2
 fastparquet>=0.6.3
-fsspec>=2021.07.0
+fsspec>=2022.03.0
 html5lib>=1.1
 hypothesis>=6.34.2
 gcsfs>=2021.07.0
