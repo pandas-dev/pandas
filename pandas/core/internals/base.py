@@ -35,7 +35,6 @@ T = TypeVar("T", bound="DataManager")
 
 
 class DataManager(PandasObject):
-
     # TODO share more methods/attributes
 
     axes: list[Index]

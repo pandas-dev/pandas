@@ -16,7 +16,6 @@ import pandas._testing as tm
 
 
 def test_labels_dtypes():
-
     # GH 8456
     i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
     assert i.codes[0].dtype == "int8"
@@ -270,7 +269,6 @@ def test_memory_usage(idx):
             assert result3 > result2
 
     else:
-
         # we report 0 for no-length
         assert result == 0
 

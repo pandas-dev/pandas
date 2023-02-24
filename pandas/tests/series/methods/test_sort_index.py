@@ -100,7 +100,6 @@ class TestSeriesSortIndex:
 
     @pytest.mark.parametrize("level", ["A", 0])  # GH#21052
     def test_sort_index_multiindex(self, level):
-
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
