@@ -232,3 +232,27 @@ def test_fillna_interval_inplace_reference(using_copy_on_write):
         assert np.shares_memory(
             get_array(ser, "a").left.values, get_array(view, "a").left.values
         )
+
+
+def test_fillna_series_empty_arg(using_copy_on_write):
+    ser = Series([1, np.nan, 2])
+    ser_orig = ser.copy()
+    result = ser.fillna({})
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(result))
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+
+    ser.iloc[0] = 100.5
+    tm.assert_series_equal(ser_orig, result)
+
+
+def test_fillna_series_empty_arg_inplace(using_copy_on_write):
+    ser = Series([1, np.nan, 2])
+    arr = get_array(ser)
+    ser.fillna({}, inplace=True)
+
+    assert np.shares_memory(get_array(ser), arr)
+    if using_copy_on_write:
+        assert ser._mgr._has_no_reference(0)

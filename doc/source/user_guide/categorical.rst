@@ -263,14 +263,6 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 
    c1 == "category"
 
-.. warning::
-
-   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
-   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
-   all instances of ``CategoricalDtype`` compare equal to a
-   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
-   ``ordered``.
-
 Description
 -----------
 

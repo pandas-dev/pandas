@@ -754,4 +754,29 @@ class MemoryUsage:
         self.df2.memory_usage(deep=True)
 
 
+class FindValidIndex:
+    param_names = ["dtype"]
+    params = [
+        ["float", "Float64", "float64[pyarrow]"],
+    ]
+
+    def setup(self, dtype):
+        df = DataFrame(
+            np.random.randn(100000, 2),
+            columns=list("AB"),
+            dtype=dtype,
+        )
+        df.iloc[:100, 0] = None
+        df.iloc[:200, 1] = None
+        df.iloc[-100:, 0] = None
+        df.iloc[-200:, 1] = None
+        self.df = df
+
+    def time_first_valid_index(self, dtype):
+        self.df.first_valid_index()
+
+    def time_last_valid_index(self, dtype):
+        self.df.last_valid_index()
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -105,8 +105,6 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
 
-    m, p = precision_from_unit(unit, out_reso)
-
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
@@ -122,6 +120,8 @@ cdef int64_t cast_from_unit(
             ts = int(ts)
         dt64obj = np.datetime64(ts, unit)
         return get_datetime64_nanos(dt64obj, out_reso)
+
+    m, p = precision_from_unit(unit, out_reso)
 
     # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
@@ -159,13 +159,24 @@ cpdef inline (int64_t, int) precision_from_unit(
     """
     cdef:
         int64_t m
+        int64_t multiplier
         int p
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        reso = NPY_FR_ns
-
-    m = get_conversion_factor(reso, out_reso)
+        reso = NPY_DATETIMEUNIT.NPY_FR_ns
+    if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
+        # each 400 years we have 97 leap years, for an average of 97/400=.2425
+        #  extra days each year. We get 31556952 by writing
+        #  3600*24*365.2425=31556952
+        multiplier = periods_per_second(out_reso)
+        m = multiplier * 31556952
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
+        # 2629746 comes from dividing the "Y" case by 12.
+        multiplier = periods_per_second(out_reso)
+        m = multiplier * 2629746
+    else:
+        m = get_conversion_factor(reso, out_reso)
 
     p = <int>log10(m)  # number of digits in 'm' minus 1
     return m, p
