@@ -613,11 +613,8 @@ class MultiIndex(Index):
             level).
         names : list / sequence of str, optional
             Names for the levels in the index.
-
-            .. versionchanged:: 1.0.0
-
-               If not explicitly provided, names will be inferred from the
-               elements of iterables if an element has a name attribute
+            If not explicitly provided, names will be inferred from the
+            elements of iterables if an element has a name attribute.
 
         Returns
         -------
@@ -2746,6 +2743,7 @@ class MultiIndex(Index):
         Index.get_loc : The get_loc method for (single-level) index.
         """
         if is_scalar(key) and isna(key):
+            # TODO: need is_valid_na_for_dtype(key, level_index.dtype)
             return -1
         else:
             return level_index.get_loc(key)
@@ -2818,6 +2816,8 @@ class MultiIndex(Index):
             )
 
         if keylen == self.nlevels and self.is_unique:
+            # TODO: what if we have an IntervalIndex level?
+            #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
             except TypeError:
@@ -3853,6 +3853,8 @@ def maybe_droplevels(index: Index, key) -> Index:
     # drop levels
     original_index = index
     if isinstance(key, tuple):
+        # Caller is responsible for ensuring the key is not an entry in the first
+        #  level of the MultiIndex.
         for _ in key:
             try:
                 index = index._drop_level_numbers([0])

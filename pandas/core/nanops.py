@@ -1535,7 +1535,12 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            result_dtype = getattr(result, "dtype", None)
+            if is_float_dtype(result_dtype):
+                # error: Item "None" of "Optional[Any]" has no attribute "type"
+                result = result_dtype.type("nan")  # type: ignore[union-attr]
+            else:
+                result = np.nan
 
     return result
 
@@ -1605,6 +1610,9 @@ def nancorr(
     if len(a) < min_periods:
         return np.nan
 
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
+
     f = get_corr_func(method)
     return f(a, b)
 
@@ -1662,6 +1670,9 @@ def nancov(
 
     if len(a) < min_periods:
         return np.nan
+
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
 
     return np.cov(a, b, ddof=ddof)[0, 1]
 

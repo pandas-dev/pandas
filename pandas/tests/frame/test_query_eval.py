@@ -3,7 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 from pandas.errors import (
     NumExprClobberingError,
     UndefinedVariableError,
@@ -1321,9 +1320,7 @@ class TestDataFrameQueryBacktickQuoting:
             {
                 "a": Series([1, 3], dtype=any_numeric_ea_and_arrow_dtype),
                 "b": Series([2, 4], dtype=any_numeric_ea_and_arrow_dtype),
-                "c": Series(
-                    [1, 1], dtype="int64" if not is_platform_windows() else "int32"
-                ),
+                "c": Series([1, 1], dtype=result["c"].dtype),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -1335,7 +1332,9 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#50261
         df = DataFrame({"a": Series([1, 2], dtype=dtype)})
         ref = {2}  # noqa:F841
-        result = df.query("a in @ref")
+        warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
+        with tm.assert_produces_warning(warning):
+            result = df.query("a in @ref")
         expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
         tm.assert_frame_equal(result, expected)
 
