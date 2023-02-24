@@ -155,7 +155,6 @@ def test_unsortedindex_doc_examples():
 
 
 def test_reconstruct_sort():
-
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert mi.is_monotonic_increasing

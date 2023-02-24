@@ -28,8 +28,8 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
     PeriodDtypeBase,
+    abbrev_to_npy_unit,
 )
 from pandas._typing import (
     Dtype,
@@ -337,7 +337,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return cls(ordered=None)
 
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
-
         if ordered is not None:
             self.validate_ordered(ordered)
 
@@ -534,7 +533,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
-
             if categories.hasnans:
                 raise ValueError("Categorical categories cannot be null")
 
@@ -722,13 +720,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
-        reso = {
-            "s": NpyDatetimeUnit.NPY_FR_s,
-            "ms": NpyDatetimeUnit.NPY_FR_ms,
-            "us": NpyDatetimeUnit.NPY_FR_us,
-            "ns": NpyDatetimeUnit.NPY_FR_ns,
-        }[self.unit]
-        return reso.value
+        return abbrev_to_npy_unit(self.unit)
 
     @property
     def unit(self) -> str_type:
@@ -905,7 +897,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     @classmethod
     def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
         if isinstance(freq, str):  # note: freq is already of type str!
-            if freq.startswith("period[") or freq.startswith("Period["):
+            if freq.startswith(("Period[", "period[")):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
@@ -924,7 +916,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if (
             isinstance(string, str)
-            and (string.startswith("period[") or string.startswith("Period["))
+            and (string.startswith(("period[", "Period[")))
             or isinstance(string, BaseOffset)
         ):
             # do not parse string like U as period[U]
@@ -959,7 +951,6 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return other in [self.name, self.name.title()]
 
         elif isinstance(other, PeriodDtype):
-
             # For freqs that can be held by a PeriodDtype, this check is
             # equivalent to (and much faster than) self.freq == other.freq
             sfreq = self.freq
@@ -989,7 +980,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(dtype, str):
             # PeriodDtype can be instantiated from freq string like "U",
             # but doesn't regard freq str like "U" as dtype.
-            if dtype.startswith("period[") or dtype.startswith("Period["):
+            if dtype.startswith(("period[", "Period[")):
                 try:
                     return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:

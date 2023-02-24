@@ -32,7 +32,6 @@ from pandas.tseries.offsets import BusinessDay
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.rolling(2).sum()
@@ -516,7 +515,6 @@ def test_missing_minp_zero_variable():
 
 
 def test_multi_index_names():
-
     # GH 16789, 16825
     cols = MultiIndex.from_product([["A", "B"], ["C", "D", "E"]], names=["1", "2"])
     df = DataFrame(np.ones((10, 6)), columns=cols)
@@ -798,9 +796,7 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, df.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -846,7 +842,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expected = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for (expected, actual) in zip(expected, df.rolling(window, on="C")):
+    for expected, actual in zip(expected, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -896,9 +892,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, ser.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -948,7 +942,7 @@ def test_iter_rolling_datetime(expected, expected_index, window):
         Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
     ]
 
-    for (expected, actual) in zip(expected, ser.rolling(window)):
+    for expected, actual in zip(expected, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
 
 

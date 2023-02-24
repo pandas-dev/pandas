@@ -107,6 +107,26 @@ def test_agg_args(args, kwargs, increment):
     tm.assert_series_equal(result, expected)
 
 
+def test_agg_list_like_func_with_args():
+    # GH 50624
+
+    s = Series([1, 2, 3])
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        s.agg([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = s.agg([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
     ser = Series(pd.date_range("1/1/2000", periods=10))
@@ -238,7 +258,6 @@ def test_transform(string_series):
     # transforming functions
 
     with np.errstate(all="ignore"):
-
         f_sqrt = np.sqrt(string_series)
         f_abs = np.abs(string_series)
 

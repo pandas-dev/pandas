@@ -83,31 +83,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Partially validate docstrings (EX01)' ; echo $MSG
+    MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
-        pandas.Series.dtype \
-        pandas.Series.shape \
-        pandas.Series.nbytes \
-        pandas.Series.ndim \
-        pandas.Series.size \
-        pandas.Series.T \
         pandas.Series.hasnans \
-        pandas.Series.dtypes \
-        pandas.Series.to_period \
-        pandas.Series.to_timestamp \
         pandas.Series.to_list \
         pandas.Series.__iter__ \
         pandas.Series.keys \
         pandas.Series.item \
         pandas.Series.pipe \
-        pandas.Series.kurt \
-        pandas.Series.mean \
-        pandas.Series.median \
         pandas.Series.mode \
         pandas.Series.sem \
         pandas.Series.skew \
-        pandas.Series.kurtosis \
         pandas.Series.is_unique \
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
@@ -187,7 +174,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.show_versions \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.unit \
         pandas.Timestamp.as_unit \
         pandas.Timestamp.ctime \
         pandas.Timestamp.date \
@@ -205,7 +191,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.utctimetuple \
         pandas.Timestamp.weekday \
         pandas.arrays.DatetimeArray \
-        pandas.Timedelta.components \
         pandas.Timedelta.view \
         pandas.Timedelta.as_unit \
         pandas.Timedelta.ceil \
@@ -224,7 +209,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
-        pandas.Period.to_timestamp \
         pandas.arrays.PeriodArray \
         pandas.Interval.closed \
         pandas.Interval.left \
@@ -268,6 +252,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_integer \
         pandas.api.types.pandas_dtype \
         pandas.read_clipboard \
+        pandas.ExcelFile \
         pandas.ExcelFile.parse \
         pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
@@ -556,10 +541,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
-        pandas.DataFrame.kurt \
-        pandas.DataFrame.kurtosis \
-        pandas.DataFrame.mean \
-        pandas.DataFrame.median \
         pandas.DataFrame.sem \
         pandas.DataFrame.skew \
         pandas.DataFrame.backfill \
@@ -567,14 +548,30 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.first_valid_index \
         pandas.DataFrame.last_valid_index \
-        pandas.DataFrame.to_timestamp \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.sparse.density \
         pandas.DataFrame.sparse.to_coo \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
-        pandas.DataFrame.__dataframe__ \
+        pandas.DataFrame.__dataframe__
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Partially validate docstrings (EX02)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
+        pandas.DataFrame.plot.line \
+        pandas.Series.plot.line \
+        pandas.api.types.is_datetime64_any_dtype \
+        pandas.api.types.is_datetime64_ns_dtype \
+        pandas.api.types.is_datetime64tz_dtype \
+        pandas.api.types.is_integer_dtype \
+        pandas.api.types.is_string_dtype \
+        pandas.plotting.andrews_curves \
+        pandas.plotting.autocorrelation_plot \
+        pandas.plotting.lag_plot \
+        pandas.plotting.parallel_coordinates \
+        pandas.plotting.radviz \
+        pandas.tseries.frequencies.to_offset
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

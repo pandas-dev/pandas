@@ -284,15 +284,16 @@ def test_fwf_regression():
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
 
-    result = read_fwf(
-        StringIO(data),
-        index_col=0,
-        header=None,
-        names=names,
-        widths=widths,
-        parse_dates=True,
-        date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
-    )
+    with tm.assert_produces_warning(FutureWarning, match="use 'date_format' instead"):
+        result = read_fwf(
+            StringIO(data),
+            index_col=0,
+            header=None,
+            names=names,
+            widths=widths,
+            parse_dates=True,
+            date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
+        )
     expected = DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
@@ -311,6 +312,16 @@ def test_fwf_regression():
             ]
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
+    )
+    tm.assert_frame_equal(result, expected)
+    result = read_fwf(
+        StringIO(data),
+        index_col=0,
+        header=None,
+        names=names,
+        widths=widths,
+        parse_dates=True,
+        date_format="%Y%j%H%M%S",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -948,17 +959,13 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
 def test_use_nullable_dtypes(string_storage, dtype_backend):
     # GH#50289
-
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
         arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
     else:
+        pa = pytest.importorskip("pyarrow")
         arr = ArrowStringArray(pa.array(["a", "b"]))
         arr_na = ArrowStringArray(pa.array([None, "a"]))
 
@@ -983,6 +990,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
         }
     )
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(

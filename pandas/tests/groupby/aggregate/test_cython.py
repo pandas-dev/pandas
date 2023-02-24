@@ -92,16 +92,12 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("a")["b"].mean(numeric_only=True)
-
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
-        frame.groupby("a")["b"].mean()
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        frame[["b"]].groupby(frame["a"]).mean()
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
     expected = DataFrame(
         [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
@@ -117,7 +113,8 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("b").dates.mean(numeric_only=True)
 
 

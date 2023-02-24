@@ -1841,6 +1841,13 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> timestamp = period.to_timestamp()
+        >>> timestamp
+        Timestamp('2023-01-01 00:00:00')
         """
         how = validate_end_alias(how)
 
@@ -2474,6 +2481,7 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
 
+        >>> from pandas import Period
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
@@ -2579,7 +2587,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
-                                           value in nat_strings):
+                                           (value in nat_strings or len(value) == 0)):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
@@ -2612,11 +2620,7 @@ class Period(_Period):
 
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
-                    try:
-                        freq = attrname_to_abbrevs[reso]
-                    except KeyError:
-                        raise ValueError(f"Invalid frequency or could not "
-                                         f"infer: {reso}")
+                    freq = attrname_to_abbrevs[reso]
                     freq = to_offset(freq)
 
         elif PyDateTime_Check(value):

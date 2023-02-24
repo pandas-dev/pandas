@@ -29,7 +29,7 @@ class TestRangeIndex(NumericBase):
         return request.param
 
     @pytest.fixture
-    def simple_index(self) -> Index:
+    def simple_index(self):
         return self._index_cls(start=0, stop=20, step=2)
 
     @pytest.fixture(
@@ -98,7 +98,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, i, exact=True)
 
     def test_insert(self):
-
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
 
@@ -139,7 +138,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete(self):
-
         idx = RangeIndex(5, name="Foo")
         expected = idx[1:]
         result = idx.delete(0)
@@ -371,7 +369,6 @@ class TestRangeIndex(NumericBase):
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
     def test_nbytes(self):
-
         # memory savings vs int index
         idx = RangeIndex(0, 1000)
         assert idx.nbytes < Index(idx._values).nbytes / 10
@@ -612,3 +609,6 @@ class TestRangeIndex(NumericBase):
         result = values.sort_values(key=lambda x: x.map(sort_order))
         expected = Index([4, 8, 6, 0, 2], dtype="int64")
         tm.assert_index_equal(result, expected, check_exact=True)
+
+    def test_cast_string(self, dtype):
+        pytest.skip("casting of strings not relevant for RangeIndex")

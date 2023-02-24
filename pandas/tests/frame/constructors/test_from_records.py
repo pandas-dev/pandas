@@ -15,13 +15,20 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
-    def test_from_records_with_datetimes(self):
+    def test_from_records_dt64tz_frame(self):
+        # GH#51162 don't lose tz when calling from_records with DataFrame input
+        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
+        df = DataFrame({i: dti for i in range(4)})
+        res = DataFrame.from_records(df)
+        tm.assert_frame_equal(res, df)
 
+    def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
         # related GH#6140
         if not is_platform_little_endian():
@@ -129,7 +136,6 @@ class TestFromRecords:
         assert len(result.columns) == 0
 
     def test_from_records_dictlike(self):
-
         # test the dict methods
         df = DataFrame(
             {
@@ -359,7 +365,6 @@ class TestFromRecords:
         assert columns == original_columns
 
     def test_from_records_decimal(self):
-
         tuples = [(Decimal("1.5"),), (Decimal("2.5"),), (None,)]
 
         df = DataFrame.from_records(tuples, columns=["a"])

@@ -19,7 +19,6 @@ dtlike_dtypes = [
 @pytest.mark.parametrize("ldtype", dtlike_dtypes)
 @pytest.mark.parametrize("rdtype", dtlike_dtypes)
 def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
-
     vals = np.tile(3600 * 10**9 * np.arange(3), 2)
 
     def construct(dtype):

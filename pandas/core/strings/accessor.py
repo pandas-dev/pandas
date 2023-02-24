@@ -456,9 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionchanged:: 1.0.0
-                Changed default of `join` from None to `'left'`.
-
         Returns
         -------
         str, Series or Index
@@ -2247,7 +2244,7 @@ class StringMethods(NoNewAttributesMixin):
         This is also available on Index
 
         >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
-        NumericIndex([0, 0, 2, 1], dtype='int64')
+        Index([0, 0, 2, 1], dtype='int64')
         """
         result = self._data.array._str_count(pat, flags)
         return self._wrap_result(result, returns_string=False)
@@ -3314,7 +3311,6 @@ def str_extractall(arr, pat, flags: int = 0):
 
     for subject_key, subject in arr.items():
         if isinstance(subject, str):
-
             if not is_mi:
                 subject_key = (subject_key,)
 

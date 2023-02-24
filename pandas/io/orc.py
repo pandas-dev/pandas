@@ -21,13 +21,6 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
-)
-
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 
@@ -43,8 +36,6 @@ def read_orc(
     """
     Load an ORC object from the file path, returning a DataFrame.
 
-    .. versionadded:: 1.0.0
-
     Parameters
     ----------
     path : str, path object, or file-like object
@@ -59,20 +50,19 @@ def read_orc(
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
     use_nullable_dtypes : bool, default False
-        If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame.
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
 
-        .. versionadded:: 2.0.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
-        .. note
-
-            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
+        .. versionadded:: 2.0
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -187,22 +177,10 @@ def to_orc(
     if engine_kwargs is None:
         engine_kwargs = {}
 
-    # If unsupported dtypes are found raise NotImplementedError
-    # In Pyarrow 9.0.0 this check will no longer be needed
-    for dtype in df.dtypes:
-        if (
-            is_categorical_dtype(dtype)
-            or is_interval_dtype(dtype)
-            or is_period_dtype(dtype)
-            or is_unsigned_integer_dtype(dtype)
-        ):
-            raise NotImplementedError(
-                "The dtype of one or more columns is not supported yet."
-            )
-
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
+    pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
     was_none = path is None
@@ -217,7 +195,7 @@ def to_orc(
                 handles.handle,
                 **engine_kwargs,
             )
-        except TypeError as e:
+        except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."
             ) from e

@@ -21,14 +21,6 @@ from pandas.core.arrays import DatetimeArray
 use_bn = nanops._USE_BOTTLENECK
 
 
-@pytest.fixture(params=[True, False])
-def skipna(request):
-    """
-    Fixture to pass skipna to nanops functions.
-    """
-    return request.param
-
-
 @pytest.fixture
 def disable_bottleneck(monkeypatch):
     with monkeypatch.context() as m:
@@ -280,7 +272,6 @@ class TestnanopsDataFrame:
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
         except AssertionError:
-
             # handle timedelta dtypes
             if hasattr(targ, "dtype") and targ.dtype == "m8[ns]":
                 raise
@@ -365,7 +356,6 @@ class TestnanopsDataFrame:
     def check_fun(
         self, testfunc, targfunc, testar, skipna, empty_targfunc=None, **kwargs
     ):
-
         targar = testar
         if testar.endswith("_nan") and hasattr(self, testar[:-4]):
             targar = testar[:-4]
@@ -935,7 +925,6 @@ class TestEnsureNumeric:
 
 
 class TestNanvarFixedValues:
-
     # xref GH10242
     # Samples from a normal distribution.
     @pytest.fixture
@@ -1053,7 +1042,6 @@ class TestNanvarFixedValues:
 
 
 class TestNanskewFixedValues:
-
     # xref GH 11974
     # Test data + skewness value (computed with scipy.stats.skew)
     @pytest.fixture
@@ -1105,7 +1093,6 @@ class TestNanskewFixedValues:
 
 
 class TestNankurtFixedValues:
-
     # xref GH 11974
     # Test data + kurtosis value (computed with scipy.stats.kurtosis)
     @pytest.fixture
@@ -1198,9 +1185,7 @@ class TestDatetime64NaNOps:
 
 
 def test_use_bottleneck():
-
     if nanops._BOTTLENECK_INSTALLED:
-
         with pd.option_context("use_bottleneck", True):
             assert pd.get_option("use_bottleneck")
 
