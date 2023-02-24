@@ -17,6 +17,7 @@ dependencies:
   # pandas dependencies
   - python-dateutil
   - pytz
+  - gdb
   - pip
   - pip:
     - "cython"
