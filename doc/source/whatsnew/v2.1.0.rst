@@ -77,7 +77,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | fsspec          |        2022.3.0 |    X    |
 +-----------------+-----------------+---------+
-
+| gcsfs           |        2022.3.0 |    X    |
++-----------------+-----------------+---------+
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 .. _whatsnew_210.api_breaking.other:
