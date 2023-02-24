@@ -247,7 +247,7 @@ def radviz(
         ...     }
         ... )
         >>> pd.plotting.radviz(df, 'Category')
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        <AxesSubplot: >
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
