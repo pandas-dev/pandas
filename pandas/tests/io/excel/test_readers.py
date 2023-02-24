@@ -340,8 +340,7 @@ class TestReaders:
 
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
-            "Usecols do not match columns, "
-            "columns expected but not found: " + r"\['E'\]"
+            "Usecols do not match columns,columns expected but not found: r\['E'\]"
         )
 
         with pytest.raises(ValueError, match=msg):
@@ -349,8 +348,7 @@ class TestReaders:
 
     def test_usecols_wrong_type(self, read_ext):
         msg = (
-            "'usecols' must either be list-like of "
-            "all strings, all unicode, all integers or a callable."
+            "'usecols' must either be listlike of all strings, all unicode,all integers or a callable."
         )
 
         with pytest.raises(ValueError, match=msg):

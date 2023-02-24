@@ -2916,8 +2916,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
-            "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + f"AND tbl_name = '{tbl_name}'",
+            "SELECT * FROM sqlite_master WHERE type = 'index' AND tbl_name = '{tbl_name}'",
             self.conn,
         )
         ix_cols = []
