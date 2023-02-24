@@ -325,12 +325,8 @@ Other enhancements
 - :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
-<<<<<<< HEAD
 - Added new arguments ``keep_whitespace`` and ``whitespace_chars`` to :func:`read_fwf` giving more control and more intuitive control over whitespace handling (:issue:`51569`)
--
-=======
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
->>>>>>> 68023b3a6a96c10307adeef5a19d2eebf3823eba
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:
@@ -862,10 +858,8 @@ Deprecations
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
-<<<<<<< HEAD
 - Deprecated using ``delimiter`` option to ``read_fwf`` to preserve whitespace in favour of ``keep_whitespace`` and ``whitespace_chars`` (:issue:`51569`)
--
-=======
+- Deprecated :meth:`~pandas.io.stata.StataReader.close`. Use :class:`~pandas.io.stata.StataReader` as a context manager instead (:issue:`49228`)
 
 >>>>>>> 68023b3a6a96c10307adeef5a19d2eebf3823eba
 .. ---------------------------------------------------------------------------
@@ -1173,6 +1167,8 @@ Performance improvements
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+- Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -1427,7 +1423,7 @@ Metadata
 
 Other
 ^^^^^
-
+- Bug in incorrectly accepting dtype strings containing "[pyarrow]" more than once (:issue:`51548`)
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 
