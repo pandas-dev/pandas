@@ -836,8 +836,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
-
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
@@ -1708,8 +1706,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str | None:
         """
         Print {klass} in Markdown-friendly format.
-
-        .. versionadded:: 1.0.0
 
         Parameters
         ----------
@@ -2647,9 +2643,12 @@ Name: Max Speed, dtype: float64
         if len(this) == 0:
             return np.nan
 
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
+
         if method in ["pearson", "spearman", "kendall"] or callable(method):
             return nanops.nancorr(
-                this.values, other.values, method=method, min_periods=min_periods
+                this_values, other_values, method=method, min_periods=min_periods
             )
 
         raise ValueError(
@@ -2702,8 +2701,10 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
         return nanops.nancov(
-            this.values, other.values, min_periods=min_periods, ddof=ddof
+            this_values, other_values, min_periods=min_periods, ddof=ddof
         )
 
     @doc(
@@ -3407,9 +3408,6 @@ Keep all original rows and also all original values
             the end.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the series values
             before sorting. This is similar to the `key` argument in the
@@ -3668,9 +3666,6 @@ Keep all original rows and also all original values
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
