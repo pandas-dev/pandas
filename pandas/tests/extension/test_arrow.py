@@ -785,9 +785,25 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
-        super().test_value_counts(all_data, dropna)
+    def test_value_counts_returns_pyarrow_int64(self, data):
+        # GH 51462
+        data = data[:10]
+        result = data.value_counts()
+        assert result.dtype == ArrowDtype(pa.int64())
+
+    def test_value_counts_with_normalize(self, data, request):
+        data = data[:10].unique()
+        values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
+
+        result = ser.value_counts(normalize=True).sort_index()
+
+        expected = pd.Series(
+            [1 / len(values)] * len(values), index=result.index, name="proportion"
+        )
+        expected = expected.astype("double[pyarrow]")
+
+        self.assert_series_equal(result, expected)
 
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request

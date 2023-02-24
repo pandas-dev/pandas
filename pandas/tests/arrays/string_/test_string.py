@@ -453,20 +453,28 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
 
 
 def test_value_counts_na(dtype):
+    if getattr(dtype, "storage", "") == "pyarrow":
+        exp_dtype = "int64[pyarrow]"
+    else:
+        exp_dtype = "Int64"
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype="Int64", name="count")
+    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype=exp_dtype, name="count")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64", name="count")
+    expected = pd.Series([2, 1], index=arr[:2], dtype=exp_dtype, name="count")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize(dtype):
+    if getattr(dtype, "storage", "") == "pyarrow":
+        exp_dtype = "double[pyarrow]"
+    else:
+        exp_dtype = "Float64"
     ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64", name="proportion") / 3
+    expected = pd.Series([2, 1], index=ser[:2], dtype=exp_dtype, name="proportion") / 3
     tm.assert_series_equal(result, expected)
 
 
