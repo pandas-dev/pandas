@@ -69,7 +69,6 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
-    is_empty_indexer,
     is_list_like_indexer,
     is_scalar_indexer,
     length_of_indexer,
@@ -755,14 +754,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                     if ndim == 1:
                         # We implicitly broadcast, though numpy does not, see
                         # github.com/pandas-dev/pandas/pull/45501#discussion_r789071825
-                        if len(newkey) == 0:
-                            # FIXME: kludge for
-                            #  test_setitem_loc_only_false_indexer_dtype_changed
-                            #  TODO(GH#45333): may be fixed when deprecation is enforced
-                            value = value.iloc[:0]
-                        else:
-                            # test_loc_setitem_ndframe_values_alignment
-                            value = self.obj.iloc._align_series(indexer, value)
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
@@ -2239,9 +2232,6 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                # TODO: This is hacky, align Series and DataFrame behavior GH#45778
-                if obj.ndim == 2 and is_empty_indexer(indexer[0]):
-                    return ser._values.copy()
                 ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
