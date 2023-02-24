@@ -21,13 +21,6 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
-)
-
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 
@@ -184,22 +177,10 @@ def to_orc(
     if engine_kwargs is None:
         engine_kwargs = {}
 
-    # If unsupported dtypes are found raise NotImplementedError
-    # In Pyarrow 9.0.0 this check will no longer be needed
-    for dtype in df.dtypes:
-        if (
-            is_categorical_dtype(dtype)
-            or is_interval_dtype(dtype)
-            or is_period_dtype(dtype)
-            or is_unsigned_integer_dtype(dtype)
-        ):
-            raise NotImplementedError(
-                "The dtype of one or more columns is not supported yet."
-            )
-
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
+    pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
     was_none = path is None
@@ -214,7 +195,7 @@ def to_orc(
                 handles.handle,
                 **engine_kwargs,
             )
-        except TypeError as e:
+        except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."
             ) from e
