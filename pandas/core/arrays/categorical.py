@@ -1205,7 +1205,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = "ignore"):
         """
         Map categories using an input mapping or function.
 
@@ -1222,6 +1222,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
+        na_action : {None, 'ignore'}, default 'ignore'
+            If 'ignore', propagate NaN values, without passing them to the
+            mapping correspondence.
 
         Returns
         -------
@@ -1274,20 +1277,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        if na_action is not None:
-            raise NotImplementedError
+        assert callable(mapper) or is_dict_like(mapper)
 
         new_categories = self.categories.map(mapper)
-        try:
-            return self.from_codes(
-                self._codes.copy(), categories=new_categories, ordered=self.ordered
-            )
-        except ValueError:
-            # NA values are represented in self._codes with -1
-            # np.take causes NA values to take final element in new_categories
-            if np.any(self._codes == -1):
-                new_categories = new_categories.insert(len(new_categories), np.nan)
+
+        not_dictlike_and_no_nans = not (is_dict_like(mapper) and np.nan not in mapper)
+
+        if na_action is None and not_dictlike_and_no_nans and np.any(self._codes == -1):
+            na_value = mapper(np.nan) if callable(mapper) else mapper[np.nan]
+            new_categories = new_categories.insert(len(new_categories), na_value)
             return np.take(new_categories, self._codes)
+        elif new_categories.is_unique and not new_categories.hasnans:
+            new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
+            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+
+        if np.any(self._codes == -1):
+            new_categories = new_categories.insert(len(new_categories), np.nan)
+        return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op(operator.eq)
     __ne__ = _cat_compare_op(operator.ne)

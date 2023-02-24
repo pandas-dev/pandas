@@ -78,25 +78,52 @@ class TestMap:
         tm.assert_index_equal(a.map(c), exp)
 
     @pytest.mark.parametrize(
-        ("data", "f"),
+        ("data", "f", "expected"),
         (
-            ([1, 1, np.nan], pd.isna),
-            ([1, 2, np.nan], pd.isna),
-            ([1, 1, np.nan], {1: False}),
-            ([1, 2, np.nan], {1: False, 2: False}),
-            ([1, 1, np.nan], Series([False, False])),
-            ([1, 2, np.nan], Series([False, False, False])),
+            ([1, 1, np.nan], pd.isna, CategoricalIndex([False, False, np.nan])),
+            ([1, 2, np.nan], pd.isna, Index([False, False, np.nan])),
+            ([1, 1, np.nan], {1: False}, CategoricalIndex([False, False, np.nan])),
+            ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
+            (
+                [1, 1, np.nan],
+                Series([False, False]),
+                CategoricalIndex([False, False, np.nan]),
+            ),
+            (
+                [1, 2, np.nan],
+                Series([False, False, False]),
+                Index([False, False, np.nan]),
+            ),
         ),
     )
-    def test_map_with_nan(self, data, f):  # GH 24241
-        values = pd.Categorical(data)
-        result = values.map(f)
-        if data[1] == 1:
-            expected = pd.Categorical([False, False, np.nan])
-            tm.assert_categorical_equal(result, expected)
-        else:
-            expected = Index([False, False, np.nan])
-            tm.assert_index_equal(result, expected)
+    def test_map_with_nan_ignore(self, data, f, expected):  # GH 24241
+        values = CategoricalIndex(data)
+        result = values.map(f, na_action="ignore")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("data", "f", "expected"),
+        (
+            ([1, 1, np.nan], pd.isna, Index([False, False, True])),
+            ([1, 2, np.nan], pd.isna, Index([False, False, True])),
+            ([1, 1, np.nan], {1: False}, CategoricalIndex([False, False, np.nan])),
+            ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
+            (
+                [1, 1, np.nan],
+                Series([False, False]),
+                CategoricalIndex([False, False, np.nan]),
+            ),
+            (
+                [1, 2, np.nan],
+                Series([False, False, False]),
+                Index([False, False, np.nan]),
+            ),
+        ),
+    )
+    def test_map_with_nan_none(self, data, f, expected):  # GH 24241
+        values = CategoricalIndex(data)
+        result = values.map(f, na_action=None)
+        tm.assert_index_equal(result, expected)
 
     def test_map_with_dict_or_series(self):
         orig_values = ["a", "B", 1, "a"]

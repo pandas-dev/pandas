@@ -748,20 +748,43 @@ def test_map_box():
     tm.assert_series_equal(res, exp)
 
 
-def test_map_categorical():
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_categorical(na_action):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))
 
-    result = s.map(lambda x: x.lower())
+    result = s.map(lambda x: x.lower(), na_action=na_action)
     exp_values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
     exp = Series(exp_values, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
     tm.assert_categorical_equal(result.values, exp_values)
 
-    result = s.map(lambda x: "A")
+    result = s.map(lambda x: "A", na_action=na_action)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
     assert result.dtype == object
+
+
+@pytest.mark.parametrize(
+    "na_action, expected",
+    (
+        [None, Series(["A", "B", "nan"], name="XX")],
+        [
+            "ignore",
+            Series(
+                ["A", "B", np.nan],
+                name="XX",
+                dtype=pd.CategoricalDtype(list("DCBA"), True),
+            ),
+        ],
+    ),
+)
+def test_map_categorical_na_action(na_action, expected):
+    dtype = pd.CategoricalDtype(list("DCBA"), ordered=True)
+    values = pd.Categorical(list("AB") + [np.nan], dtype=dtype)
+    s = Series(values, name="XX")
+    result = s.map(str, na_action=na_action)
+    tm.assert_series_equal(result, expected)
 
 
 def test_map_datetimetz():
