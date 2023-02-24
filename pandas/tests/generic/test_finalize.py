@@ -489,16 +489,71 @@ def test_finalize_called_eval_numexpr():
         (pd.Series([1]), pd.DataFrame({"A": [1]})),
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
+    ids=lambda x: f"({type(x[0]).__name__},{type(x[1]).__name__})",
 )
 def test_binops(request, args, annotate, all_binary_operators):
     # This generates 624 tests... Is that needed?
     left, right = args
-    if annotate == "both" and isinstance(left, int) or isinstance(right, int):
-        return
+    if isinstance(left, (pd.DataFrame, pd.Series)):
+        left.attrs = {}
+    if isinstance(right, (pd.DataFrame, pd.Series)):
+        right.attrs = {}
 
+    if annotate == "left" and isinstance(left, int):
+        pytest.skip("left is an int and doesn't support .attrs")
+    if annotate == "right" and isinstance(right, int):
+        pytest.skip("right is an int and doesn't support .attrs")
+
+    if not (isinstance(left, int) or isinstance(right, int)) and annotate != "both":
+        if not all_binary_operators.__name__.startswith("r"):
+            if annotate == "right" and isinstance(left, type(right)):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"{all_binary_operators} doesn't work when right has "
+                        f"attrs and both are {type(left)}"
+                    )
+                )
+            if not isinstance(left, type(right)):
+                if annotate == "left" and isinstance(left, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+                elif annotate == "right" and isinstance(right, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+        else:
+            if annotate == "left" and isinstance(left, type(right)):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"{all_binary_operators} doesn't work when left has "
+                        f"attrs and both are {type(left)}"
+                    )
+                )
+            if not isinstance(left, type(right)):
+                if annotate == "right" and isinstance(right, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+                elif annotate == "left" and isinstance(left, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
-    if annotate in {"left", "both"} and not isinstance(right, int):
+    if annotate in {"right", "both"} and not isinstance(right, int):
         right.attrs = {"a": 1}
 
     is_cmp = all_binary_operators in [
