@@ -91,8 +91,9 @@ def _get_path_or_handle(
         fsspec = import_optional_dependency("fsspec")
 
         try:
+            fs_arrow = import_optional_dependency("fsspec.implementations.arrow")
             fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-            fs = fsspec.implementations.arrow.ArrowFSWrapper(fs)
+            fs = fs_arrow.ArrowFSWrapper(fs)
         except (TypeError, pa.ArrowInvalid):
             fs, path_or_handle = fsspec.core.url_to_fs(
                 path_or_handle, **(storage_options or {})
@@ -296,6 +297,7 @@ class FastParquetImpl(BaseImpl):
         index=None,
         partition_cols=None,
         storage_options: StorageOptions = None,
+        filesystem=None,
         **kwargs,
     ) -> None:
         self.validate_dataframe(df)
@@ -310,6 +312,11 @@ class FastParquetImpl(BaseImpl):
 
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
+
+        if filesystem is not None:
+            raise NotImplementedError(
+                "filesystem is not implemented for the fastparquet engine."
+            )
 
         # cannot use get_handle as write() does not accept file buffers
         path = stringify_path(path)
@@ -396,7 +403,7 @@ def to_parquet(
     index: bool | None = None,
     storage_options: StorageOptions = None,
     partition_cols: list[str] | None = None,
-    filepath: Any = None,
+    filesystem: Any = None,
     **kwargs,
 ) -> bytes | None:
     """
@@ -467,6 +474,7 @@ def to_parquet(
         index=index,
         partition_cols=partition_cols,
         storage_options=storage_options,
+        filesystem=filesystem,
         **kwargs,
     )
 
@@ -567,5 +575,6 @@ def read_parquet(
         columns=columns,
         storage_options=storage_options,
         use_nullable_dtypes=use_nullable_dtypes,
-        filesystem=filesystem**kwargs,
+        filesystem=filesystem,
+        **kwargs,
     )

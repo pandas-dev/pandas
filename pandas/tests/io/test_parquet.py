@@ -1225,3 +1225,16 @@ class TestParquetFastParquet(Base):
 
             result = read_parquet(path, engine=engine)
         tm.assert_frame_equal(result, df)
+
+    def test_filesystem_notimplemented(self):
+        df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
+        with pytest.raises(NotImplementedError, match="filesystem is not implemented"):
+            with tm.ensure_clean() as path:
+                df.to_parquet(path, engine="fastparquet", filesystem="foo")
+
+        with tm.ensure_clean() as path:
+            pathlib.Path(path).write_bytes(b"foo")
+            with pytest.raises(
+                NotImplementedError, match="filesystem is not implemented"
+            ):
+                read_parquet(path, engine="fastparquet", filesystem="foo")
