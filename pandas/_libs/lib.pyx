@@ -2464,15 +2464,15 @@ def maybe_convert_objects(ndarray[object] objects,
             mask[i] = True
             floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
-            if not convert_numeric:
-                break
             seen.bool_ = True
             bools[i] = val
-        elif util.is_float_object(val):
             if not convert_numeric:
                 break
+        elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen.float_ = True
+            if not convert_numeric:
+                break
         elif is_timedelta(val):
             if convert_timedelta:
                 seen.timedelta_ = True
@@ -2486,8 +2486,6 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif util.is_integer_object(val):
-            if not convert_numeric:
-                break
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
@@ -2506,12 +2504,14 @@ def maybe_convert_objects(ndarray[object] objects,
                 else:
                     uints[i] = val
                     ints[i] = val
-
-        elif util.is_complex_object(val):
             if not convert_numeric:
                 break
+
+        elif util.is_complex_object(val):
             complexes[i] = val
             seen.complex_ = True
+            if not convert_numeric:
+                break
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
