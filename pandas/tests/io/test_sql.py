@@ -1807,6 +1807,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         insp = inspect(temp_conn)
         assert insp.has_table("temp_frame")
 
+        # Cleanup
+        with sql.SQLDatabase(temp_conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("temp_frame")
+
     def test_drop_table(self):
         from sqlalchemy import inspect
 
