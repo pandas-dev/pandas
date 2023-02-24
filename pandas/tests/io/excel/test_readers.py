@@ -340,7 +340,7 @@ class TestReaders:
 
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
-            "Usecolsdonotmatchcolumnscolumnsexpectedbutnotfound:rf"\[E\]"
+            "Usecolsdonotmatchcolumnscolumnsexpectedbutnotfound"
         )
 
         with pytest.raises(ValueError, match=msg):
