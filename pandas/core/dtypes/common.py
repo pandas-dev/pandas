@@ -207,6 +207,7 @@ def is_sparse(arr) -> bool:
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
 
+    >>> from pandas.api.types import is_sparse
     >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
     True
     >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
@@ -398,9 +399,10 @@ def is_period_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_period_dtype
     >>> is_period_dtype(object)
     False
-    >>> is_period_dtype(PeriodDtype(freq="D"))
+    >>> is_period_dtype(pd.PeriodDtype(freq="D"))
     True
     >>> is_period_dtype([1, 2, 3])
     False
@@ -434,9 +436,10 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_interval_dtype
     >>> is_interval_dtype(object)
     False
-    >>> is_interval_dtype(IntervalDtype())
+    >>> is_interval_dtype(pd.IntervalDtype())
     True
     >>> is_interval_dtype([1, 2, 3])
     False
@@ -727,6 +730,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_signed_integer_dtype
     >>> is_signed_integer_dtype(str)
     False
     >>> is_signed_integer_dtype(int)
@@ -782,6 +786,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_unsigned_integer_dtype
     >>> is_unsigned_integer_dtype(str)
     False
     >>> is_unsigned_integer_dtype(int)  # signed

@@ -1420,7 +1420,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
-    >>> import datetime
+    >>> from pandas.api.types import infer_dtype
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
@@ -1445,6 +1445,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype(['a', 1])
     'mixed-integer'
 
+    >>> from decimal import Decimal
     >>> infer_dtype([Decimal(1), Decimal(2.0)])
     'decimal'
 
@@ -1457,6 +1458,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
+    >>> import datetime
     >>> infer_dtype([datetime.date(2013, 1, 1)])
     'date'
 
