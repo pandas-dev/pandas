@@ -189,9 +189,7 @@ _encoding_seps = ["", "-", "_"]
 _encoding_prefixes = ["utf", "UTF"]
 
 _encoding_fmts = [
-    "{}{}".format(f"{prefix}{sep}", "{0}")
-    for sep in _encoding_seps
-    for prefix in _encoding_prefixes
+    f"{prefix}{sep}{{0}}" for sep in _encoding_seps for prefix in _encoding_prefixes
 ]
 
 

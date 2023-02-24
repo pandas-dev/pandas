@@ -2192,7 +2192,7 @@ class TestSeriesFormatting:
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = "".join(["1\n", "2\n", "3\n", "4"])
+        expected = "\n".join(["1", "2", "3", "4"])
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2823,8 +2823,8 @@ class TestGenericArrayFormatter:
 
         series = Series(ExtTypeStub())
         res = repr(series)  # This line crashed before #33770 was fixed.
-        expected = "".join(
-            ["0    [False  True]\n", "1    [ True False]\n", "dtype: DtypeStub"]
+        expected = "\n".join(
+            ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]
         )
         assert res == expected
 
