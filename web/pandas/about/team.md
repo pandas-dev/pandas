@@ -52,7 +52,15 @@ The project governance is available in the [project governance page]({{ base_url
 ### {{ workgroup.name }}
 
 <ul>
-    <li><b>Contact:</b> <a href="mailto:{{ workgroup.contact }}">{{ workgroup.contact }}</a></li>
+    <li><b>Contact:</b>
+        <a id="{{ workgroup.name|replace(' ', '-') }}" href="mailto:asp.{{ workgroup.contact }}">asp.{{ workgroup.contact }}</a>
+        <script TYPE="text/javascript">
+            var mail_tag_id = '{{ workgroup.name|replace(' ', '-') }}';
+            var mail_tag_element = document.getElementById( mail_tag_id );
+            mail_tag_element.innerHTML = mail_tag_element.innerHTML.replace(/^asp./, "");
+            mail_tag_element.setAttribute('href', "mailto:"+mail_tag_element.innerHTML);
+        </script>
+    </li>
     <li><b>Responsibilities:</b> {{ workgroup.responsibilities }}</li>
     <li><b>Members:</b>
         <ul>
