@@ -86,23 +86,17 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.index \
-        pandas.Series.nbytes \
-        pandas.Series.ndim \
-        pandas.Series.size \
-        pandas.Series.T \
         pandas.Series.hasnans \
         pandas.Series.to_list \
         pandas.Series.__iter__ \
         pandas.Series.keys \
         pandas.Series.item \
         pandas.Series.pipe \
-        pandas.Series.kurt \
         pandas.Series.mean \
         pandas.Series.median \
         pandas.Series.mode \
         pandas.Series.sem \
         pandas.Series.skew \
-        pandas.Series.kurtosis \
         pandas.Series.is_unique \
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
@@ -549,8 +543,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
-        pandas.DataFrame.kurt \
-        pandas.DataFrame.kurtosis \
         pandas.DataFrame.mean \
         pandas.DataFrame.median \
         pandas.DataFrame.sem \
@@ -573,24 +565,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
         pandas.DataFrame.plot.line \
         pandas.Series.plot.line \
-        pandas.api.types.infer_dtype \
         pandas.api.types.is_datetime64_any_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
         pandas.api.types.is_integer_dtype \
-        pandas.api.types.is_interval_dtype \
-        pandas.api.types.is_period_dtype \
-        pandas.api.types.is_signed_integer_dtype \
-        pandas.api.types.is_sparse \
         pandas.api.types.is_string_dtype \
-        pandas.api.types.is_timedelta64_dtype \
-        pandas.api.types.is_timedelta64_ns_dtype \
-        pandas.api.types.is_unsigned_integer_dtype \
-        pandas.io.formats.style.Styler.concat \
-        pandas.io.formats.style.Styler.export \
-        pandas.io.formats.style.Styler.set_td_classes \
-        pandas.io.formats.style.Styler.use \
-        pandas.io.json.build_table_schema \
         pandas.plotting.andrews_curves \
         pandas.plotting.autocorrelation_plot \
         pandas.plotting.lag_plot \

@@ -1318,8 +1318,6 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 Custom formatters for timeseries plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionchanged:: 1.0.0
-
 pandas provides custom formatters for timeseries plots. These change the
 formatting of the axis labels for dates and times. By default,
 the custom formatters are applied only to plots created by pandas with
