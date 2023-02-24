@@ -43,9 +43,24 @@ def gcs_buffer(monkeypatch):
     return gcs_buffer
 
 
+@pytest.fixture
+def mock_pa_filesystem(monkeypatch):
+    pa_fs = pytest.importorskip("pyarrow.fs")
+
+    class MockFileSystem(pa_fs.FileSystem):
+        @staticmethod
+        def from_uri(path):
+            to_local = path.replace("gs", "file")
+            return pa_fs.LocalFileSystem.from_uri(to_local), to_local
+
+    with monkeypatch.context() as m:
+        m.setattr(pa_fs, "FileSystem", MockFileSystem)
+        yield
+
+
 @td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
-def test_to_read_gcs(gcs_buffer, format):
+def test_to_read_gcs(gcs_buffer, format, mock_pa_filesystem):
     """
     Test that many to/read functions support GCS.
 
