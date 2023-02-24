@@ -56,7 +56,6 @@ from pandas._libs.tslibs.conversion cimport (
     convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
-    precision_from_unit,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -258,7 +257,6 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, n=len(values)
-        int64_t mult
         bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
@@ -274,8 +272,6 @@ def array_with_unit_to_datetime(
             errors=errors,
         )
         return result, tz
-
-    mult, _ = precision_from_unit(unit)
 
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
