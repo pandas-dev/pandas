@@ -102,6 +102,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` for extension array dtypes (:issue:`51549`)
 - Performance improvement in :meth:`DataFrame.clip` and :meth:`Series.clip` (:issue:`51472`)
+- Performance improvement in :func:`read_parquet` on string columns when using ``use_nullable_dtypes=True`` (:issue:`47345`)
 -
 
 .. ---------------------------------------------------------------------------
