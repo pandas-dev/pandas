@@ -1216,8 +1216,8 @@ class TestDataFrameSelectReindex:
         )
         assert (res.dtypes[[0, 1]] == object).all()
         assert res.iloc[0, 0] is pd.NaT
-        assert type(res.iloc[-1, 0]) is type(fv) and isna(res.iloc[-1, 0])
-        assert type(res.iloc[-1, 1]) is type(fv) and isna(res.iloc[-1, 1])
+        assert res.iloc[-1, 0] is fv
+        assert res.iloc[-1, 1] is fv
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize(
