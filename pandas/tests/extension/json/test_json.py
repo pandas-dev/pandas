@@ -231,18 +231,6 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_frame()
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        arr = data_missing.take([1, 1])
-        df = pd.DataFrame({"A": arr})
-
-        filled_val = df.iloc[0, 0]
-        result = df.fillna(filled_val)
-
-        if using_copy_on_write:
-            assert df.A.values is result.A.values
-        else:
-            assert df.A.values is not result.A.values
-
 
 unhashable = pytest.mark.xfail(reason="Unhashable")
 
@@ -312,6 +300,18 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_equals(self, data, na_value, as_series):
         super().test_equals(data, na_value, as_series)
+
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        if using_copy_on_write:
+            assert df.A.values is result.A.values
+        else:
+            assert df.A.values is not result.A.values
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
