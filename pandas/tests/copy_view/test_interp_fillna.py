@@ -181,6 +181,21 @@ def test_fillna(using_copy_on_write):
     tm.assert_frame_equal(df_orig, df)
 
 
+def test_fillna_dict(using_copy_on_write):
+    df = DataFrame({"a": [1.5, np.nan], "b": 1})
+    df_orig = df.copy()
+
+    df2 = df.fillna({"a": 100.5})
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+
+    df2.iloc[0, 1] = 100
+    tm.assert_frame_equal(df_orig, df)
+
+
 @pytest.mark.parametrize("downcast", [None, False])
 def test_fillna_inplace(using_copy_on_write, downcast):
     df = DataFrame({"a": [1.5, np.nan], "b": 1})
@@ -233,6 +248,30 @@ def test_fillna_interval_inplace_reference(using_copy_on_write):
         assert np.shares_memory(
             get_array(ser, "a").left.values, get_array(view, "a").left.values
         )
+
+
+def test_fillna_series_empty_arg(using_copy_on_write):
+    ser = Series([1, np.nan, 2])
+    ser_orig = ser.copy()
+    result = ser.fillna({})
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(result))
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(result))
+
+    ser.iloc[0] = 100.5
+    tm.assert_series_equal(ser_orig, result)
+
+
+def test_fillna_series_empty_arg_inplace(using_copy_on_write):
+    ser = Series([1, np.nan, 2])
+    arr = get_array(ser)
+    ser.fillna({}, inplace=True)
+
+    assert np.shares_memory(get_array(ser), arr)
+    if using_copy_on_write:
+        assert ser._mgr._has_no_reference(0)
 
 
 def test_fillna_ea_noop_shares_memory(

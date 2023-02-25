@@ -41,9 +41,7 @@ def to_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL has to be of S3 or GCS.
+        Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -127,9 +125,7 @@ def read_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``readlines()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL is not limited to S3 and GCS.
+        Also accepts URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
 
