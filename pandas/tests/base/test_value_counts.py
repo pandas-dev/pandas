@@ -39,8 +39,11 @@ def test_value_counts(index_or_series_obj):
         expected.index.name = obj.name
 
     if not isinstance(result.dtype, np.dtype):
-        # i.e IntegerDtype
-        expected = expected.astype("Int64")
+        if getattr(obj.dtype, "storage", "") == "pyarrow":
+            expected = expected.astype("int64[pyarrow]")
+        else:
+            # i.e IntegerDtype
+            expected = expected.astype("Int64")
 
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
@@ -90,8 +93,11 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
-        # i.e IntegerDtype
-        expected = expected.astype("Int64")
+        if getattr(obj.dtype, "storage", "") == "pyarrow":
+            expected = expected.astype("int64[pyarrow]")
+        else:
+            # i.e IntegerDtype
+            expected = expected.astype("Int64")
     tm.assert_series_equal(result, expected)
 
     expected[null_obj] = 3
