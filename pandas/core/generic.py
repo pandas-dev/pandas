@@ -3101,7 +3101,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | Sequence[str] = ...,
+        header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3128,7 +3128,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | Sequence[str] = ...,
+        header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3155,7 +3155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        header: bool_t | Sequence[str] = True,
+        header: bool_t | list[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -6885,8 +6885,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "with dict/Series column "
                         "by column"
                     )
-
-                result = self if inplace else self.copy()
+                if using_copy_on_write():
+                    result = self.copy(deep=None)
+                else:
+                    result = self if inplace else self.copy()
                 is_dict = isinstance(downcast, dict)
                 for k, v in value.items():
                     if k not in result:
@@ -6940,8 +6942,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                     result.iloc[:, loc] = res_loc
                                 else:
                                     result.isetitem(loc, res_loc)
-
-                return result if not inplace else None
+                if inplace:
+                    return self._update_inplace(result)
+                else:
+                    return result
 
             elif not is_list_like(value):
                 if axis == 1:
@@ -11516,7 +11520,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_descr=axis_descr,
             min_count="",
             see_also="",
-            examples="",
+            examples="""
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.mean()
+            2.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.mean()
+            a   1.5
+            b   2.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.mean(axis=1)
+            tiger   1.5
+            zebra   2.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True` to avoid
+            getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.mean(numeric_only=True)
+            a   1.5
+            dtype: float64""",
         )
         def mean(
             self,
@@ -11624,7 +11662,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_descr=axis_descr,
             min_count="",
             see_also="",
-            examples="",
+            examples="""
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.median()
+            2.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.median()
+            a   1.5
+            b   2.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.median(axis=1)
+            tiger   1.5
+            zebra   2.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True`
+            to avoid getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.median(numeric_only=True)
+            a   1.5
+            dtype: float64""",
         )
         def median(
             self,

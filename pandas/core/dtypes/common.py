@@ -523,6 +523,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_string_dtype
     >>> is_string_dtype(str)
     True
     >>> is_string_dtype(object)
@@ -674,6 +675,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_integer_dtype
     >>> is_integer_dtype(str)
     False
     >>> is_integer_dtype(int)
