@@ -118,11 +118,12 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 -
 
 Timedelta
 ^^^^^^^^^
+- Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
 -
 
@@ -183,7 +184,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
 -
 
 Reshaping
