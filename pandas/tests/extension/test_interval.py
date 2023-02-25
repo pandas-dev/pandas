@@ -132,11 +132,6 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        super().test_fillna_copy_series(
-            data_missing, no_op_with_cow=using_copy_on_write
-        )
-
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
     # Index.fillna only accepts scalar `value`, so we have to xfail all

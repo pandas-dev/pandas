@@ -243,24 +243,25 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
+        df_orig = df.copy()
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.A.values is not result.A.values
+        result.iloc[0, 0] = filled_val
 
-    def test_fillna_copy_series(self, data_missing, no_op_with_cow: bool = False):
+        self.assert_frame_equal(df, df_orig)
+
+    def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
+        ser_orig = ser.copy()
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
+        result.iloc[0] = filled_val
 
-        if no_op_with_cow:
-            assert ser._values is result._values
-        else:
-            assert ser._values is not result._values
-        assert ser._values is arr
+        self.assert_series_equal(ser, ser_orig)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."
