@@ -125,6 +125,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
+- Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
 -
 
 Timezones
