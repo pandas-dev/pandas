@@ -444,6 +444,22 @@ class Dropna:
         self.df_mixed.dropna(how=how, axis=axis)
 
 
+class Isna:
+    params = ["float64", "Float64", "float64[pyarrow]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(10000, 1000)
+        # all-na columns
+        data[:, 600:800] = np.nan
+        # partial-na columns
+        data[800:1000, 4000:5000] = np.nan
+        self.df = DataFrame(data, dtype=dtype)
+
+    def time_isna(self, dtype):
+        self.df.isna()
+
+
 class Count:
     params = [0, 1]
     param_names = ["axis"]
