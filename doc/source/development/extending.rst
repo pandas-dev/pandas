@@ -512,7 +512,7 @@ In the example above, if `[10, 20]` was a custom type that can be understood as 
 
 In some cases, it is useful to delegate to the other type the operation. For example, consider I implement a
 custom list object, and I want the result of adding my custom list with a pandas `Series` to be an instance of my list
-and not a `Series` as seen in the previous example. This is now possible by defining the `__pandas_priority__` attribute
+and not a :class:`Series` as seen in the previous example. This is now possible by defining the ``__pandas_priority__`` attribute
 of my custom list, and setting it to a higher value, than the priority of the pandas objects I want to operate with.
 
 .. code-block:: python
