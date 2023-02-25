@@ -106,7 +106,7 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide_checked(left, right))
+        result = pc.floor(pc.divide(left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -118,8 +118,8 @@ if not pa_version_under7p0:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -569,14 +569,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under7p0:
-            # Although pc.array_sort_indices exists in version 6
-            # there's a bug that affects the pa.ChunkedArray backing
-            # https://issues.apache.org/jira/browse/ARROW-12042
-            fallback_performancewarning("7")
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+        if null_placement is None:
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
@@ -640,9 +634,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
-        if method is not None and pa_version_under7p0:
-            # fill_null_{forward|backward} added in pyarrow 7.0
-            fallback_performancewarning(version="7")
+        if method is not None:
+            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if is_array_like(value):
@@ -990,12 +983,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count").astype("Int64")
+        return Series(counts, index=index, name="count")
 
     @classmethod
     def _concat_same_type(
@@ -1098,6 +1090,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
+            or pa.types.is_decimal(pa_type)
         ):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
