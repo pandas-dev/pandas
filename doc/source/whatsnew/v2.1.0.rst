@@ -200,7 +200,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
 -
 
 Styler
