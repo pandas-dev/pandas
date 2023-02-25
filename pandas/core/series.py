@@ -1969,7 +1969,7 @@ Name: Max Speed, dtype: float64
         level: IndexLabel = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
@@ -2643,9 +2643,12 @@ Name: Max Speed, dtype: float64
         if len(this) == 0:
             return np.nan
 
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
+
         if method in ["pearson", "spearman", "kendall"] or callable(method):
             return nanops.nancorr(
-                this.values, other.values, method=method, min_periods=min_periods
+                this_values, other_values, method=method, min_periods=min_periods
             )
 
         raise ValueError(
@@ -2698,8 +2701,10 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
         return nanops.nancov(
-            this.values, other.values, min_periods=min_periods, ddof=ddof
+            this_values, other_values, min_periods=min_periods, ddof=ddof
         )
 
     @doc(
