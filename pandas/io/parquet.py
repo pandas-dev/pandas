@@ -457,7 +457,7 @@ def to_parquet(
 
         .. versionadded:: 1.2.0
 
-    filesystem: fsspec or pyarrow filesystem, default None
+    filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine-"pyarrow"``.
 
@@ -558,7 +558,7 @@ def read_parquet(
 
         .. versionadded:: 2.0.0
 
-    filesystem: fsspec or pyarrow filesystem, default None
+    filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine-"pyarrow"``.
 
