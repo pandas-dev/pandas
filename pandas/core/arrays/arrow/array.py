@@ -557,6 +557,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
         This should return a 1-D array the same length as 'self'.
         """
+        # GH51630: fast paths
+        null_count = self._data.null_count
+        if null_count == 0:
+            return np.zeros(len(self), dtype=np.bool_)
+        elif null_count == len(self):
+            return np.ones(len(self), dtype=np.bool_)
+
         return self._data.is_null().to_numpy()
 
     def argsort(
@@ -983,12 +990,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count").astype("Int64")
+        return Series(counts, index=index, name="count")
 
     @classmethod
     def _concat_same_type(
