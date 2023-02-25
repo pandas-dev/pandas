@@ -5892,8 +5892,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Constructing a income DataFrame from a dictionary.
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
-        >>> income = pd.DataFrame(data, columns=['Salary', 'Others'])
-        >>> income
+        >>> df = pd.DataFrame(data, columns=['Salary', 'Others'])
+        >>> df
            Salary  Others
         0    8000  1000.0
         1    9500     NaN
@@ -5901,24 +5901,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Functions that perform tax reductions on an income DataFrame.
 
-        >>> def subtract_federal_tax(income):
-        ...     return income * 0.9
-        >>> def subtract_state_tax(income, rate):
-        ...     return income * (1 - rate)
-        >>> def subtract_national_insurance(income, rate, rate_increase):
+        >>> def subtract_federal_tax(df):
+        ...     return df * 0.9
+        >>> def subtract_state_tax(df, rate):
+        ...     return df * (1 - rate)
+        >>> def subtract_national_insurance(df, rate, rate_increase):
         ...     new_rate = rate + rate_increase
-        ...     return income * (1 - new_rate)
+        ...     return df * (1 - new_rate)
 
         Instead of writing
 
         >>> (subtract_national_insurance(
-        ...     subtract_state_tax(subtract_federal_tax(income),rate=0.12),
+        ...     subtract_state_tax(subtract_federal_tax(df),rate=0.12),
         ...     rate=0.05,
         ...     rate_increase=0.02))  # doctest: +SKIP
 
         You can write
 
-        >>> (income.pipe(subtract_federal_tax)
+        >>> (df.pipe(subtract_federal_tax)
         ...        .pipe(subtract_state_tax, rate=0.12)
         ...        .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02))
             Salary   Others
@@ -5928,15 +5928,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``national_insurance`` takes its data as ``income``
+        data. For example, suppose ``national_insurance`` takes its data as ``df``
         in the second argument:
 
-        >>> def subtract_national_insurance(rate, income, rate_increase):
+        >>> def subtract_national_insurance(rate, df, rate_increase):
         ...     new_rate = rate + rate_increase
-        ...     return income * (1 - new_rate)
-        >>> (income.pipe(subtract_federal_tax)
+        ...     return df * (1 - new_rate)
+        >>> (df.pipe(subtract_federal_tax)
         ...        .pipe(subtract_state_tax, rate=0.12)
-        ...        .pipe((subtract_national_insurance, 'income'),
+        ...        .pipe((subtract_national_insurance, 'df'),
         ...              rate=0.05, rate_increase=0.02))
             Salary   Others
         0  5892.48   736.56
