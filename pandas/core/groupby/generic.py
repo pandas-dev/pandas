@@ -1084,12 +1084,12 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -1359,21 +1359,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._wrap_aggregated_output(res)
 
     def _iterate_slices(self) -> Iterable[Series]:
-        obj = self._selected_obj
+        obj = self._obj_with_exclusions
         if self.axis == 1:
             obj = obj.T
 
-        if isinstance(obj, Series) and obj.name not in self.exclusions:
+        if isinstance(obj, Series):
             # Occurs when doing DataFrameGroupBy(...)["X"]
             yield obj
         else:
             for label, values in obj.items():
-                if label in self.exclusions:
-                    # Note: if we tried to just iterate over _obj_with_exclusions,
-                    #  we would break test_wrap_agg_out by yielding a column
-                    #  that is skipped here but not dropped from obj_with_exclusions
-                    continue
-
                 yield values
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
@@ -2018,7 +2012,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2104,7 +2098,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 
