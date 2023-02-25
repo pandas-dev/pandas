@@ -2801,7 +2801,7 @@ class DataFrame(NDFrame, OpsMixin):
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}}, default 'snappy'
+        compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
             The supported compression methods actually depend on which engine
             is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
