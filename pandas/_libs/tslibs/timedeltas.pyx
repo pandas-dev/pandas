@@ -614,12 +614,14 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
                 and current_unit is None):
             raise ValueError("no units specified")
 
+        # Need absolute value here, since Cython can't figure
+        # out exponent can't be negative by itself
         if len(frac) > 0 and len(frac) <= 3:
-            m = 10**(3 -len(frac)) * 1000 * 1000
+            m = 10**(abs(3 -len(frac))) * 1000 * 1000
         elif len(frac) > 3 and len(frac) <= 6:
-            m = 10**(6 -len(frac)) * 1000
+            m = 10**(abs(6 -len(frac))) * 1000
         elif len(frac) > 6 and len(frac) <= 9:
-            m = 10**(9 -len(frac))
+            m = 10**(abs(9 -len(frac)))
         else:
             m = 1
             frac = frac[:9]
