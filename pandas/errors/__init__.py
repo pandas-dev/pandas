@@ -458,11 +458,11 @@ class CSSWarning(UserWarning):
     >>> df.style.applymap(
     ...     lambda x: 'background-color: blueGreenRed;'
     ... ).to_excel('styled.xlsx')  # doctest: +SKIP
-    ... # CSSWarning: Unhandled color format: 'blueGreenRed'
+    CSSWarning: Unhandled color format: 'blueGreenRed'
     >>> df.style.applymap(
     ...     lambda x: 'border: 1px solid red red;'
     ... ).to_excel('styled.xlsx')  # doctest: +SKIP
-        CSSWarning: Unhandled color format: 'blueGreenRed'
+    CSSWarning: Unhandled color format: 'blueGreenRed'
     """
 
 
