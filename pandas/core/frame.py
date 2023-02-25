@@ -8208,7 +8208,7 @@ Parrot 2  Parrot       24.0
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
