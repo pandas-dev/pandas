@@ -198,7 +198,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.any` and :meth:`Series.all` for empty or all null pyarrow-backed dtypes (:issue:`51624`)
 -
 
 Styler
