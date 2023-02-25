@@ -165,10 +165,7 @@ class TestMissing(base.BaseMissingTests):
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
-        with tm.maybe_produces_warning(
-            PerformanceWarning, data.dtype.storage == "pyarrow"
-        ):
-            result = data.fillna(method="backfill")
+        result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
