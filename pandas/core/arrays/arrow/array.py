@@ -631,6 +631,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ) -> ArrowExtensionArrayT:
         value, method = validate_fillna_kwargs(value, method)
 
+        if not self._hasna:
+            return self.copy()
+
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
