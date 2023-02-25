@@ -1084,12 +1084,12 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2012,7 +2012,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2098,7 +2098,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 

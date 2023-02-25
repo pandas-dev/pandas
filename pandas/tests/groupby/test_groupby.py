@@ -1984,6 +1984,8 @@ def test_empty_groupby(
 
     result = get_result()
     expected = df.set_index(keys)[columns]
+    if op in ["idxmax", "idxmin"]:
+        expected = expected.astype(df.index.dtype)
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
