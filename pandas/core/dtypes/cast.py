@@ -1156,23 +1156,20 @@ def maybe_infer_to_datetimelike(
     if not len(value):
         return value
 
-    out = lib.maybe_convert_objects(
+    # error: Incompatible return value type (got "Union[ExtensionArray,
+    # ndarray[Any, Any]]", expected "Union[ndarray[Any, Any], DatetimeArray,
+    # TimedeltaArray, PeriodArray, IntervalArray]")
+    return lib.maybe_convert_objects(  # type: ignore[return-value]
         value,
+        # Here we do not convert numeric dtypes, as if we wanted that,
+        #  numpy would have done it for us.
+        convert_numeric=False,
         convert_period=True,
         convert_interval=True,
         convert_timedelta=True,
         convert_datetime=True,
         dtype_if_all_nat=np.dtype("M8[ns]"),
     )
-    if out.dtype.kind in ["i", "u", "f", "b", "c"]:
-        # Here we do not convert numeric dtypes, as if we wanted that,
-        #  numpy would have done it for us.
-        #  See also _maybe_cast_data_without_dtype
-        return value
-    # Incompatible return value type (got "Union[ExtensionArray, ndarray[Any, Any]]",
-    # expected "Union[ndarray[Any, Any], DatetimeArray, TimedeltaArray, PeriodArray,
-    # IntervalArray]")
-    return out  # type: ignore[return-value]
 
 
 def maybe_cast_to_datetime(
