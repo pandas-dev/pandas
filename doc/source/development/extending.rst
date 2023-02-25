@@ -508,7 +508,7 @@ By default, pandas objects try to operate with other objects, even if they are n
     1    22
     dtype: int64
 
-In the example above, if `[10, 20]` was a custom type that can be understood as a list, pandas objects will still operate with it in the same way.
+In the example above, if ``[10, 20]`` was a custom type that can be understood as a list, pandas objects will still operate with it in the same way.
 
 In some cases, it is useful to delegate to the other type the operation. For example, consider I implement a
 custom list object, and I want the result of adding my custom list with a pandas :class:`Series` to be an instance of my list
