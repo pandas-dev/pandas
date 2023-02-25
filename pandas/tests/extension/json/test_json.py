@@ -301,17 +301,9 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_equals(self, data, na_value, as_series):
         super().test_equals(data, na_value, as_series)
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        arr = data_missing.take([1, 1])
-        df = pd.DataFrame({"A": arr})
-
-        filled_val = df.iloc[0, 0]
-        result = df.fillna(filled_val)
-
-        if using_copy_on_write:
-            assert df.A.values is result.A.values
-        else:
-            assert df.A.values is not result.A.values
+    @pytest.mark.skip("fill-value is interpreted as a dict of values")
+    def test_fillna_copy_frame(self, data_missing):
+        super().test_fillna_copy_frame(data_missing)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

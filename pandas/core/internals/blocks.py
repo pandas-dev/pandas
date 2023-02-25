@@ -1758,9 +1758,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 downcast=downcast,
                 using_cow=using_cow,
             )
-        new_values = self.values.fillna(value=value, method=None, limit=limit)
-        nb = self.make_block_same_class(new_values)
-        return nb._maybe_downcast([nb], downcast)
+        if using_cow and self._can_hold_na and not self.values._hasna:
+            refs = self.refs
+            new_values = self.values
+        else:
+            refs = None
+            new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 
     @cache_readonly
     def shape(self) -> Shape:
