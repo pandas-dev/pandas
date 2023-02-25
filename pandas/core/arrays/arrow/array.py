@@ -557,7 +557,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
         This should return a 1-D array the same length as 'self'.
         """
-        # fast paths
+        # GH51630: fast paths
         null_count = self._data.null_count
         if null_count == 0:
             return np.zeros(len(self), dtype=np.bool_)
