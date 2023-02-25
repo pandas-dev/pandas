@@ -2801,8 +2801,12 @@ class DataFrame(NDFrame, OpsMixin):
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
+        compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+            The supported compression methods actually depend on which engine
+            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
+            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
+            supported.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -8211,7 +8215,7 @@ Parrot 2  Parrot       24.0
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
