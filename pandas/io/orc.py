@@ -68,7 +68,7 @@ def read_orc(
 
         .. versionadded:: 2.0
 
-    filesystem: fsspec or pyarrow filesystem, default None
+    filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file.
 
         .. versionadded:: 2.1.0
