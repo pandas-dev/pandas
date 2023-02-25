@@ -873,6 +873,9 @@ def value_counts(
             result.name = name
             result.index.name = index_name
             counts = result._values
+            if not isinstance(counts, np.ndarray):
+                # e.g. ArrowExtensionArray
+                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558

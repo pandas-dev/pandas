@@ -1987,10 +1987,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Only ordered `Categoricals` have a minimum!
 
-        .. versionchanged:: 1.0.0
-
-           Returns an NA value on empty arrays
-
         Raises
         ------
         TypeError
@@ -1998,7 +1994,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        min : the minimum of this `Categorical`
+        min : the minimum of this `Categorical`, NA value if empty
         """
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_min((), kwargs)
@@ -2023,10 +2019,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Only ordered `Categoricals` have a maximum!
 
-        .. versionchanged:: 1.0.0
-
-           Returns an NA value on empty arrays
-
         Raises
         ------
         TypeError
@@ -2034,7 +2026,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        max : the maximum of this `Categorical`
+        max : the maximum of this `Categorical`, NA if array is empty
         """
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_max((), kwargs)

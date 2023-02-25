@@ -253,6 +253,9 @@ class BaseBlockManager(DataManager):
         Adds the references from one manager to another. We assume that both
         managers have the same block structure.
         """
+        if len(self.blocks) != len(mgr.blocks):
+            # If block structure changes, then we made a copy
+            return
         for i, blk in enumerate(self.blocks):
             blk.refs = mgr.blocks[i].refs
             # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
@@ -914,7 +917,6 @@ class BaseBlockManager(DataManager):
         indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> T:
         """
         Take items along any axis.
@@ -924,8 +926,6 @@ class BaseBlockManager(DataManager):
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
-        convert_indices : bool, default True
-            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
@@ -935,8 +935,7 @@ class BaseBlockManager(DataManager):
         assert indexer.dtype == np.intp, indexer.dtype
 
         n = self.shape[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(

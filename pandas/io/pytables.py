@@ -5123,13 +5123,13 @@ def _dtype_to_kind(dtype_str: str) -> str:
     """
     dtype_str = _ensure_decoded(dtype_str)
 
-    if dtype_str.startswith("string") or dtype_str.startswith("bytes"):
+    if dtype_str.startswith(("string", "bytes")):
         kind = "string"
     elif dtype_str.startswith("float"):
         kind = "float"
     elif dtype_str.startswith("complex"):
         kind = "complex"
-    elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
+    elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
         kind = "datetime64"

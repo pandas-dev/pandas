@@ -154,9 +154,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         return single
 
-    def _iterate_slices(self) -> Iterable[Series]:
-        yield self._selected_obj
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -408,7 +405,9 @@ class SeriesGroupBy(GroupBy[Series]):
         result = {}
         initialized = False
 
-        for name, group in self:
+        for name, group in self.grouper.get_iterator(
+            self._selected_obj, axis=self.axis
+        ):
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -568,7 +567,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         try:
             indices = [
-                self._get_index(name) for name, group in self if true_and_notna(group)
+                self._get_index(name)
+                for name, group in self.grouper.get_iterator(
+                    self._selected_obj, axis=self.axis
+                )
+                if true_and_notna(group)
             ]
         except (ValueError, TypeError) as err:
             raise TypeError("the filter must return a boolean result") from err
@@ -1081,12 +1084,12 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(Series.idxmin.__doc__)
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -1356,21 +1359,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._wrap_aggregated_output(res)
 
     def _iterate_slices(self) -> Iterable[Series]:
-        obj = self._selected_obj
+        obj = self._obj_with_exclusions
         if self.axis == 1:
             obj = obj.T
 
-        if isinstance(obj, Series) and obj.name not in self.exclusions:
+        if isinstance(obj, Series):
             # Occurs when doing DataFrameGroupBy(...)["X"]
             yield obj
         else:
             for label, values in obj.items():
-                if label in self.exclusions:
-                    # Note: if we tried to just iterate over _obj_with_exclusions,
-                    #  we would break test_wrap_agg_out by yielding a column
-                    #  that is skipped here but not dropped from obj_with_exclusions
-                    continue
-
                 yield values
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
@@ -1850,29 +1847,33 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         return self.obj._constructor(mgr)
 
-    def _iterate_column_groupbys(self, obj: DataFrame):
-        for i, colname in enumerate(obj.columns):
-            yield colname, SeriesGroupBy(
+    def _apply_to_column_groupbys(self, func) -> DataFrame:
+        from pandas.core.reshape.concat import concat
+
+        obj = self._obj_with_exclusions
+        columns = obj.columns
+        sgbs = [
+            SeriesGroupBy(
                 obj.iloc[:, i],
                 selection=colname,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
                 observed=self.observed,
             )
-
-    def _apply_to_column_groupbys(self, func, obj: DataFrame) -> DataFrame:
-        from pandas.core.reshape.concat import concat
-
-        columns = obj.columns
-        results = [
-            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys(obj)
+            for i, colname in enumerate(obj.columns)
         ]
+        results = [func(sgb) for sgb in sgbs]
 
         if not len(results):
             # concat would raise
-            return DataFrame([], columns=columns, index=self.grouper.result_index)
+            res_df = DataFrame([], columns=columns, index=self.grouper.result_index)
         else:
-            return concat(results, keys=columns, axis=1)
+            res_df = concat(results, keys=columns, axis=1)
+
+        if not self.as_index:
+            res_df.index = default_index(len(res_df))
+            res_df = self._insert_inaxis_grouper(res_df)
+        return res_df
 
     def nunique(self, dropna: bool = True) -> DataFrame:
         """
@@ -1925,16 +1926,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 lambda sgb: sgb.nunique(dropna), self._obj_with_exclusions, is_agg=True
             )
 
-        obj = self._obj_with_exclusions
-        results = self._apply_to_column_groupbys(
-            lambda sgb: sgb.nunique(dropna), obj=obj
-        )
-
-        if not self.as_index:
-            results.index = default_index(len(results))
-            results = self._insert_inaxis_grouper(results)
-
-        return results
+        return self._apply_to_column_groupbys(lambda sgb: sgb.nunique(dropna))
 
     def idxmax(
         self,
@@ -2020,7 +2012,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2106,7 +2098,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        return result
+        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 

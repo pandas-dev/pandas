@@ -462,8 +462,6 @@ class ExtensionArray:
         """
         Convert to a NumPy ndarray.
 
-        .. versionadded:: 1.0.0
-
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.
 
