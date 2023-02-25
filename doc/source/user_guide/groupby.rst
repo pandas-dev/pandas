@@ -1073,7 +1073,7 @@ function.
 
    ``apply`` has to try to infer from the result whether it should act as a reducer,
    transformer, *or* filter, depending on exactly what is passed to it. Thus the
-   grouped column(s) may be included in the output as well as set the indices. While
+   grouped column(s) may be included in the output or set as the indices. While
    it tries to intelligently guess how to behave, it can sometimes guess wrong.
 
 .. note::
