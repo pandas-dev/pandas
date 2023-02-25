@@ -92,9 +92,7 @@ def _get_path_or_handle(
             pa_fs = import_optional_dependency("pyarrow.fs")
 
             try:
-                fs_arrow = import_optional_dependency("fsspec.implementations.arrow")
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-                fs = fs_arrow.ArrowFSWrapper(fs)
             except (TypeError, pa.ArrowInvalid):
                 pass
         if fs is None:
