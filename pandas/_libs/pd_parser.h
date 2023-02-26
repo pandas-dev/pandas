@@ -81,10 +81,12 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
   PandasParserAPI->parser_set_default_options((self))
 #define parser_consume_rows(self, nrows)                                       \
   PandasParserAPI->parser_consume_rows((self), (nrows))
-#define parser_tokenize_all_rows(self, encoding_errors)                        \
-  PandasParserAPI->parser_tokenize_all_rows((self), (encoding_errors))
-#define parser_tokenize_nrows(self, nrows, encoding_errors)                    \
-  PandasParserAPI->parser_tokenize_nrows((self), (nrows), (encoding_errors))
+#define parser_trim_buffers(self)                                              \
+  PandasParserAPI->parser_trim_buffers((self))
+#define tokenize_all_rows(self, encoding_errors)                        \
+  PandasParserAPI->tokenize_all_rows((self), (encoding_errors))
+#define tokenize_nrows(self, nrows, encoding_errors)                    \
+  PandasParserAPI->tokenize_nrows((self), (nrows), (encoding_errors))
 #define str_to_int64(p_item, int_min, int_max, error, t_sep)                   \
   PandasParserAPI->str_to_int64((p_item), (int_min), (int_max), (error),       \
                                 (t_sep))

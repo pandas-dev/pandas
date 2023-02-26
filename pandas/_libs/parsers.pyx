@@ -289,15 +289,15 @@ cdef extern from "pd_parser.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal,
+    double xstrtod(const char *p, char **q, char decimal,
+                   char sci, char tsep, int skip_trailing,
+                   int *error, int *maybe_int) nogil
+    double precise_xstrtod(const char *p, char **q, char decimal,
+                           char sci, char tsep, int skip_trailing,
+                           int *error, int *maybe_int) nogil
+    double round_trip(const char *p, char **q, char decimal,
                       char sci, char tsep, int skip_trailing,
                       int *error, int *maybe_int) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal,
-                              char sci, char tsep, int skip_trailing,
-                              int *error, int *maybe_int) nogil
-    float64_t round_trip(const char *p, char **q, char decimal,
-                         char sci, char tsep, int skip_trailing,
-                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -492,11 +492,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            self.parser.double_converter = round_trip
+            self.parser.double_converter = &round_trip
         elif float_precision == "legacy":
-            self.parser.double_converter = xstrtod
+            self.parser.double_converter = &xstrtod
         elif float_precision == "high" or float_precision is None:
-            self.parser.double_converter = precise_xstrtod
+            self.parser.double_converter = &precise_xstrtod
         else:
             raise ValueError(f"Unrecognized float_precision option: "
                              f"{float_precision}")
