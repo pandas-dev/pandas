@@ -6964,15 +6964,76 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="fillna")
 
     def downcast(self: NDFrameT, dtype: Literal["infer"] | DtypeArg) -> NDFrameT:
+        """Downcasts the columns to an appropriate dtype.
+
+        Possibly casts floats to integers or integers to a smaller dtype from
+        the same type, e.g. int64 -> int32.
+
+        Parameters
+        ----------
+        dtype: "infer", dtype or dict with column -> dtype
+            Dtype to cast to or "infer" if the dtype should be
+            inferred.
+
+        Returns
+        -------
+        {klass}
+            {klass} with the same shape and converted columns.
+
+        Notes
+        -----
+        The downcasting logic protects against overflows and truncating floats.
+        If the values don't fit into the specified dtype, the column is ignored.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"foo": [1.0, 2.0], "bar": [1.5, 2.5], "baz": [3.0, 4.0]})
+        >>> df
+           foo  bar  baz
+        0  1.0  1.5  3.0
+        1  2.0  2.5  4.0
+
+        >>> result = df.downcast("int8")
+        >>> result
+           foo  bar  baz
+        0    1  1.5    3
+        1    2  2.5    4
+        >>> result.dtypes
+        foo       int8
+        bar    float64
+        baz       int8
+        dtype: object
+
+        >>> df.downcast({"foo": "int64"})
+           foo  bar  baz
+        0    1  1.5  3.0
+        1    2  2.5  4.0
+
+        >>> result = df.downcast("infer")
+        >>> result
+           foo  bar  baz
+        0    1  1.5    3
+        1    2  2.5    4
+
+        >>> result.dtypes
+        foo      int64
+        bar    float64
+        baz      int64
+        dtype: object
+        """
         if self.ndim == 1:
             new_data = self._mgr.downcast(dtype)
             return self._constructor(new_data).__finalize__(self, method="downcast")
         if isinstance(dtype, dict):
             # Don't make an actual copy since setitem does not write into array
-            result = self.copy(deep=False)
+            if using_copy_on_write():
+                result = self.copy(deep=False)
+            else:
+                result = self.copy(deep=True)
             for key, val in dtype.items():
                 if key in result.columns:
-                    result[key] = result[key].downcast(dtype=val)
+                    res = result[key].downcast(dtype=val)
+                    result[key] = res
         else:
             new_data = self._mgr.downcast(dtype)
             result = self._constructor(new_data)

@@ -261,7 +261,7 @@ class Apply(metaclass=abc.ABCMeta):
         results: dict[Hashable, DataFrame | Series] = {}
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
-            results[name] = colg.transform(how, 0, *args, **kwargs)
+            results[name] = colg.transform(how, 0, *args, **kwargs).copy(deep=False)
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> DataFrame | Series:

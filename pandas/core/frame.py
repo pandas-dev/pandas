@@ -5476,6 +5476,7 @@ class DataFrame(NDFrame, OpsMixin):
             downcast=downcast,
         )
 
+    @doc(NDFrame.downcast, **_shared_doc_kwargs)
     def downcast(self, dtype: Literal["infer"] | DtypeArg) -> DataFrame:
         return super().downcast(dtype)
 
