@@ -325,6 +325,15 @@ cdef double round_trip_wrapper(const char *p, char **q, char decimal,
     return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
+cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
+                                   size_t *bytes_read, int *status,
+                                   const char *encoding_errors):
+    return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
+
+cdef int del_rd_source_wrapper(void *src):
+    return del_rd_source(src)
+
+
 cdef class TextReader:
     """
 
@@ -634,8 +643,8 @@ cdef class TextReader:
 
         ptr = new_rd_source(source)
         self.parser.source = ptr
-        # self.parser.cb_io = &(PandasParser_CAPI.buffer_rd_bytes)
-        # self.parser.cb_cleanup = &(PandasParser_CAPI.del_rd_source)
+        self.parser.cb_io = buffer_rd_bytes_wrapper
+        self.parser.cb_cleanup = del_rd_source_wrapper
 
     cdef _get_header(self, list prelim_header):
         # header is now a list of lists, so field_count should use header[0]
