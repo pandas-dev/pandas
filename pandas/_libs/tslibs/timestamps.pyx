@@ -1692,7 +1692,13 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_nsint64(value, mode, nanos)[0]
+        try:
+            r = round_nsint64(value, mode, nanos)[0]
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"Cannot round {self} to freq={freq} without overflow"
+            ) from err
+
         result = Timestamp._from_value_and_reso(r, self._creso, None)
         if self.tz is not None:
             result = result.tz_localize(

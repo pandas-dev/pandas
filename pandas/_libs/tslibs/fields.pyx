@@ -704,7 +704,7 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
-        int64_t res, value
+        int64_t res, value, remainder
 
     with cython.overflowcheck(True):
         for i in range(n):
@@ -730,6 +730,34 @@ cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
 
 cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
+
+
+cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value, half, remainder, quotient
+
+    half = unit // 2
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                quotient, remainder = divmod(value, unit)
+                if remainder > half:
+                    res = value + (unit - remainder)
+                elif remainder == half and quotient % 2:
+                    res = value + (unit - remainder)
+                else:
+                    res = value - remainder
+
+            result[i] = res
+
+    return result
 
 
 def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
@@ -762,13 +790,7 @@ def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
-        quotient, remainder = np.divmod(values, unit)
-        mask = np.logical_or(
-            remainder > (unit // 2),
-            np.logical_and(remainder == (unit // 2), quotient % 2)
-        )
-        quotient[mask] += 1
-        return quotient * unit
+        return _round_nearest_int64(values, unit)
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
