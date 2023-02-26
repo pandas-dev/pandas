@@ -76,6 +76,9 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
+            # There are some warnings failing the build with -werror
+            PANDAS_CI: 0
         exclude:
           - env_file: actions-38.yaml
             pyarrow_version: "8"
