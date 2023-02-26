@@ -33,6 +33,7 @@ on:
       - None
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 env:
   PYTEST_WORKERS: "auto"
