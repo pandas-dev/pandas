@@ -5586,7 +5586,7 @@ class Index(IndexOpsMixin, PandasObject):
                 items=idx, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            _as = idx.argsort()
+            _as = idx.argsort(na_position=na_position)
             if not ascending:
                 _as = _as[::-1]
 

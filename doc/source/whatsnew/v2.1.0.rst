@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
 -
 
 .. ---------------------------------------------------------------------------
