@@ -229,9 +229,9 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        float64_t (*double_converter)(const char *, char **,
-                                      char, char, char,
-                                      int, int *, int *) nogil
+        double (*double_converter)(const char *, char **,
+                                   char, char, char,
+                                   int, int *, int *) nogil
 
         #  error handling
         char *warn_msg
@@ -304,6 +304,25 @@ cdef extern from "pd_parser.h":
     void PandasParser_IMPORT()
 
 PandasParser_IMPORT
+
+# When not invoked directly but rather assigned as a function,
+# cdef extern'ed declarations seem to leave behind an undefined symbol
+cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
+                            char sci, char tsep, int skip_trailing,
+                            int *error, int *maybe_int) nogil:
+    return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
+                                    char sci, char tsep, int skip_trailing,
+                                    int *error, int *maybe_int) nogil:
+    return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef double round_trip_wrapper(const char *p, char **q, char decimal,
+                               char sci, char tsep, int skip_trailing,
+                               int *error, int *maybe_int) nogil:
+    return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef class TextReader:
@@ -492,11 +511,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            self.parser.double_converter = &round_trip
+            self.parser.double_converter = round_trip_wrapper
         elif float_precision == "legacy":
-            self.parser.double_converter = &xstrtod
+            self.parser.double_converter = xstrtod_wrapper
         elif float_precision == "high" or float_precision is None:
-            self.parser.double_converter = &precise_xstrtod
+            self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "
                              f"{float_precision}")
