@@ -1182,15 +1182,13 @@ function.
 
    ``apply`` has to try to infer from the result whether it should act as a reducer,
    transformer, *or* filter, depending on exactly what is passed to it. Thus the
-   grouped column(s) may be included in the output as well as set the indices. While
+   grouped column(s) may be included in the output or not. While
    it tries to intelligently guess how to behave, it can sometimes guess wrong.
 
 .. note::
 
-   All of these examples can be more reliably, and more efficiently, computed using
-   other pandas functionality. In fact, pandas maintainers are interested if you
-   have an operation that you must use ``apply`` for. If you believe you do, please
-   `raise an issue on GitHub <https://github.com/pandas-dev/pandas/issues/new/choose>`_
+   All of the examples in this section can be more reliably, and more efficiently,
+   computed using other pandas functionality.
 
 .. ipython:: python
 
