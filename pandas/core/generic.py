@@ -7029,7 +7029,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.downcast(dtype)
             return self._constructor(new_data).__finalize__(self, method="downcast")
         if isinstance(dtype, dict):
-            # Don't make an actual copy since setitem does not write into array
             if using_copy_on_write():
                 result = self.copy(deep=False)
             else:
