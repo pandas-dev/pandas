@@ -1135,9 +1135,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: None = ...,
-        columns: Sequence[str] | None = ...,
+        columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool | list[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1160,9 +1160,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
-        columns: Sequence[str] | None = ...,
+        columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool | list[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1182,8 +1182,8 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @Substitution(
-        header_type="bool or sequence of str",
-        header="Write out the column names. If a list of strings "
+        header_type="bool or list of str",
+        header="Write out the column names. If a list of columns "
         "is given, it is assumed to be aliases for the "
         "column names",
         col_space_type="int, list or dict of int",
@@ -1195,9 +1195,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        columns: Sequence[str] | None = None,
+        columns: Axes | None = None,
         col_space: int | list[int] | dict[Hashable, int] | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: fmt.FormattersType | None = None,
@@ -2802,8 +2802,12 @@ class DataFrame(NDFrame, OpsMixin):
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
+        compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+            The supported compression methods actually depend on which engine
+            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
+            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
+            supported.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -2966,9 +2970,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
-        columns: Sequence[Level] | None = ...,
+        columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -2995,9 +2999,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: None = ...,
-        columns: Sequence[Level] | None = ...,
+        columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3031,9 +3035,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        columns: Sequence[Level] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -8216,7 +8220,7 @@ Parrot 2  Parrot       24.0
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
