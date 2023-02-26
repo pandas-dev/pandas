@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 #include <Python.h>
-#include "src/parser/tokenizer.h"
+#include "tokenizer.h"
 
 typedef struct {
   int (*to_double)(char *, double *, char, char, int *);
