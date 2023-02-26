@@ -131,6 +131,7 @@ class CleanCommand(Command):
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
             pjoin(tsbase, "datetime", "pd_datetime.c"),
+            pjoin("pandas", "_libs", "pd_parser.c"),
         ]
 
         for root, dirs, files in os.walk("pandas"):
@@ -471,19 +472,15 @@ ext_data = {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
-        "include": klib_include + ["pandas/_libs/src"],
+        "include": klib_include + ["pandas/_libs/src", "pandas/_libs"],
         "depends": [
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
-        ],
-        "sources": [
-            "pandas/_libs/src/parser/tokenizer.c",
-            "pandas/_libs/src/parser/io.c",
+            "pandas/_libs/src/pd_parser.h",
         ],
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
@@ -646,7 +643,7 @@ extensions.append(ujson_ext)
 # pd_datetime
 pd_dt_ext = Extension(
     "pandas._libs.pandas_datetime",
-    depends=["pandas._libs.tslibs.datetime.pd_datetime.h"],
+    depends=["pandas/_libs/tslibs/datetime/pd_datetime.h"],
     sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
     include_dirs=tseries_includes
     + [
@@ -659,6 +656,34 @@ pd_dt_ext = Extension(
 
 
 extensions.append(pd_dt_ext)
+
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# pd_datetime
+pd_parser_ext = Extension(
+    "pandas._libs.pandas_parser",
+    depends=["pandas/_libs/pd_parser.h"],
+    sources=(
+        [
+            "pandas/_libs/src/parser/tokenizer.c",
+            "pandas/_libs/src/parser/io.c",
+            "pandas/_libs/pd_parser.c",
+        ]
+    ),
+    include_dirs=[
+        "pandas/_libs/src",
+        "pandas/_libs/src/parser",
+        "pandas/_libs/src/klib",
+    ],
+    extra_compile_args=(extra_compile_args),
+    extra_link_args=extra_link_args,
+    define_macros=macros,
+)
+
+
+extensions.append(pd_parser_ext)
+
 
 # ----------------------------------------------------------------------
 

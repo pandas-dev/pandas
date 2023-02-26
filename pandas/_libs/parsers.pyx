@@ -249,6 +249,16 @@ cdef extern from "parser/tokenizer.h":
         int seen_uint
         int seen_null
 
+    void COLITER_NEXT(coliter_t, const char *) nogil
+
+cdef extern from "pd_parser.h":
+    void *new_rd_source(object obj) except NULL
+
+    int del_rd_source(void *src)
+
+    void* buffer_rd_bytes(void *source, size_t nbytes,
+                          size_t *bytes_read, int *status, const char *encoding_errors)
+
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
 
@@ -291,14 +301,9 @@ cdef extern from "parser/tokenizer.h":
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
+    void PandasParser_IMPORT()
 
-cdef extern from "parser/io.h":
-    void *new_rd_source(object obj) except NULL
-
-    int del_rd_source(void *src)
-
-    void* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+PandasParser_IMPORT
 
 
 cdef class TextReader:
@@ -610,8 +615,8 @@ cdef class TextReader:
 
         ptr = new_rd_source(source)
         self.parser.source = ptr
-        self.parser.cb_io = &buffer_rd_bytes
-        self.parser.cb_cleanup = &del_rd_source
+        # self.parser.cb_io = &(PandasParser_CAPI.buffer_rd_bytes)
+        # self.parser.cb_cleanup = &(PandasParser_CAPI.del_rd_source)
 
     cdef _get_header(self, list prelim_header):
         # header is now a list of lists, so field_count should use header[0]
