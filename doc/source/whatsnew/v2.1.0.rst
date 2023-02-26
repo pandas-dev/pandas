@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`to_sql` with method parameter set to ``multi`` works with Oracle on the backend
 -
 
 .. ---------------------------------------------------------------------------

@@ -960,8 +960,8 @@ class SQLTable(PandasObject):
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table).values(data)
-        result = conn.execute(stmt)
+        stmt = insert(self.table)
+        result = conn.execute(stmt, data)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
