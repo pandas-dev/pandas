@@ -280,7 +280,6 @@ class GroupByPositionalSelector:
         GroupBy.nth : Take the nth row from each group if n is an int, or a
             subset of rows, if n is a list of ints.
         """
-        self.groupby_object._reset_group_selection()
         mask = self.groupby_object._make_mask_from_positional_indexer(arg)
         return self.groupby_object._mask_selected_obj(mask)
 

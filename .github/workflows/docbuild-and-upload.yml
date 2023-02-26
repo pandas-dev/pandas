@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
 
 env:

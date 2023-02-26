@@ -170,6 +170,7 @@ def is_object_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_object_dtype
     >>> is_object_dtype(object)
     True
     >>> is_object_dtype(int)
@@ -206,6 +207,7 @@ def is_sparse(arr) -> bool:
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
 
+    >>> from pandas.api.types import is_sparse
     >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
     True
     >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
@@ -286,6 +288,7 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_dtype
     >>> is_datetime64_dtype(object)
     False
     >>> is_datetime64_dtype(np.datetime64)
@@ -361,6 +364,7 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_timedelta64_dtype
     >>> is_timedelta64_dtype(object)
     False
     >>> is_timedelta64_dtype(np.timedelta64)
@@ -395,9 +399,10 @@ def is_period_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_period_dtype
     >>> is_period_dtype(object)
     False
-    >>> is_period_dtype(PeriodDtype(freq="D"))
+    >>> is_period_dtype(pd.PeriodDtype(freq="D"))
     True
     >>> is_period_dtype([1, 2, 3])
     False
@@ -431,9 +436,10 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_interval_dtype
     >>> is_interval_dtype(object)
     False
-    >>> is_interval_dtype(IntervalDtype())
+    >>> is_interval_dtype(pd.IntervalDtype())
     True
     >>> is_interval_dtype([1, 2, 3])
     False
@@ -469,6 +475,8 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_categorical_dtype
+    >>> from pandas import CategoricalDtype
     >>> is_categorical_dtype(object)
     False
     >>> is_categorical_dtype(CategoricalDtype())
@@ -515,6 +523,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_string_dtype
     >>> is_string_dtype(str)
     True
     >>> is_string_dtype(object)
@@ -587,7 +596,6 @@ def is_dtype_equal(source, target) -> bool:
         target = get_dtype(target)
         return source == target
     except (TypeError, AttributeError, ImportError):
-
         # invalid comparison
         # object == category will hit this
         return False
@@ -667,6 +675,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_integer_dtype
     >>> is_integer_dtype(str)
     False
     >>> is_integer_dtype(int)
@@ -723,6 +732,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_signed_integer_dtype
     >>> is_signed_integer_dtype(str)
     False
     >>> is_signed_integer_dtype(int)
@@ -778,6 +788,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_unsigned_integer_dtype
     >>> is_unsigned_integer_dtype(str)
     False
     >>> is_unsigned_integer_dtype(int)  # signed
@@ -830,6 +841,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_int64_dtype
     >>> is_int64_dtype(str)
     False
     >>> is_int64_dtype(np.int32)
@@ -968,6 +980,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.core.dtypes.common import is_timedelta64_ns_dtype
     >>> is_timedelta64_ns_dtype(np.dtype('m8[ns]'))
     True
     >>> is_timedelta64_ns_dtype(np.dtype('m8[ps]'))  # Wrong frequency
@@ -1067,64 +1080,6 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     )
 
 
-# This exists to silence numpy deprecation warnings, see GH#29553
-def is_datetimelike_v_numeric(a, b) -> bool:
-    """
-    Check if we are comparing a datetime-like object to a numeric object.
-    By "numeric," we mean an object that is either of an int or float dtype.
-
-    Parameters
-    ----------
-    a : array-like, scalar
-        The first object to check.
-    b : array-like, scalar
-        The second object to check.
-
-    Returns
-    -------
-    boolean
-        Whether we return a comparing a datetime-like to a numeric object.
-
-    Examples
-    --------
-    >>> from datetime import datetime
-    >>> dt = np.datetime64(datetime(2017, 1, 1))
-    >>>
-    >>> is_datetimelike_v_numeric(1, 1)
-    False
-    >>> is_datetimelike_v_numeric(dt, dt)
-    False
-    >>> is_datetimelike_v_numeric(1, dt)
-    True
-    >>> is_datetimelike_v_numeric(dt, 1)  # symmetric check
-    True
-    >>> is_datetimelike_v_numeric(np.array([dt]), 1)
-    True
-    >>> is_datetimelike_v_numeric(np.array([1]), dt)
-    True
-    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-    True
-    >>> is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    False
-    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-    False
-    """
-    if not hasattr(a, "dtype"):
-        a = np.asarray(a)
-    if not hasattr(b, "dtype"):
-        b = np.asarray(b)
-
-    def is_numeric(x):
-        """
-        Check if an object has a numeric dtype (i.e. integer or float).
-        """
-        return is_integer_dtype(x) or is_float_dtype(x)
-
-    return (needs_i8_conversion(a) and is_numeric(b)) or (
-        needs_i8_conversion(b) and is_numeric(a)
-    )
-
-
 def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     Check whether the array or dtype should be converted to int64.
@@ -1191,6 +1146,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_numeric_dtype
     >>> is_numeric_dtype(str)
     False
     >>> is_numeric_dtype(int)
@@ -1219,6 +1175,43 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     )
 
 
+def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
+    """
+    Check whether the provided array or dtype is of a real number dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : array-like or dtype
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean
+        Whether or not the array or dtype is of a real number dtype.
+
+    Examples
+    --------
+    >>> from pandas.api.types import is_any_real_numeric_dtype
+    >>> is_any_real_numeric_dtype(int)
+    True
+    >>> is_any_real_numeric_dtype(float)
+    True
+    >>> is_any_real_numeric_dtype(object)
+    False
+    >>> is_any_real_numeric_dtype(str)
+    False
+    >>> is_any_real_numeric_dtype(complex(1, 2))
+    False
+    >>> is_any_real_numeric_dtype(bool)
+    False
+    """
+    return (
+        is_numeric_dtype(arr_or_dtype)
+        and not is_complex_dtype(arr_or_dtype)
+        and not is_bool_dtype(arr_or_dtype)
+    )
+
+
 def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
@@ -1235,6 +1228,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_float_dtype
     >>> is_float_dtype(str)
     False
     >>> is_float_dtype(int)
@@ -1274,6 +1268,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_bool_dtype
     >>> is_bool_dtype(str)
     False
     >>> is_bool_dtype(int)
@@ -1426,6 +1421,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_complex_dtype
     >>> is_complex_dtype(str)
     False
     >>> is_complex_dtype(int)
@@ -1585,7 +1581,6 @@ def infer_dtype_from_object(dtype) -> type:
     if is_extension_array_dtype(dtype):
         return dtype.type
     elif isinstance(dtype, str):
-
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
@@ -1745,6 +1740,7 @@ __all__ = [
     "is_1d_only_ea_obj",
     "is_all_strings",
     "is_any_int_dtype",
+    "is_any_real_numeric_dtype",
     "is_array_like",
     "is_bool",
     "is_bool_dtype",
@@ -1756,7 +1752,6 @@ __all__ = [
     "is_datetime64_dtype",
     "is_datetime64_ns_dtype",
     "is_datetime64tz_dtype",
-    "is_datetimelike_v_numeric",
     "is_datetime_or_timedelta_dtype",
     "is_decimal",
     "is_dict_like",
@@ -1774,7 +1769,6 @@ __all__ = [
     "is_nested_list_like",
     "is_number",
     "is_numeric_dtype",
-    "is_numeric_v_string_like",
     "is_object_dtype",
     "is_period_dtype",
     "is_re",

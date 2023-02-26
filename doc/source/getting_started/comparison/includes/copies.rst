@@ -14,10 +14,15 @@ or overwrite the original one:
 
 .. note::
 
-   You will see an ``inplace=True`` keyword argument available for some methods:
+   You will see an ``inplace=True`` or ``copy=False`` keyword argument available for
+   some methods:
 
    .. code-block:: python
 
-      df.sort_values("col1", inplace=True)
+      df.replace(5, inplace=True)
 
-   Its use is discouraged. :ref:`More information. <indexing.view_versus_copy>`
+   There is an active discussion about deprecating and removing ``inplace`` and ``copy`` for
+   most methods (e.g. ``dropna``) except for a very small subset of methods
+   (including ``replace``). Both keywords won't be
+   necessary anymore in the context of Copy-on-Write. The proposal can be found
+   `here <https://github.com/pandas-dev/pandas/pull/51466>`_.

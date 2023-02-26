@@ -201,7 +201,6 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug(self):
-
         # GH 8795
         df = DataFrame({"A": [0, 0, 1, 1, 2, 2], "B": [1, 2, 3, 4, 5, 6]})
         g = df.groupby("A")
@@ -354,7 +353,6 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_getting_correct_binner(self):
-
         # GH 10063
         # using a non-time-based grouper and a time-based grouper
         # and specifying levels
@@ -450,7 +448,6 @@ class TestGrouping:
             Grouping(df.index, df[["A", "A"]])
 
     def test_multiindex_passthru(self):
-
         # GH 7997
         # regression from 0.14.1
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -798,7 +795,6 @@ class TestGetGroup:
             g.get_group(("foo", "bar", "baz"))
 
     def test_get_group_empty_bins(self, observed):
-
         d = DataFrame([3, 1, 7, 6])
         bins = [0, 5, 10, 15]
         g = d.groupby(pd.cut(d[0], bins), observed=observed)
@@ -1049,3 +1045,33 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_groups():
+    # GH#51182 check Grouper.groups does not raise AttributeError
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    grper = Grouper(key="a")
+    gb = df.groupby(grper)
+
+    msg = "Use GroupBy.groups instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.groups
+    assert res is gb.groups
+
+    msg = "Use GroupBy.grouper instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.grouper
+    assert res is gb.grouper
+
+    msg = "Grouper.obj is deprecated and will be removed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = grper.obj
+    assert res is gb.obj
+
+    msg = "Use Resampler.ax instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.ax
+
+    msg = "Grouper.indexer is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grper.indexer

@@ -117,7 +117,6 @@ def _get_path_or_handle(
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
-
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
@@ -228,7 +227,6 @@ class PyArrowImpl(BaseImpl):
         dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-
             if dtype_backend == "pandas":
                 from pandas.io._util import _arrow_dtype_mapping
 
@@ -497,11 +495,13 @@ def read_parquet(
 
         .. versionadded:: 1.2.0
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0
 

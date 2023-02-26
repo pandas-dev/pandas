@@ -15,7 +15,6 @@ import pandas._testing as tm
 
 class TestSeriesConcat:
     def test_concat_series(self):
-
         ts = tm.makeTimeSeries()
         ts.name = "foo"
 

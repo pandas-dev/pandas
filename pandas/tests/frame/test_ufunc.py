@@ -117,6 +117,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}).astype(dtype_a)
 
     if isinstance(dtype_a, dict) and isinstance(dtype_b, dict):
+        dtype_b = dtype_b.copy()
         dtype_b["C"] = dtype_b.pop("B")
     df2 = pd.DataFrame({"A": [1, 2], "C": [3, 4]}).astype(dtype_b)
     # As of 2.0, align first before applying the ufunc

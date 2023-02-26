@@ -73,7 +73,7 @@ def _levels_to_axis(
 
     else:
         levels_values = lib.fast_zip(
-            [ss.index.get_level_values(lvl).values for lvl in levels]
+            [ss.index.get_level_values(lvl).to_numpy() for lvl in levels]
         )
         codes, ax_labels = factorize(levels_values, sort=sort_labels)
         ax_coords = codes[valid_ilocs]

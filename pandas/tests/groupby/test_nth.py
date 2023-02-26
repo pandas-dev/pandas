@@ -121,7 +121,6 @@ def test_first_last_with_None_expanded(method, df, expected):
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):
-
     df = df_mixed_floats.copy()
     df["E"] = True
     df["F"] = 1
@@ -790,6 +789,9 @@ def test_nth_slices_with_column_axis(
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in remainder:RuntimeWarning"
+)
 def test_head_tail_dropna_true():
     # GH#45089
     df = DataFrame(

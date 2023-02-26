@@ -31,7 +31,7 @@ Fixed regressions
 - Fixed regression in setitem with :meth:`DataFrame.iloc` which raised error when trying to set a value while filtering with a boolean list (:issue:`36741`)
 - Fixed regression in setitem with a Series getting aligned before setting the values (:issue:`37427`)
 - Fixed regression in :attr:`MultiIndex.is_monotonic_increasing` returning wrong results with ``NaN`` in at least one of the levels (:issue:`37220`)
-- Fixed regression in inplace arithmetic operation on a Series not updating the parent DataFrame (:issue:`36373`)
+- Fixed regression in inplace arithmetic operation (`+=`) on a Series not updating the parent DataFrame/Series (:issue:`36373`)
 
 .. ---------------------------------------------------------------------------
 

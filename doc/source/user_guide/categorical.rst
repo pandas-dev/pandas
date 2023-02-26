@@ -263,14 +263,6 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 
    c1 == "category"
 
-.. warning::
-
-   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
-   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
-   all instances of ``CategoricalDtype`` compare equal to a
-   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
-   ``ordered``.
-
 Description
 -----------
 
@@ -437,9 +429,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s = pd.Series(["a", "b", "c", "a"]).astype(CategoricalDtype(ordered=True))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -459,7 +451,7 @@ This is even true for strings and numeric data:
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.set_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -477,7 +469,7 @@ necessarily make the sort order the same as the categories order.
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.reorder_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 

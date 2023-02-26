@@ -685,12 +685,6 @@ Replacing more than one value is possible by passing a list.
    df.replace([1.5, df00], [np.nan, "a"])
    df[1].dtype
 
-You can also operate on the DataFrame in place:
-
-.. ipython:: python
-
-   df.replace(1.5, np.nan, inplace=True)
-
 Missing data casting rules and indexing
 ---------------------------------------
 
@@ -758,8 +752,6 @@ Experimental ``NA`` scalar to denote missing values
 .. warning::
 
    Experimental: the behaviour of ``pd.NA`` can still change without warning.
-
-.. versionadded:: 1.0.0
 
 Starting from pandas 1.0, an experimental ``pd.NA`` value (singleton) is
 available to represent scalar missing values. At this moment, it is used in
