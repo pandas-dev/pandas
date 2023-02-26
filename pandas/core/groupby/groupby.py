@@ -1099,11 +1099,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
-    def _indexed_output_to_ndframe(
-        self, result: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        raise AbstractMethodError(self)
-
     @final
     def _maybe_transpose_result(self, result: NDFrameT) -> NDFrameT:
         if self.axis == 1:
