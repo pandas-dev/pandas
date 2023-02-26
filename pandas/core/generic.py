@@ -7025,14 +7025,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         baz      int64
         dtype: object
         """
+        if using_copy_on_write():
+            result = self.copy(deep=False)
+        else:
+            result = self.copy(deep=True)
         if self.ndim == 1:
-            new_data = self._mgr.downcast(dtype)
+            new_data = result._mgr.downcast(dtype)
             return self._constructor(new_data).__finalize__(self, method="downcast")
         if isinstance(dtype, dict):
-            if using_copy_on_write():
-                result = self.copy(deep=False)
-            else:
-                result = self.copy(deep=True)
             for key, val in dtype.items():
                 if key in result.columns:
                     res = result[key].downcast(dtype=val)
@@ -7041,7 +7041,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         continue
                     result[key] = res
         else:
-            new_data = self._mgr.downcast(dtype)
+            new_data = result._mgr.downcast(dtype)
             result = self._constructor(new_data)
         return result.__finalize__(self, method="downcast")
 
