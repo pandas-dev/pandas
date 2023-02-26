@@ -36,9 +36,22 @@ following:
     * Discard data that belongs to groups with only a few members.
     * Filter out data based on the group sum or mean.
 
-* Some combination of the above: GroupBy will examine the results of the apply
-  step and try to return a sensibly combined result if it doesn't fit into
-  either of the above two categories.
+Many of these operations are defined on GroupBy objects. These operations are similar
+to the :ref:`aggregating API <basics.aggregate>`, :ref:`window API <window.overview>`,
+and :ref:`resample API <timeseries.aggregate>`.
+
+It is possible that a given operation does not fall into one of these categories or
+is some combination of them. In such a case, it may be possible to compute the
+operation using GroupBy's ``apply`` method. This method will examine the results of the
+apply step and try to return a sensibly combined result if it doesn't fit into either
+of the above two categories.
+
+.. note::
+
+   An operation that is split into multiple steps using built-in GroupBy operations
+   will be more efficient than using the ``apply`` method with a user-defined Python
+   function.
+
 
 Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
@@ -68,7 +81,7 @@ object (more on what the GroupBy object is later), you may do the following:
 
 .. ipython:: python
 
-    df = pd.DataFrame(
+    speeds = pd.DataFrame(
         [
             ("bird", "Falconiformes", 389.0),
             ("bird", "Psittaciformes", 24.0),
@@ -79,12 +92,12 @@ object (more on what the GroupBy object is later), you may do the following:
         index=["falcon", "parrot", "lion", "monkey", "leopard"],
         columns=("class", "order", "max_speed"),
     )
-    df
+    speeds
 
     # default is axis=0
-    grouped = df.groupby("class")
-    grouped = df.groupby("order", axis="columns")
-    grouped = df.groupby(["class", "order"])
+    grouped = speeds.groupby("class")
+    grouped = speeds.groupby("order", axis="columns")
+    grouped = speeds.groupby(["class", "order"])
 
 The mapping can be specified many different ways:
 
@@ -1052,18 +1065,21 @@ The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
 Flexible ``apply``
 ------------------
 
-Some operations on the grouped data might not fit into either the aggregate or
-transform categories. Or, you may simply want GroupBy to infer how to combine
-the results. For these, use the ``apply`` function, which can be substituted
-for both ``aggregate`` and ``transform`` in many standard use cases. However,
-``apply`` can handle some exceptional use cases.
+Some operations on the grouped data might not fit into the aggregation,
+transformation, or filtration categories. For these, you can use the ``apply``
+function.
+
+.. warning::
+
+   ``apply`` has to try to infer from the result whether it should act as a reducer,
+   transformer, *or* filter, depending on exactly what is passed to it. Thus the
+   grouped column(s) may be included in the output or not. While
+   it tries to intelligently guess how to behave, it can sometimes guess wrong.
 
 .. note::
 
-   ``apply`` can act as a reducer, transformer, *or* filter function, depending
-   on exactly what is passed to it. It can depend on the passed function and
-   exactly what you are grouping. Thus the grouped column(s) may be included in
-   the output as well as set the indices.
+   All of the examples in this section can be more reliably, and more efficiently,
+   computed using other pandas functionality.
 
 .. ipython:: python
 
@@ -1098,10 +1114,14 @@ that is itself a series, and possibly upcast the result to a DataFrame:
     s
     s.apply(f)
 
+Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
+apply function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as ``DataFrame`` construction.
+
 Control grouped column(s) placement with ``group_keys``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
+.. versionchanged:: 1.5.0
 
    If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
    functions passed to ``apply`` that return like-indexed outputs will have the
@@ -1110,8 +1130,6 @@ Control grouped column(s) placement with ``group_keys``
    index than the input. If ``group_keys`` is not specified, the group keys will
    not be added for like-indexed outputs. In the future this behavior
    will change to always respect ``group_keys``, which defaults to ``True``.
-
-   .. versionchanged:: 1.5.0
 
 To control whether the grouped column(s) are included in the indices, you can use
 the argument ``group_keys``. Compare
@@ -1125,11 +1143,6 @@ with
 .. ipython:: python
 
     df.groupby("A", group_keys=False).apply(lambda x: x)
-
-Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
-apply function. If the results from different groups have different dtypes, then
-a common dtype will be determined in the same way as ``DataFrame`` construction.
-
 
 Numba Accelerated Routines
 --------------------------
@@ -1153,8 +1166,8 @@ will be passed into ``values``, and the group index will be passed into ``index`
 Other useful features
 ---------------------
 
-Automatic exclusion of "nuisance" columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exclusion of "nuisance" columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Again consider the example DataFrame we've been looking at:
 
@@ -1164,8 +1177,8 @@ Again consider the example DataFrame we've been looking at:
 
 Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
-column ``B``. We refer to this as a "nuisance" column. You can avoid nuisance
-columns by specifying ``numeric_only=True``:
+column ``B`` because it is not numeric. We refer to these non-numeric columns as
+"nuisance" columns. You can avoid nuisance columns by specifying ``numeric_only=True``:
 
 .. ipython:: python
 
@@ -1178,20 +1191,13 @@ is only interesting over one column (here ``colname``), it may be filtered
 
 .. note::
    Any object column, also if it contains numerical values such as ``Decimal``
-   objects, is considered as a "nuisance" columns. They are excluded from
+   objects, is considered as a "nuisance" column. They are excluded from
    aggregate functions automatically in groupby.
 
    If you do wish to include decimal or object columns in an aggregation with
    other non-nuisance data types, you must do so explicitly.
 
-.. warning::
-   The automatic dropping of nuisance columns has been deprecated and will be removed
-   in a future version of pandas. If columns are included that cannot be operated
-   on, pandas will instead raise an error. In order to avoid this, either select
-   the columns you wish to operate on or specify ``numeric_only=True``.
-
 .. ipython:: python
-    :okwarning:
 
     from decimal import Decimal
 
