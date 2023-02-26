@@ -10,7 +10,6 @@ Distributed under the terms of the BSD Simplified License.
 
 #include "pd_parser.h"
 #include "src/parser/io.h"
-#include "src/parser/tokenizer.h"
 
 static int pandas_to_double(char *item, double *p_value, char sci, char decimal,
                             int *maybe_int) {
