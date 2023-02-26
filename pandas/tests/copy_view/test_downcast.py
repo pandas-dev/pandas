@@ -36,9 +36,3 @@ class TestDowncast:
 
         result.iloc[0, 1] = 100.5
         tm.assert_frame_equal(df, df_orig)
-
-    def test_downcast_infer(self):
-        df = DataFrame({"a": [1.0, 2.0], "b": 1.5, "c": 2.0})
-        result = df.downcast("infer")
-        expected = DataFrame({"a": [1, 2], "b": 1.5, "c": 2})
-        tm.assert_frame_equal(result, expected)

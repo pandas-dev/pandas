@@ -7037,6 +7037,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for key, val in dtype.items():
                 if key in result.columns:
                     res = result[key].downcast(dtype=val)
+                    if res.dtype == result[key].dtype:
+                        # no-op and __setitem__ copies values right now
+                        continue
                     result[key] = res
         else:
             new_data = self._mgr.downcast(dtype)

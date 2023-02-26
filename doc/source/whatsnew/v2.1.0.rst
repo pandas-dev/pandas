@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Added :meth:`DataFrame.downcast` and :meth:`Series.downcast` (:issue:`0`)
 -
 
 .. ---------------------------------------------------------------------------
