@@ -3,7 +3,7 @@
 
 pip
 versioneer[toml]
-cython==0.29.32
+cython==0.29.33
 pytest>=7.0.0
 pytest-cov
 pytest-xdist>=2.2.0
