@@ -5909,16 +5909,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Instead of writing
 
-        >>> (subtract_national_insurance(
+        >>> subtract_national_insurance(
         ...     subtract_state_tax(subtract_federal_tax(df),rate=0.12),
         ...     rate=0.05,
-        ...     rate_increase=0.02))  # doctest: +SKIP
+        ...     rate_increase=0.02)  # doctest: +SKIP
 
         You can write
 
-        >>> (df.pipe(subtract_federal_tax)
-        ...    .pipe(subtract_state_tax, rate=0.12)
-        ...    .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02))
+        >>> df.pipe(
+        ...     subtract_federal_tax
+        ... ).pipe(
+        ...     subtract_state_tax, rate=0.12
+        ... ).pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02)
             Salary   Others
         0  5892.48   736.56
         1  6997.32      NaN
@@ -5932,10 +5934,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> def subtract_national_insurance(rate, df, rate_increase):
         ...     new_rate = rate + rate_increase
         ...     return df * (1 - new_rate)
-        >>> (df.pipe(subtract_federal_tax)
-        ...    .pipe(subtract_state_tax, rate=0.12)
-        ...    .pipe((subtract_national_insurance, 'df'),
-        ...          rate=0.05, rate_increase=0.02))
+        >>> df.pipe(
+        ...     subtract_federal_tax
+        ... ).pipe(
+        ...     subtract_state_tax, rate=0.12
+        ... ).pipe((subtract_national_insurance, 'df'),
+        ...        rate=0.05, rate_increase=0.02)
             Salary   Others
         0  5892.48   736.56
         1  6997.32      NaN
