@@ -834,8 +834,8 @@ def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
-                                numeric_t[:] right_values,
+def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
+                                ndarray[numeric_t] right_values,
                                 by_t[:] left_by_values,
                                 by_t[:] right_by_values,
                                 bint allow_exact_matches=True,
@@ -850,7 +850,13 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         numeric_t bdiff, fdiff
 
     # search both forward and backward
-    bli, bri = asof_join_backward_on_X_by_Y(
+    # TODO(cython3):
+    # Bug in beta1 preventing Cython from choosing
+    # right specialization when one fused memview is None
+    # Doesn't matter what type we choose
+    # (nothing happens anyways since it is None)
+    # GH 51640
+    bli, bri = asof_join_backward_on_X_by_Y[f"{left_values.dtype}_t", object](
         left_values,
         right_values,
         left_by_values,
@@ -859,7 +865,7 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         tolerance,
         use_hashtable
     )
-    fli, fri = asof_join_forward_on_X_by_Y(
+    fli, fri = asof_join_forward_on_X_by_Y[f"{left_values.dtype}_t", object](
         left_values,
         right_values,
         left_by_values,
