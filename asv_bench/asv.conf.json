@@ -126,6 +126,6 @@
     },
     "build_command":
     ["python -m pip install versioneer[toml]",
-     "python setup.py build -j1",
+     "python setup.py build -j4",
      "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }

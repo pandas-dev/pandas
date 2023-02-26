@@ -81,10 +81,10 @@ if not pa_version_under7p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and_": pc.and_kleene,
+        "rand_": lambda x, y: pc.and_kleene(y, x),
+        "or_": pc.or_kleene,
+        "ror_": lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
