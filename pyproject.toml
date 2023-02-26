@@ -291,6 +291,7 @@ disable = [
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
+  "consider-using-enumerate",
   "import-error",
   "import-outside-toplevel",
   "invalid-name",
