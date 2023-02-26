@@ -13,8 +13,9 @@ Distributed under the terms of the BSD Simplified License.
 extern "C" {
 #endif
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "tokenizer.h"
+#include "src/parser/tokenizer.h"
 
 typedef struct {
   int (*to_double)(char *, double *, char, char, int *);
