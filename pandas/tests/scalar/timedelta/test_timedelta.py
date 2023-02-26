@@ -698,56 +698,103 @@ class TestTimedeltas:
         expected = Timedelta.max - Timedelta(854775807)
         assert result == expected
 
-        with pytest.raises(OverflowError, match="value too large"):
-            Timedelta.min.floor("s")
-
-        # the second message here shows up in windows builds
-        msg = "|".join(
-            ["Python int too large to convert to C long", "int too big to convert"]
+        msg = (
+            r"Cannot round -106752 days \+00:12:43.145224193 to freq=s without overflow"
         )
-        with pytest.raises(OverflowError, match=msg):
-            Timedelta.max.ceil("s")
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta.min.floor("s")
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta.min.round("s")
 
-    @pytest.mark.xfail(reason="Failing on builds", strict=False)
+        msg = "Cannot round 106751 days 23:47:16.854775807 to freq=s without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta.max.ceil("s")
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta.max.round("s")
+
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
     )
     def test_round_sanity(self, val, method):
+        cls = Timedelta
+        err_cls = OutOfBoundsTimedelta
+
         val = np.int64(val)
-        td = Timedelta(val)
+        td = cls(val)
 
-        assert method(td, "ns") == td
+        def checker(ts, nanos, unit):
+            # First check that we do raise in cases where we should
+            if nanos == 1:
+                pass
+            else:
+                div, mod = divmod(ts._value, nanos)
+                diff = int(nanos - mod)
+                lb = ts._value - mod
+                assert lb <= ts._value  # i.e. no overflows with python ints
+                ub = ts._value + diff
+                assert ub > ts._value  # i.e. no overflows with python ints
 
-        res = method(td, "us")
+                msg = "without overflow"
+                if mod == 0:
+                    # We should never be raising in this
+                    pass
+                elif method is cls.ceil:
+                    if ub > cls.max._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif method is cls.floor:
+                    if lb < cls.min._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                else:
+                    if mod >= diff:
+                        if ub > cls.max._value:
+                            with pytest.raises(err_cls, match=msg):
+                                method(ts, unit)
+                            return
+                    else:
+                        if lb < cls.min._value:
+                            with pytest.raises(err_cls, match=msg):
+                                method(ts, unit)
+                            return
+
+            res = method(ts, unit)
+
+            td = res - ts
+            diff = abs(td._value)
+            assert diff < nanos
+            assert res._value % nanos == 0
+
+            if method is cls.round:
+                assert diff <= nanos / 2
+            elif method is cls.floor:
+                assert res <= ts
+            elif method is cls.ceil:
+                assert res >= ts
+
+        nanos = 1
+        checker(td, nanos, "ns")
+
         nanos = 1000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "us")
 
-        res = method(td, "ms")
         nanos = 1_000_000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "ms")
 
-        res = method(td, "s")
         nanos = 1_000_000_000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "s")
 
-        res = method(td, "min")
         nanos = 60 * 1_000_000_000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "min")
 
-        res = method(td, "h")
         nanos = 60 * 60 * 1_000_000_000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "h")
 
-        res = method(td, "D")
         nanos = 24 * 60 * 60 * 1_000_000_000
-        assert np.abs((res - td).value) < nanos
-        assert res.value % nanos == 0
+        checker(td, nanos, "D")
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_round_non_nano(self, unit):

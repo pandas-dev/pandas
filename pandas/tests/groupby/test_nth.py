@@ -789,6 +789,9 @@ def test_nth_slices_with_column_axis(
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in remainder:RuntimeWarning"
+)
 def test_head_tail_dropna_true():
     # GH#45089
     df = DataFrame(
