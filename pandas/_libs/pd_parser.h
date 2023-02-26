@@ -13,7 +13,7 @@ Distributed under the terms of the BSD Simplified License.
 extern "C" {
 #endif
 
-#include "Python.h"
+#include <Python.h>
 #include "src/parser/tokenizer.h"
 
 typedef struct {
