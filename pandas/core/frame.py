@@ -47,6 +47,7 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
@@ -3896,11 +3897,11 @@ class DataFrame(NDFrame, OpsMixin):
                 loc = [loc]
 
             for i, idx in enumerate(loc):
-                arraylike = self._sanitize_column(value.iloc[:, i])
+                arraylike, _ = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False)
             return
 
-        arraylike = self._sanitize_column(value)
+        arraylike, _ = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
@@ -4069,7 +4070,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             # now align rows
-            arraylike = _reindex_for_setitem(value, self.index)
+            arraylike, _ = _reindex_for_setitem(value, self.index)
             self._set_item_mgr(key, arraylike)
             return
 
@@ -4088,14 +4089,14 @@ class DataFrame(NDFrame, OpsMixin):
         self._mgr.iset(loc, value, inplace=inplace)
         self._clear_item_cache()
 
-    def _set_item_mgr(self, key, value: ArrayLike) -> None:
+    def _set_item_mgr(self, key, value: ArrayLike, refs=None) -> None:
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
             # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
+            self._mgr.insert(len(self._info_axis), key, value, refs)
         else:
-            self._iset_item_mgr(loc, value)
+            self._iset_item_mgr(loc, value, refs)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -4104,7 +4105,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
 
     def _iset_item(self, loc: int, value) -> None:
-        arraylike = self._sanitize_column(value)
+        arraylike, _ = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=True)
 
         # check if we are modifying a copy
@@ -4123,7 +4124,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(value)
+        value, refs = self._sanitize_column(value)
 
         if (
             key in self.columns
@@ -4136,7 +4137,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
-        self._set_item_mgr(key, value)
+        self._set_item_mgr(key, value, refs)
 
     def _set_value(
         self, index: IndexLabel, col, value: Scalar, takeable: bool = False
@@ -4755,7 +4756,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
 
-        value = self._sanitize_column(value)
+        value, _ = self._sanitize_column(value)
         self._mgr.insert(loc, column, value)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -4826,7 +4827,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value) -> ArrayLike:
+    def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -4846,11 +4847,15 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(value, DataFrame):
             return _reindex_for_setitem(value, self.index)
         elif is_dict_like(value):
-            return _reindex_for_setitem(Series(value), self.index)
+            if not isinstance(value, Series):
+                value = Series(value)
+            return _reindex_for_setitem(
+                value, self.index, using_cow=using_copy_on_write()
+            )
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True)
+        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
     def _series(self):
@@ -11566,11 +11571,15 @@ def _from_nested_dict(data) -> collections.defaultdict:
     return new_data
 
 
-def _reindex_for_setitem(value: DataFrame | Series, index: Index) -> ArrayLike:
+def _reindex_for_setitem(
+    value: DataFrame | Series, index: Index, using_cow: bool = False
+) -> tuple[ArrayLike, BlockValuesRefs | None]:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        return value._values.copy()
+        if using_cow and isinstance(value, Series):
+            return value._values, value._mgr.blocks[0].refs
+        return value._values.copy(), None
 
     # GH#4107
     try:
@@ -11584,4 +11593,4 @@ def _reindex_for_setitem(value: DataFrame | Series, index: Index) -> ArrayLike:
         raise TypeError(
             "incompatible index of inserted column with frame index"
         ) from err
-    return reindexed_value
+    return reindexed_value, None
