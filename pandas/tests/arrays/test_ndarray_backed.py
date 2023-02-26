@@ -102,6 +102,29 @@ class ArrayFunctionTests:
         expected = array._from_backing_data(backing)
         tm.assert_equal(result, expected)
 
+    def test_may_share_memory(self, array):
+        assert np.may_share_memory(array, array)
+        assert np.may_share_memory(array, array[:1])
+
+        # partially-sharing memory
+        assert np.may_share_memory(array[:-1], array[1:])
+
+        assert not np.may_share_memory(array[:1], array[-1:])
+
+        assert np.may_share_memory(array, array.ravel())
+        assert np.may_share_memory(array, array.T)
+
+        assert not np.may_share_memory(array, np.arange(0))
+
+        assert np.may_share_memory(array, array._ndarray)
+        # assert np.may_share_memory(array, Series(array.ravel("K")))  # nope!
+
+    def test_ndim(self, array):
+        assert np.ndim(array) == array.ndim
+
+    def test_shape(self, array):
+        assert np.shape(array) == array.shape
+
 
 class ArrayFunctionTests2D(ArrayFunctionTests):
     @pytest.mark.parametrize("axis", [0, 1])
@@ -142,29 +165,67 @@ class ArrayFunctionTests2D(ArrayFunctionTests):
         else:
             assert result.shape == array.shape
 
+    def test_broadcast_to(self, array):
+        array = array.reshape(-1, 1)
+        shape = (array.shape[0], 3)
+
+        result = np.broadcast_to(array, shape)
+
+        backing = np.broadcast_to(array._ndarray, shape)
+        expected = array._from_backing_data(backing)
+        tm.assert_equal(result, expected)
+
+        # TODO check that a copy was not made?
+
+    def test_transpose(self, array):
+        result = np.transpose(array, (0, 1))
+        expected = array.transpose((0, 1))
+        tm.assert_equal(result, expected)
+
+        # no shape passed
+        result = np.transpose(array)
+        backing = np.transpose(array._ndarray)
+        expected = array._from_backing_data(backing)
+        tm.assert_equal(result, expected)
+
+    def test_swapaxes(self, array):
+        result = np.swapaxes(array, 1, 0)
+        expected = array.swapaxes(1, 0)
+        tm.assert_equal(result, expected)
+
 
 class TestDatetimeArray(ArrayFunctionTests2D):
-    @pytest.fixture(params=[1, 2])
-    def array(self):
+    @pytest.fixture(params=[2])
+    def array(self, request):
+        ndim = request.param
         dti = date_range("1994-05-12", periods=12, tz="US/Pacific")
-        dta = dti._data.reshape(3, 4)
+        dta = dti._data
+        if ndim == 2:
+            dta = dta.reshape(3, 4)
         return dta
 
 
 class TestTimedeltaArray(ArrayFunctionTests2D):
-    @pytest.fixture
-    def array(self):
+    @pytest.fixture(params=[2])
+    def array(self, request):
+        ndim = request.param
         dti = date_range("1994-05-12", periods=12, tz="US/Pacific")
-        dta = dti._data.reshape(3, 4)
-        return dta - dta[0, 0]
+        tdi = dti - dti[0]
+        tda = tdi._data
+        if ndim == 2:
+            tda = tda.reshape(3, 4)
+        return tda
 
 
 class TestPeriodArray(ArrayFunctionTests2D):
-    @pytest.fixture
-    def array(self):
+    @pytest.fixture(params=[2])
+    def array(self, request):
+        ndim = request.param
         dti = date_range("1994-05-12", periods=12)
         pa = dti._data.to_period("D")
-        return pa.reshape(3, 4)
+        if ndim == 2:
+            pa = pa.reshape(3, 4)
+        return pa
 
 
 class TestPandasArray(ArrayFunctionTests):

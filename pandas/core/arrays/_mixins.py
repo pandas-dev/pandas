@@ -342,33 +342,94 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # __array_function__ methods
 
     def __array_function__(self, func, types, args, kwargs):
+        """
+        Guesses of other numpy functions that might need to be handled here...
+
+        # Functions in np.core.fromnumeric that call use _wrapfunc
+        #  to dispatch np.foo(obj) to obj.foo() _if_ signatures match
+        #
+        #  take
+        #  reshape
+        #  choose
+        #  repeat
+        #  swapaxes✓
+        #  transpose✓
+        #  argpartition
+        #  argsort
+        #  argmax
+        #  argmin
+        #  searchsorted
+        #  nonzero
+        #  compress
+        #  clip
+        #  cumsum
+        #  cumprod
+        #  round
+
+        # Other guesses
+        # ravel
+        # insert
+        # tile
+
+        # Looking at functions that dask tests:
+
+        # np.concatenate
+        # np.dstack
+        # np.hstack
+        # np.stack
+        # np.vstack
+
+        # np.flip
+
+        # np.block
+        # np.round
+        # np.real
+        # np.imag
+        # np.sort
+        # np.equal
+
+        # np.min_scalar_type
+
+        # np.multiply
+        # np.add
+        # np.subtract
+
+        # np.cov
+        # np.mean
+        # np.var
+
+        # np.dot
+        # np.matmul
+        # np.tensordot
+        # np.linalg.svd
+        # np.linalg.det
+        # np.linalg.eigvals
+        # np.linalg.norm
+        """
         for x in types:
             if not issubclass(x, (np.ndarray, NDArrayBackedExtensionArray)):
+                # TODO: need tests with e.g. Series, non-matching EAs
                 return NotImplemented
 
-        if not args:
-            # TODO: if this fails, are we bound for a RecursionError?
-            for key, value in kwargs.items():
-                if value is self:
-                    # See if we can treat self as the first arg
-                    import inspect
-
-                    sig = inspect.signature(func)
-                    params = sig.parameters
-                    first_argname = next(iter(params))
-                    if first_argname == key:
-                        args = (value,)
-                        del kwargs[key]
-                        break
-                    else:
-                        kwargs[key] = np.asarray(self)
-                        break
+        if func is np.ndim:
+            return self.ndim
+        elif func is np.shape:
+            return self.shape
 
         if args and args[0] is self:
-
-            if func in [np.delete, np.repeat, np.atleast_2d]:
+            if func in [
+                np.delete,
+                np.repeat,
+                np.atleast_2d,
+                np.broadcast_to,
+                np.transpose,
+                np.swapaxes,
+            ]:
                 res_data = func(self._ndarray, *args[1:], **kwargs)
                 return self._from_backing_data(res_data)
+
+            if func in [np.may_share_memory, np.shares_memory]:
+                return func(self._ndarray, *args[1:], **kwargs)
 
             # TODO: do we need to convert args to kwargs to ensure nv checks
             #  are correct?
@@ -380,27 +441,79 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 return self.max(*args[1:], **kwargs)  # type:ignore[attr-defined]
 
             if func is np.sum:
-                # Need to do explicitly otherise np.sum(TimedeltaArray)
-                #  doesnt wrap in Timedelta.
+                # Need to do explicitly otherwise np.sum(TimedeltaArray)
+                #  doesn't wrap in Timedelta.
                 # error: "NDArrayBackedExtensionArray" has no attribute "sum"
                 return self.sum(*args[1:], **kwargs)  # type:ignore[attr-defined]
 
             if func is np.argsort:
                 if len(args) > 1:
-                    # try to make sure that we are passing kwargs along correclty
+                    # try to make sure that we are passing kwargs along correctly
                     raise NotImplementedError
                 return self.argsort(*args[1:], **kwargs)
 
-        if not any(x is self for x in args):
-            # e.g. np.conatenate we get args[0] is a tuple containing self
-            largs = list(args)
-            for i, arg in enumerate(largs):
-                if isinstance(arg, (list, tuple)):
-                    arg = type(arg)(x if x is not self else np.asarray(x) for x in arg)
-                    largs[i] = arg
-            args = tuple(largs)
+        elif len(args) > 1 and args[1] is self:
+            if func in [np.may_share_memory, np.shares_memory]:
+                return func(args[0], self._ndarray, *args[2:], **kwargs)
 
-        args = [x if x is not self else np.asarray(x) for x in args]
+        if (
+            func is np.empty_like
+            and args
+            and args[0] is self
+            and len(args) == 1
+            and not kwargs
+        ):
+            pass
+        elif (
+            func is np.empty_like
+            and args
+            and args[0] is self
+            and len(args) == 1
+            and kwargs == {"dtype": "object"}
+        ):
+            # pandas/tests/arrays/string_/test_string.py
+            pass
+        elif func is np.vstack:
+            # As of 2023-02-25 all tests that get here have
+            #  `not kwargs and len(args) == 1 and isinstance(args[0], list)
+            #  and any(x is self for x in args[0])`
+            pass
+        elif func is np.where:
+            # In some cases args[0] is self, in others it is not.
+            # pandas/tests/frame/methods/test_combine_first.py
+            pass
+        elif func is np.append and args and args[0] is self:
+            # pandas/tests/groupby/test_groupby_dropna.py
+            pass
+        elif func is np.append and len(args) >= 2 and args[1] is self:
+            # pandas/tests/indexes/test_setops.py
+            pass
+        elif func is np.unique and len(args) == 1 and args[0] is self and not kwargs:
+            # pandas/tests/reshape/test_qcut.py
+            pass
+        elif func is np.putmask and not kwargs and any(x is self for x in args):
+            # pandas/tests/reshape/merge/test_merge.py
+            pass
+        elif func is np.concatenate:
+            # pandas/tests/indexing/multiindex/test_indexing_slow.py
+            pass
+        elif func is np.lexsort:
+            # pandas/tests/resample/test_timedelta.py::test_resample_quantile_timedelta
+            pass
+        elif func is np.sort:
+            # pandas/tests/indexes/test_common.py::test_sort_values_with_missing
+            pass
+        elif func is np.tile:
+            # pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing
+            #  ::test_loc_datetime_assignment_dtype_does_not_change
+            pass
+        elif func is np.shares_memory:
+            # pandas/tests/copy_view/test_astype.py::test_convert_dtypes
+            pass
+        else:
+            assert False, func  # nothing else hit in ptest
+
+        args, kwargs = _array_func_fallback(self, args, kwargs)
         return func(*args, **kwargs)
 
     def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
@@ -556,3 +669,54 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         arr = cls._from_sequence([], dtype=dtype)
         backing = np.empty(shape, dtype=arr._ndarray.dtype)
         return arr._from_backing_data(backing)
+
+
+def _array_func_fallback(obj, args: tuple, kwargs: dict):
+    """
+    If we cannot find a better option, cast obj to ndarray to behave
+    as if __array_function__ were not implemented.
+    """
+
+    args = _replace_obj_tuple(obj, args)
+    _replace_obj_dict(obj, kwargs)
+    return args, kwargs
+
+
+def _replace_obj_tuple(obj, tup: tuple | list) -> tuple | list:
+    """
+    Replace occurrences of obj with np.asarray(obj) in the given tuple, recursing
+    if necessary.
+    """
+    ltup = list(tup)
+    for i, arg in enumerate(ltup):
+        if arg is obj:
+            ltup[i] = np.asarray(obj)
+        elif isinstance(arg, (tuple, list)):
+            # e.g. np.conatenate we get args[0] is a tuple containing self
+            # in np.vstack we can get args[0] being a list containing self
+            # recurse
+            ltup[i] = _replace_obj_tuple(obj, arg)
+        elif isinstance(arg, dict):
+            # not reached in tests; is this possible?
+            raise NotImplementedError
+            # _replace_obj_dict(obj, arg)
+
+    if isinstance(tup, tuple):
+        return tuple(ltup)
+    return ltup
+
+
+def _replace_obj_dict(obj, kwargs: dict):
+    """
+    Replace occurrences of obj in kwargs.values() with np.asarray(obj), recursing
+    if necessary.
+    """
+    for key, value in kwargs.items():
+        if value is obj:
+            kwargs[key] = np.asarray(obj)
+        elif isinstance(value, (tuple, list)):
+            kwargs[key] = _replace_obj_tuple(obj, value)
+        elif isinstance(value, dict):
+            # not reached in tests; is this possible?
+            raise NotImplementedError
+            # _replace_obj_dict(obj, value)
