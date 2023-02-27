@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=61.0.0",
     "wheel",
-    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
