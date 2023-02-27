@@ -672,7 +672,6 @@ pd_parser_ext = Extension(
         ]
     ),
     include_dirs=[
-        "pandas/_libs/src",
         "pandas/_libs/src/klib",
     ],
     extra_compile_args=(extra_compile_args),
