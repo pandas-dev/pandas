@@ -140,6 +140,7 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
+    _hash_pandas_object
     _reduce
     _values_for_argsort
     _values_for_factorize
