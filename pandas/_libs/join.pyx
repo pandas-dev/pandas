@@ -836,8 +836,8 @@ def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
 
 def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
                                 ndarray[numeric_t] right_values,
-                                by_t[:] left_by_values,
-                                by_t[:] right_by_values,
+                                ndarray[by_t] left_by_values,
+                                ndarray[by_t] right_by_values,
                                 bint allow_exact_matches=True,
                                 tolerance=None,
                                 bint use_hashtable=True):
@@ -856,7 +856,11 @@ def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
     # Doesn't matter what type we choose
     # (nothing happens anyways since it is None)
     # GH 51640
-    bli, bri = asof_join_backward_on_X_by_Y[f"{left_values.dtype}_t", object](
+    if left_by_values is not None and left_by_values.dtype != object:
+        by_dtype = f"{left_by_values.dtype}_t"
+    else:
+        by_dtype = object
+    bli, bri = asof_join_backward_on_X_by_Y[f"{left_values.dtype}_t", by_dtype](
         left_values,
         right_values,
         left_by_values,
@@ -865,7 +869,7 @@ def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
         tolerance,
         use_hashtable
     )
-    fli, fri = asof_join_forward_on_X_by_Y[f"{left_values.dtype}_t", object](
+    fli, fri = asof_join_forward_on_X_by_Y[f"{left_values.dtype}_t", by_dtype](
         left_values,
         right_values,
         left_by_values,
