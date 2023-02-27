@@ -14,6 +14,7 @@ on:
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 permissions:
   contents: read
