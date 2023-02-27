@@ -1413,7 +1413,7 @@ class Block(PandasObject):
             Whether Copy on Write is enabled right now
         """
         if not self.is_numeric or self.is_bool:
-            return self.copy(deep=using_cow)
+            return self.copy(deep=not using_cow)
         # TODO: round only defined on BaseMaskedArray
         # Series also does this, so would need to fix both places
         # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
