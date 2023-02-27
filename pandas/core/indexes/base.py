@@ -1897,7 +1897,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str = "first",
+        na_position: str_t = "first",
     ):
         """
         For internal compatibility with the Index API.
