@@ -49,7 +49,6 @@ from pandas._typing import (
     CorrelationMethod,
     DropKeep,
     Dtype,
-    DtypeArg,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -5076,8 +5075,8 @@ Keep all original rows and also all original values
         )
 
     @doc(NDFrame.downcast, **_shared_doc_kwargs)
-    def downcast(self, dtype: Literal["infer"] | DtypeArg) -> Series:
-        return super().downcast(dtype)
+    def downcast(self) -> Series:
+        return super().downcast()
 
     def pop(self, item: Hashable) -> Any:
         """

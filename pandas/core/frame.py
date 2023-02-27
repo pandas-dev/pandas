@@ -66,7 +66,6 @@ from pandas._typing import (
     CorrelationMethod,
     DropKeep,
     Dtype,
-    DtypeArg,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -5481,8 +5480,8 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     @doc(NDFrame.downcast, **_shared_doc_kwargs)
-    def downcast(self, dtype: Literal["infer"] | DtypeArg) -> DataFrame:
-        return super().downcast(dtype)
+    def downcast(self) -> DataFrame:
+        return super().downcast()
 
     def pop(self, item: Hashable) -> Series:
         """

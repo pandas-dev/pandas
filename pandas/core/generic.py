@@ -6967,17 +6967,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
-    def downcast(self: NDFrameT, dtype: Literal["infer"] | DtypeArg) -> NDFrameT:
+    def downcast(self: NDFrameT) -> NDFrameT:
         """Downcasts the columns to an appropriate dtype.
 
-        Possibly casts floats to integers or integers to a smaller dtype from
-        the same type, e.g. int64 -> int32.
-
-        Parameters
-        ----------
-        dtype: "infer", dtype or dict with column -> dtype
-            Dtype to cast to or "infer" if the dtype should be
-            inferred.
+        Possibly casts floats to integers. The dtype is inferred.
 
         Returns
         -------
@@ -6986,7 +6979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        The downcasting logic protects against overflows and truncating floats.
+        The downcasting logic protects against truncating floats.
         If the values don't fit into the specified dtype, the column is ignored.
 
         Examples
@@ -6996,22 +6989,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
            foo  bar  baz
         0  1.0  1.5  3.0
         1  2.0  2.5  4.0
-
-        >>> result = df.downcast("int8")
-        >>> result
-           foo  bar  baz
-        0    1  1.5    3
-        1    2  2.5    4
-        >>> result.dtypes
-        foo       int8
-        bar    float64
-        baz       int8
-        dtype: object
-
-        >>> df.downcast({"foo": "int64"})
-           foo  bar  baz
-        0    1  1.5  3.0
-        1    2  2.5  4.0
 
         >>> result = df.downcast("infer")
         >>> result
@@ -7029,20 +7006,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.copy(deep=False)
         else:
             result = self.copy(deep=True)
-        if self.ndim == 1:
-            new_data = result._mgr.downcast(dtype)
-            return self._constructor(new_data).__finalize__(self, method="downcast")
-        if isinstance(dtype, dict):
-            for key, val in dtype.items():
-                if key in result.columns:
-                    res = result[key].downcast(dtype=val)
-                    if res.dtype == result[key].dtype:
-                        # no-op and __setitem__ copies values right now
-                        continue
-                    result[key] = res
-        else:
-            new_data = result._mgr.downcast(dtype)
-            result = self._constructor(new_data)
+        new_data = result._mgr.downcast("infer")
+        result = self._constructor(new_data)
         return result.__finalize__(self, method="downcast")
 
     @overload
