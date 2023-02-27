@@ -4109,6 +4109,7 @@ cpdef to_offset(freq):
 
     Examples
     --------
+    >>> from pandas.tseries.frequencies import to_offset
     >>> to_offset("5min")
     <5 * Minutes>
 
@@ -4124,7 +4125,7 @@ cpdef to_offset(freq):
     >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
-    >>> to_offset(Hour())
+    >>> to_offset(pd.offsets.Hour())
     <Hour>
     """
     if freq is None:

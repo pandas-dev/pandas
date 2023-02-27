@@ -567,9 +567,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.andrews_curves \
         pandas.plotting.autocorrelation_plot \
         pandas.plotting.lag_plot \
-        pandas.plotting.parallel_coordinates \
-        pandas.plotting.radviz \
-        pandas.tseries.frequencies.to_offset
+        pandas.plotting.parallel_coordinates
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
