@@ -6990,7 +6990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  1.0  1.5  3.0
         1  2.0  2.5  4.0
 
-        >>> result = df.downcast("infer")
+        >>> result = df.downcast()
         >>> result
            foo  bar  baz
         0    1  1.5    3
