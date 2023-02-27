@@ -253,6 +253,9 @@ class BaseBlockManager(DataManager):
         Adds the references from one manager to another. We assume that both
         managers have the same block structure.
         """
+        if len(self.blocks) != len(mgr.blocks):
+            # If block structure changes, then we made a copy
+            return
         for i, blk in enumerate(self.blocks):
             blk.refs = mgr.blocks[i].refs
             # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
@@ -463,7 +466,11 @@ class BaseBlockManager(DataManager):
         assert not is_list_like(to_replace)
         assert not is_list_like(value)
         return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            using_cow=using_copy_on_write(),
         )
 
     def replace_regex(self, **kwargs):
