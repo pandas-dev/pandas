@@ -1530,30 +1530,15 @@ class ExcelFile:
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        header: int | Sequence[int] | None = 0,
-        names=None,
-        index_col: int | Sequence[int] | None = None,
-        usecols=None,
-        converters=None,
-        true_values: Iterable[Hashable] | None = None,
-        false_values: Iterable[Hashable] | None = None,
-        skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
-        nrows: int | None = None,
-        na_values=None,
-        parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | dict[Hashable, str] | None = None,
-        thousands: str | None = None,
-        comment: str | None = None,
-        skipfooter: int = 0,
-        use_nullable_dtypes: bool = False,
+        *args,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
         Parse specified sheet(s) into a DataFrame.
 
         .. deprecated:: 2.0.0
-            Arguments other than sheet_name by position may not work.
+            Specifying arguments other than sheet_name by position is deprecated.
+            Specify arguments by keyword name instead.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
@@ -1563,7 +1548,6 @@ class ExcelFile:
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
         """
-        arguments = list(kwds.keys())
         allowed_kwargs = [
             "sheet_name",
             "header",
@@ -1591,32 +1575,15 @@ class ExcelFile:
             "convert_float",
         ]
         # Check for any invalid  kwargs
-        if [argument for argument in arguments if argument not in allowed_kwargs]:
+        if any(key in allowed_kwargs for key in kwds):
             warnings.warn(
-                f"{type(self).__name__}.parse is deprecated. "
-                "Arguments other than sheet_name by position may not work.",
+                "Specifying arguments other than sheet_name by position is deprecated."
+                "Specify arguments by keyword name instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         return self._reader.parse(
-            sheet_name=sheet_name,
-            header=header,
-            names=names,
-            index_col=index_col,
-            usecols=usecols,
-            converters=converters,
-            true_values=true_values,
-            false_values=false_values,
-            skiprows=skiprows,
-            nrows=nrows,
-            na_values=na_values,
-            parse_dates=parse_dates,
-            date_parser=date_parser,
-            date_format=date_format,
-            thousands=thousands,
-            comment=comment,
-            skipfooter=skipfooter,
-            use_nullable_dtypes=use_nullable_dtypes,
+            *args,
             **kwds,
         )
 
