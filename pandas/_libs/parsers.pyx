@@ -327,10 +327,10 @@ cdef double round_trip_wrapper(const char *p, char **q, char decimal,
 
 cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
-                                   const char *encoding_errors):
+                                   const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef int del_rd_source_wrapper(void *src):
+cdef int del_rd_source_wrapper(void *src) noexcept:
     return del_rd_source(src)
 
 
