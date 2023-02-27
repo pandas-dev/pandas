@@ -9,7 +9,12 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_unsigned_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -1645,6 +1650,125 @@ def test_minmax_extensionarray(method, numeric_only):
     expected = Series(
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "all",
+        "any",
+        "count",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurtosis",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "nunique",
+        "prod",
+        "product",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+@pytest.mark.parametrize("min_count", [0, 2])
+def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
+    df = DataFrame(
+        {
+            "a": Series([0, 1, 2, 3], dtype=any_numeric_ea_dtype),
+            "b": Series([0, 1, pd.NA, 3], dtype=any_numeric_ea_dtype),
+        },
+    )
+    expected_df = DataFrame(
+        {
+            "a": [0.0, 1.0, 2.0, 3.0],
+            "b": [0.0, 1.0, np.nan, 3.0],
+        },
+    )
+    if method in ("count", "nunique"):
+        expected_dtype = "int64"
+    elif method in ("any", "all"):
+        expected_dtype = "bool"
+    elif method in ("var", "std", "skew", "kurt", "mean", "median", "kurtosis", "sem"):
+        expected_dtype = "Float64"
+    else:
+        expected_dtype = any_numeric_ea_dtype
+
+    kwargs = {}
+    if method not in ("count", "nunique", "quantile"):
+        kwargs["skipna"] = skipna
+    if method in ("prod", "product", "sum"):
+        kwargs["min_count"] = min_count
+    result = getattr(df, method)(axis=1, **kwargs)
+    expected = getattr(expected_df, method)(axis=1, **kwargs)
+    if method not in ("idxmax", "idxmin"):
+        expected = expected.astype(expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected_value",
+    [
+        ("all", True),
+        ("any", True),
+        ("count", 1),
+        ("idxmax", "a"),
+        ("idxmin", "a"),
+        ("kurt", np.nan),
+        ("kurtosis", np.nan),
+        ("max", 1),
+        ("mean", 1.0),
+        ("median", 1.0),
+        ("min", 1),
+        ("nunique", 1),
+        ("prod", 1),
+        ("product", 1),
+        ("sem", np.nan),
+        ("skew", np.nan),
+        ("std", np.nan),
+        ("sum", 1),
+        ("var", np.nan),
+    ],
+)
+def test_numeric_np_axis_1(method, expected_value, any_real_numpy_dtype):
+    df = DataFrame(
+        {
+            "a": Series([1], dtype=any_real_numpy_dtype),
+        },
+    )
+    if method in ("count", "nunique"):
+        expected_dtype = "int64"
+    elif method in ("prod", "product") and is_unsigned_integer_dtype(
+        any_real_numpy_dtype
+    ):
+        expected_dtype = "uint64"
+    elif method in ("sum", "prod", "product") and is_integer_dtype(
+        any_real_numpy_dtype
+    ):
+        expected_dtype = "int64"
+    elif method in ("any", "all"):
+        expected_dtype = "bool"
+    elif method in ("var", "std", "skew", "kurt", "mean", "median", "kurtosis", "sem"):
+        if is_float_dtype(any_real_numpy_dtype):
+            itemsize = max(2, df["a"].dtype.itemsize)
+            expected_dtype = f"float{8 * itemsize}"
+        else:
+            expected_dtype = "float64"
+    elif method in ("idxmax", "idxmin"):
+        expected_dtype = None
+    else:
+        expected_dtype = any_real_numpy_dtype
+
+    result = getattr(df, method)(axis=1)
+    expected = Series([expected_value], dtype=expected_dtype)
+    if method not in ("idxmax", "idxmin"):
+        expected = expected.astype(expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

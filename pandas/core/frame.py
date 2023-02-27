@@ -141,12 +141,16 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -10450,9 +10454,6 @@ Parrot 2  Parrot       24.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        if axis is not None:
-            axis = self._get_axis_number(axis)
-
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
@@ -10482,38 +10483,82 @@ Parrot 2  Parrot       24.0
             df = _get_data()
         if axis is None:
             return func(df.values)
-        elif axis == 1:
-            if len(df.index) == 0:
-                # Taking a transpose would result in no columns, losing the dtype.
-                # In the empty case, reducing along axis 0 or 1 gives the same
-                # result dtype, so reduce with axis=0 and ignore values
-                result = df._reduce(
-                    op,
-                    name,
-                    axis=0,
-                    skipna=skipna,
-                    numeric_only=False,
-                    filter_type=filter_type,
-                    **kwds,
-                ).iloc[:0]
-                result.index = df.index
-                return result
-            df = df.T
 
-        # After possibly _get_data and transposing, we are now in the
-        #  simple case where we can use BlockManager.reduce
-        res = df._mgr.reduce(blk_func)
-        out = df._constructor(res).iloc[0]
-        if out_dtype is not None:
-            out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any():
-            out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
-            # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
+        axis = self._get_axis_number(axis)
+        assert axis in [0, 1]
 
-        return out
+        if len(df._mgr) > 0:
+            common_dtype = find_common_type(list(df._mgr.get_dtypes()))
+            is_masked_ea = isinstance(common_dtype, BaseMaskedDtype)
+            is_np = isinstance(common_dtype, np.dtype)
+        else:
+            common_dtype = None
+
+        if axis == 0 or common_dtype is None or not (is_masked_ea or is_np):
+            if axis == 1:
+                if len(df.index) == 0:
+                    # Taking a transpose would result in no columns, losing the dtype.
+                    # In the empty case, reducing along axis 0 or 1 gives the same
+                    # result dtype, so reduce with axis=0 and ignore values
+                    result = df._reduce(
+                        op,
+                        name,
+                        axis=0,
+                        skipna=skipna,
+                        numeric_only=False,
+                        filter_type=filter_type,
+                        **kwds,
+                    ).iloc[:0]
+                    result.index = df.index
+                    return result
+                df = df.T
+
+            # After possibly _get_data and transposing, we are now in the
+            #  simple case where we can use BlockManager.reduce
+            res = df._mgr.reduce(blk_func)
+            out = df._constructor(res).iloc[0]
+            if out_dtype is not None:
+                out = out.astype(out_dtype)
+            elif (df._mgr.get_dtypes() == object).any():
+                out = out.astype(object)
+            elif len(self) == 0 and name in ["sum", "prod"]:
+                # Even if we are object dtype, follow numpy and return
+                #  float64, see test_apply_funcs_over_empty
+                out = out.astype(np.float64)
+
+            return out
+
+        if is_np or not is_numeric_dtype(common_dtype):
+            values = df.values
+        else:
+            # TODO: Better way to extract frame values as float64?
+            values = df.fillna(np.nan).astype("float64").values
+        result = func(values)
+
+        result_dtype = None
+        if filter_type == "bool" and notna(result).all():
+            result = result.astype(np.bool_)
+        elif is_np and common_dtype == "object":
+            result_dtype = "object"
+        elif is_masked_ea:
+            if name in ("sum",) and is_bool_dtype(common_dtype):
+                result_dtype = "Int64"
+            elif name in (
+                "var",
+                "std",
+                "kurt",
+                "mean",
+                "median",
+                "sem",
+                "skew",
+            ):
+                result_dtype = "Float64"
+            elif name not in ("argmax", "argmin", "count", "nunique"):
+                result_dtype = common_dtype
+
+        labels = self._get_agg_axis(axis)
+        result = self._constructor_sliced(result, index=labels, dtype=result_dtype)
+        return result
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
