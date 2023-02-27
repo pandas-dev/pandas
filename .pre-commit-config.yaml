@@ -342,11 +342,6 @@ repos:
             (?x)
             ^(asv_bench|pandas/tests|doc)/
             |scripts/validate_min_versions_in_sync\.py$
-    -   id: unwanted-patterns-strings-to-concatenate
-        name: Check for use of not concatenated strings
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        types_or: [python, cython]
     -   id: unwanted-patterns-strings-with-misplaced-whitespace
         name: Check for strings with misplaced spaces
         language: python
