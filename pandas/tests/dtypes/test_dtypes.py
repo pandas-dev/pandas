@@ -1125,8 +1125,8 @@ def test_numpy_s3_dtype_on_index():
     index = pd.Index(["abcd", "1234"], dtype="S3")
     expected = pd.Index(["abc", "123"], dtype="S3")
     assert index.dtype == pandas_dtype("object")
-    tm.assert_frame_equal(index, expected)
+    tm.assert_index_equal(index, expected)
 
     index = pd.Index(["abcd", "1234"])
     expected = pd.Index(["abc", "123"], dtype="S3")
-    tm.assert_frame_equal(index.astype("S3"), expected)
+    tm.assert_index_equal(index.astype("S3"), expected)
