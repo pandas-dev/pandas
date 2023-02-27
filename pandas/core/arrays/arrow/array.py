@@ -632,6 +632,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         value, method = validate_fillna_kwargs(value, method)
 
         if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
         if limit is not None:
