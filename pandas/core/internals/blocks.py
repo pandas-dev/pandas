@@ -714,6 +714,8 @@ class Block(PandasObject):
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
         ]
         if not len(pairs):
+            if using_cow:
+                return [self.copy(deep=False)]
             # shortcut, nothing to replace
             return [self] if inplace else [self.copy()]
 
@@ -734,8 +736,9 @@ class Block(PandasObject):
         masks = [extract_bool_array(x) for x in masks]
 
         if using_cow and inplace:
-            # TODO(CoW): Optimize
-            rb = [self.copy()]
+            # Don't set up refs here, otherwise we will think that we have
+            # references when we check again later
+            rb = [self]
         else:
             rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
@@ -762,10 +765,16 @@ class Block(PandasObject):
                     mask=m,  # type: ignore[arg-type]
                     inplace=inplace,
                     regex=regex,
+                    using_cow=using_cow,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks([b.convert(copy=True) for b in result])
+                    result = extend_blocks(
+                        [
+                            b.convert(copy=True and not using_cow, using_cow=using_cow)
+                            for b in result
+                        ]
+                    )
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -778,6 +787,7 @@ class Block(PandasObject):
         mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -811,17 +821,24 @@ class Block(PandasObject):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
-                    nb = self.astype(np.dtype(object), copy=False)
-                    if nb is self and not inplace:
+                    has_ref = self.refs.has_reference()
+                    nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
+                    if (nb is self or using_cow) and not inplace:
+                        nb = nb.copy()
+                    elif inplace and has_ref and nb.refs.has_reference():
+                        # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
+                if using_cow:
+                    return [self.copy(deep=False)]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
                 mask=mask,
+                using_cow=using_cow,
             )
 
     # ---------------------------------------------------------------------
