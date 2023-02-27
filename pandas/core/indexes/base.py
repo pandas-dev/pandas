@@ -501,10 +501,11 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-                # GH#21470 we must update the `dtype` to avoid passing e.g. the
-                # numpy type `S3` to `_dtype_to_subclass`, which would raise a
-                # NotImplementedError.
-                dtype = _dtype_obj
+                # # GH#50127 we must update the `dtype` when we have the numpy
+                # # type `S` to `_dtype_to_subclass`, because it would raise a
+                # # `NotImplementedError``.
+                if dtype and dtype.kind == "S":
+                    dtype = _dtype_obj
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
@@ -517,7 +518,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             if tupleize_cols:
-                # GH50127: convert iterable to list before determining if empty
+                # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
 
@@ -539,9 +540,9 @@ class Index(IndexOpsMixin, PandasObject):
             elif isinstance(data[0], tuple):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            elif isinstance(dtype, np.dtype):
-                # GH#50127 we update data to a np array with the correct dtype.
-                data = com.asarray_tuplesafe(data, dtype=dtype)
+            elif dtype and dtype.kind == "S":
+                # GH#50127 we update data to a np.array with the correct dtype.
+                data = astype_array(np.array(data, copy=copy), dtype=dtype, copy=copy)
                 return Index(data, dtype=dtype, copy=copy, name=name)
 
         try:
