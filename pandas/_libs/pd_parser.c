@@ -116,7 +116,7 @@ static void pandas_coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
   coliter_setup(self, parser, i, start);
 }
 
-static parser_t *pandas_parser_new() { return parser_new(); }
+static parser_t *pandas_parser_new(void) { return parser_new(); }
 
 static int pandas_parser_init(parser_t *self) { return parser_init(self); }
 

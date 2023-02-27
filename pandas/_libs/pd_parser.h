@@ -26,7 +26,7 @@ typedef struct {
   void (*uint_state_init)(uint_state *);
   int (*uint64_conflict)(uint_state *);
   void (*coliter_setup)(coliter_t *, parser_t *, int64_t, int64_t);
-  parser_t *(*parser_new)();
+  parser_t *(*parser_new)(void);
   int (*parser_init)(parser_t *);
   void (*parser_free)(parser_t *);
   void (*parser_del)(parser_t *);
