@@ -882,6 +882,14 @@ def test_to_html_na_rep_and_float_format(na_rep, datapath):
     assert result == expected
 
 
+def test_to_html_na_rep_non_scalar_data(datapath):
+    # GH47103
+    df = DataFrame([dict(a=1, b=[1, 2, 3])])
+    result = df.to_html(na_rep="-")
+    expected = expected_html(datapath, "gh47103_expected_output")
+    assert result == expected
+
+
 def test_to_html_float_format_object_col(datapath):
     # GH#40024
     df = DataFrame(data={"x": [1000.0, "test"]})
