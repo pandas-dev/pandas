@@ -508,7 +508,7 @@ Built-in aggregation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many common aggregations are built-in to GroupBy objects as methods. Of the methods
-listed below, those with a ``*`` do _not_ have a Cython-optimized implementation.
+listed below, those with a ``*`` do *not* have a Cython-optimized implementation.
 
 .. csv-table::
     :header: "Method", "Description"
@@ -553,11 +553,17 @@ index are the group names and whose values are the sizes of each group.
    grouped = df.groupby(["A", "B"])
    grouped.size()
 
+While the :meth:`~.DataFrameGroupBy.describe` method is not itself a reducer, it
+can be used to conveniently produce a collection of summary statistics about each of
+the groups.
+
 .. ipython:: python
 
    grouped.describe()
 
-Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts unique values.
+Another aggregation example is to compute the number of unique values of each group.
+This is similar to the ``value_counts`` function, except that it only counts the
+number of unique values.
 
 .. ipython:: python
 
@@ -568,12 +574,12 @@ Another aggregation example is to compute the number of unique values of each gr
 
 .. note::
 
-   Aggregation functions **will not** return the groups that you are aggregating over
+   Aggregation functions **will not** operate on the groups that you are aggregating over
    if they are named *columns*, when ``as_index=True``, the default. The grouped columns will
    be the **indices** of the returned object.
 
    Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
-   named *columns*.
+   named **indices** or *columns*.
 
 
 .. _groupby.aggregate.agg:
@@ -581,9 +587,14 @@ Another aggregation example is to compute the number of unique values of each gr
 The :meth:`~.DataFrameGroupBy.aggregate` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~.DataFrameGroupBy.aggregate` method can accept many different types of
-inputs. This section details using string aliases for various GroupBy methods; other
-inputs are detailed in the sections below.
+.. note::
+    The :meth:`~.DataFrameGroupBy.aggregate` method can accept many different types of
+    inputs. This section details using string aliases for various GroupBy methods; other
+    inputs are detailed in the sections below.
+
+Any reduction method that pandas implements can be passed as a string to
+:meth:`~.DataFrameGroupBy.aggregate`. Users are encouraged to use the shorthand,
+``agg``. It will operate as if the corresponding method was called.
 
 .. ipython:: python
 
@@ -593,7 +604,7 @@ inputs are detailed in the sections below.
    grouped = df.groupby(["A", "B"])
    grouped.agg("sum")
 
-As you can see, the result of the aggregation will have the group names as the
+The result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
 :ref:`MultiIndex <advanced.hierarchical>` by default. As mentioned above, this can be
 changed by using the ``as_index`` option:
@@ -601,9 +612,9 @@ changed by using the ``as_index`` option:
 .. ipython:: python
 
    grouped = df.groupby(["A", "B"], as_index=False)
-   grouped.aggregate("sum")
+   grouped.agg("sum")
 
-   df.groupby("A", as_index=False)[["C", "D"]].sum()
+   df.groupby("A", as_index=False)[["C", "D"]].agg("sum")
 
 Note that you could use the ``reset_index`` DataFrame function to achieve the
 same result as the column names are stored in the resulting ``MultiIndex``:
@@ -611,10 +622,6 @@ same result as the column names are stored in the resulting ``MultiIndex``:
 .. ipython:: python
 
    df.groupby(["A", "B"]).agg("sum").reset_index()
-
-The aggregating functions above will exclude NA values. Any function which
-reduces a :class:`Series` to a scalar value is an aggregation function and will work,
-a trivial example is ``df.groupby('A').agg(lambda ser: 1)``.
 
 .. _groupby.aggregate.udf:
 
@@ -719,7 +726,7 @@ accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGr
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
   and the second element is the aggregation to apply to that column. pandas
-  provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']``
+  provides the :class:`NamedAgg` namedtuple with the fields ``['column', 'aggfunc']``
   to make it clearer what the arguments are. As usual, the aggregation can
   be a callable or a string alias.
 
@@ -734,7 +741,7 @@ accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGr
    )
 
 
-``pandas.NamedAgg`` is just a ``namedtuple``. Plain tuples are allowed as well.
+:class:`NamedAgg` is just a ``namedtuple``. Plain tuples are allowed as well.
 
 .. ipython:: python
 
@@ -794,7 +801,8 @@ Transformation
 --------------
 
 A transformation is a GroupBy operation whose result is indexed the same
-as the one being grouped. Common examples include ``cumsum`` and ``diff``.
+as the one being grouped. Common examples include :meth:`~.DataFrameGroupBy.cumsum` and
+:meth:`~.DataFrameGroupBy.diff`.
 
 .. ipython:: python
 
@@ -846,9 +854,9 @@ The following methods on GroupBy act as transformations. Of these methods, only
         :meth:`~.DataFrameGroupBy.shift`;Shift values up or down within each group
 
 In addition, passing any built-in aggregation method as a string to
-:meth:`~.DataFrameGroupBy.transform` (see below) will broadcast the result across the group,
-producing a transformed result. If the aggregation method is Cython-optimized, this
-will be performant as well.
+:meth:`~.DataFrameGroupBy.transform` (see the next section) will broadcast the result
+across the group, producing a transformed result. If the aggregation method is
+Cython-optimized, this will be performant as well.
 
 .. _groupby.transformation.transform:
 
@@ -856,10 +864,10 @@ The :meth:`~.DataFrameGroupBy.transform` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to the :ref:`aggregation method <groupby.aggregate.agg>`, the
-:meth:`~.DataFrameGroupBy.transform` can accept string aliases to the built-in
-transform methods in the previous section. It can *also* accept string aliases to the
-built-in aggregation methods. When an aggregation method is provided, the result will
-be broadcast across the group.
+:meth:`~.DataFrameGroupBy.transform` method can accept string aliases to the built-in
+transformation methods in the previous section. It can *also* accept string aliases to
+the built-in aggregation methods. When an aggregation method is provided, the result
+will be broadcast across the group.
 
 .. ipython:: python
 
