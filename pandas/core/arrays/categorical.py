@@ -139,7 +139,7 @@ def _cat_compare_op(op):
             # Two Categoricals can only be compared if the categories are
             # the same (maybe up to ordering, depending on ordered)
 
-            msg = "Categoricals can only be compared if 'categories' are the same."
+            msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same."
             if not self._categories_match_up_to_permutation(other):
                 raise TypeError(msg)
 
@@ -2177,7 +2177,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         bool
         """
-        return hash(self.dtype) == hash(other.dtype)
+        try:
+            if not hasattr(other, "categories"):
+                other = other.dtype
+            if set(self.categories) != set(other.categories):
+                return False
+            if self.ordered != other.ordered:
+                return False
+            if self.ordered and not (self.categories == other.categories).all():
+                return False
+        except AttributeError:
+            return False
+        return True
 
     def describe(self) -> DataFrame:
         """

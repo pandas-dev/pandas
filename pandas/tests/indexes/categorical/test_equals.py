@@ -34,13 +34,19 @@ class TestEquals:
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = "Categoricals can only be compared if 'categories' are the same"
+        msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same"
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):
             ci1 == Categorical(ci1.values, ordered=False)
         with pytest.raises(TypeError, match=msg):
             ci1 == Categorical(ci1.values, categories=list("abc"))
+
+        ci1 = CategoricalIndex(["a", "b", 3], categories=["a", "b", 3])
+        ci2 = CategoricalIndex(["a", "b", 3], categories=["b", "a", 3])
+
+        assert ci1.equals(ci2)
+        assert ci1.astype(object).equals(ci2)
 
         # tests
         # make sure that we are testing for category inclusion properly

@@ -76,7 +76,7 @@ class TestCategoricalOpsWithFactor:
         tm.assert_numpy_array_equal(res, exp)
 
         # Only categories with same categories can be compared
-        msg = "Categoricals can only be compared if 'categories' are the same"
+        msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same"
         with pytest.raises(TypeError, match=msg):
             cat > cat_rev
 
@@ -267,7 +267,7 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
 
         # Only categories with same categories can be compared
-        msg = "Categoricals can only be compared if 'categories' are the same"
+        msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same"
         with pytest.raises(TypeError, match=msg):
             cat > cat_rev
 
@@ -333,7 +333,7 @@ class TestCategoricalOps:
         c1 = Categorical([], categories=["a", "b"])
         c2 = Categorical([], categories=["a"])
 
-        msg = "Categoricals can only be compared if 'categories' are the same."
+        msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same."
         with pytest.raises(TypeError, match=msg):
             c1 == c2
 
