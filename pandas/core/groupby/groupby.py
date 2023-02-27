@@ -1099,11 +1099,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
-    def _indexed_output_to_ndframe(
-        self, result: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        raise AbstractMethodError(self)
-
     @final
     def _maybe_transpose_result(self, result: NDFrameT) -> NDFrameT:
         if self.axis == 1:
@@ -3184,12 +3179,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
                         # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
                         # [union-attr]
-                        return type(orig_vals)(
-                            vals.astype(
-                                inference.numpy_dtype  # type: ignore[union-attr]
-                            ),
-                            result_mask,
-                        )
+                        with warnings.catch_warnings():
+                            # vals.astype with nan can warn with numpy >1.24
+                            warnings.filterwarnings("ignore", category=RuntimeWarning)
+                            return type(orig_vals)(
+                                vals.astype(
+                                    inference.numpy_dtype  # type: ignore[union-attr]
+                                ),
+                                result_mask,
+                            )
 
                 elif not (
                     is_integer_dtype(inference)

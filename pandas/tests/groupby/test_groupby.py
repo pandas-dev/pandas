@@ -1984,6 +1984,8 @@ def test_empty_groupby(
 
     result = get_result()
     expected = df.set_index(keys)[columns]
+    if op in ["idxmax", "idxmin"]:
+        expected = expected.astype(df.index.dtype)
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
@@ -2774,6 +2776,9 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in remainder:RuntimeWarning"
+)
 @pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
 def test_groupby_method_drop_na(method):
     # GH 21755

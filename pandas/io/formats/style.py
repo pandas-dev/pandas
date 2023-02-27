@@ -148,8 +148,6 @@ class Styler(StylerRenderer):
         If ``na_rep`` is None, no special formatting is applied, and falls back to
         ``pandas.options.styler.format.na_rep``.
 
-        .. versionadded:: 1.0.0
-
     uuid_len : int, default 5
         If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
         expressed in hex characters, in range [0, 32].
@@ -332,9 +330,9 @@ class Styler(StylerRenderer):
         A common use case is adding totals rows, or otherwise, via methods calculated
         in ``DataFrame.agg``.
 
-        >>> df = pd.DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
-        ...                columns=["Mike", "Jim"],
-        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> df = pd.DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9, 6]],
+        ...                   columns=["Mike", "Jim"],
+        ...                   index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
         >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_simple.png
@@ -360,7 +358,7 @@ class Styler(StylerRenderer):
         to extend the index in ``other``, with placeholder levels.
 
         >>> df = pd.DataFrame([[1], [2]],
-        ...             index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        ...                   index=pd.MultiIndex.from_product([[0], [1, 2]]))
         >>> descriptors = df.agg(["sum"])
         >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
         >>> df.style.concat(descriptors.style)  # doctest: +SKIP
@@ -2733,15 +2731,9 @@ class Styler(StylerRenderer):
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
             If not specified the maximum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         gmap : array-like, optional
             Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
@@ -3666,7 +3658,7 @@ def _background_gradient(
                 text_color = "#f1f1f1" if dark else "#000000"
                 return (
                     f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
-                    + f"color: {text_color};"
+                    f"color: {text_color};"
                 )
             else:
                 return f"color: {_matplotlib.colors.rgb2hex(rgba)};"

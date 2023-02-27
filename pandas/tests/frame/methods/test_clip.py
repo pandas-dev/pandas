@@ -164,3 +164,10 @@ class TestDataFrameClip:
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)
+
+    def test_clip_int_data_with_float_bound(self):
+        # GH51472
+        df = DataFrame({"a": [1, 2, 3]})
+        result = df.clip(lower=1.5)
+        expected = DataFrame({"a": [1.5, 2.0, 3.0]})
+        tm.assert_frame_equal(result, expected)

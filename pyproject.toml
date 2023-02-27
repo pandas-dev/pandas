@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=61.0.0",
     "wheel",
-    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
@@ -216,6 +216,8 @@ select = [
   "PIE",
   # tidy imports
   "TID",
+  # implicit string concatenation
+  "ISC",
 ]
 
 ignore = [
@@ -289,6 +291,7 @@ disable = [
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
+  "consider-using-enumerate",
   "import-error",
   "import-outside-toplevel",
   "invalid-name",
@@ -397,11 +400,14 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
+  "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:unclosed <ssl.SSLSocket:ResourceWarning",
+  "ignore:.*ssl.SSLSocket:ResourceWarning",
   "ignore::ResourceWarning:asyncio",
+  # From plotting doctests
+  "ignore:More than 20 figures have been opened:RuntimeWarning",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",

@@ -215,6 +215,7 @@ if not pa_version_under7p0:
     FLOAT_PYARROW_DTYPES_STR_REPR = [
         str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
     ]
+    DECIMAL_PYARROW_DTYPES = [pa.decimal128(7, 3)]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -239,6 +240,7 @@ if not pa_version_under7p0:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + DECIMAL_PYARROW_DTYPES
         + STRING_PYARROW_DTYPES
         + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
