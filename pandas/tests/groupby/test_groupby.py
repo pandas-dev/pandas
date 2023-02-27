@@ -1905,7 +1905,7 @@ def test_empty_groupby(
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna, observed=False)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -2602,7 +2602,7 @@ def test_datetime_categorical_multikey_groupby_indices():
             "c": Categorical.from_codes([-1, 0, 1], categories=[0, 1]),
         }
     )
-    result = df.groupby(["a", "b"]).indices
+    result = df.groupby(["a", "b"], observed=False).indices
     expected = {
         ("a", Timestamp("2018-01-01 00:00:00")): np.array([0]),
         ("b", Timestamp("2018-02-01 00:00:00")): np.array([1]),

@@ -712,7 +712,11 @@ class Index(IndexOpsMixin, PandasObject):
         duplicates = self[self.duplicated(keep="first")].unique()
         assert len(duplicates)
 
-        out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        out = (
+            Series(np.arange(len(self)))
+            .groupby(self, observed=False)
+            .agg(list)[duplicates]
+        )
         if self._is_multi:
             # test_format_duplicate_labels_message_multi
             # error: "Type[Index]" has no attribute "from_tuples"  [attr-defined]

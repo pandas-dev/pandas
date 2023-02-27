@@ -1970,7 +1970,7 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
