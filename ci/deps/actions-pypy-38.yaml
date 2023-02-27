@@ -9,7 +9,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.32
+  - cython>=0.29.33
 
   # test dependencies
   - pytest>=7.0.0
