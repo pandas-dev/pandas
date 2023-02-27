@@ -1957,7 +1957,7 @@ class TestMergeCategorical:
         X = change(right.X.astype("object"))
         right = right.assign(X=X)
         assert is_categorical_dtype(left.X.values.dtype)
-        # assert not left.X.values._categories_match(right.X.values)
+        assert not left.X.values._categories_match(right.X.values)
 
         merged = merge(left, right, on="X", how=join_type)
 

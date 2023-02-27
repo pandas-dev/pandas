@@ -139,7 +139,10 @@ def _cat_compare_op(op):
             # Two Categoricals can only be compared if the categories are
             # the same (maybe up to ordering, depending on ordered)
 
-            msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same."
+            msg = (
+                "Categoricals can only be compared if 'categories' and 'ordered' "
+                "are the same."
+            )
             if not self._categories_match(other):
                 raise TypeError(msg)
 

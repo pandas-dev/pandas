@@ -34,7 +34,10 @@ class TestEquals:
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same"
+        msg = (
+            "Categoricals can only be compared if 'categories' and 'ordered' "
+            "are the same"
+        )
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):
