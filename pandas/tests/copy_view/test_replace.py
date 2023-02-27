@@ -112,7 +112,8 @@ def test_replace_to_replace_wrong_dtype(using_copy_on_write):
         assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
 
 
-def test_replace_inplace(using_copy_on_write):
+@pytest.mark.parametrize("to_replace", [1.5, [1.5], []])
+def test_replace_inplace(using_copy_on_write, to_replace):
     df = DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     df.replace(to_replace=1.5, value=15.5, inplace=True)
@@ -122,7 +123,7 @@ def test_replace_inplace(using_copy_on_write):
         assert df._mgr._has_no_reference(0)
 
 
-@pytest.mark.parametrize("to_replace", [1.5, [1.5]])
+@pytest.mark.parametrize("to_replace", [1.5, [1.5], []])
 def test_replace_inplace_reference(using_copy_on_write, to_replace):
     df = DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
@@ -130,9 +131,14 @@ def test_replace_inplace_reference(using_copy_on_write, to_replace):
     df.replace(to_replace=to_replace, value=15.5, inplace=True)
 
     if using_copy_on_write:
-        assert not np.shares_memory(get_array(df, "a"), arr_a)
-        assert df._mgr._has_no_reference(0)
-        assert view._mgr._has_no_reference(0)
+        if isinstance(to_replace, list) and len(to_replace) == 0:
+            assert np.shares_memory(get_array(df, "a"), arr_a)
+            assert not df._mgr._has_no_reference(0)
+            assert not view._mgr._has_no_reference(0)
+        else:
+            assert not np.shares_memory(get_array(df, "a"), arr_a)
+            assert df._mgr._has_no_reference(0)
+            assert view._mgr._has_no_reference(0)
     else:
         assert np.shares_memory(get_array(df, "a"), arr_a)
 
@@ -220,11 +226,6 @@ def test_masking_inplace(using_copy_on_write, method):
 
 def test_replace_empty_list(using_copy_on_write):
     df = DataFrame({"a": [1, 2]})
-    arr = get_array(df, "a")
-    df.replace([], [], inplace=True)
-    assert np.shares_memory(arr, get_array(df, "a"))
-    if using_copy_on_write:
-        assert df._mgr._has_no_reference(0)
 
     df2 = df.replace([], [])
     if using_copy_on_write:
@@ -234,22 +235,17 @@ def test_replace_empty_list(using_copy_on_write):
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
-def test_replace_list_inplace(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    arr = get_array(df, "a")
-    df.replace([1], 4, inplace=True)
-    assert np.shares_memory(arr, get_array(df, "a"))
-    if using_copy_on_write:
-        assert df._mgr._has_no_reference(0)
-
-
-def test_replace_object_list_inplace(using_copy_on_write):
+@pytest.mark.parametrize("value", ["d", None])
+def test_replace_object_list_inplace(using_copy_on_write, value):
     df = DataFrame({"a": ["a", "b", "c"]})
     arr = get_array(df, "a")
-    df.replace(["c"], "d", inplace=True)
-    assert np.shares_memory(arr, get_array(df, "a"))
-    if using_copy_on_write:
+    df.replace(["c"], value, inplace=True)
+    if using_copy_on_write or value is None:
+        assert np.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
+    else:
+        # This could be inplace
+        assert not np.shares_memory(arr, get_array(df, "a"))
 
 
 def test_replace_list_multiple_elements_inplace(using_copy_on_write):
@@ -264,27 +260,8 @@ def test_replace_list_multiple_elements_inplace(using_copy_on_write):
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
-def test_replace_list_inplace_refs(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    df_orig = df.copy()
-    view = df[:]
-    arr = get_array(df, "a")
-    df.replace([1, 2], 4, inplace=True)
-    if using_copy_on_write:
-        assert not np.shares_memory(arr, get_array(df, "a"))
-        assert df._mgr._has_no_reference(0)
-        tm.assert_frame_equal(view, df_orig)
-    else:
-        assert np.shares_memory(arr, get_array(df, "a"))
-
-
 def test_replace_list_none(using_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"]})
-    arr = get_array(df, "a")
-    df.replace(["a"], value=None, inplace=True)
-    assert np.shares_memory(arr, get_array(df, "a"))
-    if using_copy_on_write:
-        assert df._mgr._has_no_reference(0)
 
     df_orig = df.copy()
     df2 = df.replace(["b"], value=None)
