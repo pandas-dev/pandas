@@ -540,6 +540,7 @@ def read_json(
         - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
         - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
         - ``'values'`` : just the values array
+        - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
@@ -1415,8 +1416,7 @@ class FrameParser(Parser):
 
             col_lower = col.lower()
             if (
-                col_lower.endswith("_at")
-                or col_lower.endswith("_time")
+                col_lower.endswith(("_at", "_time"))
                 or col_lower == "modified"
                 or col_lower == "date"
                 or col_lower == "datetime"

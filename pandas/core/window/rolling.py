@@ -1310,7 +1310,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1329,7 +1328,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,

@@ -341,7 +341,8 @@ class TestReaders:
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
             "Usecols do not match columns, "
-            "columns expected but not found: " + r"\['E'\]"
+            "columns expected but not found: "
+            r"\['E'\]"
         )
 
         with pytest.raises(ValueError, match=msg):
@@ -909,7 +910,6 @@ class TestReaders:
         tm.assert_frame_equal(expected, actual)
 
     @td.skip_if_no("py.path")
-    @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
         # GH12655
         from py.path import local as LocalPath
@@ -922,7 +922,6 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.check_file_leaks
     def test_close_from_py_localpath(self, read_ext):
         # GH31467
         str_path = os.path.join("test1" + read_ext)
