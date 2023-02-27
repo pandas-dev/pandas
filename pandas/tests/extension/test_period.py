@@ -107,7 +107,6 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
 
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
-
     pass
 
 

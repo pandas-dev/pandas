@@ -794,7 +794,6 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:
-
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
             if not skipna:
@@ -1081,7 +1080,6 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
-
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -1512,6 +1510,10 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
+    if mask is None and min_count == 0:
+        # nothing to check; short-circuit
+        return result
+
     if axis is not None and isinstance(result, np.ndarray):
         if mask is not None:
             null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
@@ -1533,7 +1535,12 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            result_dtype = getattr(result, "dtype", None)
+            if is_float_dtype(result_dtype):
+                # error: Item "None" of "Optional[Any]" has no attribute "type"
+                result = result_dtype.type("nan")  # type: ignore[union-attr]
+            else:
+                result = np.nan
 
     return result
 
@@ -1603,6 +1610,9 @@ def nancorr(
     if len(a) < min_periods:
         return np.nan
 
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
+
     f = get_corr_func(method)
     return f(a, b)
 
@@ -1660,6 +1670,9 @@ def nancov(
 
     if len(a) < min_periods:
         return np.nan
+
+    a = _ensure_numeric(a)
+    b = _ensure_numeric(b)
 
     return np.cov(a, b, ddof=ddof)[0, 1]
 

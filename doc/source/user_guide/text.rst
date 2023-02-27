@@ -11,8 +11,6 @@ Working with text data
 Text data types
 ---------------
 
-.. versionadded:: 1.0.0
-
 There are two ways to store text data in pandas:
 
 1. ``object`` -dtype NumPy array.

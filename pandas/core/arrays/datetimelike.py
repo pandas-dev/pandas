@@ -148,7 +148,6 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -1363,7 +1362,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
-
         other_dtype = getattr(other, "dtype", None)
         other = ensure_wrapped_if_datetimelike(other)
 

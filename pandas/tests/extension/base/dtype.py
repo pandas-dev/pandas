@@ -20,14 +20,6 @@ class BaseDtypeTests(BaseExtensionTests):
         valid = set("biufcmMOSUV")
         assert dtype.kind in valid
 
-    def test_construct_from_string_own_name(self, dtype):
-        result = dtype.construct_from_string(dtype.name)
-        assert type(result) is type(dtype)
-
-        # check OK as classmethod
-        result = type(dtype).construct_from_string(dtype.name)
-        assert type(result) is type(dtype)
-
     def test_is_dtype_from_name(self, dtype):
         result = type(dtype).is_dtype(dtype.name)
         assert result is True
@@ -97,9 +89,13 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype == dtype.name
         assert dtype != "anonther_type"
 
-    def test_construct_from_string(self, dtype):
-        dtype_instance = type(dtype).construct_from_string(dtype.name)
-        assert isinstance(dtype_instance, type(dtype))
+    def test_construct_from_string_own_name(self, dtype):
+        result = dtype.construct_from_string(dtype.name)
+        assert type(result) is type(dtype)
+
+        # check OK as classmethod
+        result = type(dtype).construct_from_string(dtype.name)
+        assert type(result) is type(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = f"Cannot construct a '{type(dtype).__name__}' from 'another_type'"

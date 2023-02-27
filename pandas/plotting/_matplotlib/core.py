@@ -54,6 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
@@ -147,7 +148,6 @@ class MPLPlot(ABC):
         column: IndexLabel | None = None,
         **kwds,
     ) -> None:
-
         import matplotlib.pyplot as plt
 
         self.data = data
@@ -186,7 +186,6 @@ class MPLPlot(ABC):
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
-
             # if by is defined, subplots are used and sharex should be False
             if ax is None and by is None:
                 self.sharex = True
@@ -428,7 +427,6 @@ class MPLPlot(ABC):
 
     @property
     def nseries(self) -> int:
-
         # When `by` is explicitly assigned, grouped data size will be defined, and
         # this will determine number of subplots to have, aka `self.nseries`
         if self.data.ndim == 1:
@@ -718,7 +716,7 @@ class MPLPlot(ABC):
                             f"number of columns = {self.nseries}"
                         )
 
-                    for (ax, title) in zip(self.axes, self.title):
+                    for ax, title in zip(self.axes, self.title):
                         ax.set_title(title)
                 else:
                     self.fig.suptitle(self.title)
@@ -787,8 +785,11 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.LegendHandles because it misses marker info
-                handles = leg.legendHandles
+                # Replace leg.legend_handles because it misses marker info
+                if Version(mpl.__version__) < Version("3.7"):
+                    handles = leg.legendHandles
+                else:
+                    handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -1025,7 +1026,6 @@ class MPLPlot(ABC):
 
         # key-matched DataFrame
         if isinstance(err, ABCDataFrame):
-
             err = match_labels(self.data, err)
         # key-matched dict
         elif isinstance(err, dict):
@@ -1392,7 +1392,6 @@ class LinePlot(MPLPlot):
             self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
-
                 # reset of xlim should be used for ts data
                 # TODO: GH28021, should find a way to change view limit on xaxis
                 lines = get_all_lines(ax)
@@ -1552,7 +1551,6 @@ class AreaPlot(LinePlot):
         is_errorbar: bool = False,
         **kwds,
     ):
-
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])

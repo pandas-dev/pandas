@@ -72,7 +72,6 @@ class TestEmptyFrameSetitemExpansion:
         tm.assert_frame_equal(df, exp)
 
     def test_partial_set_empty_frame(self):
-
         # partially set with an empty object
         # frame
         df = DataFrame()
@@ -229,7 +228,6 @@ class TestEmptyFrameSetitemExpansion:
 
 class TestPartialSetting:
     def test_partial_setting(self):
-
         # GH2578, allow ix and friends to partially set
 
         # series
@@ -358,7 +356,6 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
-
         # in a mixed dtype environment, try to preserve dtypes
         # by appending
         df = DataFrame([[True, 1], [False, 2]], columns=["female", "fitness"])
@@ -533,7 +530,6 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_invalid(self):
-
         # GH 4940
         # allow only setting of 'valid' values
 

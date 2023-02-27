@@ -14,7 +14,6 @@ from pandas.core.internals import (
 
 
 def test_dataframe_creation():
-
     with pd.option_context("mode.data_manager", "block"):
         df_block = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": [4, 5, 6]})
     assert isinstance(df_block._mgr, BlockManager)
@@ -46,7 +45,6 @@ def test_dataframe_creation():
 
 
 def test_series_creation():
-
     with pd.option_context("mode.data_manager", "block"):
         s_block = pd.Series([1, 2, 3], name="A", index=["a", "b", "c"])
     assert isinstance(s_block._mgr, SingleBlockManager)
