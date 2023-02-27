@@ -3658,7 +3658,7 @@ def _background_gradient(
                 text_color = "#f1f1f1" if dark else "#000000"
                 return (
                     f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
-                    + f"color: {text_color};"
+                    f"color: {text_color};"
                 )
             else:
                 return f"color: {_matplotlib.colors.rgb2hex(rgba)};"

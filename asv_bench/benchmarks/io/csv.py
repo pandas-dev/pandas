@@ -318,7 +318,7 @@ class ReadCSVFloatPrecision(StringIORewind):
             "".join([random.choice(string.digits) for _ in range(28)])
             for _ in range(15)
         ]
-        rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
+        rows = sep.join([f"0{decimal}{{}}"] * 3) + "\n"
         data = rows * 5
         data = data.format(*floats) * 200  # 1000 x 3 strings csv
         self.StringIO_input = StringIO(data)

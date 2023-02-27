@@ -66,7 +66,7 @@ def test_url_encoding_csv():
     """
     path = (
         "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        + "pandas/tests/io/parser/data/unicode_series.csv"
+        "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)
     assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"

@@ -216,6 +216,8 @@ select = [
   "PIE",
   # tidy imports
   "TID",
+  # implicit string concatenation
+  "ISC",
 ]
 
 ignore = [
