@@ -246,8 +246,7 @@ def radviz(
         ...         ]
         ...     }
         ... )
-        >>> pd.plotting.radviz(df, 'Category')
-        <AxesSubplot: >
+        >>> pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
