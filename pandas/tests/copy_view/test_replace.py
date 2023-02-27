@@ -244,6 +244,7 @@ def test_replace_object_list_inplace(using_copy_on_write, value):
     df.replace(["c"], value, inplace=True)
     if using_copy_on_write or value is None:
         assert np.shares_memory(arr, get_array(df, "a"))
+    if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
     else:
         # This could be inplace
