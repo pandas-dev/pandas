@@ -160,8 +160,6 @@ def read_gbq(
         ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
         different than ``pandas-gbq``, here the default is ``None``.
 
-        .. versionadded:: 1.0.0
-
     Returns
     -------
     df: DataFrame

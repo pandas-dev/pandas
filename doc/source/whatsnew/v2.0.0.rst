@@ -72,7 +72,7 @@ Below is a possibly non-exhaustive list of changes:
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
    :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) were previously in of
    dtype ``int64``, while they were ``int32`` for :class:`arrays.DatetimeArray`. They are now
-   ``int32`` on ``DatetimeIndex`` also:
+   ``int32`` on :class:`DatetimeIndex` also:
 
    .. ipython:: python
 
@@ -246,6 +246,10 @@ Copy-on-Write improvements
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
 
+- The :class:`DataFrame` constructor will now create a lazy copy (deferring the copy until
+  a modification to the data happens) when constructing from an existing
+  :class:`DataFrame` with the default of ``copy=False`` (:issue:`51239`)
+
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
@@ -260,6 +264,8 @@ Copy-on-Write improvements
 
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
+
+- :meth:`DataFrame.transpose` will now respect the Copy-on-Write mechanism.
 
 - Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
   Copy-on-Write mechanism.
@@ -816,6 +822,7 @@ Other API changes
 - :class:`DataFrame` and :class:`DataFrameGroupBy` aggregations (e.g. "sum") with object-dtype columns no longer infer non-object dtypes for their results, explicitly call ``result.infer_objects(copy=False)`` on the result to obtain the old behavior (:issue:`51205`, :issue:`49603`)
 - Division by zero with :class:`ArrowDtype` dtypes returns ``-inf``, ``nan``, or ``inf`` depending on the numerator, instead of raising (:issue:`51541`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
+- :meth:`~arrays.ArrowExtensionArray.value_counts` now returns data with :class:`ArrowDtype` with ``pyarrow.int64`` type instead of ``"Int64"`` type (:issue:`51462`)
 
 .. note::
 
@@ -855,6 +862,7 @@ Deprecations
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
+- Deprecated :meth:`~pandas.io.stata.StataReader.close`. Use :class:`~pandas.io.stata.StataReader` as a context manager instead (:issue:`49228`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -1085,7 +1093,7 @@ Removal of prior version deprecations/changes
 - Changed behavior in setting values with ``df.loc[:, foo] = bar`` or ``df.iloc[:, foo] = bar``, these now always attempt to set values inplace before falling back to casting (:issue:`45333`)
 - Changed default of ``numeric_only`` in various :class:`.DataFrameGroupBy` methods; all methods now default to ``numeric_only=False`` (:issue:`46072`)
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
-- Using the method :meth:`DataFrameGroupBy.transform` with a callable that returns DataFrames will align to the input's index (:issue:`47244`)
+- Using the method :meth:`.DataFrameGroupBy.transform` with a callable that returns DataFrames will align to the input's index (:issue:`47244`)
 - When providing a list of columns of length one to :meth:`DataFrame.groupby`, the keys that are returned by iterating over the resulting :class:`DataFrameGroupBy` object will now be tuples of length one (:issue:`47761`)
 - Removed deprecated methods :meth:`ExcelWriter.write_cells`, :meth:`ExcelWriter.save`, :meth:`ExcelWriter.cur_sheet`, :meth:`ExcelWriter.handles`, :meth:`ExcelWriter.path` (:issue:`45795`)
 - The :class:`ExcelWriter` attribute ``book`` can no longer be set; it is still available to be accessed and mutated (:issue:`48943`)
@@ -1162,6 +1170,7 @@ Performance improvements
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
 - Performance improvement in :meth:`DataFrame.replace` and :meth:`Series.replace` when using a large dict for ``to_replace`` (:issue:`6697`)
+- Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -1210,8 +1219,9 @@ Datetimelike
 - Bug in :func:`DataFrame.from_records` when given a :class:`DataFrame` input with timezone-aware datetime64 columns incorrectly dropping the timezone-awareness (:issue:`51162`)
 - Bug in :func:`to_datetime` was raising ``decimal.InvalidOperation`` when parsing date strings with ``errors='coerce'`` (:issue:`51084`)
 - Bug in :func:`to_datetime` with both ``unit`` and ``origin`` specified returning incorrect results (:issue:`42624`)
-- Bug in :meth:`GroupBy.quantile` with datetime or timedelta dtypes giving incorrect results for groups containing ``NaT`` (:issue:`51373`)
-- Bug in :meth:`Groupby.quantile` incorrectly raising with :class:`PeriodDtype` or :class:`DatetimeTZDtype` (:issue:`51373`)
+- Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` when converting an object-dtype object containing timezone-aware datetimes or strings to ``datetime64[ns]`` incorrectly localizing as UTC instead of raising ``TypeError`` (:issue:`50140`)
+- Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` with datetime or timedelta dtypes giving incorrect results for groups containing ``NaT`` (:issue:`51373`)
+- Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` incorrectly raising with :class:`PeriodDtype` or :class:`DatetimeTZDtype` (:issue:`51373`)
 
 Timedelta
 ^^^^^^^^^
@@ -1272,6 +1282,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_values` where ``None`` was not returned when ``by`` is empty list and ``inplace=True`` (:issue:`50643`)
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`Series.loc` raising error for out of bounds end of slice indexer (:issue:`50161`)
+- Bug in :meth:`DataFrame.loc` raising ``ValueError`` with all ``False`` ``bool`` indexer and empty object (:issue:`51450`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.loc` raising ``IndexError`` when setting values for a pyarrow-backed column with a non-scalar indexer (:issue:`50085`)
 - Bug in :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__`, :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__`
@@ -1338,7 +1349,7 @@ Period
 - Bug in adding a :class:`Period` object to an array of :class:`DateOffset` objects incorrectly raising ``TypeError`` (:issue:`50162`)
 - Bug in :class:`Period` where passing a string with finer resolution than nanosecond would result in a ``KeyError`` instead of dropping the extra precision (:issue:`50417`)
 - Bug in parsing strings representing Week-periods e.g. "2017-01-23/2017-01-29" as minute-frequency instead of week-frequency (:issue:`50803`)
-- Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.prod`, :meth:`.GroupBy.cumprod` with :class:`PeriodDtype` failing to raise ``TypeError`` (:issue:`51040`)
+- Bug in :meth:`.DataFrameGroupBy.sum`, :meth:`.DataFrameGroupByGroupBy.cumsum`, :meth:`.DataFrameGroupByGroupBy.prod`, :meth:`.DataFrameGroupByGroupBy.cumprod` with :class:`PeriodDtype` failing to raise ``TypeError`` (:issue:`51040`)
 - Bug in parsing empty string with :class:`Period` incorrectly raising ``ValueError`` instead of returning ``NaT`` (:issue:`51349`)
 
 Plotting
@@ -1371,8 +1382,9 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` would raise incorrectly when grouper had ``axis=1`` for ``"ngroup"`` argument (:issue:`45986`)
 - Bug in :meth:`.DataFrameGroupBy.describe` produced incorrect results when data had duplicate columns (:issue:`50806`)
 - Bug in :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` failing to respect ``as_index=False`` (:issue:`51228`)
-- Bug in :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, and :meth:`Resampler.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
-- Bug in :meth:`DataFrameGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`51413`)
+- Bug in :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, and :meth:`.Resampler.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
+- Bug in :meth:`.DataFrameGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`51413`)
+- Bug in :meth:`DataFrameGroupBy.agg` after subsetting columns (e.g. ``.groupby(...)[["a", "b"]]``) would not include groupings in the result (:issue:`51186`)
 
 Reshaping
 ^^^^^^^^^
@@ -1416,7 +1428,7 @@ Metadata
 
 Other
 ^^^^^
-
+- Bug in incorrectly accepting dtype strings containing "[pyarrow]" more than once (:issue:`51548`)
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
 
