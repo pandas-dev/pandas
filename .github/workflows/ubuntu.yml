@@ -13,6 +13,7 @@ on:
       - 1.5.x
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 permissions:
   contents: read
