@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 -
 
 .. ---------------------------------------------------------------------------
