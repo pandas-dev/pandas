@@ -68,6 +68,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -905,7 +906,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -940,6 +941,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
+
+        if observed is lib.no_default:
+            if any(ping._passed_categorical for ping in grouper.groupings):
+                warnings.warn(
+                    "The default of observed=False is deprecated and will be changed "
+                    "to True in a future version of pandas. Pass observed=False to "
+                    "retain current behavior or observed=True to adopt the future "
+                    "default and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            self.observed = False
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -2125,6 +2138,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_series.index.droplevel(levels),
                 sort=self.sort,
                 dropna=self.dropna,
+                # GH#43999 - deprecation of observed=False
+                observed=False,
             ).transform("sum")
             result_series /= indexed_group_size
 
