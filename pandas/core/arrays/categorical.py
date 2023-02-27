@@ -140,7 +140,7 @@ def _cat_compare_op(op):
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' and 'ordered' are the same."
-            if not self._categories_match_up_to_permutation(other):
+            if not self._categories_match(other):
                 raise TypeError(msg)
 
             if not self.ordered and not self.categories.equals(other.categories):
@@ -1917,12 +1917,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # require identical categories set
         if isinstance(value, Categorical):
-            if not is_dtype_equal(self.dtype, value.dtype):
+            if not self._categories_match(value):
                 raise TypeError(
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
-            # is_dtype_equal implies categories_match_up_to_permutation
             value = self._encode_with_my_categories(value)
             return value._codes
 
@@ -2110,7 +2109,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         if not isinstance(other, Categorical):
             return False
-        elif self._categories_match_up_to_permutation(other):
+        elif self._categories_match(other):
             other = self._encode_with_my_categories(other)
             return np.array_equal(self._codes, other._codes)
         return False
@@ -2154,7 +2153,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Notes
         -----
         This assumes we have already checked
-        self._categories_match_up_to_permutation(other).
+        self._categories_match(other).
         """
         # Indexing on codes is more efficient if categories are the same,
         #  so we can apply some optimizations based on the degree of
@@ -2164,10 +2163,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         return self._from_backing_data(codes)
 
-    def _categories_match_up_to_permutation(self, other: Categorical) -> bool:
+    def _categories_match(self, other: Categorical) -> bool:
         """
-        Returns True if categoricals are the same dtype
-          same categories, and same ordered
+        Returns True if categoricals have the same dtype,
+          same ordered, and the same categories regardless
+          of permutation (when unordered)
 
         Parameters
         ----------

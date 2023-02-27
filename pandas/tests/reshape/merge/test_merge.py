@@ -1939,8 +1939,8 @@ class TestMergeCategorical:
         tm.assert_series_equal(result, expected)
 
         # categories are preserved
-        assert left.X.values._categories_match_up_to_permutation(merged.X.values)
-        assert right.Z.values._categories_match_up_to_permutation(merged.Z.values)
+        assert left.X.values._categories_match(merged.X.values)
+        assert right.Z.values._categories_match(merged.Z.values)
 
     @pytest.mark.parametrize(
         "change",
@@ -1957,7 +1957,7 @@ class TestMergeCategorical:
         X = change(right.X.astype("object"))
         right = right.assign(X=X)
         assert is_categorical_dtype(left.X.values.dtype)
-        # assert not left.X.values._categories_match_up_to_permutation(right.X.values)
+        # assert not left.X.values._categories_match(right.X.values)
 
         merged = merge(left, right, on="X", how=join_type)
 

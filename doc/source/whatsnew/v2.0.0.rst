@@ -1178,6 +1178,7 @@ Categorical
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
 - Bug in :class:`Categorical` constructor when constructing from a :class:`Categorical` object and ``dtype="category"`` losing ordered-ness (:issue:`49309`)
 - Bug in :meth:`.SeriesGroupBy.min`, :meth:`.SeriesGroupBy.max`, :meth:`.DataFrameGroupBy.min`, and :meth:`.DataFrameGroupBy.max` with unordered :class:`CategoricalDtype` with no groups failing to raise ``TypeError`` (:issue:`51034`)
+- Bug in :meth:`Categorical._categories_match_up_to_permutation` would raise an error when comparing unordered categories with different permutations (:issue:`51543`)
 
 Datetimelike
 ^^^^^^^^^^^^

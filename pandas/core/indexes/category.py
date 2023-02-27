@@ -245,7 +245,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         if is_categorical_dtype(other):
             other = extract_array(other)
-            if not other._categories_match_up_to_permutation(self):
+            if not other._categories_match(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )

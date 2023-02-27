@@ -1287,7 +1287,7 @@ class _MergeOperation:
             if lk_is_cat and rk_is_cat:
                 lk = cast(Categorical, lk)
                 rk = cast(Categorical, rk)
-                if lk._categories_match_up_to_permutation(rk):
+                if lk._categories_match(rk):
                     continue
 
             elif lk_is_cat or rk_is_cat:
