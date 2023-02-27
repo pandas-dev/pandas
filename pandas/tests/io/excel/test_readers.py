@@ -341,7 +341,8 @@ class TestReaders:
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
             "Usecols do not match columns, "
-            "columns expected but not found: " + r"\['E'\]"
+            "columns expected but not found: "
+            r"\['E'\]"
         )
 
         with pytest.raises(ValueError, match=msg):
