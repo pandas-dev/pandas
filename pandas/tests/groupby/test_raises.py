@@ -303,7 +303,9 @@ def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_category(how, by, groupby_series, groupby_func):
+def test_groupby_raises_category(
+    how, by, groupby_series, groupby_func, using_copy_on_write
+):
     # GH#50749
     df = DataFrame(
         {
@@ -370,7 +372,9 @@ def test_groupby_raises_category(how, by, groupby_series, groupby_func):
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
             + "set the categories first",
-        ),
+        )
+        if not using_copy_on_write
+        else (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -491,7 +495,7 @@ def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
-    how, by, groupby_series, groupby_func, observed
+    how, by, groupby_series, groupby_func, observed, using_copy_on_write
 ):
     # GH#50749
     df = DataFrame(
@@ -562,7 +566,9 @@ def test_groupby_raises_category_on_category(
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
             + "set the categories first",
-        ),
+        )
+        if not using_copy_on_write
+        else (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (ValueError, "attempt to get argmax of an empty sequence")
         if empty_groups
