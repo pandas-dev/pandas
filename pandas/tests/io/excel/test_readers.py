@@ -1679,8 +1679,8 @@ class TestExcelFileRead:
 
     def test_read_excel_parse_warning(self, read_ext):
         # GH50953
-        msg = "Arguments other than sheet_name by position may not work."
+        msg = "Specifying arguments other than sheet_name by position is deprecated."
+        "Specify arguments by keyword name instead."
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with pd.ExcelFile("test1" + read_ext) as excel:
-                excel.parse("Sheet1", headers=[0, 1, 2])
-                # invalid argument 'headers' should give warning for deprecation
+                excel.parse("Sheet1", header=[0, 1, 2])

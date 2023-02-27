@@ -1549,7 +1549,6 @@ class ExcelFile:
             DataFrame from the passed in Excel file.
         """
         allowed_kwargs = [
-            "sheet_name",
             "header",
             "names",
             "index_col",
@@ -1574,7 +1573,6 @@ class ExcelFile:
             "skipfooter",
             "convert_float",
         ]
-        # Check for any invalid  kwargs
         if any(key in allowed_kwargs for key in kwds):
             warnings.warn(
                 "Specifying arguments other than sheet_name by position is deprecated."
@@ -1583,6 +1581,7 @@ class ExcelFile:
                 stacklevel=find_stack_level(),
             )
         return self._reader.parse(
+            sheet_name,
             *args,
             **kwds,
         )
