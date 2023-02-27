@@ -4760,7 +4760,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(value, DataFrame) and len(value.columns) > 1:
             raise ValueError(
                 f"Expected a one-dimensional object, got a DataFrame with "
-                f"{len(value.columns)} instead."
+                f"{len(value.columns)} columns instead."
             )
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
