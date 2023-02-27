@@ -297,7 +297,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         dtype = _find_common_index_dtype(indexes)
         index = indexes[0]
         if not all(index.equals(other) for other in indexes[1:]):
-	    for other in indexes[1:]:
+            for other in indexes[1:]:
                 index = index.union(other, sort=None if sort else False)
 
         name = get_unanimous_names(*indexes)[0]
