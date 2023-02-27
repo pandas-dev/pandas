@@ -301,9 +301,9 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
             json.dump(pdeps, f)
 
-        for pdep in pdeps["items"]:
+        for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
             context["pdeps"]["Under discussion"].append(
-                {"title": pdep["title"], "url": pdep["url"]}
+                {"title": pdep["title"], "url": pdep["html_url"]}
             )
 
         return context
