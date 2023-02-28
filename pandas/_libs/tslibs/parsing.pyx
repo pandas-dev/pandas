@@ -877,6 +877,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
     """
+    cdef:
+        NPY_DATETIMEUNIT out_bestunit
     day_attribute_and_format = (("day",), "%d", 2)
 
     # attr name, format, padding (if any)
@@ -907,8 +909,17 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
+    # same default used by dateutil
+    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     try:
-        parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
+        parsed_datetime = dateutil_parse(
+            dt_str,
+            default=default,
+            dayfirst=dayfirst,
+            yearfirst=False,
+            ignoretz=False,
+            out_bestunit=&out_bestunit,
+        )
     except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
