@@ -298,6 +298,19 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_replace_cascade(self, inplace):
+        # Test that replaced values are not replaced again
+        # GH #50778
+        ser = pd.Series([1, 2, 3])
+        expected = pd.Series([2, 3, 4])
+
+        res = ser.replace([1, 2, 3], [2, 3, 4], inplace=inplace)
+        if inplace:
+            tm.assert_series_equal(ser, expected)
+        else:
+            tm.assert_series_equal(res, expected)
+
     def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
         # GH 32621, GH#44940
         ser = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
