@@ -2177,7 +2177,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             warnings.warn(
                 "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
-                "set_index and/or drop instead to modify the DataFrame.",
+                "set_index and/or drop to modify the DataFrame instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
