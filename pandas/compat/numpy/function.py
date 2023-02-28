@@ -44,7 +44,7 @@ if TYPE_CHECKING:
         AxisInt,
     )
 
-AxisNoneT = TypeVar("AxisNoneT", Axis, None)
+    AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 
 
 class CompatValidator:

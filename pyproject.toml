@@ -318,6 +318,8 @@ exclude = [
 "pandas/plotting/*" = ["TCH"]
 "pandas/util/*" = ["TCH"]
 "pandas/_libs/*" = ["TCH"]
+# Keep this one enabled
+"pandas/_typing.py" = ["TCH"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
