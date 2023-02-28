@@ -872,7 +872,7 @@ class ArrayManager(BaseArrayManager):
             # update existing ArrayManager in-place
             self.arrays[loc] = new_mgr.arrays[0]
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
         Insert item at selected position.
 
