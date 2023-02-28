@@ -2171,6 +2171,21 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if isinstance(data, DataFrame):
+            warnings.warn(
+                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+                "set_index and/or drop instead to modify the DataFrame.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if columns is not None:
+                data = data[columns]
+            if index is not None:
+                data = data.set_index(index)
+            if exclude is not None:
+                data = data.drop(columns=exclude)
+            return data
+
         result_index = None
 
         # Make a copy of the input columns so we can modify it
@@ -2238,7 +2253,7 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, arr_columns, columns, index
                 )
 
-        elif isinstance(data, (np.ndarray, DataFrame)):
+        elif isinstance(data, np.ndarray):
             arrays, columns = to_arrays(data, columns)
             arr_columns = columns
         else:
