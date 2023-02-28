@@ -23,6 +23,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -49,6 +50,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -270,6 +272,14 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  pinned in _python_agg_general, only in _aggregate_named
                 result = self._aggregate_named(func, *args, **kwargs)
 
+                warnings.warn(
+                    "Pinning the groupby key to each group in "
+                    f"{type(self).__name__}.agg is deprecated, and cases that "
+                    "relied on it will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
                 # result is a dict whose keys are the elements of result_index
                 result = Series(result, index=self.grouper.result_index)
                 result = self._wrap_aggregated_output(result)
@@ -407,6 +417,7 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self.grouper.get_iterator(
             self._selected_obj, axis=self.axis
         ):
+            # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -1537,6 +1548,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except StopIteration:
             pass
         else:
+            # 2023-02-27 No tests broken by disabling this pinning
             object.__setattr__(group, "name", name)
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
@@ -1552,6 +1564,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for name, group in gen:
             if group.size == 0:
                 continue
+            # 2023-02-27 No tests broken by disabling this pinning
             object.__setattr__(group, "name", name)
             res = path(group)
 
@@ -1721,6 +1734,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
         for name, group in gen:
+            # 2023-02-27 no tests are broken this pinning, but it is documented in the
+            #  docstring above.
             object.__setattr__(group, "name", name)
 
             res = func(group, *args, **kwargs)

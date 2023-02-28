@@ -93,6 +93,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
+- Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations (:issue:`41090`)
 -
 
 .. ---------------------------------------------------------------------------
