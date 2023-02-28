@@ -12,7 +12,7 @@ class TestCategoricalWarnings:
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; c = Categorical([])"
+        code = "import pandas as pd; c = pd.Categorical([])"
         await ip.run_code(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -104,7 +106,7 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide_checked(left, right))
+        result = pc.floor(pc.divide(left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -116,8 +118,8 @@ if not pa_version_under7p0:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -458,6 +460,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        pa_type = self._data.type
+        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
+            operator.add,
+            roperator.radd,
+        ]:
+            length = self._data.length()
+
+            seps: list[str] | list[bytes]
+            if pa.types.is_string(pa_type):
+                seps = [""] * length
+            else:
+                seps = [b""] * length
+
+            if is_scalar(other):
+                other = [other] * length
+            elif isinstance(other, type(self)):
+                other = other._data
+            if op is operator.add:
+                result = pc.binary_join_element_wise(self._data, other, seps)
+            else:
+                result = pc.binary_join_element_wise(other, self._data, seps)
+            return type(self)(result)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
@@ -532,6 +557,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
         This should return a 1-D array the same length as 'self'.
         """
+        # GH51630: fast paths
+        null_count = self._data.null_count
+        if null_count == 0:
+            return np.zeros(len(self), dtype=np.bool_)
+        elif null_count == len(self):
+            return np.ones(len(self), dtype=np.bool_)
+
         return self._data.is_null().to_numpy()
 
     def argsort(
@@ -544,14 +576,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under7p0:
-            # Although pc.array_sort_indices exists in version 6
-            # there's a bug that affects the pa.ChunkedArray backing
-            # https://issues.apache.org/jira/browse/ARROW-12042
-            fallback_performancewarning("7")
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+        if null_placement is None:
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
@@ -615,9 +641,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
-        if method is not None and pa_version_under7p0:
-            # fill_null_{forward|backward} added in pyarrow 7.0
-            fallback_performancewarning(version="7")
+        if method is not None:
+            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if is_array_like(value):
@@ -965,12 +990,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count").astype("Int64")
+        return Series(counts, index=index, name="count")
 
     @classmethod
     def _concat_same_type(
@@ -1073,6 +1097,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
+            or pa.types.is_decimal(pa_type)
         ):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
@@ -1116,6 +1141,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
+        # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
+        if name in ["any", "all"] and "min_count" not in kwargs:
+            kwargs["min_count"] = 0
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -1345,7 +1374,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ----------
         dropna : bool, default True
             Don't consider counts of NA values.
-            Not implemented by pyarrow.
 
         Returns
         -------
@@ -1364,12 +1392,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         else:
             data = self._data
 
-        modes = pc.mode(data, pc.count_distinct(data).as_py())
-        values = modes.field(0)
-        counts = modes.field(1)
-        # counts sorted descending i.e counts[0] = max
-        mask = pc.equal(counts, counts[0])
-        most_common = values.filter(mask)
+        if dropna:
+            data = data.drop_null()
+
+        res = pc.value_counts(data)
+        most_common = res.field("values").filter(
+            pc.equal(res.field("counts"), pc.max(res.field("counts")))
+        )
 
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
