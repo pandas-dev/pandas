@@ -100,6 +100,8 @@ class TestDataFrameInsert:
         # GH#42403
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
 
-        msg = r"Expected a 1D array, got an array with shape \(2, 2\)"
+        msg = (
+            "Expected a one-dimensional object, got a DataFrame with 2 columns instead."
+        )
         with pytest.raises(ValueError, match=msg):
             df.insert(1, "newcol", df)
