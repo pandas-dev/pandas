@@ -238,7 +238,7 @@ Of the above changes, this may be the only one that would need implementing with
 Users would not be expected to work with the ``NoRowIndex`` class itself directly.
 Usage would probably involve a mode which would change how the ``default_index``
 function to return a ``NoRowIndex`` rather than a ``RangeIndex``.
-Then, if a user opted in to this mode with
+Then, if a ``mode.no_row_index`` option was introduced and a user opted in to it with
 
 ```python
 pd.set_option("mode.no_row_index", True)
@@ -294,7 +294,7 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
   ```
   There's probably no need to introduce a new method for this.
 
-  Conversely, to get rid of the index, then (so long as one has enabled the ``mode.no_row_index`` option)
+  Conversely, to get rid of the index, then if the ``mode.no_row_index`` option was introduced, then
   one could simply do ``df.reset_index(drop=True)``.
 
 **Q: How would ``tz_localize`` and other methods which operate on the index work on a ``NoRowIndex`` ``DataFrame``?**
