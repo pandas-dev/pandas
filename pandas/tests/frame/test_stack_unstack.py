@@ -1146,6 +1146,27 @@ class TestDataFrameReshape:
         expected_codes = np.asarray(new_index.codes)
         tm.assert_numpy_array_equal(stacked_codes, expected_codes)
 
+    @pytest.mark.parametrize(
+        "vals1, vals2, dtype1, dtype2, expected_dtype",
+        [
+            ([1, 2], [3.0, 4.0], "Int64", "Float64", "Float64"),
+            ([1, 2], ["foo", "bar"], "Int64", "string", "object"),
+        ],
+    )
+    def test_stack_multi_columns_mixed_extension_types(
+        self, vals1, vals2, dtype1, dtype2, expected_dtype
+    ):
+        # GH45740
+        df = DataFrame(
+            {
+                ("A", 1): Series(vals1, dtype=dtype1),
+                ("A", 2): Series(vals2, dtype=dtype2),
+            }
+        )
+        result = df.stack()
+        expected = df.astype(object).stack().astype(expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("level", [0, 1])
     def test_unstack_mixed_extension_types(self, level):
         index = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 1)], names=["a", "b"])
