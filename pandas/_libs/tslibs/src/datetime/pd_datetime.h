@@ -5,6 +5,14 @@ All rights reserved.
 
 Distributed under the terms of the BSD Simplified License.
 
+The full license is in the LICENSE file, distributed with this software.
+Written by Mark Wiebe (mwwiebe@gmail.com)
+
+Copyright (c) 2011 by Enthought, Inc.
+Copyright (c) 2005-2011, NumPy Developers
+
+All rights reserved.
+See NUMPY_LICENSE.txt for the license.
 */
 
 #ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
