@@ -4105,9 +4105,8 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value) -> None:
-        arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=True)
+    def _iset_item(self, loc: int, value: Series) -> None:
+        self._iset_item_mgr(loc, value._values, inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
