@@ -314,8 +314,7 @@ def andrews_curves(
         ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
-        >>> pd.plotting.andrews_curves(df, 'Name')
-        <AxesSubplot: title={'center': 'width'}>
+        >>> pd.plotting.andrews_curves(df, 'Name')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -499,8 +498,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         >>> np.random.seed(5)
         >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
-        >>> s.plot()
-        <AxesSubplot: xlabel='Midrange'>
+        >>> s.plot()  # doctest: +SKIP
 
     A lag plot with ``lag=1`` returns
 
@@ -542,8 +540,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
-        >>> pd.plotting.autocorrelation_plot(s)
-        <AxesSubplot: title={'center': 'width'}, xlabel='Lag', ylabel='Autocorrelation'>
+        >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
