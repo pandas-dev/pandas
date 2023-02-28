@@ -9937,8 +9937,6 @@ Parrot 2  Parrot       24.0
             # Dispatch to Block.round
             return self._constructor(
                 self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
-                index=self.index,
-                columns=self.columns,
             ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
