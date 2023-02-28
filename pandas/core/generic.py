@@ -2204,7 +2204,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with pd.ExcelWriter('output.xlsx',
         ...                     mode='a') as writer:  # doctest: +SKIP
-        ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+        ...     df1.to_excel(writer, sheet_name='Sheet_name_3')
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
@@ -3101,7 +3101,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | Sequence[str] = ...,
+        header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3128,7 +3128,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | Sequence[str] = ...,
+        header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3155,7 +3155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        header: bool_t | Sequence[str] = True,
+        header: bool_t | list[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -5864,9 +5864,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the {klass}.
-        args : iterable, optional
+        *args : iterable, optional
             Positional arguments passed into ``func``.
-        kwargs : mapping, optional
+        **kwargs : mapping, optional
             A dictionary of keyword arguments passed into ``func``.
 
         Returns
@@ -5883,25 +5883,70 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         Use ``.pipe`` when chaining together functions that expect
-        Series, DataFrames or GroupBy objects. Instead of writing
+        Series, DataFrames or GroupBy objects.
 
-        >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+        Examples
+        --------
+        Constructing a income DataFrame from a dictionary.
+
+        >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
+        >>> df = pd.DataFrame(data, columns=['Salary', 'Others'])
+        >>> df
+           Salary  Others
+        0    8000  1000.0
+        1    9500     NaN
+        2    5000  2000.0
+
+        Functions that perform tax reductions on an income DataFrame.
+
+        >>> def subtract_federal_tax(df):
+        ...     return df * 0.9
+        >>> def subtract_state_tax(df, rate):
+        ...     return df * (1 - rate)
+        >>> def subtract_national_insurance(df, rate, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return df * (1 - new_rate)
+
+        Instead of writing
+
+        >>> subtract_national_insurance(
+        ...     subtract_state_tax(subtract_federal_tax(df), rate=0.12),
+        ...     rate=0.05,
+        ...     rate_increase=0.02)  # doctest: +SKIP
 
         You can write
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe(func, arg2=b, arg3=c)
-        ... )  # doctest: +SKIP
+        >>> (
+        ...     df.pipe(subtract_federal_tax)
+        ...     .pipe(subtract_state_tax, rate=0.12)
+        ...     .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02)
+        ... )
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``func`` takes its data as ``arg2``:
+        data. For example, suppose ``national_insurance`` takes its data as ``df``
+        in the second argument:
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
-        ...  )  # doctest: +SKIP
+        >>> def subtract_national_insurance(rate, df, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return df * (1 - new_rate)
+        >>> (
+        ...     df.pipe(subtract_federal_tax)
+        ...     .pipe(subtract_state_tax, rate=0.12)
+        ...     .pipe(
+        ...         (subtract_national_insurance, 'df'),
+        ...         rate=0.05,
+        ...         rate_increase=0.02
+        ...     )
+        ... )
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
         """
         if using_copy_on_write():
             return common.pipe(self.copy(deep=None), func, *args, **kwargs)
@@ -6885,8 +6930,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "with dict/Series column "
                         "by column"
                     )
-
-                result = self if inplace else self.copy()
+                if using_copy_on_write():
+                    result = self.copy(deep=None)
+                else:
+                    result = self if inplace else self.copy()
                 is_dict = isinstance(downcast, dict)
                 for k, v in value.items():
                     if k not in result:
@@ -6940,8 +6987,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                     result.iloc[:, loc] = res_loc
                                 else:
                                     result.isetitem(loc, res_loc)
-
-                return result if not inplace else None
+                if inplace:
+                    return self._update_inplace(result)
+                else:
+                    return result
 
             elif not is_list_like(value):
                 if axis == 1:
@@ -7985,33 +8034,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
-        mgr = self._mgr
+        result = self
+        mask = self.isna()
 
-        if inplace:
-            # cond (for putmask) identifies values to be updated.
-            # exclude boundary as values at the boundary should be no-ops.
-            if upper is not None:
-                cond = self > upper
-                mgr = mgr.putmask(mask=cond, new=upper, align=False)
-            if lower is not None:
-                cond = self < lower
-                mgr = mgr.putmask(mask=cond, new=lower, align=False)
-        else:
-            # cond (for where) identifies values to be left as-is.
-            # include boundary as values at the boundary should be no-ops.
-            mask = isna(self)
-            if upper is not None:
-                cond = mask | (self <= upper)
-                mgr = mgr.where(other=upper, cond=cond, align=False)
-            if lower is not None:
-                cond = mask | (self >= lower)
-                mgr = mgr.where(other=lower, cond=cond, align=False)
+        if lower is not None:
+            cond = mask | (self >= lower)
+            result = result.where(
+                cond, lower, inplace=inplace
+            )  # type: ignore[assignment]
+        if upper is not None:
+            cond = mask | (self <= upper)
+            result = self if inplace else result
+            result = result.where(
+                cond, upper, inplace=inplace
+            )  # type: ignore[assignment]
 
-        result = self._constructor(mgr)
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result.__finalize__(self)
+        return result
 
     @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
@@ -9625,6 +9663,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
                         raise ValueError(msg.format(dtype=_dt))
+                if cond._mgr.any_extension_types:
+                    # GH51574: avoid object ndarray conversion later on
+                    cond = cond._constructor(
+                        cond.to_numpy(dtype=bool, na_value=fill_value),
+                        **cond._construct_axes_dict(),
+                    )
         else:
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)

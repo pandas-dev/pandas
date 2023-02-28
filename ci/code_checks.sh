@@ -564,14 +564,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_datetime64_any_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
-        pandas.api.types.is_integer_dtype \
-        pandas.api.types.is_string_dtype \
-        pandas.plotting.andrews_curves \
-        pandas.plotting.autocorrelation_plot \
-        pandas.plotting.lag_plot \
-        pandas.plotting.parallel_coordinates \
-        pandas.plotting.radviz \
-        pandas.tseries.frequencies.to_offset
+        pandas.plotting.parallel_coordinates
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
