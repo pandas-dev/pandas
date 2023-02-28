@@ -35,7 +35,7 @@ from pandas.io.formats.printing import (
     pprint_thing_encoded,
 )
 
-REDUCTIONS = ("sum", "prod")
+REDUCTIONS = ("sum", "prod", "min", "max")
 
 _unary_math_ops = (
     "sin",

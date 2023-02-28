@@ -72,7 +72,6 @@ class TestDataFrameSetItem:
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
     def test_setitem_error_msmgs(self):
-
         # GH 7432
         df = DataFrame(
             {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
@@ -85,8 +84,7 @@ class TestDataFrameSetItem:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df["newcol"] = ser
+            df["newcol"] = ser
 
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
@@ -322,7 +320,6 @@ class TestDataFrameSetItem:
         assert (df["dates"].values == ex_vals).all()
 
     def test_setitem_dt64tz(self, timezone_frame):
-
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -473,7 +470,6 @@ class TestDataFrameSetItem:
             df[["a", "b"]] = rhs
 
     def test_setitem_intervals(self):
-
         df = DataFrame({"A": range(10)})
         ser = cut(df["A"], 5)
         assert isinstance(ser.cat.categories, IntervalIndex)
@@ -998,7 +994,6 @@ class TestDataFrameSetItemBooleanMask:
         ids=["dataframe", "array"],
     )
     def test_setitem_boolean_mask(self, mask_type, float_frame):
-
         # Test for issue #18582
         df = float_frame.copy()
         mask = mask_type(df)
@@ -1246,12 +1241,15 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        for label in df.columns:
-            df[label][label] = 1
-
         if not using_copy_on_write:
+            for label in df.columns:
+                df[label][label] = 1
+
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
+            with tm.raises_chained_assignment_error():
+                for label in df.columns:
+                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)

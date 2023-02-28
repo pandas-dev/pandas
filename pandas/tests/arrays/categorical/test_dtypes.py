@@ -16,7 +16,6 @@ import pandas._testing as tm
 
 class TestCategoricalDtypes:
     def test_categories_match_up_to_permutation(self):
-
         # test dtype comparisons between cats
 
         c1 = Categorical(list("aabca"), categories=list("abc"), ordered=False)
@@ -98,7 +97,6 @@ class TestCategoricalDtypes:
         tm.assert_categorical_equal(result, expected)
 
     def test_codes_dtypes(self):
-
         # GH 8453
         result = Categorical(["foo", "bar", "baz"])
         assert result.codes.dtype == "int8"

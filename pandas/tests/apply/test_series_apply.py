@@ -2,6 +2,8 @@ from collections import (
     Counter,
     defaultdict,
 )
+from decimal import Decimal
+import math
 
 import numpy as np
 import pytest
@@ -37,8 +39,6 @@ def test_apply(datetime_series):
         tm.assert_series_equal(datetime_series.apply(np.sqrt), np.sqrt(datetime_series))
 
         # element-wise apply
-        import math
-
         tm.assert_series_equal(datetime_series.apply(math.exp), np.exp(datetime_series))
 
     # empty series
@@ -105,6 +105,26 @@ def test_agg_args(args, kwargs, increment):
     result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_func_with_args():
+    # GH 50624
+
+    s = Series([1, 2, 3])
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        s.agg([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = s.agg([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_series_map_box_timestamps():
@@ -183,10 +203,8 @@ def test_apply_datetimetz():
     exp = Series(exp_values, name="XX")
     tm.assert_series_equal(result, exp)
 
-    # change dtype
-    # GH 14506 : Returned dtype changed from int32 to int64
     result = s.apply(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
+    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -240,7 +258,6 @@ def test_transform(string_series):
     # transforming functions
 
     with np.errstate(all="ignore"):
-
         f_sqrt = np.sqrt(string_series)
         f_abs = np.abs(string_series)
 
@@ -525,8 +542,6 @@ def test_map_type_inference():
 
 
 def test_map_decimal(string_series):
-    from decimal import Decimal
-
     result = string_series.map(lambda x: Decimal(str(x)))
     assert result.dtype == np.object_
     assert isinstance(result[0], Decimal)
@@ -763,10 +778,8 @@ def test_map_datetimetz():
     exp = Series(exp_values, name="XX")
     tm.assert_series_equal(result, exp)
 
-    # change dtype
-    # GH 14506 : Returned dtype changed from int32 to int64
     result = s.map(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
+    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
     tm.assert_series_equal(result, exp)
 
     # not vectorized

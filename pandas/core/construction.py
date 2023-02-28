@@ -52,6 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
@@ -126,12 +127,6 @@ def array(
         ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
-
-        .. versionchanged:: 1.0.0
-
-           Pandas infers nullable-integer dtype for integer data,
-           string dtype for string data, and nullable-boolean dtype
-           for boolean data.
 
         .. versionchanged:: 1.2.0
 
@@ -308,6 +303,8 @@ def array(
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
+    elif isinstance(data, ABCDataFrame):
+        raise TypeError("Cannot pass DataFrame to 'pandas.array'")
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
@@ -666,7 +663,9 @@ def _sanitize_ndim(
         if isinstance(data, np.ndarray):
             if allow_2d:
                 return result
-            raise ValueError("Data must be 1-dimensional")
+            raise ValueError(
+                f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
+            )
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 

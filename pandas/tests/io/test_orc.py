@@ -1,7 +1,9 @@
 """ test orc compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -98,8 +100,6 @@ def test_orc_reader_basic(dirpath):
 
 
 def test_orc_reader_decimal(dirpath):
-    from decimal import Decimal
-
     # Only testing the first 10 rows of data
     data = {
         "_col0": np.array(
@@ -383,4 +383,26 @@ def test_orc_use_nullable_dtypes_pandas_backend():
         }
     )
 
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow", min_version="7.0.0")
+def test_orc_use_nullable_dtypes_option():
+    # GH#50748
+    df = pd.DataFrame({"int": list(range(1, 4))})
+
+    bytes_data = df.copy().to_orc()
+    with pd.option_context("mode.nullable_dtypes", True):
+        result = read_orc(BytesIO(bytes_data))
+
+    expected = pd.DataFrame({"int": pd.Series([1, 2, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_orc_uri_path():
+    expected = pd.DataFrame({"int": list(range(1, 4))})
+    with tm.ensure_clean("tmp.orc") as path:
+        expected.to_orc(path)
+        uri = pathlib.Path(path).as_uri()
+        result = read_orc(uri)
     tm.assert_frame_equal(result, expected)

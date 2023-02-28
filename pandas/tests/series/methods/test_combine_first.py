@@ -68,7 +68,6 @@ class TestCombineFirst:
         tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self):
-
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)
@@ -100,3 +99,16 @@ class TestCombineFirst:
         )
         exp = Series(exp_vals, name="ser1")
         tm.assert_series_equal(exp, result)
+
+    def test_combine_first_timezone_series_with_empty_series(self):
+        # GH 41800
+        time_index = date_range(
+            datetime(2021, 1, 1, 1),
+            datetime(2021, 1, 1, 10),
+            freq="H",
+            tz="Europe/Rome",
+        )
+        s1 = Series(range(10), index=time_index)
+        s2 = Series(index=time_index)
+        result = s1.combine_first(s2)
+        tm.assert_series_equal(result, s1)

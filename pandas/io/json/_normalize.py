@@ -21,7 +21,6 @@ from pandas._typing import (
     IgnoreRaise,
     Scalar,
 )
-from pandas.util._decorators import deprecate
 
 import pandas as pd
 from pandas import DataFrame
@@ -245,7 +244,7 @@ def _simple_json_normalize(
     return normalised_json_object
 
 
-def _json_normalize(
+def json_normalize(
     data: dict | list[dict],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
@@ -535,8 +534,3 @@ def _json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
-
-
-json_normalize = deprecate(
-    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
-)

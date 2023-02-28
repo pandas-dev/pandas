@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from contextlib import nullcontext
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ContextManager,
     DefaultDict,
     Dict,
     Hashable,
@@ -292,6 +294,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -312,29 +318,47 @@ class Apply(metaclass=abc.ABCMeta):
         results = []
         keys = []
 
-        # degenerate case
-        if selected_obj.ndim == 1:
-            for a in arg:
-                colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                new_res = colg.aggregate(a)
-                results.append(new_res)
-
-                # make sure we find a good name
-                name = com.get_callable_name(a) or a
-                keys.append(name)
-
-        # multiples
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            indices = []
-            for index, col in enumerate(selected_obj):
-                colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                new_res = colg.aggregate(arg)
-                results.append(new_res)
-                indices.append(index)
-            keys = selected_obj.columns.take(indices)
+            context_manager = nullcontext()
+        with context_manager:
+            # degenerate case
+            if selected_obj.ndim == 1:
+                for a in arg:
+                    colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            a, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
+
+            else:
+                indices = []
+                for index, col in enumerate(selected_obj):
+                    colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            arg, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    results.append(new_res)
+                    indices.append(index)
+                keys = selected_obj.columns.take(indices)
 
         try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -346,16 +370,6 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> DataFrame | Series:
         """
@@ -366,6 +380,10 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation.
         """
         from pandas import Index
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -384,15 +402,24 @@ class Apply(metaclass=abc.ABCMeta):
 
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
-        if selected_obj.ndim == 1:
-            # key only used for output
-            colg = obj._gotitem(selection, ndim=1)
-            results = {key: colg.agg(how) for key, how in arg.items()}
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            # key used for column selection and output
-            results = {
-                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-            }
+            context_manager = nullcontext()
+        with context_manager:
+            if selected_obj.ndim == 1:
+                # key only used for output
+                colg = obj._gotitem(selection, ndim=1)
+                results = {key: colg.agg(how) for key, how in arg.items()}
+            else:
+                # key used for column selection and output
+                results = {
+                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                }
 
         # set the final keys
         keys = list(arg.keys())
@@ -559,13 +586,11 @@ class NDFrameApply(Apply):
     not GroupByApply or ResamplerWindowApply
     """
 
+    obj: DataFrame | Series
+
     @property
     def index(self) -> Index:
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
-        return self.obj.index  # type:ignore[arg-type]
+        return self.obj.index
 
     @property
     def agg_axis(self) -> Index:
@@ -757,7 +782,6 @@ class FrameApply(NDFrameApply):
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
             if ares == 1:
-
                 # must match return dim
                 if result_compare != len(res):
                     raise ValueError("cannot broadcast result")
@@ -910,7 +934,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for (arr, name) in zip(values, self.index):
+            for arr, name in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -955,7 +979,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects()
+        result = result.infer_objects(copy=False)
 
         return result
 
@@ -1163,7 +1187,6 @@ def reconstruct_func(
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
-
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(

@@ -4,20 +4,21 @@ on:
   push:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
   pull_request:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 env:
   PANDAS_CI: 1
   PYTEST_TARGET: pandas
   PATTERN: "not slow and not db and not network and not single_cpu"
-  ERROR_ON_WARNINGS: "1"
-
 
 permissions:
   contents: read
@@ -31,7 +32,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}

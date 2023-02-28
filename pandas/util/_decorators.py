@@ -228,7 +228,7 @@ def _format_argument_list(allow_args: list[str]) -> str:
 
     Returns
     -------
-    s : str
+    str
         The substring describing the argument list in best way to be
         inserted to the warning message.
 
@@ -333,36 +333,6 @@ def deprecate_nonkeyword_arguments(
         # attribute "__signature__"
         wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
-
-    return decorate
-
-
-def rewrite_axis_style_signature(
-    name: str, extra_params: list[tuple[str, Any]]
-) -> Callable[[F], F]:
-    def decorate(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable[..., Any]:
-            return func(*args, **kwargs)
-
-        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-        params = [
-            inspect.Parameter("self", kind),
-            inspect.Parameter(name, kind, default=None),
-            inspect.Parameter("index", kind, default=None),
-            inspect.Parameter("columns", kind, default=None),
-            inspect.Parameter("axis", kind, default=None),
-        ]
-
-        for pname, default in extra_params:
-            params.append(inspect.Parameter(pname, kind, default=default))
-
-        sig = inspect.Signature(params)
-
-        # https://github.com/python/typing/issues/598
-        # error: "F" has no attribute "__signature__"
-        func.__signature__ = sig  # type: ignore[attr-defined]
-        return cast(F, wrapper)
 
     return decorate
 
@@ -531,6 +501,5 @@ __all__ = [
     "deprecate_nonkeyword_arguments",
     "doc",
     "future_version_msg",
-    "rewrite_axis_style_signature",
     "Substitution",
 ]

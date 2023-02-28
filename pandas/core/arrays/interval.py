@@ -46,7 +46,10 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import (
+    LossySetitemError,
+    maybe_upcast_numeric_to_64bit,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -232,7 +235,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
@@ -241,7 +243,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
-
             # don't allow scalars
             if is_scalar(data):
                 msg = (
@@ -304,7 +305,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         from pandas.core.indexes.base import ensure_index
 
         left = ensure_index(left, copy=copy)
+        left = maybe_upcast_numeric_to_64bit(left)
+
         right = ensure_index(right, copy=copy)
+        right = maybe_upcast_numeric_to_64bit(right)
 
         if closed is None and isinstance(dtype, IntervalDtype):
             closed = dtype.closed
@@ -608,7 +612,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = right = data
 
         for d in data:
-            if isna(d):
+            if not isinstance(d, tuple) and isna(d):
                 lhs = rhs = np.nan
             else:
                 name = cls.__name__
@@ -669,7 +673,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         dtype = IntervalDtype(left.dtype, closed=self.closed)
         left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
-        self._validate(left, right, dtype=dtype)
 
         return self._simple_new(left, right, dtype=dtype)
 
@@ -721,7 +724,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
-        return self._shallow_copy(left, right)
+        # Argument 2 to "_simple_new" of "IntervalArray" has incompatible type
+        # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
+        # ndarray[Any, Any]]"
+        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
@@ -1045,8 +1052,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if not len(self) or periods == 0:
             return self.copy()
 
-        if isna(fill_value):
-            fill_value = self.dtype.na_value
+        self._validate_scalar(fill_value)
 
         # ExtensionArray.shift doesn't work for two reasons
         # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
@@ -1176,7 +1182,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             value = self.left._na_value
@@ -1223,7 +1228,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Rendering Methods
 
     def _format_data(self) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         n = len(self)
@@ -1241,7 +1245,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             last = formatter(self[-1])
             summary = f"[{first}, {last}]"
         else:
-
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
@@ -1787,5 +1790,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         values = extract_array(values, extract_numpy=True)
 
     if not hasattr(values, "dtype"):
-        return np.asarray(values)
+        values = np.asarray(values)
+        if is_integer_dtype(values) and values.dtype != np.int64:
+            values = values.astype(np.int64)
     return values

@@ -110,7 +110,6 @@ def test_constructor_with_win_type_invalid(frame_or_series):
 
 
 @td.skip_if_no_scipy
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_window_with_args(step):
     # make sure that we are aggregating window functions correctly with arg
     r = Series(np.random.randn(100)).rolling(

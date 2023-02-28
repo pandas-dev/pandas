@@ -308,6 +308,7 @@ cpdef ndarray astype_overflowsafe(
     cnp.dtype dtype,
     bint copy=True,
     bint round_ok=True,
+    bint is_coerce=False,
 ):
     """
     Convert an ndarray with datetime64[X] to datetime64[Y]
@@ -385,7 +386,9 @@ cpdef ndarray astype_overflowsafe(
             try:
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
-                if is_td:
+                if is_coerce:
+                    new_value = NPY_DATETIME_NAT
+                elif is_td:
                     from_abbrev = np.datetime_data(values.dtype)[0]
                     np_val = np.timedelta64(value, from_abbrev)
                     msg = (
@@ -395,8 +398,8 @@ cpdef ndarray astype_overflowsafe(
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
                     raise
-
-            new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+            else:
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -568,6 +571,8 @@ cdef int64_t get_conversion_factor(
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+    else:
+        raise ValueError("Converting from M or Y units is not supported.")
 
 
 cdef int64_t convert_reso(
