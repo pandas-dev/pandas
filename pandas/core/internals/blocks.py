@@ -889,7 +889,9 @@ class Block(PandasObject):
 
         return self.values[slicer]
 
-    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
+    def set_inplace(
+        self, locs, values: ArrayLike, copy: bool = False, refs=None
+    ) -> None:
         """
         Modify block values in-place with new item value.
 
@@ -903,6 +905,8 @@ class Block(PandasObject):
 
         Caller is responsible for checking values.dtype == self.dtype.
         """
+        if refs is not None:
+            values = values.copy()
         if copy:
             self.values = self.values.copy()
         self.values[locs] = values
@@ -1853,9 +1857,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
+    def set_inplace(
+        self, locs, values: ArrayLike, copy: bool = False, refs=None
+    ) -> None:
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
+        if refs is not None:
+            self = self.make_block(values, refs=refs)
+            return
         if copy:
             self.values = self.values.copy()
         self.values[:] = values

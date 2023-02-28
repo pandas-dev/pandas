@@ -4085,10 +4085,10 @@ class DataFrame(NDFrame, OpsMixin):
         self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
-        self, loc: int | slice | np.ndarray, value, inplace: bool = False
+        self, loc: int | slice | np.ndarray, value, inplace: bool = False, refs=None
     ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
-        self._mgr.iset(loc, value, inplace=inplace)
+        self._mgr.iset(loc, value, inplace=inplace, refs=refs)
         self._clear_item_cache()
 
     def _set_item_mgr(self, key, value: ArrayLike, refs=None) -> None:
@@ -4098,7 +4098,7 @@ class DataFrame(NDFrame, OpsMixin):
             # This item wasn't present, just insert at end
             self._mgr.insert(len(self._info_axis), key, value, refs)
         else:
-            self._iset_item_mgr(loc, value, refs)
+            self._iset_item_mgr(loc, value, refs=refs)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -4126,7 +4126,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value, refs = self._sanitize_column(value)
+        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
 
         if (
             key in self.columns
@@ -4837,7 +4837,9 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
+    def _sanitize_column(
+        self, value, using_cow: bool = False
+    ) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -4857,9 +4859,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_dict_like(value):
             if not isinstance(value, Series):
                 value = Series(value)
-            return _reindex_for_setitem(
-                value, self.index, using_cow=using_copy_on_write()
-            )
+            return _reindex_for_setitem(value, self.index, using_cow=using_cow)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)

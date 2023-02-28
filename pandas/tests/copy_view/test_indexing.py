@@ -977,7 +977,7 @@ def test_column_as_series_no_item_cache(
 # TODO add tests for other indexing methods on the Series
 
 
-def test_dataframe_add_column_from_series(backend):
+def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     # Case: adding a new column to a DataFrame from an existing column/series
     # -> always already takes a copy on assignment
     # (no change in behaviour here)
@@ -987,7 +987,10 @@ def test_dataframe_add_column_from_series(backend):
 
     s = Series([10, 11, 12])
     df["new"] = s
-    assert not np.shares_memory(get_array(df, "new"), s.values)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "new"), get_array(s))
+    else:
+        assert not np.shares_memory(get_array(df, "new"), get_array(s))
 
     # editing series -> doesn't modify column in frame
     s[0] = 0

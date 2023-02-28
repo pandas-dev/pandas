@@ -1114,7 +1114,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return result  # type: ignore[return-value]
 
     def iset(
-        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+        self,
+        loc: int | slice | np.ndarray,
+        value: ArrayLike,
+        inplace: bool = False,
+        refs=None,
     ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
@@ -1155,6 +1159,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     inplace=inplace,
                     blkno=blkno,
                     blk=blk,
+                    refs=refs,
                 )
 
             # error: Incompatible types in assignment (expression has type
@@ -1186,7 +1191,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
+                    self._iset_split_block(
+                        blkno_l, blk_locs, value_getitem(val_locs), refs=refs
+                    )
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
@@ -1230,6 +1237,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     new_block_2d(
                         values=value,
                         placement=BlockPlacement(slice(mgr_loc, mgr_loc + 1)),
+                        refs=refs,
                     )
                     for mgr_loc in unfit_idxr
                 )
@@ -1245,6 +1253,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     new_block_2d(
                         values=value_getitem(unfit_val_items),
                         placement=BlockPlacement(unfit_idxr),
+                        refs=refs,
                     )
                 )
 
@@ -1261,6 +1270,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blkno_l: int,
         blk_locs: np.ndarray | list[int],
         value: ArrayLike | None = None,
+        refs=None,
     ) -> None:
         """Removes columns from a block by splitting the block.
 
@@ -1282,7 +1292,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
-            first_nb = new_block_2d(value, BlockPlacement(locs))
+            first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
         else:
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
@@ -1304,7 +1314,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
     def _iset_single(
-        self, loc: int, value: ArrayLike, inplace: bool, blkno: int, blk: Block
+        self,
+        loc: int,
+        value: ArrayLike,
+        inplace: bool,
+        blkno: int,
+        blk: Block,
+        refs=None,
     ) -> None:
         """
         Fastpath for iset when we are only setting a single position and
@@ -1321,10 +1337,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # perform Copy-on-Write and clear the reference
                 copy = True
             iloc = self.blklocs[loc]
-            blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
+            blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy, refs=refs)
             return
 
-        nb = new_block_2d(value, placement=blk._mgr_locs)
+        nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
         self.blocks = new_blocks
