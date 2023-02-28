@@ -3897,6 +3897,12 @@ class DataFrame(NDFrame, OpsMixin):
             if is_scalar(loc):
                 loc = [loc]
 
+            if len(loc) != len(value.columns):
+                raise ValueError(
+                    f"Got {len(loc)} positions but value has {len(value.columns)} "
+                    f"columns."
+                )
+
             for i, idx in enumerate(loc):
                 arraylike = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False)
