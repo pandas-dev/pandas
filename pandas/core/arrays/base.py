@@ -1455,6 +1455,16 @@ class ExtensionArray:
         Hook for hash_pandas_object.
 
         Default is likely non-performant.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+
+        Returns
+        -------
+        np.ndarray[uint64]
         """
         from pandas.core.util.hashing import hash_array
 

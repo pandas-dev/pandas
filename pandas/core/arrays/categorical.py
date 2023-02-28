@@ -1767,7 +1767,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> npt.NDArray[np.uint64]:
         """
         Hash a Categorical by hashing its categories, and then mapping the codes
-        to the hashes
+        to the hashes.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+            Ignored for Categorical.
+
+        Returns
+        -------
+        np.ndarray[uint64]
         """
         # Note we ignore categorize, as we are already Categorical.
         from pandas.core.util.hashing import hash_array
