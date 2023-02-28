@@ -191,7 +191,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`concat` sorting :class:`Index` when only :class:`DatetimeIndex` is given (:issue:`51210`)
 -
 
 Sparse
