@@ -202,6 +202,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
+- Bug in :class:`~arrays.ArrowExtensionArray` logical operations ``&`` and ``|`` raising ``KeyError`` (:issue:`51688`)
 -
 
 Styler
