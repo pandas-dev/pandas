@@ -261,6 +261,7 @@ class ExtensionDtype:
         For extension dtypes with arguments the following may be an
         adequate implementation.
 
+        >>> import re
         >>> @classmethod
         ... def construct_from_string(cls, string):
         ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")

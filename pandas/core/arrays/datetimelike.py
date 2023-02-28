@@ -258,8 +258,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
-        10000000000
+        >>> arr = pd.arrays.DatetimeArray(np.array(['1970-01-01'], 'datetime64[ns]'))
+        >>> arr._unbox_scalar(arr[0])
+        numpy.datetime64('1970-01-01T00:00:00.000000000')
         """
         raise AbstractMethodError(self)
 
