@@ -2179,6 +2179,8 @@ class DataFrame(NDFrame, OpsMixin):
                 stacklevel=find_stack_level(),
             )
             if columns is not None:
+                if is_scalar(columns):
+                    columns = [columns]
                 data = data[columns]
             if index is not None:
                 data = data.set_index(index)
