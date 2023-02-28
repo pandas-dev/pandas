@@ -312,6 +312,21 @@ $1$,$2$
         ser = ser.astype("category")
         assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
 
+    def test_to_csv_period_to_different_date_format(self):
+        df = DataFrame(
+            data={"period": pd.period_range(start="2000-01-01", periods=5, freq="H")}
+        )
+        expected_rows = [
+            ",period",
+            "0,2000-01-01___00:00:00",
+            "1,2000-01-01___01:00:00",
+            "2,2000-01-01___02:00:00",
+            "3,2000-01-01___03:00:00",
+            "4,2000-01-01___04:00:00",
+        ]
+        expected_ymdhms_hour = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected_ymdhms_hour
+
     def test_to_csv_float_ea_float_format(self):
         # GH#45991
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})

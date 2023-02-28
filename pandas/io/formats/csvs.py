@@ -307,7 +307,10 @@ class CSVFormatter:
         df = self.obj.iloc[slicer]
 
         res = df._mgr.to_native_types(**self._number_format)
-        data = [res.iget_values(i) for i in range(len(res.items))]
+        data = [
+            self._change_to_str_date_format(res.iget_values(i))
+            for i in range(len(res.items))
+        ]
 
         ix = self.data_index[slicer]._format_native_types(**self._number_format)
         libwriters.write_csv_rows(
@@ -317,3 +320,15 @@ class CSVFormatter:
             self.cols,
             self.writer,
         )
+
+    def _change_to_str_date_format(self, col: list) -> list:
+        if self.date_format is not None:
+            col = [
+                x
+                if isinstance(x, str)
+                else x.strftime(self.date_format)
+                if notna(x)
+                else ""
+                for x in col
+            ]
+        return col
