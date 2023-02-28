@@ -357,7 +357,9 @@ Concretely:
 - the testing burden would be too high. Properly testing this would mean almost doubling the size of the test suite.
   Coverage for options already is not great: for example [this issue](https://github.com/pandas-dev/pandas/issues/49732)
   was caused by a PR which passed CI, but CI did not (and still does not) cover that option (plotting backends);
-- it will not benefit most users, as users do not tend to use nor discover options which are not the default.
+- it will not benefit most users, as users do not tend to use nor discover options which are not the default;
+- it would be difficult to reconcile with some existing behaviours: for example, ``df.sum()`` returns a Series with the
+  column names in the index.
 
 In order to make no-index the pandas default and have a chance of benefiting users, a more comprehensive set of changes
 would need to made at the same time. This would require a proposal much larger in scope, and would be a much more radical change.
@@ -373,5 +375,6 @@ This has still been a useful exercise, though, as it has resulted in two related
 ## PDEP History
 
 - 14 November 2022: Initial draft
-- 18 November 2022: First revision
-- 14 December 2022: Withdrawal
+- 18 November 2022: First revision (limited the proposal to a new class, leaving a ``mode`` to a separate proposal)
+- 14 December 2022: Withdrawal (difficulty reconciling with some existing methods, lack of strong support,
+  maintenance burden increasing unjustifiably)
